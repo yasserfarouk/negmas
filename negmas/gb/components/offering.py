@@ -23,8 +23,8 @@ if TYPE_CHECKING:
 
 
 __all__ = [
-    "SCSOfferingPolicy",
-    "ESCSOfferingPolicy",
+    "CABOfferingPolicy",
+    "WAROfferingPolicy",
     "LimitedOutcomesOfferingPolicy",
     "NegotiatorOfferingPolicy",
     "ConcensusOfferingPolicy",
@@ -113,7 +113,7 @@ class MiCROOfferingPolicy(OfferingPolicy):
 
 
 @define
-class SCSOfferingPolicy(OfferingPolicy):
+class CABOfferingPolicy(OfferingPolicy):
 
     next_indx: int = 0
     sorter: PresortingInverseUtilityFunction | None = field(repr=False, default=None)
@@ -166,7 +166,7 @@ class SCSOfferingPolicy(OfferingPolicy):
 
 
 @define
-class ESCSOfferingPolicy(OfferingPolicy):
+class WAROfferingPolicy(OfferingPolicy):
 
     next_indx: int = 0
     sorter: PresortingInverseUtilityFunction | None = field(repr=False, default=None)

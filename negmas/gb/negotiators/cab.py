@@ -1,18 +1,18 @@
 from __future__ import annotations
 
-from ..components.acceptance import AcceptAnyRational, SCSAcceptancePolicy
-from ..components.offering import ESCSOfferingPolicy
+from ..components.acceptance import AcceptAnyRational, AcceptBetterRational
+from ..components.offering import CABOfferingPolicy
 from .modular.mapneg import MAPNegotiator
 
 __all__ = [
-    "ESCSNegotiator",
-    "ESCSARNegotiator",
+    "CABNegotiator",
+    "CARNegotiator",
 ]
 
 
-class ESCSNegotiator(MAPNegotiator):
+class CABNegotiator(MAPNegotiator):
     """
-    Exploring Slow Concession Negotiator
+    Conceding Accepting Better Strategy (optimal, complete, but not an equilibirum)
 
     Args:
          name: Negotiator name
@@ -24,14 +24,14 @@ class ESCSNegotiator(MAPNegotiator):
     """
 
     def __init__(self, *args, **kwargs):
-        kwargs["acceptance"] = SCSAcceptancePolicy()
-        kwargs["offering"] = ESCSOfferingPolicy()
+        kwargs["acceptance"] = AcceptBetterRational()
+        kwargs["offering"] = CABOfferingPolicy()
         super().__init__(*args, **kwargs)
 
 
-class ESCSARNegotiator(MAPNegotiator):
+class CARNegotiator(MAPNegotiator):
     """
-    Exploring Slow Concession Negotiator (Accepting any rational outcome)
+    Conceding Accepting Rational Strategy (neither complete nor an equilibrium)
 
     Args:
          name: Negotiator name
@@ -44,5 +44,5 @@ class ESCSARNegotiator(MAPNegotiator):
 
     def __init__(self, *args, **kwargs):
         kwargs["acceptance"] = AcceptAnyRational()
-        kwargs["offering"] = ESCSOfferingPolicy()
+        kwargs["offering"] = CABOfferingPolicy()
         super().__init__(*args, **kwargs)

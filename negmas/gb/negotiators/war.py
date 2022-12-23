@@ -1,48 +1,48 @@
 from __future__ import annotations
 
-from ..components.acceptance import AcceptAnyRational, SCSAcceptancePolicy
-from ..components.offering import SCSOfferingPolicy
+from ..components.acceptance import AcceptAnyRational, AcceptBetterRational
+from ..components.offering import WAROfferingPolicy
 from .modular.mapneg import MAPNegotiator
 
 __all__ = [
-    "SCSNegotiator",
-    "SCSARNegotiator",
+    "WABNegotiator",
+    "WARNegotiator",
 ]
 
 
-class SCSNegotiator(MAPNegotiator):
+class WABNegotiator(MAPNegotiator):
     """
-    Rational Concession Negotiator
+    Wasting Accepting Better (neither complete nor an equilibrium)
 
     Args:
          name: Negotiator name
          parent: Parent controller if any
          preferences: The preferences of the negotiator
-         ufun: The ufun of the negotiator (overrides prefrences)
+         ufun: The ufun of the negotiator (overrides preferences)
          owner: The `Agent` that owns the negotiator.
 
     """
 
     def __init__(self, *args, **kwargs):
-        kwargs["acceptance"] = SCSAcceptancePolicy()
-        kwargs["offering"] = SCSOfferingPolicy()
+        kwargs["acceptance"] = AcceptBetterRational()
+        kwargs["offering"] = WAROfferingPolicy()
         super().__init__(*args, **kwargs)
 
 
-class SCSARNegotiator(MAPNegotiator):
+class WARNegotiator(MAPNegotiator):
     """
-    Rational Concession Negotiator
+    Wasting Accepting Any (an equilibrium but not complete)
 
     Args:
          name: Negotiator name
          parent: Parent controller if any
          preferences: The preferences of the negotiator
-         ufun: The ufun of the negotiator (overrides prefrences)
+         ufun: The ufun of the negotiator (overrides preferences)
          owner: The `Agent` that owns the negotiator.
 
     """
 
     def __init__(self, *args, **kwargs):
         kwargs["acceptance"] = AcceptAnyRational()
-        kwargs["offering"] = SCSOfferingPolicy()
+        kwargs["offering"] = WAROfferingPolicy()
         super().__init__(*args, **kwargs)

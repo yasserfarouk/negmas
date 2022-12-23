@@ -9,8 +9,8 @@ from .timebased import *
 from .titfortat import *
 from .randneg import *
 from .nice import *
-from .scs import *
-from .escs import *
+from .war import *
+from .cab import *
 from .micro import *
 
 
@@ -23,7 +23,7 @@ __all__ = (
     + titfortat.__all__
     + randneg.__all__
     + nice.__all__
-    + scs.__all__
-    + escs.__all__
+    + cab.__all__
+    + war.__all__
     + micro.__all__
 )
