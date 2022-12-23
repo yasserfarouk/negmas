@@ -24,7 +24,6 @@ if TYPE_CHECKING:
     from .offering import MiCROOfferingPolicy, OfferingPolicy
 
 __all__ = [
-    "SCSAcceptancePolicy",
     "LimitedOutcomesAcceptancePolicy",
     "NegotiatorAcceptancePolicy",
     "ConcensusAcceptancePolicy",
@@ -47,16 +46,14 @@ __all__ = [
     "AcceptBetween",
     "ACConst",
     "AcceptAnyRational",
+    "AcceptBetterRational",
 ]
 
 
 @define
 class AcceptAnyRational(AcceptancePolicy):
     """
-    Accepts any rational outcome
-
-    Remarks:
-        accepts any offer better than the current thread offer as long as it is better than the current offer
+    Accepts any rational outcome.
     """
 
     def __call__(self, state: GBState, offer: Outcome, source: str) -> ResponseType:
@@ -69,12 +66,9 @@ class AcceptAnyRational(AcceptancePolicy):
 
 
 @define
-class SCSAcceptancePolicy(AcceptancePolicy):
+class AcceptBetterRational(AcceptancePolicy):
     """
-    Implements the Rational Concession Acceptance Policy.
-
-    Remarks:
-        accepts any offer better than the current thread offer as long as it is better than the current offer
+    Accept first rational outcomes and then accept only outcomes better than the all accepted so far.
     """
 
     def __call__(self, state: GBState, offer: Outcome, source: str) -> ResponseType:
