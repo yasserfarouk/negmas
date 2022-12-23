@@ -7,13 +7,13 @@ from typing import Iterable
 import hypothesis.strategies as st
 import pkg_resources
 import pytest
-from hypothesis import Verbosity, example, given, settings
+from hypothesis import Verbosity, given, settings
 
 from negmas.gb.evaluators.tau import INFINITE
 from negmas.gb.mechanisms.mechanisms import GAOMechanism, TAUMechanism
-from negmas.gb.negotiators.escs import ESCSNegotiator
-from negmas.gb.negotiators.scs import SCSNegotiator
+from negmas.gb.negotiators.cab import CABNegotiator
 from negmas.gb.negotiators.timebased import AspirationNegotiator
+from negmas.gb.negotiators.war import WARNegotiator
 from negmas.genius.gnegotiators import Atlas3
 from negmas.inout import Scenario
 from negmas.mechanisms import Mechanism
@@ -54,7 +54,7 @@ def _plot(p, err=False, force=False):
     plt.savefig("fig.png")
 
 
-def test_small_tau_session2_escs():
+def test_small_tau_session2_war():
     n = 2
     u1 = [1.0, 0.0]
     u2 = [0.0, 1.0]
@@ -68,7 +68,7 @@ def test_small_tau_session2_escs():
     ]
     for i, u in enumerate(ufuns):
         p.add(
-            ESCSNegotiator(name=f"RCS{i}", id=f"RCS{i}"),
+            WARNegotiator(name=f"RCS{i}", id=f"RCS{i}"),
             preferences=u,
         )
     front_utils, front_outcomes = p.pareto_frontier()
@@ -97,7 +97,7 @@ def test_small_tau_session2():
     ]
     for i, u in enumerate(ufuns):
         p.add(
-            SCSNegotiator(name=f"RCS{i}", id=f"RCS{i}"),
+            CABNegotiator(name=f"RCS{i}", id=f"RCS{i}"),
             preferences=u,
         )
     front_utils, front_outcomes = p.pareto_frontier()
@@ -122,7 +122,7 @@ def test_a_tau_session_example():
         ufuns = [LU.random(os, reserved_value=r1), LU.random(os, reserved_value=r2)]
         for i, u in enumerate(ufuns):
             p.add(
-                SCSNegotiator(name=f"RCS{i}", id=f"RCS{i}"),
+                CABNegotiator(name=f"RCS{i}", id=f"RCS{i}"),
                 preferences=u,
             )
         front_utils, front_outcomes = p.pareto_frontier()
@@ -382,8 +382,8 @@ def run_anac_example(
 
 def test_buyer_seller_easy():
     run_buyer_seller(
-        SCSNegotiator,
-        SCSNegotiator,
+        CABNegotiator,
+        CABNegotiator,
         normalized=True,
         seller_reserved=0.1,
         buyer_reserved=0.1,
@@ -447,8 +447,8 @@ def test_buyer_seller_sao_genius():
 
 def test_buyer_seller_alphainf():
     run_buyer_seller(
-        SCSNegotiator,
-        SCSNegotiator,
+        CABNegotiator,
+        CABNegotiator,
         normalized=True,
         seller_reserved=0.5,
         buyer_reserved=0.6,
@@ -460,8 +460,8 @@ def test_buyer_seller_alphainf():
 
 def test_buyer_seller_alpha0():
     run_buyer_seller(
-        SCSNegotiator,
-        SCSNegotiator,
+        CABNegotiator,
+        CABNegotiator,
         normalized=True,
         seller_reserved=0.5,
         buyer_reserved=0.6,
@@ -474,8 +474,8 @@ def test_buyer_seller_alpha0():
 def test_buyer_seller_betainf():
     with pytest.raises(AssertionError):
         run_buyer_seller(
-            SCSNegotiator,
-            SCSNegotiator,
+            CABNegotiator,
+            CABNegotiator,
             normalized=True,
             seller_reserved=0.5,
             buyer_reserved=0.6,
@@ -486,8 +486,8 @@ def test_buyer_seller_betainf():
 
 def test_buyer_seller_beta0():
     run_buyer_seller(
-        SCSNegotiator,
-        SCSNegotiator,
+        CABNegotiator,
+        CABNegotiator,
         normalized=True,
         seller_reserved=0.5,
         buyer_reserved=0.6,
@@ -498,8 +498,8 @@ def test_buyer_seller_beta0():
 
 def test_anac_scenario_example_single():
     run_anac_example(
-        SCSNegotiator,
-        SCSNegotiator,
+        CABNegotiator,
+        CABNegotiator,
         force_plot=FORCE_PLOT,
         single_issue=True,
         remove_under=False,
@@ -553,7 +553,7 @@ def test_anac_scenario_example_genius_single():
 
 
 def test_anac_scenario_example():
-    run_anac_example(SCSNegotiator, SCSNegotiator, force_plot=FORCE_PLOT)
+    run_anac_example(CABNegotiator, CABNegotiator, force_plot=FORCE_PLOT)
 
 
 def test_anac_scenario_example_sao():
@@ -577,8 +577,8 @@ def test_anac_scenario_example_genius():
 
 def test_adversarial_case_easy():
     run_adversarial_case(
-        SCSNegotiator,
-        SCSNegotiator,
+        CABNegotiator,
+        CABNegotiator,
         force_plot=FORCE_PLOT,
     )
 
@@ -629,7 +629,7 @@ def test_a_tau_session(r1, r2, n1, n2, U1, U2):
     ufuns = [U1.random(os, reserved_value=r1), U2.random(os, reserved_value=r2)]
     for i, u in enumerate(ufuns):
         p.add(
-            SCSNegotiator(name=f"SCS{i}"),
+            CABNegotiator(name=f"CAB{i}"),
             preferences=u,
         )
     p.run()
