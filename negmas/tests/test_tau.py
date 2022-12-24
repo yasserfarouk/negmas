@@ -8,12 +8,13 @@ import hypothesis.strategies as st
 import pkg_resources
 import pytest
 from hypothesis import Verbosity, given, settings
+from matplotlib.axes import itertools
 
 from negmas.gb.evaluators.tau import INFINITE
 from negmas.gb.mechanisms.mechanisms import GAOMechanism, TAUMechanism
-from negmas.gb.negotiators.cab import CABNegotiator
+from negmas.gb.negotiators.cab import CABNegotiator, CANNegotiator, CARNegotiator
 from negmas.gb.negotiators.timebased import AspirationNegotiator
-from negmas.gb.negotiators.war import WARNegotiator
+from negmas.gb.negotiators.war import WABNegotiator, WANNegotiator, WARNegotiator
 from negmas.genius.gnegotiators import Atlas3
 from negmas.inout import Scenario
 from negmas.mechanisms import Mechanism
@@ -21,7 +22,6 @@ from negmas.outcomes.base_issue import make_issue
 from negmas.outcomes.categorical_issue import CategoricalIssue
 from negmas.outcomes.common import Outcome
 from negmas.outcomes.outcome_space import DiscreteCartesianOutcomeSpace, make_os
-from negmas.preferences.crisp import MappingUtilityFunction as U
 from negmas.preferences.crisp.linear import LinearAdditiveUtilityFunction as LU
 from negmas.preferences.crisp.mapping import MappingUtilityFunction
 from negmas.preferences.crisp_ufun import UtilityFunction
@@ -33,6 +33,106 @@ from tests.switches import NEGMAS_RUN_GENIUS
 SHOW_PLOTS = False
 SHOW_ALL_PLOTS = False
 FORCE_PLOT = False
+SHOW_HISTORY = False
+SHOW_ALL_HISTORIES = False
+FORCE_HISTORY = False
+NEGOTIATORS = [
+    WARNegotiator,
+    CANNegotiator,
+    CARNegotiator,
+    WANNegotiator,
+    CABNegotiator,
+    WABNegotiator,
+]
+
+PROPOSED = [
+    WARNegotiator,
+    CABNegotiator,
+]
+
+RATIONAL_REJECTOR = [
+    CANNegotiator,
+    WANNegotiator,
+    CABNegotiator,
+    WABNegotiator,
+]
+
+BEST_ACCEPTOR = [
+    CABNegotiator,
+    WABNegotiator,
+]
+# all proposed TAU strategies are rational
+RATIONAL = list(itertools.product(NEGOTIATORS, NEGOTIATORS))
+IRRATIONAL = [
+    _ for _ in itertools.product(NEGOTIATORS, NEGOTIATORS) if _ not in RATIONAL
+]
+
+
+# If one side is WAR and the other side may reject a rational outcome, the negotiation may be incomplete
+INCOMPLETE = list(
+    set(
+        list(
+            itertools.chain(
+                *(
+                    [
+                        itertools.permutations(_)
+                        for _ in zip(itertools.repeat(WANNegotiator), RATIONAL_REJECTOR)
+                    ]
+                    + [
+                        itertools.permutations(_)
+                        for _ in zip(itertools.repeat(WARNegotiator), RATIONAL_REJECTOR)
+                    ]
+                    + [
+                        itertools.permutations(_)
+                        for _ in zip(itertools.repeat(WABNegotiator), RATIONAL_REJECTOR)
+                    ]
+                )
+            )
+        )
+    )
+)
+COMPLETE = [
+    _ for _ in itertools.product(NEGOTIATORS, NEGOTIATORS) if _ not in INCOMPLETE
+]
+
+# An optimal strategy profile is one for which both sides are from the proposed set
+OPTIMAL = list(itertools.product(BEST_ACCEPTOR, BEST_ACCEPTOR))
+NONOPTIMAL = [
+    _ for _ in itertools.product(NEGOTIATORS, NEGOTIATORS) if _ not in OPTIMAL
+]
+
+
+EQUILIBRIUM = [
+    (WARNegotiator, WARNegotiator),
+]
+NONEQUILIBRIUM = [
+    _ for _ in itertools.product(NEGOTIATORS, NEGOTIATORS) if _ not in EQUILIBRIUM
+]
+
+
+NORAISE = [
+    (WARNegotiator, WARNegotiator),
+    (WARNegotiator, CANNegotiator),
+    (WARNegotiator, WANNegotiator),
+    (WARNegotiator, CABNegotiator),
+    (WARNegotiator, WABNegotiator),
+    (CANNegotiator, WARNegotiator),
+    (CANNegotiator, WANNegotiator),
+    (CANNegotiator, WABNegotiator),
+    (WANNegotiator, WARNegotiator),
+    (WANNegotiator, CANNegotiator),
+    (WANNegotiator, WANNegotiator),
+    (WANNegotiator, CABNegotiator),
+    (WANNegotiator, WABNegotiator),
+    (CABNegotiator, WARNegotiator),
+    (CABNegotiator, WANNegotiator),
+    (CABNegotiator, WABNegotiator),
+    (WABNegotiator, WARNegotiator),
+    (WABNegotiator, CANNegotiator),
+    (WABNegotiator, WANNegotiator),
+    (WABNegotiator, CABNegotiator),
+    (WABNegotiator, WABNegotiator),
+]
 
 
 @pytest.fixture
@@ -54,65 +154,16 @@ def _plot(p, err=False, force=False):
     plt.savefig("fig.png")
 
 
-def test_small_tau_session2_war():
-    n = 2
-    u1 = [1.0, 0.0]
-    u2 = [0.0, 1.0]
-    r1, r2 = float("-inf"), float("-inf")
-    force_plot = False
-    os: DiscreteCartesianOutcomeSpace = make_os([make_issue(n)])  # type: ignore
-    p = TAUMechanism(outcome_space=os)
-    ufuns = [
-        U({(_,): u[_] for _ in range(n)}, reserved_value=r, outcome_space=os)
-        for u, r in ((u1, r1), (u2, r2))
-    ]
-    for i, u in enumerate(ufuns):
-        p.add(
-            WARNegotiator(name=f"RCS{i}", id=f"RCS{i}"),
-            preferences=u,
-        )
-    front_utils, front_outcomes = p.pareto_frontier()
-    no_valid_outcomes = all(u1 <= r1 or u2 <= r2 for u1, u2 in front_utils)
-    p.run()
-    assert len(p.history) > 0, f"{p.state}"
-    assert (
-        p.agreement is not None or no_valid_outcomes
-    ), f"{p.history}{_plot(p, True, force=force_plot)}"
-    assert p.agreement in front_outcomes or p.agreement is None
-    assert all((_,) in p.negotiator_offers(f"RCS{_}") for _ in range(n))
-    _plot(p, False, force=force_plot)
+def _history(p, err=False, force=False):
+    if not force and err and not SHOW_HISTORY:
+        return ""
+    if not force and not err and not SHOW_ALL_HISTORIES:
+        return ""
+    return p.history
 
 
-def test_small_tau_session2():
-    n = 2
-    u1 = [1.0, 0.0]
-    u2 = [0.0, 1.0]
-    r1, r2 = float("-inf"), float("-inf")
-    force_plot = False
-    os: DiscreteCartesianOutcomeSpace = make_os([make_issue(n)])  # type: ignore
-    p = TAUMechanism(outcome_space=os)
-    ufuns = [
-        U({(_,): u[_] for _ in range(n)}, reserved_value=r, outcome_space=os)
-        for u, r in ((u1, r1), (u2, r2))
-    ]
-    for i, u in enumerate(ufuns):
-        p.add(
-            CABNegotiator(name=f"RCS{i}", id=f"RCS{i}"),
-            preferences=u,
-        )
-    front_utils, front_outcomes = p.pareto_frontier()
-    no_valid_outcomes = all(u1 <= r1 or u2 <= r2 for u1, u2 in front_utils)
-    p.run()
-    assert len(p.history) > 0, f"{p.state}"
-    assert (
-        p.agreement is not None or no_valid_outcomes
-    ), f"{p.history}{_plot(p, True, force=force_plot)}"
-    assert p.agreement in front_outcomes or p.agreement is None
-    assert all((_,) in p.negotiator_offers(f"RCS{_}") for _ in range(n))
-    _plot(p, False, force=force_plot)
-
-
-def test_a_tau_session_example():
+@pytest.mark.parametrize("neg", NEGOTIATORS)
+def test_a_tau_session_example(neg):
     for _ in range(100):
         r1, r2, n1, n2 = 0.2, 0.3, 5, 10
         eps = 1e-3
@@ -122,7 +173,7 @@ def test_a_tau_session_example():
         ufuns = [LU.random(os, reserved_value=r1), LU.random(os, reserved_value=r2)]
         for i, u in enumerate(ufuns):
             p.add(
-                CABNegotiator(name=f"RCS{i}", id=f"RCS{i}"),
+                neg(name=f"RCS{i}", id=f"RCS{i}"),
                 preferences=u,
             )
         front_utils, front_outcomes = p.pareto_frontier()
@@ -131,10 +182,14 @@ def test_a_tau_session_example():
         )
         p.run()
         assert len(p.history) > 0, f"{p.state}"
-        assert (
-            p.agreement is not None or no_valid_outcomes
-        ), f"{p.history}{_plot(p, True)}"
-        assert p.agreement in front_outcomes or p.agreement is None
+        if (neg, neg) in COMPLETE:
+            assert (
+                p.agreement is not None or no_valid_outcomes
+            ), f"No agreement in a supposedly complete profile {_history(p)}{_plot(p, True)}"
+        if (neg, neg) in OPTIMAL:
+            assert (
+                p.agreement in front_outcomes or p.agreement is None
+            ), f"Suboptimal agreement in a supposedly optimal profile {_history(p)}{_plot(p, True)}"
 
 
 def run_adversarial_case(
@@ -199,10 +254,14 @@ def run_adversarial_case(
     session.run()
     assert len(session.history) > 0, f"{session.state}"
     if do_asserts:
-        assert (
-            session.agreement is not None or no_valid_outcomes
-        ), f"{session.history}{_plot(session, True, force=force_plot)}"
-        assert session.agreement in front_outcomes or session.agreement is None
+        if (buyer, seller) in COMPLETE:
+            assert (
+                session.agreement is not None or no_valid_outcomes
+            ), f"No agreement in a supposedly complete profile\n{_history(session)}{_plot(session, True, force=force_plot)}"
+        if (buyer, seller) in OPTIMAL:
+            assert (
+                session.agreement in front_outcomes or session.agreement is None
+            ), f"Suboptimal agreement in a supposedly optimal profile\n{_history(session)}{_plot(session, True, force=force_plot)}"
     _plot(session, force=force_plot)
     return session
 
@@ -231,7 +290,7 @@ def run_buyer_seller(
     if mechanism_type == TAUMechanism:
         session = mechanism_type(issues=issues, cardinality=cardinality, min_unique=min_unique)  # type: ignore
     else:
-        session = mechanism_type(issues=issues, n_steps=n_steps)
+        session = mechanism_type(issues=issues, n_steps=n_steps)  # type: ignore
 
     # define buyer and seller utilities
     seller_utility = LU(
@@ -275,12 +334,14 @@ def run_buyer_seller(
     )
     assert len(session.history) > 0, f"{session.state}"
     if do_asserts:
-        assert (
-            session.agreement is not None or no_valid_outcomes
-        ), f"{session.state}{_plot(session, True, force=force_plot)}"
-        assert (
-            session.agreement in front_outcomes or session.agreement is None
-        ), f"{session.state}{_plot(session, True, force=force_plot)}"
+        if (buyer, seller) in COMPLETE:
+            assert (
+                session.agreement is not None or no_valid_outcomes
+            ), f"No agreement in a supposedly complete profile\n{_history(session)}{_plot(session, True, force=force_plot)}"
+        if (buyer, seller) in OPTIMAL:
+            assert (
+                session.agreement in front_outcomes or session.agreement is None
+            ), f"Suboptimal agreement in a supposedly optimal profile\n{_history(session)}{_plot(session, True, force=force_plot)}"
     _plot(session, force=force_plot)
     return session
 
@@ -308,7 +369,6 @@ def remove_under_line(
         if outcome in frontier:
             accepted.append(outcome)
             continue
-        continue
         xA, yA = (_(outcome) for _ in ufuns)
         v1 = (x2 - x1, y2 - y1)  # Vector 1
         v2 = (x2 - xA, y2 - yA)  # Vector 2
@@ -374,16 +434,19 @@ def run_anac_example(
     if do_asserts:
         assert (
             neg.agreement is not None
-        ), f"{neg.history}{_plot(neg, True, force=force_plot)}"
+        ), f"{_history(neg)}{_plot(neg, True, force=force_plot)}"
         assert neg.agreement in front_outcomes or neg.agreement is None
     _plot(neg, force=force_plot)
     return neg
 
 
-def test_buyer_seller_easy():
+@pytest.mark.parametrize(
+    ["neg1", "neg2"], list(itertools.product(NEGOTIATORS, NEGOTIATORS))
+)
+def test_buyer_seller_easy(neg1, neg2):
     run_buyer_seller(
-        CABNegotiator,
-        CABNegotiator,
+        neg1,
+        neg2,
         normalized=True,
         seller_reserved=0.1,
         buyer_reserved=0.1,
@@ -392,7 +455,7 @@ def test_buyer_seller_easy():
 
 
 @pytest.mark.skipif(not NEGMAS_RUN_GENIUS, reason="Skipping genius tests")
-def test_buyer_seller_sao_easy_genius():
+def test_buyer_seller_gao_easy_genius():
     run_buyer_seller(
         Atlas3,
         Atlas3,
@@ -400,12 +463,12 @@ def test_buyer_seller_sao_easy_genius():
         seller_reserved=0.1,
         buyer_reserved=0.1,
         force_plot=FORCE_PLOT,
-        mechanism_type=SAOMechanism,
+        mechanism_type=GAOMechanism,
         do_asserts=False,
     )
 
 
-def test_buyer_seller_sao_easy():
+def test_buyer_seller_gao_easy():
     run_buyer_seller(
         AspirationNegotiator,
         AspirationNegotiator,
@@ -445,10 +508,13 @@ def test_buyer_seller_sao_genius():
     )
 
 
-def test_buyer_seller_alphainf():
+@pytest.mark.parametrize(
+    ["neg1", "neg2"], list(itertools.product(NEGOTIATORS, NEGOTIATORS))
+)
+def test_buyer_seller_alphainf(neg1, neg2):
     run_buyer_seller(
-        CABNegotiator,
-        CABNegotiator,
+        neg1,
+        neg2,
         normalized=True,
         seller_reserved=0.5,
         buyer_reserved=0.6,
@@ -458,10 +524,13 @@ def test_buyer_seller_alphainf():
     )
 
 
-def test_buyer_seller_alpha0():
+@pytest.mark.parametrize(
+    ["neg1", "neg2"], list(itertools.product(NEGOTIATORS, NEGOTIATORS))
+)
+def test_buyer_seller_alpha0(neg1, neg2):
     run_buyer_seller(
-        CABNegotiator,
-        CABNegotiator,
+        neg1,
+        neg2,
         normalized=True,
         seller_reserved=0.5,
         buyer_reserved=0.6,
@@ -471,11 +540,15 @@ def test_buyer_seller_alpha0():
     )
 
 
-def test_buyer_seller_betainf():
+@pytest.mark.parametrize(
+    ["neg1", "neg2"],
+    [_ for _ in itertools.product(NEGOTIATORS, NEGOTIATORS) if _ not in NORAISE],
+)
+def test_buyer_seller_betainf(neg1, neg2):
     with pytest.raises(AssertionError):
         run_buyer_seller(
-            CABNegotiator,
-            CABNegotiator,
+            neg1,
+            neg2,
             normalized=True,
             seller_reserved=0.5,
             buyer_reserved=0.6,
@@ -484,10 +557,13 @@ def test_buyer_seller_betainf():
         )
 
 
-def test_buyer_seller_beta0():
+@pytest.mark.parametrize(
+    ["neg1", "neg2"], list(itertools.product(NEGOTIATORS, NEGOTIATORS))
+)
+def test_buyer_seller_beta0(neg1, neg2):
     run_buyer_seller(
-        CABNegotiator,
-        CABNegotiator,
+        neg1,
+        neg2,
         normalized=True,
         seller_reserved=0.5,
         buyer_reserved=0.6,
@@ -496,10 +572,13 @@ def test_buyer_seller_beta0():
     )
 
 
-def test_anac_scenario_example_single():
+@pytest.mark.parametrize(
+    ["neg1", "neg2"], list(itertools.product(NEGOTIATORS, NEGOTIATORS))
+)
+def test_anac_scenario_example_single(neg1, neg2):
     run_anac_example(
-        CABNegotiator,
-        CABNegotiator,
+        neg1,
+        neg2,
         force_plot=FORCE_PLOT,
         single_issue=True,
         remove_under=False,
@@ -552,11 +631,14 @@ def test_anac_scenario_example_genius_single():
     )
 
 
-def test_anac_scenario_example():
-    run_anac_example(CABNegotiator, CABNegotiator, force_plot=FORCE_PLOT)
+@pytest.mark.parametrize(
+    ["neg1", "neg2"], list(itertools.product(NEGOTIATORS, NEGOTIATORS))
+)
+def test_anac_scenario_example(neg1, neg2):
+    run_anac_example(neg1, neg2, force_plot=FORCE_PLOT)
 
 
-def test_anac_scenario_example_sao():
+def test_anac_scenario_example_gao():
     run_anac_example(
         AspirationNegotiator,
         AspirationNegotiator,
@@ -575,26 +657,29 @@ def test_anac_scenario_example_genius():
     )
 
 
-def test_adversarial_case_easy():
+@pytest.mark.parametrize(
+    ["neg1", "neg2"], list(itertools.product(NEGOTIATORS, NEGOTIATORS))
+)
+def test_adversarial_case_easy(neg1, neg2):
     run_adversarial_case(
-        CABNegotiator,
-        CABNegotiator,
+        neg1,
+        neg2,
         force_plot=FORCE_PLOT,
     )
 
 
 @pytest.mark.skipif(not NEGMAS_RUN_GENIUS, reason="Skipping genius tests")
-def test_adversarial_case_sao_easy_genius():
+def test_adversarial_case_gao_easy_genius():
     run_adversarial_case(
         Atlas3,
         Atlas3,
         force_plot=FORCE_PLOT,
-        mechanism_type=SAOMechanism,
+        mechanism_type=GAOMechanism,
         do_asserts=False,
     )
 
 
-def test_adversarial_case_sao_easy():
+def test_adversarial_case_gao_easy():
     run_adversarial_case(
         AspirationNegotiator,
         AspirationNegotiator,
@@ -605,6 +690,7 @@ def test_adversarial_case_sao_easy():
 
 
 @given(
+    neg=st.sampled_from(NEGOTIATORS),
     r1=st.floats(0, 1),
     r2=st.floats(0, 1),
     n1=st.integers(3, 5),
@@ -621,7 +707,7 @@ def test_adversarial_case_sao_easy():
     ),
 )
 @settings(deadline=10_000, verbosity=Verbosity.verbose, max_examples=10)
-def test_a_tau_session(r1, r2, n1, n2, U1, U2):
+def test_a_tau_session(neg, r1, r2, n1, n2, U1, U2):
     eps = 1e-3
     time.perf_counter()
     os: DiscreteCartesianOutcomeSpace = make_os([make_issue(n1), make_issue(n2)])  # type: ignore
@@ -629,12 +715,18 @@ def test_a_tau_session(r1, r2, n1, n2, U1, U2):
     ufuns = [U1.random(os, reserved_value=r1), U2.random(os, reserved_value=r2)]
     for i, u in enumerate(ufuns):
         p.add(
-            CABNegotiator(name=f"CAB{i}"),
+            neg(name=f"CAB{i}"),
             preferences=u,
         )
     p.run()
     front_utils, front_outcomes = p.pareto_frontier()
     no_valid_outcomes = all(u1 <= r1 + eps or u2 <= r2 + eps for u1, u2 in front_utils)
     assert len(p.history) > 0, f"{p.state}"
-    assert p.agreement is not None or no_valid_outcomes, f"{p.history}"
-    assert p.agreement in front_outcomes or p.agreement is None
+    if (neg, neg) in COMPLETE:
+        assert (
+            p.agreement is not None or no_valid_outcomes
+        ), f"No agreement in a supposedly complete profile\n{_history(p)}{_plot(p, True, force=False)}"
+    if (neg, neg) in OPTIMAL:
+        assert (
+            p.agreement in front_outcomes or p.agreement is None
+        ), f"Suboptimal agreement in a supposedly optimal profile\n{_history(p)}{_plot(p, True, force=False)}"
