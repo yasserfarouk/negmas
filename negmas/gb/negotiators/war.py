@@ -11,6 +11,7 @@ from .modular.mapneg import MAPNegotiator
 __all__ = [
     "WABNegotiator",
     "WARNegotiator",
+    "WANNegotiator",
 ]
 
 
