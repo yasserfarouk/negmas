@@ -39,7 +39,7 @@ __all__ = [
     "get_domain_issues",
 ]
 
-STATS_MAX_CARDINALITY = 100_1000
+STATS_MAX_CARDINALITY = 10_000_000_000
 
 
 @define

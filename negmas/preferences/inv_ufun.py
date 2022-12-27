@@ -166,7 +166,10 @@ class PresortingInverseUtilityFunction(InverseUFun):
     """
 
     def __init__(
-        self, ufun: BaseUtilityFunction, levels: int = 10, max_cache_size: int = 100_000
+        self,
+        ufun: BaseUtilityFunction,
+        levels: int = 10,
+        max_cache_size: int = 10_000_000_000,
     ):
         self._ufun = ufun
         self.max_cache_size = max_cache_size
