@@ -1,6 +1,6 @@
 #!/usr/bin/env python
 """
-Utilitites for handling timeout and async calls
+Utilities for handling timeout and async calls
 """
 from __future__ import annotations
 

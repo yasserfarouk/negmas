@@ -324,7 +324,7 @@ class NegotiatorMechanismInterface:
         return self.outcome_space
 
     def discrete_outcome_space(
-        self, levels: int = 5, max_cardinality: int = 100_000
+        self, levels: int = 5, max_cardinality: int = 10_000_000_000
     ) -> DiscreteOutcomeSpace:
         """
         Returns a stable discrete version of the given outcome-space
