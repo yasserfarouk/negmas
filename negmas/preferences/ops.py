@@ -591,6 +591,8 @@ def pareto_frontier(
         #     *[issue.value_generator(n=n_discretization) for issue in issues]
         # )
     points = [tuple(ufun(outcome) for ufun in ufuns) for outcome in outcomes]
+    reservs = tuple(_.reserved_value if _ is not None else float("-inf") for _ in ufuns)
+    points = [_ for _ in points if all(a >= b for a, b in zip(_, reservs))]
     indices = list(
         pareto_frontier_active(
             points,
