@@ -61,9 +61,20 @@ class ExpDiscountedUFun(DiscountedUtilityFunction):
         self.dynamic_reservation = dynamic_reservation
 
     def minmax(
-        self, outcome_space=None, issues=None, outcomes=None, max_cardinality=10_000
+        self,
+        outcome_space=None,
+        issues=None,
+        outcomes=None,
+        max_cardinality=10_000,
+        above_reserve=False,
     ) -> tuple[float, float]:
-        return self.ufun.minmax(outcome_space, issues, outcomes, max_cardinality)
+        return self.ufun.minmax(
+            outcome_space,
+            issues,
+            outcomes,
+            max_cardinality,
+            above_reserve=above_reserve,
+        )
 
     def shift_by(self, offset: float, shift_reserved: bool = True) -> ExpDiscountedUFun:
         return ExpDiscountedUFun(
@@ -329,3 +340,19 @@ class LinDiscountedUFun(DiscountedUtilityFunction):
 
     def __str__(self):
         return f"{self.ufun.type}-cost:{self.cost} raised to {self.power} based on {self.factor}"
+
+    def minmax(
+        self,
+        outcome_space=None,
+        issues=None,
+        outcomes=None,
+        max_cardinality=10_000,
+        above_reserve=False,
+    ) -> tuple[float, float]:
+        return self.ufun.minmax(
+            outcome_space,
+            issues,
+            outcomes,
+            max_cardinality,
+            above_reserve=above_reserve,
+        )
