@@ -23,7 +23,7 @@ from negmas.serialization import PYTHON_CLASS_IDENTIFIER, deserialize, serialize
 
 from .protocols import MultiIssueFun
 
-MAX_CARINALITY = 10_000
+MAX_CARINALITY = 10_000_000_000
 
 __all__ = [
     "ConstFun",

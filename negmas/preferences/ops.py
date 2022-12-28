@@ -12,6 +12,7 @@ from negmas.outcomes import Issue, Outcome, discretize_and_enumerate_issues
 from negmas.outcomes.common import os_or_none
 from negmas.outcomes.issue_ops import enumerate_issues
 from negmas.outcomes.protocols import OutcomeSpace
+from negmas.preferences.crisp.mapping import MappingUtilityFunction
 
 from .base_ufun import BaseUtilityFunction
 
@@ -284,8 +285,8 @@ def pareto_frontier_of(
 
 
 def kalai_points(
-    ufuns: Iterable[UtilityFunction],
-    frontier: Iterable[tuple[float]],
+    ufuns: list[UtilityFunction] | tuple[UtilityFunction, ...],
+    frontier: list[tuple[float, ...]] | tuple[tuple[float, ...], ...],
     outcome_space: OutcomeSpace | None = None,
     issues: tuple[Issue, ...] | None = None,
     outcomes: tuple[Outcome, ...] | None = None,
@@ -321,7 +322,7 @@ def kalai_points(
         for _ in ufuns
     ]
     rs = tuple(_.reserved_value for _ in ufuns)
-    for i, (rng, ufun, r) in enumerate(zip(ranges, ufuns, rs)):
+    for i, (rng, _, r) in enumerate(zip(ranges, ufuns, rs)):
         if any(_ is None or not math.isfinite(_) for _ in rng):
             return tuple()
         if r is None or r < rng[0]:
@@ -352,8 +353,8 @@ def kalai_points(
 
 
 def nash_points(
-    ufuns: Iterable[UtilityFunction],
-    frontier: Iterable[tuple[float]],
+    ufuns: list[UtilityFunction] | tuple[UtilityFunction, ...],
+    frontier: list[tuple[float, ...]] | tuple[tuple[float, ...], ...],
     outcome_space: OutcomeSpace | None = None,
     issues: tuple[Issue, ...] | None = None,
     outcomes: tuple[Outcome, ...] | None = None,
@@ -419,8 +420,8 @@ def nash_points(
 
 
 def max_welfare_points(
-    ufuns: Iterable[UtilityFunction],
-    frontier: Iterable[tuple[float]],
+    ufuns: list[UtilityFunction] | tuple[UtilityFunction, ...],
+    frontier: list[tuple[float, ...]] | tuple[tuple[float, ...], ...],
     outcome_space: OutcomeSpace | None = None,
     issues: tuple[Issue, ...] | None = None,
     outcomes: tuple[Outcome, ...] | None = None,
@@ -485,8 +486,8 @@ def max_welfare_points(
 
 
 def max_relative_welfare_points(
-    ufuns: Iterable[UtilityFunction],
-    frontier: Iterable[tuple[float]],
+    ufuns: list[UtilityFunction] | tuple[UtilityFunction, ...],
+    frontier: list[tuple[float, ...]] | tuple[tuple[float, ...], ...],
     outcome_space: OutcomeSpace | None = None,
     issues: tuple[Issue, ...] | None = None,
     outcomes: tuple[Outcome, ...] | None = None,
@@ -552,8 +553,8 @@ def max_relative_welfare_points(
 
 
 def pareto_frontier(
-    ufuns: Iterable[UtilityFunction],
-    outcomes: Iterable[Outcome] | None = None,
+    ufuns: list[UtilityFunction] | tuple[UtilityFunction, ...],
+    outcomes: list[Outcome] | tuple[Outcome, ...] | None = None,
     issues: Iterable[Issue] | None = None,
     n_discretization: int | None = 10,
     sort_by_welfare=False,
@@ -931,6 +932,60 @@ def winwin_level(
     if len(signed_diffs) == 0:
         raise ValueError("Could not calculate any signs")
     return signed_diffs.mean()
+
+
+def get_ranks(ufun: UtilityFunction, outcomes: list[Outcome | None]) -> list[float]:
+    assert ufun.outcome_space is not None
+    assert ufun.outcome_space.is_discrete()
+    alloutcomes = list(ufun.outcome_space.enumerate_or_sample())
+    n = len(alloutcomes)
+    vals: list[tuple[float, Outcome | None]]
+    vals = [(ufun(_), _) for _ in alloutcomes]
+    ordered = sorted(vals, reverse=True)
+    # insert null into its place
+    r = ufun.reserved_value
+    loc = n
+    if r is None:
+        r = float("-inf")
+    else:
+        for k, (u, o) in enumerate(ordered):
+            if u < r:
+                loc = k
+                break
+    if loc == n:
+        ordered.append((r, None))
+    else:
+        ordered.insert(loc, (r, None))
+
+    ordered = list(zip(range(n, -1, -1), ordered, strict=True))
+    # mark outcomes with equal utils with the same rank
+    for i, (second, first) in enumerate(zip(ordered[1:], ordered[:-1], strict=True)):
+        if abs(first[1][0] - second[1][0]) < 1e-10:
+            ordered[i + 1] = (first[0], second[1])
+    results = []
+    for outcome in outcomes:
+        for v in ordered:
+            k, _ = v
+            u, o = _
+            if o == outcome:
+                results.append(k / n)
+                break
+        else:
+            raise ValueError(f"Could not find {outcome}")
+    return results
+
+
+def make_rank_ufun(ufun: UtilityFunction) -> UtilityFunction:
+    assert ufun.outcome_space is not None
+    assert ufun.outcome_space.is_discrete()
+    alloutcomes = list(ufun.outcome_space.enumerate_or_sample()) + [None]
+    ranks = get_ranks(ufun, alloutcomes)
+    reserved = ranks[-1]
+    return MappingUtilityFunction(
+        mapping=dict(zip(alloutcomes[:-1], ranks[:-1])),
+        outcome_space=ufun.outcome_space,
+        reserved_value=reserved,
+    )
 
 
 # pareto_frontier_active = pareto_frontier_bf if NUMBA_OK else pareto_frontier_of
