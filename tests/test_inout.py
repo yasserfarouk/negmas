@@ -17,6 +17,8 @@ from negmas.preferences.crisp.nonlinear import HyperRectangleUtilityFunction
 from negmas.preferences.discounted import DiscountedUtilityFunction
 from negmas.sao import AspirationNegotiator
 
+MAX_CARDINALITY = 10_000
+
 
 @pytest.fixture
 def scenarios_folder():
@@ -148,7 +150,7 @@ def compared_two_domains(domain, domain2):
             continue
         dm = domain.agenda.to_discrete(5)
         for i, w in enumerate(dm):
-            if i > 10_000:
+            if i > MAX_CARDINALITY:
                 return
             u1_, u2_ = u1(w), u2(w)
             assert isinstance(u1_, float)

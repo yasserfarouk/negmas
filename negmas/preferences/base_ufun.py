@@ -34,7 +34,7 @@ __all__ = [
 ]
 
 
-MAX_CARINALITY = 10_000
+MAX_CARDINALITY = 10_000_000_000
 T = TypeVar("T", bound="BaseUtilityFunction")
 
 
@@ -277,7 +277,7 @@ class BaseUtilityFunction(Preferences, ABC):
         to: tuple[float, float] = (0.0, 1.0),
         outcome_space: OutcomeSpace | None = None,
     ) -> T | ConstUtilityFunction:
-        max_cardinality: int = MAX_CARINALITY
+        max_cardinality: int = MAX_CARDINALITY
         if not outcome_space:
             outcome_space = self.outcome_space
         if not outcome_space:
@@ -311,7 +311,7 @@ class BaseUtilityFunction(Preferences, ABC):
 
         if not self.outcome_space:
             raise ValueError(f"Cannot normalize a ufun without an outcome-space")
-        mn, mx = self.minmax(self.outcome_space, max_cardinality=MAX_CARINALITY)
+        mn, mx = self.minmax(self.outcome_space, max_cardinality=MAX_CARDINALITY)
 
         d = float(mx - mn)
         if d < 1e-8:

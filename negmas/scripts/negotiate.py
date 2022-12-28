@@ -2,7 +2,6 @@ from __future__ import annotations
 
 from pathlib import Path
 from time import perf_counter
-from typing import Optional
 
 import matplotlib
 import typer
@@ -16,6 +15,14 @@ from negmas.helpers.types import get_full_type_name
 from negmas.inout import Scenario
 from negmas.mechanisms import Mechanism
 from negmas.negotiators.negotiator import Negotiator
+from negmas.preferences.ops import (
+    kalai_points,
+    make_rank_ufun,
+    max_relative_welfare_points,
+    max_welfare_points,
+    nash_points,
+    pareto_frontier,
+)
 
 app = typer.Typer()
 
@@ -133,6 +140,9 @@ def run(
         print(state)
     print(f"Agreement: {state.agreement}")
     if stats:
+        ufuns = tuple(make_rank_ufun(_) for _ in scenario.ufuns)
+        print(f"Agreement Utils: {tuple(_(state.agreement) for _ in scenario.ufuns)}")
+        print(f"Agreement Relative Ranks: {tuple(_(state.agreement) for _ in ufuns)}")
         pareto, pareto_outcomes = session.pareto_frontier()
         print(
             f"Nash Points: {session.nash_points(frontier=pareto, frontier_outcomes=pareto_outcomes)}"
@@ -146,6 +156,35 @@ def run(
         print(
             f"Max. Relative Points: {session.max_relative_welfare_points(frontier=pareto, frontier_outcomes=pareto_outcomes)}"
         )
+        pareto_save = pareto_outcomes
+        alloutcomes = session.discrete_outcomes()
+        pareto, pareto_indices = pareto_frontier(
+            ufuns, outcomes=alloutcomes, sort_by_welfare=True
+        )
+        pareto_outcomes = [alloutcomes[_] for _ in pareto_indices]
+        if len(pareto_save) != len(pareto_outcomes) or any(
+            a != b
+            for a, b in zip(sorted(pareto_save), sorted(pareto_outcomes), strict=True)
+        ):
+            print(
+                f"[bold red]Ordinal pareto outcomes do not match cardinal pareto outcomes[/bold red]\nOrdinal: {pareto_outcomes}\nCardinal: {pareto_save}"
+            )
+        pts = nash_points(frontier=pareto, ufuns=ufuns, outcome_space=scenario.agenda)
+        pts = tuple((a, pareto_outcomes[b]) for a, b in pts)
+        print(f"Ordinal Nash Points: {pts}")
+        pts = kalai_points(frontier=pareto, ufuns=ufuns, outcome_space=scenario.agenda)
+        pts = tuple((a, pareto_outcomes[b]) for a, b in pts)
+        print(f"Ordinal Kalai Points: {pts}")
+        pts = max_welfare_points(
+            frontier=pareto, ufuns=ufuns, outcome_space=scenario.agenda
+        )
+        pts = tuple((a, pareto_outcomes[b]) for a, b in pts)
+        print(f"Ordinal Max. Welfare Points: {pts}")
+        pts = max_relative_welfare_points(
+            frontier=pareto, ufuns=ufuns, outcome_space=scenario.agenda
+        )
+        pts = tuple((a, pareto_outcomes[b]) for a, b in pts)
+        print(f"Ordinal Max. Relative Points: {pts}")
     if history:
         if hasattr(session, "full_trace"):
             print(session.full_trace)  # type: ignore full_trace is defined for SAO and GBM
