@@ -112,13 +112,13 @@ class Real(Distribution):
     def __add__(self, other):
         """Returns the distribution for the sum of samples of `self` and `other`"""
         if isinstance(other, float):
-            return super().__add__(other)
+            return Real(float(self) + other)
         return other.__class__(loc=other.loc + self._loc, scale=other.scale)
 
     def __sub__(self, other):
         """Returns the distribution for the difference between samples of `self` and `other`"""
         if isinstance(other, float):
-            return super().__sub__(other)
+            return Real(float(self) - other)
         return other.__class__(loc=self.loc - other.loc, scale=other.scale)
 
     def __mul__(self, other):
@@ -130,13 +130,13 @@ class Real(Distribution):
     def __lt__(self, other):
         """Check that a sample from `self` is ALWAYS less than a sample from other `other`"""
         if isinstance(other, float):
-            return super().__lt__(other)
+            return float(self) < other
         return self.max < other.min
 
     def __le__(self, other):
         """Check that a sample from `self` is ALWAYS less or equal a sample from other `other`"""
         if isinstance(other, float):
-            return super().__le__(other)
+            return float(self) <= other
         return self.max <= other.min
 
     def __eq__(self, other):
@@ -154,13 +154,13 @@ class Real(Distribution):
     def __gt__(self, other):
         """Check that a sample from `self` is ALWAYS greater than a sample from other `other`"""
         if isinstance(other, float):
-            return super().__gt__(other)
+            return float(self) > other
         return self.min > other.max
 
     def __ge__(self, other):
         """Check that a sample from `self` is ALWAYS greater or equal a sample from other `other`"""
         if isinstance(other, float):
-            return super().__ge__(other)
+            return float(self) >= other
         return self.min >= other.max
 
     def __str__(self):
