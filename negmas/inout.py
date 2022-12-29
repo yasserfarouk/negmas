@@ -248,11 +248,15 @@ class Scenario:
         return self
 
     def is_normalized(
-        self, to: tuple[float, float] = (0.0, 1.0), eps: float = 1e-6
+        self, to: tuple[float | None, float] = (None, 1.0), eps: float = 1e-6
     ) -> bool:
         """Checks that all ufuns are normalized in the given range"""
         mnmx = [_.minmax() for _ in self.ufuns]
-        return all(abs(a - to[0]) < eps and abs(b - to[1]) < eps for a, b in mnmx)
+        return all(
+            (to[0] is None or abs(a - to[0]) < eps)
+            and (to[1] is None or abs(b - to[1]) < eps)
+            for a, b in mnmx
+        )
 
     def discretize(self, levels: int = 10):
         """Discretize all issues"""
