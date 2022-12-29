@@ -248,7 +248,7 @@ class Scenario:
         return self
 
     def is_normalized(
-        self, to: tuple[float | None, float] = (None, 1.0), eps: float = 1e-6
+        self, to: tuple[float | None, float | None] = (None, 1.0), eps: float = 1e-6
     ) -> bool:
         """Checks that all ufuns are normalized in the given range"""
         mnmx = [_.minmax() for _ in self.ufuns]
