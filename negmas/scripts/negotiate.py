@@ -96,6 +96,7 @@ def run(
     plot_interactive: bool = True,
     history: bool = False,
     stats: bool = True,
+    discount: bool = True,
 ):
     if reserved is not None:
         assert len(reserved) == len(negotiators)
@@ -106,7 +107,9 @@ def run(
         steps = float("inf")
     if timelimit is None:
         timelimit = float("inf")
-    scenario = Scenario.from_genius_folder(domain, ignore_reserved=reserved is not None)
+    scenario = Scenario.from_genius_folder(
+        domain, ignore_reserved=reserved is not None, ignore_discount=not discount
+    )
     if not scenario:
         print(f"Failed to load scenario from {domain}")
         return
