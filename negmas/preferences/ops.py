@@ -125,7 +125,7 @@ def make_discounted_ufun(
 def pareto_frontier_bf(
     points: np.ndarray | Iterable[Iterable[float]],
     eps=-1e-18,
-    sort_by_welfare=False,
+    sort_by_welfare=True,
     unique_utility_values=False,
 ) -> np.ndarray:
     points = np.asarray(points, dtype=np.float32)
@@ -136,7 +136,7 @@ def pareto_frontier_bf(
 def _pareto_frontier_bf(
     points: np.ndarray | Iterable[Iterable[float]],
     eps=-1e-18,
-    sort_by_welfare=False,
+    sort_by_welfare=True,
     unique_utility_values=False,
 ) -> np.ndarray:
     """
@@ -205,7 +205,7 @@ def _pareto_frontier_bf(
 def pareto_frontier_of(
     points: Iterable[Iterable[float]],
     eps=-1e-18,
-    sort_by_welfare=False,
+    sort_by_welfare=True,
     unique_utility_values=False,
 ) -> list[int]:
     """
@@ -557,7 +557,7 @@ def pareto_frontier(
     outcomes: list[Outcome] | tuple[Outcome, ...] | None = None,
     issues: Iterable[Issue] | None = None,
     n_discretization: int | None = 10,
-    sort_by_welfare=False,
+    sort_by_welfare=True,
     unique_utility_values=False,
 ) -> tuple[list[tuple[float, ...]], list[int]]:
     """Finds all pareto-optimal outcomes in the list
