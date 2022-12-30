@@ -560,6 +560,7 @@ def pareto_frontier(
     n_discretization: int | None = 10,
     sort_by_welfare=True,
     unique_utility_values=False,
+    rational_only=True,
 ) -> tuple[list[tuple[float, ...]], list[int]]:
     """Finds all pareto-optimal outcomes in the list
 
@@ -569,8 +570,9 @@ def pareto_frontier(
         outcomes: the outcomes to be checked. If None then all possible outcomes from the issues will be checked
         issues: The set of issues (only used when outcomes is None)
         n_discretization: The number of items to discretize each real-dimension into
-        sort_by_welfare: If True, the resutls are sorted descendingly by total welfare
+        sort_by_welfare: If True, the results are sorted descendingly by total welfare
         unique_utility_values: If true, only one outcome from any set with the same utility values will be returned.
+        rational_only: If true, only rational outcomes can be members of the Pareto frontier.
 
     Returns:
         Two lists of the same length. First list gives the utilities at pareto frontier points and second list gives their indices
@@ -592,8 +594,11 @@ def pareto_frontier(
         #     *[issue.value_generator(n=n_discretization) for issue in issues]
         # )
     points = [tuple(ufun(outcome) for ufun in ufuns) for outcome in outcomes]
-    reservs = tuple(_.reserved_value if _ is not None else float("-inf") for _ in ufuns)
-    points = [_ for _ in points if all(a >= b for a, b in zip(_, reservs))]
+    if rational_only:
+        reservs = tuple(
+            _.reserved_value if _ is not None else float("-inf") for _ in ufuns
+        )
+        points = [_ for _ in points if all(a >= b for a, b in zip(_, reservs))]
     indices = list(
         pareto_frontier_active(
             points,
