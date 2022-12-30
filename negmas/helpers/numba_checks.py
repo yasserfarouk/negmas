@@ -2,10 +2,11 @@ from __future__ import annotations
 
 import functools
 
+DISABLE_NUMBA = False
 try:
     from numba import jit
 
-    NUMBA_OK = True
+    NUMBA_OK = not DISABLE_NUMBA
 except:
     NUMBA_OK = False
 
