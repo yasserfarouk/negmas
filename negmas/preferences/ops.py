@@ -184,7 +184,8 @@ def _pareto_frontier_bf(
         welfare_sort_order = welfare.argsort()[::-1]
         if unique_utility_values:
             welfare = welfare[welfare_sort_order]
-            for i, (a, b) in enumerate(zip(welfare[:-1], welfare[1:])):
+            for i in range(len(welfare) - 1):
+                a, b = welfare[i], welfare[i + 1]
                 if a != b:
                     continue
                 f, g = (
