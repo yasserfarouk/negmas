@@ -163,6 +163,13 @@ class PresortingInverseUtilityFunction(InverseUFun):
     The outcome-space is sampled if it is continuous and enumerated if it is discrete
     during the call to `init()` and an ordered list of outcomes with their utility
     values is then cached.
+
+
+    Args:
+        ufun: The utility function to be inverted
+        levels: discretization levels per issue
+        max_cache_size: maximum allowed number of outcomes in the resulting inverse
+        sort_rational_only: If true, rational outcomes will be sorted but irrational outcomes will not be sorted (should be faster if the reserved value is high)
     """
 
     def __init__(
@@ -170,12 +177,14 @@ class PresortingInverseUtilityFunction(InverseUFun):
         ufun: BaseUtilityFunction,
         levels: int = 10,
         max_cache_size: int = 10_000_000_000,
+        sort_rational_only: bool = False,
     ):
         self._ufun = ufun
         self.max_cache_size = max_cache_size
         self.levels = levels
         self._initialized = False
         self._ordered_outcomes: list[tuple[float, Outcome]] = []
+        self.sort_rational_only = sort_rational_only
 
     @property
     def initialized(self):
@@ -208,12 +217,28 @@ class PresortingInverseUtilityFunction(InverseUFun):
                 f"Cannot discretize keeping cach size at {self.max_cache_size}. Outocme space cardinality is {outcome_space.cardinality}\nOutcome space: {outcome_space}"
             )
         os = outcome_space.to_discrete(levels=l, max_cardinality=self.max_cache_size)
-        if os.cardinality <= self.max_cache_size:
-            outcomes = list(os.sample(self.max_cache_size, False, False))
-        else:
-            outcomes = list(os.enumerate())[: self.max_cache_size]
+        outcomes = os.enumerate_or_sample(max_cardinality=self.max_cache_size)
         utils = [float(self._ufun.eval(_)) for _ in outcomes]
-        self._ordered_outcomes = sorted(zip(utils, outcomes), key=lambda x: -x[0])
+        r = self._ufun.reserved_value
+        r = float(r) if r is not None else float("-inf")
+        if self.sort_rational_only:
+            rational, irrational = [], []
+            ur, uir = [], []
+            for u, o in zip(utils, outcomes):
+                if u >= r:
+                    rational.append(o)
+                    ur.append(u)
+                else:
+                    irrational.append(o)
+                    uir.append(u)
+        else:
+            rational, irrational = outcomes, []
+            ur, uir = utils, []
+        self._ordered_outcomes = sorted(
+            zip(ur, rational, strict=True), key=lambda x: -x[0]
+        )
+        if irrational:
+            self._ordered_outcomes += list(zip(uir, irrational, strict=True))
         self._initialized = True
 
     def _normalize_range(

@@ -35,7 +35,7 @@ class UtilBasedNegotiator(GBNegotiator):
         rank_only: bool = False,
         ufun_inverter: Callable[[BaseUtilityFunction], InverseUFun] | None = None,
         offer_selector: OfferSelector | None = None,
-        max_cardinality: int = 10_000,
+        max_cardinality: int = 10_000_000,
         eps: float = 0.0001,
         **kwargs,
     ):

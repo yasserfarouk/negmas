@@ -70,7 +70,7 @@ class BaseUtilityFunction(Preferences, ABC):
         outcome_space: OutcomeSpace | None = None,
         issues: Iterable[Issue] | None = None,
         outcomes: Iterable[Outcome] | None = None,
-        max_cardinality=1000,
+        max_cardinality=100_000,
     ) -> tuple[Outcome, Outcome]:
         check_one_at_most(outcome_space, issues, outcomes)
         outcome_space = os_or_none(outcome_space, issues, outcomes)
