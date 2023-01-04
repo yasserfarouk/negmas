@@ -61,7 +61,9 @@ class MiCROOfferingPolicy(OfferingPolicy):
             )
             for _ in changes
         ):
-            self.sorter = PresortingInverseUtilityFunction(self.negotiator.ufun)
+            self.sorter = PresortingInverseUtilityFunction(
+                self.negotiator.ufun, sort_rational_only=True
+            )
             self.sorter.init()
             self.next_indx = 0
             self._received = set()
@@ -75,7 +77,9 @@ class MiCROOfferingPolicy(OfferingPolicy):
     def ensure_sorter(self):
         if not self.sorter:
             assert self.negotiator.ufun
-            self.sorter = PresortingInverseUtilityFunction(self.negotiator.ufun)
+            self.sorter = PresortingInverseUtilityFunction(
+                self.negotiator.ufun, sort_rational_only=True
+            )
             self.sorter.init()
         return self.sorter
 
@@ -132,7 +136,9 @@ class CABOfferingPolicy(OfferingPolicy):
             )
             for _ in changes
         ):
-            self.sorter = PresortingInverseUtilityFunction(self.negotiator.ufun)
+            self.sorter = PresortingInverseUtilityFunction(
+                self.negotiator.ufun, sort_rational_only=True
+            )
             self.sorter.init()
             self.next_indx = 0
             self._repeating = False
@@ -148,7 +154,9 @@ class CABOfferingPolicy(OfferingPolicy):
         if self.next_indx >= self.negotiator.nmi.n_outcomes:
             return self._last_offer
         if not self.sorter:
-            self.sorter = PresortingInverseUtilityFunction(self.negotiator.ufun)
+            self.sorter = PresortingInverseUtilityFunction(
+                self.negotiator.ufun, sort_rational_only=True
+            )
             self.sorter.init()
         outcome = self.sorter.outcome_at(self.next_indx)
         if (
@@ -189,7 +197,9 @@ class WAROfferingPolicy(OfferingPolicy):
             )
             for _ in changes
         ):
-            self.sorter = PresortingInverseUtilityFunction(self.negotiator.ufun)
+            self.sorter = PresortingInverseUtilityFunction(
+                self.negotiator.ufun, sort_rational_only=True
+            )
             self.sorter.init()
             self.next_indx = 0
             self._repeating = False
@@ -197,7 +207,7 @@ class WAROfferingPolicy(OfferingPolicy):
     def on_negotiation_start(self, state) -> None:
         self._repeating = False
         self._irrational = True
-        self._irrational_index = self.negotiator.nmi.n_outcomes - 1
+        self._irrational_index = self.negotiator.nmi.n_outcomes - 1  # type: ignore
         return super().on_negotiation_start(state)
 
     def __call__(self, state: GBState) -> Outcome | None:
@@ -208,7 +218,9 @@ class WAROfferingPolicy(OfferingPolicy):
         if not self._irrational and self.next_indx >= self.negotiator.nmi.n_outcomes:
             return self._last_offer
         if not self.sorter:
-            self.sorter = PresortingInverseUtilityFunction(self.negotiator.ufun)
+            self.sorter = PresortingInverseUtilityFunction(
+                self.negotiator.ufun, sort_rational_only=True
+            )
             self.sorter.init()
         nxt = self._irrational_index if self._irrational else self.next_indx
         outcome = self.sorter.outcome_at(nxt)
