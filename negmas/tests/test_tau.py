@@ -7,15 +7,16 @@ from typing import Iterable
 import hypothesis.strategies as st
 import pkg_resources
 import pytest
-from hypothesis import Verbosity, given, settings
+from hypothesis import Verbosity, example, given, settings
 from matplotlib.axes import itertools
 
 from negmas.gb.evaluators.tau import INFINITE
 from negmas.gb.mechanisms.mechanisms import GAOMechanism, TAUMechanism
 from negmas.gb.negotiators.cab import CABNegotiator, CANNegotiator, CARNegotiator
 from negmas.gb.negotiators.timebased import AspirationNegotiator
+from negmas.gb.negotiators.titfortat import NaiveTitForTatNegotiator
 from negmas.gb.negotiators.war import WABNegotiator, WANNegotiator, WARNegotiator
-from negmas.genius.gnegotiators import Atlas3
+from negmas.genius.gnegotiators import AgentK, Atlas3, NiceTitForTat
 from negmas.inout import Scenario
 from negmas.mechanisms import Mechanism
 from negmas.outcomes.base_issue import make_issue
@@ -36,6 +37,13 @@ FORCE_PLOT = False
 SHOW_HISTORY = False
 SHOW_ALL_HISTORIES = False
 FORCE_HISTORY = False
+SAONEGOTIATORS = [
+    AspirationNegotiator,
+    # NiceTitForTat,
+    # Atlas3,
+    # AgentK,
+    # NaiveTitForTatNegotiator,
+]
 NEGOTIATORS = [
     WARNegotiator,
     CANNegotiator,
@@ -730,3 +738,34 @@ def test_a_tau_session(neg, r1, r2, n1, n2, U1, U2):
         assert (
             p.agreement in front_outcomes or p.agreement is None
         ), f"Suboptimal agreement in a supposedly optimal profile\n{_history(p)}{_plot(p, True, force=False)}"
+
+
+from negmas.gb.adapters.tau import TAUNegotiatorAdapter
+
+
+@given(
+    neg=st.sampled_from(SAONEGOTIATORS),
+    U1=st.sampled_from(
+        [
+            LU,
+        ]
+    ),
+    U2=st.sampled_from(
+        [
+            LU,
+        ]
+    ),
+)
+@settings(deadline=10_000, verbosity=Verbosity.verbose, max_examples=10)
+def test_a_tau_session_with_adapter(neg, U1, U2):
+    n1, n2 = 5, 10
+    time.perf_counter()
+    os: DiscreteCartesianOutcomeSpace = make_os([make_issue(n1), make_issue(n2)])  # type: ignore
+    p = TAUMechanism(outcome_space=os)
+    ufuns = [U1.random(os, reserved_value=0.0), U2.random(os, reserved_value=0.0)]
+    negotiator = neg(name=f"{neg.__name__}{0}")
+    p.add(TAUNegotiatorAdapter(base=negotiator), preferences=ufuns[0])
+    for i, u in enumerate(ufuns[1:]):
+        p.add(CABNegotiator(name=f"CAB{i}"), preferences=u)
+    p.run()
+    assert len(p.full_trace) > 0, f"{p.state}{_plot(p)}"
