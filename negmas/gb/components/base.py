@@ -189,7 +189,7 @@ class RejectionPolicy(AcceptancePolicy):
 
 @define
 class OfferingPolicy(GBComponent):
-    _current_offer: tuple[int, int, Outcome | None] = field(
+    _current_offer: tuple[int, str, Outcome | None] = field(
         init=False, default=(-1, None)
     )
 

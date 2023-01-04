@@ -47,11 +47,13 @@ class ThreadState:
 @define
 class GBState(MechanismState):
     threads: dict[str, ThreadState] = field(factory=dict)
+    last_thread: str = ""
 
     @property
     def base_state(self) -> MechanismState:
         d = asdict(self)
         del d["threads"]
+        del d["last_thread"]
         return MechanismState(**d)
 
     @classmethod

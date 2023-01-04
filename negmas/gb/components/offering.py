@@ -262,6 +262,10 @@ class TFTOfferingPolicy(OfferingPolicy):
     def before_responding(self, state: GBState, offer: Outcome | None, source: str):
         self._partner_offer = offer
 
+    def on_preferences_changed(self, changes: list[PreferencesChange]):
+        super().on_preferences_changed(changes)
+        self.partner_ufun.on_preferences_changed(changes)
+
     def __call__(self, state):
         if not self.negotiator or not self.negotiator.ufun:
             return None

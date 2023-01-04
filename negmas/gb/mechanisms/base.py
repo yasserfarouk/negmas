@@ -231,16 +231,25 @@ class GBMechanism(Mechanism):
         self._sync_call = v
 
     def run_threads(self) -> dict[str, tuple[ThreadState, GBResponse | None]]:
+        def _do_run(idd, thread):
+            r = thread.run()
+            state: GBState = self.state  # type: ignore
+            state.last_thread = idd
+            return r
+
         if not self._parallel:
             threads = self._threads
-            return {thread.negotiator.id: thread.run() for thread in threads}
+            return {
+                thread.negotiator.id: _do_run(thread.negotiator.id, thread)
+                for thread in threads
+            }
         # todo: make this really parallel
         indices = [_ for _ in range(len(self._threads))]
         shuffle(indices)
         threads = [self._threads[_] for _ in indices]
         results = dict()
         for t in threads:
-            results[t.negotiator.id] = t.run()
+            results[t.negotiator.id] = _do_run(t.negotiator.id, t)
         return results
 
     def __call__(self, state: GBState) -> MechanismRoundResult:
