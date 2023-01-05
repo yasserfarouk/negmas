@@ -878,15 +878,22 @@ class LinearAdditiveUtilityFunction(  # type: ignore
         scale: float,
         scale_reserved: bool = True,
         change_weights_only: bool = False,
-        normalize_weights: bool = False,
+        normalize_weights: bool = True,
     ) -> LinearAdditiveUtilityFunction:
         if scale < 0:
             raise ValueError(f"Cannot have a negative scale: {scale}")
+        if change_weights_only and normalize_weights:
+            raise ValueError(
+                f"Cannot normalize weights only and in the same time change weights only"
+            )
 
         wscale = 1.0
         if normalize_weights:
             w = sum(self.weights)
-            wscale = 1.0 / w
+            if w > 1e-6:
+                wscale = 1.0 / w
+            else:
+                wscale = 1.0
         if change_weights_only:
             wscale *= scale
             return LinearAdditiveUtilityFunction(
@@ -899,7 +906,7 @@ class LinearAdditiveUtilityFunction(  # type: ignore
                 name=self.name,
             )
         return LinearAdditiveUtilityFunction(
-            values=[_.scale_by(scale) for _ in self.values],
+            values=[_.scale_by(scale / wscale) for _ in self.values],
             weights=[wscale * _ for _ in self.weights],
             outcome_space=self.outcome_space,
             reserved_value=self.reserved_value
