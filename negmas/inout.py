@@ -258,7 +258,7 @@ class Scenario:
         return all(
             (to[0] is None or abs(a - to[0]) < eps)
             and (to[1] is None or abs(b - to[1]) < eps)
-            and (not positive or a >= 0)
+            and (not positive or a >= -eps)
             for a, b in mnmx
         )
 

@@ -4,6 +4,7 @@ import math
 import xml.etree.ElementTree as ET
 from abc import ABC, abstractmethod
 from os import PathLike
+from pathlib import Path
 from typing import TYPE_CHECKING, Any, Iterable, TypeVar
 
 from negmas import warnings
@@ -306,6 +307,7 @@ class BaseUtilityFunction(Preferences, ABC):
     def normalize(
         self: T,
         to: tuple[float, float] = (0.0, 1.0),
+        normalize_weights: bool = False,
     ) -> T | ConstUtilityFunction:
         from negmas.preferences import ConstUtilityFunction
 
@@ -930,6 +932,9 @@ class BaseUtilityFunction(Preferences, ABC):
             See ``to_xml_str`` for all the parameters
 
         """
+        file_name = Path(file_name).absolute()
+        if file_name.suffix == "":
+            file_name = file_name.parent / f"{file_name.stem}.xml"
         with open(file_name, "w") as f:
             f.write(self.to_xml_str(issues=issues, **kwargs))
 

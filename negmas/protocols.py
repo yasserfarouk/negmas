@@ -2,6 +2,7 @@ from __future__ import annotations
 
 from abc import abstractmethod
 from os import PathLike
+from pathlib import Path
 from typing import Any, Protocol, TypeVar
 
 __all__ = ["XmlSerializable", "DictSerializable"]
@@ -58,6 +59,9 @@ class XmlSerializable(Protocol):
             See ``to_xml_str`` for all the parameters
 
         """
+        file_name = Path(file_name).absolute()
+        if file_name.suffix == "":
+            file_name = file_name.parent / f"{file_name.stem}.xml"
         with open(file_name, "w") as f:
             f.write(self.to_xml_str(**kwargs))
 
