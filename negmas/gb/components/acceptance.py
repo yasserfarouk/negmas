@@ -61,7 +61,7 @@ class AcceptAnyRational(AcceptancePolicy):
         if not self.negotiator or not self.negotiator.preferences:
             return ResponseType.REJECT_OFFER
         pref = self.negotiator.preferences
-        if pref.is_better(offer, None):
+        if not pref.is_worse(offer, None):
             return ResponseType.ACCEPT_OFFER
         return ResponseType.REJECT_OFFER
 

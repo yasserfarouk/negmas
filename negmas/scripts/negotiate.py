@@ -16,6 +16,7 @@ from negmas.inout import Scenario
 from negmas.mechanisms import Mechanism
 from negmas.negotiators.negotiator import Negotiator
 from negmas.preferences.ops import (
+    get_ranks,
     kalai_points,
     make_rank_ufun,
     max_relative_welfare_points,
@@ -66,6 +67,19 @@ def shorten_protocol_name(name: str) -> str:
     return name.replace("Mechanism", "").replace("Protocol", "")
 
 
+def dist(x: tuple[float, ...], lst: list[tuple[float, ...]]):
+    if not lst:
+        return float("nan")
+    return min(sum((a - b) ** 2 for a, b in zip(x, p, strict=True)) for p in lst)
+
+
+def diff(x: tuple[float, ...], lst: list[tuple[float, ...]]):
+    if not lst:
+        return float("nan")
+    s = sum(x)
+    return min(abs(sum(_) - s) for _ in lst)
+
+
 @app.command()
 def run(
     domain: Path,
@@ -98,8 +112,8 @@ def run(
     stats: bool = True,
     discount: bool = True,
 ):
-    if reserved is not None:
-        assert len(reserved) == len(negotiators)
+    if reserved:
+        assert len(reserved) == len(negotiators), f"{reserved=} but {negotiators=}"
     negotiator_names = shortest_unique_names(negotiators)
     steps: int | float
     timelimit: int | float
@@ -108,14 +122,14 @@ def run(
     if timelimit is None:
         timelimit = float("inf")
     scenario = Scenario.from_genius_folder(
-        domain, ignore_reserved=reserved is not None, ignore_discount=not discount
+        domain, ignore_reserved=False, ignore_discount=not discount
     )
     if not scenario:
         print(f"Failed to load scenario from {domain}")
         return
     if normalize:
         scenario.normalize()
-    if reserved is not None:
+    if reserved:
         for u, r in zip(scenario.ufuns, reserved):
             u.reserved_value = r
 
@@ -143,26 +157,40 @@ def run(
         print(state)
     print(f"Agreement: {state.agreement}")
     if stats:
-        ufuns = tuple(make_rank_ufun(_) for _ in scenario.ufuns)
-        print(f"Agreement Utils: {tuple(_(state.agreement) for _ in scenario.ufuns)}")
-        print(f"Agreement Relative Ranks: {tuple(_(state.agreement) for _ in ufuns)}")
+        ranks_ufuns = tuple(make_rank_ufun(_) for _ in scenario.ufuns)
+        utils = tuple(u(state.agreement) for u in scenario.ufuns)
+        print(f"Agreement Utils: {utils}")
+        ranks = tuple(_(state.agreement) for _ in ranks_ufuns)
+        print(f"Agreement Relative Ranks: {ranks}")
         pareto, pareto_outcomes = session.pareto_frontier()
+        pts = session.nash_points(frontier=pareto, frontier_outcomes=pareto_outcomes)
         print(
-            f"Nash Points: {session.nash_points(frontier=pareto, frontier_outcomes=pareto_outcomes)}"
+            f"Nash Points: {pts} -- Distance = {dist(utils, list(a for a, _ in pts))}"
+        )
+        pts = session.kalai_points(frontier=pareto, frontier_outcomes=pareto_outcomes)
+        print(
+            f"Kalai Points: {pts} -- Distance = {dist(utils, list(a for a, _ in pts))}"
+        )
+        pts = session.modified_kalai_points(
+            frontier=pareto, frontier_outcomes=pareto_outcomes
         )
         print(
-            f"Kalai Points: {session.kalai_points(frontier=pareto, frontier_outcomes=pareto_outcomes)}"
+            f"Modified Kalai Points: {pts} -- Distance = {dist(utils, list(a for a, _ in pts))}"
+        )
+        pts = session.max_welfare_points(
+            frontier=pareto, frontier_outcomes=pareto_outcomes
         )
         print(
-            f"Max. Welfare Points: {session.max_welfare_points(frontier=pareto, frontier_outcomes=pareto_outcomes)}"
+            f"Max. Welfare Points: {pts} -- Diff = {diff(utils, list(a for a, _ in pts))}"
         )
-        print(
-            f"Max. Relative Points: {session.max_relative_welfare_points(frontier=pareto, frontier_outcomes=pareto_outcomes)}"
-        )
+        # pts = session.max_relative_welfare_points(frontier=pareto, frontier_outcomes=pareto_outcomes)
+        # print(
+        #     f"Max. Relative Points: {pts} -- Distance = {dist(utils, list(a for a, _ in pts))}"
+        # )
         pareto_save = pareto_outcomes
         alloutcomes = session.discrete_outcomes()
         pareto, pareto_indices = pareto_frontier(
-            ufuns, outcomes=alloutcomes, sort_by_welfare=True
+            ranks_ufuns, outcomes=alloutcomes, sort_by_welfare=True
         )
         pareto_outcomes = [alloutcomes[_] for _ in pareto_indices]
         if len(pareto_save) != len(pareto_outcomes) or any(
@@ -172,22 +200,44 @@ def run(
             print(
                 f"[bold red]Ordinal pareto outcomes do not match cardinal pareto outcomes[/bold red]\nOrdinal: {pareto_outcomes}\nCardinal: {pareto_save}"
             )
-        pts = nash_points(frontier=pareto, ufuns=ufuns, outcome_space=scenario.agenda)
-        pts = tuple((a, pareto_outcomes[b]) for a, b in pts)
-        print(f"Ordinal Nash Points: {pts}")
-        pts = kalai_points(frontier=pareto, ufuns=ufuns, outcome_space=scenario.agenda)
-        pts = tuple((a, pareto_outcomes[b]) for a, b in pts)
-        print(f"Ordinal Kalai Points: {pts}")
+        utils_indices = nash_points(
+            frontier=pareto, ufuns=ranks_ufuns, outcome_space=scenario.agenda
+        )
+        pts = tuple((a, pareto_outcomes[b]) for a, b in utils_indices)
+        nutils = list(a for a, _ in utils_indices)
+        print(f"Ordinal Nash Points: {pts} -- Distance = {dist(ranks, nutils)}")
+        pts = kalai_points(
+            frontier=pareto,
+            ufuns=ranks_ufuns,
+            outcome_space=scenario.agenda,
+            subtract_reserved_value=True,
+        )
+        pts = tuple((a, pareto_outcomes[b]) for a, b in utils_indices)
+        nutils = list(a for a, _ in utils_indices)
+        print(f"Ordinal Kalai Points: {pts} -- Distance = {dist(ranks, nutils)}")
+        pts = kalai_points(
+            frontier=pareto,
+            ufuns=ranks_ufuns,
+            outcome_space=scenario.agenda,
+            subtract_reserved_value=False,
+        )
+        pts = tuple((a, pareto_outcomes[b]) for a, b in utils_indices)
+        nutils = list(a for a, _ in utils_indices)
+        print(
+            f"Ordinal Modified Kalai Points: {pts} -- Distance = {dist(ranks, nutils)}"
+        )
         pts = max_welfare_points(
-            frontier=pareto, ufuns=ufuns, outcome_space=scenario.agenda
+            frontier=pareto, ufuns=ranks_ufuns, outcome_space=scenario.agenda
         )
-        pts = tuple((a, pareto_outcomes[b]) for a, b in pts)
-        print(f"Ordinal Max. Welfare Points: {pts}")
-        pts = max_relative_welfare_points(
-            frontier=pareto, ufuns=ufuns, outcome_space=scenario.agenda
-        )
-        pts = tuple((a, pareto_outcomes[b]) for a, b in pts)
-        print(f"Ordinal Max. Relative Points: {pts}")
+        pts = tuple((a, pareto_outcomes[b]) for a, b in utils_indices)
+        nutils = list(a for a, _ in utils_indices)
+        print(f"Ordinal Max. Welfare Points: {pts} -- Diff = {diff(ranks, nutils)}")
+        # pts = max_relative_welfare_points(
+        #     frontier=pareto, ufuns=ranks_ufuns, outcome_space=scenario.agenda
+        # )
+        # pts = tuple((a, pareto_outcomes[b]) for a, b in utils_indices)
+        # nutils = list(a for a, _ in utils_indices)
+        # print(f"Ordinal Max. Relative Points: {pts} -- Distance = {dist(ranks, nutils)}")
     if history:
         if hasattr(session, "full_trace"):
             print(session.full_trace)  # type: ignore full_trace is defined for SAO and GBM

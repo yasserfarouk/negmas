@@ -1,20 +1,20 @@
 from __future__ import annotations
 
+import itertools
 import math
-from typing import TYPE_CHECKING, Iterable, TypeVar
+from math import sqrt
+from typing import TYPE_CHECKING, Iterable, Sequence, TypeVar
 
 import numpy as np
-from numpy.ma.core import sqrt
+from attr import define
 
 from negmas import warnings
-from negmas.helpers.numba_checks import jit
+from negmas.helpers.numba_checks import jit  # type: ignore
 from negmas.outcomes import Issue, Outcome, discretize_and_enumerate_issues
 from negmas.outcomes.common import os_or_none
 from negmas.outcomes.issue_ops import enumerate_issues
 from negmas.outcomes.protocols import OutcomeSpace
 from negmas.preferences.crisp.mapping import MappingUtilityFunction
-
-from .base_ufun import BaseUtilityFunction
 
 if TYPE_CHECKING:
 
@@ -44,7 +44,159 @@ __all__ = [
     "conflict_level",
     "opposition_level",
     "winwin_level",
+    "get_ranks",
+    "distance_to",
+    "distance_between",
+    "calc_outcome_distances",
+    "calc_scenario_stats",
+    "ScenarioStats",
+    "OutcomeDistances",
+    "OutcomeOptimality",
 ]
+
+
+@define
+class ScenarioStats:
+    opposition: float
+    utility_ranges: list[tuple[float, float]]
+    pareto_utils: list[tuple[float, ...]]
+    pareto_outcomes: list[Outcome]
+    nash_utils: list[tuple[float, ...]]
+    nash_outcomes: list[Outcome]
+    kalai_utils: list[tuple[float, ...]]
+    kalai_outcomes: list[Outcome]
+    modified_kalai_utils: list[tuple[float, ...]]
+    modified_kalai_outcomes: list[Outcome]
+    max_welfare_utils: list[tuple[float, ...]]
+    max_welfare_outcomes: list[Outcome]
+    max_relative_welfare_utils: list[tuple[float, ...]]
+    max_relative_welfare_outcomes: list[Outcome]
+
+    @classmethod
+    def from_ufuns(
+        cls,
+        ufuns: Sequence[UtilityFunction],
+        outcomes: Sequence[Outcome] | None = None,
+        eps=1e-12,
+    ) -> ScenarioStats:
+        return calc_scenario_stats(ufuns, outcomes, eps)
+
+    def restrict(
+        self, ufuns: tuple[UtilityFunction], reserved_values: tuple[float, ...]
+    ) -> ScenarioStats:
+        ranges = self.utility_ranges
+        pareto_indices = [
+            i
+            for i, _ in enumerate(self.pareto_utils)
+            if all(_[j] >= r for j, r in enumerate(reserved_values))
+        ]
+        pareto_utils = [self.pareto_utils[_] for _ in pareto_indices]
+        pareto_outcomes = [self.pareto_outcomes[_] for _ in pareto_indices]
+        nash = nash_points(ufuns, ranges=ranges, frontier=pareto_utils)
+        nash_utils, nash_indices = [_[0] for _ in nash], [_[1] for _ in nash]
+        nash_outcomes = [pareto_outcomes[_] for _ in nash_indices]
+        kalai = kalai_points(
+            ufuns, ranges=ranges, frontier=pareto_utils, subtract_reserved_value=True
+        )
+        kalai_utils, kalai_indices = [_[0] for _ in kalai], [_[1] for _ in kalai]
+        kalai_outcomes = [pareto_outcomes[_] for _ in kalai_indices]
+        modified_kalai = kalai_points(
+            ufuns, ranges=ranges, frontier=pareto_utils, subtract_reserved_value=False
+        )
+        modified_kalai_utils, modified_kalai_indices = [_[0] for _ in modified_kalai], [
+            _[1] for _ in modified_kalai
+        ]
+        modified_kalai_outcomes = [pareto_outcomes[_] for _ in modified_kalai_indices]
+        welfare = max_welfare_points(ufuns, ranges=ranges, frontier=pareto_utils)
+        welfare_utils, welfare_indices = [_[0] for _ in welfare], [
+            _[1] for _ in welfare
+        ]
+        welfare_outcomes = [pareto_outcomes[_] for _ in welfare_indices]
+        relative_welfare = max_relative_welfare_points(
+            ufuns, ranges=ranges, frontier=pareto_utils
+        )
+        relative_welfare_utils, relative_welfare_indices = [
+            _[0] for _ in relative_welfare
+        ], [_[1] for _ in relative_welfare]
+        relative_welfare_outcomes = [
+            pareto_outcomes[_] for _ in relative_welfare_indices
+        ]
+        return ScenarioStats(
+            opposition=self.opposition,
+            utility_ranges=self.utility_ranges,
+            pareto_utils=pareto_utils,
+            pareto_outcomes=pareto_outcomes,
+            nash_utils=nash_utils,
+            nash_outcomes=nash_outcomes,
+            kalai_utils=kalai_utils,
+            kalai_outcomes=kalai_outcomes,
+            modified_kalai_utils=modified_kalai_utils,
+            modified_kalai_outcomes=modified_kalai_outcomes,
+            max_welfare_utils=welfare_utils,
+            max_welfare_outcomes=welfare_outcomes,
+            max_relative_welfare_utils=relative_welfare_utils,
+            max_relative_welfare_outcomes=relative_welfare_outcomes,
+        )
+
+
+@define
+class OutcomeOptimality:
+    pareto_optimality: float
+    nash_optimality: float
+    kalai_optimality: float
+    modified_kalai_optimality: float
+    max_welfare_optimality: float
+    # max_relative_welfare_optimality: float
+
+
+@define
+class OutcomeDistances:
+    pareto_dist: float
+    nash_dist: float
+    kalai_dist: float
+    modified_kalai_dist: float
+    max_welfare: float
+    # max_relative_welfare: float
+
+
+def calc_reserved_value(
+    ufun: UtilityFunction,
+    fraction: float = float("inf"),
+    nmin: int = 0,
+    nmax: int = float("inf"),  # type: ignore
+    max_cardinality: int | float = float("inf"),
+    finite: bool = True,
+    tight: bool = True,
+) -> float:
+    """Calculates a reserved value that keeps the given fraction of outcomes
+    (saturated between nmin and nmax).
+
+    Remarks:
+        - If `finite`, the returned reserved value will be guaranteed to be finite as long as ufun always returns finite values.
+        - max_cardinality is used to sample outcomes for continuous outcome spaces
+        - If tight is given then the reserved values will be as near as possible to the range of the ufun
+    """
+    os = ufun.outcome_space
+    if os is None:
+        raise ValueError(
+            f"Cannot calc reserved values if the outcome space is not given and the same in all ufuns"
+        )
+    outcomes = list(os.enumerate_or_sample(max_cardinality=max_cardinality))
+    noutcomes = len(outcomes)
+    utils = [ufun(o) for o in outcomes]
+    uo = sorted(list(zip(utils, outcomes, strict=True)), reverse=True)
+    utils = [_[0] for _ in uo]
+    n = min(noutcomes, min(nmax, max(nmin, int(math.ceil(fraction * noutcomes)))))
+    if n <= 0:
+        r = utils[0] + 1e-9 if finite else float("inf")
+    elif n < noutcomes:
+        r = 0.5 * (uo[n - 1][0] + uo[n][0])
+    else:
+        r = utils[-1] - 1e-9 if finite else float("-inf")
+    if tight:
+        mn, mx = ufun.minmax(above_reserve=False)
+        r = max(mn - 1e-9, min(mx + 1e-9, r))
+    return r
 
 
 def make_discounted_ufun(
@@ -124,33 +276,29 @@ def make_discounted_ufun(
 
 def pareto_frontier_bf(
     points: np.ndarray | Iterable[Iterable[float]],
-    eps=-1e-18,
+    eps=-1e-12,
     sort_by_welfare=True,
-    unique_utility_values=False,
 ) -> np.ndarray:
     points = np.asarray(points, dtype=np.float32)
-    return _pareto_frontier_bf(points, eps, sort_by_welfare, unique_utility_values)
+    return _pareto_frontier_bf(points, eps, sort_by_welfare)
 
 
 @jit(nopython=True)
 def _pareto_frontier_bf(
     points: np.ndarray | Iterable[Iterable[float]],
-    eps=-1e-18,
+    eps=-1e-12,
     sort_by_welfare=True,
-    unique_utility_values=False,
 ) -> np.ndarray:
-    """
-    Finds the pareto-frontier of a set of points using brute-force. This is extremely slow but is guaranteed to be correct
+    """Finds the pareto-frontier of a set of points using brute-force. This is
+    extremely slow but is guaranteed to be correct.
 
     Args:
         points: list of points
         eps: A (usually negative) small number to treat as zero during calculations
         sort_by_welfare: If True, the results are sorted descindingly by total welfare
-        unique_utility_values: If true, only one outcome from any set with the same utility values will be returned.
 
     Returns:
         indices of pareto optimal outcomes
-
     """
 
     frontier, indices = [], []
@@ -158,15 +306,15 @@ def _pareto_frontier_bf(
         for j, test in enumerate(points):
             if j == i:
                 continue
-            has_best = has_worst = False
-            for a, b in zip(current, test):
+            has_better = has_worse = False
+            for a, b in zip(current, test, strict=True):
                 if a > b:
-                    has_best = True
+                    has_better = True
                     continue
-                if a < b:
-                    has_worst = True
+                if a < b - eps:
+                    has_worse = True
 
-            if not has_best and has_worst:
+            if not has_better and has_worse:
                 # current is dominated, break
                 break
         else:
@@ -175,27 +323,13 @@ def _pareto_frontier_bf(
 
     indices = np.asarray(indices)
     # frontier = np.vstack(tuple(frontier))
-    if sort_by_welfare or unique_utility_values:
+    if sort_by_welfare:
         n = len(frontier)
         # welfare = frontier.sum(axis=1)
         welfare = np.zeros(n, dtype=np.float32)
         for i, f in enumerate(frontier):
             welfare[i] = f.sum()
         welfare_sort_order = welfare.argsort()[::-1]
-        if unique_utility_values:
-            welfare = welfare[welfare_sort_order]
-            for i in range(len(welfare) - 1):
-                a, b = welfare[i], welfare[i + 1]
-                if a != b:
-                    continue
-                f, g = (
-                    frontier[welfare_sort_order[i]],
-                    frontier[welfare_sort_order[i + 1]],
-                )
-                if (f == g).all():
-                    welfare_sort_order = (
-                        welfare_sort_order[:i] + welfare_sort_order[i + 1 :]
-                    )
         indices = indices[welfare_sort_order]
         # welfare = [(np.sum(_[0]), i) for i, _ in enumerate(frontier)]
         # indx = sorted(welfare, reverse=True)
@@ -204,22 +338,19 @@ def _pareto_frontier_bf(
 
 
 def pareto_frontier_of(
-    points: Iterable[Iterable[float]],
-    eps=-1e-18,
+    points: np.ndarray | Iterable[Iterable[float]],
+    eps=-1e-12,
     sort_by_welfare=True,
-    unique_utility_values=False,
-) -> list[int]:
-    """
-    Finds the pareto-frontier of a set of utils (i.e. utility values). Uses a fast algorithm
+) -> np.ndarray:
+    """Finds the pareto-frontier of a set of utils (i.e. utility values). Uses
+    a fast algorithm.
 
     Args:
         points: list of utils
         eps: A (usually negative) small number to treat as zero during calculations
         sort_by_welfare: If True, the results are sorted descindingly by total welfare
-        unique_utility_values: If True, a single outcome will be sampled from outcomes with the same utilities for everyone
 
     Returns:
-
     """
     utils = np.asarray(points)
     n = len(utils)
@@ -238,11 +369,8 @@ def pareto_frontier_of(
         for i, f in enumerate(frontier):
             current_better, current_worse = current > f, current < f
             if (current == f).all():
-                if unique_utility_values:
-                    break
-                else:
-                    frontier.append(current)
-                    found.append(p)
+                frontier.append(current)
+                found.append(p)
             if not current_better.any() and current_worse.any():
                 # current is dominated, break
                 break
@@ -282,16 +410,18 @@ def pareto_frontier_of(
         welfare = [_.sum() for _ in frontier]
         indx = sorted(range(len(welfare)), key=lambda x: welfare[x], reverse=True)
         found = [found[_] for _ in indx]
-    return [_ for _ in found]
+    return np.asarray([_ for _ in found])
 
 
 def kalai_points(
-    ufuns: list[UtilityFunction] | tuple[UtilityFunction, ...],
-    frontier: list[tuple[float, ...]] | tuple[tuple[float, ...], ...],
+    ufuns: Sequence[UtilityFunction],
+    frontier: Sequence[tuple[float, ...]],
+    ranges: Sequence[tuple[float, ...]] | None = None,
     outcome_space: OutcomeSpace | None = None,
-    issues: tuple[Issue, ...] | None = None,
-    outcomes: tuple[Outcome, ...] | None = None,
+    issues: Sequence[Issue] | None = None,
+    outcomes: Sequence[Outcome] | None = None,
     eps: float = 1e-12,
+    subtract_reserved_value: bool = True,
 ) -> tuple[tuple[tuple[float, ...], int], ...]:
     """
     Calculates the all Kalai bargaining solutions on the pareto frontier of a negotiation which is the most Egaliterian solution
@@ -316,53 +446,67 @@ def kalai_points(
         - The function searches within the given frontier only.
 
     """
-    kalai_val = float("-inf")
-    kalai_indx = None
-    ranges = [
-        _.minmax(outcome_space, issues=issues, outcomes=outcomes, above_reserve=False)
-        for _ in ufuns
-    ]
+    if not frontier:
+        return tuple()
+    # calculate the minimum and maximum value for each ufun
+    if not ranges:
+        ranges = [
+            _.minmax(outcome_space, above_reserve=False)
+            if outcome_space
+            else _.minmax(issues=issues, above_reserve=False)
+            if issues
+            else _.minmax(outcomes=outcomes, above_reserve=False)
+            for _ in ufuns
+        ]
+    # find reserved values
     rs = tuple(_.reserved_value for _ in ufuns)
-    for i, (rng, _, r) in enumerate(zip(ranges, ufuns, rs)):
+    rs = tuple(float(_) if _ is not None else float("-inf") for _ in rs)
+    # find all reserved values
+    ranges = list(ranges)
+    for i, (r, rng) in enumerate(zip(rs, ranges)):
         if any(_ is None or not math.isfinite(_) for _ in rng):
-            return tuple()
+            raise ValueError(f"Cannot find the range for ufun {i}: {rng}")
         if r is None or r < rng[0]:
             continue
         ranges[i] = (r, rng[1])
-    if any([_[1] <= eps for _ in ranges]):
-        return tuple()
-    results, vals = [], []
-    for indx, us in enumerate(frontier):
-        if any(u < r for u, r in zip(us, rs)):
+    # if all ranges are very tiny, return everything as optimal
+    if any([(_[1] - _[0]) <= eps for _ in ranges]):
+        return tuple(zip(frontier, range(len(frontier))))
+    # find difference between reserved value and maximum
+    vals, results = [], []
+    optim_val, optim_indx = float("-inf"), None
+    for indx, outcome in enumerate(frontier):
+        if any(u < r for u, r in zip(outcome, rs)):
             vals.append(float("-inf"))
             continue
-        vv = []
-        for u, (r, _) in zip(us, ranges):
-            vv.append(float(u) - float(r))
-        val = min(vv)
+        if subtract_reserved_value:
+            val = min(float(u) - r for u, (r, _) in zip(outcome, ranges))
+        else:
+            val = min(float(u) for u in outcome)
         vals.append(val)
-        if val > kalai_val:
-            kalai_val = val
-            kalai_indx = indx
-    if kalai_indx is None:
+        if val > optim_val:
+            optim_val = val
+            optim_indx = indx
+    if optim_indx is None:
         return tuple()
 
-    for indx, (val, us) in enumerate(zip(vals, frontier)):
-        if val >= kalai_val - eps:
-            results.append((us, indx))
+    for indx, (val, outcome) in enumerate(zip(vals, frontier)):
+        if val >= optim_val - eps:
+            results.append((outcome, indx))
     return tuple(results)
 
 
 def nash_points(
-    ufuns: list[UtilityFunction] | tuple[UtilityFunction, ...],
-    frontier: list[tuple[float, ...]] | tuple[tuple[float, ...], ...],
+    ufuns: Sequence[UtilityFunction],
+    frontier: Sequence[tuple[float, ...]],
+    ranges: Sequence[tuple[float, ...]] | None = None,
     outcome_space: OutcomeSpace | None = None,
-    issues: tuple[Issue, ...] | None = None,
-    outcomes: tuple[Outcome, ...] | None = None,
+    issues: Sequence[Issue] | None = None,
+    outcomes: Sequence[Outcome] | None = None,
     eps=1e-12,
 ) -> tuple[tuple[tuple[float, ...], int], ...]:
-    """
-    Calculates all the Nash Bargaining Solutions on the Pareto frontier of a negotiation
+    """Calculates all the Nash Bargaining Solutions on the Pareto frontier of a
+    negotiation.
 
     Args:
         ufuns: A list of ufuns to use
@@ -380,60 +524,68 @@ def nash_points(
     Remarks:
 
         - The function searches within the given frontier only.
-
     """
-    nash_val = float("-inf")
-    nash_indx = None
-    ranges = [
-        _.minmax(outcome_space, issues=issues, outcomes=outcomes, above_reserve=False)
-        for _ in ufuns
-    ]
+    if not frontier:
+        return tuple()
+    # calculate the minimum and maximum value for each ufun
+    if not ranges:
+        ranges = [
+            _.minmax(outcome_space, above_reserve=False)
+            if outcome_space
+            else _.minmax(issues=issues, above_reserve=False)
+            if issues
+            else _.minmax(outcomes=outcomes, above_reserve=False)
+            for _ in ufuns
+        ]
+    # find reserved values
     rs = tuple(_.reserved_value for _ in ufuns)
-    for i, (rng, _, r) in enumerate(zip(ranges, ufuns, rs)):
+    rs = tuple(float(_) if _ is not None else float("-inf") for _ in rs)
+    # find all reserved values
+    ranges = list(ranges)
+    for i, (r, rng) in enumerate(zip(rs, ranges)):
         if any(_ is None or not math.isfinite(_) for _ in rng):
-            return tuple()
+            raise ValueError(f"Cannot find the range for ufun {i}: {rng}")
         if r is None or r < rng[0]:
             continue
         ranges[i] = (r, rng[1])
-    if any([_[1] <= eps for _ in ranges]):
-        return tuple()
-    diffs = [float(b) - float(r) for r, b in ranges]
-    vals = []
-    results = []
-    for indx, us in enumerate(frontier):
-        if any(u < r for u, r in zip(us, rs)):
-            vals.append(float("-inf"))
-            continue
+    # if all ranges are very tiny, return everything as optimal
+    if any([(_[1] - _[0]) <= eps for _ in ranges]):
+        return tuple(zip(frontier, range(len(frontier))))
+    vals, results = [], []
+    optim_val, optim_indx = float("-inf"), None
+    for indx, outcome in enumerate(frontier):
         val = 1.0
-        for u, (r, _), d in zip(us, ranges, diffs):
-            val *= (float(u) - float(r)) / (d if d else 1.0)
+        for u, (r, _) in zip(outcome, ranges):
+            val *= float(u) - r
         vals.append(val)
-        if val > nash_val:
-            nash_val = val
-            nash_indx = indx
-    if nash_indx is None:
+        if val > optim_val:
+            optim_val = val
+            optim_indx = indx
+    if optim_indx is None:
         return tuple()
 
-    for indx, (val, us) in enumerate(zip(vals, frontier)):
-        if val >= nash_val - eps:
-            results.append((us, indx))
+    for indx, (val, outcome) in enumerate(zip(vals, frontier)):
+        if val >= optim_val - eps:
+            results.append((outcome, indx))
     return tuple(results)
 
 
 def max_welfare_points(
-    ufuns: list[UtilityFunction] | tuple[UtilityFunction, ...],
-    frontier: list[tuple[float, ...]] | tuple[tuple[float, ...], ...],
+    ufuns: Sequence[UtilityFunction],
+    frontier: Sequence[tuple[float, ...]],
+    ranges: Sequence[tuple[float, ...]] | None = None,
     outcome_space: OutcomeSpace | None = None,
-    issues: tuple[Issue, ...] | None = None,
-    outcomes: tuple[Outcome, ...] | None = None,
+    issues: Sequence[Issue] | None = None,
+    outcomes: Sequence[Outcome] | None = None,
     eps=1e-12,
 ) -> tuple[tuple[tuple[float, ...], int], ...]:
-    """
-    Calculates all the points with maximum relative welfare (i.e. sum of improvements above reserved value) on the Pareto frontier of a negotiation
+    """Calculates all the points with maximum relative welfare (i.e. sum of
+    improvements above reserved value) on the Pareto frontier of a negotiation.
 
     Args:
         ufuns: A list of ufuns to use
         frontier: a list of tuples each giving the utility values at some outcome on the frontier (usually found by `pareto_frontier`) to search within
+        ranges: the minimum and maximum value for each ufun. If not given, outcome_space, issues, or outcomes must be given to calculate it
         outcome_space: The outcome-space to consider
         issues: The issues on which the ufun is defined (outcomes may be passed instead)
         outcomes: The outcomes on which the ufun is defined (outcomes may be passed instead)
@@ -447,55 +599,256 @@ def max_welfare_points(
     Remarks:
 
         - The function searches within the given frontier only.
-
     """
-    nash_val = float("-inf")
-    nash_indx = None
-    ranges = [
-        _.minmax(outcome_space, issues=issues, outcomes=outcomes, above_reserve=False)
-        for _ in ufuns
-    ]
-    rs = tuple(_.reserved_value for _ in ufuns)
-    for i, (rng, _, r) in enumerate(zip(ranges, ufuns, rs)):
-        if any(_ is None or not math.isfinite(_) for _ in rng):
-            return tuple()
-        if r is None or r < rng[0]:
-            continue
-        ranges[i] = (r, rng[1])
-    if any([_[1] <= eps for _ in ranges]):
+    if not frontier:
         return tuple()
-    vals = []
-    results = []
-    for indx, us in enumerate(frontier):
-        if any(u < r for u, r in zip(us, rs)):
-            vals.append(float("-inf"))
-            continue
-        val = 0.0
-        for u, (r, _) in zip(us, ranges):
-            val += float(u)
+    # calculate the minimum and maximum value for each ufun
+    if not ranges:
+        ranges = [
+            _.minmax(outcome_space, above_reserve=False)
+            if outcome_space
+            else _.minmax(issues=issues, above_reserve=False)
+            if issues
+            else _.minmax(outcomes=outcomes, above_reserve=False)
+            for _ in ufuns
+        ]
+    # find all reserved values
+    for i, rng in enumerate(ranges):
+        if any(_ is None or not math.isfinite(_) for _ in rng):
+            raise ValueError(f"Cannot find the range for ufun {i}: {rng}")
+        # if r is None or r < rng[0]:
+        #     continue
+        # ranges[i] = (r, rng[1])
+
+    # if all ranges are very tiny, return everything as optimal
+    if any([(_[1] - _[0]) <= eps for _ in ranges]):
+        return tuple(zip(frontier, range(len(frontier))))
+    vals, results = [], []
+    optim_val, optim_indx = float("-inf"), None
+    for indx, outcome in enumerate(frontier):
+        val = sum(float(u) for u in outcome)
         vals.append(val)
-        if val > nash_val:
-            nash_val = val
-            nash_indx = indx
-    if nash_indx is None:
+        if val > optim_val:
+            optim_val = val
+            optim_indx = indx
+    if optim_indx is None:
         return tuple()
 
-    for indx, (val, us) in enumerate(zip(vals, frontier)):
-        if val >= nash_val - eps:
-            results.append((us, indx))
+    for indx, (val, outcome) in enumerate(zip(vals, frontier)):
+        if val >= optim_val - eps:
+            results.append((outcome, indx))
     return tuple(results)
 
 
+def dist(x: tuple[float, ...], y: tuple[float, ...]) -> float:
+    if x is None or y is None:
+        return float("nan")
+    return sqrt(sum((a - b) ** 2 for a, b in zip(x, y, strict=True)))
+
+
+def distance_between(w: tuple[float, ...], n: tuple[float, ...]) -> float:
+    return dist(w, n)
+
+
+def distance_to(w: tuple[float, ...], p: Iterable[tuple[float, ...]]) -> float:
+    dists = list(distance_between(w, x) for x in p)
+    if not dists:
+        return float("nan")
+    return min(dists)
+
+
+def max_distance_to(w: tuple[float, ...], p: Iterable[tuple[float, ...]]) -> float:
+    dists = list(distance_between(w, x) for x in p)
+    if not dists:
+        return float("nan")
+    return max(dists)
+
+
+def is_rational(ufuns: Iterable[UtilityFunction], outcome: Outcome) -> bool:
+    for u in ufuns:
+        if u(outcome) < u.reserved_value:
+            return False
+    return True
+
+
+def is_irrational(utils: Iterable[UtilityFunction], outcome: Outcome) -> bool:
+    return not is_rational(utils, outcome)
+
+
+def calc_outcome_distances(
+    utils: tuple[float, ...],
+    stats: ScenarioStats,
+) -> OutcomeDistances:
+    pdist = distance_to(utils, stats.pareto_utils)
+    ndist = distance_to(utils, stats.nash_utils)
+    kdist = distance_to(utils, stats.kalai_utils)
+    mkdist = distance_to(utils, stats.modified_kalai_utils)
+    welfare = sum(utils)
+    return OutcomeDistances(pdist, ndist, kdist, mkdist, welfare)
+
+
+def estimate_max_dist(ufuns: Sequence[UtilityFunction]) -> float:
+    ranges = [_.minmax(ufuns[0].outcome_space, above_reserve=False) for _ in ufuns]
+    diffs = [float(b) - float(a) for a, b in ranges]
+    assert all(_ >= 0 for _ in diffs)
+    return sqrt(sum(d**2 for d in diffs))
+
+
+def estimate_max_dist_using_outcomes(
+    ufuns: Sequence[UtilityFunction],
+    outcome_utils: Sequence[tuple[float, ...]],
+) -> float:
+    if not outcome_utils:
+        return estimate_max_dist(ufuns)
+    ranges = [_.minmax(ufuns[0].outcome_space) for _ in ufuns]
+    mins = [float(a) for a, _ in ranges]
+    maxs = [float(a) for a, _ in ranges]
+    # distances between outcomes and minimum ranges
+    dists = [(_ - mn for _, mn in zip(p, mins, strict=True)) for p in outcome_utils]
+    # distances between outcomes and maximum ranges
+    dists += [(_ - mx for _, mx in zip(p, maxs, strict=True)) for p in outcome_utils]
+    # distances between outcomes themselves
+    dists += [
+        (a - b for a, b in zip(p, p2, strict=True))
+        for p, p2 in itertools.product(outcome_utils, outcome_utils)
+        if p != p2
+    ]
+    return sqrt(max(sum(_**2 for _ in d) for d in dists))
+
+
+def calc_outcome_optimality(
+    dists: OutcomeDistances,
+    stats: ScenarioStats,
+    max_dist: float,
+) -> OutcomeOptimality:
+    optim = dict()
+    for name, lst, diff in (
+        ("pareto_optimality", stats.pareto_utils, dists.pareto_dist),
+        ("nash_optimality", stats.nash_utils, dists.nash_dist),
+        ("kalai_optimality", stats.kalai_utils, dists.kalai_dist),
+        (
+            "modified_kalai_optimality",
+            stats.modified_kalai_utils,
+            dists.modified_kalai_dist,
+        ),
+    ):
+        if not lst:
+            optim[name] = float("nan")
+            continue
+        if abs(max_dist) < 1e-12:
+            optim[name] = float("nan")
+            continue
+        optim[name] = max(0, 1 - diff / max_dist)
+        # assert 0 <= optim[name] <= 1, f"{name=}, {optim[name]=}"
+    for name, lst, diff in (
+        ("max_welfare_optimality", stats.pareto_utils, dists.max_welfare),
+        # (
+        #     "max_relative_welfare_optimality",
+        #     stats.pareto_utils,
+        #     dists.max_relative_welfare,
+        # ),
+    ):
+        if not lst:
+            optim[name] = float("nan")
+            continue
+        if abs(max_dist) < 1e-12:
+            optim[name] = float("nan")
+            continue
+        mx = max(sum(_) for _ in lst)
+        optim[name] = max(0, 1 - (mx - diff) / mx)
+        assert 0 <= optim[name], f"{name=}, {optim[name]=}"
+    return OutcomeOptimality(**optim)
+
+
+def calc_scenario_stats(
+    ufuns: Sequence[UtilityFunction],
+    outcomes: Sequence[Outcome] | None = None,
+    eps=1e-12,
+) -> ScenarioStats:
+    if not ufuns:
+        raise ValueError("Must pass the ufuns")
+    ufuns = list(ufuns)
+    os = ufuns[0].outcome_space
+    ranges = [_.minmax(os, above_reserve=False) for _ in ufuns]
+    if os is None:
+        raise ValueError(
+            f"Cannot find stats if the outcome space is not given and the same in all ufuns"
+        )
+    for i, u in enumerate(ufuns):
+        if u.outcome_space is None or u.outcome_space != os:
+            raise ValueError(
+                f"Ufun {i} has a different outcome space than the first ufun:\n\tos[0]: {os}\n\tos[{i}]={u.outcome_space}"
+            )
+    if outcomes is None:
+        outcomes = list(os.enumerate_or_sample(max_cardinality=float("inf")))  # type: ignore
+    else:
+        for o in outcomes:
+            if not os.is_valid(o):
+                raise ValueError(f"Outcome {o} is invalid for outcome space {os}")
+    pareto_utils, pareto_indices = pareto_frontier(
+        ufuns, outcomes, sort_by_welfare=True
+    )
+    pareto_outcomes = [outcomes[_] for _ in pareto_indices]
+    nash = nash_points(ufuns, ranges=ranges, frontier=pareto_utils)
+    nash_utils, nash_indices = [_[0] for _ in nash], [_[1] for _ in nash]
+    nash_outcomes = [pareto_outcomes[_] for _ in nash_indices]
+    kalai = kalai_points(
+        ufuns, ranges=ranges, frontier=pareto_utils, subtract_reserved_value=True
+    )
+    kalai_utils, kalai_indices = [_[0] for _ in kalai], [_[1] for _ in kalai]
+    kalai_outcomes = [pareto_outcomes[_] for _ in kalai_indices]
+    modified_kalai = kalai_points(
+        ufuns, ranges=ranges, frontier=pareto_utils, subtract_reserved_value=False
+    )
+    modified_kalai_utils, modified_kalai_indices = [_[0] for _ in modified_kalai], [
+        _[1] for _ in modified_kalai
+    ]
+    modified_kalai_outcomes = [pareto_outcomes[_] for _ in modified_kalai_indices]
+    welfare = max_welfare_points(ufuns, ranges=ranges, frontier=pareto_utils)
+    welfare_utils, welfare_indices = [_[0] for _ in welfare], [_[1] for _ in welfare]
+    welfare_outcomes = [pareto_outcomes[_] for _ in welfare_indices]
+    relative_welfare = max_relative_welfare_points(
+        ufuns, ranges=ranges, frontier=pareto_utils
+    )
+    relative_welfare_utils, relative_welfare_indices = [
+        _[0] for _ in relative_welfare
+    ], [_[1] for _ in relative_welfare]
+    relative_welfare_outcomes = [pareto_outcomes[_] for _ in relative_welfare_indices]
+    minmax = [u.minmax() for u in ufuns]
+    opposition = opposition_level(
+        ufuns,
+        max_utils=tuple(_[1] for _ in minmax),
+        outcomes=outcomes,
+    )
+    return ScenarioStats(
+        opposition=opposition,
+        utility_ranges=ranges,
+        pareto_utils=pareto_utils,
+        pareto_outcomes=pareto_outcomes,
+        nash_utils=nash_utils,
+        nash_outcomes=nash_outcomes,
+        kalai_utils=kalai_utils,
+        kalai_outcomes=kalai_outcomes,
+        modified_kalai_utils=modified_kalai_utils,
+        modified_kalai_outcomes=modified_kalai_outcomes,
+        max_welfare_utils=welfare_utils,
+        max_welfare_outcomes=welfare_outcomes,
+        max_relative_welfare_utils=relative_welfare_utils,
+        max_relative_welfare_outcomes=relative_welfare_outcomes,
+    )
+
+
 def max_relative_welfare_points(
-    ufuns: list[UtilityFunction] | tuple[UtilityFunction, ...],
-    frontier: list[tuple[float, ...]] | tuple[tuple[float, ...], ...],
+    ufuns: Sequence[UtilityFunction],
+    frontier: Sequence[tuple[float, ...]],
+    ranges: Sequence[tuple[float, ...]] | None = None,
     outcome_space: OutcomeSpace | None = None,
-    issues: tuple[Issue, ...] | None = None,
-    outcomes: tuple[Outcome, ...] | None = None,
+    issues: Sequence[Issue] | None = None,
+    outcomes: Sequence[Outcome] | None = None,
     eps=1e-12,
 ) -> tuple[tuple[tuple[float, ...], int], ...]:
-    """
-    Calculates all the points with maximum relative welfare (i.e. sum of improvements above reserved value) on the Pareto frontier of a negotiation
+    """Calculates all the points with maximum relative welfare (i.e. sum of
+    improvements above reserved value) on the Pareto frontier of a negotiation.
 
     Args:
         ufuns: A list of ufuns to use
@@ -513,56 +866,68 @@ def max_relative_welfare_points(
     Remarks:
 
         - The function searches within the given frontier only.
-
     """
-    nash_val = float("-inf")
-    nash_indx = None
-    ranges = [
-        _.minmax(outcome_space, issues=issues, outcomes=outcomes, above_reserve=False)
-        for _ in ufuns
-    ]
-    rs = tuple(_.reserved_value for _ in ufuns)
-    for i, (rng, _, r) in enumerate(zip(ranges, ufuns, rs)):
-        if any(_ is None or not math.isfinite(_) for _ in rng):
-            return tuple()
-        if r is None or r < rng[0]:
-            continue
-        ranges[i] = (r, rng[1])
-    if any([_[1] <= eps for _ in ranges]):
+    if not frontier:
         return tuple()
-    diffs = [float(b) - float(r) for r, b in ranges]
-    vals = []
-    results = []
-    for indx, us in enumerate(frontier):
-        if any(u < r for u, r in zip(us, rs)):
+    # calculate the minimum and maximum value for each ufun
+    if not ranges:
+        ranges = [
+            _.minmax(outcome_space, above_reserve=False)
+            if outcome_space
+            else _.minmax(issues=issues, above_reserve=False)
+            if issues
+            else _.minmax(outcomes=outcomes, above_reserve=False)
+            for _ in ufuns
+        ]
+    # find all reserved values
+    for i, rng in enumerate(ranges):
+        if any(_ is None or not math.isfinite(_) for _ in rng):
+            raise ValueError(f"Cannot find the range for ufun {i}: {rng}")
+        # if r is None or r < rng[0]:
+        #     continue
+        # ranges[i] = (r, rng[1])
+
+    # if all ranges are very tiny, return everything as optimal
+    if any([(_[1] - _[0]) <= eps for _ in ranges]):
+        return tuple(zip(frontier, range(len(frontier))))
+    # find reserved values
+    rs = tuple(_.reserved_value for _ in ufuns)
+    rs = tuple(float(_) if _ is not None else float("-inf") for _ in rs)
+    # find difference between reserved value and maximum
+    diffs = [a[1] - max(b, a[0]) for a, b in zip(ranges, rs)]
+    # find the optimal utilities
+    vals, results = [], []
+    optim_val, optim_indx = float("-inf"), None
+    for indx, outcome in enumerate(frontier):
+        if any(u < r for u, r in zip(outcome, rs)):
             vals.append(float("-inf"))
             continue
         val = 0.0
-        for u, (r, _), d in zip(us, ranges, diffs):
-            val += (float(u) - float(r)) / (d if d else 1.0)
+        for u, (r, _), d in zip(outcome, ranges, diffs):
+            val += (float(u) - r) / (d if d else 1.0)
         vals.append(val)
-        if val > nash_val:
-            nash_val = val
-            nash_indx = indx
-    if nash_indx is None:
+        if val > optim_val:
+            optim_val = val
+            optim_indx = indx
+    if optim_indx is None:
         return tuple()
 
-    for indx, (val, us) in enumerate(zip(vals, frontier)):
-        if val >= nash_val - eps:
-            results.append((us, indx))
+    for indx, (val, outcome) in enumerate(zip(vals, frontier)):
+        if val >= optim_val - eps:
+            results.append((outcome, indx))
     return tuple(results)
 
 
 def pareto_frontier(
-    ufuns: list[UtilityFunction] | tuple[UtilityFunction, ...],
-    outcomes: list[Outcome] | tuple[Outcome, ...] | None = None,
-    issues: Iterable[Issue] | None = None,
-    n_discretization: int | None = 10,
+    ufuns: Sequence[UtilityFunction],
+    outcomes: Sequence[Outcome] | None = None,
+    issues: Sequence[Issue] | None = None,
+    n_discretization: int | None = None,
+    max_cardinality: int | float = float("inf"),
     sort_by_welfare=True,
-    unique_utility_values=False,
-    rational_only=True,
+    eps: float = 1e-12,
 ) -> tuple[list[tuple[float, ...]], list[int]]:
-    """Finds all pareto-optimal outcomes in the list
+    """Finds all pareto-optimal outcomes in the list.
 
     Args:
 
@@ -571,12 +936,11 @@ def pareto_frontier(
         issues: The set of issues (only used when outcomes is None)
         n_discretization: The number of items to discretize each real-dimension into
         sort_by_welfare: If True, the results are sorted descendingly by total welfare
-        unique_utility_values: If true, only one outcome from any set with the same utility values will be returned.
         rational_only: If true, only rational outcomes can be members of the Pareto frontier.
+        eps: resolution
 
     Returns:
         Two lists of the same length. First list gives the utilities at pareto frontier points and second list gives their indices
-
     """
 
     ufuns = tuple(ufuns)
@@ -589,34 +953,32 @@ def pareto_frontier(
     if outcomes is None:
         if issues is None:
             return [], []
-        outcomes = discretize_and_enumerate_issues(issues, n_discretization)
+        outcomes = discretize_and_enumerate_issues(
+            issues, n_discretization=n_discretization, max_cardinality=max_cardinality
+        )
         # outcomes = itertools.product(
         #     *[issue.value_generator(n=n_discretization) for issue in issues]
         # )
     points = [tuple(ufun(outcome) for ufun in ufuns) for outcome in outcomes]
-    if rational_only:
-        reservs = tuple(
-            _.reserved_value if _ is not None else float("-inf") for _ in ufuns
-        )
-        points = [_ for _ in points if all(a >= b for a, b in zip(_, reservs))]
+    reservs = tuple(_.reserved_value if _ is not None else float("-inf") for _ in ufuns)
+    rational_indices = [
+        i for i, _ in enumerate(points) if all(a >= b for a, b in zip(_, reservs))
+    ]
+    points = [points[_] for _ in rational_indices]
     indices = list(
-        pareto_frontier_active(
-            points,
-            sort_by_welfare=sort_by_welfare,
-            unique_utility_values=unique_utility_values,
-        )
+        pareto_frontier_active(points, sort_by_welfare=sort_by_welfare, eps=eps)
     )
-    return [points[_] for _ in indices], indices
+    return [points[_] for _ in indices], [rational_indices[_] for _ in indices]
 
 
 def scale_max(
     ufun: UFunType,
     to: float = 1.0,
     outcome_space: OutcomeSpace | None = None,
-    issues: list[Issue] | None = None,
-    outcomes: list[Outcome] | None = None,
+    issues: Sequence[Issue] | None = None,
+    outcomes: Sequence[Outcome] | None = None,
 ) -> UFunType:
-    """Normalizes a utility function to the given range
+    """Normalizes a utility function to the given range.
 
     Args:
         ufun: The utility function to normalize
@@ -626,7 +988,6 @@ def scale_max(
 
     Returns:
         UtilityFunction: A utility function that is guaranteed to be normalized for the set of given outcomes
-
     """
     return ufun.scale_max_for(
         to, issues=issues, outcome_space=outcome_space, outcomes=outcomes
@@ -637,10 +998,10 @@ def normalize(
     ufun: BaseUtilityFunction,
     to: tuple[float, float] = (0.0, 1.0),
     outcome_space: OutcomeSpace | None = None,
-    issues: list[Issue] | None = None,
-    outcomes: list[Outcome] | None = None,
+    issues: Sequence[Issue] | None = None,
+    outcomes: Sequence[Outcome] | None = None,
 ) -> BaseUtilityFunction:
-    """Normalizes a utility function to the given range
+    """Normalizes a utility function to the given range.
 
     Args:
         ufun: The utility function to normalize
@@ -649,7 +1010,6 @@ def normalize(
 
     Returns:
         UtilityFunction: A utility function that is guaranteed to be normalized for the set of given outcomes
-
     """
     outcome_space = os_or_none(outcome_space, issues, outcomes)
     if outcome_space is None:
@@ -661,12 +1021,11 @@ def sample_outcome_with_utility(
     ufun: BaseUtilityFunction,
     rng: tuple[float, float],
     outcome_space: OutcomeSpace | None = None,
-    issues: list[Issue] | None = None,
-    outcomes: list[Outcome] | None = None,
+    issues: Sequence[Issue] | None = None,
+    outcomes: Sequence[Outcome] | None = None,
     n_trials: int = 100,
 ) -> Outcome | None:
-    """
-    Gets one outcome within the given utility range or None on failure
+    """Gets one outcome within the given utility range or None on failure.
 
     Args:
         ufun: The utility function
@@ -679,7 +1038,6 @@ def sample_outcome_with_utility(
     Returns:
 
         - Either issues, or outcomes should be given but not both
-
     """
     return ufun.sample_outcome_with_utility(
         rng, outcome_space, issues, outcomes, n_trials
@@ -689,12 +1047,11 @@ def sample_outcome_with_utility(
 def extreme_outcomes(
     ufun: UtilityFunction,
     outcome_space: OutcomeSpace | None = None,
-    issues: list[Issue] | None = None,
-    outcomes: list[Outcome] | None = None,
+    issues: Sequence[Issue] | None = None,
+    outcomes: Sequence[Outcome] | None = None,
     max_cardinality=1000,
 ) -> tuple[Outcome, Outcome]:
-    """
-    Finds the best and worst outcomes
+    """Finds the best and worst outcomes.
 
     Args:
         ufun: The utility function
@@ -705,7 +1062,6 @@ def extreme_outcomes(
                         given)
     Returns:
         Outcomes with minumum utility, maximum utility
-
     """
     return ufun.extreme_outcomes(
         outcome_space=outcome_space,
@@ -718,11 +1074,11 @@ def extreme_outcomes(
 def minmax(
     ufun: UtilityFunction,
     outcome_space: OutcomeSpace | None = None,
-    issues: list[Issue] | tuple[Issue, ...] | None = None,
-    outcomes: list[Outcome] | tuple[Outcome, ...] | None = None,
+    issues: Sequence[Issue] | tuple[Issue, ...] | None = None,
+    outcomes: Sequence[Outcome] | tuple[Outcome, ...] | None = None,
     max_cardinality=1000,
 ) -> tuple[float, float]:
-    """Finds the range of the given utility function for the given outcomes
+    """Finds the range of the given utility function for the given outcomes.
 
     Args:
         ufun: The utility function
@@ -733,7 +1089,6 @@ def minmax(
                         given)
     Returns:
         Minumum utility, maximum utility
-
     """
     return ufun.minmax(
         outcome_space=outcome_space,
@@ -744,14 +1099,14 @@ def minmax(
 
 
 def opposition_level(
-    ufuns: list[UtilityFunction] | tuple[UtilityFunction, ...],
+    ufuns: Sequence[UtilityFunction],
     max_utils: float | tuple[float, float] = 1.0,  # type: ignore
-    outcomes: int | list[Outcome] | tuple[Outcome, ...] | None = None,
-    issues: list[Issue] | None = None,
+    outcomes: int | Sequence[Outcome] | None = None,
+    issues: Sequence[Issue] | None = None,
     max_tests: int = 10000,
 ) -> float:
-    """
-    Finds the opposition level of the two ufuns defined as the minimum distance to outcome (1, 1)
+    """Finds the opposition level of the two ufuns defined as the minimum
+    distance to outcome (1, 1)
 
     Args:
         ufuns: A list of utility functions to use.
@@ -777,7 +1132,6 @@ def opposition_level(
         >>> u1, u2 = MappingUtilityFunction(lambda x: x[0]), MappingUtilityFunction(lambda x: 9 - x[0])
         >>> opposition_level([u1, u2], outcomes=10, max_utils=9)
         0.7114582486036499
-
     """
     if outcomes is None:
         if issues is None:
@@ -813,11 +1167,10 @@ def opposition_level(
 def conflict_level(
     u1: UtilityFunction,
     u2: UtilityFunction,
-    outcomes: int | list[Outcome] | tuple[Outcome],
+    outcomes: int | Sequence[Outcome],
     max_tests: int = 10000,
 ) -> float:
-    """
-    Finds the conflict level in these two ufuns
+    """Finds the conflict level in these two ufuns.
 
     Args:
         u1: first utility function
@@ -880,11 +1233,10 @@ def conflict_level(
 def winwin_level(
     u1: UtilityFunction,
     u2: UtilityFunction,
-    outcomes: int | list[Outcome] | tuple[Outcome],
+    outcomes: int | Sequence[Outcome],
     max_tests: int = 10000,
 ) -> float:
-    """
-    Finds the win-win level in these two ufuns
+    """Finds the win-win level in these two ufuns.
 
     Args:
         u1: first utility function
@@ -903,8 +1255,6 @@ def winwin_level(
         ... np.linspace(0.0, 1.0, len(outcomes), endpoint=True))))
         >>> u2 = MappingUtilityFunction(dict(zip(outcomes,
         ... np.linspace(1.0, 0.0, len(outcomes), endpoint=True))))
-
-
     """
     if isinstance(outcomes, int):
         outcomes = [(_,) for _ in range(outcomes)]
@@ -942,7 +1292,7 @@ def winwin_level(
     return signed_diffs.mean()
 
 
-def get_ranks(ufun: UtilityFunction, outcomes: list[Outcome | None]) -> list[float]:
+def get_ranks(ufun: UtilityFunction, outcomes: Sequence[Outcome | None]) -> list[float]:
     assert ufun.outcome_space is not None
     assert ufun.outcome_space.is_discrete()
     alloutcomes = list(ufun.outcome_space.enumerate_or_sample())

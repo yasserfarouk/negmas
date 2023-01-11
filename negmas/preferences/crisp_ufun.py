@@ -3,7 +3,7 @@ from __future__ import annotations
 import math
 import random
 from abc import abstractmethod
-from typing import TypeVar
+from typing import Sequence, TypeVar
 
 import numpy as np
 
@@ -34,7 +34,7 @@ class UtilityFunction(_General, BaseUtilityFunction):
     @classmethod
     def generate_bilateral(
         cls,
-        outcomes: int | list[Outcome],
+        outcomes: int | Sequence[Outcome],
         conflict_level: float = 0.5,
         conflict_delta=0.005,
     ) -> tuple[UtilityFunction, UtilityFunction]:
@@ -100,7 +100,7 @@ class UtilityFunction(_General, BaseUtilityFunction):
 
     @classmethod
     def generate_random_bilateral(
-        cls, outcomes: int | list[Outcome]
+        cls, outcomes: int | Sequence[Outcome]
     ) -> tuple[UtilityFunction, UtilityFunction]:
         """Generates a couple of utility functions
 
@@ -131,7 +131,7 @@ class UtilityFunction(_General, BaseUtilityFunction):
 
     @classmethod
     def generate_random(
-        cls, n: int, outcomes: int | list[Outcome], normalized: bool = True
+        cls, n: int, outcomes: int | Sequence[Outcome], normalized: bool = True
     ) -> list[UtilityFunction]:
         """Generates N mapping utility functions
 
@@ -174,8 +174,8 @@ class UtilityFunction(_General, BaseUtilityFunction):
     def minmax(
         self,
         outcome_space: OutcomeSpace | None = None,
-        issues: list[Issue] | tuple[Issue, ...] | None = None,
-        outcomes: list[Outcome] | tuple[Outcome, ...] | None = None,
+        issues: Sequence[Issue] | None = None,
+        outcomes: Sequence[Outcome] | None = None,
         max_cardinality=1000,
         above_reserve=False,
     ) -> tuple[float, float]:
