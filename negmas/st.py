@@ -161,7 +161,7 @@ class VetoSTMechanism(Mechanism):
         has_front = 1
         # n_negotiators = len(self.negotiators)
         n_agents = len(visible_negotiators)
-        ufuns = self._get_preferencess()
+        ufuns = self._get_preferences()
         outcomes = self.outcomes
         utils = [tuple(f(o) for f in ufuns) for o in outcomes]
         agent_names = [a.name for a in visible_negotiators]

@@ -14,6 +14,7 @@ from attr import define
 from negmas.helpers.inout import dump
 from negmas.outcomes.outcome_space import make_os
 from negmas.preferences.crisp.linear import LinearAdditiveUtilityFunction
+from negmas.preferences.ops import ScenarioStats, calc_scenario_stats
 from negmas.serialization import PYTHON_CLASS_IDENTIFIER, serialize
 
 from .mechanisms import Mechanism
@@ -283,7 +284,10 @@ class Scenario:
             u.reserved_value = r
         return self
 
-    def calc_stats(
+    def calc_stats(self) -> ScenarioStats:
+        return calc_scenario_stats(self.ufuns)
+
+    def calc_extra_stats(
         self, max_cardinality: int = STATS_MAX_CARDINALITY
     ) -> dict[str, Any]:
         """

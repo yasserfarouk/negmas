@@ -1,6 +1,4 @@
-"""
-Provides interfaces for defining negotiation mechanisms.
-"""
+"""Provides interfaces for defining negotiation mechanisms."""
 from __future__ import annotations
 
 import copy
@@ -34,6 +32,7 @@ from negmas.outcomes.protocols import OutcomeSpace
 from negmas.preferences import (
     kalai_points,
     nash_points,
+    pareto_frontier,
     pareto_frontier_active,
     pareto_frontier_bf,
 )
@@ -51,37 +50,45 @@ __all__ = ["Mechanism", "MechanismRoundResult"]
 
 @define(frozen=True)
 class MechanismRoundResult:
-    """
-    Represents the results of a negotiation round (step). This is what `round()` should return.
+    """Represents the results of a negotiation round (step).
+
+    This is what `round()` should return.
     """
 
     state: MechanismState
-    """The returned state"""
+    """The returned state."""
     completed: bool = True
-    """Whether the current round is completed or not"""
+    """Whether the current round is completed or not."""
     broken: bool = False
-    """True only if END_NEGOTIATION was selected by one agent"""
+    """True only if END_NEGOTIATION was selected by one agent."""
     timedout: bool = False
-    """True if a timeout occurred. Usually not used"""
+    """True if a timeout occurred.
+
+    Usually not used
+    """
     agreement: Outcome | None = None
-    """The agreement if any. Allows for a single outcome or a collection of outcomes"""
+    """The agreement if any.
+
+    Allows for a single outcome or a collection of outcomes
+    """
     error: bool = False
-    """True if an error occurred in the mechanism"""
+    """True if an error occurred in the mechanism."""
     error_details: str = ""
-    """Error message"""
+    """Error message."""
     waiting: bool = False
-    """whether to consider that the round is still running and call the round method again without increasing
-    the step number"""
+    """Whether to consider that the round is still running and call the round
+    method again without increasing the step number."""
     exceptions: dict[str, list[str]] | None = None
-    """A mapping from negotiator ID to a list of exceptions raised by that negotiator in this round"""
+    """A mapping from negotiator ID to a list of exceptions raised by that
+    negotiator in this round."""
     times: dict[str, float] | None = None
-    """A mapping from negotiator ID to the time it consumed during this round"""
+    """A mapping from negotiator ID to the time it consumed during this
+    round."""
 
 
 # noinspection PyAttributeOutsideInit
 class Mechanism(NamedObject, EventSource, CheckpointMixin, ABC):
-    """
-    Base class for all negotiation Mechanisms.
+    """Base class for all negotiation Mechanisms.
 
     Override the `round` function of this class to implement a round of your mechanism
 
@@ -220,14 +227,14 @@ class Mechanism(NamedObject, EventSource, CheckpointMixin, ABC):
 
     @property
     def participants(self) -> list[NegotiatorInfo]:
-        """Returns a list of all participant names"""
+        """Returns a list of all participant names."""
         return [
             NegotiatorInfo(name=_.name, id=_.id, type=snake_case(_.__class__.__name__))
             for _ in self.negotiators
         ]
 
     def is_valid(self, outcome: Outcome):
-        """Checks whether the outcome is valid given the issues"""
+        """Checks whether the outcome is valid given the issues."""
         return outcome in self.nmi.outcome_space
 
     @property
@@ -237,9 +244,7 @@ class Mechanism(NamedObject, EventSource, CheckpointMixin, ABC):
     def discrete_outcome_space(
         self, levels: int = 5, max_cardinality: int = 10_000_000_000
     ) -> DiscreteOutcomeSpace:
-        """
-        Returns a stable discrete version of the given outcome-space
-        """
+        """Returns a stable discrete version of the given outcome-space."""
         if self.__discrete_os:
             return self.__discrete_os
         self.__discrete_os = self.outcome_space.to_discrete(
@@ -257,8 +262,7 @@ class Mechanism(NamedObject, EventSource, CheckpointMixin, ABC):
     def discrete_outcomes(
         self, levels: int = 5, max_cardinality: int | float = float("inf")
     ) -> list[Outcome]:
-        """
-        A discrete set of outcomes that spans the outcome space
+        """A discrete set of outcomes that spans the outcome space.
 
         Args:
             max_cardinality: The maximum number of outcomes to return. If None, all outcomes will be returned for discrete issues
@@ -267,7 +271,6 @@ class Mechanism(NamedObject, EventSource, CheckpointMixin, ABC):
         Returns:
 
             list[Outcome]: list of `n` or less outcomes
-
         """
         if self.outcomes is not None:
             return list(self.outcomes)
@@ -295,7 +298,6 @@ class Mechanism(NamedObject, EventSource, CheckpointMixin, ABC):
 
                 - If the number of outcomes `n` cannot be satisfied, a smaller number will be returned
                 - Sampling is done without replacement (i.e. returned outcomes are unique).
-
         """
         return list(
             self.outcome_space.sample(
@@ -305,7 +307,10 @@ class Mechanism(NamedObject, EventSource, CheckpointMixin, ABC):
 
     @property
     def time(self) -> float:
-        """Elapsed time since mechanism started in seconds. 0.0 if the mechanism did not start running"""
+        """Elapsed time since mechanism started in seconds.
+
+        0.0 if the mechanism did not start running
+        """
         if self._start_time is None:
             return 0.0
 
@@ -313,7 +318,10 @@ class Mechanism(NamedObject, EventSource, CheckpointMixin, ABC):
 
     @property
     def remaining_time(self) -> float | None:
-        """Returns remaining time in seconds. None if no time limit is given."""
+        """Returns remaining time in seconds.
+
+        None if no time limit is given.
+        """
         if self.nmi.time_limit == float("+inf"):
             return None
         if not self._start_time:
@@ -327,7 +335,8 @@ class Mechanism(NamedObject, EventSource, CheckpointMixin, ABC):
 
     @property
     def relative_time(self) -> float:
-        """Returns a number between ``0`` and ``1`` indicating elapsed relative time or steps."""
+        """Returns a number between ``0`` and ``1`` indicating elapsed relative
+        time or steps."""
         if self.nmi.time_limit == float("+inf") and self.nmi.n_steps is None:
             return 0.0
 
@@ -343,7 +352,11 @@ class Mechanism(NamedObject, EventSource, CheckpointMixin, ABC):
 
     @property
     def remaining_steps(self) -> int | None:
-        """Returns the remaining number of steps until the end of the mechanism run. None if unlimited"""
+        """Returns the remaining number of steps until the end of the mechanism
+        run.
+
+        None if unlimited
+        """
         if self.nmi.n_steps is None:
             return None
 
@@ -351,10 +364,8 @@ class Mechanism(NamedObject, EventSource, CheckpointMixin, ABC):
 
     @property
     def requirements(self):
-        """A dictionary specifying the requirements that must be in the capabilities of any agent
-        to join the mechanism.
-
-        """
+        """A dictionary specifying the requirements that must be in the
+        capabilities of any agent to join the mechanism."""
         return self._requirements
 
     @requirements.setter
@@ -377,7 +388,8 @@ class Mechanism(NamedObject, EventSource, CheckpointMixin, ABC):
         }
 
     def is_satisfying(self, capabilities: dict) -> bool:
-        """Checks if the  given capabilities are satisfying mechanism requirements.
+        """Checks if the  given capabilities are satisfying mechanism
+        requirements.
 
         Args:
             capabilities: capabilities to check
@@ -394,7 +406,6 @@ class Mechanism(NamedObject, EventSource, CheckpointMixin, ABC):
                 - Single value: The capability must match this value
 
             - Capabilities can also have the same three possibilities.
-
         """
         requirements = self.requirements
         for r, v in requirements.items():
@@ -446,7 +457,8 @@ class Mechanism(NamedObject, EventSource, CheckpointMixin, ABC):
         return True
 
     def can_participate(self, agent: Negotiator) -> bool:
-        """Checks if the agent can participate in this type of negotiation in general.
+        """Checks if the agent can participate in this type of negotiation in
+        general.
 
         Args:
             agent:
@@ -467,7 +479,6 @@ class Mechanism(NamedObject, EventSource, CheckpointMixin, ABC):
             An agent that lists a `None` value for a capability is announcing that it can work with all its
             values. On the other hand, a mechanism that lists a requirement as None announces that it accepts
             any value for this requirement as long as it exist in the agent
-
         """
         return self.is_satisfying(agent.capabilities)
 
@@ -489,7 +500,10 @@ class Mechanism(NamedObject, EventSource, CheckpointMixin, ABC):
 
     @property
     def state(self) -> MechanismState:
-        """Returns the current state. Override `extra_state` if you want to keep extra state"""
+        """Returns the current state.
+
+        Override `extra_state` if you want to keep extra state
+        """
         return self._current_state
 
     def _get_nmi(self, negotiator: Negotiator) -> NegotiatorMechanismInterface:  # type: ignore
@@ -526,7 +540,6 @@ class Mechanism(NamedObject, EventSource, CheckpointMixin, ABC):
               1. The capabilities of the negotiator do not match the requirements of the negotiation
               2. The outcome-space of the negotiator's preferences do not contain the outcome-space of the negotiation
               3. The negotiator refuses to join (by returning False from its `join` method) see `Negotiator.join` for possible reasons of that
-
         """
 
         from negmas.preferences import (
@@ -579,7 +592,8 @@ class Mechanism(NamedObject, EventSource, CheckpointMixin, ABC):
         return None
 
     def get_negotiator(self, source: str) -> Negotiator | None:
-        """Returns the negotiator with the given ID if present in the negotiation"""
+        """Returns the negotiator with the given ID if present in the
+        negotiation."""
         return self._negotiator_map.get(source, None)
 
     def can_leave(self, agent: Negotiator) -> bool:
@@ -630,7 +644,7 @@ class Mechanism(NamedObject, EventSource, CheckpointMixin, ABC):
                 self._requirements.pop(r, None)
 
     def negotiator_index(self, source: str) -> int | None:
-        """Gets the negotiator index
+        """Gets the negotiator index.
 
         Args:
             source (str): source
@@ -667,8 +681,10 @@ class Mechanism(NamedObject, EventSource, CheckpointMixin, ABC):
 
     @property
     def issues(self) -> list[Issue]:
-        """
-        Returns the issues of the outcomespace. Will raise an exception if the outcome space has no defined issues
+        """Returns the issues of the outcomespace.
+
+        Will raise an exception if the outcome space has no defined
+        issues
         """
         return self.nmi.outcome_space.issues  # type: ignore
 
@@ -698,7 +714,7 @@ class Mechanism(NamedObject, EventSource, CheckpointMixin, ABC):
 
     @property
     def state4history(self) -> Any:
-        """Returns the state as it should be stored in the history"""
+        """Returns the state as it should be stored in the history."""
         return copy.deepcopy(self._current_state)
 
     def _add_to_history(self, state4history):
@@ -712,8 +728,7 @@ class Mechanism(NamedObject, EventSource, CheckpointMixin, ABC):
         self._history.append(state4history)
 
     def on_mechanism_error(self) -> None:
-        """
-        Called when there is a mechanism error
+        """Called when there is a mechanism error.
 
         Remarks:
             - When overriding this function you **MUST** call the base class version
@@ -724,8 +739,7 @@ class Mechanism(NamedObject, EventSource, CheckpointMixin, ABC):
                 a.on_mechanism_error(state)
 
     def on_negotiation_end(self) -> None:
-        """
-        Called at the end of each negotiation.
+        """Called at the end of each negotiation.
 
         Remarks:
             - When overriding this function you **MUST** call the base class version
@@ -746,17 +760,18 @@ class Mechanism(NamedObject, EventSource, CheckpointMixin, ABC):
         self.checkpoint_final_step()
 
     def on_negotiation_start(self) -> bool:
-        """Called before starting the negotiation. If it returns False then negotiation will end immediately"""
+        """Called before starting the negotiation.
+
+        If it returns False then negotiation will end immediately
+        """
         return True
 
     @abstractmethod
     def __call__(self, state: MechanismState) -> MechanismRoundResult:
-        """
-        Implements a single step of the mechanism. Override this!
+        """Implements a single step of the mechanism. Override this!
 
         Returns:
             MechanismRoundResult giving whether the negotiation was broken or timedout and the agreement if any.
-
         """
         ...
 
@@ -771,7 +786,6 @@ class Mechanism(NamedObject, EventSource, CheckpointMixin, ABC):
             - Every call yields the results of one round (see `round()`)
             - If the mechanism was yet to start, it will start it and runs one round
             - There is another function (`run()`) that runs the whole mechanism in blocking mode
-
         """
         if self._start_time is None or self._start_time < 0:
             self._start_time = time.perf_counter()
@@ -942,9 +956,7 @@ class Mechanism(NamedObject, EventSource, CheckpointMixin, ABC):
         return result
 
     def abort(self) -> MechanismState:
-        """
-        Aborts the negotiation
-        """
+        """Aborts the negotiation."""
         (
             self._current_state.has_error,
             self._current_state.error_details,
@@ -975,8 +987,7 @@ class Mechanism(NamedObject, EventSource, CheckpointMixin, ABC):
     def runall(
         cls, mechanisms: list[Mechanism], keep_order=True, method="serial"
     ) -> list[MechanismState | None]:
-        """
-        Runs all mechanisms
+        """Runs all mechanisms.
 
         Args:
             mechanisms: list of mechanisms
@@ -987,7 +998,6 @@ class Mechanism(NamedObject, EventSource, CheckpointMixin, ABC):
         Returns:
             - list of states of all mechanisms after completion
             - None for any such states indicates disagreements
-
         """
         completed = [_ is None for _ in mechanisms]
         states: list[MechanismState | None] = [None] * len(mechanisms)
@@ -1021,8 +1031,7 @@ class Mechanism(NamedObject, EventSource, CheckpointMixin, ABC):
     def stepall(
         cls, mechanisms: list[Mechanism], keep_order=True
     ) -> list[MechanismState]:
-        """
-        Step all mechanisms
+        """Step all mechanisms.
 
         Args:
             mechanisms: list of mechanisms
@@ -1031,7 +1040,6 @@ class Mechanism(NamedObject, EventSource, CheckpointMixin, ABC):
 
         Returns:
             - list of states of all mechanisms after completion
-
         """
         indices = list(range(len(list(mechanisms))))
         if not keep_order:
@@ -1099,50 +1107,67 @@ class Mechanism(NamedObject, EventSource, CheckpointMixin, ABC):
     def current_step(self):
         return self._current_state.step
 
-    def _get_preferencess(self):
+    def _get_preferences(self):
         preferences = []
         for a in self.negotiators:
             preferences.append(a.preferences)
         return preferences
 
-    def pareto_frontier_bf(
-        self, max_cardinality: float = float("inf"), sort_by_welfare=True
+    def _pareto_frontier(
+        self,
+        method: Callable,
+        max_cardinality: int | float = float("inf"),
+        sort_by_welfare=True,
     ) -> tuple[list[tuple[float, ...]], list[Outcome]]:
-        ufuns = tuple(self._get_preferencess())
+        ufuns = tuple(self._get_preferences())
         if any(_ is None for _ in ufuns):
             raise ValueError(
                 "Some negotiators have no ufuns. Cannot calcualate the pareto frontier"
             )
         outcomes = self.discrete_outcomes(max_cardinality=max_cardinality)
         points = [tuple(ufun(outcome) for ufun in ufuns) for outcome in outcomes]
-        indices = pareto_frontier_bf(
-            points,
-            sort_by_welfare=sort_by_welfare,
+        reservs = tuple(
+            _.reserved_value if _ is not None else float("-inf") for _ in ufuns
+        )
+        rational_indices = [
+            i for i, _ in enumerate(points) if all(a >= b for a, b in zip(_, reservs))
+        ]
+        points = [points[_] for _ in rational_indices]
+        indices = list(
+            method(
+                points,
+                sort_by_welfare=sort_by_welfare,
+            )
         )
         frontier = [points[_] for _ in indices]
         if frontier is None:
             raise ValueError("Cound not find the pareto-frontier")
-        return frontier, [outcomes[_] for _ in indices]
+        return frontier, [outcomes[rational_indices[_]] for _ in indices]
+
+    def pareto_frontier_bf(
+        self, max_cardinality: float = float("inf"), sort_by_welfare=True
+    ) -> tuple[list[tuple[float, ...]], list[Outcome]]:
+        return self._pareto_frontier(
+            pareto_frontier_bf, max_cardinality, sort_by_welfare
+        )
 
     def pareto_frontier(
         self, max_cardinality: float = float("inf"), sort_by_welfare=True
     ) -> tuple[list[tuple[float, ...]], list[Outcome]]:
-        ufuns = tuple(self._get_preferencess())
+        ufuns = tuple(self._get_preferences())
         if any(_ is None for _ in ufuns):
             raise ValueError(
                 "Some negotiators have no ufuns. Cannot calcualate the pareto frontier"
             )
-
         outcomes = self.discrete_outcomes(max_cardinality=max_cardinality)
-        points = [tuple(ufun(outcome) for ufun in ufuns) for outcome in outcomes]
-        indices = pareto_frontier_active(
-            points,
+        results = pareto_frontier(
+            ufuns,
+            outcomes=outcomes,
+            n_discretization=None,
+            max_cardinality=float("inf"),
             sort_by_welfare=sort_by_welfare,
         )
-        frontier = [points[_] for _ in indices]
-        if frontier is None:
-            raise ValueError("Cound not find the pareto-frontier")
-        return frontier, [outcomes[_] for _ in indices]
+        return results[0], [outcomes[_] for _ in results[1]]
 
     def max_welfare_points(
         self,
@@ -1150,7 +1175,7 @@ class Mechanism(NamedObject, EventSource, CheckpointMixin, ABC):
         frontier: list[tuple[float]] | None = None,
         frontier_outcomes: list[Outcome] | None = None,
     ) -> tuple[tuple[tuple[float], Outcome]]:
-        ufuns = self._get_preferencess()
+        ufuns = self._get_preferences()
         if not frontier:
             frontier, frontier_outcomes = self.pareto_frontier(max_cardinality)
         assert frontier_outcomes is not None
@@ -1166,12 +1191,30 @@ class Mechanism(NamedObject, EventSource, CheckpointMixin, ABC):
         frontier: list[tuple[float]] | None = None,
         frontier_outcomes: list[Outcome] | None = None,
     ) -> tuple[tuple[tuple[float], Outcome]]:
-        ufuns = self._get_preferencess()
+        ufuns = self._get_preferences()
         if not frontier:
             frontier, frontier_outcomes = self.pareto_frontier(max_cardinality)
         assert frontier_outcomes is not None
         outcomes = tuple(self.discrete_outcomes(max_cardinality=max_cardinality))
         kalai_pts = max_relative_welfare_points(ufuns, frontier, outcomes=outcomes)
+        return tuple(
+            (kalai_utils, frontier_outcomes[indx]) for kalai_utils, indx in kalai_pts
+        )
+
+    def modified_kalai_points(
+        self,
+        max_cardinality: float = float("inf"),
+        frontier: list[tuple[float]] | None = None,
+        frontier_outcomes: list[Outcome] | None = None,
+    ) -> tuple[tuple[tuple[float], Outcome]]:
+        ufuns = self._get_preferences()
+        if not frontier:
+            frontier, frontier_outcomes = self.pareto_frontier(max_cardinality)
+        assert frontier_outcomes is not None
+        outcomes = tuple(self.discrete_outcomes(max_cardinality=max_cardinality))
+        kalai_pts = kalai_points(
+            ufuns, frontier, outcomes=outcomes, subtract_reserved_value=False
+        )
         return tuple(
             (kalai_utils, frontier_outcomes[indx]) for kalai_utils, indx in kalai_pts
         )
@@ -1182,12 +1225,14 @@ class Mechanism(NamedObject, EventSource, CheckpointMixin, ABC):
         frontier: list[tuple[float]] | None = None,
         frontier_outcomes: list[Outcome] | None = None,
     ) -> tuple[tuple[tuple[float], Outcome]]:
-        ufuns = self._get_preferencess()
+        ufuns = self._get_preferences()
         if not frontier:
             frontier, frontier_outcomes = self.pareto_frontier(max_cardinality)
         assert frontier_outcomes is not None
         outcomes = tuple(self.discrete_outcomes(max_cardinality=max_cardinality))
-        kalai_pts = kalai_points(ufuns, frontier, outcomes=outcomes)
+        kalai_pts = kalai_points(
+            ufuns, frontier, outcomes=outcomes, subtract_reserved_value=True
+        )
         return tuple(
             (kalai_utils, frontier_outcomes[indx]) for kalai_utils, indx in kalai_pts
         )
@@ -1198,7 +1243,7 @@ class Mechanism(NamedObject, EventSource, CheckpointMixin, ABC):
         frontier: list[tuple[float]] | None = None,
         frontier_outcomes: list[Outcome] | None = None,
     ) -> tuple[tuple[tuple[float], Outcome]]:
-        ufuns = self._get_preferencess()
+        ufuns = self._get_preferences()
         if not frontier:
             frontier, frontier_outcomes = self.pareto_frontier(max_cardinality)
         assert frontier_outcomes is not None
@@ -1209,7 +1254,7 @@ class Mechanism(NamedObject, EventSource, CheckpointMixin, ABC):
         )
 
     def plot(self, **kwargs):
-        """A method for plotting a negotiation session"""
+        """A method for plotting a negotiation session."""
 
     def _get_ami(self, negotiator: Negotiator) -> NegotiatorMechanismInterface:  # type: ignore
         warnings.deprecated(f"_get_ami is depricated. Use `get_nmi` instead of it")

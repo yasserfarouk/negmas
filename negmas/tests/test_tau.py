@@ -334,7 +334,7 @@ def run_buyer_seller(
 
     session.run()
 
-    front_utils, front_outcomes = session.pareto_frontier_bf(sort_by_welfare=True)
+    front_utils, front_outcomes = session.pareto_frontier(sort_by_welfare=True)
     eps = 1e-3
     no_valid_outcomes = all(
         u1 <= buyer_reserved + eps or u2 <= seller_reserved + eps

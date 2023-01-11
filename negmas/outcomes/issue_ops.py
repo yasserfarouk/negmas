@@ -818,7 +818,7 @@ def generate_issues(
 def discretize_and_enumerate_issues(
     issues: Iterable[Issue],
     n_discretization: int | None = 10,
-    max_cardinality: int | None = None,
+    max_cardinality: int | float | None = None,
 ) -> list[Outcome]:
     """
     Enumerates the outcomes of a list of issues.

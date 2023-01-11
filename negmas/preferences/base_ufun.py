@@ -5,7 +5,7 @@ import xml.etree.ElementTree as ET
 from abc import ABC, abstractmethod
 from os import PathLike
 from pathlib import Path
-from typing import TYPE_CHECKING, Any, Iterable, TypeVar
+from typing import TYPE_CHECKING, Any, Iterable, Sequence, TypeVar
 
 from negmas import warnings
 from negmas.common import Value
@@ -98,8 +98,8 @@ class BaseUtilityFunction(Preferences, ABC):
     def minmax(
         self,
         outcome_space: OutcomeSpace | None = None,
-        issues: list[Issue] | None = None,
-        outcomes: list[Outcome] | None = None,
+        issues: Sequence[Issue] | None = None,
+        outcomes: Sequence[Outcome] | None = None,
         max_cardinality=1000,
         above_reserve=False,
     ) -> tuple[float, float]:
@@ -241,8 +241,8 @@ class BaseUtilityFunction(Preferences, ABC):
         self: T,
         to: float,
         outcome_space: OutcomeSpace | None = None,
-        issues: list[Issue] | None = None,
-        outcomes: list[Outcome] | None = None,
+        issues: Sequence[Issue] | None = None,
+        outcomes: Sequence[Outcome] | None = None,
         rng: tuple[float, float] | None = None,
     ) -> T:
         if rng is None:
@@ -259,8 +259,8 @@ class BaseUtilityFunction(Preferences, ABC):
         self: T,
         to: float,
         outcome_space: OutcomeSpace | None = None,
-        issues: list[Issue] | None = None,
-        outcomes: list[Outcome] | None = None,
+        issues: Sequence[Issue] | None = None,
+        outcomes: Sequence[Outcome] | None = None,
         rng: tuple[float, float] | None = None,
     ) -> T:
         if rng is None:
@@ -347,8 +347,8 @@ class BaseUtilityFunction(Preferences, ABC):
         self: T,
         to: float,
         outcome_space: OutcomeSpace | None = None,
-        issues: list[Issue] | None = None,
-        outcomes: list[Outcome] | None = None,
+        issues: Sequence[Issue] | None = None,
+        outcomes: Sequence[Outcome] | None = None,
         rng: tuple[float, float] | None = None,
     ) -> T:
         if rng is None:
@@ -362,8 +362,8 @@ class BaseUtilityFunction(Preferences, ABC):
         self: T,
         to: float,
         outcome_space: OutcomeSpace | None = None,
-        issues: list[Issue] | None = None,
-        outcomes: list[Outcome] | None = None,
+        issues: Sequence[Issue] | None = None,
+        outcomes: Sequence[Outcome] | None = None,
         rng: tuple[float, float] | None = None,
     ) -> T:
         if rng is None:
@@ -386,7 +386,7 @@ class BaseUtilityFunction(Preferences, ABC):
         return ranks
 
     def argrank_with_weights(
-        self, outcomes: list[Outcome | None], descending=True
+        self, outcomes: Sequence[Outcome | None], descending=True
     ) -> list[tuple[list[Outcome | None], float]]:
         """
         Ranks the given list of outcomes with weights. None stands for the null outcome.
@@ -403,7 +403,7 @@ class BaseUtilityFunction(Preferences, ABC):
         return self._do_rank(vals, descending)
 
     def argrank(
-        self, outcomes: list[Outcome | None], descending=True
+        self, outcomes: Sequence[Outcome | None], descending=True
     ) -> list[list[Outcome | None]]:
         """
         Ranks the given list of outcomes with weights. None stands for the null outcome.
@@ -416,7 +416,7 @@ class BaseUtilityFunction(Preferences, ABC):
         return [_[0] for _ in ranks]
 
     def rank_with_weights(
-        self, outcomes: list[Outcome | None], descending=True
+        self, outcomes: Sequence[Outcome | None], descending=True
     ) -> list[tuple[list[Outcome | None], float]]:
         """
         Ranks the given list of outcomes with weights. None stands for the null outcome.
@@ -433,7 +433,7 @@ class BaseUtilityFunction(Preferences, ABC):
         return self._do_rank(vals, descending)
 
     def rank(
-        self, outcomes: list[Outcome | None], descending=True
+        self, outcomes: Sequence[Outcome | None], descending=True
     ) -> list[list[Outcome | None]]:
         """
         Ranks the given list of outcomes with weights. None stands for the null outcome.
@@ -481,8 +481,8 @@ class BaseUtilityFunction(Preferences, ABC):
         self,
         rng: tuple[float, float],
         outcome_space: OutcomeSpace | None = None,
-        issues: list[Issue] | None = None,
-        outcomes: list[Outcome] | None = None,
+        issues: Sequence[Issue] | None = None,
+        outcomes: Sequence[Outcome] | None = None,
         n_trials: int = 100,
     ) -> Outcome | None:
         """
@@ -491,8 +491,8 @@ class BaseUtilityFunction(Preferences, ABC):
         Args:
             rng (Tuple[float, float]): rng
             outcome_space (OutcomeSpace | None): outcome_space
-            issues (List[Issue] | None): issues
-            outcomes (List[Outcome] | None): outcomes
+            issues (Sequence[Issue] | None): issues
+            outcomes (Sequence[Outcome] | None): outcomes
             n_trials (int): n_trials
 
         Returns:
@@ -534,7 +534,7 @@ class BaseUtilityFunction(Preferences, ABC):
         Args:
 
             xml_str (str): The string containing GENIUS style XML utility function definition
-            issues (List[Issue] | None): Optional issue space to confirm that the utility function is valid
+            issues (Sequence[Issue] | None): Optional issue space to confirm that the utility function is valid
             product of all issues in the input
             safe_parsing (bool): Turn on extra checks
 

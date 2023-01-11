@@ -576,7 +576,7 @@ class SAOElicitingMechanism(SAOMechanism):
                 history["step"] = [_[0].step for _ in self.history]
                 history = history.loc[~history.offer.isnull(), :]
                 # ufuns = self._get_preferencess(consider_costs=consider_costs)
-                ufuns = self._get_preferencess()
+                ufuns = self._get_preferences()
                 elicitor_dist = self.negotiators[1].ufun
                 outcomes = self.outcomes
 
