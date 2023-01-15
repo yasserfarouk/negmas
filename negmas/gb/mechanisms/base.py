@@ -313,7 +313,8 @@ class GBMechanism(Mechanism):
 
     @property
     def extended_trace(self) -> list[tuple[int, str, Outcome]]:
-        """Returns the negotiation history as a list of step/negotiator/offer tuples"""
+        """Returns the negotiation history as a list of step/negotiator/offer
+        tuples."""
         offers = []
         self._history: list[GBState]  # type: ignore
         for state in self._history:
@@ -324,7 +325,8 @@ class GBMechanism(Mechanism):
 
     @property
     def trace(self) -> list[tuple[str, Outcome]]:
-        """Returns the negotiation history as a list of negotiator/offer tuples"""
+        """Returns the negotiation history as a list of negotiator/offer
+        tuples."""
         offers = []
         for state in self._history:
             offers += [(source, t.new_offer) for source, t in state.threads.items()]
@@ -338,7 +340,8 @@ class GBMechanism(Mechanism):
     def negotiator_full_trace(
         self, negotiator_id: str
     ) -> list[tuple[float, float, int, Outcome, str]]:
-        """Returns the (time/relative-time/step/outcome/response) given by a negotiator (in order)"""
+        """Returns the (time/relative-time/step/outcome/response) given by a
+        negotiator (in order)"""
         return [
             (t, rt, s, o, a)
             for t, rt, s, n, o, _, a in self.full_trace
@@ -347,14 +350,12 @@ class GBMechanism(Mechanism):
 
     @property
     def offers(self) -> list[Outcome]:
-        """Returns the negotiation history as a list of offers"""
+        """Returns the negotiation history as a list of offers."""
         return [o for _, o in self.trace]
 
     @property
     def _step(self):
-        """
-        A private property used by the checkpoint system
-        """
+        """A private property used by the checkpoint system."""
         return self._current_state.step
 
     def plot(
@@ -368,6 +369,9 @@ class GBMechanism(Mechanism):
         show_agreement: bool = False,
         show_pareto_distance: bool = True,
         show_nash_distance: bool = True,
+        show_kalai_distance: bool = True,
+        show_max_welfare_distance: bool = True,
+        show_max_relative_welfare_distance: bool = False,
         show_end_reason: bool = True,
         show_annotations: bool = False,
         show_reserved: bool = True,
@@ -381,6 +385,7 @@ class GBMechanism(Mechanism):
         common_legend: bool = True,
         xdim: str = "step",
         colorizer: Colorizer | None = default_colorizer,
+        only2d: bool = False,
     ):
         from negmas.plots.util import plot_mechanism_run
 
@@ -395,6 +400,9 @@ class GBMechanism(Mechanism):
             show_agreement=show_agreement,
             show_pareto_distance=show_pareto_distance,
             show_nash_distance=show_nash_distance,
+            show_kalai_distance=show_kalai_distance,
+            show_max_welfare_distance=show_max_welfare_distance,
+            show_max_relative_welfare_distance=show_max_relative_welfare_distance,
             show_end_reason=show_end_reason,
             show_annotations=show_annotations,
             show_reserved=show_reserved,
@@ -409,6 +417,7 @@ class GBMechanism(Mechanism):
             show_total_time=show_total_time,
             show_relative_time=show_relative_time,
             show_n_steps=show_n_steps,
+            only2d=only2d,
         )
 
 

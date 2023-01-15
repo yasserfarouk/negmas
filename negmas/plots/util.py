@@ -696,6 +696,9 @@ def plot_mechanism_run(
     show_agreement: bool = False,
     show_pareto_distance: bool = True,
     show_nash_distance: bool = True,
+    show_kalai_distance: bool = True,
+    show_max_welfare_distance: bool = True,
+    show_max_relative_welfare_distance: bool = False,
     show_end_reason: bool = True,
     show_annotations: bool = False,
     show_reserved: bool = True,
@@ -710,6 +713,7 @@ def plot_mechanism_run(
     extra_annotation: str = "",
     xdim: str = "relative_time",
     colorizer: Colorizer | None = None,
+    only2d: bool = False,
 ):
     import matplotlib.gridspec as gridspec
     import matplotlib.pyplot as plt
@@ -732,38 +736,41 @@ def plot_mechanism_run(
         plotting_negotiators.append(mechanism.negotiators[i].id)
         plotting_ufuns.append(mechanism.negotiators[i].ufun)
 
-    fig = plt.figure()
-    gs = gridspec.GridSpec(mechanism.nmi.n_negotiators, 2)
-    axs = []
-    colors, markers = make_colors_and_markers(
-        colors, markers, len(mechanism.negotiators), colormap
-    )
-
     name_map = dict(zip(mechanism.negotiator_ids, mechanism.negotiator_names))
-    all_ufuns = [_.ufun for _ in mechanism.negotiators]
-    for a, neg in enumerate(mechanism.negotiator_ids):
-        if a == 0:
-            axs.append(fig.add_subplot(gs[a, 1]))
-        else:
-            axs.append(fig.add_subplot(gs[a, 1], sharex=axs[0]))
-        plot_offer_utilities(
-            trace=mechanism.full_trace,
-            negotiator=neg,
-            plotting_ufuns=all_ufuns,
-            plotting_negotiators=mechanism.negotiator_ids,
-            ax=axs[-1],
-            name_map=name_map,
-            colors=colors,
-            markers=markers,
-            ignore_none_offers=ignore_none_offers,
-            ylimits=ylimits,
-            show_legend=not common_legend or a == 0,
-            show_x_label=a == len(mechanism.negotiator_ids) - 1,
-            show_reserved=show_reserved,
-            xdim=xdim,
-            colorizer=colorizer,
+    fig = plt.figure()
+    if only2d:
+        axu = fig.subplots()
+    else:
+        gs = gridspec.GridSpec(mechanism.nmi.n_negotiators, 2)
+        axs = []
+        colors, markers = make_colors_and_markers(
+            colors, markers, len(mechanism.negotiators), colormap
         )
-    axu = fig.add_subplot(gs[:, 0])
+
+        all_ufuns = [_.ufun for _ in mechanism.negotiators]
+        for a, neg in enumerate(mechanism.negotiator_ids):
+            if a == 0:
+                axs.append(fig.add_subplot(gs[a, 1]))
+            else:
+                axs.append(fig.add_subplot(gs[a, 1], sharex=axs[0]))
+            plot_offer_utilities(
+                trace=mechanism.full_trace,
+                negotiator=neg,
+                plotting_ufuns=all_ufuns,
+                plotting_negotiators=mechanism.negotiator_ids,
+                ax=axs[-1],
+                name_map=name_map,
+                colors=colors,
+                markers=markers,
+                ignore_none_offers=ignore_none_offers,
+                ylimits=ylimits,
+                show_legend=not common_legend or a == 0,
+                show_x_label=a == len(mechanism.negotiator_ids) - 1,
+                show_reserved=show_reserved,
+                xdim=xdim,
+                colorizer=colorizer,
+            )
+        axu = fig.add_subplot(gs[:, 0])
     agreement = mechanism.agreement
     state = mechanism.state
     if not show_end_reason:
@@ -797,6 +804,9 @@ def plot_mechanism_run(
         show_agreement=show_agreement,
         show_pareto_distance=show_pareto_distance,
         show_nash_distance=show_nash_distance,
+        show_kalai_distance=show_kalai_distance,
+        show_max_welfare_distance=show_max_welfare_distance,
+        show_max_relative_welfare_distance=show_max_relative_welfare_distance,
         show_annotations=show_annotations,
         show_reserved=show_reserved,
         colors=colors,
@@ -817,5 +827,5 @@ def plot_mechanism_run(
         else:
             path_ = pathlib.Path(path)
         path_.mkdir(parents=True, exist_ok=True)
-        fig.savefig(str(path_ / fig_name), bbox_inches="tight", transparent=False)
+        fig.savefig(str(path_ / fig_name), bbox_inches="tight", transparent=False, pad_inches=0.05)  # type: ignore
     return fig

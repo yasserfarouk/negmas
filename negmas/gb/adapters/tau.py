@@ -6,7 +6,6 @@ from matplotlib.axes import itertools
 from negmas import SAOResponse
 from negmas.common import NegotiatorMechanismInterface
 from negmas.gb.common import GBState, ResponseType
-from negmas.gb.components.base import OfferingPolicy
 from negmas.gb.negotiators.base import GBNegotiator
 from negmas.outcomes import Outcome
 from negmas.preferences import BaseUtilityFunction
@@ -147,9 +146,7 @@ class UtilityAdapter:
 
 
 class TAUNegotiatorAdapter(GBNegotiator):
-    """
-    Adapts any `GBNegotiator` to act as a TAU negotiator
-    """
+    """Adapts any `GBNegotiator` to act as a TAU negotiator."""
 
     def __init__(self, *args, base: SAONegotiator, **kwargs):
         self.base = base
@@ -232,43 +229,61 @@ class TAUNegotiatorAdapter(GBNegotiator):
         self.base.on_preferences_changed(*args, **kwargs)
         self.adapter.on_preferences_changed(self.base.ufun)
 
-    @property
-    def owner(self):
-        """Returns the owner agent of the negotiator"""
-        return self.__owner
-
-    @owner.setter
-    def owner(self, owner):
-        """Sets the owner"""
-        self.__owner = owner
-        self.base.owner = owner
-
     def set_preferences(self, value, force=False):
         super().set_preferences(value, force=force)
-        self.base.set_preferences(value, force)
+        r = self.base.set_preferences(value, force)
+        self.adapter.ufun = self.base.ufun
+        return r
 
     def before_death(self, cntxt: dict[str, Any]) -> bool:
         return self.base.before_death(cntxt)
 
-    def is_acceptable_as_agreement(self, outcome: Outcome) -> bool:
-        return self.base.is_acceptable_as_agreement(outcome)
-
     def isin(self, negotiation_id: str | None) -> bool:
         return self.base.isin(negotiation_id)
-
-    def remove_capability(self, name: str) -> None:
-        super().remove_capability(name)
-        self.base.remove_capability(name)
 
     def add_capabilities(self, capabilities: dict) -> None:
         super().add_capabilities(capabilities)
         self.base.add_capabilities(capabilities)
 
-    def join(self, *args, **kwargs) -> bool:
-        joined = self.base.join(*args, **kwargs)
+    def join(
+        self, nmi, state, *, preferences=None, ufun=None, role="negotiator"
+    ) -> bool:
+        joined = self.base.join(
+            nmi=nmi,
+            state=self._sao_stat_from_gb_state(state),
+            preferences=preferences,
+            ufun=ufun,
+            role=role,
+        )
         self.adapter.nmi = self.base.nmi
         self.adapter.ufun = self.base.ufun
         return joined
+
+    @property
+    def parent(self):
+        """Returns the parent controller."""
+        return self.base.parent
+
+    @property
+    def capabilities(self) -> dict[str, Any]:
+        """Agent capabilities."""
+        return self.base.capabilities
+
+    @property
+    def owner(self):
+        """Returns the owner agent of the negotiator."""
+        return self.base.owner
+
+    @owner.setter
+    def owner(self, owner):
+        """Sets the owner."""
+        self.base.owner = owner
+
+    def is_acceptable_as_agreement(self, outcome: Outcome) -> bool:
+        return self.base.is_acceptable_as_agreement(outcome)
+
+    def remove_capability(self, name: str) -> None:
+        self.base.remove_capability(name)
 
     def on_negotiation_start(self, state) -> None:
         return self.base.on_negotiation_start(self._sao_stat_from_gb_state(state))
@@ -294,3 +309,52 @@ class TAUNegotiatorAdapter(GBNegotiator):
 
     def cancel(self, reason=None) -> None:
         return self.base.cancel(reason)
+
+    @property
+    def preferences(self):
+        """The utility function attached to that object."""
+        return self.base.preferences
+
+    @property
+    def crisp_ufun(self):
+        """Returns the preferences if it is a CrispUtilityFunction else
+        None."""
+        return self.base.crisp_ufun
+
+    @crisp_ufun.setter
+    def crisp_ufun(self, v):
+        self.base.crisp_ufun = v
+
+    @property
+    def prob_ufun(self):
+        """Returns the preferences if it is a ProbUtilityFunction else None."""
+        return self.base.prob_ufun
+
+    @prob_ufun.setter
+    def prob_ufun(self, v):
+        self.base.prob_ufun = v
+
+    @property
+    def ufun(self) -> BaseUtilityFunction | None:
+        return self.base.ufun
+
+    @ufun.setter
+    def ufun(self, v: BaseUtilityFunction):
+        self.base.ufun = v
+
+    @property
+    def has_preferences(self) -> bool:
+        """Does the entity has an associated ufun?"""
+        return self.base.has_preferences
+
+    @property
+    def has_cardinal_preferences(self) -> bool:
+        return self.base.has_cardinal_preferences
+
+    @property
+    def reserved_outcome(self) -> Outcome | None:
+        return self.base.reserved_outcome
+
+    @property
+    def reserved_value(self) -> float:
+        return self.base.reserved_value
