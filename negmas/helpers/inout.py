@@ -1,8 +1,8 @@
 #!/usr/bin/env python
 """A set of utilities that can be used by agents developed for the platform.
 
-This set of utlities can be extended but must be backward compatible for at
-least two versions
+This set of utlities can be extended but must be backward compatible for
+at least two versions
 """
 from __future__ import annotations
 
@@ -48,7 +48,6 @@ def is_nonzero_file(fpath: PathLike) -> bool:
 
     Args:
         fpath: path to the file to test. It accepts both str and pathlib.Path
-
     """
     return os.path.isfile(fpath) and os.path.getsize(fpath) > 0
 
@@ -59,13 +58,12 @@ _inflect_engine = inflect.engine()
 class ConfigReader:
     @classmethod
     def _split_key(cls, key: str) -> tuple[str, str | None]:
-        """Splits the key into a key name and a class name
+        """Splits the key into a key name and a class name.
 
         Remarks:
 
             - Note that if the given key has multiple colons the first two will be parsed as key name: class name and
               the rest will be ignored. This can be used to add comments
-
         """
         keys = key.split(":")
         if len(keys) == 1:
@@ -75,7 +73,7 @@ class ConfigReader:
 
     @classmethod
     def _parse_children_config(cls, children, scope):
-        """Parses children in the given scope"""
+        """Parses children in the given scope."""
         remaining_children = {}
         myconfig = {}
         setters = []
@@ -135,8 +133,8 @@ class ConfigReader:
     def read_config(
         cls, config: str | dict, section: str | None = None
     ) -> dict[str, Any]:
-        """
-        Reads the configuration from a file or a dict and prepares it for parsing
+        """Reads the configuration from a file or a dict and prepares it for
+        parsing.
 
         Args:
             config: Either a file name or a dictionary
@@ -147,8 +145,6 @@ class ConfigReader:
             A dict ready to be parsed by from_config
 
         Remarks:
-
-
         """
         if isinstance(config, str):
             # If config is a string, assume it is a file and read it from the appropriate location
@@ -195,8 +191,7 @@ class ConfigReader:
         try_parsing_children: bool = True,
         scope=None,
     ):
-        """
-        Creates an object of this class given the configuration info
+        """Creates an object of this class given the configuration info.
 
         Args:
             config: Either a file name or a dictionary
@@ -222,7 +217,6 @@ class ConfigReader:
               that in general when eval() is called to create the children, it will not have access to the class
               definitions of these children (except if they happen to be imported in this file). To avoid this problem
               causing an undefined_name exception, the caller must pass her globals() as the scope.
-
         """
         config = cls.read_config(config=config, section=section)
 
@@ -241,7 +235,7 @@ class ConfigReader:
         )  # the setters are those configs that have a set_ function for them.
 
         def _is_simple(x):
-            """Tests whether the input can directly be parsed"""
+            """Tests whether the input can directly be parsed."""
             return (
                 x is None
                 or isinstance(x, int)
@@ -255,7 +249,8 @@ class ConfigReader:
             )
 
         def _set_simple_config(key, v) -> dict[str, Any] | None:
-            """Sets a simple value v for key taken into accout its class and the class we are constructing"""
+            """Sets a simple value v for key taken into accout its class and
+            the class we are constructing."""
             key_name, class_name = cls._split_key(key)
             _setter = "set_" + key_name
             params = {}
@@ -369,9 +364,8 @@ def dump(
     sort_keys=True,
     compact=False,
 ) -> None:
-    """
-    Saves an object depending on the extension of the file given. If the filename given has no extension,
-    `DEFAULT_DUMP_EXTENSION` will be used
+    """Saves an object depending on the extension of the file given. If the
+    filename given has no extension, `DEFAULT_DUMP_EXTENSION` will be used.
 
     Args:
         d: Object to save
@@ -384,7 +378,6 @@ def dump(
         - Supported formats are json, yaml
         - If None is given, the file will be created but will be empty
         - Numpy arrays will be converted to lists before being dumped
-
     """
     file_name = pathlib.Path(file_name).expanduser().absolute()
     if file_name.suffix == "":
@@ -404,7 +397,7 @@ def dump(
             )
     elif file_name.suffix in (".yaml", ".yml"):
         with open(file_name, "w") as f:
-            yaml.safe_dump(d, f)
+            yaml.safe_dump(d, f, default_flow_style=True, sort_keys=sort_keys)
     elif file_name.suffix == ".pickle":
         with open(file_name, "wb") as f:
             pickle.dump(d, f)
@@ -420,9 +413,8 @@ def dump(
 
 
 def load(file_name: str | os.PathLike | pathlib.Path) -> Any:
-    """
-    Loads an object depending on the extension of the file given. If the filename given has no extension,
-    `DEFAULT_DUMP_EXTENSION` will be used
+    """Loads an object depending on the extension of the file given. If the
+    filename given has no extension, `DEFAULT_DUMP_EXTENSION` will be used.
 
     Args:
         file_name: file name
@@ -431,7 +423,6 @@ def load(file_name: str | os.PathLike | pathlib.Path) -> Any:
 
         - Supported formats are json, yaml
         - If None is given, the file will be created but will be empty
-
     """
     file_name = pathlib.Path(file_name).expanduser().absolute()
     if file_name.suffix == "":
@@ -462,8 +453,7 @@ def add_records(
     col_names: list[str] | None = None,
     raise_exceptions=False,
 ) -> None:
-    """
-    Adds records to a csv file
+    """Adds records to a csv file.
 
     Args:
 
@@ -480,7 +470,6 @@ def add_records(
 
         - If col_names are not given, the function will try to normalize the input data if it
           was a dict or a list of dicts
-
     """
     if col_names is None and (
         isinstance(data, dict)
