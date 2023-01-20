@@ -60,14 +60,22 @@ class UtilityAdapter:
         for i in itertools.chain(
             range(indx - 1, -1, -1), range(indx + 1, len(self.sorted_outcomes))
         ):
+            current = self.sorted_outcomes[i]
+            if current in self.offered:
+                continue
+            if self.ufun(current) < self.ufun.reserved_value:
+                continue
             d = abs(self.utils[i] - u)
             if d < diff:
                 nearest, diff = i, d
         if diff > self.udiff_limit:
+            self.offered.add(outcome)
             return outcome
         if nearest != indx:
             self.udiff += diff
-        return self.sorted_outcomes[nearest]
+        outcome = self.sorted_outcomes[nearest]
+        self.offered.add(outcome)
+        return outcome
 
     @property
     def average_u_diff(self) -> float:
