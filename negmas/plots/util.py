@@ -608,28 +608,28 @@ def plot_2dutils(
                     horizontalalignment="left",
                     verticalalignment="bottom",
                 )
-    if mrwelfare_pts:
-        ax.scatter(
-            [mrwelfare[0] for mrwelfare, _ in mrwelfare_pts],
-            [mrwelfare[1] for mrwelfare, _ in mrwelfare_pts],
-            color="cyan",
-            label=f"Max Relative Welfare Points",
-            marker="X",
-            alpha=NASH_ALPHA,
-            s=int(default_marker_size * NASH_SCALE),
-        )
-        if show_annotations:
-            for mrwelfare, _ in mrwelfare_pts:
-                ax.annotate(
-                    "Max Relative Welfare Point",
-                    xy=mrwelfare,  # theta, radius
-                    xytext=(
-                        mrwelfare[0] + 0.02,
-                        mrwelfare[1] - 0.02 * yrange,
-                    ),  # fraction, fraction
-                    horizontalalignment="left",
-                    verticalalignment="bottom",
-                )
+    # if mrwelfare_pts:
+    #     ax.scatter(
+    #         [mrwelfare[0] for mrwelfare, _ in mrwelfare_pts],
+    #         [mrwelfare[1] for mrwelfare, _ in mrwelfare_pts],
+    #         color="cyan",
+    #         label=f"Max Relative Welfare Points",
+    #         marker="X",
+    #         alpha=NASH_ALPHA,
+    #         s=int(default_marker_size * NASH_SCALE),
+    #     )
+    #     if show_annotations:
+    #         for mrwelfare, _ in mrwelfare_pts:
+    #             ax.annotate(
+    #                 "Max Relative Welfare Point",
+    #                 xy=mrwelfare,  # theta, radius
+    #                 xytext=(
+    #                     mrwelfare[0] + 0.02,
+    #                     mrwelfare[1] - 0.02 * yrange,
+    #                 ),  # fraction, fraction
+    #                 horizontalalignment="left",
+    #                 verticalalignment="bottom",
+    #             )
 
     if nash_pts:
         ax.scatter(

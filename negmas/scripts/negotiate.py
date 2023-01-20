@@ -138,7 +138,7 @@ def run(
     history: bool = False,
     stats: bool = True,
     discount: bool = True,
-    only2d: bool = True,
+    only2d: bool = False,
     show_agreement: bool = False,
     show_pareto_distance: bool = True,
     show_nash_distance: bool = True,
