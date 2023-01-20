@@ -792,6 +792,7 @@ class SAOMechanism(Mechanism):
         ylimits: tuple[float, float] | None = None,
         common_legend: bool = True,
         xdim: str = "relative_time",
+        only2d: bool = False,
     ):
         from negmas.plots.util import plot_mechanism_run
 
@@ -808,6 +809,7 @@ class SAOMechanism(Mechanism):
             fig_name=fig_name,
             ignore_none_offers=ignore_none_offers,
             with_lines=with_lines,
+            only2d=only2d,
             show_agreement=show_agreement,
             show_pareto_distance=show_pareto_distance,
             show_nash_distance=show_nash_distance,
