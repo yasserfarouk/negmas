@@ -1,9 +1,9 @@
-"""
-Keeps information about ANAC competitions and Genius Agents
-"""
+"""Keeps information about ANAC competitions and Genius Agents."""
 from __future__ import annotations
 
 import itertools
+
+from negmas.helpers.strings import shortest_unique_names
 
 __all__ = [
     "GENIUS_INFO",
@@ -298,7 +298,8 @@ ALL_GENIUS_INVALID_NEGOTIATORS = [
     "negotiator.parties.CounterOfferHumanNegotiationParty",
     "agents.FunctionalAcceptor",
 ]
-"""Genius agents that are known not to work (most likely because they require human interaction)"""
+"""Genius agents that are known not to work (most likely because they require
+human interaction)"""
 
 ALL_GENIUS_BASIC_NEGOTIATORS = [
     "agents.ImmediateAcceptor",
@@ -318,7 +319,8 @@ ALL_GENIUS_BASIC_NEGOTIATORS = [
     "agents.BayesianAgent",
     "agents.ABMPAgent2",
 ]
-"""Basic negotiators defined in Genius that are not based on any ANAC submissions"""
+"""Basic negotiators defined in Genius that are not based on any ANAC
+submissions."""
 
 ALL_GENIUS_NEGOTIATORS = [
     "agents.ABMPAgent2",
@@ -477,10 +479,10 @@ ALL_GENIUS_NEGOTIATORS = [
     "agents.anac.y2018.sontag.Sontag",
     "agents.anac.y2018.yeela.Yeela",
 ]
-"""All Negotiators Accessible through Genius UI"""
+"""All Negotiators Accessible through Genius UI."""
 
 
-ALL_NON_SOAP_GENIUS_NEGOTIATORS = [
+ALL_NON_SAOP_GENIUS_NEGOTIATORS = [
     "parties.AlternatingMultipleOffers.RandomAmopParty",
     "parties.AlternatingMultipleOffers.RandomAmopPartyMajority",
     "parties.simplemediator.RandomFlippingMediator",
@@ -491,13 +493,13 @@ ALL_NON_SOAP_GENIUS_NEGOTIATORS = [
     "parties.feedbackmediator.FeedbackMediator",
     "parties.FeedbackHillClimber",
 ]
-"""All Genius negotiators for protocols other than SAOP"""
+"""All Genius negotiators for protocols other than SAOP."""
 
 ALL_GENIUS_AMOP_NEGOTIATORS = [
     "parties.AlternatingMultipleOffers.RandomAmopParty",
     "parties.AlternatingMultipleOffers.RandomAmopPartyMajority",
 ]
-"""All Genius negotiators for the Alternating Multiple Offers Protocol"""
+"""All Genius negotiators for the Alternating Multiple Offers Protocol."""
 
 ALL_GENIUS_SIMPLE_MEDIATOR_NEGOTIATORS = [
     "parties.simplemediator.RandomFlippingMediator",
@@ -506,12 +508,12 @@ ALL_GENIUS_SIMPLE_MEDIATOR_NEGOTIATORS = [
     "parties.simplemediator.Annealer",
     "parties.simplemediator.FeedbackParty",
 ]
-"""All Genius negotiators for the Simple Mediator Protocol"""
+"""All Genius negotiators for the Simple Mediator Protocol."""
 
 ALL_GENIUS_FEEDBACK_MEDIATOR_NEGOTIATORS = [
     "parties.feedbackmediator.FeedbackMediator",
 ]
-"""All Genius negotiators for the Feedback Mediator Protocol"""
+"""All Genius negotiators for the Feedback Mediator Protocol."""
 
 AGENT_BASED_NEGOTIATORS = [
     "agents.ABMPAgent",
@@ -571,7 +573,10 @@ AGENT_BASED_NEGOTIATORS = [
     "agents.anac.y2014.Sobut.Sobut",
     "agents.anac.y2017.geneking.GeneKing",
 ]
-"""Genius agents based on the Agent base-class. These are the oldest agents"""
+"""Genius agents based on the Agent base-class.
+
+These are the oldest agents
+"""
 
 PARTY_BASED_NEGOTIATORS = [
     "agents.ai2014.group1.Group1",
@@ -624,7 +629,10 @@ PARTY_BASED_NEGOTIATORS = [
     "agents.anac.y2017.tangxun.taxibox",
     "agents.anac.y2017.tucagent.TucAgent",
 ]
-"""Genius agents based on the Party base-class. These are the newest agents"""
+"""Genius agents based on the Party base-class.
+
+These are the newest agents
+"""
 
 TEST_FAILING_NEGOTIATORS = [
     "agents.ABMPAgent2",  # failed some but not all tests
@@ -696,35 +704,64 @@ TESTED_NEGOTIATORS = list(
     )
     - set(TEST_FAILING_NEGOTIATORS)
 )
-"""Some of the most tested negotaitors"""
+"""Some of the most tested negotaitors."""
 
 ALL_NEGOTIATORS = list(
     set(PARTY_BASED_NEGOTIATORS + AGENT_BASED_NEGOTIATORS + ALL_GENIUS_NEGOTIATORS)
 )
-"""All Genius Negotiators accessible from NegMAS"""
+"""All Genius Negotiators accessible from NegMAS."""
 
 ALL_PASSING_NEGOTIATORS = list(
     set(ALL_NEGOTIATORS)
     - set(TEST_FAILING_NEGOTIATORS)
     - set(ALL_GENIUS_INVALID_NEGOTIATORS)
 )
-"""All negotiators that passed simple tests showing they work on the bridge"""
+"""All negotiators that passed simple tests showing they work on the bridge."""
 
 ALL_ANAC_AGENTS = [_ for _ in ALL_NEGOTIATORS if "anac" in _]
-"""All agents submitted to ANAC and registered in Genius"""
+"""All agents submitted to ANAC and registered in Genius."""
+
+_names = shortest_unique_names(ALL_GENIUS_NEGOTIATORS)
+_names_simpler = [_.replace("_", "") for _ in _names]
+_names_lower = [_.lower().replace("agent", "") for _ in _names_simpler]
+
+NAME_CLASS_MAP = dict(zip(_names_lower, ALL_GENIUS_NEGOTIATORS))
+"""Mapping a short name to a Java class."""
+
+NAME_CLASS_MAP.update(dict(zip(_names_simpler, ALL_GENIUS_NEGOTIATORS)))
+NAME_CLASS_MAP.update(dict(zip(_names, ALL_GENIUS_NEGOTIATORS)))
+"""Mapping a short name to a Java class."""
+
+CLASS_NAME_MAP = dict(zip(ALL_GENIUS_NEGOTIATORS, _names))
+"""Mapping a Java class to a short name matching the class name in Java."""
+
+CLASS_NAME_MAP_SIMPLE = dict(zip(ALL_GENIUS_NEGOTIATORS, _names_lower))
+"""Mapping a Java class to a short name that is short lowercase and with no 'agent' word or underscores."""
+
+ALL_GENIUS_NEGOTIATORS_SET = set(ALL_GENIUS_NEGOTIATORS)
 
 
-def get_name(java_class: str) -> str:
-    """Returns the name of the agent with the given class"""
-    return java_class.split(".")[-1]
+def get_name(
+    java_class: str, allow_dot: bool = True, simple_version: bool = False
+) -> str:
+    """Returns the name of the agent with the given class."""
+    d = CLASS_NAME_MAP_SIMPLE if simple_version else CLASS_NAME_MAP
+    name = d[java_class]
+    if not allow_dot:
+        return name.split(".")[-1]
+    return name
 
 
-def get_java_class(name) -> str | None:
-    """Returns the java class for the agent with this name if known otherwise it returns None"""
-    for class_name in ALL_NEGOTIATORS:
-        if name in class_name:
-            return class_name
-    return None
+def get_java_class(name: str) -> str | None:
+    """Returns the java class for the agent with this name if known otherwise
+    it returns None.
+
+    The name can be either the java class itself or the short agent name
+    """
+    java_class = NAME_CLASS_MAP.get(
+        name, name if name in ALL_GENIUS_NEGOTIATORS_SET else None
+    )
+    return java_class
 
 
 def get_anac_agents(
@@ -741,8 +778,7 @@ def get_anac_agents(
     winners_only: bool = False,
     finalists_only: bool = False,
 ) -> list[tuple[str, str]]:
-    """
-    Get Genius agents matching some given criteria
+    """Get Genius agents matching some given criteria.
 
     Returns:
         a list of 2-item tuples giving agent name and java class name.
@@ -756,7 +792,6 @@ def get_anac_agents(
     """
 
     def get_agents(year, d) -> set[tuple[str, str]]:
-
         if winners_only:
             lst = d.get("winners", [[]])
             lst = list(itertools.chain(*lst))
