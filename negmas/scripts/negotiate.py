@@ -11,6 +11,8 @@ from pandas.core.window.numba_ import Callable
 from rich import print
 from stringcase import titlecase
 
+from negmas.genius.ginfo import get_java_class
+from negmas.genius.negotiator import GeniusNegotiator
 from negmas.helpers import get_class
 from negmas.helpers.strings import camel_case, humanize_time, shortest_unique_names
 from negmas.helpers.types import get_full_type_name
@@ -18,16 +20,16 @@ from negmas.inout import Scenario
 from negmas.mechanisms import Mechanism
 from negmas.negotiators.negotiator import Negotiator
 from negmas.preferences.ops import (
-    get_ranks,
     kalai_points,
     make_rank_ufun,
-    max_relative_welfare_points,
     max_welfare_points,
     nash_points,
     pareto_frontier,
 )
 
 app = typer.Typer()
+
+GENIUSMARKER = "genius"
 
 
 def get_screen_resolution() -> tuple[int, int]:
@@ -54,11 +56,32 @@ def get_protocol(name: str) -> type[Mechanism]:
     return get_class(name)
 
 
+def get_genius_proper_class_name(s: str) -> str:
+    assert s.startswith(GENIUSMARKER)
+    return s.split(GENIUSMARKER)[-1]
+
+
 def create_adapter(adapter_type, negotiator_type, name):
     return adapter_type(name=name, base=negotiator_type(name=name))
 
 
+def make_genius_negotiator(*args, java_class_name: str, **kwargs):
+    return GeniusNegotiator(*args, **kwargs, java_class_name=java_class_name)
+
+
 def get_negotiator(name: str) -> type[Negotiator] | Callable[[str], Negotiator]:
+    if name.startswith(GENIUSMARKER):
+        for sp in (".", ":"):
+            x = sp.join(name.split(sp)[1:])
+            if x:
+                name = x
+                break
+        java_class = get_java_class(name)
+        if java_class is None:
+            raise ValueError(
+                f"Cannot find java class name for genius negotiatoar of type {name}"
+            )
+        return functools.partial(make_genius_negotiator, java_class_name=java_class)
     if "/" in name:
         adapter_name, _, negotiator_name = name.partition("/")
         adapter_type = get_adapter(adapter_name)
