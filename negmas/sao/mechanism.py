@@ -165,6 +165,7 @@ class SAOMechanism(Mechanism):
             and self.nmi.time_limit is not None
             and self.nmi.time_limit != float("inf")
             and self.nmi.n_steps is not None
+            and self.nmi.n_steps != float("inf")
         ):
             warnings.warn(
                 f"{negotiator.id} of type {negotiator.__class__.__name__} is joining SAOMechanism which has a time_limit of {self.nmi.time_limit} seconds and a n_steps of {self.nmi.n_steps}. This agnet will only know about the time_limit and will not know about the n_steps!!!",
