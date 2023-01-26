@@ -427,7 +427,11 @@ class GeniusNegotiator(SAONegotiator):
                     power_per_round=1.0,
                 )
             )
-        n_steps = -1 if info.n_steps is None else int(info.n_steps)  # number of steps
+        n_steps = (
+            -1
+            if info.n_steps is None or math.isinf(info.n_steps)
+            else int(info.n_steps)
+        )
         n_seconds = (
             -1
             if info.time_limit is None or math.isinf(info.time_limit)
