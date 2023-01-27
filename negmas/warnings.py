@@ -4,6 +4,7 @@ __all__ = [
     "warn",
     "deprecated",
     "NegmasWarning",
+    "NegmasCannotStartNegotiation",
     "NegmasIgnoredValueWarning",
     "NegmasBridgePathWarning",
     "NegmasBridgeProcessWarning",
@@ -57,6 +58,10 @@ class NegmasInfiniteNegotiationWarning(NegmasWarning):
 
 
 class NegmasStepAndTimeLimitWarning(NegmasWarning):
+    ...
+
+
+class NegmasCannotStartNegotiation(NegmasWarning):
     ...
 
 

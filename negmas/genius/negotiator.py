@@ -356,9 +356,12 @@ class GeniusNegotiator(SAONegotiator):
                     if state.agreement is not None
                     else None,
                 )
-                if result in (OK, TIMEOUT):
+                if any(result.startswith(_) for _ in (OK, TIMEOUT)):
                     result = self.java.destroy_agent(self.java_uuid)  # type: ignore
-                    if result in (FAILED, TIMEOUT) and self._strict:
+                    if (
+                        any(result.startswith(_) for _ in (FAILED, TIMEOUT))
+                        and self._strict
+                    ):
                         raise ValueError(
                             f"{self._me()} ended the negotiation but failed to destroy the agent. A possible memory leak"
                         )
@@ -487,9 +490,19 @@ class GeniusNegotiator(SAONegotiator):
                 self._strict,
             )
             self.__started = result == OK
+            if result != OK:
+                s = (
+                    f"{self._me()}: Failed Starting: {result.split(FIELD_SEP)}\nDomain file: {self.domain_file_name}\n"
+                    f"UFun file: {self.domain_file_name}\n{'strict' if self._strict else 'non-strict'} {n_steps=} {timeout=}"
+                )
+                if self._strict:
+                    raise ValueError(s)
+                else:
+                    warnings.warn(s, warnings.NegmasCannotStartNegotiation)
         except Exception as e:
             raise ValueError(
-                f"{self._me()}: Cannot start negotiation: {str(e)}\nDomain file: {self.domain_file_name}\nUFun file: {self.domain_file_name}\n{'strict' if self._strict else 'non-strict'} {n_steps=} {timeout=}"
+                f"{self._me()}: Cannot start negotiation: {str(e)}\nDomain file: {self.domain_file_name}\n"
+                f"UFun file: {self.domain_file_name}\n{'strict' if self._strict else 'non-strict'} {n_steps=} {timeout=}"
             )
 
     def cancel(self, reason=None) -> None:
@@ -536,14 +549,16 @@ class GeniusNegotiator(SAONegotiator):
         nmi = self.nmi
         if not nmi:
             raise ValueError("Cannot parse without an NMI")
-        if typ_ == FAILED:
+        if typ_.startswith(FAILED):
+            e = typ_.split(FIELD_SEP)[-1]
             raise ValueError(
-                f"{self._me()} sent an action that cannot be parsed ({action})"
+                f"{self._me()} failed in receive_message ({action}) Exception {e}"
             )
-        elif typ_ == TIMEOUT:
+        elif typ_.startswith(TIMEOUT):
+            e = typ_.split(FIELD_SEP)[-1]
             if nmi.state.relative_time < 1.0 - 1e-2:
                 raise ValueError(
-                    f"{self._me()} indicated that it timedout at relative time ({nmi.state.relative_time})"
+                    f"{self._me()} indicated that it timedout at relative time ({nmi.state.relative_time}) Exception {e}"
                 )
 
         issues = nmi.cartesian_outcome_space.issues
@@ -613,9 +628,9 @@ class GeniusNegotiator(SAONegotiator):
             self._outcome2str(offer),
             state.step,
         )
-        if self._strict and received == FAILED:
+        if self._strict and received.startswith(FAILED):
             raise ValueError(
-                f"{self._me()} failed to receive message in step {state.step}"
+                f"{self._me()} failed to receive message in step {state.step}. {received.split(FIELD_SEP)[-1]}"
             )
         self.propose_sao(state)
 
@@ -677,9 +692,9 @@ class GeniusNegotiator(SAONegotiator):
             self._outcome2str(offer),
             state.step,
         )
-        if self._strict and received == FAILED:
+        if self._strict and received.startswith(FAILED):
             raise ValueError(
-                f"{self._me()} failed to receive message in step {state.step}"
+                f"{self._me()} failed to receive message in step {state.step}: {received.split(FIELD_SEP)[-1]}"
             )
         self.propose(state)
         return self.__my_last_response
