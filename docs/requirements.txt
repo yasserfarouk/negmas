@@ -13,3 +13,4 @@ sphinx-sizzle-theme
 nbformat
 nbsphinx
 nb2plots
+ipython>=8.10.0 # not directly required, pinned by Snyk to avoid a vulnerability
