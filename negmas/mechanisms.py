@@ -285,11 +285,14 @@ class Mechanism(NamedObject, EventSource, CheckpointMixin, ABC):
         self.__discrete_outcomes = list(self.__discrete_os.enumerate_or_sample())
         return self.__discrete_outcomes
 
-    def random_outcomes(self, n: int = 1) -> list[Outcome]:
+    def random_outcomes(
+        self, n: int = 1, with_replacement: bool = False
+    ) -> list[Outcome]:
         """Returns random offers.
 
         Args:
               n: Number of outcomes to generate
+              with_replacement: If true, outcomes may be repeated
 
         Returns:
               A list of outcomes of at most n outcomes.
@@ -301,7 +304,7 @@ class Mechanism(NamedObject, EventSource, CheckpointMixin, ABC):
         """
         return list(
             self.outcome_space.sample(
-                n, with_replacement=False, fail_if_not_enough=False
+                n, with_replacement=with_replacement, fail_if_not_enough=False
             )
         )
 

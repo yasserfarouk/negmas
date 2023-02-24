@@ -92,7 +92,7 @@ def outcome2dict(
     #     )
 
     if isinstance(outcome, np.ndarray):
-        outcome = tuple(outcome.tolist())
+        outcome = tuple(outcome.tolist())  # type: ignore
 
     if isinstance(outcome, dict):
         names = {_.name if isinstance(_, Issue) else _ for _ in issues}
@@ -106,7 +106,9 @@ def outcome2dict(
     return dict(zip([_ if isinstance(_, str) else _.name for _ in issues], outcome))
 
 
-def dict2outcome(d: dict[str, Any] | None, issues: list[str | Issue]) -> Outcome | None:
+def dict2outcome(
+    d: dict[str, Any] | None, issues: Iterable[str | Issue]
+) -> Outcome | None:
     """
     Converts the outcome to a tuple no matter what was its type
 

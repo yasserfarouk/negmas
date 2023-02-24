@@ -24,7 +24,8 @@ class UtilBasedNegotiator(GBNegotiator):
         inverter (UtilityInverter): A component used to keep track of the ufun inverse
         stochastic (bool): If `False` the worst outcome in the current utility range will be used
         rank_only (bool): If `True` then the ranks of outcomes not their actual utilities will be used for decision making
-        max_cardinality (int): The number of outocmes at which we switch to use the slower `SamplingInverseUtilityFunction` instead of the `PresortingInverseUtilityFunction` . Will only be used if `ufun_inverter` is `None`
+        max_cardinality (int): The number of outocmes at which we switch to use the slower `SamplingInverseUtilityFunction`
+                               instead of the `PresortingInverseUtilityFunction` . Will only be used if `ufun_inverter` is `None`
         eps (float): A tolearnace around the utility range used when sampling outocmes
     """
 

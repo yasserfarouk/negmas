@@ -99,6 +99,12 @@ class SAOMechanism(Mechanism):
         initial_state: SAOState | None = None,
         **kwargs,
     ):
+        if avoid_ultimatum:
+            warnings.warn(
+                "Support for Avoid-Ultimatum will be removed soon. We will force avoid_ultimatum to False",
+                warnings.NegmasWarning,
+            )
+            avoid_ultimatum = False
         super().__init__(
             dynamic_entry=dynamic_entry,
             extra_callbacks=extra_callbacks,
