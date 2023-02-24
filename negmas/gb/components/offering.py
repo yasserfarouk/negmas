@@ -118,7 +118,6 @@ class MiCROOfferingPolicy(OfferingPolicy):
 
 @define
 class CABOfferingPolicy(OfferingPolicy):
-
     next_indx: int = 0
     sorter: PresortingInverseUtilityFunction | None = field(repr=False, default=None)
     _last_offer: Outcome | None = field(init=False, default=None)
@@ -136,6 +135,10 @@ class CABOfferingPolicy(OfferingPolicy):
             )
             for _ in changes
         ):
+            if self.sorter is not None:
+                warnings.warn(
+                    f"Sorter is already initialized. May be on_preferences_changed is called twice!!"
+                )
             self.sorter = PresortingInverseUtilityFunction(
                 self.negotiator.ufun, sort_rational_only=True
             )
@@ -154,6 +157,9 @@ class CABOfferingPolicy(OfferingPolicy):
         if self.next_indx >= self.negotiator.nmi.n_outcomes:
             return self._last_offer
         if not self.sorter:
+            warnings.warn(
+                f"Sorter is not initialized. May be on_preferences_changed is never called before propose!!"
+            )
             self.sorter = PresortingInverseUtilityFunction(
                 self.negotiator.ufun, sort_rational_only=True
             )
@@ -175,7 +181,6 @@ class CABOfferingPolicy(OfferingPolicy):
 
 @define
 class WAROfferingPolicy(OfferingPolicy):
-
     next_indx: int = 0
     sorter: PresortingInverseUtilityFunction | None = field(repr=False, default=None)
     _last_offer: Outcome | None = field(init=False, default=None)
@@ -197,6 +202,10 @@ class WAROfferingPolicy(OfferingPolicy):
             )
             for _ in changes
         ):
+            if self.sorter is not None:
+                warnings.warn(
+                    f"Sorter is already initialized. May be on_preferences_changed is called twice!!"
+                )
             self.sorter = PresortingInverseUtilityFunction(
                 self.negotiator.ufun, sort_rational_only=True
             )
@@ -218,6 +227,9 @@ class WAROfferingPolicy(OfferingPolicy):
         if not self._irrational and self.next_indx >= self.negotiator.nmi.n_outcomes:
             return self._last_offer
         if not self.sorter:
+            warnings.warn(
+                f"Sorter is not initialized. May be on_preferences_changed is never called before propose!!"
+            )
             self.sorter = PresortingInverseUtilityFunction(
                 self.negotiator.ufun, sort_rational_only=True
             )

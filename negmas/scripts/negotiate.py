@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+import sys
 from pathlib import Path
 from time import perf_counter
 
@@ -148,6 +149,7 @@ def run(
         "-a",
         help="Negotiator (agent) type. To use an adapter type, put the adapter name first separated from the negotiator name by a slash (e.g. TAUAdapter/AspirationNegotiator)",
     ),
+    path: list[Path] = list(),
     reserved: list[float] = typer.Option(None, "--reserved", "-r"),
     normalize: bool = True,
     steps: int = typer.Option(None, "--steps", "-s"),  # type: ignore
@@ -175,6 +177,8 @@ def run(
     show_relative_time: bool = True,
     show_n_steps: bool = True,
 ):
+    for p in path:
+        sys.path.append(str(p))
     if reserved:
         assert len(reserved) == len(negotiators), f"{reserved=} but {negotiators=}"
     negotiator_names = shortest_unique_names(negotiators)
