@@ -158,7 +158,7 @@ class GBNegotiator(Negotiator):
 
         if self.__end_negotiation:
             return SAOResponse(ResponseType.END_NEGOTIATION, None)
-        if self.ufun is not None:
+        if self.preferences is not None:
             changes = self.ufun.changes()
             if changes:
                 self.on_preferences_changed(changes)

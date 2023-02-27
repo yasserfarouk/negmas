@@ -3,12 +3,10 @@ Common data-structures for supporting the Stacked Alternating Offers Protocol
 """
 from __future__ import annotations
 
-from collections import namedtuple
-from enum import Enum
 from functools import lru_cache
 from typing import TYPE_CHECKING
 
-from attr import define, field
+from attrs import define, field
 
 from negmas.common import NegotiatorMechanismInterface
 from negmas.gb.common import GBState, ResponseType
@@ -45,7 +43,7 @@ class SAOState(GBState):
     last_negotiator: str | None = None
 
 
-@define
+@define(frozen=True)
 class SAONMI(NegotiatorMechanismInterface):
     end_on_no_response: bool = True
 

@@ -45,12 +45,13 @@ if TYPE_CHECKING:
     from negmas.preferences import Preferences
     from negmas.preferences.base_ufun import BaseUtilityFunction
 
-__all__ = ["Mechanism", "MechanismRoundResult"]
+__all__ = ["Mechanism", "MechanismStepResult"]
 
 
 @define(frozen=True)
-class MechanismRoundResult:
-    """Represents the results of a negotiation round (step).
+class MechanismStepResult:
+    """
+    Represents the results of a negotiation step.
 
     This is what `round()` should return.
     """
@@ -62,15 +63,9 @@ class MechanismRoundResult:
     broken: bool = False
     """True only if END_NEGOTIATION was selected by one agent."""
     timedout: bool = False
-    """True if a timeout occurred.
-
-    Usually not used
-    """
+    """True if a timeout occurred."""
     agreement: Outcome | None = None
-    """The agreement if any.
-
-    Allows for a single outcome or a collection of outcomes
-    """
+    """The agreement if any. Allows for a single outcome or a collection of outcomes."""
     error: bool = False
     """True if an error occurred in the mechanism."""
     error_details: str = ""
@@ -82,8 +77,7 @@ class MechanismRoundResult:
     """A mapping from negotiator ID to a list of exceptions raised by that
     negotiator in this round."""
     times: dict[str, float] | None = None
-    """A mapping from negotiator ID to the time it consumed during this
-    round."""
+    """A mapping from negotiator ID to the time it consumed during this round."""
 
 
 # noinspection PyAttributeOutsideInit
@@ -770,11 +764,12 @@ class Mechanism(NamedObject, EventSource, CheckpointMixin, ABC):
         return True
 
     @abstractmethod
-    def __call__(self, state: MechanismState) -> MechanismRoundResult:
-        """Implements a single step of the mechanism. Override this!
+    def __call__(self, state: MechanismState) -> MechanismStepResult:
+        """
+        Implements a single step of the mechanism. Override this!
 
         Returns:
-            MechanismRoundResult giving whether the negotiation was broken or timedout and the agreement if any.
+            `MechanismStepResult` showing the result of the negotiation step
         """
         ...
 

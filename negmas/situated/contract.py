@@ -3,7 +3,7 @@ from __future__ import annotations
 import uuid
 from typing import TYPE_CHECKING, Any
 
-from attr import define, field
+from attrs import define, field
 
 if TYPE_CHECKING:
     from negmas.common import MechanismState

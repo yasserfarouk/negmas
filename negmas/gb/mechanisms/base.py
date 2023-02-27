@@ -3,11 +3,11 @@ from __future__ import annotations
 from random import shuffle
 from typing import TYPE_CHECKING, Any, Callable
 
-from attr import define
+from attrs import define
 
 from negmas.common import TraceElement
 from negmas.helpers.types import get_full_type_name, instantiate
-from negmas.mechanisms import Mechanism, MechanismRoundResult
+from negmas.mechanisms import Mechanism, MechanismStepResult
 from negmas.outcomes import Outcome
 from negmas.plots.util import default_colorizer
 from negmas.preferences import BaseUtilityFunction, Preferences
@@ -252,7 +252,7 @@ class GBMechanism(Mechanism):
             results[t.negotiator.id] = _do_run(t.negotiator.id, t)
         return results
 
-    def __call__(self, state: GBState) -> MechanismRoundResult:
+    def __call__(self, state: GBState) -> MechanismStepResult:
         # print(f"Round {self._current_state.step}")
         results = self.run_threads()
         # if state.step > self.outcome_space.cardinality:
@@ -273,11 +273,11 @@ class GBMechanism(Mechanism):
         e = self._combiner(responses)
 
         if e == "continue":
-            return MechanismRoundResult(state)
+            return MechanismStepResult(state)
         if e is None:
             state.broken = True
         state.agreement = e
-        return MechanismRoundResult(state)
+        return MechanismStepResult(state)
 
     @property
     def full_trace(self) -> list[TraceElement]:

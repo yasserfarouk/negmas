@@ -8,7 +8,7 @@ from math import cos, e, log, pow, sin
 from operator import add
 from typing import Any, Callable, Iterable
 
-from attr import asdict, define
+from attrs import asdict, define
 
 from negmas.helpers.misc import (
     monotonic_minmax,

@@ -1807,7 +1807,7 @@ filling it in the mechanism:
 
 .. code:: ipython3
 
-    from attr import define
+    from attrs import define
 
     @define
     class MyState(MechanismState):

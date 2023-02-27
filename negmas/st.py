@@ -8,9 +8,9 @@ import random
 import time
 from copy import deepcopy
 
-from attr import define
+from attrs import define
 
-from .mechanisms import Mechanism, MechanismRoundResult, MechanismState
+from .mechanisms import Mechanism, MechanismState, MechanismStepResult
 from .outcomes import Outcome
 
 __all__ = ["VetoSTMechanism", "HillClimbingSTMechanism"]
@@ -83,7 +83,7 @@ class VetoSTMechanism(Mechanism):
         """
         return self.random_outcomes(1)[0]
 
-    def __call__(self, state: STState) -> MechanismRoundResult:
+    def __call__(self, state: STState) -> MechanismStepResult:
         """Single round of the protocol"""
 
         new_offer = self.next_outcome(state.current_offer)
@@ -94,14 +94,14 @@ class VetoSTMechanism(Mechanism):
             responses.append(neg.is_better(new_offer, state.current_offer) is not False)
             if time.perf_counter() - strt > self.nmi.step_time_limit:
                 state.timedout = True
-                return MechanismRoundResult(state)
+                return MechanismStepResult(state)
 
         self.last_responses = responses
         state.new_offer = new_offer
         if all(responses):
             state.current_offer = new_offer
 
-        return MechanismRoundResult(state)
+        return MechanismStepResult(state)
 
     def on_negotiation_end(self) -> None:
         """Used to pass the final offer for agreement between all negotiators"""
@@ -334,20 +334,20 @@ class HillClimbingSTMechanism(VetoSTMechanism):
             random.randint(0, len(self.possible_offers)) - 1
         )
 
-    def __call__(self, state: STState) -> MechanismRoundResult:
+    def __call__(self, state: STState) -> MechanismStepResult:
         """Single round of the protocol"""
 
         new_offer = self.next_outcome(state.current_offer)
         if new_offer is None:
             state.agreement = (state.current_offer,)
-            return MechanismRoundResult(state)
+            return MechanismStepResult(state)
 
         responses = []
         for neg in self.negotiators:
             strt = time.perf_counter()
             responses.append(neg.is_better(new_offer, state.current_offer) is not False)
             if time.perf_counter() - strt > self.nmi.step_time_limit:
-                return MechanismRoundResult(state)
+                return MechanismStepResult(state)
 
         self.last_responses = responses
 
@@ -355,7 +355,7 @@ class HillClimbingSTMechanism(VetoSTMechanism):
             state.current_offer = new_offer
             self.possible_offers = self.neighbors(state.current_offer)
 
-        return MechanismRoundResult(state)
+        return MechanismStepResult(state)
 
     @property
     def current_offer(self):

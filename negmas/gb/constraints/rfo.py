@@ -2,7 +2,7 @@ from __future__ import annotations
 
 import sys
 
-from attr import define
+from attrs import define
 
 from ..common import ThreadState
 from .base import LocalOfferingConstraint

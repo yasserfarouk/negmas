@@ -12,7 +12,7 @@ from negmas.helpers.prob import Distribution, ScipyDistribution
 from negmas.outcomes import Issue, Outcome
 from negmas.outcomes.protocols import OutcomeSpace
 
-from .base_ufun import BaseUtilityFunction, _General
+from .base_ufun import BaseUtilityFunction, _ExtremelyDynamic
 
 __all__ = [
     "UtilityFunction",
@@ -21,7 +21,7 @@ __all__ = [
 T = TypeVar("T", bound="UtilityFunction")
 
 
-class UtilityFunction(_General, BaseUtilityFunction):
+class UtilityFunction(_ExtremelyDynamic, BaseUtilityFunction):
     """Base for all crisp ufuns"""
 
     @abstractmethod

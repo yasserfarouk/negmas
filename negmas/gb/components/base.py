@@ -4,7 +4,7 @@ from abc import abstractmethod
 from collections import namedtuple
 from typing import TYPE_CHECKING
 
-from attr import define, field
+from attrs import define, field
 
 from ...negotiators.components.component import Component
 

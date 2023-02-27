@@ -5,9 +5,9 @@ from __future__ import annotations
 import copy
 import random
 
-from attr import define, field
+from attrs import define, field
 
-from .mechanisms import Mechanism, MechanismRoundResult, MechanismState
+from .mechanisms import Mechanism, MechanismState, MechanismStepResult
 from .outcomes import Outcome
 
 
@@ -116,8 +116,8 @@ class GAMechanism(Mechanism):
                 self.dominant_outcomes.append(outcomes[target])
         self._current_state.dominant_outcomes = self.dominant_outcomes  # type: ignore
 
-    def __call__(self, state: GAState) -> MechanismRoundResult:
+    def __call__(self, state: GAState) -> MechanismStepResult:
         self.update_ranks()
         self.update_dominant_outcomes()
         self.next_generation(self.select(self.population))
-        return MechanismRoundResult(state=state)
+        return MechanismStepResult(state=state)

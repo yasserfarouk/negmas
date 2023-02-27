@@ -5,7 +5,7 @@ import random
 from abc import ABC, abstractmethod
 from typing import TYPE_CHECKING, Callable, Iterable
 
-from attr import define, field
+from attrs import define, field
 
 from negmas import warnings
 from negmas.common import PreferencesChange, PreferencesChangeType
@@ -414,7 +414,7 @@ class AcceptTop(AcceptancePolicy):
         if any(
             _.type
             not in (
-                PreferencesChangeType.Scaled,
+                PreferencesChangeType.Scale,
                 PreferencesChangeType.ReservedOutcome,
                 PreferencesChangeType.ReservedValue,
             )

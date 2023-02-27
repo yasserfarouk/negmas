@@ -5,7 +5,7 @@ from __future__ import annotations
 
 from abc import ABC, abstractmethod
 
-from attr import define
+from attrs import define
 
 from negmas.gb.common import GBState, ThreadState
 from negmas.outcomes.common import Outcome

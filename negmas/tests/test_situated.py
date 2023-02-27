@@ -5,7 +5,7 @@ from typing import Any, Callable, Collection
 
 import hypothesis.strategies as st
 import pytest
-from attr import asdict
+from attrs import asdict
 from hypothesis import HealthCheck, given, settings
 
 from negmas import (

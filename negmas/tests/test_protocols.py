@@ -10,7 +10,7 @@ from negmas import (
     LimitedOutcomesNegotiator,
     MappingUtilityFunction,
     Mechanism,
-    MechanismRoundResult,
+    MechanismStepResult,
     RandomNegotiator,
     SAOMechanism,
 )
@@ -23,15 +23,15 @@ class MyMechanism(Mechanism):
         super().__init__(outcomes=20, n_steps=10, dynamic_entry=dynamic_entry, **kwargs)
         self.current = 0
 
-    def __call__(self, state) -> MechanismRoundResult:
+    def __call__(self, state) -> MechanismStepResult:
         # r = random.random()
         # if r > 1.0 / self.n_steps:
         #    return None, False, None
         self.current += 1
         if self.current < 6:
-            return MechanismRoundResult(state)
+            return MechanismStepResult(state)
         state.agreement = self.random_outcomes(1)[0]
-        return MechanismRoundResult(state)
+        return MechanismStepResult(state)
 
 
 @pytest.fixture

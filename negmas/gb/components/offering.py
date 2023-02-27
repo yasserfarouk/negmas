@@ -5,7 +5,7 @@ import random
 from abc import ABC, abstractmethod
 from typing import TYPE_CHECKING
 
-from attr import define, field
+from attrs import define, field
 
 from negmas import warnings
 from negmas.common import PreferencesChangeType, Value
@@ -55,7 +55,7 @@ class MiCROOfferingPolicy(OfferingPolicy):
         if any(
             _.type
             not in (
-                PreferencesChangeType.Scaled,
+                PreferencesChangeType.Scale,
                 PreferencesChangeType.ReservedOutcome,
                 PreferencesChangeType.ReservedValue,
             )
@@ -129,7 +129,7 @@ class CABOfferingPolicy(OfferingPolicy):
         if any(
             _.type
             not in (
-                PreferencesChangeType.Scaled,
+                PreferencesChangeType.Scale,
                 PreferencesChangeType.ReservedOutcome,
                 PreferencesChangeType.ReservedValue,
             )
@@ -196,7 +196,7 @@ class WAROfferingPolicy(OfferingPolicy):
         if any(
             _.type
             not in (
-                PreferencesChangeType.Scaled,
+                PreferencesChangeType.Scale,
                 PreferencesChangeType.ReservedOutcome,
                 PreferencesChangeType.ReservedValue,
             )
@@ -344,7 +344,7 @@ class OfferTop(OfferingPolicy):
         if any(
             _.type
             not in (
-                PreferencesChangeType.Scaled,
+                PreferencesChangeType.Scale,
                 PreferencesChangeType.ReservedOutcome,
                 PreferencesChangeType.ReservedValue,
             )

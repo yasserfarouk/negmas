@@ -6,7 +6,7 @@ from math import sqrt
 from typing import TYPE_CHECKING, Iterable, Sequence, TypeVar
 
 import numpy as np
-from attr import define
+from attrs import define
 
 from negmas import warnings
 from negmas.helpers.numba_checks import jit  # type: ignore

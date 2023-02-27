@@ -9,7 +9,7 @@ from collections import namedtuple
 from enum import Enum, auto, unique
 from typing import TYPE_CHECKING, Any, Iterable, Protocol, Union, runtime_checkable
 
-from attr import asdict, define, field
+from attrs import asdict, define, field
 
 if TYPE_CHECKING:
     from .mechanisms import Mechanism
@@ -157,12 +157,12 @@ class PreferencesChangeType(Enum):
         - Returned from `changes` property of `Preferences` to help the owner of the preferences in deciding what to do with the change.
         - Received by the `on_preferences_changed` method of `Rational` entities to inform them about a change in preferences.
         - Note that the `Rational` entity needs to call `changes` explicitly and call its own `on_preferences_changed` to handle changes that happen without assignment to `preferences` of the `Rational` entity.
-        - If the `preferences` of the `Rational` agent are changed through assignmen, its `on_preferences_changed` will be called with the appropriate `PreferencesChange` list.
+        - If the `preferences` of the `Rational` agent are changed through assignment, its `on_preferences_changed` will be called with the appropriate `PreferencesChange` list.
     """
 
     General = auto()
-    Scaled = auto()
-    Shifted = auto()
+    Scale = auto()
+    Shift = auto()
     ReservedValue = auto()
     ReservedOutcome = auto()
     UncertaintyReduced = auto()

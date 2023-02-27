@@ -1,3 +1,4 @@
 {
-	"extraPaths": ["/Users/yasser/code/projects/negmas"]
+	"venvPath": "/Users/yasser/myvenvs",
+	"venv": "negmas"
 }

@@ -4,7 +4,7 @@ from collections import namedtuple
 from enum import Enum
 from typing import TYPE_CHECKING, Any
 
-from attr import define, field
+from attrs import define, field
 
 if TYPE_CHECKING:
     from negmas.mechanisms import Mechanism

@@ -2,7 +2,7 @@ from __future__ import annotations
 
 from typing import TYPE_CHECKING
 
-from attr import define, field
+from attrs import define, field
 
 from negmas.preferences import RankOnlyUtilityFunction
 from negmas.preferences.base_ufun import BaseUtilityFunction

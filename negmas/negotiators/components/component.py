@@ -2,7 +2,7 @@ from __future__ import annotations
 
 from typing import TYPE_CHECKING
 
-from attr import define
+from attrs import define
 
 
 def __setattr__(self, name, value):

@@ -9,7 +9,7 @@ from pathlib import Path
 from random import shuffle
 from typing import Any, Callable, Iterable, Sequence
 
-from attr import define
+from attrs import define
 
 from negmas.helpers.inout import dump
 from negmas.outcomes.outcome_space import make_os
