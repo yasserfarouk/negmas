@@ -6,7 +6,7 @@ from itertools import filterfalse
 from operator import mul
 from typing import TYPE_CHECKING, Callable, Iterable, Sequence, Union
 
-from attr import define, field
+from attrs import define, field
 
 from negmas.helpers import unique_name
 from negmas.helpers.types import get_full_type_name

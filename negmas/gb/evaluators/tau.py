@@ -4,7 +4,7 @@ from collections import defaultdict
 from sys import maxsize
 from typing import Literal
 
-from attr import define, field
+from attrs import define, field
 
 from negmas.outcomes import Outcome
 

@@ -962,7 +962,7 @@ class BaseUtilityFunction(Preferences, ABC):
 
     def __call__(self, offer: Outcome | None) -> Value:
         """
-        Calculate the utility_function value for a given outcome at the given negotiation state.
+        Calculate the utility for a given outcome at the given negotiation state.
 
         Args:
             offer: The offer to be evaluated.
@@ -986,7 +986,25 @@ class BaseUtilityFunction(Preferences, ABC):
         return self.eval(offer)
 
 
-class _General:
+class _FullyStatic:
+    """
+    Used internally to indicate that the ufun can **NEVER** change due to anything.
+    """
+
+    def is_session_dependent(self) -> bool:
+        return False
+
+    def is_volatile(self) -> bool:
+        return False
+
+    def is_state_dependent(self) -> bool:
+        return False
+
+    def is_stationary(self) -> bool:
+        return True
+
+
+class _ExtremelyDynamic:
     """
     Used internally to indicate that the ufun can change due to anything.
     """

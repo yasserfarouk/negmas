@@ -3,7 +3,7 @@ from __future__ import annotations
 from abc import abstractmethod
 from typing import TYPE_CHECKING
 
-from attr import define
+from attrs import define
 
 from negmas.common import Value
 

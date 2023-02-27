@@ -10,14 +10,14 @@ from negmas.helpers.numeric import get_one_float
 from negmas.helpers.prob import Distribution, Real, ScipyDistribution
 from negmas.outcomes import Outcome
 
-from .base_ufun import BaseUtilityFunction, _General
+from .base_ufun import BaseUtilityFunction, _ExtremelyDynamic
 
 __all__ = [
     "ProbUtilityFunction",
 ]
 
 
-class ProbUtilityFunction(_General, BaseUtilityFunction):
+class ProbUtilityFunction(_ExtremelyDynamic, BaseUtilityFunction):
     """A probablistic utility function. One that returns a probability distribution when called"""
 
     @abstractmethod

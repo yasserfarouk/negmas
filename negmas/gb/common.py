@@ -7,7 +7,7 @@ from enum import IntEnum
 from functools import lru_cache
 from typing import TYPE_CHECKING, Literal, Union
 
-from attr import asdict, define, field
+from attrs import asdict, define, field
 
 from negmas.common import MechanismState, NegotiatorMechanismInterface
 from negmas.outcomes import Outcome

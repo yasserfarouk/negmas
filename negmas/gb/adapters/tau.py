@@ -1,6 +1,6 @@
 from typing import Any
 
-from attr import define, field
+from attrs import define, field
 from matplotlib.axes import itertools
 
 from negmas import SAOResponse

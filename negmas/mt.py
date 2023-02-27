@@ -6,9 +6,9 @@ from __future__ import annotations
 import time
 from copy import deepcopy
 
-from attr import define, field
+from attrs import define, field
 
-from .mechanisms import Mechanism, MechanismRoundResult, MechanismState
+from .mechanisms import Mechanism, MechanismState, MechanismStepResult
 from .outcomes import Outcome
 
 __all__ = [
@@ -87,7 +87,7 @@ class VetoMTMechanism(Mechanism):
         """
         return self.random_outcomes(1)[0]
 
-    def __call__(self, state: MTState) -> MechanismRoundResult:
+    def __call__(self, state: MTState) -> MechanismStepResult:
         """Single round of the protocol"""
         for i, current_offer in enumerate(state.current_offers):
             new_offer = self.next_outcome(current_offer)
@@ -101,14 +101,14 @@ class VetoMTMechanism(Mechanism):
                 )
                 if time.perf_counter() - strt > self.nmi.step_time_limit:
                     state.timedout = True
-                    return MechanismRoundResult(state)
+                    return MechanismStepResult(state)
 
             self.last_responses = responses
 
             if all(responses):
                 self._current_state.current_offers[i] = new_offer
 
-        return MechanismRoundResult(state)
+        return MechanismStepResult(state)
 
     def on_negotiation_end(self) -> None:
         """Used to pass the final offer for agreement between all negotiators"""

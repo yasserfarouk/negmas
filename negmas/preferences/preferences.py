@@ -51,8 +51,7 @@ class Preferences(NamedObject, ABC):
     @abstractmethod
     def is_volatile(self):
         """
-        Does the utiltiy of an outcome depend on factors outside the negotiation?
-
+        Does the utility of an outcome depend on factors outside the negotiation?
 
         Remarks:
             - A volatile preferences is one that can change even for the same mechanism state due to outside influence
@@ -68,13 +67,13 @@ class Preferences(NamedObject, ABC):
     @abstractmethod
     def is_session_dependent(self):
         """
-        Does the utiltiy of an outcome depend on the `NegotiatorMechanismInterface`?
+        Does the utility of an outcome depend on the `NegotiatorMechanismInterface`?
         """
 
     @abstractmethod
     def is_state_dependent(self):
         """
-        Does the utiltiy of an outcome depend on the negotiation state?
+        Does the utility of an outcome depend on the negotiation state?
         """
 
     def to_dict(self) -> dict[str, Any]:
@@ -102,9 +101,26 @@ class Preferences(NamedObject, ABC):
         )
 
     def changes(self) -> list[PreferencesChange]:
+        """
+        Returns a list of changes to the preferences (if any) since last call.
+
+        Remarks:
+            - If the ufun is stationary, the return list will always be empty.
+            - If the ufun is not stationary, the ufun itself is responsible for saving the
+              changes in _changes whenever they happen.
+
+        """
         if self.is_stationary():
             return []
-        return [PreferencesChange()]
+        r = [_ for _ in self._changes]
+        self.reset_changes()
+        return r
+
+    def reset_changes(self) -> None:
+        """
+        Will be called whenever we need to reset changes.
+        """
+        self._changes = []
 
     @property
     def type(self) -> str:

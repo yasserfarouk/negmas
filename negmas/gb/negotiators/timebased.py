@@ -90,7 +90,7 @@ class TimeBasedNegotiator(UtilBasedNegotiator):
         offering_curve (TimeCurve): A `TimeCurve` that is to be used to sample outcomes when offering
         accepting_curve (TimeCurve): A `TimeCurve` that is to be used to decide utility range to accept
         inverter (UtilityInverter): A component used to keep track of the ufun inverse
-        stochastic (bool): If `False` the worst outcome in the current utility range will be used
+        offer_selector (OfferSelector): The way to select an offer from the set of valid offers at every time-step
     """
 
     def __init__(
@@ -110,7 +110,7 @@ class TimeBasedNegotiator(UtilBasedNegotiator):
         offer_selector: OfferSelector | None = None,
         **kwargs,
     ):
-        super().__init__(*args, **kwargs)
+        super().__init__(*args, offer_selector=offer_selector, **kwargs)
         offering_curve = make_curve(offering_curve, 1.0)
         if accepting_curve is None:
             accepting_curve = offering_curve
@@ -233,7 +233,10 @@ class AspirationNegotiator(TimeBasedConcedingNegotiator):
         self,
         *args,
         max_aspiration=1.0,
-        aspiration_type="boulware",
+        aspiration_type: Literal["boulware"]
+        | Literal["conceder"]
+        | Literal["linear"]
+        | float = "boulware",
         stochastic=False,
         presort: bool = False,
         tolerance: float = 0.001,

@@ -162,16 +162,16 @@ class Rational(NamedObject):
         self.set_preferences(v)
 
     @property
-    def ufun(self) -> BaseUtilityFunction | None:
-        """Returns the preferences if it is a UtilityFunction else None"""
+    def ufun(self) -> BaseUtilityFunction:
+        """Returns the preferences if it is a `BaseUtilityFunction` else None"""
         from ..preferences import BaseUtilityFunction
 
         if self._preferences is None:
-            return None
+            raise ValueError(f"No preferences specified")
         if isinstance(self._preferences, BaseUtilityFunction):
             return self._preferences
         raise ValueError(
-            f"prefrences are not for type `BaseUtilityFunction` ({self._preferences.__class__.__name__})"
+            f"Preferences are not for type `BaseUtilityFunction` ({self._preferences.__class__.__name__})"
         )
 
     @ufun.setter

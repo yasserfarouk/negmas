@@ -3,7 +3,7 @@ from __future__ import annotations
 import uuid
 from enum import Enum
 
-from attr import define, field
+from attrs import define, field
 
 from .contract import Contract
 
