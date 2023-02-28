@@ -116,7 +116,6 @@ class GeniusNegotiator(SAONegotiator):
         self.issue_names = self.issues = self.issue_index = None
         self.auto_load_java = auto_load_java
         if domain_file_name is not None:
-
             from ..inout import get_domain_issues
 
             # we keep original issues details so that we can create appropriate answers to Java
@@ -345,9 +344,15 @@ class GeniusNegotiator(SAONegotiator):
     def destroy_java_counterpart(self, state=None) -> None:
         if self.__started and not self.__destroyed:
             if self.java is not None:
-                self.__frozen_relative_time = self.java.get_relative_time(  # type: ignore
-                    self.java_uuid
-                )
+                try:
+                    self.__frozen_relative_time = self.java.get_relative_time(  # type: ignore
+                        self.java_uuid
+                    )
+                except:
+                    if state:
+                        self.__frozen_relative_time = state.relative_time
+                    else:
+                        self.__frozen_relative_time = self.nmi.state.relative_time
                 result = self.java.on_negotiation_end(  # type: ignore
                     self.java_uuid,
                     None

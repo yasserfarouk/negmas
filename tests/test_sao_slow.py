@@ -210,9 +210,7 @@ class TimeWaster(RandomNegotiator):
     def __call__(self, state, offer):
         if not self.nmi:
             return None
-        if self.waited < self.n_waits and (
-            state.step > 0 or not self.nmi.params["avoid_ultimatum"]
-        ):
+        if self.waited < self.n_waits and state.step > 0:
             self.waited += 1
             return SAOResponse(ResponseType.WAIT, None)
         if self._sleep_seconds:
@@ -304,7 +302,6 @@ def test_neg_sync_loop(keep_order):
             outcomes=n_outcomes,
             n_steps=n_steps,
             ignore_negotiator_exceptions=False,
-            avoid_ultimatum=False,
             name=f"{m}",
         )
         ufuns = MappingUtilityFunction.generate_random(
@@ -343,7 +340,6 @@ def test_neg_run_sync(n_negotiators):
             outcomes=n_outcomes,
             n_steps=n_steps,
             ignore_negotiator_exceptions=True,
-            avoid_ultimatum=False,
         )
         ufuns = MappingUtilityFunction.generate_random(
             2, outcomes=mechanism.discrete_outcomes()
@@ -441,9 +437,7 @@ def test_mechanism_can_run(n_negotiators):
 @mark.parametrize("n_negotiators,oia", [(2, True), (3, True), (2, False), (3, False)])
 def test_mechanism_runs_with_offering_not_accepting(n_negotiators, oia):
     n_outcomes = 5
-    mechanism = SAOMechanism(
-        outcomes=n_outcomes, n_steps=3, offering_is_accepting=oia, avoid_ultimatum=False
-    )
+    mechanism = SAOMechanism(outcomes=n_outcomes, n_steps=3, offering_is_accepting=oia)
     ufuns = MappingUtilityFunction.generate_random(1, outcomes=n_outcomes)
     for i in range(n_negotiators):
         mechanism.add(AspirationNegotiator(name=f"agent{i}"), preferences=ufuns[0])
@@ -469,7 +463,6 @@ def test_mechanism_runall(n_negotiators, oia):
             outcomes=n_outcomes,
             n_steps=random.randint(3, 20),
             offering_is_accepting=oia,
-            avoid_ultimatum=False,
         )
         ufuns = MappingUtilityFunction.generate_random(1, outcomes=n_outcomes)
         for i in range(n_negotiators):
@@ -508,7 +501,6 @@ def test_sync_controller(n_negotiations, n_negotiators, oia):
                 n_steps=10,
                 time_limit=None,
                 offering_is_accepting=oia,
-                avoid_ultimatum=False,
                 end_on_no_response=False,
             )
         )
@@ -535,7 +527,6 @@ def test_pickling_mechanism(tmp_path):
         outcomes=n_outcomes,
         n_steps=3,
         offering_is_accepting=True,
-        avoid_ultimatum=False,
     )
     ufuns = MappingUtilityFunction.generate_random(n_negotiators, outcomes=n_outcomes)
     for i in range(n_negotiators):
@@ -566,7 +557,6 @@ def test_checkpointing_mechanism(tmp_path):
         outcomes=n_outcomes,
         n_steps=3,
         offering_is_accepting=True,
-        avoid_ultimatum=False,
     )
     ufuns = MappingUtilityFunction.generate_random(n_negotiators, outcomes=n_outcomes)
     for i in range(n_negotiators):
@@ -880,21 +870,17 @@ def test_no_limits_raise_warning():
 
 
 @given(
-    avoid_ultimatum=st.booleans(),
     n_steps=st.integers(10, 11),
     n_waits=st.integers(0, 4),
     n_waits2=st.integers(0, 4),
 )
 @settings(deadline=20000, max_examples=100)
-def test_single_mechanism_history_with_waiting(
-    avoid_ultimatum, n_steps, n_waits, n_waits2
-):
+def test_single_mechanism_history_with_waiting(n_steps, n_waits, n_waits2):
     n_outcomes, waste = 5, (0.0, 0.3)
     mechanism = SAOMechanism(
         outcomes=n_outcomes,
         n_steps=n_steps,
         ignore_negotiator_exceptions=False,
-        avoid_ultimatum=avoid_ultimatum,
     )
     ufuns = MappingUtilityFunction.generate_random(2, outcomes=mechanism.outcomes)
     mechanism.add(
@@ -913,9 +899,7 @@ def test_single_mechanism_history_with_waiting(
     mechanism.run()
     first = mechanism._selected_first
     n_negotiators = len(mechanism.negotiators)
-    assert (not avoid_ultimatum and first == 0) or (
-        avoid_ultimatum and 0 <= first < n_negotiators
-    )
+    assert first == 0
     assert mechanism.state.agreement is None
     assert mechanism.state.started
     assert mechanism.state.timedout or (
@@ -940,11 +924,7 @@ def test_single_mechanism_history_with_waiting(
     first_offers = []
     ignored_offers = []
     for i, n in enumerate(mechanism.negotiators):
-        # all agents asked to offer first if avoid_ultimatum
-        if avoid_ultimatum:
-            assert n.received_offers[0] is None
-        else:
-            first_offers.append(n.received_offers[0] is None)
+        first_offers.append(n.received_offers[0] is None)
 
         # sent and received match
         for j, w in n.my_offers.items():
@@ -952,11 +932,6 @@ def test_single_mechanism_history_with_waiting(
             assert j not in s[i].keys()
             # cannot send None
             assert w is not None  # or (j == 0 and not avoid_ultimatum)
-            if j == 0 and i != first and avoid_ultimatum:
-                # cannot have more than n_negotiators - 1 ignored offers
-                assert len(ignored_offers) < n_negotiators - 1
-                ignored_offers.append(w[0])
-                continue
             s[i][j] = w[0]
         for j, w in n.received_offers.items():
             # cannot receive multiple ofers in the same step
@@ -964,21 +939,14 @@ def test_single_mechanism_history_with_waiting(
             # canont be asked to start offering except in the first step
             assert w is not None or j == 0
             # this is the first agent to offer, ignore its first step
-            if (first == i and j == 0) or (avoid_ultimatum and j == 0):
+            if first == i and j == 0:
                 # if this is the first agent, its first thing recieved must be None
                 assert w is None
                 continue
-            assert (
-                w is not None
-            ), f"None outcome agent {i} @ {j} (avoid={avoid_ultimatum}) first is {first}"
+            assert w is not None, f"None outcome agent {i} @ {j} first is {first}"
             r[i][j] = w[0]
 
-    # a single agent is asked to offer first if not avoid_ultimatum
-    if not avoid_ultimatum:
-        assert any(first_offers) and not all(first_offers)
-    # every agent is asked to offer and all except one are ignored if avoid_ultimatum
-    if avoid_ultimatum:
-        assert len(ignored_offers) == n_negotiators - 1
+    assert any(first_offers) and not all(first_offers)
 
     # reconstruct history
     neg_map = dict(zip((_.id for _ in mechanism.negotiators), [0, 1]))
@@ -1005,7 +973,7 @@ def test_single_mechanism_history_with_waiting(
         for j, w in s[i].items():
             assert j in r[1 - i] or (j == 0)
         for j, w in r[i].items():
-            assert j in s[1 - i] or (j == 0 and not avoid_ultimatum)
+            assert j in s[1 - i]
 
     # s and r will not have matched indices but should have matched values
     s = [list(_.values()) for _ in s]
@@ -1026,12 +994,11 @@ def test_single_mechanism_history_with_waiting(
     keep_order=st.booleans(),
     n_first=st.integers(1, 6),
     n_second=st.integers(1, 6),
-    avoid_ultimatum=st.booleans(),
     end_on_no_response=st.booleans(),
 )
 @settings(deadline=20000)
 def test_neg_sync_loop_receives_all_offers(
-    keep_order, n_first, n_second, avoid_ultimatum, end_on_no_response
+    keep_order, n_first, n_second, end_on_no_response
 ):
     # from pprint import pprint
 
@@ -1048,7 +1015,6 @@ def test_neg_sync_loop_receives_all_offers(
             outcomes=n_outcomes,
             n_steps=n_steps,
             ignore_negotiator_exceptions=False,
-            avoid_ultimatum=avoid_ultimatum,
             end_on_no_response=end_on_no_response,
             name=f"{i}v{j}",
         )
@@ -1077,16 +1043,9 @@ def test_neg_sync_loop_receives_all_offers(
     for mechanism in mechanisms:
         ls = [len(mechanism.negotiator_offers(n.id)) for n in mechanism.negotiators]
         check.less_equal(abs(ls[0] - ls[1]), 1, mechanism.trace)
-        if avoid_ultimatum:
-            check.greater_equal(len(mechanism.offers), 2 * (n_steps - 1))
-            check.less_equal(len(mechanism.offers), 2 * n_steps)
-            for n in mechanism.negotiators:
-                check.greater_equal(len(mechanism.negotiator_offers(n.id)), n_steps - 1)
-            pass
-        else:
-            check.equal(len(mechanism.offers), 2 * n_steps)
-            for n in mechanism.negotiators:
-                check.equal(len(mechanism.negotiator_offers(n.id)), n_steps)
+        check.equal(len(mechanism.offers), 2 * n_steps)
+        for n in mechanism.negotiators:
+            check.equal(len(mechanism.negotiator_offers(n.id)), n_steps)
 
     for c, n_partners in itertools.chain(
         zip(c1s, itertools.repeat(n_second)), zip(c2s, itertools.repeat(n_first))
@@ -1095,14 +1054,13 @@ def test_neg_sync_loop_receives_all_offers(
         countered_steps = set(c.countered_offers.keys())
         missing_steps = steps.difference(countered_steps)
         check.equal(len(missing_steps), 0, f"Missing steps are {missing_steps}")
-        if not avoid_ultimatum:
-            for s in steps:
-                partners = c.countered_offers[s]
-                check.equal(
-                    len(partners),
-                    n_partners,
-                    f"partners {len(partners)} (of {n_partners}) step {s}.\n{partners}",
-                )
+        for s in steps:
+            partners = c.countered_offers[s]
+            check.equal(
+                len(partners),
+                n_partners,
+                f"partners {len(partners)} (of {n_partners}) step {s}.\n{partners}",
+            )
 
     for mechanism in mechanisms:
         check.is_true(mechanism.state.started)
@@ -1237,7 +1195,6 @@ def test_auto_checkpoint(tmp_path, single_checkpoint, checkpoint_every, exist_ok
         outcomes=n_outcomes,
         n_steps=n_steps,
         offering_is_accepting=True,
-        avoid_ultimatum=False,
         checkpoint_every=checkpoint_every,
         checkpoint_folder=new_folder,
         checkpoint_filename=filename,
@@ -1359,9 +1316,7 @@ def make_linear():
 
 
 def _run_neg(agents, utils, outcome_space):
-    neg = SAOMechanism(
-        outcome_space=outcome_space, n_steps=200, avoid_ultimatum=False, time_limit=None
-    )
+    neg = SAOMechanism(outcome_space=outcome_space, n_steps=200, time_limit=None)
     for a, u in zip(agents, utils):
         neg.add(a, preferences=u)
     neg.run()

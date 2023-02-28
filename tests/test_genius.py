@@ -293,7 +293,6 @@ def test_agentk_perceives_time():
         [gagent, AspirationNegotiator()],
         n_steps=n_steps,
         time_limit=float("inf"),
-        avoid_ultimatum=True,
     )
     if neg is None:
         raise ValueError(f"Failed to load domain from {base_folder}")
@@ -389,9 +388,7 @@ def test_2genius_together(a1, a2, n_steps, time_limit):
 
     domain = Scenario.from_genius_folder(base_folder)
     assert domain is not None
-    neg = domain.make_session(
-        n_steps=n_steps, time_limit=time_limit, avoid_ultimatum=True
-    )
+    neg = domain.make_session(n_steps=n_steps, time_limit=time_limit)
     if neg is None:
         raise ValueError(f"Failed to load domain from {base_folder}")
     neg.add(
@@ -417,9 +414,7 @@ def test_caudacius_caudacius():
 
     domain = Scenario.from_genius_folder(base_folder)
     assert domain is not None
-    neg = domain.make_session(
-        n_steps=n_steps, time_limit=float("inf"), avoid_ultimatum=True
-    )
+    neg = domain.make_session(n_steps=n_steps, time_limit=float("inf"))
     if neg is None:
         raise ValueError(f"Failed to load domain from {base_folder}")
     if not isinstance(neg, SAOMechanism):

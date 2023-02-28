@@ -292,7 +292,7 @@ def test_alternating_offers_mechanism_with_one_agent_run():
 def test_same_utility_leads_to_agreement():
     n_outcomes, n_steps = 10, 10
     accepted = [(2,), (3,), (4,), (5,)]
-    neg = SAOMechanism(outcomes=n_outcomes, n_steps=n_steps, avoid_ultimatum=False)
+    neg = SAOMechanism(outcomes=n_outcomes, n_steps=n_steps)
     opponent = LimitedOutcomesNegotiator(
         acceptable_outcomes=accepted,
         acceptance_probabilities=[1.0] * len(accepted),

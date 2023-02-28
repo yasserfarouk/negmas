@@ -112,7 +112,8 @@ class SAONegotiator(GBNegotiator):
         ...
 
     def respond(self, state: SAOState, offer: Outcome, source: str) -> ResponseType:
-        """Called to respond to an offer. This is the method that should be overriden to provide an acceptance strategy.
+        """
+        Called to respond to an offer. This is the method that should be overriden to provide an acceptance strategy.
 
         Args:
             state: a `SAOState` giving current state of the negotiation.
@@ -128,15 +129,19 @@ class SAONegotiator(GBNegotiator):
 
         """
         # Always reject offers that we do not know or if we have no kknown preferences
-        if offer is None or self.ufun is None:
+        if offer is None or self.preferences is None:
             return ResponseType.REJECT_OFFER
-        # find offer utility
-        offer_util = self.ufun(offer) if self.ufun else float("-inf")
+        offer_util = None
+        if self.has_ufun:
+            offer_util = self.ufun(offer)
         # if the offer is worse than the reserved value or its utility is less than that of the reserved outcome, reject it
-        if (self.reserved_value is not None and offer_util < self.reserved_value) or (
+        if (
+            self.reserved_value is not None
+            and offer_util is not None
+            and offer_util < self.reserved_value
+        ) or (
             self.reserved_outcome is not None
-            and self.ufun is not None
-            and offer_util < self.ufun(self.reserved_outcome)
+            and self.preferences.is_worse(offer, self.reserved_outcome)
         ):
             return ResponseType.REJECT_OFFER
         # find my last proposal (if any)
@@ -150,7 +155,7 @@ class SAONegotiator(GBNegotiator):
                 return ResponseType.NO_RESPONSE
             utility = self.ufun(myoffer)
         # accept only if I know what I would have proposed at this state (or the previous one) and it was worse than what I am about to proposed
-        if utility is not None and offer_util >= utility:
+        if utility is not None and offer_util is not None and offer_util >= utility:
             return ResponseType.ACCEPT_OFFER
         return ResponseType.REJECT_OFFER
 
@@ -187,7 +192,10 @@ class SAONegotiator(GBNegotiator):
             return ResponseType.END_NEGOTIATION
         if self.__end_negotiation:
             return ResponseType.END_NEGOTIATION
-        return self.respond(state=state, offer=offer, source=source)
+        try:
+            return self.respond(state=state, offer=offer, source=source)
+        except TypeError:
+            return self.respond(state=state, offer=offer)
 
     def __call__(self, state: SAOState, offer: Outcome | None) -> SAOResponse:
         """
@@ -203,17 +211,23 @@ class SAONegotiator(GBNegotiator):
         """
         if self.__end_negotiation:
             return SAOResponse(ResponseType.END_NEGOTIATION, None)
-        if self.ufun is not None:
+        if self.has_ufun:
             changes = self.ufun.changes()
             if changes:
                 self.on_preferences_changed(changes)
         if offer is None:
             return SAOResponse(ResponseType.REJECT_OFFER, self.propose_(state=state))
-        response = self.respond_(
-            state=state,
-            offer=offer,
-            source=state.current_proposer if state.current_proposer else "",
-        )
+        try:
+            response = self.respond_(
+                state=state,
+                offer=offer,
+                source=state.current_proposer if state.current_proposer else "",
+            )
+        except TypeError:
+            response = self.respond_(
+                state=state,
+                offer=offer,
+            )
         if response != ResponseType.REJECT_OFFER:
             return SAOResponse(response, None)
         return SAOResponse(response, self.propose_(state=state))

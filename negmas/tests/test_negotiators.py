@@ -115,7 +115,7 @@ def test_tit_for_tat_negotiators_agree_in_the_middle():
         dict(zip(outcomes, (1 - np.linspace(0.0, 1.0, len(outcomes))).tolist())),
         outcomes=outcomes,
     )
-    neg = SAOMechanism(outcomes=outcomes, n_steps=100, avoid_ultimatum=False)
+    neg = SAOMechanism(outcomes=outcomes, n_steps=100)
     neg.add(a1, preferences=u1)
     neg.add(a2, preferences=u2)
     neg.run()
@@ -142,7 +142,7 @@ def test_top_only_negotiator():
     a1 = ToughNegotiator(name="a1")
     a2 = ToughNegotiator(name="a2")
     u1 = 22.0 - np.linspace(0.0, 22.0, len(outcomes))
-    neg = SAOMechanism(outcomes=outcomes, n_steps=10, avoid_ultimatum=False)
+    neg = SAOMechanism(outcomes=outcomes, n_steps=10)
     neg.add(
         a1,
         preferences=MappingUtilityFunction(
@@ -170,7 +170,7 @@ def test_tft_propose():
     a1 = NaiveTitForTatNegotiator(name="a1", initial_concession="min")
     a2 = ToughNegotiator(name="a2")
     u1 = 22.0 - np.linspace(0.0, 22.0, len(outcomes))
-    neg = SAOMechanism(outcomes=outcomes, n_steps=10, avoid_ultimatum=False)
+    neg = SAOMechanism(outcomes=outcomes, n_steps=10)
     neg.add(
         a1,
         preferences=MappingUtilityFunction(
@@ -194,7 +194,7 @@ def test_tft_propose():
     a1 = NaiveTitForTatNegotiator(name="a1")
     a2 = ToughNegotiator(name="a1")
     u1 = [50.0] * 3 + (22 - np.linspace(10.0, 22.0, len(outcomes) - 3)).tolist()
-    neg = SAOMechanism(outcomes=outcomes, n_steps=10, avoid_ultimatum=False)
+    neg = SAOMechanism(outcomes=outcomes, n_steps=10)
     neg.add(
         a1,
         preferences=MappingUtilityFunction(lambda x: u1[x[0]], outcomes=outcomes),
@@ -229,9 +229,7 @@ def test_tit_for_tat_against_asp_negotiators():
         dict(zip(outcomes, (1 - np.linspace(0.0, 1.0, len(outcomes))).tolist())),
         outcomes=outcomes,
     )
-    neg = SAOMechanism(
-        outcomes=outcomes, n_steps=20, avoid_ultimatum=False, time_limit=None
-    )
+    neg = SAOMechanism(outcomes=outcomes, n_steps=20, time_limit=None)
     neg.add(a1, preferences=u1)
     neg.add(a2, preferences=u2)
     neg.run()

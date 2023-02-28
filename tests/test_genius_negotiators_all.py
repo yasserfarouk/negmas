@@ -112,9 +112,7 @@ def do_run(
     domain = Scenario.from_genius_folder(base_folder)
     if not domain:
         raise ValueError(f"Cannot open domain {base_folder}")
-    neg = domain.make_session(
-        n_steps=n_steps, time_limit=time_limit, avoid_ultimatum=False
-    )
+    neg = domain.make_session(n_steps=n_steps, time_limit=time_limit)
     if neg is None:
         raise ValueError(f"Failed to load domain from {base_folder}")
     opponent = opponent_factory(preferences=domain.ufuns[opponent_preferences])

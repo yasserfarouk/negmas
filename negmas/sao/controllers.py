@@ -125,7 +125,6 @@ class SAOController(Controller):
         """
 
     def propose(self, negotiator_id: str, state: MechanismState) -> Outcome | None:
-
         negotiator, _ = self._negotiators.get(negotiator_id, (None, None))
         if negotiator is None:
             raise ValueError(f"Unknown negotiator {negotiator_id}")
@@ -161,7 +160,6 @@ class SAORandomController(SAOController):
         self._p_acceptance = p_acceptance
 
     def propose(self, negotiator_id: str, state: MechanismState) -> Outcome | None:
-
         negotiator, cntxt = self._negotiators.get(negotiator_id, (None, None))
         if negotiator is None:
             raise ValueError(f"Unknown negotiator {negotiator_id}")
@@ -500,8 +498,10 @@ class SAOSingleAgreementController(SAOSyncController, ABC):
             return None
         if neg.nmi is None:
             return None
-        ufun = neg.ufun
-        if ufun is None and hasattr(self, "ufun"):
+        ufun = None
+        if self.has_ufun:
+            ufun = self.ufun
+        elif not self.has_ufun and hasattr(self, "ufun"):
             ufun = self.ufun
         if ufun is None:
             return None
