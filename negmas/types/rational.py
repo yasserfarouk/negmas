@@ -7,8 +7,6 @@ from __future__ import annotations
 
 from typing import TYPE_CHECKING
 
-from negmas import warnings
-
 from ..common import PreferencesChange
 from .named import NamedObject
 
@@ -77,6 +75,7 @@ class Rational(NamedObject):
               it.
             - The most general form of change is `PreferencesChange.General` which indicates that you cannot trust anything you knew about the ufun anymore
         """
+        _ = changes
 
     def set_preferences(
         self, value: Preferences | None, force=False
@@ -162,12 +161,12 @@ class Rational(NamedObject):
         self.set_preferences(v)
 
     @property
-    def ufun(self) -> BaseUtilityFunction:
+    def ufun(self) -> BaseUtilityFunction | None:
         """Returns the preferences if it is a `BaseUtilityFunction` else None"""
         from ..preferences import BaseUtilityFunction
 
         if self._preferences is None:
-            raise ValueError(f"No preferences specified")
+            return None
         if isinstance(self._preferences, BaseUtilityFunction):
             return self._preferences
         raise ValueError(
@@ -182,6 +181,11 @@ class Rational(NamedObject):
     def has_preferences(self) -> bool:
         """Does the entity has an associated ufun?"""
         return self._preferences is not None
+
+    @property
+    def has_ufun(self) -> bool:
+        """Does the entity has an associated ufun?"""
+        return self.ufun is not None
 
     @property
     def has_cardinal_preferences(self) -> bool:

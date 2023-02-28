@@ -4,7 +4,6 @@ Implements Stacked Alternating Offers (SAO) mechanism.
 from __future__ import annotations
 
 import functools
-import random
 import sys
 import time
 from collections import defaultdict
@@ -53,9 +52,6 @@ class SAOMechanism(Mechanism):
                             REJECT_OFFER then refuses to give an offer (by returning `None` from `proposee/`counter`).
         enable_callbacks: Enable callbacks like on_round_start, etc. Note that on_negotiation_end is always received
                           by the negotiators no matter what is the setting for this parameter.
-        avoid_ultimatum: If true, a proposal is taken from every agent in the first round then all of them are discarded
-                         except one (choose randomly) and the algorithm continues using this one. This prevents negotiators
-                         from knowing their order in the round.
         check_offers: If true, offers are checked to see if they are valid for the negotiation
                       outcome-space and if not the offer is considered None which is the same as
                       refusing to offer (NO_RESPONSE).
@@ -125,7 +121,6 @@ class SAOMechanism(Mechanism):
         self.params["end_on_no_response"] = end_on_no_response
         self.params["enable_callbacks"] = extra_callbacks
         self.params["sync_calls"] = sync_calls
-        self.params["avoid_ultimatum"] = avoid_ultimatum
         self.params["check_offers"] = check_offers
         self.params["offering_is_accepting"] = offering_is_accepting
         self.params["enforce_issue_types"] = enforce_issue_types
@@ -145,8 +140,6 @@ class SAOMechanism(Mechanism):
         self._last_checked_negotiator = -1
         self._current_proposer = None
         self._frozen_neg_list = None
-        self._avoid_ultimatum = n_steps is not None and avoid_ultimatum
-        self._ultimatum_avoided = False
         self._no_responses = 0
         self._offering_is_accepting = offering_is_accepting
         self._n_waits = 0
@@ -174,7 +167,10 @@ class SAOMechanism(Mechanism):
             and self.nmi.n_steps != float("inf")
         ):
             warnings.warn(
-                f"{negotiator.id} of type {negotiator.__class__.__name__} is joining SAOMechanism which has a time_limit of {self.nmi.time_limit} seconds and a n_steps of {self.nmi.n_steps}. This agnet will only know about the time_limit and will not know about the n_steps!!!",
+                f"{negotiator.id} of type {negotiator.__class__.__name__} is joining "
+                f"SAOMechanism which has a time_limit of {self.nmi.time_limit} seconds "
+                f"and a n_steps of {self.nmi.n_steps}. This agnet will only know about the "
+                f"time_limit and will not know about the n_steps!!!",
                 warnings.NegmasStepAndTimeLimitWarning,
             )
         return added

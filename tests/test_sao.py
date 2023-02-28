@@ -18,16 +18,14 @@ NEGTYPES = all_negotiator_types()
     opp=st.sampled_from(NEGTYPES),
     start=st.booleans(),
     rejector=st.sampled_from([EndImmediately, RejectAlways]),
-    avoid_ultimatum=st.booleans(),
 )
 @example(
     opp=negmas.sao.negotiators.timebased.AdditiveFirstFollowingTBNegotiator,
     start=True,
     rejector=negmas.sao.components.acceptance.EndImmediately,
-    avoid_ultimatum=True,
 )
 @settings(deadline=500000)
-def test_do_nothing_never_gets_agreements(opp, start, rejector, avoid_ultimatum):
+def test_do_nothing_never_gets_agreements(opp, start, rejector):
     agent = make_boa(acceptance=rejector(), offering=NoneOfferingPolicy())
     issues: list[Issue] = [
         make_issue(10, "price"),
@@ -38,7 +36,7 @@ def test_do_nothing_never_gets_agreements(opp, start, rejector, avoid_ultimatum)
         LinearAdditiveUtilityFunction.random(issues=issues),
         LinearAdditiveUtilityFunction.random(issues=issues),
     ]
-    session = SAOMechanism(n_steps=1000, issues=issues, avoid_ultimatum=avoid_ultimatum)
+    session = SAOMechanism(n_steps=1000, issues=issues)
     negs = [opp(), agent] if not start else [agent, opp()]
     for n, u in zip(negs, ufuns):
         session.add(n, preferences=u)
