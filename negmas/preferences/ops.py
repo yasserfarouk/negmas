@@ -284,7 +284,7 @@ def pareto_frontier_bf(
 
 @jit(nopython=True)
 def _pareto_frontier_bf(
-    points: np.ndarray | Sequence[Sequence[float]],
+    points: np.ndarray,
     eps=-1e-12,
     sort_by_welfare=True,
 ) -> np.ndarray:
@@ -293,22 +293,23 @@ def _pareto_frontier_bf(
     extremely slow but is guaranteed to be correct.
 
     Args:
-        points: list of points
+        points: list of points each is a tuple of utility values for one outcome
         eps: A (usually negative) small number to treat as zero during calculations
         sort_by_welfare: If True, the results are sorted descindingly by total welfare
 
     Returns:
-        indices of pareto optimal outcomes
+        indices of Pareto optimal outcomes
     """
 
     frontier, indices = [], []
+    m = points.shape[1]
     for i, current in enumerate(points):
         for j, test in enumerate(points):
             if j == i:
                 continue
             has_better = has_worse = False
-            for i in range(len(current)):
-                a, b = current[i], test[i]
+            for k in range(m):
+                a, b = current[k], test[k]
                 if a > b:
                     has_better = True
                     continue
@@ -425,7 +426,7 @@ def kalai_points(
     subtract_reserved_value: bool = True,
 ) -> tuple[tuple[tuple[float, ...], int], ...]:
     """
-    Calculates the all Kalai bargaining solutions on the pareto frontier of a negotiation which is the most Egaliterian solution
+    Calculates the all Kalai bargaining solutions on the Pareto frontier of a negotiation which is the most Egaliterian solution
     ref:  Kalai, Ehud (1977). "Proportional solutions to bargaining situations: Intertemporal utility comparisons" (PDF). Econometrica. 45 (7): 1623–1630. doi:10.2307/1913954. JSTOR 1913954.
 
     Args:
@@ -941,7 +942,7 @@ def pareto_frontier(
         eps: resolution
 
     Returns:
-        Two lists of the same length. First list gives the utilities at pareto frontier points and second list gives their indices
+        Two lists of the same length. First list gives the utilities at Pareto frontier points and second list gives their indices
     """
 
     ufuns = tuple(ufuns)
