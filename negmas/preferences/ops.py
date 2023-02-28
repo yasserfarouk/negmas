@@ -17,7 +17,6 @@ from negmas.outcomes.protocols import OutcomeSpace
 from negmas.preferences.crisp.mapping import MappingUtilityFunction
 
 if TYPE_CHECKING:
-
     from negmas.preferences.prob_ufun import ProbUtilityFunction
 
     from .base_ufun import BaseUtilityFunction
@@ -285,11 +284,12 @@ def pareto_frontier_bf(
 
 @jit(nopython=True)
 def _pareto_frontier_bf(
-    points: np.ndarray | Iterable[Iterable[float]],
+    points: np.ndarray | Sequence[Sequence[float]],
     eps=-1e-12,
     sort_by_welfare=True,
 ) -> np.ndarray:
-    """Finds the pareto-frontier of a set of points using brute-force. This is
+    """
+    Finds the pareto-frontier of a set of points using brute-force. This is
     extremely slow but is guaranteed to be correct.
 
     Args:
@@ -307,7 +307,8 @@ def _pareto_frontier_bf(
             if j == i:
                 continue
             has_better = has_worse = False
-            for a, b in zip(current, test, strict=True):
+            for i in range(len(current)):
+                a, b = current[i], test[i]
                 if a > b:
                     has_better = True
                     continue
