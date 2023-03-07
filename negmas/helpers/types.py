@@ -47,6 +47,8 @@ def get_full_type_name(t: type[Any] | Callable | str) -> str:
     """
     if t is None or isinstance(t, str):
         return t
+    if isinstance(t, functools.partial):
+        t = t.func
     if not hasattr(t, "__module__") and not hasattr(t, "__name__"):
         t = type(t)
     return t.__module__ + "." + t.__name__  # type: ignore
