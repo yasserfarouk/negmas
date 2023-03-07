@@ -279,6 +279,8 @@ def pareto_frontier_bf(
     sort_by_welfare=True,
 ) -> np.ndarray:
     points = np.asarray(points, dtype=np.float32)
+    if len(points) < 1:
+        return points
     return _pareto_frontier_bf(points, eps, sort_by_welfare)
 
 
@@ -302,6 +304,8 @@ def _pareto_frontier_bf(
     """
 
     frontier, indices = [], []
+    if len(points) < 1:
+        return points
     m = points.shape[1]
     for i, current in enumerate(points):
         for j, test in enumerate(points):
