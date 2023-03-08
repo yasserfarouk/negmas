@@ -17,7 +17,7 @@ jobs:
 
     steps:
       - uses: "actions/checkout@v2"
-      - uses: "actions/setup-python@v1"
+      - uses: "actions/setup-python@v2"
         with:
           python-version: "${{ matrix.python-version }}"
       - name: "Install dependencies"
@@ -26,7 +26,9 @@ jobs:
           ulimit -n 50000
           python -VV
           python -m site
-          python -m pip install --upgrade pip setuptools wheel pytest
+          python -m pip install --upgrade pip setuptools wheel
+          python -m pip install -r requirements.txt
+          python -m pip install -r requirements-dev.txt
           python -m pip install -e .
           python -m ipykernel install --user --name=negmas
       - name: "Setting up environment"
