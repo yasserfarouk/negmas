@@ -29,6 +29,7 @@ jobs:
       - name: "Install dependencies"
         run: |
           set -xe
+          ulimit -n 50000
           python -VV
           python -m site
           python -m pip install --upgrade pip setuptools wheel pytest
@@ -40,7 +41,7 @@ jobs:
           python -m pip install -e .
           negmas genius-setup
       - name: "running genius bridge"
-        run: "java -jar ~/negmas/files/geniusbridge.jar --silent --no-logs &"
+        run: "java -jar $HOME/negmas/files/geniusbridge.jar --silent --no-logs &"
       - name: "Run pytest for ${{ matrix.python-version }}"
         run: |
           export NEGMAS_IGNORE_TEST_NOTEBOOKS=True
@@ -51,4 +52,4 @@ jobs:
           python -W ignore -m pytest tests/test_genius.py  || python -W ignore -m pytest --last-failed .
           python -W ignore -m pytest tests/test_inout.py  || python -W ignore -m pytest --last-failed .
           export NEGMAS_BRIDGE_OPS=True
-          python -W ignore -m pytest tests/test_genius_bridge.py  || python -W ignore -m pytest --last-failed .
+          python -W ignore -mk pytest tests/test_genius_bridge.py  || python -W ignore -m pytest --last-failed .
