@@ -281,6 +281,10 @@ class NegotiatorMechanismInterface:
     """Negotiation agenda as as an `OutcomeSpace` object. The most common type is `CartesianOutcomeSpace` which represents the cartesian product of a list of issues"""
     time_limit: float
     """The time limit in seconds for this negotiation session. None indicates infinity"""
+    pend: float
+    """The probability that the negotiation times out at every step. Must be less than one. If <= 0, it is ignored"""
+    pend_per_second: float
+    """The probability that the negotiation times out every second. Must be less than one. If <= 0, it is ignored"""
     step_time_limit: float
     """The time limit in seconds for each step of ;this negotiation session. None indicates infinity"""
     negotiator_time_limit: float

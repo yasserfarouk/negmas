@@ -2,6 +2,7 @@
 from __future__ import annotations
 
 import copy
+import math
 import pprint
 import random
 import time
@@ -91,6 +92,8 @@ class Mechanism(NamedObject, EventSource, CheckpointMixin, ABC):
         outcomes: list of outcomes (optional as you can pass `issues`). If an int then it is the number of outcomes
         n_steps: Number of rounds allowed (None means infinity)
         time_limit: Number of real seconds allowed (None means infinity)
+        pend: Probability of ending the negotiation at any step
+        pend_per_second: Probability of ending the negotiation every second
         hidden_time_limit: Number of real seconds allowed but not visilbe to the negotiators
         max_n_agents:  Maximum allowed number of agents
         dynamic_entry: Allow agents to enter/leave negotiations between rounds
@@ -121,6 +124,8 @@ class Mechanism(NamedObject, EventSource, CheckpointMixin, ABC):
         outcomes: list[Outcome] | int | None = None,
         n_steps: int | None = None,
         time_limit: float | None = None,
+        pend: float = 0,
+        pend_per_second: float = 0,
         hidden_time_limit: float = float("inf"),
         step_time_limit: float | None = None,
         negotiator_time_limit: float | None = None,
@@ -153,6 +158,7 @@ class Mechanism(NamedObject, EventSource, CheckpointMixin, ABC):
             exist_ok=exist_ok,
             single=single_checkpoint,
         )
+        self.__last_second_tried = 0
         self._hidden_time_limit = hidden_time_limit
         time_limit = time_limit if time_limit is not None else float("inf")
         step_time_limit = (
@@ -170,6 +176,8 @@ class Mechanism(NamedObject, EventSource, CheckpointMixin, ABC):
             n_outcomes=outcome_space.cardinality,
             outcome_space=outcome_space,
             time_limit=time_limit,
+            pend=pend,
+            pend_per_second=pend_per_second,
             n_steps=n_steps,
             step_time_limit=step_time_limit,
             negotiator_time_limit=negotiator_time_limit,
@@ -315,7 +323,8 @@ class Mechanism(NamedObject, EventSource, CheckpointMixin, ABC):
 
     @property
     def remaining_time(self) -> float | None:
-        """Returns remaining time in seconds.
+        """
+        Returns remaining time in seconds.
 
         None if no time limit is given.
         """
@@ -331,26 +340,92 @@ class Mechanism(NamedObject, EventSource, CheckpointMixin, ABC):
         return limit
 
     @property
+    def expected_remaining_time(self) -> float | None:
+        """
+        Returns remaining time in seconds (expectation).
+
+        None if no time limit or pend_per_second is given.
+        """
+        rem = self.remaining_time
+        pend = self.nmi.pend_per_second
+        if pend <= 0:
+            return rem
+        return min(rem, (1 / pend)) if rem is not None else (1 / pend)
+
+    @property
     def relative_time(self) -> float:
-        """Returns a number between ``0`` and ``1`` indicating elapsed relative
-        time or steps."""
-        if self.nmi.time_limit == float("+inf") and self.nmi.n_steps is None:
-            return 0.0
+        """
+        Returns a number between ``0`` and ``1`` indicating elapsed relative time or steps.
+
+        Remarks:
+            - If pend or pend_per_second are defined in the `NegotiatorMechanismInterface`,
+              and time_limit/n_steps are not given, this becomes an expectation that is limited above by one.
+        """
+        n_steps = self.nmi.n_steps
+        time_limit = self.nmi.time_limit
+        if time_limit == float("+inf") and n_steps is None:
+            if self.nmi.pend <= 0 and self.nmi.pend_per_second <= 0:
+                return 0.0
+            if self.nmi.pend > 0:
+                n_steps = int(math.ceil(1 / self.nmi.pend))
+            if self.nmi.pend_per_second > 0:
+                time_limit = 1 / self.nmi.pend_per_second
 
         relative_step = (
-            (self._current_state.step + 1) / (self.nmi.n_steps + 1)
-            if self.nmi.n_steps is not None
+            (self._current_state.step + 1) / (n_steps + 1)
+            if n_steps is not None
             else -1.0
         )
-        relative_time = (
-            self.time / self.nmi.time_limit if self.nmi.time_limit is not None else -1.0
+        relative_time = self.time / time_limit if time_limit is not None else -1.0
+        return min(1.0, max([relative_step, relative_time]))
+
+    @property
+    def expected_relative_time(self) -> float:
+        """
+        Returns a positive number indicating elapsed relative time or steps.
+
+        Remarks:
+            - This is relative to the expected time/step at which the negotiation ends given all timing
+              conditions (time_limit, n_step, pend, pend_per_second).
+        """
+        n_steps = self.nmi.n_steps
+        time_limit = self.nmi.time_limit
+        if time_limit == float("+inf") and n_steps is None:
+            if self.nmi.pend <= 0 and self.nmi.pend_per_second <= 0:
+                return 0.0
+        if n_steps is None:
+            # set the expected number of steps to the reciprocal of the probability of ending at every step
+            n_steps = (
+                int(math.ceil(1 / self.nmi.pend)) if self.nmi.pend > 0 else n_steps
+            )
+        else:
+            n_steps = min(int(math.ceil(1 / self.nmi.pend)), n_steps)
+        if time_limit == float("inf"):
+            # set the expected number of seconds to the reciprocal of the probability of ending every second
+            time_limit = (
+                int(math.ceil(1 / self.nmi.pend_per_second))
+                if self.nmi.pend_per_second > 0
+                else time_limit
+            )
+        else:
+            time_limit = (
+                min(time_limit, int(math.ceil(1 / self.nmi.pend_per_second)))
+                if self.nmi.pend_per_second > 0
+                else time_limit
+            )
+
+        relative_step = (
+            (self._current_state.step + 1) / (n_steps + 1)
+            if n_steps is not None
+            else -1.0
         )
+        relative_time = self.time / time_limit if time_limit is not None else -1.0
         return max([relative_step, relative_time])
 
     @property
     def remaining_steps(self) -> int | None:
-        """Returns the remaining number of steps until the end of the mechanism
-        run.
+        """
+        Returns the remaining number of steps until the end of the mechanism run.
 
         None if unlimited
         """
@@ -358,6 +433,24 @@ class Mechanism(NamedObject, EventSource, CheckpointMixin, ABC):
             return None
 
         return self.nmi.n_steps - self._current_state.step
+
+    @property
+    def expected_remaining_steps(self) -> int | None:
+        """
+        Returns the expected remaining number of steps until the end of the mechanism run.
+
+        None if unlimited
+        """
+        rem = self.remaining_steps
+        pend = self.nmi.pend
+        if pend <= 0:
+            return rem
+
+        return (
+            min(rem, int(math.ceil(1 / pend)))
+            if rem is not None
+            else int(math.ceil(1 / pend))
+        )
 
     @property
     def requirements(self):
@@ -785,17 +878,25 @@ class Mechanism(NamedObject, EventSource, CheckpointMixin, ABC):
             - If the mechanism was yet to start, it will start it and runs one round
             - There is another function (`run()`) that runs the whole mechanism in blocking mode
         """
+
         if self._start_time is None or self._start_time < 0:
             self._start_time = time.perf_counter()
         self.checkpoint_on_step_started()
         state = self.state
         state4history = self.state4history
+        rs, rt = random.random(), 2
 
         # end with a timeout if condition is met
+        current_time = self.time
+        if self.__last_second_tried < int(current_time):
+            rt, self.__last_second_tried = random.random(), int(current_time)
+
         if (
-            (self.time > self.time_limit)
+            (current_time > self.time_limit)
             or (self.nmi.n_steps and self._current_state.step >= self.nmi.n_steps)
-            or self.time > self._hidden_time_limit
+            or current_time > self._hidden_time_limit
+            or rs < self.nmi.pend - 1e-8
+            or rt < self.nmi.pend_per_second - 1e-8
         ):
             (
                 self._current_state.running,
