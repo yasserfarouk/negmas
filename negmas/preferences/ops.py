@@ -305,7 +305,7 @@ def _pareto_frontier_bf(
 
     frontier, indices = [], []
     if len(points) < 1:
-        return points
+        return np.empty((0, 2), dtype=np.float32)
     m = points.shape[1]
     for i, current in enumerate(points):
         for j, test in enumerate(points):
