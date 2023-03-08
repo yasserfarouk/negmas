@@ -607,13 +607,15 @@ def issues_from_xml_str(
         >>> import pkg_resources
         >>> domain_file_name = pkg_resources.resource_filename('negmas'
         ...                                      , resource_name='tests/data/Laptop/Laptop-C-domain.xml')
-        >>> issues, _ = issues_from_xml_str(open(domain_file_name, 'r').read())
+        >>> with open(domain_file_name, 'r') as ff:
+        ...     issues, _ = issues_from_xml_str(ff.read())
         >>> print([_.cardinality for _ in issues])
         [3, 3, 3]
 
         >>> domain_file_name = pkg_resources.resource_filename('negmas'
         ...                              , resource_name='tests/data/fuzzyagent/single_issue_domain.xml')
-        >>> issues, _ = issues_from_xml_str(open(domain_file_name, 'r').read())
+        >>> with open(domain_file_name, 'r') as ff:
+        ...     issues, _ = issues_from_xml_str(ff.read())
         >>> len(issues)
         1
         >>> type(issues)

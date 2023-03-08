@@ -550,13 +550,14 @@ class BaseUtilityFunction(Preferences, ABC):
             >>> from negmas.inout import load_genius_domain
             >>> domain = load_genius_domain(pkg_resources.resource_filename('negmas'
             ...                             , resource_name='tests/data/Laptop/Laptop-C-domain.xml'))
-            >>> u, _ = UtilityFunction.from_xml_str(open(pkg_resources.resource_filename('negmas'
+            >>> with open(pkg_resources.resource_filename('negmas'
             ...                                      , resource_name='tests/data/Laptop/Laptop-C-prof1.xml')
-            ...                                      , 'r').read(), issues=domain.issues)
-
-            >>> u, _ = UtilityFunction.from_xml_str(open(pkg_resources.resource_filename('negmas'
+            ...                                      , 'r') as ff:
+            ...     u, _ = UtilityFunction.from_xml_str(ff.read(), issues=domain.issues)
+            >>> with open(pkg_resources.resource_filename('negmas'
             ...                                      , resource_name='tests/data/Laptop/Laptop-C-prof1.xml')
-            ...                                      , 'r').read(), issues=domain.issues)
+            ...                                      , 'r') as ff:
+            ...     u, _ = UtilityFunction.from_xml_str(ff.read(), issues=domain.issues)
             >>> assert abs(u(("Dell", "60 Gb", "19'' LCD",)) - 21.987727736172488) < 0.000001
             >>> assert abs(u(("HP", "80 Gb", "20'' LCD",)) - 22.68559475583014) < 0.000001
 

@@ -822,14 +822,10 @@ class World(EventSink, EventSource, ConfigReader, NamedObject, CheckpointMixin, 
         try:
             result = method(*args, **kwargs)
             _end = time.perf_counter()
-            if self.disable_agent_printing:
-                sys.stdout = old_stdout  # reset old stdout
             self.times[agent.id] = _end - _strt
             return result
         except Exception as e:
             _end = time.perf_counter()
-            if self.disable_agent_printing:
-                sys.stdout = old_stdout  # reset old stdout
             self.times[agent.id] = _end - _strt
             self.agent_exceptions[agent.id].append(
                 (self._current_step, exception2str())
@@ -843,6 +839,10 @@ class World(EventSink, EventSource, ConfigReader, NamedObject, CheckpointMixin, 
                 f"{traceback.format_tb(exc_traceback)}",
                 Event("entity-exception", dict(exception=e)),
             )
+        finally:
+            if self.disable_agent_printing:
+                sys.stdout.close()
+                sys.stdout = old_stdout  # reset old stdout
 
     def _add_edges(
         self,
