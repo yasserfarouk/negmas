@@ -596,21 +596,21 @@ def test_dict_conversion(utype):
 
 
 def test_inverse_genius_domain():
-    issues, _ = issues_from_xml_str(
-        open(
-            pkg_resources.resource_filename(
-                "negmas", resource_name="tests/data/Laptop/Laptop-C-domain.xml"
-            ),
-        ).read(),
-    )
-    u, _ = UtilityFunction.from_xml_str(
-        open(
-            pkg_resources.resource_filename(
-                "negmas", resource_name="tests/data/Laptop/Laptop-C-prof1.xml"
-            ),
-        ).read(),
-        issues=issues,
-    )
+    with open(
+        pkg_resources.resource_filename(
+            "negmas", resource_name="tests/data/Laptop/Laptop-C-domain.xml"
+        ),
+    ) as ff:
+        issues, _ = issues_from_xml_str(ff.read())
+    with open(
+        pkg_resources.resource_filename(
+            "negmas", resource_name="tests/data/Laptop/Laptop-C-prof1.xml"
+        ),
+    ) as ff:
+        u, _ = UtilityFunction.from_xml_str(
+            ff.read(),
+            issues=issues,
+        )
     assert u is not None
     inv = PresortingInverseUtilityFunction(u)
     inv.init()
@@ -732,23 +732,20 @@ def test_can_normalize_affine_and_linear_ufun(weights, bias, rng):
 
 
 def test_normalization():
-    os = CartesianOutcomeSpace.from_xml_str(
-        open(
-            pkg_resources.resource_filename(
-                "negmas", resource_name="tests/data/Laptop/Laptop-C-domain.xml"
-            ),
-        ).read(),
-    )
+    with open(
+        pkg_resources.resource_filename(
+            "negmas", resource_name="tests/data/Laptop/Laptop-C-domain.xml"
+        ),
+    ) as ff:
+        os = CartesianOutcomeSpace.from_xml_str(ff.read())
     issues = os.issues
     outcomes = list(os.enumerate())
-    u, _ = UtilityFunction.from_xml_str(
-        open(
-            pkg_resources.resource_filename(
-                "negmas", resource_name="tests/data/Laptop/Laptop-C-prof1.xml"
-            ),
-        ).read(),
-        issues=issues,
-    )
+    with open(
+        pkg_resources.resource_filename(
+            "negmas", resource_name="tests/data/Laptop/Laptop-C-prof1.xml"
+        ),
+    ) as ff:
+        u, _ = UtilityFunction.from_xml_str(ff.read(), issues=issues)
     assert abs(u(("Dell", "60 Gb", "19'' LCD")) - 21.987727736172488) < 0.000001
     assert abs(u(("HP", "80 Gb", "20'' LCD")) - 22.68559475583014) < 0.000001
     utils = [u(_) for _ in outcomes]
@@ -758,14 +755,12 @@ def test_normalization():
     )
     gt_max = dict(zip(outcomes, [_ / max_util for _ in utils]))
 
-    u, _ = UtilityFunction.from_xml_str(
-        open(
-            pkg_resources.resource_filename(
-                "negmas", resource_name="tests/data/Laptop/Laptop-C-prof1.xml"
-            ),
-        ).read(),
-        issues=issues,
-    )
+    with open(
+        pkg_resources.resource_filename(
+            "negmas", resource_name="tests/data/Laptop/Laptop-C-prof1.xml"
+        ),
+    ) as ff:
+        u, _ = UtilityFunction.from_xml_str(ff.read(), issues=issues)
     u = normalize(u, to=(0.0, 1.0))
     utils = [u(_) for _ in outcomes]
     max_util, min_util = max(utils), min(utils)
@@ -775,14 +770,12 @@ def test_normalization():
     for k, v in gt_range.items():
         assert abs(v - u(k)) < 1e-3, f"Failed for {k} got {(u(k))} expected {v}"
 
-    u, _ = UtilityFunction.from_xml_str(
-        open(
-            pkg_resources.resource_filename(
-                "negmas", resource_name="tests/data/Laptop/Laptop-C-prof1.xml"
-            ),
-        ).read(),
-        issues=issues,
-    )
+    with open(
+        pkg_resources.resource_filename(
+            "negmas", resource_name="tests/data/Laptop/Laptop-C-prof1.xml"
+        ),
+    ) as ff:
+        u, _ = UtilityFunction.from_xml_str(ff.read(), issues=issues)
     u = scale_max(u, 1.0)
     utils = [u(_) for _ in outcomes]
     max_util, min_util = max(utils), min(utils)
