@@ -18,9 +18,14 @@ from negmas.preferences.discounted import DiscountedUtilityFunction
 from negmas.sao import AspirationNegotiator
 
 MAX_CARDINALITY = 10_000
-import resource
 
-resource.setrlimit(resource.RLIMIT_NOFILE, (50000, -1))
+try:
+    # try to raise the maximum limit for open files
+    import resource
+
+    resource.setrlimit(resource.RLIMIT_NOFILE, (50000, -1))
+except:
+    pass
 
 
 @pytest.fixture

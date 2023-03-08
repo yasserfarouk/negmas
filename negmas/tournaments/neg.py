@@ -160,7 +160,8 @@ def neg_score_calculator(
     )
 
     result = WorldRunResults(
-        world_names=[world.name], log_file_names=[world.log_file_name]
+        world_names=[world.name],
+        log_file_names=[world.log_file_name] if world.log_file_name else [],
     )
     extra = defaultdict(list)
     for aid, agent in world.competitors.items():
@@ -169,7 +170,7 @@ def neg_score_calculator(
         result.ids.append(agent.id)
         result.types.append(agent_type)
         if dry_run:
-            result.scores.append(None)
+            result.scores.append(float("nan"))
             continue
         result.scores.append(fun[scoring_method](aid))
         for k, f in fun.items():
@@ -200,7 +201,7 @@ def _update_kwargs(kwargs, domains, competitors):
 def create_neg_tournament(
     competitors: Sequence[str | type[Agent]],
     domains: Generator[NegDomain, None, None],
-    competitor_params: Sequence[dict | None] | None = None,
+    competitor_params: Sequence[dict[str, Any]] | None = None,
     **kwargs,
 ) -> PathLike:
     """
@@ -393,11 +394,12 @@ def random_discrete_domains(
                     )
 
 
-def domains_from_list(domains: list[NegDomain]):
+def domains_from_list(domains: list[NegDomain]) -> Generator[NegDomain, None, None]:
     """
-    Creats an appropriate `NegDomain` generator from a list/tuple of domains
+    Creates an appropriate `NegDomain` generator from a list/tuple of domains
     """
-    return cycle(domains)
+    while True:
+        yield from cycle(domains)
 
 
 if __name__ == "__main__":

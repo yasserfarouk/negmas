@@ -1222,7 +1222,7 @@ def _get_executor(
     max_workers = fraction if fraction is None else max(1, int(fraction * cpu_count()))
     executor = futures.ProcessPoolExecutor(max_workers=max_workers)
 
-    return executor, partial(futures.as_completed)
+    return executor, futures.as_completed
 
 
 def _submit_all(
@@ -1600,7 +1600,6 @@ def run_tournament(
     attempts = defaultdict(int)
     files_to_remove = []
     for afile in attempts_path.glob("*"):
-
         n_attempts = 0
         if afile.is_dir():
             continue
@@ -2801,6 +2800,7 @@ def tournament(
                 return results
             competitors = _keep_n(competitors, results, n_winners_per_stage)
         else:
+            competitors = list(competitors)
             random.shuffle(competitors)
             competitor_sets = _divide_into_sets(competitors, n_competitors_per_world)
 
