@@ -16,7 +16,7 @@ from negmas.inout import Scenario
 from negmas.sao.mechanism import SAOMechanism
 from negmas.sao.negotiators import AspirationNegotiator
 
-TIMELIMIT = 120
+TIMELIMIT = 60
 STEPLIMIT = 1000
 
 AGENTS_WITH_NO_AGREEMENT_ON_SAME_preferences = tuple()
@@ -99,7 +99,6 @@ def test_genius_does_not_freeze():
     reason="No Genius Bridge, skipping genius-agent tests",
 )
 def test_old_agent():
-
     from negmas.genius import GeniusNegotiator
 
     folder_name = pkg_resources.resource_filename(
@@ -180,7 +179,6 @@ def test_genius_agents_run_using_hypothesis(
     agent_name2,
     single_issue,
 ):
-
     src = pkg_resources.resource_filename("negmas", resource_name="tests/data/Laptop")
     base_folder = src
     domain = Scenario.from_genius_folder(Path(base_folder))

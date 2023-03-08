@@ -28,7 +28,7 @@ def run_buyer_seller(buyer, seller, normalized=False, callbacks=False, n_steps=1
 
     # define buyer and seller utilities
     seller_utility = LUFun(
-        values=[
+        values=[  # type: ignore
             IdentityFun(),
             LinearFun(0.2),
             TableFun(dict(today=1.0, tomorrow=0.2, nextweek=0.0)),
@@ -37,7 +37,7 @@ def run_buyer_seller(buyer, seller, normalized=False, callbacks=False, n_steps=1
     )
 
     buyer_utility = LUFun(
-        values={
+        values={  # type: ignore
             "price": AffineFun(-1, bias=9.0),
             "quantity": LinearFun(0.2),
             "delivery_time": TableFun(dict(today=0, tomorrow=0.7, nextweek=1.0)),

@@ -34,4 +34,4 @@ jobs:
       - name: "Setting up environment"
         run: |
       - name: "Run pytest for ${{ matrix.python-version }}"
-        run: "python -W ignore -m pytest tests/test_jupyter.py"
+        run: "python -W ignore -m pytest tests/optional/test_jupyter.py"

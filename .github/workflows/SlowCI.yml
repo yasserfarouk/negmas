@@ -1,4 +1,4 @@
-name: CI
+name: SlowCI
 
 on:
   push:
@@ -37,7 +37,7 @@ jobs:
           export NEGMAS_IGNORE_TEST_NOTEBOOKS=True
           export NEGMAS_FASTRUN=True
       - name: "Run pytest for ${{ matrix.python-version }}"
-        run: "python -W ignore -m pytest negmas tests/core || python -W ignore -m pytest --last-failed ."
+        run: "python -W ignore -m pytest negmas tests/optional || python -W ignore -m pytest --last-failed ."
 
   package:
     name: "Build & verify package"

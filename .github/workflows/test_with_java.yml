@@ -49,7 +49,5 @@ jobs:
           export NEGMAS_BRIDGE_OPS
           unset NEGMAS_BRIDGE_OPS
           export NEGMAS_IGNORE_TEST_NOTEBOOKS=True
-          python -W ignore -m pytest tests/test_genius.py  || python -W ignore -m pytest --last-failed .
-          python -W ignore -m pytest tests/test_inout.py  || python -W ignore -m pytest --last-failed .
           export NEGMAS_BRIDGE_OPS=True
-          python -W ignore -mk pytest tests/test_genius_bridge.py  || python -W ignore -m pytest --last-failed .
+          python -W ignore -m pytest tests/genius  || python -W ignore -m pytest --last-failed .
