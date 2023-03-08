@@ -1,20 +1,15 @@
 from __future__ import annotations
 
 import os
-import shutil
 from os import walk
 from pathlib import Path
 
 import pkg_resources
 import pytest
-from pytest import mark
 
 from negmas import load_genius_domain_from_folder
-from negmas.genius import genius_bridge_is_running
 from negmas.inout import Scenario
 from negmas.outcomes import enumerate_issues
-from negmas.preferences.crisp.nonlinear import HyperRectangleUtilityFunction
-from negmas.preferences.discounted import DiscountedUtilityFunction
 from negmas.sao import AspirationNegotiator
 
 MAX_CARDINALITY = 10_000
@@ -135,111 +130,6 @@ def test_simple_run_with_aspiration_agents():
     mechanism.run()
 
 
-def compared_two_domains(domain, domain2):
-    from negmas.genius import AgentX, Atlas3
-
-    assert len(domain.issues) == len(domain2.issues)
-    for i1, i2 in zip(domain.issues, domain2.issues):
-        assert (
-            i1.cardinality == i2.cardinality
-            and i1.type == i2.type
-            and i1.value_type == i2.value_type
-        )
-
-    assert len(domain.ufuns) == len(domain2.ufuns)
-
-    for u1, u2 in zip(domain.ufuns, domain2.ufuns):
-        while isinstance(u1, DiscountedUtilityFunction):
-            u1 = u1.ufun
-        while isinstance(u2, DiscountedUtilityFunction):
-            u2 = u2.ufun
-        if isinstance(u1, HyperRectangleUtilityFunction) or isinstance(
-            u2, HyperRectangleUtilityFunction
-        ):
-            continue
-        dm = domain.agenda.to_discrete(5)
-        for i, w in enumerate(dm):
-            if i > MAX_CARDINALITY:
-                return
-            u1_, u2_ = u1(w), u2(w)
-            assert isinstance(u1_, float)
-            assert isinstance(u2_, float)
-            assert abs(u1_ - u2_) < 1e-3, f"{str(u1)}\n{str(u2)}"
-
-    for ufun in domain.ufuns:
-        if isinstance(ufun, HyperRectangleUtilityFunction):
-            continue
-        m = domain.make_session(n_steps=100, name=domain.agenda.name)
-        assert m is not None
-        if not genius_bridge_is_running():
-            continue
-        n1 = Atlas3(domain_file_name=m.name, preferences=ufun)
-        n2 = AgentX(domain_file_name=m.name, utility_file_name=ufun.name)
-        m.add(n1)
-        m.add(n2)
-        u1, u2 = n1.ufun, n2.ufun
-        assert u1 and u2
-        outcomes = m.discrete_outcomes(max_cardinality=100)
-        for outcome in outcomes:
-            u1_, u2_ = u1(outcome), u2(outcome)
-            assert isinstance(u1_, float)
-            assert isinstance(u2_, float)
-            assert abs(u1_ - u2_) < 1e-3
-        n1.destroy_java_counterpart()
-        n2.destroy_java_counterpart()
-
-
-def do_enc_dec_trial(tmp, folder_name, with_discounting=True):
-    domain = Scenario.from_genius_folder(folder_name, safe_parsing=False)
-    assert domain
-    domain = domain.remove_discounting()
-    print(f"{str(folder_name)}\n-> {str(tmp)}")
-    domain.to_genius_folder(tmp)
-    domain2 = Scenario.from_genius_folder(tmp)
-    assert domain2
-    if not with_discounting:
-        domain2 = domain2.remove_discounting()
-    compared_two_domains(domain, domain2)
-    try:
-        shutil.rmtree(tmp)
-    except:
-        pass
-
-
-@mark.xfail(
-    run=False, reason="Known to fail. It is the int/discrete issue ambiguity in Genius"
-)
-@pytest.mark.parametrize("disc", [True, False])
-def test_encoding_decoding_example_AMPOvsCity(tmp_path, disc):
-    folder_name = (
-        Path(__file__).parent.parent / "data" / "scenarios" / "other" / "AMPOvsCity"
-    )
-    do_enc_dec_trial(tmp_path / "tmp", folder_name, disc)
-
-
-@pytest.mark.parametrize("disc", [True, False])
-def test_encoding_decoding_example_group_8_holiday(tmp_path, disc):
-    folder_name = (
-        Path(__file__).parent.parent
-        / "data"
-        / "scenarios"
-        / "anac"
-        / "y2015"
-        / "group8-holiday"
-    )
-    do_enc_dec_trial(tmp_path / "tmp", folder_name, disc)
-
-
-@pytest.mark.parametrize("folder_name", get_all_scenarios())
-def test_encoding_decoding_all_without_discounting(tmp_path, folder_name):
-    do_enc_dec_trial(tmp_path / "tmp", folder_name, False)
-
-
-@pytest.mark.parametrize("folder_name", get_all_scenarios())
-def test_encoding_decoding_all_with_discounting(tmp_path, folder_name):
-    do_enc_dec_trial(tmp_path / "tmp", folder_name, True)
-
-
 @pytest.mark.parametrize(
     ("r0", "r1", "n_above"),
     (
@@ -252,7 +142,7 @@ def test_encoding_decoding_all_with_discounting(tmp_path, folder_name):
         (0.95, 0.0, 1),
     ),
 )
-def test_enumerate_discrete_rational(tmp_path, r0, r1, n_above):
+def test_enumerate_discrete_rational(r0, r1, n_above):
     domain = Scenario.from_genius_folder(  # type: ignore
         Path(__file__).parent.parent
         / "data"

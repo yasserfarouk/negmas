@@ -7,16 +7,14 @@ from typing import Iterable
 import hypothesis.strategies as st
 import pkg_resources
 import pytest
-from hypothesis import Verbosity, example, given, settings
+from hypothesis import Verbosity, given, settings
 from matplotlib.axes import itertools
 
 from negmas.gb.evaluators.tau import INFINITE
 from negmas.gb.mechanisms.mechanisms import GAOMechanism, TAUMechanism
 from negmas.gb.negotiators.cab import CABNegotiator, CANNegotiator, CARNegotiator
 from negmas.gb.negotiators.timebased import AspirationNegotiator
-from negmas.gb.negotiators.titfortat import NaiveTitForTatNegotiator
 from negmas.gb.negotiators.war import WABNegotiator, WANNegotiator, WARNegotiator
-from negmas.genius.gnegotiators import AgentK, Atlas3, NiceTitForTat
 from negmas.inout import Scenario
 from negmas.mechanisms import Mechanism
 from negmas.outcomes.base_issue import make_issue
@@ -39,10 +37,6 @@ SHOW_ALL_HISTORIES = False
 FORCE_HISTORY = False
 SAONEGOTIATORS = [
     AspirationNegotiator,
-    # NiceTitForTat,
-    # Atlas3,
-    # AgentK,
-    # NaiveTitForTatNegotiator,
 ]
 NEGOTIATORS = [
     WARNegotiator,
@@ -369,7 +363,7 @@ def remove_under_line(
     y1, y2 = limits[1]
 
     outcomes = list(os.enumerate())
-    _, frontier = pareto_frontier(ufuns, outcomes)
+    _, frontier = pareto_frontier(list(ufuns), outcomes)
     frontier = set(frontier)
 
     accepted: list[Outcome] = []
@@ -462,20 +456,6 @@ def test_buyer_seller_easy(neg1, neg2):
     )
 
 
-@pytest.mark.skipif(not NEGMAS_RUN_GENIUS, reason="Skipping genius tests")
-def test_buyer_seller_gao_easy_genius():
-    run_buyer_seller(
-        Atlas3,
-        Atlas3,
-        normalized=True,
-        seller_reserved=0.1,
-        buyer_reserved=0.1,
-        force_plot=FORCE_PLOT,
-        mechanism_type=GAOMechanism,
-        do_asserts=False,
-    )
-
-
 def test_buyer_seller_gao_easy():
     run_buyer_seller(
         AspirationNegotiator,
@@ -498,20 +478,6 @@ def test_buyer_seller_sao():
         buyer_reserved=0.6,
         force_plot=FORCE_PLOT,
         mechanism_type=GAOMechanism,
-        do_asserts=False,
-    )
-
-
-@pytest.mark.skipif(not NEGMAS_RUN_GENIUS, reason="Skipping genius tests")
-def test_buyer_seller_sao_genius():
-    run_buyer_seller(
-        Atlas3,
-        Atlas3,
-        normalized=True,
-        seller_reserved=0.5,
-        buyer_reserved=0.6,
-        force_plot=FORCE_PLOT,
-        mechanism_type=SAOMechanism,
         do_asserts=False,
     )
 
@@ -617,6 +583,8 @@ def test_anac_scenario_example_sao_single2():
 
 @pytest.mark.skipif(not NEGMAS_RUN_GENIUS, reason="Skipping genius tests")
 def test_anac_scenario_example_genius2_single():
+    from negmas.genius import Atlas3
+
     run_anac_example(
         Atlas3,
         Atlas3,
@@ -629,6 +597,8 @@ def test_anac_scenario_example_genius2_single():
 
 @pytest.mark.skipif(not NEGMAS_RUN_GENIUS, reason="Skipping genius tests")
 def test_anac_scenario_example_genius_single():
+    from negmas.genius import Atlas3
+
     run_anac_example(
         Atlas3,
         Atlas3,
@@ -657,6 +627,8 @@ def test_anac_scenario_example_gao():
 
 @pytest.mark.skipif(not NEGMAS_RUN_GENIUS, reason="Skipping genius tests")
 def test_anac_scenario_example_genius():
+    from negmas.genius import Atlas3
+
     run_anac_example(
         Atlas3,
         Atlas3,
@@ -678,6 +650,8 @@ def test_adversarial_case_easy(neg1, neg2):
 
 @pytest.mark.skipif(not NEGMAS_RUN_GENIUS, reason="Skipping genius tests")
 def test_adversarial_case_gao_easy_genius():
+    from negmas.genius import Atlas3
+
     run_adversarial_case(
         Atlas3,
         Atlas3,
@@ -769,3 +743,35 @@ def test_a_tau_session_with_adapter(neg, U1, U2):
         p.add(CABNegotiator(name=f"CAB{i}"), preferences=u)
     p.run()
     assert len(p.full_trace) > 0, f"{p.state}{_plot(p)}"
+
+
+@pytest.mark.skipif(not NEGMAS_RUN_GENIUS, reason="Skipping genius tests")
+def test_buyer_seller_gao_easy_genius():
+    from negmas.genius import Atlas3
+
+    run_buyer_seller(
+        Atlas3,
+        Atlas3,
+        normalized=True,
+        seller_reserved=0.1,
+        buyer_reserved=0.1,
+        force_plot=FORCE_PLOT,
+        mechanism_type=GAOMechanism,
+        do_asserts=False,
+    )
+
+
+@pytest.mark.skipif(not NEGMAS_RUN_GENIUS, reason="Skipping genius tests")
+def test_buyer_seller_sao_genius():
+    from negmas.genius import Atlas3
+
+    run_buyer_seller(
+        Atlas3,
+        Atlas3,
+        normalized=True,
+        seller_reserved=0.5,
+        buyer_reserved=0.6,
+        force_plot=FORCE_PLOT,
+        mechanism_type=SAOMechanism,
+        do_asserts=False,
+    )
