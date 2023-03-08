@@ -311,7 +311,7 @@ NegMAS supports a variety of ``Issue`` types.
 
 .. raw:: html
 
-    <pre style="white-space:pre;overflow-x:auto;line-height:normal;font-family:Menlo,'DejaVu Sans Mono',consolas,'Courier New',monospace">issueTVxoHhOQ: <span style="font-weight: bold">[</span><span style="color: #008000; text-decoration-color: #008000">'to be'</span>, <span style="color: #008000; text-decoration-color: #008000">'not to be'</span><span style="font-weight: bold">]</span>
+    <pre style="white-space:pre;overflow-x:auto;line-height:normal;font-family:Menlo,'DejaVu Sans Mono',consolas,'Courier New',monospace">issueQKqgvpMi: <span style="font-weight: bold">[</span><span style="color: #008000; text-decoration-color: #008000">'to be'</span>, <span style="color: #008000; text-decoration-color: #008000">'not to be'</span><span style="font-weight: bold">]</span>
     </pre>
 
 
@@ -422,9 +422,10 @@ You can pick random valid or invalid values for the issue:
 
 .. parsed-literal::
 
-    [['to be', '20220225H133810816222Xb7dNW1qto be20220225H133810816266P44ir3sA'],
-     [6, 13],
-     [0.2601332542192585, 2.0043986330300445]]
+    [['to be',
+      '20221221H184049634058bzeXNr4jnot to be20221221H1840496340756yHxOxXB'],
+     [9, 14],
+     [0.4449890262755162, 1.6962868615831064]]
 
 
 
@@ -1684,10 +1685,10 @@ respond to every offer in parallel.
                 responses = executor.map(get_response, self.negotiators)
             self.current_offerer = (self.current_offerer + 1) % n_agents
             if all(_== ResponseType.ACCEPT_OFFER for _ in responses):
-                state.agreement=self.current_offer
+                state.agreement = self.current_offer
             if any(_== ResponseType.END_NEGOTIATION for _ in responses):
-                state.broken=True
-            return MechanismRoundResult(state)
+                state.broken = True
+            return MechanismStepResult(state=state)
 
 
 We needed only to override the ``round`` method which defines one round
@@ -1781,11 +1782,11 @@ Our mechanism keeps a history in the form of a list of
           <td>False</td>
           <td>True</td>
           <td>0</td>
-          <td>0.002243</td>
-          <td>0.090909</td>
+          <td>0.0</td>
+          <td>0.0</td>
           <td>False</td>
           <td>False</td>
-          <td>(3,)</td>
+          <td>[3]</td>
           <td>None</td>
           <td>2</td>
           <td>False</td>
@@ -1811,25 +1812,14 @@ filling it in the mechanism:
 
     @define
     class MyState(MechanismState):
-        current_offer: Outcome = None
+        current_offer: Outcome | None = None
         current_offerer: str = "none"
 
     class NewParallelResponseMechanism(ParallelResponseMechanism):
 
-        def __init__(self, *args, **kwargs):
-            kwargs['state_factory'] = MyState
-            super().__init__(*args, **kwargs)
-
-        def extra_state(self):
-            if self.current_offerer >= 0:
-                current = self.negotiators[self.current_offerer].name
-            else:
-                current = "none"
-            return dict(
-                current_offer = self.current_offer,
-                current_offerer = current
-            )
-
+        def __init__(self, *args, initial_state=None, **kwargs):
+            initial_state = MyState() if not initial_state else initial_state
+            super().__init__(*args, initial_state=initial_state, **kwargs)
 
 That is all. We just needed to define our new state type, set the
 state_factory of the mechanism to it and define how to fill it in the
@@ -1910,11 +1900,11 @@ to confirm that the current offer and its source are stored.
           <th>0</th>
           <td>0</td>
           <td>None</td>
-          <td>0.090909</td>
+          <td>0.000000</td>
           <td>False</td>
           <td>False</td>
-          <td>(5,)</td>
-          <td>seller</td>
+          <td>None</td>
+          <td>none</td>
         </tr>
         <tr>
           <th>1</th>
@@ -1923,8 +1913,8 @@ to confirm that the current offer and its source are stored.
           <td>0.181818</td>
           <td>False</td>
           <td>False</td>
-          <td>(4,)</td>
-          <td>buyer</td>
+          <td>None</td>
+          <td>none</td>
         </tr>
         <tr>
           <th>2</th>
@@ -1933,68 +1923,18 @@ to confirm that the current offer and its source are stored.
           <td>0.272727</td>
           <td>False</td>
           <td>False</td>
-          <td>(2,)</td>
-          <td>seller</td>
+          <td>None</td>
+          <td>none</td>
         </tr>
         <tr>
           <th>3</th>
           <td>3</td>
-          <td>None</td>
+          <td>(3,)</td>
           <td>0.363636</td>
           <td>False</td>
           <td>False</td>
-          <td>(1,)</td>
-          <td>buyer</td>
-        </tr>
-        <tr>
-          <th>4</th>
-          <td>4</td>
           <td>None</td>
-          <td>0.454545</td>
-          <td>False</td>
-          <td>False</td>
-          <td>(2,)</td>
-          <td>seller</td>
-        </tr>
-        <tr>
-          <th>5</th>
-          <td>5</td>
-          <td>None</td>
-          <td>0.545455</td>
-          <td>False</td>
-          <td>False</td>
-          <td>(4,)</td>
-          <td>buyer</td>
-        </tr>
-        <tr>
-          <th>6</th>
-          <td>6</td>
-          <td>None</td>
-          <td>0.636364</td>
-          <td>False</td>
-          <td>False</td>
-          <td>(2,)</td>
-          <td>seller</td>
-        </tr>
-        <tr>
-          <th>7</th>
-          <td>7</td>
-          <td>None</td>
-          <td>0.727273</td>
-          <td>False</td>
-          <td>False</td>
-          <td>(1,)</td>
-          <td>buyer</td>
-        </tr>
-        <tr>
-          <th>8</th>
-          <td>8</td>
-          <td>(3,)</td>
-          <td>0.818182</td>
-          <td>False</td>
-          <td>False</td>
-          <td>(3,)</td>
-          <td>seller</td>
+          <td>none</td>
         </tr>
       </tbody>
     </table>
@@ -2059,11 +1999,11 @@ acceptable outcomes in our case):
           <th>0</th>
           <td>0</td>
           <td>None</td>
-          <td>0.142857</td>
+          <td>0.000000</td>
           <td>False</td>
           <td>False</td>
-          <td>(0,)</td>
-          <td>seller</td>
+          <td>None</td>
+          <td>none</td>
         </tr>
         <tr>
           <th>1</th>
@@ -2072,8 +2012,8 @@ acceptable outcomes in our case):
           <td>0.285714</td>
           <td>False</td>
           <td>False</td>
-          <td>(4,)</td>
-          <td>buyer</td>
+          <td>None</td>
+          <td>none</td>
         </tr>
         <tr>
           <th>2</th>
@@ -2082,8 +2022,8 @@ acceptable outcomes in our case):
           <td>0.428571</td>
           <td>False</td>
           <td>False</td>
-          <td>(0,)</td>
-          <td>seller</td>
+          <td>None</td>
+          <td>none</td>
         </tr>
         <tr>
           <th>3</th>
@@ -2092,8 +2032,8 @@ acceptable outcomes in our case):
           <td>0.571429</td>
           <td>False</td>
           <td>False</td>
-          <td>(4,)</td>
-          <td>buyer</td>
+          <td>None</td>
+          <td>none</td>
         </tr>
         <tr>
           <th>4</th>
@@ -2102,8 +2042,8 @@ acceptable outcomes in our case):
           <td>0.714286</td>
           <td>False</td>
           <td>False</td>
-          <td>(2,)</td>
-          <td>seller</td>
+          <td>None</td>
+          <td>none</td>
         </tr>
         <tr>
           <th>5</th>
@@ -2112,8 +2052,8 @@ acceptable outcomes in our case):
           <td>0.857143</td>
           <td>False</td>
           <td>False</td>
-          <td>(1,)</td>
-          <td>buyer</td>
+          <td>None</td>
+          <td>none</td>
         </tr>
       </tbody>
     </table>
@@ -2178,32 +2118,12 @@ agree upon:
         <tr>
           <th>0</th>
           <td>0</td>
-          <td>None</td>
-          <td>0.142857</td>
-          <td>False</td>
-          <td>False</td>
-          <td>(5,)</td>
-          <td>seller</td>
-        </tr>
-        <tr>
-          <th>1</th>
-          <td>1</td>
-          <td>None</td>
-          <td>0.285714</td>
-          <td>False</td>
-          <td>False</td>
-          <td>(1,)</td>
-          <td>buyer</td>
-        </tr>
-        <tr>
-          <th>2</th>
-          <td>2</td>
           <td>(3,)</td>
-          <td>0.428571</td>
+          <td>0.0</td>
           <td>False</td>
           <td>False</td>
-          <td>(3,)</td>
-          <td>seller</td>
+          <td>None</td>
+          <td>none</td>
         </tr>
       </tbody>
     </table>
