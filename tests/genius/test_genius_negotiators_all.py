@@ -78,8 +78,7 @@ from negmas.genius.gnegotiators import (
 )
 from negmas.inout import Scenario
 from negmas.sao.negotiators import ToughNegotiator
-
-from .switches import NEGMAS_FASTRUN, NEGMAS_RUN_GENIUS
+from tests.switches import NEGMAS_FASTRUN, NEGMAS_RUN_GENIUS
 
 TIMELIMIT = 30
 STEPLIMIT = 50
