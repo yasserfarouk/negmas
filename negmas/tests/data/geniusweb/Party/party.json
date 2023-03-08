@@ -1,0 +1,52 @@
+{
+	"name": "party",
+	"issuesValues": {
+		"Food": {
+			"values": [
+				"Chips and Nuts",
+				"Finger-Food",
+				"Handmade Food",
+				"Catering"
+			]
+		},
+		"Drinks": {
+			"values": [
+				"Non-Alcoholic",
+				"Beer Only",
+				"Handmade Cocktails",
+				"Catering"
+			]
+		},
+		"Location": {
+			"values": [
+				"Party Tent",
+				"Your Dorm",
+				"Party Room",
+				"Ballroom"
+			]
+		},
+		"Invitations": {
+			"values": [
+				"Plain",
+				"Photo",
+				"Custom, Handmade",
+				"Custom, Printed"
+			]
+		},
+		"Music": {
+			"values": [
+				"MP3",
+				"DJ",
+				"Band"
+			]
+		},
+		"Cleanup": {
+			"values": [
+				"Water and Soap",
+				"Specialized Materials",
+				"Special Equiment",
+				"Hired Help"
+			]
+		}
+	}
+}

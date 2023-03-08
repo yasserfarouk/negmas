@@ -2,6 +2,7 @@ from __future__ import annotations
 
 import copy
 import itertools
+import json
 import numbers
 import sys
 import xml.etree.ElementTree as ET
@@ -9,6 +10,7 @@ from collections import defaultdict
 from typing import TYPE_CHECKING, Any, Callable, Iterable, Sequence
 
 from negmas.outcomes.contiguous_issue import ContiguousIssue
+from negmas.warnings import warn_if_slow
 
 if TYPE_CHECKING:
     from .common import Outcome
@@ -23,7 +25,9 @@ from .outcome_ops import outcome2dict
 __all__ = [
     "generate_issues",
     "issues_from_genius",
+    "issues_from_geniusweb",
     "issues_from_xml_str",
+    "issues_from_geniusweb_json_str",
     "issues_to_genius",
     "issues_to_xml_str",
     "issues_from_outcomes",
@@ -63,6 +67,8 @@ def enumerate_discrete_issues(issues: Sequence[DiscreteIssue]) -> list[Outcome]:
     Returns:
         list of outcomes
     """
+    n = num_outcomes(issues)
+    warn_if_slow(n, "Enumerating large OS (discrete)")
     return list(itertools.product(*(_.all for _ in issues)))
 
 
@@ -320,7 +326,7 @@ def sample_issues(
 
 def enumerate_issues(
     issues: Sequence[Issue],
-    max_cardinality: int | None = None,
+    max_cardinality: int | float | None = None,
 ) -> list[Outcome]:
     """
     Enumerates the outcomes of a list of issues.
@@ -332,8 +338,15 @@ def enumerate_issues(
         list of outcomes of the given type.
     """
     n = num_outcomes(issues)
+    if isinstance(max_cardinality, float) and max_cardinality == float("inf"):
+        max_cardinality = None
 
-    if n is None or n == float("inf"):
+    if n is None and max_cardinality is not None:
+        warn_if_slow(max_cardinality, "Enumerating a large OS")
+    if max_cardinality is None:
+        warn_if_slow(n, "Enumerating a continuous OS")
+
+    if n is None:
         if max_cardinality is None:
             raise ValueError(
                 "Cannot enumerate continuous issues without specifying `max_cardinality`"
@@ -341,14 +354,14 @@ def enumerate_issues(
         return list(
             sample_issues(
                 issues=issues,
-                n_outcomes=max_cardinality,
+                n_outcomes=int(max_cardinality),
                 fail_if_not_enough=False,
                 with_replacement=False,
             )
         )
 
     if max_cardinality is not None and n > max_cardinality:
-        return sample_outcomes(issues=issues, n_outcomes=max_cardinality)
+        return sample_outcomes(issues=issues, n_outcomes=int(max_cardinality))
     else:
         return list(tuple(_) for _ in itertools.product(*(_.all for _ in issues)))
 
@@ -581,6 +594,62 @@ def issues_to_genius(issues: Sequence[Issue], file_name: PathLike | str) -> None
         f.write(issues_to_xml_str(issues=issues))
 
 
+def issues_from_geniusweb_json(
+    d: dict,
+    safe_parsing=True,
+    n_discretization: int | None = None,
+) -> tuple[Sequence[Issue] | None, Sequence[str] | None]:
+    """
+    Exports a list of issues from a GeniusWeb loaded dict
+
+    Args:
+
+        d: the loaded dict from GeniusWeb json file
+        safe_parsing (bool): Turn on extra checks
+        n_discretization (Optional[int]): If not None, real valued issues are discretized with the given
+        number of values
+        max_cardinality (int): Maximum number of outcomes allowed (effective only if force_single_issue is True)
+
+    Returns:
+
+        - tuple[Issue, ...] The issues (note that issue names will be stored in the name attribute of each issue if keep_issue_names)
+        - list[dict] A list of agent information dicts each contains 'agent', 'class', 'utility_file_name'
+
+    """
+    issue_values = d["issuesValues"]
+    issues = [
+        make_issue(name=name, values=vals["values"])
+        for name, vals in issue_values.items()
+    ]
+    return tuple(issues), tuple()
+
+
+def issues_from_geniusweb_json_str(
+    json_str: str,
+    safe_parsing=True,
+    n_discretization: int | None = None,
+) -> tuple[Sequence[Issue] | None, Sequence[str] | None]:
+    """
+    Exports a list/dict of issues from a GeniusWeb json file.
+
+    Args:
+
+        json_str (str): The string containing GENIUS style XML domain issue definitions
+        safe_parsing (bool): Turn on extra checks
+        n_discretization (Optional[int]): If not None, real valued issues are discretized with the given
+        number of values
+        max_cardinality (int): Maximum number of outcomes allowed (effective only if force_single_issue is True)
+
+    Returns:
+
+        - tuple[Issue, ...] The issues (note that issue names will be stored in the name attribute of each issue if keep_issue_names)
+        - list[dict] A list of agent information dicts each contains 'agent', 'class', 'utility_file_name'
+
+    """
+    d = json.loads(json_str)
+    return issues_from_geniusweb_json(d, safe_parsing, n_discretization)
+
+
 def issues_from_xml_str(
     xml_str: str,
     safe_parsing=True,
@@ -732,6 +801,50 @@ def issues_from_xml_str(
         issues.append(issues_by_index[i])
 
     return tuple(issues), tuple(agents)
+
+
+def issues_from_geniusweb(
+    file_name: PathLike | str,
+    safe_parsing=True,
+    n_discretization: int | None = None,
+) -> tuple[Sequence[Issue] | None, Sequence[str] | None]:
+    """
+    Imports a the domain issues from a GENIUS XML file.
+
+    Args:
+
+        file_name (str): File name to import from
+        safe_parsing: Add more checks to parsing
+        n_discretization: Number of discretization levels per issue
+
+    Returns:
+
+        A tuple of two optional lists:
+
+            - tuple[Issue, ...] containing the issues
+            - list[str] containing agent names (that are sometimes stored in the genius domain)
+
+
+    Examples:
+
+        >>> import pkg_resources
+        >>> issues, _ = issues_from_genius(file_name = pkg_resources.resource_filename('negmas'
+        ...                                      , resource_name='tests/data/Laptop/Laptop-C-domain.xml'))
+        >>> print([_.name for _ in issues])
+        ['Laptop', 'Harddisk', 'External Monitor']
+
+    Remarks:
+        See ``from_xml_str`` for all the parameters
+
+    """
+    with open(file_name, encoding="utf-8") as f:
+        json_str = f.read()
+
+        return issues_from_geniusweb_json_str(
+            json_str=json_str,
+            safe_parsing=safe_parsing,
+            n_discretization=n_discretization,
+        )
 
 
 def issues_from_genius(

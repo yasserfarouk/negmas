@@ -1,0 +1,27 @@
+{
+	"name": "flightbooking",
+	"issuesValues": {
+		"price": {
+			"values": [
+				"150000yen",
+				"200000yen",
+				"250000yen",
+				"300000yen"
+			]
+		},
+		"departure airport": {
+			"values": [
+				"CentAir",
+				"Narita",
+				"Kansai"
+			]
+		},
+		"departure date": {
+			"values": [
+				"2 sept.",
+				"3 sept.",
+				"4 sept."
+			]
+		}
+	}
+}

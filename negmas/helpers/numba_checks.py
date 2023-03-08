@@ -4,7 +4,7 @@ import functools
 
 DISABLE_NUMBA = False
 try:
-    from numba import jit
+    from numba import jit  # type: ignore
 
     NUMBA_OK = not DISABLE_NUMBA
 except:

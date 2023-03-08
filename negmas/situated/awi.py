@@ -65,12 +65,12 @@ class AgentWorldInterface:
 
     def run_negotiation(
         self,
-        issues: Collection[Issue],
-        partners: Collection[str | Agent],
+        issues: list[Issue],
+        partners: list[str | Agent],
         negotiator: Negotiator,
         preferences: Preferences | None = None,
         caller_role: str | None = None,
-        roles: Collection[str] | None = None,
+        roles: list[str] | None = None,
         annotation: dict[str, Any] | None = None,
         mechanism_name: str | None = None,
         mechanism_params: dict[str, Any] | None = None,
@@ -127,8 +127,8 @@ class AgentWorldInterface:
         issues: list[Issue] | list[list[Issue]],
         partners: list[list[str | Agent]],
         negotiators: list[Negotiator],
-        preferences: list[Preferences] = None,
-        caller_roles: list[str] = None,
+        preferences: list[Preferences] | None = None,
+        caller_roles: list[str] | None = None,
         roles: list[list[str] | None] | None = None,
         annotations: list[dict[str, Any] | None] | None = None,
         mechanism_names: str | list[str] | None = None,
@@ -238,7 +238,7 @@ class AgentWorldInterface:
         return self._world.request_negotiation_about(
             req_id=req_id,
             caller=self.agent,
-            partners=partner_agents,
+            partners=partner_agents,  # type: ignore
             roles=roles,
             issues=issues,
             group=group,
@@ -414,7 +414,7 @@ class AgentWorldInterface:
         section: list[str] | str | None,
         *,
         query: Any | None = None,
-        key: str = None,
+        key: str | None = None,
         query_keys: bool = False,
         value: Any = None,
     ) -> bool:

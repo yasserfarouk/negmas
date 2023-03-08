@@ -10,6 +10,7 @@ from negmas.outcomes.cardinal_issue import DiscreteCardinalIssue
 from negmas.outcomes.categorical_issue import CategoricalIssue
 from negmas.outcomes.contiguous_issue import ContiguousIssue
 from negmas.outcomes.continuous_issue import ContinuousIssue
+from negmas.outcomes.optional_issue import OptionalIssue
 from negmas.outcomes.ordinal_issue import DiscreteOrdinalIssue, generate_values
 
 
@@ -27,6 +28,44 @@ def test_make_issue_generation():
         make_issue((float("-inf"), float("inf"))), ContinuousInfiniteIssue
     )
     assert isinstance(make_issue((float("-inf"), 5.0)), ContinuousInfiniteIssue)
+    issue = make_issue((0.0, float("inf")), optional=True)
+    assert isinstance(issue, OptionalIssue) and isinstance(
+        issue.base, ContinuousInfiniteIssue
+    )
+    issue = make_issue((0, 5), optional=True)
+    assert isinstance(issue, OptionalIssue) and isinstance(issue.base, ContiguousIssue)
+    issue = make_issue(10, optional=True)
+    assert isinstance(issue, OptionalIssue) and isinstance(issue.base, ContiguousIssue)
+    issue = make_issue([1, 2, 3, 5], optional=True)
+    assert isinstance(issue, OptionalIssue) and isinstance(
+        issue.base, DiscreteCardinalIssue
+    )
+    issue = make_issue(["a", "b", "c"], optional=True)
+    assert isinstance(issue, OptionalIssue) and isinstance(issue.base, CategoricalIssue)
+    issue = make_issue(lambda: 1, optional=True)
+    assert isinstance(issue, OptionalIssue) and isinstance(issue.base, CallableIssue)
+    issue = make_issue((0.0, 5.0), optional=True)
+    assert isinstance(issue, OptionalIssue) and isinstance(issue.base, ContinuousIssue)
+    issue = make_issue((0, float("inf")), optional=True)
+    assert isinstance(issue, OptionalIssue) and isinstance(
+        issue.base, CountableInfiniteIssue
+    )
+    issue = make_issue((float("-inf"), 0), optional=True)
+    assert isinstance(issue, OptionalIssue) and isinstance(
+        issue.base, CountableInfiniteIssue
+    )
+    issue = make_issue((0.0, float("inf")), optional=True)
+    assert isinstance(issue, OptionalIssue) and isinstance(
+        issue.base, ContinuousInfiniteIssue
+    )
+    issue = make_issue((float("-inf"), float("inf")), optional=True)
+    assert isinstance(issue, OptionalIssue) and isinstance(
+        issue.base, ContinuousInfiniteIssue
+    )
+    issue = make_issue((float("-inf"), 5.0), optional=True)
+    assert isinstance(issue, OptionalIssue) and isinstance(
+        issue.base, ContinuousInfiniteIssue
+    )
 
 
 def test_value_generation_ordinal():

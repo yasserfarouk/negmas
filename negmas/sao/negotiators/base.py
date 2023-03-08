@@ -111,7 +111,9 @@ class SAONegotiator(GBNegotiator):
     def propose(self, state: SAOState) -> Outcome | None:
         ...
 
-    def respond(self, state: SAOState, offer: Outcome, source: str) -> ResponseType:
+    def respond(
+        self, state: SAOState, offer: Outcome, source: str | None = None
+    ) -> ResponseType:
         """
         Called to respond to an offer. This is the method that should be overriden to provide an acceptance strategy.
 
@@ -133,7 +135,7 @@ class SAONegotiator(GBNegotiator):
             return ResponseType.REJECT_OFFER
         offer_util = None
         if self.has_ufun:
-            offer_util = self.ufun(offer)
+            offer_util = self.ufun(offer)  # type: ignore
         # if the offer is worse than the reserved value or its utility is less than that of the reserved outcome, reject it
         if (
             self.reserved_value is not None
@@ -153,13 +155,15 @@ class SAONegotiator(GBNegotiator):
             myoffer = self.propose_(state=state)
             if myoffer is None:
                 return ResponseType.NO_RESPONSE
-            utility = self.ufun(myoffer)
+            utility = self.ufun(myoffer)  # type: ignore
         # accept only if I know what I would have proposed at this state (or the previous one) and it was worse than what I am about to proposed
         if utility is not None and offer_util is not None and offer_util >= utility:
             return ResponseType.ACCEPT_OFFER
         return ResponseType.REJECT_OFFER
 
-    def respond_(self, state: SAOState, offer: Outcome, source: str) -> ResponseType:
+    def respond_(
+        self, state: SAOState, offer: Outcome, source: str | None = None
+    ) -> ResponseType:
         """The method to be called directly by the mechanism (through `counter` ) to respond to an offer.
 
         Args:
@@ -212,7 +216,7 @@ class SAONegotiator(GBNegotiator):
         if self.__end_negotiation:
             return SAOResponse(ResponseType.END_NEGOTIATION, None)
         if self.has_ufun:
-            changes = self.ufun.changes()
+            changes = self.ufun.changes()  # type: ignore
             if changes:
                 self.on_preferences_changed(changes)
         if offer is None:
@@ -229,5 +233,5 @@ class SAONegotiator(GBNegotiator):
                 offer=offer,
             )
         if response != ResponseType.REJECT_OFFER:
-            return SAOResponse(response, None)
+            return SAOResponse(response, offer)
         return SAOResponse(response, self.propose_(state=state))

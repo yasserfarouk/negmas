@@ -520,6 +520,18 @@ class InverseUFun(Protocol):
         Calling an inverse ufun directly is equivalent to calling `one_in()`
         """
 
+    def next_worse(self) -> Outcome | None:
+        """Returns the rational outcome with utility just below the last one returned from this function"""
+        raise NotImplementedError(
+            f"next_below is not implemented for {self.__class__.__name__}"
+        )
+
+    def next_better(self) -> Outcome | None:
+        """Returns the rational outcome with utility just below the last one returned from this function"""
+        raise NotImplementedError(
+            f"next_above is not implemented for {self.__class__.__name__}"
+        )
+
 
 @runtime_checkable
 class HasRange(HasMinMax, UFun, Protocol):

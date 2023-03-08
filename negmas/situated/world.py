@@ -58,7 +58,7 @@ from .monitors import StatsMonitor, WorldMonitor
 from .save import save_stats
 
 if TYPE_CHECKING:
-    from matplotlib.axis import Axis
+    from matplotlib.axes import Axes
 
 try:
     import networkx as nx
@@ -2793,13 +2793,13 @@ class World(EventSink, EventSource, ConfigReader, NamedObject, CheckpointMixin, 
             who: Callable[[Agent], bool] | None = None,
             where: Callable[[Agent], int | tuple[float, float]] | None = None,
             together: bool = True,
-            axs: Collection[Axis] | None = None,
+            axs: Collection[Axes] | None = None,
             ncols: int = 4,
             figsize: tuple[int, int] = (15, 15),
             show_node_labels=True,
             show_edge_labels=True,
             **kwargs,
-        ) -> tuple[Axis, nx.Graph] | tuple[Axis, list[nx.Graph]]:
+        ) -> tuple[Axes, nx.Graph] | tuple[Axes, list[nx.Graph]]:
             """
             Generates a graph showing some aspect of the simulation
 
@@ -2812,8 +2812,8 @@ class World(EventSink, EventSource, ConfigReader, NamedObject, CheckpointMixin, 
                        specifying the column in which to draw the column or a tuple of two floats specifying the position
                        within the drawing area of the agent. If None, the default Networkx layout will be used.
                 together: IF specified all edge types are put in the same graph.
-                axs: The axes used for drawing. If together is true, it should be a single `Axis` object otherwise it should
-                     be a list of `Axis` objects with the same length as what.
+                axs: The axes used for drawing. If together is true, it should be a single `Axes` object otherwise it should
+                     be a list of `Axes` objects with the same length as what.
                 show_node_labels: show node labels!
                 show_edge_labels: show edge labels!
                 kwargs: passed to networx.draw_networkx
@@ -2824,7 +2824,6 @@ class World(EventSink, EventSource, ConfigReader, NamedObject, CheckpointMixin, 
             """
 
             import matplotlib.pyplot as plt
-            from matplotlib.axis import Axis
 
             if not self.construct_graphs:
                 self.logwarning(

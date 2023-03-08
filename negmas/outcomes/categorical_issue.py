@@ -11,7 +11,7 @@ __all__ = ["CategoricalIssue"]
 
 class CategoricalIssue(DiscreteIssue):
     """
-    An `Issue` type representing discrete values that may not have differences between values defined and may not have a natural ordering.
+    An `Issue` type representing discrete values that have no ordering or difference defined.
     """
 
     def __init__(self, values, name=None) -> None:

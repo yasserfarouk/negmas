@@ -116,9 +116,10 @@ def serialize(
         return None
 
     def get_type_field(value):
+        t = value.__class__.__name__
         if shorten_type_field and t.startswith("negmas."):
-            return value.__class__.__name__
-        return value.__class__.__module__ + "." + value.__class__.__name__
+            return t
+        return value.__class__.__module__ + "." + t
 
     if isinstance(value, dict):
         if not deep:
@@ -148,7 +149,7 @@ def serialize(
             )
         )
     if hasattr(value, "to_dict"):
-        converted = value.to_dict()
+        converted = value.to_dict()  # type: ignore
         if isinstance(converted, dict):
             if add_type_field and (PYTHON_CLASS_IDENTIFIER not in converted.keys()):
                 converted[PYTHON_CLASS_IDENTIFIER] = get_type_field(value)
@@ -196,7 +197,7 @@ def serialize(
             objmem = add_to_mem(value, objmem)
             d = dict(
                 zip(
-                    (k for k in value.__slots__),
+                    (k for k in value.__slots__),  # type: ignore
                     (
                         serialize(
                             getattr(value, _),
@@ -204,21 +205,21 @@ def serialize(
                             add_type_field=add_type_field,
                             objmem=objmem,
                         )
-                        for _ in value.__slots__
+                        for _ in value.__slots__  # type: ignore
                     ),
                 )
             )
         else:
             d = dict(
                 zip(
-                    (k for k in value.__slots__),
-                    (getattr(value, _) for _ in value.__slots__),
+                    (k for k in value.__slots__),  # type: ignore
+                    (getattr(value, _) for _ in value.__slots__),  # type: ignore
                 )
             )
         if add_type_field:
             d[PYTHON_CLASS_IDENTIFIER] = get_type_field(value)
         return adjust_dict(d)
-    if isinstance(value, np.int64):
+    if isinstance(value, np.int64):  # type: ignore
         return int(value)
     # a builtin
     if is_jsonable(value):
@@ -318,7 +319,7 @@ def deserialize(
                 }
             # deserialize needs to do a shallow conversion from a dict as deep conversion is taken care of already.
             if hasattr(python_class, "from_dict"):
-                return python_class.from_dict({k: v for k, v in d.items()})
+                return python_class.from_dict({k: v for k, v in d.items()})  # type: ignore
             if deep:
                 d = {k: deserialize(v) for k, v in d.items() if good_field(k)}
             else:

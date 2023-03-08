@@ -98,7 +98,7 @@ def truncated_mean(
         limits: The limits to use for trimming the scores. If not given, they will
                 be calculated based on `top_limit`, `bottom_limit` and `base.`
                 You can pass the special value "mean" as a string to disable limits and
-                calcualte the mean. You can pass the special value "median" to calculate
+                calculate the mean. You can pass the special value "median" to calculate
                 the median (which is the same as passing top_limit==bottom_limit=0.5
                 and base == "scores").
         top_limit: top limit on scores to use for truncated mean calculation. See `base`
@@ -108,7 +108,7 @@ def truncated_mean(
               - zscore: the number of sigmas to remove above/below. A good default choice is 3. Pass inf to disable a side.
               - tukey: the fraction of IQR to remove above/below. A good default choice is 1.5 or 3 (we use 2). Pass inf to disable a side.
               - iqr : same as tukey
-              - iqr_fraction: the fraction is interpreted as the fraction of scores above/below the 1st/3rd qauntile
+              - iqr_fraction: the fraction is interpreted as the fraction of scores above/below the 1st/3rd quantile
               - scores: the fraction is interpreted as fraction of highest and lowest scores
               - fraction: the fraction is interpreted as literal fraction of the values (i.e. given 10 values and 0.1, removes 1 value)
               - mean: simply returns the mean (limits ignored)
@@ -120,19 +120,19 @@ def truncated_mean(
     scores = scores[~np.isnan(scores)]
 
     if isinstance(limits, str) and limits.lower() == "mean":
-        return tmean(scores, None) if not return_limits else (tmean(scores, None), None)
+        return tmean(scores, None) if not return_limits else (tmean(scores, None), None)  # type: ignore
     if isinstance(limits, str) and limits.lower() == "median":
         return np.median(scores) if not return_limits else (np.median(scores), None)  # type: ignore (seems ok)
     if limits is not None:
-        return np.mean(scores) if not return_limits else (np.mean(scores), None)
+        return np.mean(scores) if not return_limits else (np.mean(scores), None)  # type: ignore
 
     if base == "zscore":
         m, s = np.nanmean(scores), np.nanstd(scores)
-        limits_ = (m - s * bottom_limit, m + s * top_limit)
+        limits_ = (m - s * bottom_limit, m + s * top_limit)  # type: ignore
     elif base in ("tukey", "iqr"):
         q1, q3 = np.quantile(scores, 0.25), np.quantile(scores, 0.75)
         iqr = q3 - q1
-        limits_ = (
+        limits_ = (  # type: ignore
             q1 - (bottom_limit * iqr if not np.isinf(bottom_limit) else bottom_limit),
             q3 + (top_limit * iqr if not np.isinf(top_limit) else top_limit),
         )
@@ -155,7 +155,7 @@ def truncated_mean(
         if top_indx < bottom_indx:
             return float("nan") if not return_limits else (float("nan"), limits)
         m = np.mean(scores[bottom_indx : top_indx + 1])
-        return m if not return_limits else (m, (scores[bottom_indx], scores[top_indx]))
+        return m if not return_limits else (m, (scores[bottom_indx], scores[top_indx]))  # type: ignore
     elif base == "scores":
         bottom_limit = min(1, max(0, bottom_limit))
         top_limit = min(1, max(0, top_limit))
@@ -166,7 +166,7 @@ def truncated_mean(
         if limits_[0] > limits_[1]:
             return float("nan") if not return_limits else (float("nan"), limits_)
     elif base == "mean":
-        return np.mean(scores) if not return_limits else (np.mean(scores), None)
+        return np.mean(scores) if not return_limits else (np.mean(scores), None)  # type: ignore
     elif base == "median":
         return np.median(scores) if not return_limits else (np.median(scores), None)  # type: ignore
     else:
@@ -182,7 +182,7 @@ def truncated_mean(
         if len(scores) == 0:
             return float("nan") if not return_limits else (float("nan"), limits_)
         tm = np.mean(scores)
-        return tm if not return_limits else (tm, limits_)
+        return tm if not return_limits else (tm, limits_)  # type: ignore
     except ValueError:
         return float("nan") if not return_limits else (float("nan"), limits_)
 

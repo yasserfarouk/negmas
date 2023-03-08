@@ -214,6 +214,7 @@ def test_tft_propose():
         (0,),
         (1,),
         (2,),
+        (3,),
     ), "Proposes first item with utility less than the top if concession is min"
 
 
@@ -259,7 +260,7 @@ def test_tit_for_tat_against_asp_negotiators():
 
 
 def test_best_only_asp_negotiator():
-    a1 = TopFractionNegotiator(min_utility=0.9, top_fraction=0.1)
+    a1 = TopFractionNegotiator(min_utility=0.9, top_fraction=0.09)
     a2 = AspirationNegotiator(aspiration_type="conceder")
     outcomes = [(_,) for _ in range(20)]
     u1 = MappingUtilityFunction(

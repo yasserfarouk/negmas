@@ -1,50 +1,54 @@
-
-<utility_space>
-  <objective index="0" description="" name="root" type="objective" etype="objective">
-    <issue index="1" name="Maker" vtype="discrete" type="discrete" etype="discrete">
-      <item index="1" value="Canon" cost="0.0" evaluation="5">			</item>
-      <item index="2" value="Nikon" cost="0.0" evaluation="70">			</item>
-      <item index="3" value="Pentax" cost="0.0" evaluation="500">			</item>
-      <item index="4" value="Sony" cost="0.0" evaluation="300">			</item>
-      <item index="5" value="Panasonic" cost="0.0" evaluation="20">			</item>
-    </issue>
-    <issue index="2" name="Body" vtype="discrete" type="discrete" etype="discrete">
-      <item index="1" value="Full size" cost="0.0" evaluation="30">			</item>
-      <item index="2" value="APS-C" cost="0.0" evaluation="315">			</item>
-      <item index="3" value="Micro Four Thirds" cost="0.0" evaluation="120">			</item>
-      <item index="4" value="compact" cost="0.0" evaluation="10">			</item>
-    </issue>
-    <issue index="3" name="Lens" vtype="discrete" type="discrete" etype="discrete">
-      <item index="1" value="High end model" cost="0.0" evaluation="250">			</item>
-      <item index="2" value="Middle range model" cost="0.0" evaluation="125">			</item>
-      <item index="3" value="Entry model" cost="0.0" evaluation="10">			</item>
-    </issue>
-    <issue index="4" name="Tripod" vtype="discrete" type="discrete" etype="discrete">
-      <item index="1" value="GITZO" cost="0.0" evaluation="50">			</item>
-      <item index="2" value="Manfrotto" cost="0.0" evaluation="160">			</item>
-      <item index="3" value="Induro" cost="0.0" evaluation="20">			</item>
-    </issue>
-    <issue index="5" name="Bag" vtype="discrete" type="discrete" etype="discrete">
-      <item index="1" value="Domke" cost="0.0" evaluation="20">			</item>
-      <item index="2" value="Lowepro" cost="0.0" evaluation="100">			</item>
-      <item index="3" value="Tamrac" cost="0.0" evaluation="10">			</item>
-      <item index="4" value="National Geographic" cost="0.0" evaluation="30">			</item>
-      <item index="5" value="Artizan and Artist" cost="0.0" evaluation="40">			</item>
-    </issue>
-    <issue index="6" name="Accessory" etype="discrete" type="discrete" vtype="discrete">
-      <item index="1" value="Electronic Flash" cost="0.0" evaluation="35">			</item>
-      <item index="2" value="Battery Grip" cost="0.0" evaluation="15">			</item>
-      <item index="3" value="Memory" cost="0.0" evaluation="20">			</item>
-      <item index="4" value="Strap" cost="0.0" evaluation="5">			</item>
-    </issue>
-    <weight index="1" value="0.08">		</weight>
-    <weight index="2" value="0.09">		</weight>
-    <weight index="3" value="0.34">		</weight>
-    <weight index="4" value="0.26">		</weight>
-    <weight index="5" value="0.17">		</weight>
-    <weight index="6" value="0.06">		</weight>
-  </objective>
-  <discount_factor value="1" />
-<reservation value="0" />
-
+<utility_space type="any" number_of_issues="6">
+<objective index="1" etype="objective" type="objective" description="" name="any">
+<issue index="1" etype="discrete" type="discrete" vtype="discrete" name="Maker">
+    <item index="1" value="Canon" evaluation="5.0" />
+    <item index="2" value="Nikon" evaluation="70.0" />
+    <item index="3" value="Pentax" evaluation="500.0" />
+    <item index="4" value="Sony" evaluation="300.0" />
+    <item index="5" value="Panasonic" evaluation="20.0" />
+</issue>
+<issue index="2" etype="discrete" type="discrete" vtype="discrete" name="Body">
+    <item index="1" value="Full size" evaluation="30.0" />
+    <item index="2" value="APS-C" evaluation="315.0" />
+    <item index="3" value="Micro Four Thirds" evaluation="120.0" />
+    <item index="4" value="compact" evaluation="10.0" />
+</issue>
+<issue index="3" etype="discrete" type="discrete" vtype="discrete" name="Lens">
+    <item index="1" value="High end model" evaluation="250.0" />
+    <item index="2" value="Middle range model" evaluation="125.0" />
+    <item index="3" value="Entry model" evaluation="10.0" />
+</issue>
+<issue index="4" etype="discrete" type="discrete" vtype="discrete" name="Tripod">
+    <item index="1" value="GITZO" evaluation="50.0" />
+    <item index="2" value="Manfrotto" evaluation="160.0" />
+    <item index="3" value="Induro" evaluation="20.0" />
+</issue>
+<issue index="5" etype="discrete" type="discrete" vtype="discrete" name="Bag">
+    <item index="1" value="Domke" evaluation="20.0" />
+    <item index="2" value="Lowepro" evaluation="100.0" />
+    <item index="3" value="Tamrac" evaluation="10.0" />
+    <item index="4" value="National Geographic" evaluation="30.0" />
+    <item index="5" value="Artizan and Artist" evaluation="40.0" />
+</issue>
+<issue index="6" etype="discrete" type="discrete" vtype="discrete" name="Accessory">
+    <item index="1" value="Electronic Flash" evaluation="35.0" />
+    <item index="2" value="Battery Grip" evaluation="15.0" />
+    <item index="3" value="Memory" evaluation="20.0" />
+    <item index="4" value="Strap" evaluation="5.0" />
+</issue>
+<weight index="1" value="0.08">
+</weight>
+<weight index="2" value="0.09">
+</weight>
+<weight index="3" value="0.34">
+</weight>
+<weight index="4" value="0.26">
+</weight>
+<weight index="5" value="0.17">
+</weight>
+<weight index="6" value="0.06">
+</weight>
+</objective>
+<discount_factor value="1.0" />
+<reservation value="0.0" />
 </utility_space>

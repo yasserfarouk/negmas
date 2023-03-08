@@ -143,19 +143,22 @@ def shortest_unique_names(
     """
     if len(strs) < 2:
         return strs
+    strs_unique = [_ for _ in strs]
     if guarantee_unique and len(set(strs)) != len(strs):
         chars = string.digits + string.ascii_letters
-        for i in range(len(strs) - 1):
-            others = set(strs[:i] + strs[i + 1 :])
-            while strs[i] in others:
+        for i in range(len(strs_unique) - 1):
+            others = set(strs_unique[:i] + strs_unique[i + 1 :])
+            while strs_unique[i] in others:
                 for a in chars:
-                    if strs[i] + a not in others:
-                        strs[i] = strs[i] + a
+                    if strs_unique[i] + a not in others:
+                        strs_unique[i] = strs_unique[i] + a
                         break
                 else:
-                    strs[i] = strs[i] + unique_name("", False, False, 1, "")
+                    strs_unique[i] = strs_unique[i] + unique_name(
+                        "", False, False, 1, ""
+                    )
 
-    lsts = [_.split(sep) for _ in strs]
+    lsts = [_.split(sep) for _ in strs_unique]
     names = [_[-1] for _ in lsts]
     if len(names) != len(set(names)):
         locs = defaultdict(list)
@@ -166,31 +169,31 @@ def shortest_unique_names(
             if len(s) < 1:
                 continue
             if len(l) == 1:
-                mapping[strs[l[0]]] = s
+                mapping[strs_unique[l[0]]] = s
                 continue
-            strs_new = [sep.join(lsts[_][:-1]) for _ in l]
+            strs_unique_new = [sep.join(lsts[_][:-1]) for _ in l]
             prefixes = shortest_unique_names(
-                strs_new, sep, max_compression, guarantee_unique
+                strs_unique_new, sep, max_compression, guarantee_unique
             )
             for loc, prefix in zip(l, prefixes):
                 x = sep.join([prefix, s])
                 if x.startswith(sep):
                     x = x[len(sep) :]
-                mapping[strs[loc]] = x
-        strs = [mapping[_] for _ in strs]
+                mapping[strs_unique[loc]] = x
+        strs_unique = [mapping[_] for _ in strs_unique]
     else:
-        strs = names
+        strs_unique = names
     if not max_compression:
-        return strs
-    for i, s in enumerate(strs):
+        return strs_unique
+    for i, s in enumerate(strs_unique):
         for j in range(1, len(s)):
-            for k in itertools.chain(range(i), range(i + 1, len(strs))):
-                if strs[k][:j] == s[:j]:
+            for k in itertools.chain(range(i), range(i + 1, len(strs_unique))):
+                if strs_unique[k][:j] == s[:j]:
                     break
             else:
-                strs[i] = s[:j]
+                strs_unique[i] = s[:j]
                 break
-    return strs
+    return strs_unique
 
 
 def snake_case(s: str) -> str:

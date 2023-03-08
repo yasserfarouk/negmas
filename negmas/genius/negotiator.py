@@ -10,6 +10,7 @@ import os
 import random
 import tempfile
 from pathlib import Path
+from time import sleep
 
 from negmas import warnings
 from negmas.outcomes.base_issue import Issue
@@ -110,6 +111,7 @@ class GeniusNegotiator(SAONegotiator):
         self.domain_file_name = str(domain_file_name) if domain_file_name else None
         self.utility_file_name = str(utility_file_name) if utility_file_name else None
         self.__my_last_offer = None
+        self.__my_last_received_offer = None
         self.__my_last_response = ResponseType.REJECT_OFFER
         self.__my_last_offer_step = -1000
         self._preferences, self.discount = None, None
@@ -138,6 +140,15 @@ class GeniusNegotiator(SAONegotiator):
         self.__preferences_received = preferences
         self._temp_domain_file = self._temp_preferences_file = False
         self.connected = False
+
+    @property
+    def strict(self):
+        return self._strict
+
+    @strict.setter
+    def strict(self, value: bool):
+        self._strict = value
+        return self._strict
 
     @property
     def is_connected(self):
@@ -240,7 +251,7 @@ class GeniusNegotiator(SAONegotiator):
             raise ValueError(f"Cannot initialized {self.java_class_name}")
         return aid
 
-    def _connect(self, path: str, port: int, auto_load_java: bool = False) -> bool:
+    def _connect(self, path: str, port: int, auto_load_java: bool = True) -> bool:
         """
         Connects the negotiator to an appropriate genius-bridge running the actual agent
         """
@@ -258,6 +269,7 @@ class GeniusNegotiator(SAONegotiator):
             if gateway == None:
                 self.java = None
                 return False
+            sleep(3)
         self.java = gateway.entry_point  # type: ignore
         return True
 
@@ -296,7 +308,13 @@ class GeniusNegotiator(SAONegotiator):
                 auto_load_java=self.auto_load_java,
             )
             if not self.is_connected:
-                return False
+                self.connected = self._connect(
+                    path=self.genius_bridge_path,
+                    port=self.port,
+                    auto_load_java=self.auto_load_java,
+                )
+            if not self.is_connected:
+                raise ValueError(f"Cannot connect to the genius bridge")
 
         self.java_uuid = self._create()
 
@@ -307,15 +325,29 @@ class GeniusNegotiator(SAONegotiator):
         self.issues = nmi.cartesian_outcome_space.issues
         self.issue_names = [_.name for _ in self.issues]
         self.issue_index = dict(zip(self.issue_names, range(len(self.issue_names))))
-        if nmi.cartesian_outcome_space is not None and self.domain_file_name is None:
-            domain_file = tempfile.NamedTemporaryFile("w", suffix=".xml", delete=False)
+        # if nmi.cartesian_outcome_space is not None and self.domain_file_name is None:
+        if nmi.cartesian_outcome_space is not None:
+            if self.domain_file_name is None:
+                domain_file = tempfile.NamedTemporaryFile(
+                    "w", suffix=".xml", delete=False
+                )
+                self.domain_file_name = domain_file.name
+                self._temp_domain_file = True
+            else:
+                domain_file = open(self.domain_file_name, "w")
             self.domain_file_name = domain_file.name
             domain_file.write(issues_to_xml_str(nmi.cartesian_outcome_space.issues))
             domain_file.close()
-            self._temp_domain_file = True
-        if preferences is not None and self.utility_file_name is None:
-            utility_file = tempfile.NamedTemporaryFile("w", suffix=".xml", delete=False)
-            self.utility_file_name = utility_file.name
+        # if preferences is not None and self.utility_file_name is None:
+        if preferences is not None:
+            if self.utility_file_name is None:
+                utility_file = tempfile.NamedTemporaryFile(
+                    "w", suffix=".xml", delete=False
+                )
+                self.utility_file_name = utility_file.name
+                self._temp_preferences_file = True
+            else:
+                utility_file = open(self.utility_file_name, "w")
             utility_file.write(
                 UtilityFunction.to_xml_str(
                     preferences,
@@ -324,7 +356,6 @@ class GeniusNegotiator(SAONegotiator):
                 )
             )
             utility_file.close()
-            self._temp_preferences_file = True
         return result
 
     def _outcome2str(self, outcome):
@@ -368,10 +399,23 @@ class GeniusNegotiator(SAONegotiator):
                         and self._strict
                     ):
                         raise ValueError(
-                            f"{self._me()} ended the negotiation but failed to destroy the agent. A possible memory leak"
+                            f"{self._me()} ended the negotiation but failed to destroy the agent with result {result}. A possible memory leak"
+                        )
+                    else:
+                        warnings.warn(
+                            f"{self._me()} ended the negotiation but failed to destroy the agent with result {result}. A possible memory leak",
+                            warnings.NegmasMemoryWarning,
                         )
                 elif self._strict:
-                    raise ValueError(f"{self._me()} failed to end the negotiation!!")
+                    if self._strict:
+                        raise ValueError(
+                            f"{self._me()} failed to end the negotiation with result {result}!!"
+                        )
+                    else:
+                        warnings.warn(
+                            f"{self._me()} failed to end the negotiation with result {result}!!",
+                            warnings.NegmasBridgeProcessWarning,
+                        )
             self.__destroyed = True
         if self._temp_preferences_file:
             try:
@@ -493,12 +537,13 @@ class GeniusNegotiator(SAONegotiator):
                 self.utility_file_name,  # Negotiator file
                 timeout,
                 self._strict,
+                "__;__NEGID__;__".join(self.nmi.genius_negotiator_ids),
             )
             self.__started = result == OK
             if result != OK:
                 s = (
                     f"{self._me()}: Failed Starting: {result.split(FIELD_SEP)}\nDomain file: {self.domain_file_name}\n"
-                    f"UFun file: {self.domain_file_name}\n{'strict' if self._strict else 'non-strict'} {n_steps=} {timeout=}"
+                    f"UFun file: {self.utility_file_name}\n{'strict' if self._strict else 'non-strict'} {n_steps=} {timeout=}"
                 )
                 if self._strict:
                     raise ValueError(s)
@@ -507,10 +552,11 @@ class GeniusNegotiator(SAONegotiator):
         except Exception as e:
             raise ValueError(
                 f"{self._me()}: Cannot start negotiation: {str(e)}\nDomain file: {self.domain_file_name}\n"
-                f"UFun file: {self.domain_file_name}\n{'strict' if self._strict else 'non-strict'} {n_steps=} {timeout=}"
+                f"UFun file: {self.utility_file_name}\n{'strict' if self._strict else 'non-strict'} {n_steps=} {timeout=}"
             )
 
     def cancel(self, reason=None) -> None:
+        _ = reason
         try:
             self.java.cancel(self.java_uuid)  # type: ignore
         except:
@@ -549,6 +595,11 @@ class GeniusNegotiator(SAONegotiator):
         if len(action) < 1:
             if self._strict:
                 raise ValueError(f"{self._me()} received no actions while parsing")
+            else:
+                warnings.warn(
+                    f"{self._me()} received no actions while parsing",
+                    warnings.NegmasBridgeProcessWarning,
+                )
             return ResponseType.REJECT_OFFER, None
         _, typ_, bid_str = action.split(FIELD_SEP)
         nmi = self.nmi
@@ -604,6 +655,11 @@ class GeniusNegotiator(SAONegotiator):
         elif typ_ in ("NullOffer", "Failure", "NoAction"):
             if self._strict:
                 raise ValueError(f"{self._me()} received {typ_} in action {action}")
+            else:
+                warnings.warn(
+                    f"{self._me()} received {typ_} in action {action}",
+                    warnings.NegmasBridgeProcessWarning,
+                )
             response = ResponseType.REJECT_OFFER
             outcome = None
         else:
@@ -626,9 +682,10 @@ class GeniusNegotiator(SAONegotiator):
         if offer is None:
             self.propose_sao(state)
             return
+        proposer_id = self.nmi.genius_id(state.current_proposer)
         received = self.java.receive_message(  # type: ignore
             self.java_uuid,
-            state.current_proposer,
+            proposer_id,
             "Offer",
             self._outcome2str(offer),
             state.step,
@@ -690,13 +747,17 @@ class GeniusNegotiator(SAONegotiator):
             raise ValueError(f"{self._me()} got counter with a None offer.")
         if offer is None:
             return ResponseType.REJECT_OFFER
+        proposer_id = self.nmi.genius_id(
+            state.last_thread if source is None else source
+        )
         received = self.java.receive_message(  # type: ignore
             self.java_uuid,
-            source,
+            proposer_id,
             "Offer",
             self._outcome2str(offer),
             state.step,
         )
+        self.__my_last_received_offer = offer
         if self._strict and received.startswith(FAILED):
             raise ValueError(
                 f"{self._me()} failed to receive message in step {state.step}: {received.split(FIELD_SEP)[-1]}"
@@ -706,6 +767,8 @@ class GeniusNegotiator(SAONegotiator):
 
     def propose(self, state: GBState) -> Outcome | None:
         # saves one new offer/response every step
+        # if state.step >= 146:
+        #     breakpoint()
         if state.step == self.__my_last_offer_step:
             return self.__my_last_offer
         response, outcome = self.parse(
@@ -727,6 +790,8 @@ class GeniusNegotiator(SAONegotiator):
                 f"{self._me()} returned a None counter offer in step {state.step}"
             )
 
+        if response == ResponseType.ACCEPT_OFFER:
+            outcome = self.__my_last_received_offer
         self.__my_last_offer, self.__my_last_response, self.__my_last_offer_step = (
             outcome,
             response,

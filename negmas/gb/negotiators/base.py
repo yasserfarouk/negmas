@@ -79,7 +79,9 @@ class GBNegotiator(Negotiator):
         """
 
     @abstractmethod
-    def respond(self, state: GBState, offer: Outcome, source: str) -> ResponseType:
+    def respond(
+        self, state: GBState, offer: Outcome, source: str | None
+    ) -> ResponseType:
         """Called to respond to an offer. This is the method that should be overriden to provide an acceptance strategy.
 
         Args:
@@ -159,12 +161,14 @@ class GBNegotiator(Negotiator):
         if self.__end_negotiation:
             return SAOResponse(ResponseType.END_NEGOTIATION, None)
         if self.preferences is not None:
-            changes = self.ufun.changes()
+            changes = self.preferences.changes()
             if changes:
                 self.on_preferences_changed(changes)
         if offer is None:
             return SAOResponse(ResponseType.REJECT_OFFER, self.propose_(state=state))
         response = self.respond_(state=state, offer=offer)
+        if response == ResponseType.ACCEPT_OFFER:
+            return SAOResponse(response, offer)
         if response != ResponseType.REJECT_OFFER:
             return SAOResponse(response, None)
         return SAOResponse(response, self.propose_(state=state))
@@ -187,7 +191,7 @@ class GBNegotiator(Negotiator):
         if not self._capabilities["propose"] or self.__end_negotiation:
             return None
         return self.propose(
-            state=self._state_from_sao_state(state),
+            state=self._gb_state_from_sao_state(state),
         )
 
     def respond_(self, state: SAOState, offer: Outcome) -> ResponseType:
@@ -221,12 +225,14 @@ class GBNegotiator(Negotiator):
         self.__received_offer[state.current_proposer] = offer
 
         return self.respond(
-            state=self._state_from_sao_state(state),
+            state=self._gb_state_from_sao_state(state),
             offer=offer,
             source=state.current_proposer if state.current_proposer else "",
         )
 
-    def _state_from_sao_state(self, state: SAOState) -> GBState:
+    def _gb_state_from_sao_state(self, state: SAOState) -> GBState:
+        if isinstance(state, GBState):
+            return state
         if not self.nmi:
             raise ValueError("No NMI. Cannot convert SAOState to GBState")
         threads = {

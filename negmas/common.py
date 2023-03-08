@@ -281,6 +281,10 @@ class NegotiatorMechanismInterface:
     """Negotiation agenda as as an `OutcomeSpace` object. The most common type is `CartesianOutcomeSpace` which represents the cartesian product of a list of issues"""
     time_limit: float
     """The time limit in seconds for this negotiation session. None indicates infinity"""
+    pend: float
+    """The probability that the negotiation times out at every step. Must be less than one. If <= 0, it is ignored"""
+    pend_per_second: float
+    """The probability that the negotiation times out every second. Must be less than one. If <= 0, it is ignored"""
     step_time_limit: float
     """The time limit in seconds for each step of ;this negotiation session. None indicates infinity"""
     negotiator_time_limit: float
@@ -335,6 +339,10 @@ class NegotiatorMechanismInterface:
     def params(self):
         """Returns the parameters used to initialize the mechanism."""
         return self.mechanism.params
+
+    def random_outcome(self) -> Outcome:
+        """A single random outcome."""
+        return self.mechanism.random_outcome()
 
     def random_outcomes(self, n: int = 1) -> list[Outcome]:
         """
@@ -417,6 +425,15 @@ class NegotiatorMechanismInterface:
     def n_negotiators(self) -> int:
         """Syntactic sugar for state.n_negotiators"""
         return self.state.n_negotiators
+
+    @property
+    def genius_negotiator_ids(self) -> list[str]:
+        """Gets the Java IDs of all negotiators (if the negotiator is not a GeniusNegotiator, its normal ID is returned)"""
+        return self.mechanism.genius_negotiator_ids
+
+    def genius_id(self, id: str | None) -> str | None:
+        """Gets the Genius ID corresponding to the given negotiator if known otherwise its normal ID"""
+        return self.mechanism.genius_id(id)
 
     @property
     def negotiator_ids(self) -> list[str]:

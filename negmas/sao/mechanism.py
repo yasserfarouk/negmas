@@ -10,6 +10,7 @@ from collections import defaultdict
 from typing import TYPE_CHECKING
 
 from negmas import warnings
+from negmas.helpers.strings import humanize_time
 
 from ..common import TraceElement
 from ..events import Event
@@ -29,6 +30,8 @@ __all__ = [
     "SAOProtocol",
     "TraceElement",
 ]
+
+DEFAULT_COLORMAP = "jet"
 
 
 class SAOMechanism(Mechanism):
@@ -80,7 +83,7 @@ class SAOMechanism(Mechanism):
     def __init__(
         self,
         dynamic_entry=False,
-        extra_callbacks=False,
+        extra_callbacks=True,
         end_on_no_response=True,
         avoid_ultimatum=False,
         check_offers=False,
@@ -220,6 +223,11 @@ class SAOMechanism(Mechanism):
             assert (
                 not state.waiting or negotiator.id == state.current_proposer
             ), f"We are waiting with {state.current_proposer} as the last offerer but we are asking {negotiator.id} to offer\n{state}"
+            if self.verbosity > 1:
+                print(
+                    f"{self.name}: {negotiator.name} called after {humanize_time(time.perf_counter() - self._start_time, show_ms=True) if self._start_time else 0}",
+                    flush=True,
+                )
             rem = self.remaining_time
             if rem is None:
                 rem = float("inf")
@@ -651,11 +659,13 @@ class SAOMechanism(Mechanism):
         show_n_steps=True,
         colors: list | None = None,
         markers: list[str] | None = None,
-        colormap: str = "jet",
+        colormap: str = DEFAULT_COLORMAP,
         ylimits: tuple[float, float] | None = None,
         common_legend: bool = True,
         xdim: str = "relative_time",
         only2d: bool = False,
+        fast: bool = False,
+        simple_offers_view: bool = False,
     ):
         from negmas.plots.util import plot_mechanism_run
 
@@ -693,6 +703,8 @@ class SAOMechanism(Mechanism):
             show_total_time=show_total_time,
             show_relative_time=show_relative_time,
             show_n_steps=show_n_steps,
+            fast=fast,
+            simple_offers_view=simple_offers_view,
         )
 
 

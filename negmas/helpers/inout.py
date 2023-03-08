@@ -381,7 +381,8 @@ def dump(
     """
     file_name = pathlib.Path(file_name).expanduser().absolute()
     if file_name.suffix == "":
-        file_name = pathlib.Path(str(file_name) + "." + DEFAULT_DUMP_EXTENSION)
+        file_name = pathlib.Path(str(file_name) + "." + str(DEFAULT_DUMP_EXTENSION))
+    file_name.parent.mkdir(parents=True, exist_ok=True)
 
     if d is None:
         with open(file_name, "w") as f:
@@ -397,7 +398,7 @@ def dump(
             )
     elif file_name.suffix in (".yaml", ".yml"):
         with open(file_name, "w") as f:
-            yaml.safe_dump(d, f, default_flow_style=True, sort_keys=sort_keys)
+            yaml.safe_dump(d, f, default_flow_style=False, sort_keys=sort_keys)
     elif file_name.suffix == ".pickle":
         with open(file_name, "wb") as f:
             pickle.dump(d, f)
@@ -426,7 +427,7 @@ def load(file_name: str | os.PathLike | pathlib.Path) -> Any:
     """
     file_name = pathlib.Path(file_name).expanduser().absolute()
     if file_name.suffix == "":
-        file_name = pathlib.Path(str(file_name) + "." + DEFAULT_DUMP_EXTENSION)
+        file_name = pathlib.Path(str(file_name) + "." + str(DEFAULT_DUMP_EXTENSION))
     d = {}
     if not file_name.exists() or os.stat(file_name).st_size < 2:
         return d

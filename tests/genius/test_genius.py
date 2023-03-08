@@ -8,8 +8,8 @@ import pkg_resources
 import pytest
 from hypothesis import given, settings
 
-from negmas.genius import GeniusBridge, get_anac_agents
-from negmas.genius.bridge import genius_bridge_is_running
+from negmas.genius.bridge import GeniusBridge, genius_bridge_is_running
+from negmas.genius.ginfo import get_anac_agents
 from negmas.genius.gnegotiators import AgentK, Caduceus
 from negmas.genius.negotiator import GeniusNegotiator
 from negmas.inout import Scenario

@@ -68,9 +68,9 @@ negotiators is less than or equal to one:
 
         def add(
             self,
-            negotiator: "Negotiator",
+            negotiator: Negotiator,
             *,
-            preferences: Optional["Preferences"] = None,
+            preferences: Preferences | None = None,
             **kwargs,
         ) -> Optional[bool]:
             added = super().add(negotiator, preferences=preferences, role=None, **kwargs)
@@ -84,19 +84,19 @@ negotiators is less than or equal to one:
             """
             return sum(u(outcome) for u in self.ufuns) <= (1.0 + 1e-3)
 
-        def __state__(self, state) -> MechanismRoundResult:
+        def __call__(self, state) -> MechanismStepResult:
             """One round of the mechanism"""
             if len(self.negotiators) != 2:
-                state.error=True,
-                state.error_details=f"Got {len(self.negotiators)} negotiators!!",
-                state.broken=True,
-                return MechanismRoundResult(state=staet)
+                state.has_error=True
+                state.error_details=f"Got {len(self.negotiators)} negotiators!!"
+                state.broken=True
+                return MechanismStepResult(state=state)
             outcome = tuple(
                 n.propose_for_self(self.ufuns, i) for i, n in enumerate(self.negotiators)
             )
             if self.is_feasible(outcome):
                 state.agreement = outcome
-            return MechanismRoundResult(state=state)
+            return MechanismStepResult(state=state)
 
 The implementation is straight forward. We need to define what a round
 of the algorithm does (``round()`` ). In this case we used
@@ -181,7 +181,7 @@ Now let’s try our brand new mechanism and negotiator
 
 .. parsed-literal::
 
-    Agreement: (0.4999999938325375, 0.5000000058232046)
+    Agreement: (0.5000000026316054, 0.5000000052509953)
 
 
 As expected, the two negotiators agreed on the expected nash point (0.5,
@@ -318,7 +318,7 @@ this information.
 
     @define
     class RubinsteinMechanismState(MechanismState):
-        discounts = field(default=list)
+        discounts = field(factory=list)
 
 We can then define the mechanism class itself:
 
@@ -336,7 +336,7 @@ We can then define the mechanism class itself:
                     ],
                     max_n_agents=2,
                     dynamic_entry=False,
-                    state_factory=RubinsteinMechanismState,
+                    initial_state=RubinsteinMechanismState()
                 )
             )
             super().__init__(**kwargs)
@@ -362,21 +362,21 @@ We can then define the mechanism class itself:
             if added:
                 self.state.discounts.append(discount)
 
-        def __call__(self, state) -> MechanismRoundResult:
+        def __call__(self, state) -> MechanismStepResult:
             """One round of the mechanism"""
             if state.step == 0:
                 if len(self.negotiators) != 2:
                     state.error=True,
                     state.error_details=f"Got {len(self.negotiators)} negotiators!!",
                     state.broken=True,
-                    return MechanismRoundResult(state=state)
+                    return MechanismStepResult(state=state)
                 for i, n in enumerate(self.negotiators):
                     n.set_index(i)
             outcomes = list(n.propose(self.state) for n in self.negotiators)
             self.proposals.append(outcomes)
             if any(o is None for o in outcomes):
-                state.broken = True
-                return MechanismRoundResult(state=state)
+                state.broken=True
+                return MechanismStepResult(state=state)
             if sum(outcomes[0]) <= 1 + 1e-3:
                 if self.extended:
                     if (
@@ -387,12 +387,14 @@ We can then define the mechanism class itself:
                                 min(outcomes[0][0], outcomes[1][0]),
                                 min(outcomes[0][1], outcomes[1][1]),
                             )
+                        return MechanismStepResult(state=state)
                 elif max(abs(outcomes[0][i] - outcomes[1][i]) for i in range(2)) < 1e-3:
                     state.agreement=tuple(
                             0.5 * (outcomes[0][i] + outcomes[1][i]) for i in range(2)
                         )
-                    )
-            return MechanismRoundResult(state=state)
+                    return MechanismStepResult(state=state)
+
+            return MechanismStepResult(state=state)
 
 
 The mechanism is very similar to the Nash Bargaining Game with few
@@ -492,7 +494,7 @@ Now we can run negotiations using our new protocol and negotiator:
 
 .. parsed-literal::
 
-    Agreed to: (0.6640412499599437, 0.33595875004005626) after 148 steps
+    Agreed to: (0.6489341268961364, 0.3510658731038636) after 406 steps
 
 
 

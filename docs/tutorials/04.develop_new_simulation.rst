@@ -222,9 +222,9 @@ specific information you need to keep. Here is the full implementation:
 
         def join(
             self,
-            x: "Agent",
-            preferences: Preferences = None,
-            breach_prob: float = None,
+            x: Agent,
+            preferences: Preferences | None = None,
+            breach_prob: float | None = None,
             **kwargs,
         ):
             """Define the ufun and breach-probability for each agent"""
@@ -240,12 +240,12 @@ specific information you need to keep. Here is the full implementation:
             """What happens in this world? Nothing"""
             pass
 
-        def get_private_state(self, agent: "Agent") -> dict:
+        def get_private_state(self, agent: Agent) -> dict:
             """What is the information available to agents? total utility points"""
             return dict(total_utility=self._total_utility[agent.id])
 
         def execute_action(
-            self, action: Action, agent: "Agent", callback: Callable = None
+            self, action: Action, agent: Agent, callback: Callable | None = None
         ) -> bool:
             """Executing actions by agents? No actions available"""
             pass
@@ -372,9 +372,9 @@ base class version using ``super()``:
 
        def join(
            self,
-           x: "Agent",
-           preferences: Preferences = None,
-           breach_prob: float = None,
+           x: Agent,
+           preferences: Preferences | None = None,
+           breach_prob: float | None = None,
            **kwargs
        ):
            """Define the ufun and breach-probability for each agent"""
@@ -415,7 +415,7 @@ state of an agent is the total utility it collected so far.
 
 .. code:: python
 
-       def get_private_state(self, agent: "Agent") -> dict:
+       def get_private_state(self, agent: Agent) -> dict:
            """What is the information available to agents? total utility points"""
            return dict(total_utility=self._total_utility[agent.id])
 
@@ -425,7 +425,7 @@ can execute in the world, so ``execute_action`` does nothing.
 .. code:: python
 
        def execute_action(
-           self, action: Action, agent: "Agent", callback: Callable = None
+           self, action: Action, agent: Agent, callback: Callable | None = None
        ) -> bool:
            """Executing actions by agents? No actions available"""
            pass

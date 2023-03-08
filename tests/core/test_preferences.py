@@ -37,7 +37,7 @@ from negmas.preferences.ops import (
     make_rank_ufun,
     normalize,
     pareto_frontier_bf,
-    pareto_frontier_of,
+    pareto_frontier_numpy,
     scale_max,
 )
 from negmas.sao.mechanism import SAOMechanism
@@ -259,6 +259,33 @@ def test_calc_reserved_fifty_fifty():
 @given(
     n_outcomes=st.integers(2, 1000),
     n_negotiators=st.integers(2, 5),
+    normalize=st.booleans(),
+    r0=st.floats(-1.0, 1.0),
+    r1=st.floats(-1.0, 1.0),
+)
+@settings(deadline=60_000)
+def test_ranks_match_bf(n_outcomes, n_negotiators, normalize, r0, r1):
+    np.random.seed(0)
+    os = make_os([make_issue(n_outcomes)])
+    outcomes = os.enumerate_or_sample()
+    utils = np.random.rand(n_negotiators, n_outcomes)
+    ufuns = [
+        MappingUtilityFunction(
+            dict(zip(outcomes, _)), outcome_space=os, reserved_value=r0 if not i else r1
+        )
+        for i, _ in enumerate(utils)
+    ]
+    rank_ufuns = [make_rank_ufun(_, normalize=normalize) for _ in ufuns]
+    rank_ufuns_bf = [make_rank_ufun(_, normalize=normalize) for _ in ufuns]
+    for u, ubf in zip(rank_ufuns, rank_ufuns_bf):
+        assert abs(u.reserved_value - ubf.reserved_value) < 1e-10
+        for outcome in list(outcomes) + [None]:
+            assert abs(u(outcome) - ubf(outcome)) < 1e-12
+
+
+@given(
+    n_outcomes=st.integers(2, 1000),
+    n_negotiators=st.integers(2, 5),
     sort=st.booleans(),
     r0=st.floats(-1.0, 1.0),
     r1=st.floats(-1.0, 1.0),
@@ -314,7 +341,7 @@ def test_calc_stats(n_outcomes, n_negotiators, sort, r0, r1):
 
     np.random.seed(0)
     os = make_os([make_issue(n_outcomes)])
-    outcomes = os.enumerate_or_sample()
+    outcomes = list(os.enumerate_or_sample())
     utils = np.random.rand(n_negotiators, n_outcomes)
     ufuns = [
         MappingUtilityFunction(
@@ -392,11 +419,31 @@ def test_mechanism_pareto_frontier_matches_global(
     sort=st.booleans(),
 )
 @settings(deadline=60_000)
-def test_pareto_frontier_matches_bf(n_outcomes, n_negotiators, sort):
+def test_pareto_frontier_numpy_matches_bf2(n_outcomes, n_negotiators, sort):
     np.random.seed(0)
     utils = np.random.rand(n_outcomes, n_negotiators)
     bf = list(pareto_frontier_bf(utils, sort_by_welfare=sort))
-    x = list(pareto_frontier_of(utils, sort_by_welfare=sort))
+    x = list(pareto_frontier_numpy(utils, sort_by_welfare=sort))
+    assert len(x) == len(bf), f"bf:{bf}\nfast:{x}"
+    assert len(bf) == len(set(bf)), f"bf:{bf}\nfast:{x}"
+    assert len(x) == len(set(x)), f"bf:{bf}\nfast:{x}"
+    if sort:
+        assert all(list(a == b for a, b in zip(x, bf))), f"bf:{bf}\nfast:{x}"
+    else:
+        assert set(x) == set(bf), f"bf:{bf}\nfast:{x}"
+
+
+@given(
+    n_outcomes=st.integers(2, 1000),
+    n_negotiators=st.integers(2, 5),
+    sort=st.booleans(),
+)
+@settings(deadline=60_000)
+def test_pareto_frontier_numpy_matches_bf(n_outcomes, n_negotiators, sort):
+    np.random.seed(0)
+    utils = np.random.rand(n_outcomes, n_negotiators)
+    bf = list(pareto_frontier_bf(utils, sort_by_welfare=sort))
+    x = list(pareto_frontier_numpy(utils, sort_by_welfare=sort))
     assert len(x) == len(bf), f"bf:{bf}\nfast:{x}"
     assert len(bf) == len(set(bf)), f"bf:{bf}\nfast:{x}"
     assert len(x) == len(set(x)), f"bf:{bf}\nfast:{x}"
@@ -438,12 +485,13 @@ def test_pareto_frontier_does_not_depend_on_order():
         outcomes=[(_,) for _ in range(10)],
     )
 
-    assert set(p1) == {(0.9419131964655383, 0.0), (0.7242899747791032, 1.0)}
-    assert set(p2) == {(1.0, 0.7242899747791032), (0.0, 0.9419131964655383)}
-    assert set(l1) == {6, 3}
     assert len(p1) == len(p2)
     # assert l2 == list(reversed(l1))
 
+    assert set(l1) == {6, 3}
+    assert set(l2) == {6, 3}
+    assert set(p1) == {(0.9419131964655383, 0.0), (0.7242899747791032, 1.0)}
+    assert set(p2) == {(1.0, 0.7242899747791032), (0.0, 0.9419131964655383)}
     # reverse order of p2
     p2 = [(_[1], _[0]) for _ in p2]
     for a in p1:
@@ -863,6 +911,125 @@ def test_rank_only_ufun_no_randomize():
     ), f"{[(_, mapping(_)) for _ in outcomes]}"
     assert mapping((1, 1)) == mapping((0, 2))
     assert mapping((2, 1)) == mapping((1, 2)) == mapping((0, 3))
+
+
+# def test_calc_outcome_stats_example():
+#     n_outcomes = 2
+#     n_negotiators = 2
+#     normalized = False
+#     sort = False
+#     r0 = 0.0
+#     r1 = 1.0
+#
+#     def _test_optim_allow_above1(d, outcome, lst):
+#         if not lst:
+#             assert isnan(d)
+#             return
+#         assert 0 <= d
+#         if outcome in lst:
+#             assert abs(1 - d) < 1e-12
+#             return
+#
+#     def _test_optim(d, outcome, lst):
+#         if not lst:
+#             assert isnan(d)
+#             return
+#         assert 0 <= d <= 1
+#         if outcome in lst:
+#             assert abs(1 - d) < 1e-12
+#             return
+#         assert 1 - d > 1e-12
+#
+#     def _test_dist(d, outcome, lst):
+#         if not lst:
+#             assert isnan(d)
+#             return
+#         if outcome in lst:
+#             assert abs(d) < 1e-12
+#             return
+#         assert abs(d) > 1e-12
+#
+#     np.random.seed(0)
+#     os = make_os([make_issue(n_outcomes)])
+#     outcomes = os.enumerate_or_sample()
+#     utils = np.random.rand(n_negotiators, n_outcomes)
+#     if not normalized:
+#         utils *= 100
+#         r0 *= 100
+#         r1 *= 100
+#     ufuns = [
+#         MappingUtilityFunction(
+#             dict(zip(outcomes, _)), outcome_space=os, reserved_value=r0 if not i else r1
+#         )
+#         for i, _ in enumerate(utils)
+#     ]
+#     stats = calc_scenario_stats(ufuns)
+#     allutils = [tuple(u(_) for u in ufuns) for _ in outcomes]
+#     mxoverall = estimate_max_dist(ufuns)
+#     mxpareto = estimate_max_dist_using_outcomes(ufuns, stats.pareto_utils)
+#     assert mxoverall >= mxpareto
+#     for outcome in outcomes:
+#         outils = tuple(u(outcome) for u in ufuns)
+#         dists = calc_outcome_distances(outils, stats)
+#         optim_overall = calc_outcome_optimality(dists, stats, max_dist=mxoverall)
+#         # optim_pareto = calc_outcome_optimality(dists, stats, max_dist=mxpareto)
+#         # optim_exact = calc_outcome_optimality(dists, stats, outcome_utils=allutils)
+#         if is_rational(ufuns, outcome):
+#             _test_optim_allow_above1(
+#                 optim_overall.max_welfare_optimality,
+#                 outcome,
+#                 stats.max_welfare_outcomes,
+#             )
+#             for d, o1, lst in zip(
+#                 (
+#                     dists.pareto_dist,
+#                     dists.nash_dist,
+#                     dists.kalai_dist,
+#                     # dists.max_relative_welfare,
+#                 ),
+#                 (
+#                     optim_overall.pareto_optimality,
+#                     optim_overall.nash_optimality,
+#                     optim_overall.kalai_optimality,
+#                     # optim_overall.max_relative_welfare_optimality,
+#                 ),
+#                 (
+#                     stats.pareto_outcomes,
+#                     stats.nash_outcomes,
+#                     stats.kalai_outcomes,
+#                     # stats.max_relative_welfare_outcomes,
+#                 ),
+#                 strict=True,
+#             ):
+#                 _test_dist(d, outcome, lst)
+#                 _test_optim(o1, outcome, lst)
+#         else:
+#             for lst in (
+#                 stats.pareto_outcomes,
+#                 stats.nash_outcomes,
+#                 stats.kalai_outcomes,
+#                 # stats.max_relative_welfare_outcomes,
+#             ):
+#                 assert outcome not in lst
+#                 for d in (
+#                     dists.pareto_dist,
+#                     dists.nash_dist,
+#                     dists.kalai_dist,
+#                     # dists.max_relative_welfare,
+#                 ):
+#                     _test_dist(d, outcome, lst)
+#                 for o1 in (
+#                     optim_overall.pareto_optimality,
+#                     optim_overall.nash_optimality,
+#                     optim_overall.kalai_optimality,
+#                     # optim_overall.max_relative_welfare_optimality,
+#                 ):
+#                     _test_optim(o1, outcome, lst)
+#                 _test_optim_allow_above1(
+#                     optim_overall.max_welfare_optimality,
+#                     outcome,
+#                     stats.max_welfare_outcomes,
+#                 )
 
 
 if __name__ == "__main__":

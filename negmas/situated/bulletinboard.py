@@ -85,6 +85,8 @@ class BulletinBoard(EventSource, ConfigReader):
                 return dict()
             final: dict[str, Any] = {}
             for _ in results:
+                if not _:
+                    continue
                 final.update(_)
             return final
 

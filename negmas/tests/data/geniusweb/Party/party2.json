@@ -1,0 +1,136 @@
+{
+	"LinearAdditiveUtilitySpace": {
+		"name": "party2",
+		"issueUtilities": {
+			"Food": {
+				"discreteutils": {
+					"valueUtilities": {
+						"Chips and Nuts": 0.24,
+						"Finger-Food": 0.52,
+						"Handmade Food": 0.71,
+						"Catering": 0.97
+					}
+				}
+			},
+			"Drinks": {
+				"discreteutils": {
+					"valueUtilities": {
+						"Non-Alcoholic": 0.33,
+						"Beer Only": 0.22,
+						"Handmade Cocktails": 1,
+						"Catering": 0.11
+					}
+				}
+			},
+			"Location": {
+				"discreteutils": {
+					"valueUtilities": {
+						"Party Tent": 0.3,
+						"Your Dorm": 0.23,
+						"Party Room": 0.99,
+						"Ballroom": 0.09
+					}
+				}
+			},
+			"Invitations": {
+				"discreteutils": {
+					"valueUtilities": {
+						"Plain": 0.84,
+						"Photo": 0.24,
+						"Custom, Handmade": 0.12,
+						"Custom, Printed": 0.98
+					}
+				}
+			},
+			"Music": {
+				"discreteutils": {
+					"valueUtilities": {
+						"MP3": 0.94,
+						"DJ": 0.32,
+						"Band": 0.64
+					}
+				}
+			},
+			"Cleanup": {
+				"discreteutils": {
+					"valueUtilities": {
+						"Water and Soap": 1,
+						"Specialized Materials": 0.36,
+						"Special Equiment": 0.12,
+						"Hired Help": 0.21
+					}
+				}
+			}
+		},
+		"issueWeights": {
+			"Food": 0.095,
+			"Drinks": 0.228,
+			"Location": 0.109,
+			"Invitations": 0.214,
+			"Music": 0.108,
+			"Cleanup": 0.246
+		},
+		"domain": {
+			"name": "party",
+			"issuesValues": {
+				"Food": {
+					"values": [
+						"Chips and Nuts",
+						"Finger-Food",
+						"Handmade Food",
+						"Catering"
+					]
+				},
+				"Drinks": {
+					"values": [
+						"Non-Alcoholic",
+						"Beer Only",
+						"Handmade Cocktails",
+						"Catering"
+					]
+				},
+				"Location": {
+					"values": [
+						"Party Tent",
+						"Your Dorm",
+						"Party Room",
+						"Ballroom"
+					]
+				},
+				"Invitations": {
+					"values": [
+						"Plain",
+						"Photo",
+						"Custom, Handmade",
+						"Custom, Printed"
+					]
+				},
+				"Music": {
+					"values": [
+						"MP3",
+						"DJ",
+						"Band"
+					]
+				},
+				"Cleanup": {
+					"values": [
+						"Water and Soap",
+						"Specialized Materials",
+						"Special Equiment",
+						"Hired Help"
+					]
+				}
+			}
+		},
+		"reservationBid": {
+			"issuevalues": {
+				"Food": "Finger-Food",
+				"Drinks": "Non-Alcoholic",
+				"Location": "Party Tent",
+				"Invitations": "Photo",
+				"Music": "Band",
+				"Cleanup": "Specialized Materials"
+			}
+		}
+	}
+}

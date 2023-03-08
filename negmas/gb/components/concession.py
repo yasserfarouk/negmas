@@ -77,19 +77,24 @@ class KindConcessionRecommender(ConcessionRecommender):
 
         # in my second call, I will do my initial concession
         concession += self.initial_concession
-        # If I do not or cannot force conession, I will just return
+        # If I do not or cannot force concession, I will just return
         if not self.must_concede or not self.negotiator or not self.negotiator.ufun:
             return concession
         # I will try to make the smallest concession possible
-        inv = self.negotiator.ufun.invert()
-        increment = (
-            0.5 * self.initial_concession if self.initial_concession > 1e-2 else 0.01
-        )
-        i = 0
-        while concession < 1.0:
-            concession += increment * (1 + i / 20)
-            outcomes = inv.some((1.0 - concession, 1.0), normalized=True)
-            if len(outcomes) > 1:
-                break
-            i += 1
-        return concession
+        ufun = self.negotiator.ufun
+        inv = ufun.invert()
+        best = inv.next_worse()
+        nxt = inv.next_worse()
+        d = inv.max() - inv.min()
+        return (float(ufun(best)) - float(ufun(nxt)) + 1e-12) / (d)
+        # increment = (
+        #     0.5 * self.initial_concession if self.initial_concession > 1e-2 else 0.01
+        # )
+        # i = 0
+        # while concession < 1.0:
+        #     concession += increment * (1 + i / 20)
+        #     outcomes = inv.some((1.0 - concession, 1.0), normalized=True)
+        #     if len(outcomes) > 1:
+        #         break
+        #     i += 1
+        # return concession

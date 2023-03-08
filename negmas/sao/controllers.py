@@ -131,7 +131,11 @@ class SAOController(Controller):
         return self.call(negotiator, "propose", state=state)
 
     def respond(
-        self, negotiator_id: str, state: MechanismState, offer: Outcome, source: str
+        self,
+        negotiator_id: str,
+        state: MechanismState,
+        offer: Outcome,
+        source: str | None = None,
     ) -> ResponseType:
         negotiator, cntxt = self._negotiators.get(negotiator_id, (None, None))
         if negotiator is None:
@@ -168,7 +172,11 @@ class SAORandomController(SAOController):
         return negotiator.nmi.random_outcomes(1)[0]
 
     def respond(
-        self, negotiator_id: str, state: MechanismState, offer: Outcome, source: str
+        self,
+        negotiator_id: str,
+        state: MechanismState,
+        offer: Outcome,
+        source: str | None = None,
     ) -> ResponseType:
         negotiator, cntxt = self._negotiators.get(negotiator_id, (None, None))
         if negotiator is None:
@@ -247,21 +255,27 @@ class SAOSyncController(SAOController):
             )
         )
 
+    def _set_first_proposals(self):
+        self.__proposals = self.first_proposals()
+        if not self.__proposals:
+            self.__proposals = dict(
+                zip(self.negotiators.keys(), [None] * len(self.negotiators))
+            )
+        self.__first_proposals_collected = True
+
     def propose(self, negotiator_id: str, state: MechanismState) -> Outcome | None:
         # if there are no proposals yet, get first proposals
         if not self.__proposals:
-            self.__proposals = self.first_proposals()
-            self.__first_proposals_collected = True
+            self._set_first_proposals()
         # get the saved proposal if it exists and return it
         if negotiator_id in self.__proposals.keys():
             # if some proposal was there, delete it to force the controller to get a new one
-            proposal = self.__proposals.pop(negotiator_id)
+            proposal = self.__proposals.pop(negotiator_id, None)
         else:
             # if there was no proposal, get one. Note that `None` is a valid proposal
             if self.__global_ufun:
-                self.__proposals = self.first_proposals()
-                self.__first_proposals_collected = True
-                proposal = self.__proposals.pop(negotiator_id)
+                self._set_first_proposals()
+                proposal = self.__proposals.pop(negotiator_id, None)
             else:
                 proposal = self.first_offer(negotiator_id)
 
@@ -290,7 +304,11 @@ class SAOSyncController(SAOController):
         """
 
     def respond(
-        self, negotiator_id: str, state: SAOState, offer: Outcome, source: str
+        self,
+        negotiator_id: str,
+        state: SAOState,
+        offer: Outcome,
+        source: str | None = None,
     ) -> ResponseType:
         # get the saved response to this negotiator if any
         response = self.__responses.pop(negotiator_id, ResponseType.WAIT)
@@ -317,10 +335,11 @@ class SAOSyncController(SAOController):
 
         # we arrive here if we already have all the offers to counter. WE may though not have proposed yet
         if not self.__first_proposals_collected:
-            self.__proposals = self.first_proposals()
-            self.__first_proposals_collected = True
+            self._set_first_proposals()
         responses = self.counter_all(offers=self.__offers, states=self.__offer_states)
-        for neg in responses.keys():
+        for neg in self.negotiators.keys():
+            if neg not in responses:
+                responses[neg] = SAOResponse(ResponseType.END_NEGOTIATION, None)
             saved_response = responses.get(neg, None)
             if saved_response is None:
                 self.__responses[neg] = ResponseType.REJECT_OFFER
@@ -336,7 +355,7 @@ class SAOSyncController(SAOController):
         self.__offer_states = dict()
         if negotiator_id not in self.__responses:
             return ResponseType.REJECT_OFFER
-        return self.__responses.pop(negotiator_id)
+        return self.__responses.pop(negotiator_id, ResponseType.REJECT_OFFER)
 
     def on_negotiation_end(self, negotiator_id: str, state: MechanismState) -> None:
         if negotiator_id in self.__offers.keys():
@@ -775,7 +794,11 @@ class SAOMetaNegotiatorController(SAOController):
         return self.meta_negotiator.propose(state)
 
     def respond(
-        self, negotiator_id: str, state: SAOState, offer: Outcome, source: str
+        self,
+        negotiator_id: str,
+        state: SAOState,
+        offer: Outcome,
+        source: str | None = None,
     ) -> ResponseType:
         """Uses the meta negotiator to respond"""
         negotiator, _ = self._negotiators.get(negotiator_id, (None, None))

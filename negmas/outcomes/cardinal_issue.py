@@ -13,7 +13,7 @@ class CardinalIssue(OrdinalIssue):
     def __init__(self, values, name=None) -> None:
         super().__init__(values, name)
         try:
-            for _ in range(10):
+            for _ in range(3):
                 self.rand_valid() - self.rand_valid()  # type: ignore
         except Exception as e:
             raise ValueError(

@@ -62,7 +62,7 @@ class MiCROOfferingPolicy(OfferingPolicy):
             for _ in changes
         ):
             self.sorter = PresortingInverseUtilityFunction(
-                self.negotiator.ufun, sort_rational_only=True
+                self.negotiator.ufun, rational_only=True, eps=-1, rel_eps=-1
             )
             self.sorter.init()
             self.next_indx = 0
@@ -78,7 +78,7 @@ class MiCROOfferingPolicy(OfferingPolicy):
         if not self.sorter:
             assert self.negotiator.ufun
             self.sorter = PresortingInverseUtilityFunction(
-                self.negotiator.ufun, sort_rational_only=True
+                self.negotiator.ufun, rational_only=True, eps=-1, rel_eps=-1
             )
             self.sorter.init()
         return self.sorter
@@ -140,7 +140,7 @@ class CABOfferingPolicy(OfferingPolicy):
                     f"Sorter is already initialized. May be on_preferences_changed is called twice!!"
                 )
             self.sorter = PresortingInverseUtilityFunction(
-                self.negotiator.ufun, sort_rational_only=True
+                self.negotiator.ufun, rational_only=True, eps=-1, rel_eps=-1
             )
             self.sorter.init()
             self.next_indx = 0
@@ -161,7 +161,7 @@ class CABOfferingPolicy(OfferingPolicy):
                 f"Sorter is not initialized. May be on_preferences_changed is never called before propose!!"
             )
             self.sorter = PresortingInverseUtilityFunction(
-                self.negotiator.ufun, sort_rational_only=True
+                self.negotiator.ufun, rational_only=True, eps=-1, rel_eps=-1
             )
             self.sorter.init()
         outcome = self.sorter.outcome_at(self.next_indx)
@@ -192,7 +192,7 @@ class WAROfferingPolicy(OfferingPolicy):
         if not self.negotiator or not self.negotiator.ufun:
             return
         self._irrational = True
-        self._irrational_index = self.negotiator.nmi.n_outcomes - 1
+        self._irrational_index = int(self.negotiator.nmi.n_outcomes) - 1
         if any(
             _.type
             not in (
@@ -207,7 +207,7 @@ class WAROfferingPolicy(OfferingPolicy):
                     f"Sorter is already initialized. May be on_preferences_changed is called twice!!"
                 )
             self.sorter = PresortingInverseUtilityFunction(
-                self.negotiator.ufun, sort_rational_only=True
+                self.negotiator.ufun, rational_only=True, eps=-1, rel_eps=-1
             )
             self.sorter.init()
             self.next_indx = 0
@@ -231,7 +231,7 @@ class WAROfferingPolicy(OfferingPolicy):
                 f"Sorter is not initialized. May be on_preferences_changed is never called before propose!!"
             )
             self.sorter = PresortingInverseUtilityFunction(
-                self.negotiator.ufun, sort_rational_only=True
+                self.negotiator.ufun, rational_only=True, eps=-1, rel_eps=-1
             )
             self.sorter.init()
         nxt = self._irrational_index if self._irrational else self.next_indx
@@ -337,6 +337,7 @@ class OfferTop(OfferingPolicy):
 
     fraction: float = 0.0
     k: int = 1
+    _top: list[Outcome] | None = field(init=False, default=None)
 
     def on_preferences_changed(self, changes: list[PreferencesChange]):
         if not self.negotiator or not self.negotiator.ufun:
@@ -350,15 +351,20 @@ class OfferTop(OfferingPolicy):
             )
             for _ in changes
         ):
-            self.negotiator.ufun.invert().init()
+            inverter = self.negotiator.ufun.invert()
+            inverter.init()
+            top_k = inverter.within_indices((0, self.k))
+            top_f = inverter.within_fractions((0.0, self.fraction))
+            self._top = list(set(top_k + top_f))
 
     def __call__(self, state: GBState) -> Outcome | None:
         if not self.negotiator or not self.negotiator.ufun:
             return None
-        top_k = self.negotiator.ufun.invert().within_indices((0, self.k))
-        top_f = self.negotiator.ufun.invert().within_fractions((0.0, self.fraction))
-        top = list(set(top_k + top_f))
-        return random.choice(top)
+        if self._top is None:
+            self.on_preferences_changed([])
+        if not self._top:
+            return None
+        return random.choice(self._top)
 
 
 @define
@@ -380,7 +386,7 @@ class RandomOfferingPolicy(OfferingPolicy):
     def __call__(self, state: GBState) -> Outcome | None:
         if not self.negotiator or not self.negotiator.nmi:
             return None
-        return self.negotiator.nmi.random_outcomes(1)[0]
+        return self.negotiator.nmi.random_outcome()
 
 
 @define

@@ -143,7 +143,7 @@ class ComplexNonlinearUtilityFunction(_DependenceMixin, BaseUtilityFunction):
     def __init__(
         self,
         ufuns: Iterable[BaseUtilityFunction],
-        combination_function=Callable[[Iterable[Value]], Value],
+        combination_function: Callable[[Iterable[Value]], Value],
         **kwargs,
     ):
         super().__init__(**kwargs)
@@ -178,7 +178,7 @@ class ComplexNonlinearUtilityFunction(_DependenceMixin, BaseUtilityFunction):
         return ComplexNonlinearUtilityFunction(
             reserved_value=reserved_value,
             ufuns=ufuns,
-            combination_function=lambda vals: sum(v * w for w, v in zip(weights, vals)),
+            combination_function=lambda vals: sum(v * w for w, v in zip(weights, vals)),  # type: ignore
             outcome_space=outcome_space,
             **kwargs,
         )

@@ -5,14 +5,13 @@ from __future__ import annotations
 
 import math
 import numbers
-from typing import TYPE_CHECKING, Any, Iterable, Sequence, overload
+from typing import TYPE_CHECKING, Any, Sequence, overload
 
 import numpy as np
 
 from negmas.generics import ienumerate, iget, ikeys
 from negmas.helpers.numeric import isint, isreal
 from negmas.outcomes.cardinal_issue import CardinalIssue
-from negmas.outcomes.range_issue import RangeIssue
 
 from .base_issue import Issue
 
@@ -107,7 +106,7 @@ def outcome2dict(
 
 
 def dict2outcome(
-    d: dict[str, Any] | None, issues: Iterable[str | Issue]
+    d: dict[str, Any] | tuple | None, issues: tuple[str | Issue, ...]
 ) -> Outcome | None:
     """
     Converts the outcome to a tuple no matter what was its type
@@ -124,8 +123,11 @@ def dict2outcome(
     if d is None:
         return None
 
-    if isinstance(d, tuple):
-        return d
+    if not isinstance(d, dict):
+        return tuple(d)
+
+    if isinstance(d, np.ndarray):
+        return tuple(d.tolist())
 
     return tuple(d[_ if isinstance(_, str) else _.name] for _ in issues)
 
@@ -232,7 +234,7 @@ def min_dist(
     return min(distance_fun(test_outcome, _, outcome_space, **kwargs) for _ in outcomes)
 
 
-def outcome_is_valid(outcome: Outcome, issues: Iterable[Issue]) -> bool:
+def outcome_is_valid(outcome: Outcome, issues: tuple[Issue, ...]) -> bool:
     """
     Test validity of an outcome given a set of issues.
 
@@ -250,7 +252,7 @@ def outcome_is_valid(outcome: Outcome, issues: Iterable[Issue]) -> bool:
         [False, False, False]
         >>> valid_incomplete = {'price': 1.9}
         >>> print(outcome_is_valid(valid_incomplete, issues))
-        True
+        False
         >>> print(outcome_is_complete(valid_incomplete, issues))
         False
         >>> valid_incomplete.update({'date': '2018.10.2', 'count': 5})
@@ -258,37 +260,42 @@ def outcome_is_valid(outcome: Outcome, issues: Iterable[Issue]) -> bool:
         True
 
     Args:
-        outcome: outcome tested which can contain values for a partial set of issue values
+        outcome: outcome tested.
         issues: issues
-
-    Returns:
-        Union[bool, Tuple[bool, str]]: If return_problem is True then a second return value contains a string with
-                                      reason of failure
     """
-    outcome_dict = outcome2dict(outcome, [_.name for _ in issues])
-
-    for issue in issues:
-        for key in outcome_dict.keys():
-            if str(issue.name) == str(key):
-                break
-
-        else:
-            continue
-
-        value = iget(outcome_dict, key)
-
-        if isinstance(issue, RangeIssue) and (
-            isinstance(value, str) or not issue.min_value <= value <= issue.max_value
-        ):
+    try:
+        o = dict2outcome(outcome, issues)
+        if not o:
             return False
+        return all(issue.is_valid(v) for v, issue in zip(o, issues, strict=True))
+    except:
+        return False
+    # outcome_dict = outcome2dict(outcome, [_.name for _ in issues])
+    #
+    # for val, issue in zip(outcome, issues):
+    #     for key in outcome_dict.keys():
+    #         if str(issue.name) == str(key):
+    #             break
+    #     else:
+    #         continue
+    #
+    #     value = iget(outcome_dict, key)
+    #     return issue.is_valid(value)
 
-        if isinstance(issue._values, list) and value not in issue._values:
-            return False
+    # if isinstance(issue, RangeIssue) and (
+    #     isinstance(value, str) or not issue.min_value <= value <= issue.max_value
+    # ):
+    #     return False
+    #
+    # if isinstance(issue, CardinalIssue) and (
+    #     isinstance(value, str) or not issue.min_value <= value <= issue.max_value
+    # ):
+    #     return False
+    # if isinstance(issue._values, list) and value not in issue._values:
+    #     return False
 
-    return True
 
-
-def outcome_types_are_ok(outcome: Outcome, issues: Iterable[Issue]) -> bool:
+def outcome_types_are_ok(outcome: Outcome, issues: tuple[Issue, ...]) -> bool:
     """
     Checks that the types of all issue values in the outcome are correct
     """
@@ -302,7 +309,7 @@ def outcome_types_are_ok(outcome: Outcome, issues: Iterable[Issue]) -> bool:
     return True
 
 
-def cast_value_types(outcome: Outcome, issues: Iterable[Issue]) -> Outcome:
+def cast_value_types(outcome: Outcome, issues: tuple[Issue, ...]) -> Outcome:
     """
     Casts the types of values in the outcomes to the value-type of each issue (if given)
     """
@@ -316,7 +323,7 @@ def cast_value_types(outcome: Outcome, issues: Iterable[Issue]) -> Outcome:
     return tuple(new_outcome)
 
 
-def outcome_is_complete(outcome: Outcome, issues: Sequence[Issue]) -> bool:
+def outcome_is_complete(outcome: Outcome, issues: tuple[Issue, ...]) -> bool:
     """
     Tests that the outcome is valid and complete.
 
