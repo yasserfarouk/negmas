@@ -10,7 +10,7 @@ NEGMAS_IGNORE_TEST_NOTEBOOKS = os.environ.get("NEGMAS_IGNORE_TEST_NOTEBOOKS", Fa
 
 
 def notebooks():
-    base = Path(__file__).parent.parent / "notebooks"
+    base = Path(__file__).parent.parent.parent / "notebooks"
     return list(_ for _ in base.glob("**/*.ipynb") if "checkpoints" not in str(_))
 
 
@@ -20,7 +20,7 @@ def notebooks():
 )
 @pytest.mark.parametrize("notebook", notebooks())
 def test_notebook(notebook):
-    base = Path(__file__).parent.parent / "notebooks"
+    base = Path(__file__).parent.parent.parent / "notebooks"
     dst = notebook.relative_to(base)
     dst = Path(__file__).parent / "tmp_notebooks" / str(dst)
     dst.parent.mkdir(exist_ok=True, parents=True)

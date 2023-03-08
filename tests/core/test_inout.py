@@ -81,7 +81,7 @@ SCENARIOS_TO_IGNORE = [
 
 
 def get_all_scenarios():
-    base = Path(__file__).parent / "data" / "scenarios"
+    base = Path(__file__).parent.parent / "data" / "scenarios"
     data = []
     for root, dirs, files in walk(base):
         if len(files) == 0 or len(dirs) != 0:
@@ -211,14 +211,16 @@ def do_enc_dec_trial(tmp, folder_name, with_discounting=True):
 )
 @pytest.mark.parametrize("disc", [True, False])
 def test_encoding_decoding_example_AMPOvsCity(tmp_path, disc):
-    folder_name = Path(__file__).parent / "data" / "scenarios" / "other" / "AMPOvsCity"
+    folder_name = (
+        Path(__file__).parent.parent / "data" / "scenarios" / "other" / "AMPOvsCity"
+    )
     do_enc_dec_trial(tmp_path / "tmp", folder_name, disc)
 
 
 @pytest.mark.parametrize("disc", [True, False])
 def test_encoding_decoding_example_group_8_holiday(tmp_path, disc):
     folder_name = (
-        Path(__file__).parent
+        Path(__file__).parent.parent
         / "data"
         / "scenarios"
         / "anac"
@@ -252,7 +254,12 @@ def test_encoding_decoding_all_with_discounting(tmp_path, folder_name):
 )
 def test_enumerate_discrete_rational(tmp_path, r0, r1, n_above):
     domain = Scenario.from_genius_folder(  # type: ignore
-        Path(__file__).parent / "data" / "scenarios" / "anac" / "y2013" / "Fifty2013",
+        Path(__file__).parent.parent
+        / "data"
+        / "scenarios"
+        / "anac"
+        / "y2013"
+        / "Fifty2013",
         safe_parsing=False,
         ignore_discount=True,
     )
