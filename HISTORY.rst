@@ -1,6 +1,29 @@
 History
 =======
 
+Release 0.9.8
+-------------
+
+* Restructuring tests
+* Using Numba only with python 3.10
+* Always using with when opening files
+* Adding more info about anac results
+* [SAO] Completely removing support for avoid_ultimatum
+* [SAO] Adding fallbacks to respond() calls in SAO to support the API with and
+  without source. The later API will be dropped later.
+* [Preferences] Adding has_ufun to Rational to check if it has a `BaseUtilityFunction`
+  as its preferences.
+* [Genius] More details on errors from genius bridge
+* [Genius] bugfix when starting genius negotitauions with no n-steps (sometims)
+* [CLI] supporting genius negotiators in the negotiate.py cli
+	Pass -n geinus.<agent-name> or genius:<agent-name>
+	The agent-name can be just the full java class name, or a simplified
+	version that is all lower without the word agent and without _
+
+Release 0.9.7
+-------------
+* minor bugfixes
+
 Release 0.9.6
 -------------
 
