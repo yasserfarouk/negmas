@@ -1,50 +1,29 @@
+typer
 Click (>=6.0)
-MarkupSafe
+psutil
 PyYAML
 click-config-file (>=0.4.5)
-codacy-coverage
 colorlog
-dataclasses; python_version < "3.7"
-docopt
-docutils
-hypothesis
 inflect
-lockfile
 matplotlib
 numpy (>=1.16)
 pandas (>=0.24.1)
-pandoc
 progressbar2 (>=3.39)
 py4j
-pytest
-pytest-cov
-pytest-check
 pytest-runner (>=4.4)
 pytest-timeout (>=1.3)
-pytest-sugar
-readme-renderer
-recommonmark
+pytest-check
 scipy (>=1.2)
-setuptools (>=40.8.0)
 stringcase
 tabulate
-tox
 typing
 typing_extensions (>=3.7)
-twine
-wheel
 dill
 seaborn
 scikit-learn
-nose
 networkx
 # pyqt5
 gif
-pytest-repeat
-dask[complete]
-psutil
-papermill
 rich
 pygments>=2.7.4 # not directly required, pinned by Snyk to avoid a vulnerability
 numba; python_version < "3.11"
-typer

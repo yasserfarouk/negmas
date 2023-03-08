@@ -18,6 +18,9 @@ from negmas.preferences.discounted import DiscountedUtilityFunction
 from negmas.sao import AspirationNegotiator
 
 MAX_CARDINALITY = 10_000
+import resource
+
+resource.setrlimit(resource.RLIMIT_NOFILE, (50000, -1))
 
 
 @pytest.fixture
@@ -62,6 +65,7 @@ SCENARIOS_TO_IGNORE = [
     "FitnessC",
     "Grandma",
     "YXAgent",
+    # "kite",
     # "group5-car_domain",
     # "group2-new_sporthal",
     # "group12-symposium",

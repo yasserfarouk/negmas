@@ -12,17 +12,14 @@ jobs:
     - name: Generate coverage report
       run: |
           set -xe
+          ulimit -n 50000
           python -VV
           python -m site
           python -m pip install --upgrade pip setuptools wheel pytest
-          python -m pip install --upgrade  virtualenv
-          python -m pip install -e .
           python -m pip install -r requirements.txt
           python -m pip install -r requirements-dev.txt
-          pip install pytest
-          pip install pytest-cov
-          python -m pip install jupyter
-          python3 -m ipykernel install --user
+          python -m pip install -e .
+          python -m ipykernel install --user --name=negmas
           export NEGMAS_SLOW_TEST=True
           export NEGMAS_BRIDGE_OPS
           unset NEGMAS_BRIDGE_OPS

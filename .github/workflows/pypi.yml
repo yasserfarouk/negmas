@@ -31,15 +31,15 @@ jobs:
     - name: "Run all tests"
       run: |
           set -xe
+          ulimit -n 50000
           python -VV
           python -m site
           python -m pip install --upgrade pip setuptools wheel pytest
           python -m pip install --upgrade  virtualenv
           python -m pip install -r requirements.txt
           python -m pip install -r requirements-dev.txt
+          python3 -m ipykernel install --user --name=negmas
           python -m pip install -e .
-          python -m pip install jupyter
-          python3 -m ipykernel install --user
           export NEGMAS_IGNORE_TEST_NOTEBOOKS=False; python -W ignore -m pytest negmas tests
     - name: Publish distribution 📦 to PyPI
       if: github.event_name == 'push' && startsWith(github.event.ref, 'refs/tags')

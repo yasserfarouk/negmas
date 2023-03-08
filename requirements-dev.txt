@@ -1,8 +1,24 @@
 -r requirements.txt
+setuptools (>=40.8.0)
+wheel
+twine
+coverage
 pytest
-hypothesis
+pytest-cov
 pytest_check
 pytest-sugar
+hypothesis
+tox
+MarkupSafe
+readme-renderer
+pandoc
+docopt
+docutils
 papermill
+recommonmark
+# lockfile
+# dask[complete]
 bumpversion
-coverage
+jupyter
+ipykernel
+codacy-coverage
