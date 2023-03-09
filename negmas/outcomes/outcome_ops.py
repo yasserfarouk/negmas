@@ -267,23 +267,27 @@ def outcome_is_valid(outcome: Outcome, issues: Iterable[Issue]) -> bool:
     """
     outcome_dict = outcome2dict(outcome, [_.name for _ in issues])
 
-    for issue in issues:
+    for val, issue in zip(outcome, issues):
         for key in outcome_dict.keys():
             if str(issue.name) == str(key):
                 break
-
         else:
             continue
 
         value = iget(outcome_dict, key)
+        return issue.is_valid(value)
 
-        if isinstance(issue, RangeIssue) and (
-            isinstance(value, str) or not issue.min_value <= value <= issue.max_value
-        ):
-            return False
-
-        if isinstance(issue._values, list) and value not in issue._values:
-            return False
+        # if isinstance(issue, RangeIssue) and (
+        #     isinstance(value, str) or not issue.min_value <= value <= issue.max_value
+        # ):
+        #     return False
+        #
+        # if isinstance(issue, CardinalIssue) and (
+        #     isinstance(value, str) or not issue.min_value <= value <= issue.max_value
+        # ):
+        #     return False
+        # if isinstance(issue._values, list) and value not in issue._values:
+        #     return False
 
     return True
 

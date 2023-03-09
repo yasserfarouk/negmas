@@ -535,29 +535,28 @@ class DiscreteCartesianOutcomeSpace(CartesianOutcomeSpace):
             name=self.name,
         )
 
-    def sample(
-        self,
-        n_outcomes: int,
-        with_replacement: bool = False,
-        fail_if_not_enough=True,
-    ) -> Iterable[Outcome]:
-        """
-        Samples up to n_outcomes with or without replacement.
-
-        This methor provides a base implementation that is not memory efficient.
-        It will simply create a list of all outcomes using `enumerate()` and then
-        samples from it. Specific outcome space types should override this method
-        to improve its efficiency if possible.
-
-        """
-        outcomes = self.enumerate()
-        outcomes = list(outcomes)
-        if with_replacement:
-            return random.choices(outcomes, k=n_outcomes)
-        if fail_if_not_enough and n_outcomes > self.cardinality:
-            raise ValueError("Cannot sample enough")
-        random.shuffle(outcomes)
-        return outcomes[:n_outcomes]
+    # def sample(
+    #     self,
+    #     n_outcomes: int,
+    #     with_replacement: bool = False,
+    #     fail_if_not_enough=True,
+    # ) -> Iterable[Outcome]:
+    #     """
+    #     Samples up to n_outcomes with or without replacement.
+    #     """
+    #
+    #     return sample_issues(
+    #         self.issues, n_outcomes, with_replacement, fail_if_not_enough
+    #     )
+    #
+    #     # outcomes = self.enumerate()
+    #     # outcomes = list(outcomes)
+    #     # if with_replacement:
+    #     #     return random.choices(outcomes, k=n_outcomes)
+    #     # if fail_if_not_enough and n_outcomes > self.cardinality:
+    #     #     raise ValueError("Cannot sample enough")
+    #     # random.shuffle(outcomes)
+    #     # return outcomes[:n_outcomes]
 
     def __iter__(self):
         return self.enumerate().__iter__()
