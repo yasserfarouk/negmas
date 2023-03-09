@@ -250,7 +250,7 @@ class Issue(HasMinMax, Iterable, ABC):
         )
 
     @abstractmethod
-    def is_valid(self, v):
+    def is_valid(self, v) -> bool:
         """Checks whether the given value is valid for this issue"""
         ...
 
@@ -483,7 +483,7 @@ class DiscreteIssue(Issue):
     def rand_outcomes(
         self, n: int, with_replacement=False, fail_if_not_enough=False
     ) -> Iterable[Outcome]:
-        """Picks a random valid value."""
+        """Picks a set of random outcomes"""
 
         if n > len(self._values) and not with_replacement:
             if fail_if_not_enough:
