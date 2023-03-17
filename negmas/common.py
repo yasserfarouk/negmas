@@ -340,6 +340,10 @@ class NegotiatorMechanismInterface:
         """Returns the parameters used to initialize the mechanism."""
         return self.mechanism.params
 
+    def random_outcome(self) -> Outcome:
+        """A single random outcome."""
+        return self.mechanism.random_outcome()
+
     def random_outcomes(self, n: int = 1) -> list[Outcome]:
         """
         A set of random outcomes from the outcome-space of this negotiation

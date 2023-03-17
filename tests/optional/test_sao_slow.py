@@ -229,7 +229,7 @@ class TimeWaster(RandomNegotiator):
         assert state.step not in self.my_offers
         assert state.step not in self.my_responses
         self.received_offers[state.step] = offer
-        outcome = self.nmi.random_outcomes(1)[0]
+        outcome = self.nmi.random_outcome()
         response = SAOResponse(ResponseType.REJECT_OFFER, outcome)
         assert response.outcome is not None
         self.my_offers[state.step] = response.outcome
