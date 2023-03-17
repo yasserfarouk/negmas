@@ -262,12 +262,12 @@ class SAOSyncController(SAOController):
         # get the saved proposal if it exists and return it
         if negotiator_id in self.__proposals.keys():
             # if some proposal was there, delete it to force the controller to get a new one
-            proposal = self.__proposals.pop(negotiator_id)
+            proposal = self.__proposals.pop(negotiator_id, None)
         else:
             # if there was no proposal, get one. Note that `None` is a valid proposal
             if self.__global_ufun:
                 self._set_first_proposals()
-                proposal = self.__proposals.pop(negotiator_id)
+                proposal = self.__proposals.pop(negotiator_id, None)
             else:
                 proposal = self.first_offer(negotiator_id)
 
@@ -343,7 +343,7 @@ class SAOSyncController(SAOController):
         self.__offer_states = dict()
         if negotiator_id not in self.__responses:
             return ResponseType.REJECT_OFFER
-        return self.__responses.pop(negotiator_id)
+        return self.__responses.pop(negotiator_id, ResponseType.REJECT_OFFER)
 
     def on_negotiation_end(self, negotiator_id: str, state: MechanismState) -> None:
         if negotiator_id in self.__offers.keys():
