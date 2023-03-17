@@ -380,7 +380,7 @@ class RandomOfferingPolicy(OfferingPolicy):
     def __call__(self, state: GBState) -> Outcome | None:
         if not self.negotiator or not self.negotiator.nmi:
             return None
-        return self.negotiator.nmi.random_outcomes(1)[0]
+        return self.negotiator.nmi.random_outcome()
 
 
 @define

@@ -310,6 +310,10 @@ class Mechanism(NamedObject, EventSource, CheckpointMixin, ABC):
             )
         )
 
+    def random_outcome(self) -> Outcome:
+        """Returns a single random offer"""
+        return self.outcome_space.random_outcome()
+
     @property
     def time(self) -> float:
         """Elapsed time since mechanism started in seconds.

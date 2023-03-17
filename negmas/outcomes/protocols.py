@@ -82,6 +82,10 @@ class OutcomeSpace(Container, Protocol):
         """Samples up to n_outcomes with or without replacement"""
         ...
 
+    def random_outcome(self) -> Outcome:
+        """Returns a single random outcome."""
+        return list(self.sample(1))[0]
+
     def to_largest_discrete(
         self, levels: int, max_cardinality: int | float = float("inf"), **kwargs
     ) -> DiscreteOutcomeSpace:

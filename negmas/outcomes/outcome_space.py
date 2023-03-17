@@ -254,6 +254,9 @@ class CartesianOutcomeSpace(XmlSerializable):
             self.issues, n_outcomes, with_replacement, fail_if_not_enough
         )
 
+    def random_outcome(self):
+        return tuple(_.rand() for _ in self.issues)
+
     def cardinality_if_discretized(
         self, levels: int, max_cardinality: int | float = float("inf")
     ) -> int:

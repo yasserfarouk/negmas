@@ -1,7 +1,7 @@
 from __future__ import annotations
 
 import random
-from abc import abstractmethod
+from abc import ABC, abstractmethod
 from typing import Any, Generator
 
 from negmas import warnings
@@ -15,16 +15,18 @@ __all__ = ["OrdinalIssue", "DiscreteOrdinalIssue"]
 def generate_values(n: int) -> list[str]:
     if n > 1000_000:
         warnings.warn(
-            f"You are creating an OrdinalIssue with {n} items. This is too large. Consider using something like ContiguousIssue if possible",
+            f"You are creating an OrdinalIssue with {n} items. This is too large."
+            f"Consider using something like ContiguousIssue if possible",
             warnings.NegmasMemoryWarning,
         )
     width = len(str(n))
     return list(f"{_:0{width}d}" for _ in range(n))
 
 
-class OrdinalIssue(Issue):
+class OrdinalIssue(Issue, ABC):
     """
-    An `Issue` that have some defined ordering of outcomes but not necessarily a meaningful difference function between its values.
+    An `Issue` that have some defined ordering of outcomes but not necessarily
+    a meaningful difference function between its values.
     """
 
     @abstractmethod
