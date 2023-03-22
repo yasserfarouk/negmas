@@ -1,6 +1,6 @@
--e .
--r requirements.txt
--r requirements-dev.txt
+-e ..
+-r ../requirements.txt
+-r ../requirements-dev.txt
 Sphinx
 sphinx-autodoc-annotation
 sphinx-autodoc-typehints
