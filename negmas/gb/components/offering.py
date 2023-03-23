@@ -192,7 +192,7 @@ class WAROfferingPolicy(OfferingPolicy):
         if not self.negotiator or not self.negotiator.ufun:
             return
         self._irrational = True
-        self._irrational_index = self.negotiator.nmi.n_outcomes - 1
+        self._irrational_index = int(self.negotiator.nmi.n_outcomes) - 1
         if any(
             _.type
             not in (

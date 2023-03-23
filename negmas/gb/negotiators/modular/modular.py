@@ -29,7 +29,7 @@ class GBModularNegotiator(ModularNegotiator, GBNegotiator):
 
     @abstractmethod
     def generate_response(
-        self, state: GBState, offer: Outcome, source: str
+        self, state: GBState, offer: Outcome, source: str | None = None
     ) -> ResponseType:
         ...
 
@@ -45,7 +45,9 @@ class GBModularNegotiator(ModularNegotiator, GBNegotiator):
             c.after_proposing(state, offer=offer)
         return offer
 
-    def respond(self, state: GBState, offer: Outcome, source: str) -> ResponseType:
+    def respond(
+        self, state: GBState, offer: Outcome, source: str | None = None
+    ) -> ResponseType:
         for c in self._components:
             c.before_responding(state=state, offer=offer, source=source)
         response = self.generate_response(state=state, offer=offer, source=source)

@@ -66,7 +66,7 @@ class GAMechanism(Mechanism):
         """Select Pareto optimal outcomes"""
         return self.dominant_outcomes
 
-    def next_generation(self, parents: list[Outcome]) -> None:
+    def next_generation(self, parents: list[Outcome]) -> list[Outcome]:
         """Generate the next generation from parents"""
         self.population = parents[:]
         for _ in range(self.n_population - len(self.dominant_outcomes)):

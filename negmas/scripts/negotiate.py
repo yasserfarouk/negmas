@@ -70,34 +70,34 @@ def make_genius_negotiator(*args, java_class_name: str, **kwargs):
     return GeniusNegotiator(*args, **kwargs, java_class_name=java_class_name)
 
 
-def get_negotiator(name: str) -> type[Negotiator] | Callable[[str], Negotiator]:
-    if name.startswith(GENIUSMARKER):
+def get_negotiator(class_name: str) -> type[Negotiator] | Callable[[str], Negotiator]:
+    if class_name.startswith(GENIUSMARKER):
         for sp in (".", ":"):
-            x = sp.join(name.split(sp)[1:])
+            x = sp.join(class_name.split(sp)[1:])
             if x:
-                name = x
+                class_name = x
                 break
-        java_class = get_java_class(name)
+        java_class = get_java_class(class_name)
         if java_class is None:
             raise ValueError(
-                f"Cannot find java class name for genius negotiatoar of type {name}"
+                f"Cannot find java class name for genius negotiator of type {class_name}"
             )
         return functools.partial(make_genius_negotiator, java_class_name=java_class)
-    if "/" in name:
-        adapter_name, _, negotiator_name = name.partition("/")
+    if "/" in class_name:
+        adapter_name, _, negotiator_name = class_name.partition("/")
         adapter_type = get_adapter(adapter_name)
         negotiator_type = get_negotiator(negotiator_name)
         return functools.partial(create_adapter, adapter_type, negotiator_type)
-    if "." not in name:
-        if "_" in name:
-            name = titlecase(camel_case(name))
+    if "." not in class_name:
+        if "_" in class_name:
+            class_name = titlecase(camel_case(class_name))
         try:
-            return get_class(f"negmas.{name}")
+            return get_class(f"negmas.{class_name}")
         except:
-            if not name.endswith("Negotiator"):
-                name = f"{name}Negotiator"
-            name = f"negmas.{name}"
-    return get_class(name)
+            if not class_name.endswith("Negotiator"):
+                class_name = f"{class_name}Negotiator"
+            class_name = f"negmas.{class_name}"
+    return get_class(class_name)
 
 
 def get_adapter(
@@ -204,7 +204,7 @@ def run(
     scenario.mechanism_type = get_protocol(protocol)
 
     agents = [
-        get_negotiator(_)(name=name) for _, name in zip(negotiators, negotiator_names)
+        get_negotiator(_)(name=name) for _, name in zip(negotiators, negotiator_names)  # type: ignore
     ]
     if len(agents) < 2:
         print(

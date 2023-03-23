@@ -80,7 +80,10 @@ class MechanismFactory:
                     # record[f"negotiator{i}"] = _negotiator.name
                     record[f"reserved{i}"] = _negotiator.reserved_value
                     try:
-                        record[f"u{i}"] = _negotiator.ufun(record["outcome"])
+                        if not _negotiator.ufun:
+                            record[f"u{i}"] = None
+                        else:
+                            record[f"u{i}"] = _negotiator.ufun(record["outcome"])
                     except:
                         record[f"u{i}"] = None
             _negotiator.owner = partner_
@@ -221,7 +224,7 @@ class MechanismFactory:
                 group=self.group,
             )
         mechanism = self._create_negotiation_session(
-            mechanism=mechanism, responses=zip(responses, roles), partners=partners
+            mechanism=mechanism, responses=zip(responses, roles), partners=partners  # type: ignore
         )
         neg_info = NegotiationInfo(
             mechanism=mechanism,

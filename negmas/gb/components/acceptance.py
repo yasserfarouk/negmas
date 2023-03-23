@@ -131,7 +131,7 @@ class ACLastKReceived(AcceptancePolicy):
 
     def after_join(self, nmi) -> None:
         k = nmi.n_steps if self.k <= 0 and nmi.n_steps else self.k
-        self._best = [float("inf")] * k
+        self._best = [float("inf") for _ in range(k)]  # type: ignore
 
     def before_responding(self, state: GBState, offer: Outcome | None, source: str):
         if not self.negotiator or not self.negotiator.ufun:

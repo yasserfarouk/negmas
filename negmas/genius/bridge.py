@@ -207,7 +207,7 @@ def genius_bridge_is_installed() -> bool:
 
 
 class GeniusBridge:
-    gateways: dict[int, GeniusBridge] = dict()
+    gateways: dict[int, JavaGateway] = dict()
     java_processes: dict[int, Any] = dict()
     python_ports: dict[int, int] = dict()
 
@@ -231,7 +231,7 @@ class GeniusBridge:
         return genius_bridge_is_installed()
 
     @classmethod
-    def gateway(cls, port=DEFAULT_JAVA_PORT, force=False):
+    def gateway(cls, port=DEFAULT_JAVA_PORT, force=False) -> JavaGateway | None:
         """
         Finds and returns a gateway for a genius bridge on the given port
 
@@ -268,7 +268,7 @@ class GeniusBridge:
                 gateway.shutdown_callback_server()
             return None
         cls.python_ports[port] = python_port
-        cls.gateways[port] = gateway  # type: ignore
+        cls.gateways[port] = gateway
         return gateway
 
     @classmethod
@@ -498,7 +498,7 @@ class GeniusBridge:
         if gateway is None:
             return True
         try:
-            gateway.entry_point.shutdown()
+            gateway.entry_point.shutdown()  # type: ignore
         except:
             pass
         if wait:
@@ -521,7 +521,7 @@ class GeniusBridge:
         if gateway is None:
             return False
         try:
-            gateway.entry_point.kill()
+            gateway.entry_point.kill()  # type: ignore
         except:
             pass
         if wait:
@@ -630,7 +630,7 @@ class GeniusBridge:
         if gateway is None:
             return False
         try:
-            gateway.entry_point.kill_threads(int(wait_time * 1000))
+            gateway.entry_point.kill_threads(int(wait_time * 1000))  # type: ignore
         except:
             pass
         return True
@@ -652,7 +652,7 @@ class GeniusBridge:
             return False
         if gateway is None:
             return False
-        gateway.entry_point.clean()
+        gateway.entry_point.clean()  # type: ignore
         return True
 
     @classmethod

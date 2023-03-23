@@ -254,7 +254,7 @@ class TAUNegotiatorAdapter(GBNegotiator):
         self.base.add_capabilities(capabilities)
 
     def join(
-        self, nmi, state, *, preferences=None, ufun=None, role="negotiator"
+        self, nmi, state: GBState, *, preferences=None, ufun=None, role="negotiator"
     ) -> bool:
         joined = self.base.join(
             nmi=nmi,
@@ -293,22 +293,22 @@ class TAUNegotiatorAdapter(GBNegotiator):
     def remove_capability(self, name: str) -> None:
         self.base.remove_capability(name)
 
-    def on_negotiation_start(self, state) -> None:
+    def on_negotiation_start(self, state: GBState) -> None:
         return self.base.on_negotiation_start(self._sao_stat_from_gb_state(state))
 
-    def on_round_start(self, state) -> None:
+    def on_round_start(self, state: GBState) -> None:
         return self.base.on_round_start(self._sao_stat_from_gb_state(state))
 
-    def on_mechanism_error(self, state) -> None:
+    def on_mechanism_error(self, state: GBState) -> None:
         return self.base.on_mechanism_error(self._sao_stat_from_gb_state(state))
 
-    def on_round_end(self, state) -> None:
+    def on_round_end(self, state: GBState) -> None:
         return self.base.on_round_end(self._sao_stat_from_gb_state(state))
 
-    def on_leave(self, state) -> None:
+    def on_leave(self, state: GBState) -> None:
         return self.base.on_leave(self._sao_stat_from_gb_state(state))
 
-    def on_negotiation_end(self, state) -> None:
+    def on_negotiation_end(self, state: GBState) -> None:
         return self.base.on_negotiation_start(self._sao_stat_from_gb_state(state))
 
     def on_notification(self, notification, notifier: str):

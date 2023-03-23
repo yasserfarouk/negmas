@@ -33,7 +33,7 @@ from negmas.tournaments import (
 )
 
 try:
-    from .vendor.quick.quick import gui_option
+    from .vendor.quick.quick import gui_option  # type: ignore
 except:
 
     def gui_option(x):
@@ -271,7 +271,7 @@ def create(
     assigner,
     scorer,
 ):
-    if len(config_generator is None or config_generator.strip()) == 0:
+    if len(config_generator is None or config_generator.strip()) == 0:  # type: ignore
         print(
             "ERROR: You did not specify a config generator. Use --config-generator to specify one and see the "
             "documentation of the create_tournament method in negmas.situated for details about it."
@@ -281,7 +281,7 @@ def create(
 
         return -4
 
-    if len(world_generator is None or world_generator.strip()) == 0:
+    if len(world_generator is None or world_generator.strip()) == 0:  # type: ignore
         print(
             "ERROR: You did not specify a world generator. Use --world-generator to specify one and see the "
             "documentation of the create_tournament method in negmas.situated for details about it."
@@ -291,7 +291,7 @@ def create(
 
         return -3
 
-    if len(assigner is None or assigner.strip()) == 0:
+    if len(assigner is None or assigner.strip()) == 0:  # type: ignore
         print(
             "ERROR: You did not specify an assigner. Use --assigner to specify one and see the documentation"
             " of the create_tournament method in negmas.situated for details about it."
@@ -301,7 +301,7 @@ def create(
 
         return -2
 
-    if len(scorer is None or scorer.strip()) == 0:
+    if len(scorer is None or scorer.strip()) == 0:  # type: ignore
         print(
             "ERROR: You did not specify a scorer. Use --scorer to specify one and see the documentation of the "
             "create_tournament method in negmas.situated for details about it."

@@ -107,7 +107,7 @@ class MySyncController(SAOSyncController):
         self.end_after = end_after
         self.offer_none_after = offer_none_after
 
-    def respond(self, negotiator_id, state, offer, source: str):
+    def respond(self, negotiator_id, state, offer, source: str | None = None):
         response = super().respond(negotiator_id, state, offer, source)
         self.received_offers[negotiator_id][state.step].append(offer)
         if response == ResponseType.WAIT:
@@ -788,7 +788,7 @@ class MyNegotiator(SAONegotiator):
     def propose(self, state):
         return (3.0, 2, 1.0)
 
-    def respond(self, state, offer, source):
+    def respond(self, state, offer, source=None):
         if state.step < 5:
             return ResponseType.REJECT_OFFER
         return ResponseType.ACCEPT_OFFER

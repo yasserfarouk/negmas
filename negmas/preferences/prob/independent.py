@@ -272,7 +272,7 @@ class IPUtilityFunction(StationaryMixin, ProbUtilityFunction):
             MappingUtilityFunction
         """
         return MappingUtilityFunction(
-            mapping={o: d.sample(1)[0] for o, d in self.distributions.items()}
+            mapping={o: d.sample(1)[0] for o, d in self.distributions.items()}  # type: ignore
         )
 
     def eval(self, offer: Outcome) -> Distribution:

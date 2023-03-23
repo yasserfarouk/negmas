@@ -131,7 +131,11 @@ class SAOController(Controller):
         return self.call(negotiator, "propose", state=state)
 
     def respond(
-        self, negotiator_id: str, state: MechanismState, offer: Outcome, source: str
+        self,
+        negotiator_id: str,
+        state: MechanismState,
+        offer: Outcome,
+        source: str | None = None,
     ) -> ResponseType:
         negotiator, cntxt = self._negotiators.get(negotiator_id, (None, None))
         if negotiator is None:
@@ -168,7 +172,11 @@ class SAORandomController(SAOController):
         return negotiator.nmi.random_outcomes(1)[0]
 
     def respond(
-        self, negotiator_id: str, state: MechanismState, offer: Outcome, source: str
+        self,
+        negotiator_id: str,
+        state: MechanismState,
+        offer: Outcome,
+        source: str | None = None,
     ) -> ResponseType:
         negotiator, cntxt = self._negotiators.get(negotiator_id, (None, None))
         if negotiator is None:
@@ -296,7 +304,11 @@ class SAOSyncController(SAOController):
         """
 
     def respond(
-        self, negotiator_id: str, state: SAOState, offer: Outcome, source: str
+        self,
+        negotiator_id: str,
+        state: SAOState,
+        offer: Outcome,
+        source: str | None = None,
     ) -> ResponseType:
         # get the saved response to this negotiator if any
         response = self.__responses.pop(negotiator_id, ResponseType.WAIT)
@@ -782,7 +794,11 @@ class SAOMetaNegotiatorController(SAOController):
         return self.meta_negotiator.propose(state)
 
     def respond(
-        self, negotiator_id: str, state: SAOState, offer: Outcome, source: str
+        self,
+        negotiator_id: str,
+        state: SAOState,
+        offer: Outcome,
+        source: str | None = None,
     ) -> ResponseType:
         """Uses the meta negotiator to respond"""
         negotiator, _ = self._negotiators.get(negotiator_id, (None, None))

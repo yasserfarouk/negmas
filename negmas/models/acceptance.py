@@ -6,7 +6,7 @@ from __future__ import annotations
 import random
 from abc import ABC, abstractmethod
 from enum import Enum
-from typing import TYPE_CHECKING, Collection
+from typing import TYPE_CHECKING, Collection, Iterable
 
 import numpy as np
 
@@ -49,7 +49,7 @@ class AcceptanceModelType(Enum):
 class DiscreteAcceptanceModel(ABC):
     """"""
 
-    def __init__(self, outcomes: Collection[Outcome]):
+    def __init__(self, outcomes: Iterable[Outcome]):
         outcomes = list(outcomes)
         self.outcomes = outcomes
         self.indx = dict(zip(outcomes, range(len(outcomes))))
@@ -94,7 +94,7 @@ class DiscreteAcceptanceModel(ABC):
 class AdaptiveDiscreteAcceptanceModel(DiscreteAcceptanceModel):
     def __init__(
         self,
-        outcomes: Collection[Outcome],
+        outcomes: Iterable[Outcome],
         n_negotiators: int = 2,
         prob: float | list[float] = 0.5,
         end_prob=0.0,

@@ -192,7 +192,7 @@ class ConfigAssigner(Protocol):
     def __call__(
         self,
         config: list[dict[str, Any]],
-        max_n_worlds: int,
+        max_n_worlds: int | None,
         n_agents_per_competitor: int = 1,
         fair: bool = True,
         competitors: Sequence[str | type[Agent]] = (),
@@ -1107,6 +1107,8 @@ def run_worlds(
             if k in world_params.keys():
                 world_params.pop(k, None)
         params.append(world_params)
+    if world_generator is None or score_calculator is None:
+        raise ValueError(f"Cannot run worlds: {world_generator=}, {score_calculator=}")
     return _run_worlds(
         worlds_params=params,
         world_generator=world_generator,
@@ -1384,7 +1386,7 @@ def _run_parallel(
                 world_stats_,
                 type_stats_,
                 agent_stats_,
-            ) = future.result()
+            ) = future.result()  # type: ignore
             save_run_results(
                 run_id,
                 score_,
@@ -1771,7 +1773,7 @@ def create_tournament(
     agent_names_reveal_type=False,
     n_agents_per_competitor=1,
     n_configs: int = 10,
-    max_worlds_per_config: int = 100,
+    max_worlds_per_config: int | None = 100,
     n_runs_per_world: int = 5,
     max_n_configs: int | None = None,
     n_runs_per_config: int | None = None,
@@ -1918,7 +1920,7 @@ def create_tournament(
     non_competitors = (
         None
         if non_competitors is None
-        else [get_full_type_name(_) for _ in non_competitors]
+        else tuple(get_full_type_name(_) for _ in non_competitors)
     )
     params = dict(
         competitors=competitors,
@@ -2338,10 +2340,10 @@ def combine_tournament_results(
         if verbose:
             print("No scores found")
         return pd.DataFrame()
-    scores: pd.DataFrame = pd.concat(scores, axis=0, ignore_index=True, sort=True)
+    df: pd.DataFrame = pd.concat(scores, axis=0, ignore_index=True, sort=True)
     if dest is not None:
-        scores.to_csv(str(_path(dest) / SCORES_FILE), index=False)
-    return scores
+        df.to_csv(str(_path(dest) / SCORES_FILE), index=False)
+    return df
 
 
 def evaluate_tournament(
@@ -2532,6 +2534,7 @@ def evaluate_tournament(
         print(f"Saving results")
 
     agg_stats = pd.DataFrame()
+    ks_df, ttest_df = None, None
     if tournament_path is not None:
         tournament_path = pathlib.Path(tournament_path)
         scores.to_csv(str(tournament_path / SCORES_FILE), index_label="index")
@@ -2540,13 +2543,15 @@ def evaluate_tournament(
         )
         winner_table.to_csv(str(tournament_path / WINNERS_FILE), index_label="index")
         score_stats.to_csv(str(tournament_path / SCORES_STATS_FILE), index=False)
-        ttest_results = pd.DataFrame(data=ttest_results)
-        ttest_results.to_csv(str(tournament_path / T_STATS_FILE), index_label="index")
-        ks_results = pd.DataFrame(data=ks_results)
-        ks_results.to_csv(str(tournament_path / K_STATS_FILE), index_label="index")
+        ttest_df = pd.DataFrame(data=ttest_results)
+        ttest_df.to_csv(str(tournament_path / T_STATS_FILE), index_label="index")
+        ks_df = pd.DataFrame(data=ks_results)
+        ks_df.to_csv(str(tournament_path / K_STATS_FILE), index_label="index")
         if stats is not None and len(stats) > 0:
             stats.to_csv(str(tournament_path / STATS_FILE), index=False)
             agg_stats = _combine_stats(stats)
+            if agg_stats is None:
+                raise ValueError(f"Aggregation stats is None")
             agg_stats.to_csv(str(tournament_path / AGGREGATE_STATS_FILE), index=False)
 
     if verbose:
@@ -2557,8 +2562,8 @@ def evaluate_tournament(
         total_scores=total_scores,
         winners=winners,
         winners_scores=winner_scores,
-        ttest=ttest_results,
-        kstest=ks_results,
+        ttest=ttest_df,
+        kstest=ks_df,
         stats=stats,
         agg_stats=agg_stats,
         score_stats=score_stats,
@@ -2712,7 +2717,7 @@ def tournament(
         tname = get_full_type_name(c)
         ctype = get_class(c)
         if hasattr(ctype, "_type_name"):
-            tname = ctype._type_name()
+            tname = ctype._type_name()  # type: ignore
         competitor_indx[tname] = i
 
     def _run_eval(competitors_, stage_name):
@@ -2818,8 +2823,13 @@ def tournament(
             competitors = next_stage_competitors
             n_competitors_per_world = min(n_competitors_per_world, len(competitors))
             if len(competitors) == 1:
+                if results is None:
+                    raise ValueError(
+                        f"Results could not be calculated even though there are competitors"
+                    )
                 return results
         stage += 1
+    raise ValueError(f"Results could not be calculated. May be no-competitors")
 
 
 def is_already_run(world_params) -> bool:

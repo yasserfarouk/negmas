@@ -36,7 +36,9 @@ class GBComponent(Component):
         Called after proposing
         """
 
-    def before_responding(self, state: GBState, offer: Outcome | None, source: str):
+    def before_responding(
+        self, state: GBState, offer: Outcome | None, source: str | None = None
+    ):
         """
         Called before offering
         """
@@ -46,7 +48,7 @@ class GBComponent(Component):
         state: GBState,
         offer: Outcome | None,
         response: ResponseType,
-        source: str,
+        source: str | None = None,
     ):
         """
         Called before offering

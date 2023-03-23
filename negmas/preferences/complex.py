@@ -178,7 +178,7 @@ class ComplexNonlinearUtilityFunction(_DependenceMixin, BaseUtilityFunction):
         return ComplexNonlinearUtilityFunction(
             reserved_value=reserved_value,
             ufuns=ufuns,
-            combination_function=lambda vals: sum(v * w for w, v in zip(weights, vals)),
+            combination_function=lambda vals: sum(v * w for w, v in zip(weights, vals)),  # type: ignore
             outcome_space=outcome_space,
             **kwargs,
         )
@@ -216,4 +216,4 @@ class ComplexNonlinearUtilityFunction(_DependenceMixin, BaseUtilityFunction):
         """
         if offer is None:
             return self.reserved_value
-        return self.combination_function([f(offer) for f in self.ufuns])
+        return self.combination_function([f(offer) for f in self.ufuns])  # type: ignore

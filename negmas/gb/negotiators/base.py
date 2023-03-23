@@ -79,7 +79,9 @@ class GBNegotiator(Negotiator):
         """
 
     @abstractmethod
-    def respond(self, state: GBState, offer: Outcome, source: str) -> ResponseType:
+    def respond(
+        self, state: GBState, offer: Outcome, source: str | None
+    ) -> ResponseType:
         """Called to respond to an offer. This is the method that should be overriden to provide an acceptance strategy.
 
         Args:
@@ -159,7 +161,7 @@ class GBNegotiator(Negotiator):
         if self.__end_negotiation:
             return SAOResponse(ResponseType.END_NEGOTIATION, None)
         if self.preferences is not None:
-            changes = self.ufun.changes()
+            changes = self.preferences.changes()
             if changes:
                 self.on_preferences_changed(changes)
         if offer is None:

@@ -320,7 +320,7 @@ def sample_issues(
 
 def enumerate_issues(
     issues: Sequence[Issue],
-    max_cardinality: int | None = None,
+    max_cardinality: int | float | None = None,
 ) -> list[Outcome]:
     """
     Enumerates the outcomes of a list of issues.
@@ -332,8 +332,10 @@ def enumerate_issues(
         list of outcomes of the given type.
     """
     n = num_outcomes(issues)
+    if isinstance(max_cardinality, float) and max_cardinality == float("inf"):
+        max_cardinality = None
 
-    if n is None or n == float("inf"):
+    if n is None:
         if max_cardinality is None:
             raise ValueError(
                 "Cannot enumerate continuous issues without specifying `max_cardinality`"
@@ -341,14 +343,14 @@ def enumerate_issues(
         return list(
             sample_issues(
                 issues=issues,
-                n_outcomes=max_cardinality,
+                n_outcomes=int(max_cardinality),
                 fail_if_not_enough=False,
                 with_replacement=False,
             )
         )
 
     if max_cardinality is not None and n > max_cardinality:
-        return sample_outcomes(issues=issues, n_outcomes=max_cardinality)
+        return sample_outcomes(issues=issues, n_outcomes=int(max_cardinality))
     else:
         return list(tuple(_) for _ in itertools.product(*(_.all for _ in issues)))
 
