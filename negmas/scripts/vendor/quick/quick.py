@@ -11,7 +11,6 @@ try:
 except:
     pass
 else:
-
     MAX_ROWS = 21
 
     try:
@@ -151,7 +150,6 @@ else:
                 self.setData(index, val)
 
         def data(self, index, role=QtCore.Qt.DisplayRole):
-
             if role == QtCore.Qt.DisplayRole:
                 dstr = QtGui.QStandardItemModel.data(self, index, role)
                 if dstr == "" or dstr is None:
@@ -536,7 +534,6 @@ else:
             params_func.append(value_func)
 
             for idx, w in enumerate(widget):
-
                 if isinstance(w, QtWidgets.QLayout):
                     layout.addLayout(w, i, idx)
                 else:
@@ -848,6 +845,7 @@ else:
 
     def gui_option(f: click.core.BaseCommand) -> click.core.BaseCommand:
         """decorator for adding '--gui' option to command"""
+
         # TODO: add run_exit, new_thread
         def run_gui_it(ctx, param, value):
             if not value or ctx.resilient_parsing:

@@ -76,7 +76,7 @@ class RealComparatorNegotiator(Negotiator):
         """
         if not self.preferences:
             raise ValueError(f"Cannot compare outcomes. I have no preferences")
-        return self.preferences.difference(first, second)
+        return self.preferences.difference(first, second)  # type: ignore
 
     def is_better(self, first: Outcome, second: Outcome) -> bool | None:
         """
@@ -128,7 +128,7 @@ class BinaryComparatorNegotiator(Negotiator):
         """
         if not self.has_preferences:
             raise ValueError("Cannot compare outcomes without a ufun")
-        return self._preferences.is_better(first, second)
+        return self._preferences.is_better(first, second)  # type: ignore
 
 
 class NLevelsComparatorNegotiator(Negotiator):
@@ -168,18 +168,16 @@ class NLevelsComparatorNegotiator(Negotiator):
             scale: Scales the ufun values. Can be a callable or 'log', 'exp', 'linear'. If None, it is 'linear'
 
         """
-        if scale is not None:
-            if isinstance(scale, str):
-                scale = dict(  # type: ignore
-                    linear=lambda x: x,
-                    log=math.log,
-                    exp=math.exp,
-                ).get(scale, None)
-                if scale is None:
-                    raise ValueError(f"Unknown scale function {scale}")
+        if isinstance(scale, str):
+            scale = dict(  # type: ignore
+                linear=lambda x: x,
+                log=math.log,
+                exp=math.exp,
+            ).get(scale, None)
+        if scale is None:
+            raise ValueError(f"Unknown scale function {scale}")
         thresholds = np.linspace(ufun_min, ufun_max, num=n + 2)[1:-1].tolist()
-        if scale is not None:
-            thresholds = [scale(_) for _ in thresholds]
+        thresholds = [scale(_) for _ in thresholds]  # type: ignore
         return thresholds
 
     @classmethod
@@ -210,7 +208,7 @@ class NLevelsComparatorNegotiator(Negotiator):
         for i, first in enumerate(samples):
             n_diffs = min(10, n_samples - i - 1)
             for second in sample(samples[i + 1 :], k=n_diffs):
-                diffs.append(abs(preferences.compare_real(first, second)))
+                diffs.append(abs(preferences.compare_real(first, second)))  # type: ignore
         diffs = np.array(diffs)
         _, edges = np.histogram(diffs, bins=n + 1)
         return edges[1:-1].tolist()

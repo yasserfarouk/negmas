@@ -122,7 +122,7 @@ class Mechanism(NamedObject, EventSource, CheckpointMixin, ABC):
         outcome_space: OutcomeSpace | None = None,
         issues: list[Issue] | None = None,
         outcomes: list[Outcome] | int | None = None,
-        n_steps: int | None = None,
+        n_steps: int | float | None = None,
         time_limit: float | None = None,
         pend: float = 0,
         pend_per_second: float = 0,
@@ -171,6 +171,10 @@ class Mechanism(NamedObject, EventSource, CheckpointMixin, ABC):
         # parameters fixed for all runs
 
         self.id = str(uuid.uuid4())
+        if n_steps == float("inf"):
+            n_steps = None
+        if isinstance(n_steps, float):
+            n_steps = int(n_steps)
         self.nmi = nmi_factory(
             id=self.id,
             n_outcomes=outcome_space.cardinality,

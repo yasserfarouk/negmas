@@ -158,7 +158,7 @@ class MultiChainNegotiator(Negotiator, ABC):
         Returns:
 
         """
-        self._nmi.confirm(left)
+        return self.nmi.confirm(left)  # type: ignore
 
     @abstractmethod
     def on_acceptance(self, state: MechanismState, offer: Offer) -> Offer:
@@ -214,10 +214,10 @@ class ChainNegotiationsMechanism(Mechanism):
         super().__init__(*args, **kwargs)
         self.__chain: list[ChainNegotiator | None] = []
         self.__next_agent = 0
-        self.__last_proposal: Offer = None
+        self.__last_proposal: Offer | None = None
         self.__last_proposer_index: int = -1
-        self.__agreements: dict[int, Outcome] = defaultdict(lambda: None)
-        self.__temp_agreements: dict[int, Outcome] = defaultdict(lambda: None)
+        self.__agreements: dict[int, Outcome | None] = defaultdict(lambda: None)
+        self.__temp_agreements: dict[int, Outcome | None] = defaultdict(lambda: None)
 
     def _get_ami(
         self, negotiator: Negotiator, role: str
@@ -244,7 +244,7 @@ class ChainNegotiationsMechanism(Mechanism):
             max_n_agents=self.nmi.max_n_agents,
             annotation=self.nmi.annotation,
             parent=self,
-            negotiator=negotiator,
+            negotiator=negotiator,  # type: ignore
             level=int(role) + 1,
         )
 

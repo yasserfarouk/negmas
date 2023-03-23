@@ -314,7 +314,7 @@ def test_calc_stats(n_outcomes, n_negotiators, sort, r0, r1):
 
     np.random.seed(0)
     os = make_os([make_issue(n_outcomes)])
-    outcomes = os.enumerate_or_sample()
+    outcomes = list(os.enumerate_or_sample())
     utils = np.random.rand(n_negotiators, n_outcomes)
     ufuns = [
         MappingUtilityFunction(
