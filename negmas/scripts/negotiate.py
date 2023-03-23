@@ -163,6 +163,7 @@ def run(
     history: bool = False,
     stats: bool = True,
     discount: bool = True,
+    extend_negotiators: bool = False,
     only2d: bool = False,
     show_agreement: bool = False,
     show_pareto_distance: bool = True,
@@ -202,6 +203,12 @@ def run(
 
     assert scenario is not None
     scenario.mechanism_type = get_protocol(protocol)
+    if verbose:
+        print(f"Scenario: {domain}")
+        print(
+            f"Mechanism: {shorten_protocol_name(get_full_type_name(scenario.mechanism_type))}"
+        )
+        print(f"steps: {steps}\ntimelimit: {timelimit}")
 
     agents = [
         get_negotiator(_)(name=name) for _, name in zip(negotiators, negotiator_names)  # type: ignore
@@ -211,6 +218,29 @@ def run(
             f"At least 2 negotiators are needed: found {[_.__class__.__name__ for _ in agents]}"
         )
         return
+    if extend_negotiators and len(agents) > 0 and len(agents) != len(scenario.ufuns):
+        if len(agents) < len(scenario.ufuns):
+            if verbose:
+                print(
+                    f"Found {len(scenario.ufuns)} ufuns and {len(agents)} agents. Will add agents of the last type to match the n. ufuns"
+                )
+            agents = agents + ([agents[-1]] * (len(scenario.ufuns) - len(agents)))
+        if len(agents) > len(scenario.ufuns):
+            if verbose:
+                print(
+                    f"Found {len(scenario.ufuns)} ufuns and {len(agents)} agents. Will ignore the last n. agents"
+                )
+            agents = agents[: len(scenario.ufuns)]
+
+    if (
+        not extend_negotiators
+        and len(agents) > 0
+        and len(agents) != len(scenario.ufuns)
+    ):
+        print(
+            f"You passed {len(agents)} agents for a negotiation with {len(scenario.ufuns)} ufuns. pass --extend-negotiators to adjust the agent number"
+        )
+        exit(1)
     session = scenario.make_session(agents, n_steps=steps, time_limit=timelimit)
     if len(session.negotiators) < 2:
         print(
@@ -218,12 +248,7 @@ def run(
         )
         return
     if verbose:
-        print(f"Scenario: {domain}")
-        print(
-            f"Mechanism: {shorten_protocol_name(get_full_type_name(scenario.mechanism_type))}"
-        )
         print(f"Negotiators: {', '.join(negotiator_names)}")
-        print(f"steps: {steps}\ntimelimit: {timelimit}")
     runner = session.run_with_progress if progress else session.run
     _start = perf_counter()
     state = runner()
@@ -236,7 +261,7 @@ def run(
     if stats:
         ranks_ufuns = tuple(make_rank_ufun(_) for _ in scenario.ufuns)
         utils = tuple(u(state.agreement) for u in scenario.ufuns)
-        print(f"Agreement Utils: {utils}")
+        print(f"Agreement Utilities: {utils}")
         ranks = tuple(_(state.agreement) for _ in ranks_ufuns)
         print(f"Agreement Relative Ranks: {ranks}")
         pareto, pareto_outcomes = session.pareto_frontier()
