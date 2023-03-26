@@ -15,6 +15,7 @@ from negmas.outcomes.common import os_or_none
 from negmas.outcomes.issue_ops import enumerate_issues
 from negmas.outcomes.protocols import OutcomeSpace
 from negmas.preferences.crisp.mapping import MappingUtilityFunction
+from negmas.warnings import warn_if_slow
 
 if TYPE_CHECKING:
     from negmas.preferences.prob_ufun import ProbUtilityFunction
@@ -89,6 +90,9 @@ class ScenarioStats:
             for i, _ in enumerate(self.pareto_utils)
             if all(_[j] >= r for j, r in enumerate(reserved_values))
         ]
+        warn_if_slow(
+            len(pareto_indices), "Restricting a large Pareto Frontier", lambda x: x * 10
+        )
         pareto_utils = [self.pareto_utils[_] for _ in pareto_indices]
         pareto_outcomes = [self.pareto_outcomes[_] for _ in pareto_indices]
         nash = nash_points(ufuns, ranges=ranges, frontier=pareto_utils)
@@ -182,6 +186,9 @@ def calc_reserved_value(
         )
     outcomes = list(os.enumerate_or_sample(max_cardinality=max_cardinality))
     noutcomes = len(outcomes)
+    warn_if_slow(
+        noutcomes, "Calculating Reserved Value for the given fraction is too slow"
+    )
     utils = [ufun(o) for o in outcomes]
     uo = sorted(list(zip(utils, outcomes, strict=True)), reverse=True)
     utils = [_[0] for _ in uo]
@@ -303,6 +310,11 @@ def _pareto_frontier_bf(
         indices of Pareto optimal outcomes
     """
 
+    warn_if_slow(
+        len(points),
+        f"Pareto's Quadratic Operation is too Slow",
+        lambda x: x * x,
+    )
     frontier, indices = [], []
     if len(points) < 1:
         return np.empty(0, dtype=np.int64)
@@ -360,6 +372,7 @@ def pareto_frontier_of(
     """
     utils = np.asarray(points)
     n = len(utils)
+    warn_if_slow(n, f"Pareto's Linear Operation is too Slow", lambda x: x * 5)
     # for j in range(utils.shape[1]):
     #     order = utils[:, 0].argsort()[::-1]
     #     utils = utils[order]
@@ -966,6 +979,7 @@ def pareto_frontier(
         #     *[issue.value_generator(n=n_discretization) for issue in issues]
         # )
     points = [tuple(ufun(outcome) for ufun in ufuns) for outcome in outcomes]
+    warn_if_slow(len(points), "Too many outcomes in the OS (Pareto Calculation)")
     reservs = tuple(_.reserved_value if _ is not None else float("-inf") for _ in ufuns)
     rational_indices = [
         i for i, _ in enumerate(points) if all(a >= b for a, b in zip(_, reservs))
@@ -1303,6 +1317,7 @@ def get_ranks(ufun: UtilityFunction, outcomes: Sequence[Outcome | None]) -> list
     assert ufun.outcome_space.is_discrete()
     alloutcomes = list(ufun.outcome_space.enumerate_or_sample())
     n = len(alloutcomes)
+    warn_if_slow(n, "Calculating Rank UFun is too Slow")
     vals: list[tuple[float, Outcome | None]]
     vals = [(ufun(_), _) for _ in alloutcomes]
     ordered = sorted(vals, reverse=True)

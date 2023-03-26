@@ -1,7 +1,11 @@
 import warnings
+from typing import Callable
+
+from negmas.config import CONFIG_KEY_WARN_SLOW_OPS, negmas_config
 
 __all__ = [
     "warn",
+    "warn_if_slow",
     "deprecated",
     "NegmasWarning",
     "NegmasCannotStartNegotiation",
@@ -131,3 +135,39 @@ class NegmasDoubleAssignmentWarning(NegmasWarning):
 
 class NegmasUnexpectedValueWarning(NegmasWarning):
     ...
+
+
+class NegmasSlowOperation(NegmasWarning):
+    ...
+
+
+def warn_if_slow(
+    size: int | float,
+    message: str = "Slow Operation Warning",
+    op: Callable[[float], float] = lambda x: x,
+) -> None:
+    """
+    Issues a warning for slow operations.
+
+    Args:
+        size: The size of this operation to be checked
+        message: The message to print in the warning if the size is too large
+        op: An operation to apply to the config value CONFIG_KEY_WARN_SLOW_OPS before comparison.
+
+    Remarks:
+        - The warning will be issued if ```op(size) >= config[CONFIG_KEY_WARN_SLOW_OPS]```
+        - Default is to do no comparison (indicated by config[CONFIG_KEY_WARN_SLOW_OPS] <= 0)
+        - See `negams_config` for details about getting the config value.
+    """
+    limit = float(negmas_config(CONFIG_KEY_WARN_SLOW_OPS, 0))
+    if limit < 0.5:
+        return
+    nops = op(size)
+    if nops < limit:
+        return
+    warnings.warn(
+        f"{message}: n.ops={int(nops):,} (n={int(size):,}), limit={int(limit):,}",
+        NegmasSlowOperation,
+        2,
+        None,
+    )

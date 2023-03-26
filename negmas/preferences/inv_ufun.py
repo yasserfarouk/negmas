@@ -1,9 +1,11 @@
 from __future__ import annotations
 
+import math
 import random
 from typing import Iterable
 
 from negmas.outcomes import Outcome
+from negmas.warnings import warn_if_slow
 
 from .base_ufun import BaseUtilityFunction
 from .protocols import InverseUFun
@@ -199,9 +201,6 @@ class PresortingInverseUtilityFunction(InverseUFun):
         self._orddered_outcomes = []
 
     def init(self):
-        # print(
-        #     f"Inverting UFun for {self._ufun.owner and self._ufun.owner.id + '--' + self._ufun.owner.type_name}"
-        # )
         outcome_space = self._ufun.outcome_space
         if outcome_space is None:
             raise ValueError("Cannot find the outcome space.")
@@ -222,6 +221,12 @@ class PresortingInverseUtilityFunction(InverseUFun):
         os = outcome_space.to_discrete(levels=l, max_cardinality=self.max_cache_size)
         outcomes = os.enumerate_or_sample(max_cardinality=self.max_cache_size)
         utils = [float(self._ufun.eval(_)) for _ in outcomes]
+        x = len(utils)
+        warn_if_slow(
+            len(utils),
+            "Inverting a large utility function",
+            lambda x: (x * math.log2(x)) if x else x,
+        )
         r = self._ufun.reserved_value
         r = float(r) if r is not None else float("-inf")
         if self.sort_rational_only:

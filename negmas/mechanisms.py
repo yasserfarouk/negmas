@@ -9,6 +9,7 @@ import time
 import uuid
 from abc import ABC, abstractmethod
 from collections import defaultdict
+from datetime import datetime
 from os import PathLike
 from typing import TYPE_CHECKING, Any, Callable, Iterable
 
@@ -26,6 +27,7 @@ from negmas.common import (
 from negmas.events import Event, EventSource
 from negmas.helpers import snake_case
 from negmas.helpers.misc import get_free_tcp_port
+from negmas.helpers.strings import humanize_time
 from negmas.negotiators import Negotiator
 from negmas.outcomes import Outcome
 from negmas.outcomes.common import check_one_and_only, ensure_os
@@ -144,9 +146,11 @@ class Mechanism(NamedObject, EventSource, CheckpointMixin, ABC):
         genius_port: int = DEFAULT_JAVA_PORT,
         id: str | None = None,
         type_name: str | None = None,
+        verbosity: int = 0,
     ):
         check_one_and_only(outcome_space, issues, outcomes)
         outcome_space = ensure_os(outcome_space, issues, outcomes)
+        self.__verbosity = verbosity
         super().__init__(name, id=id, type_name=type_name)
         CheckpointMixin.checkpoint_init(
             self,
@@ -857,6 +861,15 @@ class Mechanism(NamedObject, EventSource, CheckpointMixin, ABC):
         )
         self.checkpoint_final_step()
 
+    @property
+    def verbosity(self) -> int:
+        """
+        Verbosity level.
+
+        - Children of this class should only print if verbosity > 1
+        """
+        return self.__verbosity
+
     def on_negotiation_start(self) -> bool:
         """Called before starting the negotiation.
 
@@ -889,6 +902,34 @@ class Mechanism(NamedObject, EventSource, CheckpointMixin, ABC):
 
         if self._start_time is None or self._start_time < 0:
             self._start_time = time.perf_counter()
+        if self.__verbosity > 0:
+            if self.current_step == 0:
+                print(
+                    f"{self.id}: Step {self.current_step} starting after {datetime.now()}",
+                    flush=True,
+                )
+            else:
+                _elapsed = time.perf_counter() - self._start_time
+                remaining = self.expected_remaining_steps
+                etatime = self.expected_remaining_time
+                etatime = etatime if etatime is not None else float("inf")
+                if remaining is not None:
+                    _eta = (
+                        humanize_time(
+                            min(
+                                (_elapsed * remaining) / self.current_step,
+                                etatime,
+                            )
+                        )
+                        + f" {remaining} steps"
+                    )
+                else:
+                    _eta = "--"
+                print(
+                    f"{self.id}: Step {self.current_step} starting after {humanize_time(_elapsed, show_ms=True)} [ETA {_eta}]",
+                    flush=True,
+                    end="\r" if self.verbosity == 1 else "\n",
+                )
         self.checkpoint_on_step_started()
         state = self.state
         state4history = self.state4history
@@ -1166,13 +1207,13 @@ class Mechanism(NamedObject, EventSource, CheckpointMixin, ABC):
     def run_with_progress(self, timeout=None) -> MechanismState:
         if timeout is None:
             with Progress() as progress:
-                task = progress.add_task("Running ...", total=100)
+                task = progress.add_task("Negotiating ...", total=100)
                 for _ in track(self):
                     progress.update(task, completed=int(self.relative_time * 100))
         else:
             start_time = time.perf_counter()
             with Progress() as progress:
-                task = progress.add_task("Running ...", total=100)
+                task = progress.add_task("Negotiating ...", total=100)
                 for _ in self:
                     progress.update(task, completed=int(self.relative_time * 100))
                     if time.perf_counter() - start_time > timeout:

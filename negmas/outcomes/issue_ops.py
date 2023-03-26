@@ -9,6 +9,7 @@ from collections import defaultdict
 from typing import TYPE_CHECKING, Any, Callable, Iterable, Sequence
 
 from negmas.outcomes.contiguous_issue import ContiguousIssue
+from negmas.warnings import warn_if_slow
 
 if TYPE_CHECKING:
     from .common import Outcome
@@ -63,6 +64,8 @@ def enumerate_discrete_issues(issues: Sequence[DiscreteIssue]) -> list[Outcome]:
     Returns:
         list of outcomes
     """
+    n = num_outcomes(issues)
+    warn_if_slow(n, "Enumerating large OS (discrete)")
     return list(itertools.product(*(_.all for _ in issues)))
 
 
@@ -334,6 +337,11 @@ def enumerate_issues(
     n = num_outcomes(issues)
     if isinstance(max_cardinality, float) and max_cardinality == float("inf"):
         max_cardinality = None
+
+    if n is None and max_cardinality is not None:
+        warn_if_slow(max_cardinality, "Enumerating a large OS")
+    if max_cardinality is None:
+        warn_if_slow(n, "Enumerating a continuous OS")
 
     if n is None:
         if max_cardinality is None:

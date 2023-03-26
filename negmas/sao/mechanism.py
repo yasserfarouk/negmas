@@ -10,6 +10,7 @@ from collections import defaultdict
 from typing import TYPE_CHECKING
 
 from negmas import warnings
+from negmas.helpers.strings import humanize_time
 
 from ..common import TraceElement
 from ..events import Event
@@ -220,6 +221,11 @@ class SAOMechanism(Mechanism):
             assert (
                 not state.waiting or negotiator.id == state.current_proposer
             ), f"We are waiting with {state.current_proposer} as the last offerer but we are asking {negotiator.id} to offer\n{state}"
+            if self.verbosity > 1:
+                print(
+                    f"{self.id}: {negotiator.id} called after {humanize_time(time.perf_counter() - self._start_time, show_ms=True) if self._start_time else 0}",
+                    flush=True,
+                )
             rem = self.remaining_time
             if rem is None:
                 rem = float("inf")

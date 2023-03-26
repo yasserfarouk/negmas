@@ -17,6 +17,7 @@ from negmas.outcomes.common import check_one_at_most, os_or_none
 from negmas.outcomes.outcome_space import make_os
 from negmas.outcomes.protocols import IndependentIssuesOS, OutcomeSpace
 from negmas.serialization import PYTHON_CLASS_IDENTIFIER, deserialize, serialize
+from negmas.warnings import warn_if_slow
 
 from .preferences import Preferences
 from .protocols import InverseUFun
@@ -85,6 +86,7 @@ class BaseUtilityFunction(Preferences, ABC):
             raise ValueError("Cannot find outcomes to use for finding extremes")
         mn, mx = float("inf"), float("-inf")
         worst, best = None, None
+        warn_if_slow(len(list(outcomes)), f"Extreme Outcomes too Slow")
         for o in outcomes:
             u = self(o)
             if u < mn:
