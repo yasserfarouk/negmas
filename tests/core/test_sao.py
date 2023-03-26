@@ -65,18 +65,20 @@ def test_pend_works():
         LinearAdditiveUtilityFunction.random(issues=issues, reserved_value=0.0),
     ]
     n = 1000
-    session = SAOMechanism(n_steps=None, time_limit=None, pend=1 / n, issues=issues)
+    f = 0.01
+    session = SAOMechanism(n_steps=None, time_limit=None, pend=f / n, issues=issues)
     for u in ufuns:
         session.add(AspirationNegotiator(), preferences=u)  # type: ignore
 
-    assert abs(session.expected_relative_time - (1 / (n + 1))) < 1e-8
+    assert abs(session.expected_relative_time - (f / (n + 1))) < 1e-8
     assert session.expected_remaining_time is None
-    assert session.expected_remaining_steps == n
-    assert abs(session.relative_time - (1 / (n + 1))) < 1e-8
+    assert session.expected_remaining_steps is not None
+    assert abs(session.expected_remaining_steps - n / f) < 4
+    assert abs(session.relative_time - (f / (n + 1))) < 1e-8
     assert session.remaining_steps is None
     assert session.remaining_time is None
     assert session.run().agreement is not None
-    assert session.state.step <= 100 * n
+    assert session.state.step <= 10000 * n
 
 
 def test_pend_per_second_works():
