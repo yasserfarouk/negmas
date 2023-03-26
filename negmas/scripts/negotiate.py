@@ -157,6 +157,7 @@ def run(
     plot: bool = True,
     plot_path: Path = None,  # type: ignore
     verbose: bool = typer.Option(False, "--verbose", "-v"),
+    verbosity: int = 0,
     progress: bool = False,
     plot_backend: str = "",
     plot_interactive: bool = True,
@@ -179,10 +180,15 @@ def run(
     show_relative_time: bool = True,
     show_n_steps: bool = True,
 ):
+    if verbose and verbosity < 1:
+        verbosity = 1
     for p in path:
         sys.path.append(str(p))
     if reserved:
         assert len(reserved) == len(negotiators), f"{reserved=} but {negotiators=}"
+    adapter_names = shortest_unique_names(
+        [_.split("/")[0] if "/" in _ else "" for _ in negotiators]
+    )
     negotiator_names = shortest_unique_names(negotiators)
     steps: int | float
     timelimit: int | float
@@ -204,7 +210,7 @@ def run(
 
     assert scenario is not None
     scenario.mechanism_type = get_protocol(protocol)
-    if verbose:
+    if verbosity > 0:
         print(f"Scenario: {domain}")
         print(
             f"Mechanism: {shorten_protocol_name(get_full_type_name(scenario.mechanism_type))}"
@@ -221,13 +227,13 @@ def run(
         return
     if extend_negotiators and len(agents) > 0 and len(agents) != len(scenario.ufuns):
         if len(agents) < len(scenario.ufuns):
-            if verbose:
+            if verbosity > 0:
                 print(
                     f"Found {len(scenario.ufuns)} ufuns and {len(agents)} agents. Will add agents of the last type to match the n. ufuns"
                 )
             agents = agents + ([agents[-1]] * (len(scenario.ufuns) - len(agents)))
         if len(agents) > len(scenario.ufuns):
-            if verbose:
+            if verbosity > 0:
                 print(
                     f"Found {len(scenario.ufuns)} ufuns and {len(agents)} agents. Will ignore the last n. agents"
                 )
@@ -242,19 +248,22 @@ def run(
             f"You passed {len(agents)} agents for a negotiation with {len(scenario.ufuns)} ufuns. pass --extend-negotiators to adjust the agent number"
         )
         exit(1)
-    session = scenario.make_session(agents, n_steps=steps, time_limit=timelimit)
+    session = scenario.make_session(
+        agents, n_steps=steps, time_limit=timelimit, verbosity=verbosity - 1
+    )
     if len(session.negotiators) < 2:
         print(
             f"At least 2 negotiators are needed: Only the following could join {[_.__class__.__name__ for _ in session.negotiators]}"
         )
         return
-    if verbose:
+    if verbosity > 1:
+        print(f"Adapters: {', '.join(adapter_names)}")
         print(f"Negotiators: {', '.join(negotiator_names)}")
     runner = session.run_with_progress if progress else session.run
     _start = perf_counter()
     state = runner()
     duration = perf_counter() - _start
-    if verbose:
+    if verbosity > 1:
         print(f"Time: {humanize_time(duration, show_ms=True, show_us=True)}")
         print(f"Steps: {session.current_step}")
         print(state)
