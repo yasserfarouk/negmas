@@ -20,7 +20,7 @@ class SamplingInverseUtilityFunction(InverseUFun):
 
     Nothing is done during initialization so the fixed cost of this inverter is minimal.
     Nevertheless, each time the system is asked to find an outcome within some range, it uses
-    random sampling which is very inefficient and suffers from the curse of dimensinality.
+    random sampling which is very inefficient and suffers from the curse of dimensionality.
     """
 
     def __init__(self, ufun: BaseUtilityFunction, max_samples_per_call: int = 10_000):
@@ -55,7 +55,7 @@ class SamplingInverseUtilityFunction(InverseUFun):
 
         """
         raise ValueError(
-            f"Cannot find all outcomes in a range using a SamplingInverseUtilityFunction. Try a PresortedInverseUtilityFunction"
+            f"Cannot find all outcomes in a range ({rng}) using a SamplingInverseUtilityFunction. Try a PresortedInverseUtilityFunction"
         )
 
     def some(
@@ -199,6 +199,9 @@ class PresortingInverseUtilityFunction(InverseUFun):
         self._orddered_outcomes = []
 
     def init(self):
+        # print(
+        #     f"Inverting UFun for {self._ufun.owner and self._ufun.owner.id + '--' + self._ufun.owner.type_name}"
+        # )
         outcome_space = self._ufun.outcome_space
         if outcome_space is None:
             raise ValueError("Cannot find the outcome space.")
@@ -309,12 +312,12 @@ class PresortingInverseUtilityFunction(InverseUFun):
         """
         os_ = self._ufun.outcome_space
         if not os_:
-            raise ValueError(f"Unkonwn outcome space. Cannot invert the ufun")
+            raise ValueError(f"Unknown outcome space. Cannot invert the ufun")
 
         if os_.is_discrete():
             return self.some(rng, normalized)
         raise ValueError(
-            f"Cannot find all outcomes in a range for a continous outcome space (there is in general an infinite number of them)"
+            f"Cannot find all outcomes in a range for a continuous outcome space (there is in general an infinite number of them)"
         )
 
     def worst_in(
@@ -327,7 +330,7 @@ class PresortingInverseUtilityFunction(InverseUFun):
         if not self._ordered_outcomes:
             return None
         wbefore = self._ordered_outcomes[0][1]
-        for i, (util, w) in enumerate(self._ordered_outcomes):
+        for util, w in self._ordered_outcomes:
             if util > mx:
                 continue
             if util < mn:
