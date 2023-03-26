@@ -235,14 +235,14 @@ class GBMechanism(Mechanism):
     def run_threads(self) -> dict[str, tuple[ThreadState, GBResponse | None]]:
         if self.verbosity == 2:
             print(
-                f"{self.id}: Threads start after {humanize_time(perf_counter() - self._start_time, show_ms=True) if self._start_time else 0}",
+                f"{self.name}: Threads start after {humanize_time(perf_counter() - self._start_time, show_ms=True) if self._start_time else 0}",
                 flush=True,
             )
 
         def _do_run(idd, thread):
             if self.verbosity > 2:
                 print(
-                    f"{self.id}: Thread {thread.negotiator.id} starts after {humanize_time(perf_counter() - self._start_time, show_ms=True) if self._start_time else 0}",
+                    f"{self.name}: Thread {thread.negotiator.name} starts after {humanize_time(perf_counter() - self._start_time, show_ms=True) if self._start_time else 0}",
                     flush=True,
                 )
             r = thread.run()
@@ -273,7 +273,7 @@ class GBMechanism(Mechanism):
         #     breakpoint()
         if self.verbosity == 2:
             print(
-                f"{self.id}: Central Processing after {humanize_time(perf_counter() - self._start_time, show_ms=True) if self._start_time else 0}",
+                f"{self.name}: Central Processing after {humanize_time(perf_counter() - self._start_time, show_ms=True) if self._start_time else 0}",
                 flush=True,
             )
         responses = []
@@ -283,7 +283,7 @@ class GBMechanism(Mechanism):
                 responses.append(response)
         if self.verbosity > 2:
             print(
-                f"{self.id}: Global Evaluator after {humanize_time(perf_counter() - self._start_time, show_ms=True) if self._start_time else 0}",
+                f"{self.name}: Global Evaluator after {humanize_time(perf_counter() - self._start_time, show_ms=True) if self._start_time else 0}",
                 flush=True,
             )
         if self._global_evaluator:
@@ -292,7 +292,7 @@ class GBMechanism(Mechanism):
             )
         if self.verbosity > 2:
             print(
-                f"{self.id}: Global Constraint after {humanize_time(perf_counter() - self._start_time, show_ms=True) if self._start_time else 0}",
+                f"{self.name}: Global Constraint after {humanize_time(perf_counter() - self._start_time, show_ms=True) if self._start_time else 0}",
                 flush=True,
             )
         if self._global_constraint:
