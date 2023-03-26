@@ -905,7 +905,7 @@ class Mechanism(NamedObject, EventSource, CheckpointMixin, ABC):
         if self.__verbosity > 0:
             if self.current_step == 0:
                 print(
-                    f"{self.id}: Step {self.current_step} starting after {datetime.now()}",
+                    f"{self.name}: Step {self.current_step} starting after {datetime.now()}",
                     flush=True,
                 )
             else:
@@ -926,7 +926,7 @@ class Mechanism(NamedObject, EventSource, CheckpointMixin, ABC):
                 else:
                     _eta = "--"
                 print(
-                    f"{self.id}: Step {self.current_step} starting after {humanize_time(_elapsed, show_ms=True)} [ETA {_eta}]",
+                    f"{self.name}: Step {self.current_step} starting after {humanize_time(_elapsed, show_ms=True)} [ETA {_eta}]",
                     flush=True,
                     end="\r" if self.verbosity == 1 else "\n",
                 )
