@@ -162,6 +162,7 @@ def run(
     plot_interactive: bool = True,
     history: bool = False,
     stats: bool = True,
+    rank_stats: bool = None,  # type: ignore
     discount: bool = True,
     extend_negotiators: bool = False,
     only2d: bool = False,
@@ -258,13 +259,16 @@ def run(
         print(f"Steps: {session.current_step}")
         print(state)
     print(f"Agreement: {state.agreement}")
+    rank_stats = (
+        rank_stats or rank_stats is None and scenario.agenda.cardinality < 10_000
+    )
+    if stats or rank_stats:
+        pareto, pareto_outcomes = session.pareto_frontier()
+    else:
+        pareto, pareto_outcomes = [], []
     if stats:
-        ranks_ufuns = tuple(make_rank_ufun(_) for _ in scenario.ufuns)
         utils = tuple(u(state.agreement) for u in scenario.ufuns)
         print(f"Agreement Utilities: {utils}")
-        ranks = tuple(_(state.agreement) for _ in ranks_ufuns)
-        print(f"Agreement Relative Ranks: {ranks}")
-        pareto, pareto_outcomes = session.pareto_frontier()
         pts = session.nash_points(frontier=pareto, frontier_outcomes=pareto_outcomes)
         print(
             f"Nash Points: {pts} -- Distance = {dist(utils, list(a for a, _ in pts))}"
@@ -289,6 +293,10 @@ def run(
         # print(
         #     f"Max. Relative Points: {pts} -- Distance = {dist(utils, list(a for a, _ in pts))}"
         # )
+    if rank_stats:
+        ranks_ufuns = tuple(make_rank_ufun(_) for _ in scenario.ufuns)
+        ranks = tuple(_(state.agreement) for _ in ranks_ufuns)
+        print(f"Agreement Relative Ranks: {ranks}")
         pareto_save = pareto_outcomes
         alloutcomes = session.discrete_outcomes()
         pareto, pareto_indices = pareto_frontier(
