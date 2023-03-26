@@ -1248,7 +1248,7 @@ class Mechanism(NamedObject, EventSource, CheckpointMixin, ABC):
         )
         frontier = [points[_] for _ in indices]
         if frontier is None:
-            raise ValueError("Cound not find the pareto-frontier")
+            raise ValueError("Could not find the pareto-frontier")
         return frontier, [outcomes[rational_indices[_]] for _ in indices]
 
     def pareto_frontier_bf(
@@ -1264,7 +1264,7 @@ class Mechanism(NamedObject, EventSource, CheckpointMixin, ABC):
         ufuns = tuple(self._get_preferences())
         if any(_ is None for _ in ufuns):
             raise ValueError(
-                "Some negotiators have no ufuns. Cannot calcualate the pareto frontier"
+                "Some negotiators have no ufuns. Cannot calculate the pareto frontier"
             )
         outcomes = self.discrete_outcomes(max_cardinality=max_cardinality)
         results = pareto_frontier(
@@ -1286,8 +1286,10 @@ class Mechanism(NamedObject, EventSource, CheckpointMixin, ABC):
         if not frontier:
             frontier, frontier_outcomes = self.pareto_frontier(max_cardinality)
         assert frontier_outcomes is not None
-        outcomes = tuple(self.discrete_outcomes(max_cardinality=max_cardinality))
-        kalai_pts = max_welfare_points(ufuns, frontier, outcomes=outcomes)
+        # outcomes = tuple(self.discrete_outcomes(max_cardinality=max_cardinality))
+        kalai_pts = max_welfare_points(
+            ufuns, frontier, outcome_space=self.outcome_space
+        )
         return tuple(
             (kalai_utils, frontier_outcomes[indx]) for kalai_utils, indx in kalai_pts
         )
@@ -1302,8 +1304,10 @@ class Mechanism(NamedObject, EventSource, CheckpointMixin, ABC):
         if not frontier:
             frontier, frontier_outcomes = self.pareto_frontier(max_cardinality)
         assert frontier_outcomes is not None
-        outcomes = tuple(self.discrete_outcomes(max_cardinality=max_cardinality))
-        kalai_pts = max_relative_welfare_points(ufuns, frontier, outcomes=outcomes)
+        # outcomes = tuple(self.discrete_outcomes(max_cardinality=max_cardinality))
+        kalai_pts = max_relative_welfare_points(
+            ufuns, frontier, outcome_space=self.outcome_space
+        )
         return tuple(
             (kalai_utils, frontier_outcomes[indx]) for kalai_utils, indx in kalai_pts
         )
@@ -1318,9 +1322,12 @@ class Mechanism(NamedObject, EventSource, CheckpointMixin, ABC):
         if not frontier:
             frontier, frontier_outcomes = self.pareto_frontier(max_cardinality)
         assert frontier_outcomes is not None
-        outcomes = tuple(self.discrete_outcomes(max_cardinality=max_cardinality))
+        # outcomes = tuple(self.discrete_outcomes(max_cardinality=max_cardinality))
         kalai_pts = kalai_points(
-            ufuns, frontier, outcomes=outcomes, subtract_reserved_value=False
+            ufuns,
+            frontier,
+            outcome_space=self.outcome_space,
+            subtract_reserved_value=False,
         )
         return tuple(
             (kalai_utils, frontier_outcomes[indx]) for kalai_utils, indx in kalai_pts
@@ -1336,9 +1343,12 @@ class Mechanism(NamedObject, EventSource, CheckpointMixin, ABC):
         if not frontier:
             frontier, frontier_outcomes = self.pareto_frontier(max_cardinality)
         assert frontier_outcomes is not None
-        outcomes = tuple(self.discrete_outcomes(max_cardinality=max_cardinality))
+        # outcomes = tuple(self.discrete_outcomes(max_cardinality=max_cardinality))
         kalai_pts = kalai_points(
-            ufuns, frontier, outcomes=outcomes, subtract_reserved_value=True
+            ufuns,
+            frontier,
+            outcome_space=self.outcome_space,
+            subtract_reserved_value=True,
         )
         return tuple(
             (kalai_utils, frontier_outcomes[indx]) for kalai_utils, indx in kalai_pts
@@ -1354,8 +1364,8 @@ class Mechanism(NamedObject, EventSource, CheckpointMixin, ABC):
         if not frontier:
             frontier, frontier_outcomes = self.pareto_frontier(max_cardinality)
         assert frontier_outcomes is not None
-        outcomes = tuple(self.discrete_outcomes(max_cardinality=max_cardinality))
-        nash_pts = nash_points(ufuns, frontier, outcomes=outcomes)
+        # outcomes = tuple(self.discrete_outcomes(max_cardinality=max_cardinality))
+        nash_pts = nash_points(ufuns, frontier, outcome_space=self.outcome_space)
         return tuple(
             (nash_utils, frontier_outcomes[indx]) for nash_utils, indx in nash_pts
         )
