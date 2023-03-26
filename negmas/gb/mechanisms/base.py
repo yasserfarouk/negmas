@@ -1,11 +1,13 @@
 from __future__ import annotations
 
 from random import shuffle
+from time import perf_counter
 from typing import TYPE_CHECKING, Any, Callable
 
 from attrs import define
 
 from negmas.common import TraceElement
+from negmas.helpers import humanize_time
 from negmas.helpers.types import get_full_type_name, instantiate
 from negmas.mechanisms import Mechanism, MechanismStepResult
 from negmas.outcomes import Outcome
@@ -231,7 +233,18 @@ class GBMechanism(Mechanism):
         self._sync_call = v
 
     def run_threads(self) -> dict[str, tuple[ThreadState, GBResponse | None]]:
+        if self.verbosity == 2:
+            print(
+                f"{self.id}: Threads start after {humanize_time(perf_counter() - self._start_time, show_ms=True) if self._start_time else 0}",
+                flush=True,
+            )
+
         def _do_run(idd, thread):
+            if self.verbosity > 2:
+                print(
+                    f"{self.id}: Thread {thread.negotiator.id} starts after {humanize_time(perf_counter() - self._start_time, show_ms=True) if self._start_time else 0}",
+                    flush=True,
+                )
             r = thread.run()
             state: GBState = self.state  # type: ignore
             state.last_thread = idd
@@ -258,14 +271,29 @@ class GBMechanism(Mechanism):
         # if state.step > self.outcome_space.cardinality:
         #     self.plot()
         #     breakpoint()
+        if self.verbosity == 2:
+            print(
+                f"{self.id}: Central Processing after {humanize_time(perf_counter() - self._start_time, show_ms=True) if self._start_time else 0}",
+                flush=True,
+            )
         responses = []
         for source, (tstate, response) in results.items():
             state.threads[source] = tstate
             if self._local_evaluator_type:
                 responses.append(response)
+        if self.verbosity > 2:
+            print(
+                f"{self.id}: Global Evaluator after {humanize_time(perf_counter() - self._start_time, show_ms=True) if self._start_time else 0}",
+                flush=True,
+            )
         if self._global_evaluator:
             responses.append(
                 self._global_evaluator(self.negotiator_ids, state, self._history)
+            )
+        if self.verbosity > 2:
+            print(
+                f"{self.id}: Global Constraint after {humanize_time(perf_counter() - self._start_time, show_ms=True) if self._start_time else 0}",
+                flush=True,
             )
         if self._global_constraint:
             responses.append(self._global_constraint(state, self._history))

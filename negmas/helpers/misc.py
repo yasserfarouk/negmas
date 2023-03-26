@@ -6,7 +6,6 @@ from __future__ import annotations
 
 import itertools
 import socket
-from collections import defaultdict
 from typing import Any, Callable, Iterable, Sequence
 
 from ..protocols import HasMinMax

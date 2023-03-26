@@ -25,11 +25,14 @@ CONFIG_KEY_JNEGMAS_JAR = "jnegmas_jar"
 CONFIG_KEY_GENIUS_BRIDGE_JAR = "genius_bridge_jar"
 """Key name for the Genius bridge jar in `NEGMAS_CONFIG`"""
 
+CONFIG_KEY_WARN_SLOW_OPS = "warn_slow_ops"
+
 NEGMAS_CONFIG = {
     CONFIG_KEY_JNEGMAS_JAR: str(NEGMAS_DEFAULT_PATH.parent / "files" / "jnegmas.jar"),
     CONFIG_KEY_GENIUS_BRIDGE_JAR: str(
         NEGMAS_DEFAULT_PATH.parent / "files" / "geniusbridge.jar"
     ),
+    CONFIG_KEY_WARN_SLOW_OPS: 100_000_000,
 }
 
 # loading config file if any
@@ -51,6 +54,14 @@ if local_path.exists():
         pass
 
 
+def _from_env(key: str, default):
+    envkey = "NEGMAS_" + key.upper()
+    v = environ.get(envkey, default)
+    if key in (CONFIG_KEY_WARN_SLOW_OPS,):
+        return int(v) if v else 0
+    return v
+
+
 def negmas_config(key: str, default):
     """
     Returns the config value associated with the given key.
@@ -64,4 +75,4 @@ def negmas_config(key: str, default):
             - ~/negmas/config.json (with the key all lowercase)
             - A default value hardcoded in the negmas library. For paths, this usually lies under ~/negmas
     """
-    return NEGMAS_CONFIG.get(key.lower(), environ.get("NEGMAS_" + key.upper(), default))
+    return _from_env(key, NEGMAS_CONFIG.get(key.lower(), default))
