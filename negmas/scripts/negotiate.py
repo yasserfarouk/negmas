@@ -258,8 +258,6 @@ def run(
         return
     if verbosity > 0:
         print(f"Adapters: {', '.join(adapter_names)}")
-    if verbosity > 1:
-        print(f"Adapters: {', '.join(adapter_names)}")
         print(f"Negotiators: {', '.join(negotiator_names)}")
     runner = session.run_with_progress if progress else session.run
     _start = perf_counter()
