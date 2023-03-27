@@ -6,6 +6,7 @@ from matplotlib.axes import itertools
 from negmas import SAOResponse
 from negmas.common import NegotiatorMechanismInterface
 from negmas.gb.common import GBState, ResponseType
+from negmas.gb.components.acceptance import AcceptancePolicy, AcceptAnyRational
 from negmas.gb.negotiators.base import GBNegotiator
 from negmas.outcomes import Outcome
 from negmas.preferences import BaseUtilityFunction
@@ -60,10 +61,10 @@ class UtilityAdapter:
         for i in itertools.chain(
             range(indx - 1, -1, -1), range(indx + 1, len(self.sorted_outcomes))
         ):
-            current = self.sorted_outcomes[i]
+            current, util = self.sorted_outcomes[i], self.utils[i]
             if current in self.offered:
                 continue
-            if self.ufun(current) < self.ufun.reserved_value:
+            if util < self.ufun.reserved_value:
                 continue
             d = abs(self.utils[i] - u)
             if d < diff:
@@ -156,8 +157,17 @@ class UtilityAdapter:
 class TAUNegotiatorAdapter(GBNegotiator):
     """Adapts any `GBNegotiator` to act as a TAU negotiator."""
 
-    def __init__(self, *args, base: SAONegotiator, **kwargs):
+    def __init__(
+        self,
+        *args,
+        base: SAONegotiator,
+        acceptance_policy: AcceptancePolicy | None = AcceptAnyRational(),
+        **kwargs
+    ):
         self.base = base
+        if acceptance_policy is not None:
+            acceptance_policy._negotiator = base
+        self.acceptance_policy = acceptance_policy
         self.adapter = UtilityAdapter()
         super().__init__(*args, **kwargs)
 
@@ -208,7 +218,13 @@ class TAUNegotiatorAdapter(GBNegotiator):
         return self.adapter(self.base.propose(self._sao_stat_from_gb_state(state)))
 
     def respond(self, state: GBState, offer: Outcome, source: str) -> ResponseType:
-        return self.base.respond(self._sao_stat_from_gb_state(state), offer, source)
+        adapted_state = self._sao_stat_from_gb_state(state)
+        response = self.base.respond(adapted_state, offer, source)
+        if response == ResponseType.ACCEPT_OFFER:
+            return response
+        if self.acceptance_policy is not None:
+            response = self.acceptance_policy(state, offer, source)
+        return response
 
     def on_partner_proposal(self, state: GBState, *args, **kwargs) -> None:
         return self.base.on_partner_proposal(

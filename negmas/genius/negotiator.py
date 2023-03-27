@@ -110,6 +110,7 @@ class GeniusNegotiator(SAONegotiator):
         self.domain_file_name = str(domain_file_name) if domain_file_name else None
         self.utility_file_name = str(utility_file_name) if utility_file_name else None
         self.__my_last_offer = None
+        self.__my_last_received_offer = None
         self.__my_last_response = ResponseType.REJECT_OFFER
         self.__my_last_offer_step = -1000
         self._preferences, self.discount = None, None
@@ -511,6 +512,7 @@ class GeniusNegotiator(SAONegotiator):
             )
 
     def cancel(self, reason=None) -> None:
+        _ = reason
         try:
             self.java.cancel(self.java_uuid)  # type: ignore
         except:
@@ -697,6 +699,7 @@ class GeniusNegotiator(SAONegotiator):
             self._outcome2str(offer),
             state.step,
         )
+        self.__my_last_received_offer = offer
         if self._strict and received.startswith(FAILED):
             raise ValueError(
                 f"{self._me()} failed to receive message in step {state.step}: {received.split(FIELD_SEP)[-1]}"
@@ -706,6 +709,8 @@ class GeniusNegotiator(SAONegotiator):
 
     def propose(self, state: GBState) -> Outcome | None:
         # saves one new offer/response every step
+        # if state.step >= 146:
+        #     breakpoint()
         if state.step == self.__my_last_offer_step:
             return self.__my_last_offer
         response, outcome = self.parse(
@@ -727,6 +732,8 @@ class GeniusNegotiator(SAONegotiator):
                 f"{self._me()} returned a None counter offer in step {state.step}"
             )
 
+        if response == ResponseType.ACCEPT_OFFER:
+            outcome = self.__my_last_received_offer
         self.__my_last_offer, self.__my_last_response, self.__my_last_offer_step = (
             outcome,
             response,
