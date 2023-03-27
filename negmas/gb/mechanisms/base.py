@@ -74,11 +74,8 @@ class GBThread:
         if self.mechanism._extra_callbacks:
             for n, r in zip(self.responders, responses):
                 n.on_partner_response(mechanism_state, n.id, offer, r)
-        self.state.current_offer = (
-            offer
-            if all(_ == ResponseType.ACCEPT_OFFER for _ in responses)
-            else self.current
-        )
+        if all(_ == ResponseType.ACCEPT_OFFER for _ in responses):
+            self.state.current_offer = offer
         self.state.new_responses = dict(
             zip(tuple(_.id for _ in self.responders), responses)
         )

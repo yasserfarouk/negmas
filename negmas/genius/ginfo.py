@@ -767,7 +767,8 @@ def get_name(
 
 
 def get_java_class(name: str) -> str | None:
-    """Returns the java class for the agent with this name if known otherwise
+    """
+    Returns the java class for the agent with this name if known otherwise
     it returns None.
 
     The name can be either the java class itself or the short agent name
