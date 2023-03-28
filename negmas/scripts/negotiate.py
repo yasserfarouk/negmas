@@ -184,12 +184,9 @@ def run(
         verbosity = 1
     for p in path:
         sys.path.append(str(p))
-    if reserved:
-        assert len(reserved) == len(negotiators), f"{reserved=} but {negotiators=}"
     adapter_names = shortest_unique_names(
         [_.split("/")[0] if "/" in _ else "" for _ in negotiators]
     )
-    negotiator_names = shortest_unique_names(negotiators)
     steps: int | float
     timelimit: int | float
     if steps is None:
@@ -204,9 +201,6 @@ def run(
         return
     if normalize:
         scenario.normalize()
-    if reserved:
-        for u, r in zip(scenario.ufuns, reserved):
-            u.reserved_value = r
 
     assert scenario is not None
     scenario.mechanism_type = get_protocol(protocol)
@@ -217,28 +211,41 @@ def run(
         )
         print(f"steps: {steps}\ntimelimit: {timelimit}")
 
+    if (
+        extend_negotiators
+        and len(negotiators) > 0
+        and len(negotiators) != len(scenario.ufuns)
+    ):
+        if len(negotiators) < len(scenario.ufuns):
+            if verbosity > 0:
+                print(
+                    f"Found {len(scenario.ufuns)} ufuns and {len(negotiators)} negotiators. Will add negotiators of the last type to match the n. ufuns"
+                )
+            negotiators = negotiators + (
+                [negotiators[-1]] * (len(scenario.ufuns) - len(negotiators))
+            )
+
+        if len(negotiators) > len(scenario.ufuns):
+            if verbosity > 0:
+                print(
+                    f"Found {len(scenario.ufuns)} ufuns and {len(negotiators)} negotiators. Will ignore the last n. negotiators"
+                )
+            negotiators = negotiators[: len(scenario.ufuns)]
+
+    negotiator_names = shortest_unique_names(negotiators)
     agents = [
-        get_negotiator(_)(name=name) for _, name in zip(negotiators, negotiator_names)  # type: ignore
+        get_negotiator(_)(name=name) for _, name in zip(negotiators, negotiator_names, strict=True)  # type: ignore
     ]
     if len(agents) < 2:
         print(
             f"At least 2 negotiators are needed: found {[_.__class__.__name__ for _ in agents]}"
         )
         return
-    if extend_negotiators and len(agents) > 0 and len(agents) != len(scenario.ufuns):
-        if len(agents) < len(scenario.ufuns):
-            if verbosity > 0:
-                print(
-                    f"Found {len(scenario.ufuns)} ufuns and {len(agents)} agents. Will add agents of the last type to match the n. ufuns"
-                )
-            agents = agents + ([agents[-1]] * (len(scenario.ufuns) - len(agents)))
-        if len(agents) > len(scenario.ufuns):
-            if verbosity > 0:
-                print(
-                    f"Found {len(scenario.ufuns)} ufuns and {len(agents)} agents. Will ignore the last n. agents"
-                )
-            agents = agents[: len(scenario.ufuns)]
-
+    if reserved and not extend_negotiators:
+        assert len(reserved) == len(negotiators), f"{reserved=} but {negotiators=}"
+    if reserved:
+        for u, r in zip(scenario.ufuns, reserved):
+            u.reserved_value = r
     if (
         not extend_negotiators
         and len(agents) > 0
