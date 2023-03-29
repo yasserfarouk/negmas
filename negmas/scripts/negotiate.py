@@ -158,7 +158,7 @@ def run(
     plot_path: Path = None,  # type: ignore
     verbose: bool = typer.Option(False, "--verbose", "-v"),
     verbosity: int = 0,
-    progress: bool = False,
+    progress: bool = True,
     plot_backend: str = "",
     plot_interactive: bool = True,
     history: bool = False,

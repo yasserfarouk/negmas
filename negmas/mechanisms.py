@@ -1208,7 +1208,7 @@ class Mechanism(NamedObject, EventSource, CheckpointMixin, ABC):
         if timeout is None:
             with Progress() as progress:
                 task = progress.add_task("Negotiating ...", total=100)
-                for _ in track(self):
+                for _ in self:
                     progress.update(task, completed=int(self.relative_time * 100))
         else:
             start_time = time.perf_counter()
