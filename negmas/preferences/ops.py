@@ -288,6 +288,12 @@ def pareto_frontier_bf(
     points = np.asarray(points, dtype=np.float32)
     if len(points) < 1:
         return points
+
+    warn_if_slow(
+        len(points),
+        f"Pareto's Quadratic Operation is too Slow",
+        lambda x: x * x,
+    )
     return _pareto_frontier_bf(points, eps, sort_by_welfare)
 
 
@@ -310,11 +316,6 @@ def _pareto_frontier_bf(
         indices of Pareto optimal outcomes
     """
 
-    warn_if_slow(
-        len(points),
-        f"Pareto's Quadratic Operation is too Slow",
-        lambda x: x * x,
-    )
     frontier, indices = [], []
     if len(points) < 1:
         return np.empty(0, dtype=np.int64)
