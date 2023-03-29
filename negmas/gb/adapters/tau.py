@@ -27,6 +27,7 @@ class UtilityAdapter:
     udiff_limit: float = float("inf")
     udiff: float = 0.0
     n_offers: int = 0
+    lower_switching_threshold = 0.75
 
     def __call__(self, outcome: Outcome | None) -> Outcome | None:
         if outcome is None:
@@ -43,32 +44,40 @@ class UtilityAdapter:
             raise ValueError(
                 "Unknown NMI. Cannot adapt an SAO offering policy to TAU without knowing the utility function."
             )
+        reserve = self.ufun.reserved_value
         if not self.utils or not self.sorted_outcomes:
             outcomes = self.nmi.outcomes
             if outcomes is None:
                 raise ValueError(
                     "Unknown outcome space. Cannot adapt an SAO offering policy to TAU without knowing the utility function."
                 )
-            uoutcomes = sorted((float(self.ufun(_)), _) for _ in outcomes)
+            uoutcomes = sorted(
+                (float(u), _) for _ in outcomes if (u := self.ufun(_)) >= reserve
+            )
             self.outcome_index = dict(
                 zip([_[1] for _ in uoutcomes], range(len(uoutcomes)))
             )
             self.sorted_outcomes = [_[1] for _ in uoutcomes]
             self.utils = [_[0] for _ in uoutcomes]
+            # assert all(_ >= self.ufun.reserved_value for _ in self.utils)
         indx = self.outcome_index[outcome]
         nearest, diff = indx, float("inf")
         u = float(self.ufun(outcome))
-        for i in itertools.chain(
-            range(indx - 1, -1, -1), range(indx + 1, len(self.sorted_outcomes))
-        ):
-            current, util = self.sorted_outcomes[i], self.utils[i]
-            if current in self.offered:
-                continue
-            if util < self.ufun.reserved_value:
-                continue
-            d = abs(self.utils[i] - u)
-            if d < diff:
-                nearest, diff = i, d
+        if self.nmi.state.relative_time <= self.lower_switching_threshold:
+            lsts = (range(indx - 1, -1, -1), range(indx + 1, len(self.sorted_outcomes)))
+        else:
+            lsts = (range(indx + 1, len(self.sorted_outcomes)), range(indx - 1, -1, -1))
+        for lst in lsts:
+            for i in lst:
+                current, util = self.sorted_outcomes[i], self.utils[i]
+                if current in self.offered:
+                    continue
+                # if util < self.ufun.reserved_value:
+                #     continue
+                d = abs(self.utils[i] - u)
+                if d < diff:
+                    nearest, diff = i, d
+                    break
         if diff > self.udiff_limit:
             self.offered.add(outcome)
             return outcome
@@ -162,7 +171,7 @@ class TAUNegotiatorAdapter(GBNegotiator):
         *args,
         base: SAONegotiator,
         acceptance_policy: AcceptancePolicy | None = AcceptAnyRational(),
-        **kwargs
+        **kwargs,
     ):
         self.base = base
         if acceptance_policy is not None:
