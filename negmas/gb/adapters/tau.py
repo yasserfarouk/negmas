@@ -18,16 +18,41 @@ __all__ = ["TAUNegotiatorAdapter"]
 
 @define(frozen=False)
 class UtilityAdapter:
+    """
+    Responsible of changing an offer to match TAU's rules.
+
+    Args:
+        ufun: The utility function (In the future, may be we can just use preferences here)
+        nmi: `NegotiatorMechanismInterface` for the negotiation
+        lower_switching_threshold: The relative time at which we check smaller utilities first.
+        extend_negotiation: Whether to repeat last rational offers when no more rational offers are available
+        rational: Only offer rational outcomes
+        udiff_limit: Change the outcome only if it is possible to find an outcome with a utility within this from the input
+        try_above: Try outcomes with higher utilities
+        try_below: Try outcomes with lower utilities
+
+    Remarks:
+        - We always choose the outcome nearest in utility to the input whether it is higher or lower.
+        - `lower_switching_threshold` Only affects the speed (and the edge case in which the input is exactly in the middle of
+           the nearest outcomes above and below in terms of utility.)
+    """
+
     ufun: BaseUtilityFunction | None = None
     nmi: NegotiatorMechanismInterface | None = None
+    lower_switching_threshold = 0.75
+    extend_negotiation: bool = True
+    rational: bool = True
+    udiff_limit: float = float("inf")
+    try_above: bool = True
+    try_below: bool = True
     offered: set[Outcome] = field(init=False, factory=set)
     utils: list[float] | None = field(init=False, default=None)
     sorted_outcomes: list[Outcome] | None = field(init=False, default=None)
     outcome_index: dict[Outcome, int] = field(init=False, default=dict)
-    udiff_limit: float = float("inf")
-    udiff: float = 0.0
-    n_offers: int = 0
-    lower_switching_threshold = 0.75
+    udiff: float = field(init=False, default=0.0)
+    n_offers: int = field(init=False, default=0)
+    n_rational: int = field(init=False, default=float("inf"))
+    last_offer: Outcome | None = field(init=False, default=None)
 
     def __call__(self, outcome: Outcome | None) -> Outcome | None:
         if outcome is None:
@@ -35,6 +60,7 @@ class UtilityAdapter:
         self.n_offers += 1
         if outcome not in self.offered:
             self.offered.add(outcome)
+            self.last_offer = outcome
             return outcome
         if self.ufun is None:
             raise ValueError(
@@ -44,6 +70,9 @@ class UtilityAdapter:
             raise ValueError(
                 "Unknown NMI. Cannot adapt an SAO offering policy to TAU without knowing the utility function."
             )
+        # repeat last offer if there are no more rational offers that we can use
+        if self.extend_negotiation and len(self.offered) >= self.n_rational:
+            return self.last_offer
         reserve = self.ufun.reserved_value
         if not self.utils or not self.sorted_outcomes:
             outcomes = self.nmi.outcomes
@@ -51,9 +80,13 @@ class UtilityAdapter:
                 raise ValueError(
                     "Unknown outcome space. Cannot adapt an SAO offering policy to TAU without knowing the utility function."
                 )
-            uoutcomes = sorted(
-                (float(u), _) for _ in outcomes if (u := self.ufun(_)) >= reserve
-            )
+            if self.rational:
+                uoutcomes = sorted(
+                    (float(u), _) for _ in outcomes if (u := self.ufun(_)) >= reserve
+                )
+            else:
+                uoutcomes = sorted((float(self.ufun(_)), _) for _ in outcomes)
+            self.n_rational = len(uoutcomes)
             self.outcome_index = dict(
                 zip([_[1] for _ in uoutcomes], range(len(uoutcomes)))
             )
@@ -63,10 +96,17 @@ class UtilityAdapter:
         indx = self.outcome_index[outcome]
         nearest, diff = indx, float("inf")
         u = float(self.ufun(outcome))
+        # try higher utilities then lower utilities and choose the nearest
+        above = range(indx - 1, -1, -1) if self.try_above else range(0, 0)
+        below = (
+            range(indx + 1, len(self.sorted_outcomes))
+            if self.try_below
+            else range(0, 0)
+        )
         if self.nmi.state.relative_time <= self.lower_switching_threshold:
-            lsts = (range(indx - 1, -1, -1), range(indx + 1, len(self.sorted_outcomes)))
+            lsts = above, below
         else:
-            lsts = (range(indx + 1, len(self.sorted_outcomes)), range(indx - 1, -1, -1))
+            lsts = below, above
         for lst in lsts:
             for i in lst:
                 current, util = self.sorted_outcomes[i], self.utils[i]
@@ -78,13 +118,17 @@ class UtilityAdapter:
                 if d < diff:
                     nearest, diff = i, d
                     break
+        # IF nearest is too far, just repeat
         if diff > self.udiff_limit:
             self.offered.add(outcome)
+            self.last_offer = outcome
             return outcome
+        # If we are changing the offer, record the utility difference
         if nearest != indx:
             self.udiff += diff
         outcome = self.sorted_outcomes[nearest]
         self.offered.add(outcome)
+        self.last_offer = outcome
         return outcome
 
     @property
