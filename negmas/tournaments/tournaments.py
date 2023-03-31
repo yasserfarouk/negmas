@@ -79,7 +79,7 @@ def from_file(f):
 
 
 TOURNAMENTS_BASE_PATH = Path(
-    negmas_config("tournaments_base", Path.home() / "negmas" / "tournaments")
+    negmas_config("tournaments_base", str(Path.home() / "negmas" / "tournaments"))  # type: ignore I know the return is a valid path
 )
 PROTOCOL_CLASS_NAME_FIELD = "__mechanism_class_name"
 # files created before running worlds
@@ -760,7 +760,7 @@ def _run_worlds(
                 # TODO reorganize the code so that the worlds are run in parallel when there are multiple of them
                 if not dry_run:
                     scores_ = serialize(
-                        score_calculator(worlds, scoring_context, False),
+                        score_calculator(worlds=worlds, scoring_context=scoring_context, dry_run=False),  # type: ignore
                         add_type_field=False,
                     )
                     scores_["n_steps"] = world.n_steps
