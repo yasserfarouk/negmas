@@ -382,6 +382,7 @@ def dump(
     file_name = pathlib.Path(file_name).expanduser().absolute()
     if file_name.suffix == "":
         file_name = pathlib.Path(str(file_name) + "." + DEFAULT_DUMP_EXTENSION)
+    file_name.parent.mkdir(parents=True, exist_ok=True)
 
     if d is None:
         with open(file_name, "w") as f:
