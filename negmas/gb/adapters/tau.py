@@ -1,7 +1,6 @@
 from typing import Any
 
 from attrs import define, field
-from matplotlib.axes import itertools
 
 from negmas import SAOResponse
 from negmas.common import NegotiatorMechanismInterface
@@ -19,7 +18,7 @@ __all__ = ["TAUNegotiatorAdapter"]
 @define(frozen=False)
 class UtilityAdapter:
     """
-    Responsible of changing an offer to match TAU's rules.
+    Responsible of changing an offer to match TAU's rules by selecting the nearest outcome in self-utility.
 
     Args:
         ufun: The utility function (In the future, may be we can just use preferences here)
@@ -109,7 +108,7 @@ class UtilityAdapter:
             lsts = below, above
         for lst in lsts:
             for i in lst:
-                current, util = self.sorted_outcomes[i], self.utils[i]
+                current = self.sorted_outcomes[i]
                 if current in self.offered:
                     continue
                 # if util < self.ufun.reserved_value:
