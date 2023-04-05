@@ -134,7 +134,7 @@ class Mechanism(NamedObject, EventSource, CheckpointMixin, ABC):
         dynamic_entry=False,
         annotation: dict[str, Any] | None = None,
         nmi_factory=NegotiatorMechanismInterface,
-        extra_callbacks=False,
+        extra_callbacks=True,
         checkpoint_every: int = 1,
         checkpoint_folder: PathLike | None = None,
         checkpoint_filename: str | None = None,

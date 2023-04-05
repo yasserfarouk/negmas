@@ -83,8 +83,8 @@ class KindConcessionRecommender(ConcessionRecommender):
         # I will try to make the smallest concession possible
         ufun = self.negotiator.ufun
         inv = ufun.invert()
-        best = inv.next_below()
-        nxt = inv.next_below()
+        best = inv.next_worse()
+        nxt = inv.next_worse()
         d = inv.max() - inv.min()
         return (float(ufun(best)) - float(ufun(nxt)) + 1e-12) / (d)
         # increment = (

@@ -233,5 +233,5 @@ class SAONegotiator(GBNegotiator):
                 offer=offer,
             )
         if response != ResponseType.REJECT_OFFER:
-            return SAOResponse(response, None)
+            return SAOResponse(response, offer)
         return SAOResponse(response, self.propose_(state=state))

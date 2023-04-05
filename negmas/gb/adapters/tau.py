@@ -155,7 +155,7 @@ class UtilityAdapter:
 
     def on_preferences_changed(self, ufun: BaseUtilityFunction | None):
         self.ufun = ufun
-        self.utils = self.sorted_outcomes = None
+        self.n_rational = float("inf")  # type: ignore
         self.outcome_index = dict()
 
 

@@ -98,7 +98,7 @@ class BaseGBMechanism(Mechanism):
         self,
         *args,
         dynamic_entry=False,
-        extra_callbacks=False,
+        extra_callbacks=True,
         check_offers=False,
         enforce_issue_types=False,
         cast_offers=False,
