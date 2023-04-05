@@ -1,6 +1,8 @@
 from typing import Any
 
+import numpy as np
 from attrs import define, field
+from numpy.typing import NDArray
 
 from negmas import SAOResponse
 from negmas.common import NegotiatorMechanismInterface
@@ -45,14 +47,17 @@ class UtilityAdapter:
     try_above: bool = True
     try_below: bool = True
     offered: set[Outcome] = field(init=False, factory=set)
-    utils: list[float] | None = field(init=False, default=None)
-    sorted_outcomes: list[Outcome] | None = field(init=False, default=None)
+    utils: list[float] = field(init=False, default=None)
+    sorted_outcomes: list[Outcome] = field(init=False, default=None)
     outcome_index: dict[Outcome, int] = field(init=False, default=dict)
     udiff: float = field(init=False, default=0.0)
     n_offers: int = field(init=False, default=0)
     n_rational: int = field(init=False, default=float("inf"))
     last_offer: Outcome | None = field(init=False, default=None)
+    nearest_above: NDArray[np.integer[Any]] = field(init=False, default=None)
+    nearest_below: NDArray[np.integer[Any]] = field(init=False, default=None)
 
+    # @profile
     def __call__(self, outcome: Outcome | None) -> Outcome | None:
         if outcome is None:
             return outcome
@@ -73,7 +78,7 @@ class UtilityAdapter:
         if self.extend_negotiation and len(self.offered) >= self.n_rational:
             return self.last_offer
         reserve = self.ufun.reserved_value
-        if not self.utils or not self.sorted_outcomes:
+        if self.n_rational == float("inf"):
             outcomes = self.nmi.outcomes
             if outcomes is None:
                 raise ValueError(
@@ -91,25 +96,33 @@ class UtilityAdapter:
             )
             self.sorted_outcomes = [_[1] for _ in uoutcomes]
             self.utils = [_[0] for _ in uoutcomes]
+            n = len(self.utils)
+            self.nearest_above = np.arange(-1, n - 1, dtype=int)
+            self.nearest_below = np.arange(1, n + 1, dtype=int)
             # assert all(_ >= self.ufun.reserved_value for _ in self.utils)
         indx = self.outcome_index[outcome]
         nearest, diff = indx, float("inf")
         u = float(self.ufun(outcome))
         # try higher utilities then lower utilities and choose the nearest
-        above = range(indx - 1, -1, -1) if self.try_above else range(0, 0)
+        above = (
+            range(self.nearest_above[indx], -1, -1) if self.try_above else range(0, 0)
+        )
         below = (
-            range(indx + 1, len(self.sorted_outcomes))
+            range(self.nearest_below[indx], len(self.sorted_outcomes))
             if self.try_below
             else range(0, 0)
         )
         if self.nmi.state.relative_time <= self.lower_switching_threshold:
             lsts = above, below
+            nearest_lists = self.nearest_above, self.nearest_below
         else:
             lsts = below, above
-        for lst in lsts:
+            nearest_lists = self.nearest_below, self.nearest_above
+        for near, lst in zip(nearest_lists, lsts):
             for i in lst:
                 current = self.sorted_outcomes[i]
                 if current in self.offered:
+                    near[indx] = i
                     continue
                 # if util < self.ufun.reserved_value:
                 #     continue

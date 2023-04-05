@@ -311,6 +311,7 @@ class BaseUtilityFunction(Preferences, ABC):
         to: tuple[float, float] = (0.0, 1.0),
         normalize_weights: bool = False,
     ) -> T | ConstUtilityFunction:
+        _ = normalize_weights
         from negmas.preferences import ConstUtilityFunction
 
         if not self.outcome_space:
@@ -525,7 +526,7 @@ class BaseUtilityFunction(Preferences, ABC):
     def from_xml_str(
         cls,
         xml_str: str,
-        issues: Iterable[Issue],
+        issues: Iterable[Issue] | Sequence[Issue],
         safe_parsing=True,
         ignore_discount=False,
         ignore_reserved=False,

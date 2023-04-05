@@ -70,7 +70,7 @@ class TAUEvaluationStrategy(EvaluationStrategy):
                     return False
             return True
 
-        # recalcuate accepted, offered if we need to use only a part of the history
+        # re-calcuate accepted, offered if we need to use only a part of the history
         nh, c = len(history), self.cardinality
         if 0 < c <= nh:
             accepted, offered = defaultdict(set), defaultdict(set)

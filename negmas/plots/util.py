@@ -41,6 +41,7 @@ Colorizer = Callable[[TraceElement], float]
 
 
 def opacity_colorizer(t: TraceElement, alpha: float = 1.0):
+    _ = t
     return alpha
 
 
@@ -209,6 +210,7 @@ def plot_offer_utilities(
     ignore_markers_limit=50,
     show_reserved=True,
     colorizer: Colorizer | None = None,
+    first_color_index: int = 0,
 ):
     import matplotlib.pyplot as plt
 
@@ -228,6 +230,17 @@ def plot_offer_utilities(
     colors, markers = make_colors_and_markers(
         colors, markers, len(plotting_negotiators), colormap
     )
+    if first_color_index:
+        colors = (
+            colors[:first_color_index]
+            + colors[first_color_index + 1 :]
+            + [colors[first_color_index]]
+        )
+        markers = (
+            markers[:first_color_index]
+            + markers[first_color_index + 1 :]
+            + [markers[first_color_index]]
+        )
 
     if xdim.startswith("step") or xdim.startswith("round"):
         trace_info = [(_, _.step) for _ in trace if _.negotiator == negotiator]
@@ -236,6 +249,23 @@ def plot_offer_utilities(
     else:
         trace_info = [(_, _.relative_time) for _ in trace if _.negotiator == negotiator]
     x = [_[-1] for _ in trace_info]
+    simple_offers_view = (
+        len(plotting_negotiators) == 1 and plotting_negotiators[0] == negotiator
+    )
+    # reorder to plot the negotiator last if it was in the plotting-negotiators
+    # if negotiator in plotting_negotiators:
+    #     indx = plotting_negotiators.index(negotiator)
+    #     plotting_negotiators = (
+    #         plotting_negotiators[:indx]
+    #         + plotting_negotiators[indx + 1 :]
+    #         + [plotting_negotiators[indx]]
+    #     )
+    #     axes = axes[:indx] + axes[indx + 1 :] + [axes[indx]]
+    #     plotting_ufuns = (
+    #         plotting_ufuns[:indx] + plotting_ufuns[indx + 1 :] + [plotting_ufuns[indx]]
+    #     )
+    #     markers = markers[:indx] + markers[indx + 1 :] + [markers[indx]]
+    #     colors = colors[:indx] + colors[indx + 1 :] + [colors[indx]]
     for i, (u, neg, a) in enumerate(zip(plotting_ufuns, plotting_negotiators, axes)):
         if u is None:
             continue
@@ -289,7 +319,7 @@ def plot_offer_utilities(
             )
         if ylimits is not None:
             a.set_ylim(ylimits)
-        a.set_ylabel(f"{name} ({i}) utility" if not one_y else "utility")
+        a.set_ylabel(f"{name} ({i})" if not one_y or simple_offers_view else "utility")
         if show_legend and len(plotting_negotiators) == 2:
             a.legend(
                 loc=f"upper {'left' if not i else 'right'}", bbox_to_anchor=(i, 1.2)
@@ -335,6 +365,7 @@ def plot_2dutils(
     colormap: str = "jet",
     ax: Axes | None = None,  # type: ignore
     colorizer: Colorizer | None = None,
+    fast: bool = False,
 ):
     import matplotlib.patches as mpatches
     import matplotlib.pyplot as plt
@@ -359,39 +390,6 @@ def plot_2dutils(
 
     utils = [tuple(f(o) for f in plotting_ufuns) for o in outcomes]
     yrange = max(_[1] for _ in utils) - min(_[1] for _ in utils)
-    frontier, frontier_outcome = pareto_frontier(
-        ufuns=plotting_ufuns,
-        issues=outcome_space.issues,  # type: ignore
-        outcomes=outcomes if not issues else None,  # type: ignore
-        sort_by_welfare=True,
-    )
-    frontier_indices = [
-        i
-        for i, _ in enumerate(frontier)
-        if _[0] is not None
-        and _[0] > float("-inf")
-        and _[1] is not None
-        and _[1] > float("-inf")
-    ]
-    frontier = [frontier[i] for i in frontier_indices]
-    frontier_outcome = [frontier_outcome[i] for i in frontier_indices]
-
-    nash_pts = nash_points(plotting_ufuns, frontier, outcome_space=outcome_space)
-    kalai_pts = kalai_points(plotting_ufuns, frontier, outcome_space=outcome_space)
-    mwelfare_pts = max_welfare_points(
-        plotting_ufuns, frontier, outcome_space=outcome_space
-    )
-    mrwelfare_pts = max_relative_welfare_points(
-        plotting_ufuns, frontier, outcome_space=outcome_space
-    )
-    if not nash_pts:
-        show_nash_distance = False
-    if not kalai_pts:
-        show_kalai_distance = False
-    if not mwelfare_pts:
-        show_max_welfare_distance = False
-    if not mrwelfare_pts:
-        show_max_relative_welfare_distance = False
     colors, markers = make_colors_and_markers(
         colors, markers, len(offering_negotiators), colormap
     )
@@ -409,6 +407,49 @@ def plot_2dutils(
         s=int(default_marker_size * OUTCOMES_SCALE),
     )
     agent_names = [map_(_) for _ in plotting_negotiators]
+    if fast:
+        frontier, frontier_outcome = [], []
+        frontier_indices = []
+        frontier_outcome = [frontier_outcome[i] for i in frontier_indices]
+        nash_pts = []
+        kalai_pts = []
+        mwelfare_pts = []
+        mrwelfare_pts = []
+    else:
+        frontier, frontier_outcome = pareto_frontier(
+            ufuns=plotting_ufuns,
+            issues=outcome_space.issues,  # type: ignore
+            outcomes=outcomes if not issues else None,  # type: ignore
+            sort_by_welfare=True,
+        )
+        frontier_indices = [
+            i
+            for i, _ in enumerate(frontier)
+            if _[0] is not None
+            and _[0] > float("-inf")
+            and _[1] is not None
+            and _[1] > float("-inf")
+        ]
+        frontier = [frontier[i] for i in frontier_indices]
+        frontier_outcome = [frontier_outcome[i] for i in frontier_indices]
+
+        nash_pts = nash_points(plotting_ufuns, frontier, outcome_space=outcome_space)
+        kalai_pts = kalai_points(plotting_ufuns, frontier, outcome_space=outcome_space)
+        mwelfare_pts = max_welfare_points(
+            plotting_ufuns, frontier, outcome_space=outcome_space
+        )
+        mrwelfare_pts = max_relative_welfare_points(
+            plotting_ufuns, frontier, outcome_space=outcome_space
+        )
+
+    if not nash_pts:
+        show_nash_distance = False
+    if not kalai_pts:
+        show_kalai_distance = False
+    if not mwelfare_pts:
+        show_max_welfare_distance = False
+    if not mrwelfare_pts:
+        show_max_relative_welfare_distance = False
     pareto_distance = float("inf")
     nash_distance, kalai_distance = float("inf"), float("inf")
     max_welfare_distance, max_relative_welfare_distance = float("inf"), float("inf")
@@ -419,7 +460,7 @@ def plot_2dutils(
     ax.set_xlabel(agent_names[0] + f"(0) utility")
     ax.set_ylabel(agent_names[1] + f"(1) utility")
     cu = agreement_utility
-    if not unknown_agreement_utility:
+    if not unknown_agreement_utility and not fast:
         for nash, _ in nash_pts:
             nash_distance = min(
                 nash_distance,
@@ -445,7 +486,7 @@ def plot_2dutils(
             if dist < pareto_distance:
                 pareto_distance = dist
     if trace:
-        n_steps = trace[-1].step
+        n_steps = trace[-1].step + 1
         relative_time = trace[-1].relative_time
         total_time = trace[-1].time
     else:
@@ -453,15 +494,15 @@ def plot_2dutils(
     txt = ""
     if show_agreement:
         txt += f"Agreement:{agreement}\n"
-    if show_pareto_distance and agreement is not None:
+    if not fast and show_pareto_distance and agreement is not None:
         txt += f"Pareto-distance={pareto_distance:5.2}\n"
-    if show_nash_distance and agreement is not None:
+    if not fast and show_nash_distance and agreement is not None:
         txt += f"Nash-distance={nash_distance:5.2}\n"
-    if show_kalai_distance and agreement is not None:
+    if not fast and show_kalai_distance and agreement is not None:
         txt += f"Kalai-distance={kalai_distance:5.2}\n"
-    if show_max_welfare_distance and agreement is not None:
+    if not fast and show_max_welfare_distance and agreement is not None:
         txt += f"MaxWelfare-distance={max_welfare_distance:5.2}\n"
-    if show_max_relative_welfare_distance and agreement is not None:
+    if not fast and show_max_relative_welfare_distance and agreement is not None:
         txt += f"MaxRelativeWelfare-distance={max_relative_welfare_distance:5.2}\n"
     if show_relative_time and relative_time:
         txt += f"Relative Time={relative_time:5.2}\n"
@@ -537,7 +578,7 @@ def plot_2dutils(
             with_lines=with_lines,
             linestyle=":",
         )
-    if frontier:
+    if not fast and frontier:
         welfare, mx = [frontier[0]], sum(frontier[0])
         for u in frontier[1:]:
             if sum(u) < mx - 1e-12:
@@ -586,103 +627,104 @@ def plot_2dutils(
                 horizontalalignment="left",
                 verticalalignment="bottom",
             )
-    if kalai_pts:
-        ax.scatter(
-            [kalai[0] for kalai, _ in kalai_pts],
-            [kalai[1] for kalai, _ in kalai_pts],
-            color="green",
-            label=f"Kalai Point",
-            marker="P",
-            alpha=KALAI_ALPHA,
-            s=int(default_marker_size * KALAI_SCALE),
-        )
-        if show_annotations:
-            for kalai, _ in kalai_pts:
-                ax.annotate(
-                    "Kalai Point",
-                    xy=kalai,  # theta, radius
-                    xytext=(
-                        kalai[0] + 0.02,
-                        kalai[1] - 0.02 * yrange,
-                    ),  # fraction, fraction
-                    horizontalalignment="left",
-                    verticalalignment="bottom",
-                )
-    # if mrwelfare_pts:
-    #     ax.scatter(
-    #         [mrwelfare[0] for mrwelfare, _ in mrwelfare_pts],
-    #         [mrwelfare[1] for mrwelfare, _ in mrwelfare_pts],
-    #         color="cyan",
-    #         label=f"Max Relative Welfare Points",
-    #         marker="X",
-    #         alpha=NASH_ALPHA,
-    #         s=int(default_marker_size * NASH_SCALE),
-    #     )
-    #     if show_annotations:
-    #         for mrwelfare, _ in mrwelfare_pts:
-    #             ax.annotate(
-    #                 "Max Relative Welfare Point",
-    #                 xy=mrwelfare,  # theta, radius
-    #                 xytext=(
-    #                     mrwelfare[0] + 0.02,
-    #                     mrwelfare[1] - 0.02 * yrange,
-    #                 ),  # fraction, fraction
-    #                 horizontalalignment="left",
-    #                 verticalalignment="bottom",
-    #             )
+    if not fast:
+        if kalai_pts:
+            ax.scatter(
+                [kalai[0] for kalai, _ in kalai_pts],
+                [kalai[1] for kalai, _ in kalai_pts],
+                color="green",
+                label=f"Kalai Point",
+                marker="P",
+                alpha=KALAI_ALPHA,
+                s=int(default_marker_size * KALAI_SCALE),
+            )
+            if show_annotations:
+                for kalai, _ in kalai_pts:
+                    ax.annotate(
+                        "Kalai Point",
+                        xy=kalai,  # theta, radius
+                        xytext=(
+                            kalai[0] + 0.02,
+                            kalai[1] - 0.02 * yrange,
+                        ),  # fraction, fraction
+                        horizontalalignment="left",
+                        verticalalignment="bottom",
+                    )
+        # if mrwelfare_pts:
+        #     ax.scatter(
+        #         [mrwelfare[0] for mrwelfare, _ in mrwelfare_pts],
+        #         [mrwelfare[1] for mrwelfare, _ in mrwelfare_pts],
+        #         color="cyan",
+        #         label=f"Max Relative Welfare Points",
+        #         marker="X",
+        #         alpha=NASH_ALPHA,
+        #         s=int(default_marker_size * NASH_SCALE),
+        #     )
+        #     if show_annotations:
+        #         for mrwelfare, _ in mrwelfare_pts:
+        #             ax.annotate(
+        #                 "Max Relative Welfare Point",
+        #                 xy=mrwelfare,  # theta, radius
+        #                 xytext=(
+        #                     mrwelfare[0] + 0.02,
+        #                     mrwelfare[1] - 0.02 * yrange,
+        #                 ),  # fraction, fraction
+        #                 horizontalalignment="left",
+        #                 verticalalignment="bottom",
+        #             )
 
-    if nash_pts:
-        ax.scatter(
-            [nash[0] for nash, _ in nash_pts],
-            [nash[1] for nash, _ in nash_pts],
-            color="brown",
-            label=f"Nash Point",
-            marker="^",
-            alpha=NASH_ALPHA,
-            s=int(default_marker_size * NASH_SCALE),
-        )
-        if show_annotations:
-            for nash, _ in nash_pts:
-                ax.annotate(
-                    "Nash Point",
-                    xy=nash,  # theta, radius
-                    xytext=(
-                        nash[0] + 0.02,
-                        nash[1] - 0.02 * yrange,
-                    ),  # fraction, fraction
-                    horizontalalignment="left",
-                    verticalalignment="bottom",
-                )
+        if nash_pts:
+            ax.scatter(
+                [nash[0] for nash, _ in nash_pts],
+                [nash[1] for nash, _ in nash_pts],
+                color="brown",
+                label=f"Nash Point",
+                marker="^",
+                alpha=NASH_ALPHA,
+                s=int(default_marker_size * NASH_SCALE),
+            )
+            if show_annotations:
+                for nash, _ in nash_pts:
+                    ax.annotate(
+                        "Nash Point",
+                        xy=nash,  # theta, radius
+                        xytext=(
+                            nash[0] + 0.02,
+                            nash[1] - 0.02 * yrange,
+                        ),  # fraction, fraction
+                        horizontalalignment="left",
+                        verticalalignment="bottom",
+                    )
 
-    if mwelfare_pts:
-        ax.scatter(
-            [mwelfare[0] for mwelfare, _ in mwelfare_pts],
-            [mwelfare[1] for mwelfare, _ in mwelfare_pts],
-            color="brown",
-            label=f"Max Welfare Points",
-            marker="p",
-            alpha=NASH_ALPHA,
-            s=int(default_marker_size * NASH_SCALE),
+        if mwelfare_pts:
+            ax.scatter(
+                [mwelfare[0] for mwelfare, _ in mwelfare_pts],
+                [mwelfare[1] for mwelfare, _ in mwelfare_pts],
+                color="brown",
+                label=f"Max Welfare Points",
+                marker="p",
+                alpha=NASH_ALPHA,
+                s=int(default_marker_size * NASH_SCALE),
+            )
+            if show_annotations:
+                for mwelfare, _ in mwelfare_pts:
+                    ax.annotate(
+                        "Max Welfare Point",
+                        xy=mwelfare,  # theta, radius
+                        xytext=(
+                            mwelfare[0] + 0.02,
+                            mwelfare[1] - 0.02 * yrange,
+                        ),  # fraction, fraction
+                        horizontalalignment="left",
+                        verticalalignment="bottom",
+                    )
+        ax.legend(
+            bbox_to_anchor=(0.0, 1.02, 1.0, 0.102),
+            loc="lower left",
+            ncol=2,
+            mode="expand",
+            borderaxespad=0.0,
         )
-        if show_annotations:
-            for mwelfare, _ in mwelfare_pts:
-                ax.annotate(
-                    "Max Welfare Point",
-                    xy=mwelfare,  # theta, radius
-                    xytext=(
-                        mwelfare[0] + 0.02,
-                        mwelfare[1] - 0.02 * yrange,
-                    ),  # fraction, fraction
-                    horizontalalignment="left",
-                    verticalalignment="bottom",
-                )
-    ax.legend(
-        bbox_to_anchor=(0.0, 1.02, 1.0, 0.102),
-        loc="lower left",
-        ncol=2,
-        mode="expand",
-        borderaxespad=0.0,
-    )
 
 
 def plot_mechanism_run(
@@ -714,6 +756,8 @@ def plot_mechanism_run(
     xdim: str = "relative_time",
     colorizer: Colorizer | None = None,
     only2d: bool = False,
+    fast: bool = False,
+    simple_offers_view: bool = False,
 ):
     import matplotlib.gridspec as gridspec
     import matplotlib.pyplot as plt
@@ -756,19 +800,22 @@ def plot_mechanism_run(
             plot_offer_utilities(
                 trace=mechanism.full_trace,
                 negotiator=neg,
-                plotting_ufuns=all_ufuns,
-                plotting_negotiators=mechanism.negotiator_ids,
+                plotting_ufuns=[all_ufuns[a]] if simple_offers_view else all_ufuns,
+                plotting_negotiators=[neg]
+                if simple_offers_view
+                else mechanism.negotiator_ids,
                 ax=axs[-1],
                 name_map=name_map,
                 colors=colors,
                 markers=markers,
                 ignore_none_offers=ignore_none_offers,
                 ylimits=ylimits,
-                show_legend=not common_legend or a == 0,
+                show_legend=(not common_legend or a == 0) and not simple_offers_view,
                 show_x_label=a == len(mechanism.negotiator_ids) - 1,
                 show_reserved=show_reserved,
                 xdim=xdim,
                 colorizer=colorizer,
+                first_color_index=a if simple_offers_view else 0,
             )
         axu = fig.add_subplot(gs[:, 0])
     agreement = mechanism.agreement
@@ -818,6 +865,7 @@ def plot_mechanism_run(
         show_total_time=show_total_time,
         show_relative_time=show_relative_time,
         show_n_steps=show_n_steps,
+        fast=fast,
     )
     if save_fig:
         if fig_name is None:
