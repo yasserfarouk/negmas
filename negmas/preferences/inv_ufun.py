@@ -297,21 +297,25 @@ class PresortingInverseUtilityFunction(InverseUFun):
         else:
             eps = -1
         if eps > 0:
-            n = len(ur_sorted)
-            scaled = np.asarray(ur_sorted / eps, dtype=int)
-            diffs = np.diff(scaled) != 0
-            indexes = np.nonzero(diffs)[0] + 1
-            groups = np.split(scaled, indexes)
-            lengths = np.asarray([_.size for _ in groups], dtype=int)
-            starts = np.hstack((np.asarray([0], dtype=int), indexes))
-            ends = starts + lengths - 1
-            extended = np.nonzero(lengths > 1)[0]
-            starts, ends = starts[extended], ends[extended]
-            for mn, mx in zip(starts, ends):
-                # assert scaled[mn] == scaled[mx], f"{scaled[mn]=}, {scaled[mx]=}"
-                for indx in range(mn, mx + 1):
-                    # assert scaled[indx] == scaled[mx], f"{scaled[indx]=}, {scaled[mx]=}"
-                    self._near_range[indx] = (mn, mx)
+            try:
+                n = len(ur_sorted)
+                if n >= 2:
+                    scaled = np.asarray(ur_sorted / eps, dtype=int)
+                    diffs = np.diff(scaled) != 0
+                    indexes = np.nonzero(diffs)[0] + 1
+                    groups = np.split(scaled, indexes)
+                    lengths = np.asarray([_.size for _ in groups], dtype=int)
+                    starts = np.hstack((np.asarray([0], dtype=int), indexes))
+                    ends = starts + lengths - 1
+                    extended = np.nonzero(lengths > 1)[0]
+                    starts, ends = starts[extended], ends[extended]
+                    for mn, mx in zip(starts, ends):
+                        # assert scaled[mn] == scaled[mx], f"{scaled[mn]=}, {scaled[mx]=}"
+                        for indx in range(mn, mx + 1):
+                            # assert scaled[indx] == scaled[mx], f"{scaled[indx]=}, {scaled[mx]=}"
+                            self._near_range[indx] = (mn, mx)
+            except:
+                pass
             # for indx, current in enumerate(scaled):
             #     mn_indx = indx
             #     for i in range(indx - 1, -1, -1):
@@ -402,7 +406,7 @@ class PresortingInverseUtilityFunction(InverseUFun):
             hi = self._largest_indx
         return lo, hi
 
-    def next_below(self) -> Outcome | None:
+    def next_worse(self) -> Outcome | None:
         """Returns the rational outcome with utility just below the last one returned from this function"""
         if self._last_returned_from_next < 0:
             self._last_returned_from_next = self._last_rational
@@ -412,11 +416,11 @@ class PresortingInverseUtilityFunction(InverseUFun):
             return self._outcomes[self._last_returned_from_next]
         return None
 
-    def next_above(self) -> Outcome | None:
+    def next_better(self) -> Outcome | None:
         """Returns the rational outcome with utility just above the last one returned from this function"""
         if self._last_returned_from_next < 0:
-            self._last_returned_from_next = self._last_rational
-            return self.best()
+            self._last_returned_from_next = 0
+            return self.worst()
         if self._last_returned_from_next < self._last_rational:
             self._last_returned_from_next += 1
             return self._outcomes[self._last_returned_from_next]

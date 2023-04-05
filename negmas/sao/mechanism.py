@@ -81,7 +81,7 @@ class SAOMechanism(Mechanism):
     def __init__(
         self,
         dynamic_entry=False,
-        extra_callbacks=False,
+        extra_callbacks=True,
         end_on_no_response=True,
         avoid_ultimatum=False,
         check_offers=False,
