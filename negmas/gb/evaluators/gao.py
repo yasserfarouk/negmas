@@ -19,8 +19,8 @@ class GAOEvaluationStrategy(LocalEvaluationStrategy):
         offer, responses = state.new_offer, state.new_responses
         if offer is None:
             return None
-        if all(_ == ResponseType.ACCEPT_OFFER for _ in responses.values()):
-            return offer
         if any(_ == ResponseType.END_NEGOTIATION for _ in responses.values()):
             return None
+        if all(_ == ResponseType.ACCEPT_OFFER for _ in responses.values()):
+            return offer
         return "continue"

@@ -662,6 +662,8 @@ class SAOMechanism(Mechanism):
         common_legend: bool = True,
         xdim: str = "relative_time",
         only2d: bool = False,
+        fast: bool = False,
+        simple_offers_view: bool = False,
     ):
         from negmas.plots.util import plot_mechanism_run
 
@@ -699,6 +701,8 @@ class SAOMechanism(Mechanism):
             show_total_time=show_total_time,
             show_relative_time=show_relative_time,
             show_n_steps=show_n_steps,
+            fast=fast,
+            simple_offers_view=simple_offers_view,
         )
 
 

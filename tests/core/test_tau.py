@@ -11,7 +11,11 @@ from hypothesis import Verbosity, given, settings
 from matplotlib.axes import itertools
 
 from negmas.gb.evaluators.tau import INFINITE
-from negmas.gb.mechanisms.mechanisms import GAOMechanism, TAUMechanism
+from negmas.gb.mechanisms.mechanisms import (
+    GAOMechanism,
+    GeneralizedTAUMechanism,
+    TAUMechanism,
+)
 from negmas.gb.negotiators.cab import CABNegotiator, CANNegotiator, CARNegotiator
 from negmas.gb.negotiators.timebased import AspirationNegotiator
 from negmas.gb.negotiators.war import WABNegotiator, WANNegotiator, WARNegotiator
@@ -27,7 +31,7 @@ from negmas.preferences.crisp_ufun import UtilityFunction
 from negmas.preferences.ops import pareto_frontier
 from negmas.preferences.value_fun import AffineFun, IdentityFun, LinearFun, TableFun
 from negmas.sao.mechanism import SAOMechanism
-from tests.switches import NEGMAS_RUN_GENIUS
+from tests.switches import NEGMAS_FASTRUN, NEGMAS_RUN_GENIUS
 
 SHOW_PLOTS = False
 SHOW_ALL_PLOTS = False
@@ -38,6 +42,7 @@ FORCE_HISTORY = False
 SAONEGOTIATORS = [
     AspirationNegotiator,
 ]
+MECHS = (TAUMechanism,) if NEGMAS_FASTRUN else (TAUMechanism, GeneralizedTAUMechanism)
 NEGOTIATORS = [
     WARNegotiator,
     CANNegotiator,
@@ -156,12 +161,12 @@ def _plot(p, err=False, force=False):
     plt.savefig("fig.png")
 
 
-def _history(p, err=False, force=False):
+def _history(p: Mechanism, err=False, force=False):
     if not force and err and not SHOW_HISTORY:
         return ""
     if not force and not err and not SHOW_ALL_HISTORIES:
         return ""
-    return p.history
+    return p.trace  # type: ignore
 
 
 @pytest.mark.parametrize("neg", NEGOTIATORS)
@@ -214,8 +219,10 @@ def run_adversarial_case(
     os = make_os(issues)
 
     # create the mechanism
-    if mechanism_type == TAUMechanism:
+    if mechanism_type == GeneralizedTAUMechanism:
         session = mechanism_type(outcome_space=os, cardinality=cardinality)  # type: ignore
+    elif mechanism_type == TAUMechanism:
+        session = mechanism_type(outcome_space=os)
     else:
         session = mechanism_type(outcome_space=os, n_steps=n_steps)
 
@@ -282,15 +289,17 @@ def run_buyer_seller(
     n_steps=10 * 10 * 3,
 ):
     # create negotiation agenda (issues)
-    issues = [
+    issues = (
         make_issue(name="price", values=10),
         make_issue(name="quantity", values=(1, 11)),
         make_issue(name="delivery_time", values=["today", "tomorrow", "nextweek"]),
-    ]
+    )
 
     # create the mechanism
-    if mechanism_type == TAUMechanism:
+    if mechanism_type == GeneralizedTAUMechanism:
         session = mechanism_type(issues=issues, cardinality=cardinality, min_unique=min_unique)  # type: ignore
+    elif mechanism_type == TAUMechanism:
+        session = mechanism_type(issues=issues)
     else:
         session = mechanism_type(issues=issues, n_steps=n_steps)  # type: ignore
 
@@ -483,12 +492,18 @@ def test_buyer_seller_sao():
 
 
 @pytest.mark.parametrize(
-    ["neg1", "neg2"], list(itertools.product(NEGOTIATORS, NEGOTIATORS))
+    ["neg1", "neg2", "mechanism"],
+    list(
+        itertools.product(
+            NEGOTIATORS, NEGOTIATORS, (TAUMechanism, GeneralizedTAUMechanism)
+        )
+    ),
 )
-def test_buyer_seller_alphainf(neg1, neg2):
+def test_buyer_seller_alphainf(neg1, neg2, mechanism):
     run_buyer_seller(
         neg1,
         neg2,
+        mechanism_type=mechanism,
         normalized=True,
         seller_reserved=0.5,
         buyer_reserved=0.6,
@@ -505,6 +520,7 @@ def test_buyer_seller_alpha0(neg1, neg2):
     run_buyer_seller(
         neg1,
         neg2,
+        mechanism_type=GeneralizedTAUMechanism,
         normalized=True,
         seller_reserved=0.5,
         buyer_reserved=0.6,
@@ -515,14 +531,19 @@ def test_buyer_seller_alpha0(neg1, neg2):
 
 
 @pytest.mark.parametrize(
-    ["neg1", "neg2"],
-    [_ for _ in itertools.product(NEGOTIATORS, NEGOTIATORS) if _ not in NORAISE],
+    ["neg1", "neg2", "mechanism"],
+    [
+        _
+        for _ in itertools.product(NEGOTIATORS, NEGOTIATORS, MECHS)
+        if (_[0], _[1]) not in NORAISE
+    ],
 )
-def test_buyer_seller_betainf(neg1, neg2):
+def test_buyer_seller_betainf(neg1, neg2, mechanism):
     with pytest.raises(AssertionError):
         run_buyer_seller(
             neg1,
             neg2,
+            mechanism_type=mechanism,
             normalized=True,
             seller_reserved=0.5,
             buyer_reserved=0.6,
@@ -532,12 +553,40 @@ def test_buyer_seller_betainf(neg1, neg2):
 
 
 @pytest.mark.parametrize(
-    ["neg1", "neg2"], list(itertools.product(NEGOTIATORS, NEGOTIATORS))
+    ["neg1", "neg2", "mechanism"],
+    list(itertools.product(NEGOTIATORS, NEGOTIATORS, MECHS)),
 )
-def test_buyer_seller_beta0(neg1, neg2):
+def test_buyer_seller_beta0(neg1, neg2, mechanism):
     run_buyer_seller(
         neg1,
         neg2,
+        mechanism_type=mechanism,
+        normalized=True,
+        seller_reserved=0.5,
+        buyer_reserved=0.6,
+        force_plot=FORCE_PLOT,
+        min_unique=0,
+    )
+
+
+def test_buyer_seller_beta0_example_gtau():
+    run_buyer_seller(
+        CABNegotiator,
+        CABNegotiator,
+        mechanism_type=GeneralizedTAUMechanism,
+        normalized=True,
+        seller_reserved=0.5,
+        buyer_reserved=0.6,
+        force_plot=FORCE_PLOT,
+        min_unique=0,
+    )
+
+
+def test_buyer_seller_beta0_example_tau():
+    run_buyer_seller(
+        CABNegotiator,
+        CABNegotiator,
+        mechanism_type=TAUMechanism,
         normalized=True,
         seller_reserved=0.5,
         buyer_reserved=0.6,
@@ -559,7 +608,7 @@ def test_anac_scenario_example_single(neg1, neg2):
     )
 
 
-def test_anac_scenario_example_sao_single():
+def test_anac_scenario_example_gao_single():
     run_anac_example(
         AspirationNegotiator,
         AspirationNegotiator,
@@ -570,7 +619,7 @@ def test_anac_scenario_example_sao_single():
     )
 
 
-def test_anac_scenario_example_sao_single2():
+def test_anac_scenario_example_sao_single():
     run_anac_example(
         AspirationNegotiator,
         AspirationNegotiator,
@@ -582,7 +631,7 @@ def test_anac_scenario_example_sao_single2():
 
 
 @pytest.mark.skipif(not NEGMAS_RUN_GENIUS, reason="Skipping genius tests")
-def test_anac_scenario_example_genius2_single():
+def test_anac_scenario_example_genius_gao_single():
     from negmas.genius import Atlas3
 
     run_anac_example(
@@ -596,7 +645,7 @@ def test_anac_scenario_example_genius2_single():
 
 
 @pytest.mark.skipif(not NEGMAS_RUN_GENIUS, reason="Skipping genius tests")
-def test_anac_scenario_example_genius_single():
+def test_anac_scenario_example_genius_sao_single():
     from negmas.genius import Atlas3
 
     run_anac_example(
@@ -775,3 +824,57 @@ def test_buyer_seller_sao_genius():
         mechanism_type=SAOMechanism,
         do_asserts=False,
     )
+
+
+@given(
+    neg=st.sampled_from(NEGOTIATORS),
+    r1=st.floats(0, 1),
+    r2=st.floats(0, 1),
+    n1=st.integers(3, 5),
+    n2=st.integers(3, 10),
+    U1=st.sampled_from(
+        [
+            LU,
+        ]
+    ),
+    U2=st.sampled_from(
+        [
+            LU,
+        ]
+    ),
+)
+@settings(deadline=10_000, verbosity=Verbosity.verbose, max_examples=10)
+def test_tau_matches_generalized(neg, r1, r2, n1, n2, U1, U2):
+    eps = 1e-3
+    time.perf_counter()
+    os: DiscreteCartesianOutcomeSpace = make_os([make_issue(n1), make_issue(n2)])  # type: ignore
+    results = []
+    ufuns = [U1.random(os, reserved_value=r1), U2.random(os, reserved_value=r2)]
+    for cls in (TAUMechanism, GeneralizedTAUMechanism):
+        p = cls(outcome_space=os)
+        for i, u in enumerate(ufuns):
+            p.add(
+                neg(name=f"CAB{i}"),
+                preferences=u,
+            )
+        p.run()
+        front_utils, front_outcomes = p.pareto_frontier()
+        no_valid_outcomes = all(
+            u1 <= r1 + eps or u2 <= r2 + eps for u1, u2 in front_utils
+        )
+        assert len(p.history) > 0, f"{p.state}"
+        if (neg, neg) in COMPLETE:
+            assert (
+                p.agreement is not None or no_valid_outcomes
+            ), f"No agreement in a supposedly complete profile\n{_history(p)}{_plot(p, True, force=False)}"
+        if (neg, neg) in OPTIMAL:
+            assert (
+                p.agreement in front_outcomes or p.agreement is None
+            ), f"Suboptimal agreement in a supposedly optimal profile\n{_history(p)}{_plot(p, True, force=False)}"
+        results.append(dict(steps=p.current_step, agreement=p.agreement, trace=p.trace))
+    assert (
+        results[0]["agreement"] == results[1]["agreement"]
+    ), f"{results[0]['trace']=}\n{results[1]['trace']=}"
+    assert (
+        results[0]["steps"] == results[1]["steps"]
+    ), f"{results[0]['trace']=}\n{results[1]['trace']=}"

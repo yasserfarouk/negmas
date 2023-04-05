@@ -59,7 +59,7 @@ __all__ = [
 class ScenarioStats:
     opposition: float
     utility_ranges: list[tuple[float, float]]
-    pareto_utils: list[tuple[float, ...]]
+    pareto_utils: tuple[tuple[float, ...]]
     pareto_outcomes: list[Outcome]
     nash_utils: list[tuple[float, ...]]
     nash_outcomes: list[Outcome]
@@ -93,7 +93,7 @@ class ScenarioStats:
         warn_if_slow(
             len(pareto_indices), "Restricting a large Pareto Frontier", lambda x: x * 10
         )
-        pareto_utils = [self.pareto_utils[_] for _ in pareto_indices]
+        pareto_utils = tuple(self.pareto_utils[_] for _ in pareto_indices)
         pareto_outcomes = [self.pareto_outcomes[_] for _ in pareto_indices]
         nash = nash_points(ufuns, ranges=ranges, frontier=pareto_utils)
         nash_utils, nash_indices = [_[0] for _ in nash], [_[1] for _ in nash]
@@ -297,6 +297,60 @@ def pareto_frontier_bf(
     return _pareto_frontier_bf(points, eps, sort_by_welfare)
 
 
+# Faster than is_pareto_efficient_simple, but less readable.
+def pareto_frontier_numpy(
+    points: np.ndarray | list[tuple[float, ...]],
+    eps=-1e-12,
+    sort_by_welfare=True,
+) -> np.ndarray:
+    """
+    Finds the pareto-frontier of a set of points.
+
+    Args:
+        points: list of points each is a tuple of utility values for one outcome
+        eps: A (usually negative) small number to treat as zero during calculations
+        sort_by_welfare: If True, the results are sorted descindingly by total welfare
+
+    Returns:
+        indices of Pareto optimal outcomes
+    """
+    points = np.asarray(points)
+    n_points = points.shape[0]
+    warn_if_slow(
+        n_points,
+        f"Pareto's Operation is too Slow",
+        lambda x: x * 10,
+    )
+    n_negotiators = points.shape[1]
+    if n_points < 1 or n_negotiators < 1:
+        return np.empty(0, dtype=np.int64)
+    indices = np.ones(n_points, dtype=bool)
+    for i, c in enumerate(points):
+        if not indices[i]:
+            continue
+        # Keep any point with a higher utility
+        indices[indices] = np.any(points[indices] > c, axis=1)
+        indices[i] = True  # And keep self
+    indices = np.nonzero(indices)[0]
+
+    # indices = np.arange(n_points)
+    # next_point_index = 0  # Next index in the indices array to search for
+    # while next_point_index < n_points:
+    #     nondominated_point_mask = np.any(points > points[next_point_index], axis=1)
+    #     nondominated_point_mask[next_point_index] = True
+    #     indices = indices[nondominated_point_mask]  # Remove dominated points
+    #     points = points[nondominated_point_mask]
+    #     next_point_index = np.sum(nondominated_point_mask[:next_point_index]) + 1
+
+    if sort_by_welfare:
+        frontier = points[indices]
+        welfare = np.sum(frontier, axis=1)
+        assert frontier.shape[0] == welfare.size
+        welfare_sort_order = welfare.argsort()[::-1]
+        indices = indices[welfare_sort_order]
+    return indices
+
+
 @jit(nopython=True)
 def _pareto_frontier_bf(
     points: np.ndarray,
@@ -320,6 +374,9 @@ def _pareto_frontier_bf(
     if len(points) < 1:
         return np.empty(0, dtype=np.int64)
     m = points.shape[1]
+    if m < 1:
+        return np.empty(0, dtype=np.int64)
+    # points = points[points[:, 0].argsort()[::-1]]
     for i, current in enumerate(points):
         for j, test in enumerate(points):
             if j == i:
@@ -340,7 +397,7 @@ def _pareto_frontier_bf(
             indices.append(i)
             frontier.append(current)
 
-    indices = np.asarray(indices)
+    indices = np.asarray(indices, dtype=np.int64)
     # frontier = np.vstack(tuple(frontier))
     if sort_by_welfare:
         n = len(frontier)
@@ -806,7 +863,7 @@ def calc_scenario_stats(
             if not os.is_valid(o):
                 raise ValueError(f"Outcome {o} is invalid for outcome space {os}")
     pareto_utils, pareto_indices = pareto_frontier(
-        ufuns, outcomes, sort_by_welfare=True
+        ufuns, outcomes, sort_by_welfare=True, eps=eps
     )
     pareto_outcomes = [outcomes[_] for _ in pareto_indices]
     nash = nash_points(ufuns, ranges=ranges, frontier=pareto_utils)
@@ -946,7 +1003,7 @@ def pareto_frontier(
     max_cardinality: int | float = float("inf"),
     sort_by_welfare=True,
     eps: float = 1e-12,
-) -> tuple[list[tuple[float, ...]], list[int]]:
+) -> tuple[tuple[tuple[float, ...]], tuple[int]]:
     """Finds all pareto-optimal outcomes in the list.
 
     Args:
@@ -972,24 +1029,36 @@ def pareto_frontier(
     # calculate all candidate outcomes
     if outcomes is None:
         if issues is None:
-            return [], []
+            return tuple(), tuple()
         outcomes = discretize_and_enumerate_issues(
             issues, n_discretization=n_discretization, max_cardinality=max_cardinality
         )
         # outcomes = itertools.product(
         #     *[issue.value_generator(n=n_discretization) for issue in issues]
         # )
-    points = [tuple(ufun(outcome) for ufun in ufuns) for outcome in outcomes]
-    warn_if_slow(len(points), "Too many outcomes in the OS (Pareto Calculation)")
-    reservs = tuple(_.reserved_value if _ is not None else float("-inf") for _ in ufuns)
-    rational_indices = [
-        i for i, _ in enumerate(points) if all(a >= b for a, b in zip(_, reservs))
-    ]
-    points = [points[_] for _ in rational_indices]
-    indices = list(
-        pareto_frontier_active(points, sort_by_welfare=sort_by_welfare, eps=eps)
+    points = np.asarray(
+        [[ufun(outcome) for ufun in ufuns] for outcome in outcomes], dtype=float
     )
-    return [points[_] for _ in indices], [rational_indices[_] for _ in indices]
+    warn_if_slow(len(points), "Too many outcomes in the OS (Pareto Calculation)")
+    reservs = np.asarray(
+        [_.reserved_value if _ is not None else float("-inf") for _ in ufuns],
+        dtype=float,
+    )
+    rational_indices = np.all(points >= reservs, axis=1)
+    rational_indices = np.nonzero(rational_indices)[0]
+    points = points[rational_indices]
+    # rational_indices = [
+    #     i for i, _ in enumerate(points) if all(a >= b for a, b in zip(_, reservs))
+    # ]
+    # points = [points[_] for _ in rational_indices]
+    pareto_indices = pareto_frontier_active(
+        points, sort_by_welfare=sort_by_welfare, eps=eps
+    )
+    return tuple(map(tuple, points[pareto_indices])), tuple(
+        rational_indices[pareto_indices]
+    )
+
+    # return [points[_] for _ in indices], [rational_indices[_] for _ in indices]
 
 
 def scale_max(
@@ -1369,5 +1438,5 @@ def make_rank_ufun(ufun: UtilityFunction) -> UtilityFunction:
 
 
 # pareto_frontier_active = pareto_frontier_bf if NUMBA_OK else pareto_frontier_of
-pareto_frontier_active = pareto_frontier_bf
-pareto_frontier_of = pareto_frontier_bf
+pareto_frontier_active = pareto_frontier_numpy
+# pareto_frontier_of = pareto_frontier_numpy

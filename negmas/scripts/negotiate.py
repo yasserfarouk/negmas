@@ -50,6 +50,8 @@ def get_protocol(name: str) -> type[Mechanism]:
         return get_class("negmas.sao.mechanism.SAOMechanism")
     if name.lower() == "tau":
         return get_class("negmas.gb.mechanisms.TAUMechanism")
+    if name.lower() == "gtau":
+        return get_class("negmas.gb.mechanisms.GeneralizedTAUMechanism")
     if name.lower() == "gao":
         return get_class("negmas.gb.mechanisms.GAOMechanism")
     if "." not in name:
@@ -155,6 +157,7 @@ def run(
     steps: int = typer.Option(None, "--steps", "-s"),  # type: ignore
     timelimit: int = typer.Option(None, "--time", "--timelimit", "-t"),  # type: ignore
     plot: bool = True,
+    fast: bool = None,  # type: ignore
     plot_path: Path = None,  # type: ignore
     verbose: bool = typer.Option(False, "--verbose", "-v"),
     verbosity: int = 0,
@@ -179,6 +182,7 @@ def run(
     show_total_time: bool = True,
     show_relative_time: bool = True,
     show_n_steps: bool = True,
+    simple_offers_view: bool = None,  # type: ignore
 ):
     if verbose and verbosity < 1:
         verbosity = 1
@@ -275,10 +279,17 @@ def run(
         print(f"Steps: {session.current_step}")
         print(state)
     print(f"Agreement: {state.agreement}")
+    fast = fast or fast is None and scenario.agenda.cardinality > 10_000
+    if fast:
+        rank_stats = stats = False
+        if simple_offers_view is None:
+            simple_offers_view = True
     rank_stats = (
         rank_stats or rank_stats is None and scenario.agenda.cardinality < 10_000
     )
+
     if stats or rank_stats:
+        print(stats, rank_stats)
         pareto, pareto_outcomes = session.pareto_frontier()
     else:
         pareto, pareto_outcomes = [], []
@@ -393,6 +404,8 @@ def run(
             show_total_time=show_total_time,
             show_relative_time=show_relative_time,
             show_n_steps=show_n_steps,
+            fast=fast,
+            simple_offers_view=simple_offers_view,
         )
         mng = plt.get_current_fig_manager()
         mng.resize(1024, 860)

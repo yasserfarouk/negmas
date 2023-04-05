@@ -11,10 +11,10 @@ from abc import ABC, abstractmethod
 from collections import defaultdict
 from datetime import datetime
 from os import PathLike
-from typing import TYPE_CHECKING, Any, Callable, Iterable
+from typing import TYPE_CHECKING, Any, Callable, Iterable, Sequence
 
 from attrs import define
-from rich.progress import Progress, track
+from rich.progress import Progress
 
 from negmas import warnings
 from negmas.checkpoints import CheckpointMixin
@@ -36,7 +36,6 @@ from negmas.preferences import (
     kalai_points,
     nash_points,
     pareto_frontier,
-    pareto_frontier_active,
     pareto_frontier_bf,
 )
 from negmas.preferences.ops import max_relative_welfare_points, max_welfare_points
@@ -122,8 +121,8 @@ class Mechanism(NamedObject, EventSource, CheckpointMixin, ABC):
         self,
         initial_state: MechanismState | None = None,
         outcome_space: OutcomeSpace | None = None,
-        issues: list[Issue] | None = None,
-        outcomes: list[Outcome] | int | None = None,
+        issues: Sequence[Issue] | None = None,
+        outcomes: Sequence[Outcome] | int | None = None,
         n_steps: int | float | None = None,
         time_limit: float | None = None,
         pend: float = 0,
@@ -609,6 +608,7 @@ class Mechanism(NamedObject, EventSource, CheckpointMixin, ABC):
         return self._current_state
 
     def _get_nmi(self, negotiator: Negotiator) -> NegotiatorMechanismInterface:  # type: ignore
+        _ = negotiator
         return self.nmi
 
     def add(
@@ -1413,8 +1413,10 @@ class Mechanism(NamedObject, EventSource, CheckpointMixin, ABC):
 
     def plot(self, **kwargs):
         """A method for plotting a negotiation session."""
+        _ = kwargs
 
     def _get_ami(self, negotiator: Negotiator) -> NegotiatorMechanismInterface:  # type: ignore
+        _ = negotiator
         warnings.deprecated(f"_get_ami is depricated. Use `get_nmi` instead of it")
         return self.nmi
 
