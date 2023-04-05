@@ -281,7 +281,7 @@ def run(
     print(f"Agreement: {state.agreement}")
     fast = fast or fast is None and scenario.agenda.cardinality > 10_000
     if fast:
-        rank_stats = stats = False
+        # rank_stats = stats = False
         if simple_offers_view is None:
             simple_offers_view = True
     rank_stats = (
@@ -289,7 +289,6 @@ def run(
     )
 
     if stats or rank_stats:
-        print(stats, rank_stats)
         pareto, pareto_outcomes = session.pareto_frontier()
     else:
         pareto, pareto_outcomes = [], []
