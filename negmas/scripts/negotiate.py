@@ -183,6 +183,7 @@ def run(
     show_relative_time: bool = True,
     show_n_steps: bool = True,
     simple_offers_view: bool = None,  # type: ignore
+    raise_exceptions: bool = False,
 ):
     if verbose and verbosity < 1:
         verbosity = 1
@@ -260,7 +261,11 @@ def run(
         )
         exit(1)
     session = scenario.make_session(
-        agents, n_steps=steps, time_limit=timelimit, verbosity=verbosity - 1
+        agents,
+        n_steps=steps,
+        time_limit=timelimit,
+        verbosity=verbosity - 1,
+        **dict(ignore_negotiator_exceptions=not raise_exceptions),
     )
     if len(session.negotiators) < 2:
         print(
