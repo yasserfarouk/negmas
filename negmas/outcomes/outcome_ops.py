@@ -127,6 +127,9 @@ def dict2outcome(
     if not isinstance(d, dict):
         return tuple(d)
 
+    if isinstance(d, np.ndarray):
+        return tuple(d.tolist())
+
     return tuple(d[_ if isinstance(_, str) else _.name] for _ in issues)
 
 
