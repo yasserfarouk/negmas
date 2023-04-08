@@ -101,9 +101,8 @@ def create_loggers(
         logger.addHandler(screen_logger)
     if file_name is not None and file_level is not None:
         file_name = str(file_name)
-        if logger is None:
-            logger = logging.getLogger(file_name)
-            logger.setLevel(file_level)
+        logger = logging.getLogger(file_name)
+        logger.setLevel(file_level)
         if len(file_name) == 0:
             if app_wide_log_file:
                 file_name = COMMON_LOG_FILE_NAME
