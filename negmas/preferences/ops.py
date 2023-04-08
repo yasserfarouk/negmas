@@ -8,8 +8,9 @@ from typing import TYPE_CHECKING, Any, Iterable, Sequence, TypeVar
 
 import numpy as np
 from attrs import define
-from numpy._typing import NDArray
+from numpy.typing import NDArray
 from scipy import spatial
+from scipy.stats import rankdata
 
 from negmas import warnings
 from negmas.helpers.numba_checks import jit  # type: ignore
