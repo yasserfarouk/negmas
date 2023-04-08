@@ -2,11 +2,14 @@ from __future__ import annotations
 
 import itertools
 import math
+from functools import reduce
 from math import sqrt
-from typing import TYPE_CHECKING, Iterable, Sequence, TypeVar
+from typing import TYPE_CHECKING, Any, Iterable, Sequence, TypeVar
 
 import numpy as np
 from attrs import define
+from numpy._typing import NDArray
+from scipy import spatial
 
 from negmas import warnings
 from negmas.helpers.numba_checks import jit  # type: ignore
@@ -297,11 +300,67 @@ def pareto_frontier_bf(
     return _pareto_frontier_bf(points, eps, sort_by_welfare)
 
 
-# Faster than is_pareto_efficient_simple, but less readable.
-def pareto_frontier_numpy(
+def pareto_frontier_chatgpt(
     points: np.ndarray | list[tuple[float, ...]],
     eps=-1e-12,
     sort_by_welfare=True,
+    presort=True,
+):
+    """
+    Finds the pareto-frontier of a set of points.
+
+    Args:
+        points: list of points each is a tuple of utility values for one outcome
+        eps: A (usually negative) small number to treat as zero during calculations
+        sort_by_welfare: If True, the results are sorted descindingly by total welfare
+        presort: Apply the heuristic of pre-sorting all points by sum of utility
+
+    Returns:
+        indices of Pareto optimal outcomes
+    """
+
+    points = np.asarray(points)
+    n_points = points.shape[0]
+    sorted_indices = []
+    if presort:
+        sort_mask = points.sum(1).argsort()[::-1]
+        sorted_indices = np.arange(n_points, dtype=np.int32)[sort_mask]
+        points = points[sort_mask]
+    warn_if_slow(
+        n_points,
+        f"Pareto's Operation is too Slow",
+        lambda x: x * 10,
+    )
+    points = -points
+    indices = np.arange(n_points, dtype=np.int32)
+    points = np.asarray(points)
+    hull = spatial.ConvexHull(points)
+    pareto_points = []
+    pareto_indices = []
+
+    for eq in hull.equations:
+        if eq[-1] > eps:
+            continue
+        pareto_points.extend(points[np.dot(points, eq[:-1]) + eq[-1] <= eps])
+        pareto_indices.extend(indices[np.dot(points, eq[:-1]) + eq[-1] <= eps])
+
+    indices = np.asarray(pareto_indices, dtype=np.int32)
+    if sort_by_welfare:
+        frontier = points[indices]
+        welfare = np.sum(frontier, axis=1)
+        assert frontier.shape[0] == welfare.size
+        welfare_sort_order = welfare.argsort()[::-1]
+        indices = indices[welfare_sort_order]
+    if presort:
+        indices = sorted_indices[indices]
+    return indices
+
+
+def pareto_frontier_convex_hull(
+    points: np.ndarray | list[tuple[float, ...]],
+    eps=-1e-12,
+    sort_by_welfare=True,
+    presort=True,
 ) -> np.ndarray:
     """
     Finds the pareto-frontier of a set of points.
@@ -310,12 +369,122 @@ def pareto_frontier_numpy(
         points: list of points each is a tuple of utility values for one outcome
         eps: A (usually negative) small number to treat as zero during calculations
         sort_by_welfare: If True, the results are sorted descindingly by total welfare
+        presort: Apply the heuristic of pre-sorting all points by sum of utility
+
+    Returns:
+        indices of Pareto optimal outcomes
+    """
+
+    points = np.asarray(points)
+    n_points = points.shape[0]
+    sorted_indices = []
+    if presort:
+        sort_mask = points.sum(1).argsort()[::-1]
+        sorted_indices = np.arange(n_points, dtype=np.int32)[sort_mask]
+        points = points[sort_mask]
+    warn_if_slow(
+        n_points,
+        f"Pareto's Operation is too Slow",
+        lambda x: x * 10,
+    )
+    n_negotiators = points.shape[1]
+    if n_points < 1 or n_negotiators < 1:
+        return np.empty(0, dtype=np.int64)
+
+    def get_pareto_undominated_by(pts1, indices, pts2=None) -> NDArray[np.integer[Any]]:
+        """
+        Return all points in pts1 that are not Pareto dominated by any points in pts2
+        """
+        if pts2 is None:
+            pts2 = pts1
+
+        def filter_(pts, point, indices=indices):
+            """
+            Get all points in pts that are not Pareto dominated by the point pt
+            """
+            weakly_worse = (pts >= point).all(axis=-1)
+            strictly_worse = (pts > point - eps).any(axis=-1)
+            return indices[~(weakly_worse & strictly_worse)]
+
+        return reduce(filter_, pts2, pts1)
+
+    def get_pareto_frontier(points, indices):
+        """
+        Iteratively filter points based on the convex hull heuristic
+        """
+        pareto_groups = []
+
+        # loop while there are points remaining
+        while points.shape[0]:
+            # brute force if there are few points:
+            if points.shape[0] < 10:
+                pareto_groups.append(get_pareto_undominated_by(points, indices))
+                break
+
+            # compute vertices of the convex hull
+            hull_vertices = spatial.ConvexHull(points).vertices
+
+            # get corresponding points
+            hull_pts = points[hull_vertices]
+            hull_indices = indices[hull_vertices]
+
+            # get points in pts that are not convex hull vertices
+            nonhull_mask = np.ones(points.shape[0], dtype=bool)
+            nonhull_mask[hull_vertices] = False
+            points = points[nonhull_mask]
+            indices = indices[nonhull_mask]
+
+            # get points in the convex hull that are on the Pareto frontier
+            pareto_indices = get_pareto_undominated_by(hull_pts, hull_indices)
+            pareto_groups.append(points[pareto_indices])
+            pareto = points[pareto_indices]
+
+            # filter remaining points to keep those not dominated by
+            # Pareto points of the convex hull
+            points = get_pareto_undominated_by(points, indices, pareto)
+
+        return np.vstack(pareto_groups)
+
+    indices = np.arange(n_points, dtype=np.int32)
+    points = get_pareto_frontier(points, indices)
+
+    if sort_by_welfare:
+        frontier = points[indices]
+        welfare = np.sum(frontier, axis=1)
+        assert frontier.shape[0] == welfare.size
+        welfare_sort_order = welfare.argsort()[::-1]
+        indices = indices[welfare_sort_order]
+    if presort:
+        indices = sorted_indices[indices]
+    return indices
+
+
+# Faster than is_pareto_efficient_simple, but less readable.
+def pareto_frontier_numpy(
+    points: np.ndarray | list[tuple[float, ...]],
+    eps=-1e-12,
+    sort_by_welfare=True,
+    presort=True,
+) -> np.ndarray:
+    """
+    Finds the pareto-frontier of a set of points.
+
+    Args:
+        points: list of points each is a tuple of utility values for one outcome
+        eps: A (usually negative) small number to treat as zero during calculations
+        sort_by_welfare: If True, the results are sorted descindingly by total welfare
+        presort: Apply the heuristic of pre-sorting all points by sum of utility
 
     Returns:
         indices of Pareto optimal outcomes
     """
     points = np.asarray(points)
     n_points = points.shape[0]
+    sorted_indices = []
+    if presort:
+        sort_mask = points.sum(1).argsort()[::-1]
+        sorted_indices = np.arange(n_points, dtype=np.int32)[sort_mask]
+        points = points[sort_mask]
     warn_if_slow(
         n_points,
         f"Pareto's Operation is too Slow",
@@ -329,7 +498,7 @@ def pareto_frontier_numpy(
         if not indices[i]:
             continue
         # Keep any point with a higher utility
-        indices[indices] = np.any(points[indices] > c, axis=1)
+        indices[indices] = np.any(points[indices] > c - eps, axis=1)
         indices[i] = True  # And keep self
     indices = np.nonzero(indices)[0]
 
@@ -348,6 +517,64 @@ def pareto_frontier_numpy(
         assert frontier.shape[0] == welfare.size
         welfare_sort_order = welfare.argsort()[::-1]
         indices = indices[welfare_sort_order]
+    if presort:
+        indices = sorted_indices[indices]
+    return indices
+
+
+def pareto_frontier_numpy_faster(
+    points: np.ndarray | list[tuple[float, ...]],
+    eps=-1e-12,
+    sort_by_welfare=True,
+    presort=True,
+) -> np.ndarray:
+    """
+    Finds the pareto-frontier of a set of points.
+
+    Args:
+        points: list of points each is a tuple of utility values for one outcome
+        eps: A (usually negative) small number to treat as zero during calculations
+        sort_by_welfare: If True, the results are sorted descindingly by total welfare
+        presort: Apply the heuristic of pre-sorting all points by sum of utility
+
+    Returns:
+        indices of Pareto optimal outcomes
+    """
+    points = np.asarray(points)
+    n_points = points.shape[0]
+    sorted_indices = []
+    if presort:
+        sort_mask = points.sum(1).argsort()[::-1]
+        sorted_indices = np.arange(n_points, dtype=np.int32)[sort_mask]
+        points = points[sort_mask]
+    warn_if_slow(
+        n_points,
+        f"Pareto's Operation is too Slow",
+        lambda x: x * 10,
+    )
+    n_negotiators = points.shape[1]
+    if n_points < 1 or n_negotiators < 1:
+        return np.empty(0, dtype=np.int64)
+
+    indices = np.arange(n_points)
+    next_point_index = 0  # Next index in the indices array to search for
+    while next_point_index < n_points:
+        nondominated_point_mask = np.any(
+            points > points[next_point_index] - eps, axis=1
+        )
+        nondominated_point_mask[next_point_index] = True
+        indices = indices[nondominated_point_mask]  # Remove dominated points
+        points = points[nondominated_point_mask]
+        next_point_index = np.sum(nondominated_point_mask[:next_point_index]) + 1
+
+    if sort_by_welfare:
+        frontier = points[indices]
+        welfare = np.sum(frontier, axis=1)
+        assert frontier.shape[0] == welfare.size
+        welfare_sort_order = welfare.argsort()[::-1]
+        indices = indices[welfare_sort_order]
+    if presort:
+        indices = sorted_indices[indices]
     return indices
 
 
