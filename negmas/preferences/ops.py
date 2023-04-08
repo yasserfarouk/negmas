@@ -579,68 +579,6 @@ def pareto_frontier_numpy_faster(
     return indices
 
 
-@jit(nopython=True)
-def _pareto_frontier_bf(
-    points: np.ndarray,
-    eps=-1e-12,
-    sort_by_welfare=True,
-) -> np.ndarray:
-    """
-    Finds the pareto-frontier of a set of points using brute-force. This is
-    extremely slow but is guaranteed to be correct.
-
-    Args:
-        points: list of points each is a tuple of utility values for one outcome
-        eps: A (usually negative) small number to treat as zero during calculations
-        sort_by_welfare: If True, the results are sorted descindingly by total welfare
-
-    Returns:
-        indices of Pareto optimal outcomes
-    """
-
-    frontier, indices = [], []
-    if len(points) < 1:
-        return np.empty(0, dtype=np.int64)
-    m = points.shape[1]
-    if m < 1:
-        return np.empty(0, dtype=np.int64)
-    # points = points[points[:, 0].argsort()[::-1]]
-    for i, current in enumerate(points):
-        for j, test in enumerate(points):
-            if j == i:
-                continue
-            has_better = has_worse = False
-            for k in range(m):
-                a, b = current[k], test[k]
-                if a > b:
-                    has_better = True
-                    continue
-                if a < b - eps:
-                    has_worse = True
-
-            if not has_better and has_worse:
-                # current is dominated, break
-                break
-        else:
-            indices.append(i)
-            frontier.append(current)
-
-    indices = np.asarray(indices, dtype=np.int64)
-    # frontier = np.vstack(tuple(frontier))
-    if sort_by_welfare:
-        n = len(frontier)
-        # welfare = frontier.sum(axis=1)
-        welfare = np.zeros(n, dtype=np.float32)
-        for i, f in enumerate(frontier):
-            welfare[i] = f.sum()
-        welfare_sort_order = welfare.argsort()[::-1]
-        indices = indices[welfare_sort_order]
-        # welfare = [(np.sum(_[0]), i) for i, _ in enumerate(frontier)]
-        # indx = sorted(welfare, reverse=True)
-        # indices = [frontier[_] for _ in indx]
-    return indices
-
-
 def pareto_frontier_of(
     points: np.ndarray | Iterable[Iterable[float]],
     eps=-1e-12,
@@ -716,6 +654,68 @@ def pareto_frontier_of(
         indx = sorted(range(len(welfare)), key=lambda x: welfare[x], reverse=True)
         found = [found[_] for _ in indx]
     return np.asarray([_ for _ in found])
+
+
+@jit(nopython=True)
+def _pareto_frontier_bf(
+    points: np.ndarray,
+    eps=-1e-12,
+    sort_by_welfare=True,
+) -> np.ndarray:
+    """
+    Finds the pareto-frontier of a set of points using brute-force. This is
+    extremely slow but is guaranteed to be correct.
+
+    Args:
+        points: list of points each is a tuple of utility values for one outcome
+        eps: A (usually negative) small number to treat as zero during calculations
+        sort_by_welfare: If True, the results are sorted descindingly by total welfare
+
+    Returns:
+        indices of Pareto optimal outcomes
+    """
+
+    frontier, indices = [], []
+    if len(points) < 1:
+        return np.empty(0, dtype=np.int64)
+    m = points.shape[1]
+    if m < 1:
+        return np.empty(0, dtype=np.int64)
+    # points = points[points[:, 0].argsort()[::-1]]
+    for i, current in enumerate(points):
+        for j, test in enumerate(points):
+            if j == i:
+                continue
+            has_better = has_worse = False
+            for k in range(m):
+                a, b = current[k], test[k]
+                if a > b:
+                    has_better = True
+                    continue
+                if a < b - eps:
+                    has_worse = True
+
+            if not has_better and has_worse:
+                # current is dominated, break
+                break
+        else:
+            indices.append(i)
+            frontier.append(current)
+
+    indices = np.asarray(indices, dtype=np.int64)
+    # frontier = np.vstack(tuple(frontier))
+    if sort_by_welfare:
+        n = len(frontier)
+        # welfare = frontier.sum(axis=1)
+        welfare = np.zeros(n, dtype=np.float32)
+        for i, f in enumerate(frontier):
+            welfare[i] = f.sum()
+        welfare_sort_order = welfare.argsort()[::-1]
+        indices = indices[welfare_sort_order]
+        # welfare = [(np.sum(_[0]), i) for i, _ in enumerate(frontier)]
+        # indx = sorted(welfare, reverse=True)
+        # indices = [frontier[_] for _ in indx]
+    return indices
 
 
 def kalai_points(
@@ -1610,7 +1610,9 @@ def winwin_level(
     return signed_diffs.mean()
 
 
-def get_ranks(ufun: UtilityFunction, outcomes: Sequence[Outcome | None]) -> list[float]:
+def get_ranks_bf(
+    ufun: UtilityFunction, outcomes: Sequence[Outcome | None]
+) -> list[float]:
     assert ufun.outcome_space is not None
     assert ufun.outcome_space.is_discrete()
     alloutcomes = list(ufun.outcome_space.enumerate_or_sample())
@@ -1652,11 +1654,77 @@ def get_ranks(ufun: UtilityFunction, outcomes: Sequence[Outcome | None]) -> list
     return results
 
 
-def make_rank_ufun(ufun: UtilityFunction) -> UtilityFunction:
+def get_ranks(
+    ufun: UtilityFunction, outcomes: Sequence[Outcome | None], normalize=False
+) -> list[float]:
+    assert ufun.outcome_space is not None
+    assert ufun.outcome_space.is_discrete()
+    alloutcomes = (
+        list(ufun.outcome_space.enumerate_or_sample())
+        if not outcomes
+        else list(outcomes)
+    )
+    n = len(alloutcomes)
+    warn_if_slow(n, "Calculating Rank UFun is too Slow", lambda x: x * math.log(x))
+    r = ufun.reserved_value
+    changed = False
+    if r is None:
+        changed, ufun.reserved_value = True, float("-inf")
+    vals = np.asarray([ufun(_) for _ in alloutcomes + [None]])
+    if changed:
+        ufun.reserved_value = None  # type: ignore
+    ranks = rankdata(vals, method="dense") - 1
+    ranks = ranks[-1] - ranks
+    if normalize:
+        ranks = ranks / ranks[0]
+    return ranks
+    # # insert null into its place
+    # # loc = n
+    # # r = ufun.reserved_value
+    # # loc = n
+    # # if r is None:
+    # #     r = float("-inf")
+    # # else:
+    # #     for k, (u, o) in enumerate(ordered):
+    # #         if u < r:
+    # #             loc = k
+    # #             break
+    # # if loc == n:
+    # #     ordered.append((r, None))
+    # # else:
+    # #     ordered.insert(loc, (r, None))
+    #
+    # ordered = list(zip(range(n, -1, -1), ordered, strict=True))
+    # # mark outcomes with equal utils with the same rank
+    # for i, (second, first) in enumerate(zip(ordered[1:], ordered[:-1], strict=True)):
+    #     if abs(first[1][0] - second[1][0]) < 1e-10:
+    #         ordered[i + 1] = (first[0], second[1])
+    # results = []
+    # for outcome in outcomes:
+    #     for v in ordered:
+    #         k, _ = v
+    #         u, o = _
+    #         if o == outcome:
+    #             results.append(k / n)
+    #             break
+    #     else:
+    #         raise ValueError(f"Could not find {outcome}")
+    # return results
+
+
+def make_rank_ufun(ufun: UtilityFunction, normalize: bool = False) -> UtilityFunction:
+    """
+    Generates a ufun with the same ordering as the given one but with all differences
+    between reserved values being equal
+
+    Args:
+        ufun: input ufun.
+        normalize: if True, the resulting ranks will be normalized between 0 and 1.
+    """
     assert ufun.outcome_space is not None
     assert ufun.outcome_space.is_discrete()
     alloutcomes = list(ufun.outcome_space.enumerate_or_sample()) + [None]
-    ranks = get_ranks(ufun, alloutcomes)
+    ranks = get_ranks(ufun, alloutcomes, normalize=normalize)
     reserved = ranks[-1]
     return MappingUtilityFunction(
         mapping=dict(zip(alloutcomes[:-1], ranks[:-1])),
