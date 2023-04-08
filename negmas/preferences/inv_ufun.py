@@ -217,9 +217,9 @@ class PresortingInverseUtilityFunction(InverseUFun):
         self.max_cache_size = max_cache_size
         self.levels = levels
         self._initialized = False
-        self._outcomes: list[Outcome] = []
+        self.outcomes: list[Outcome] = []
         self._last_rational: int = -1
-        self._utils: NDArray[floating[Any]] = []  # type: ignore
+        self.utils: NDArray[floating[Any]] = []  # type: ignore
         self.rational_only = rational_only
         self._waypoints: NDArray[integer[Any]] = []  # type: ignore
         self._waypoint_values: NDArray[floating[Any]] = []  # type: ignore
@@ -241,7 +241,7 @@ class PresortingInverseUtilityFunction(InverseUFun):
 
     def reset(self) -> None:
         self._initialized = False
-        self._outcomes, self._utils = [], []  # type: ignore
+        self.outcomes, self.utils = [], []  # type: ignore
         self._waypoints, self._waypoint_values = [], []  # type: ignore
 
     def init(self):
@@ -361,10 +361,10 @@ class PresortingInverseUtilityFunction(InverseUFun):
             a < b for a, b in zip(waypoint_values[1:], waypoint_values[:-1])
         ), f"{waypoints=}\n{waypoint_values}\n{self._last_rational}"
         self._waypoints, self._waypoint_values = waypoints, waypoint_values
-        self._outcomes = [rational[_] for _ in indices] + irrational
-        self._utils = np.hstack((ur_sorted, uir))
-        self._smallest_indx, self._smallest_val = 0, self._utils[0]
-        self._largest_indx, self._largest_val = len(self._utils) - 1, self._utils[-1]
+        self.outcomes = [rational[_] for _ in indices] + irrational
+        self.utils = np.hstack((ur_sorted, uir))
+        self._smallest_indx, self._smallest_val = 0, self.utils[0]
+        self._largest_indx, self._largest_val = len(self.utils) - 1, self.utils[-1]
 
     def _normalize_range(
         self,
@@ -388,7 +388,7 @@ class PresortingInverseUtilityFunction(InverseUFun):
             return (-1, -1)
         lo, hi = self._waypoints[0], self._waypoints[-1]
         lo_val, hi_val = self._waypoint_values[0], self._waypoint_values[-1]
-        n = len(self._utils)
+        n = len(self.utils)
         for i, u in zip(self._waypoints, self._waypoint_values):
             if u == lo_val:
                 lo = i
@@ -413,7 +413,7 @@ class PresortingInverseUtilityFunction(InverseUFun):
             return self.best()
         if self._last_returned_from_next > 0:
             self._last_returned_from_next -= 1
-            return self._outcomes[self._last_returned_from_next]
+            return self.outcomes[self._last_returned_from_next]
         return None
 
     def next_better(self) -> Outcome | None:
@@ -423,7 +423,7 @@ class PresortingInverseUtilityFunction(InverseUFun):
             return self.worst()
         if self._last_returned_from_next < self._last_rational:
             self._last_returned_from_next += 1
-            return self._outcomes[self._last_returned_from_next]
+            return self.outcomes[self._last_returned_from_next]
         return None
 
     def some(
@@ -454,7 +454,7 @@ class PresortingInverseUtilityFunction(InverseUFun):
         mn, mx = rng
         lo, hi = self._get_limiting_waypoints(mn, mx)
         results = []
-        for util, w in zip(self._utils[lo : hi + 1], self._outcomes[lo : hi + 1]):
+        for util, w in zip(self.utils[lo : hi + 1], self.outcomes[lo : hi + 1]):
             if util > mx:
                 continue
             if util < mn:
@@ -496,7 +496,7 @@ class PresortingInverseUtilityFunction(InverseUFun):
         rng = self._normalize_range(rng, normalized, False)
         mn, mx = rng
         lo, hi = self._get_limiting_waypoints(mn, mx)
-        return index_above_or_equal(self._utils, mn, lo, hi), mn, mx
+        return index_above_or_equal(self.utils, mn, lo, hi), mn, mx
 
     def worst_in(
         self,
@@ -519,13 +519,13 @@ class PresortingInverseUtilityFunction(InverseUFun):
         indx, mn, mx = self._worst_in_indx(rng, normalized)
         if indx > self._last_rational:
             return None
-        if self._utils[indx] > mx:
+        if self.utils[indx] > mx:
             return None
         if mn < self._smallest_val:
             self._smallest_indx, self._smallest_val = indx, mn
         if cycle and indx:
             self._cycle_around(indx)
-        return self._outcomes[indx]
+        return self.outcomes[indx]
 
     def _best_in_indx(self, rng: tuple[float, float] | float, normalized: bool):
         if not self._ufun.is_stationary():
@@ -533,7 +533,7 @@ class PresortingInverseUtilityFunction(InverseUFun):
         rng = self._normalize_range(rng, normalized, True)
         mn, mx = rng
         lo, hi = self._get_limiting_waypoints(mn, mx)
-        return index_below_or_equal(self._utils, mx, lo, hi), mn, mx
+        return index_below_or_equal(self.utils, mx, lo, hi), mn, mx
 
     def best_in(
         self,
@@ -556,18 +556,18 @@ class PresortingInverseUtilityFunction(InverseUFun):
         indx, mn, mx = self._best_in_indx(rng, normalized)
         if indx < 0:
             return None
-        if self._utils[indx] < mn:
+        if self.utils[indx] < mn:
             return None
         if mx > self._largest_val:
             self._largest_indx, self._largest_val = indx, mx
         if cycle and indx:
             self._cycle_around(indx)
-        return self._outcomes[indx]
+        return self.outcomes[indx]
 
     def _cycle_around(self, indx: int) -> None:
         mn_indx, mx_indx = self._near_range.get(indx, (indx, indx))
         if mn_indx < mx_indx:
-            np.roll(self._utils[mn_indx : mx_indx + 1], 1)
+            np.roll(self.utils[mn_indx : mx_indx + 1], 1)
 
     def one_in(
         self, rng: float | tuple[float, float], normalized: bool
@@ -580,10 +580,10 @@ class PresortingInverseUtilityFunction(InverseUFun):
         """
         rng = self._normalize_range(rng, normalized, True)
         mx, _, _ = self._worst_in_indx(rng, normalized)
-        if mx > self._last_rational or self._utils[mx] > rng[1]:
+        if mx > self._last_rational or self.utils[mx] > rng[1]:
             return None
         mn, _, _ = self._best_in_indx(rng, normalized)
-        if mn < 0 or self._utils[mn] < rng[0]:
+        if mn < 0 or self.utils[mn] < rng[0]:
             return None
         if mn < 0:
             mn = 0
@@ -592,9 +592,9 @@ class PresortingInverseUtilityFunction(InverseUFun):
         if mx < mn:
             return None
         if mn == mx:
-            return self._outcomes[mn]
+            return self.outcomes[mn]
         indx = random.randint(mn, mx)
-        return self._outcomes[indx]
+        return self.outcomes[indx]
 
     def within_fractions(self, rng: tuple[float, float]) -> list[Outcome]:
         """
@@ -611,7 +611,7 @@ class PresortingInverseUtilityFunction(InverseUFun):
             max(self._last_rational - math.floor(rng[1]), 0),
             min(n, self._last_rational - math.floor(rng[0])),
         )
-        return list(reversed(self._outcomes[int(rng[0]) : int(rng[1]) + 1]))
+        return list(reversed(self.outcomes[int(rng[0]) : int(rng[1]) + 1]))
 
     def within_indices(self, rng: tuple[int, int]) -> list[Outcome]:
         """
@@ -625,7 +625,7 @@ class PresortingInverseUtilityFunction(InverseUFun):
         n = self._last_rational + 1
         rng = (self._last_rational - rng[1], self._last_rational - rng[0])
         rng = (max(rng[0], 0), min(rng[1], n))
-        return list(reversed(self._outcomes[rng[0] : rng[1] + 1]))
+        return list(reversed(self.outcomes[rng[0] : rng[1] + 1]))
 
     def min(self) -> float:
         """
@@ -633,7 +633,7 @@ class PresortingInverseUtilityFunction(InverseUFun):
         """
         if not self._ufun.is_stationary():
             self.init()
-        return self._utils[0] if self._last_rational >= 0 else float("inf")
+        return self.utils[0] if self._last_rational >= 0 else float("inf")
 
     def max(self) -> float:
         """
@@ -642,7 +642,7 @@ class PresortingInverseUtilityFunction(InverseUFun):
         if not self._ufun.is_stationary():
             self.init()
         return (
-            self._utils[self._last_rational]
+            self.utils[self._last_rational]
             if self._last_rational >= 0
             else float("-inf")
         )
@@ -653,7 +653,7 @@ class PresortingInverseUtilityFunction(InverseUFun):
         """
         if not self._ufun.is_stationary():
             self.init()
-        return self._outcomes[0] if self._last_rational >= 0 else None
+        return self.outcomes[0] if self._last_rational >= 0 else None
 
     def best(self) -> Outcome | None:
         """
@@ -661,7 +661,7 @@ class PresortingInverseUtilityFunction(InverseUFun):
         """
         if not self._ufun.is_stationary():
             self.init()
-        return self._outcomes[self._last_rational] if self._last_rational >= 0 else None
+        return self.outcomes[self._last_rational] if self._last_rational >= 0 else None
 
     def minmax(self) -> tuple[float, float]:
         """
@@ -692,20 +692,20 @@ class PresortingInverseUtilityFunction(InverseUFun):
         return self.one_in(rng, normalized)
 
     def outcome_at(self, indx: int) -> Outcome | None:
-        n = len(self._outcomes)
+        n = len(self.outcomes)
         if indx >= n:
             return None
         if indx <= self._last_rational:
-            return self._outcomes[self._last_rational - indx]
-        return self._outcomes[indx]
+            return self.outcomes[self._last_rational - indx]
+        return self.outcomes[indx]
 
     def utility_at(self, indx: int) -> float:
-        n = len(self._outcomes)
+        n = len(self.outcomes)
         if indx >= n:
             return float("-inf")
         if indx <= self._last_rational:
-            return self._utils[self._last_rational - indx]
-        return self._utils[indx]
+            return self.utils[self._last_rational - indx]
+        return self.utils[indx]
 
 
 class PresortingInverseUtilityFunctionBruteForce(InverseUFun):

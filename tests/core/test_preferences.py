@@ -260,6 +260,33 @@ def test_calc_reserved_fifty_fifty():
 @given(
     n_outcomes=st.integers(2, 1000),
     n_negotiators=st.integers(2, 5),
+    normalize=st.booleans(),
+    r0=st.floats(-1.0, 1.0),
+    r1=st.floats(-1.0, 1.0),
+)
+@settings(deadline=60_000)
+def test_ranks_match_bf(n_outcomes, n_negotiators, normalize, r0, r1):
+    np.random.seed(0)
+    os = make_os([make_issue(n_outcomes)])
+    outcomes = os.enumerate_or_sample()
+    utils = np.random.rand(n_negotiators, n_outcomes)
+    ufuns = [
+        MappingUtilityFunction(
+            dict(zip(outcomes, _)), outcome_space=os, reserved_value=r0 if not i else r1
+        )
+        for i, _ in enumerate(utils)
+    ]
+    rank_ufuns = [make_rank_ufun(_, normalize=normalize) for _ in ufuns]
+    rank_ufuns_bf = [make_rank_ufun(_, normalize=normalize) for _ in ufuns]
+    for u, ubf in zip(rank_ufuns, rank_ufuns_bf):
+        assert abs(u.reserved_value - ubf.reserved_value) < 1e-10
+        for outcome in list(outcomes) + [None]:
+            assert abs(u(outcome) - ubf(outcome)) < 1e-12
+
+
+@given(
+    n_outcomes=st.integers(2, 1000),
+    n_negotiators=st.integers(2, 5),
     sort=st.booleans(),
     r0=st.floats(-1.0, 1.0),
     r1=st.floats(-1.0, 1.0),
