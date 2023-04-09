@@ -1656,7 +1656,7 @@ def get_ranks_bf(
 
 def get_ranks(
     ufun: UtilityFunction, outcomes: Sequence[Outcome | None], normalize=False
-) -> list[float]:
+) -> list[float] | NDArray[np.floating[Any]]:
     assert ufun.outcome_space is not None
     assert ufun.outcome_space.is_discrete()
     alloutcomes = (
@@ -1673,10 +1673,9 @@ def get_ranks(
     vals = np.asarray([ufun(_) for _ in alloutcomes + [None]])
     if changed:
         ufun.reserved_value = None  # type: ignore
-    ranks = rankdata(vals, method="dense") - 1
-    ranks = ranks[-1] - ranks
+    ranks = rankdata(vals, method="dense") - 1.0
     if normalize:
-        ranks = ranks / ranks[0]
+        ranks = ranks / np.max(ranks)
     return ranks
     # # insert null into its place
     # # loc = n
