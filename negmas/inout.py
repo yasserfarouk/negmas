@@ -12,6 +12,7 @@ from typing import Any, Callable, Iterable, Sequence
 from attrs import define
 
 from negmas.helpers.inout import dump
+from negmas.helpers.types import get_full_type_name
 from negmas.outcomes.outcome_space import make_os
 from negmas.preferences.crisp.linear import LinearAdditiveUtilityFunction
 from negmas.preferences.ops import ScenarioStats, calc_scenario_stats
@@ -172,6 +173,7 @@ class Scenario:
         n_steps: int | float | None = None,
         time_limit: float | None = None,
         roles: list[str] | None = None,
+        raise_on_failure_to_enter: bool = True,
         **kwargs,
     ):
         """
@@ -201,7 +203,12 @@ class Scenario:
         if not roles:
             roles = ["negotiator"] * len(negs)
         for n, r, u in zip(negs, roles, self.ufuns):
-            m.add(n, preferences=u, role=r)
+            added = m.add(n, preferences=u, role=r)
+            if not added and raise_on_failure_to_enter:
+                raise ValueError(
+                    f"{n.name} (of type {get_full_type_name(n.__class__)}) failed to enter the negotiation {m.name}"
+                )
+
         return m
 
     def scale_min(
