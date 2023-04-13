@@ -21,6 +21,7 @@ from negmas.inout import Scenario
 from negmas.mechanisms import Mechanism
 from negmas.negotiators.negotiator import Negotiator
 from negmas.preferences.ops import (
+    calc_reserved_value,
     kalai_points,
     make_rank_ufun,
     max_welfare_points,
@@ -153,6 +154,7 @@ def run(
     ),
     path: list[Path] = list(),
     reserved: list[float] = typer.Option(None, "--reserved", "-r"),
+    fraction: list[float] = typer.Option(None, "--fraction", "-f"),
     normalize: bool = True,
     steps: int = typer.Option(None, "--steps", "-s"),  # type: ignore
     timelimit: int = typer.Option(None, "--time", "--timelimit", "-t"),  # type: ignore
@@ -251,6 +253,11 @@ def run(
     if reserved:
         for u, r in zip(scenario.ufuns, reserved):
             u.reserved_value = r
+    if fraction:
+        if len(fraction) < len(negotiators):
+            fraction += [1.0] * (len(negotiators) - len(fraction))
+        for u, f in zip(scenario.ufuns, fraction):
+            u.reserved_value = calc_reserved_value(u, f)
     if (
         not extend_negotiators
         and len(agents) > 0

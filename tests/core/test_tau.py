@@ -45,10 +45,10 @@ SAONEGOTIATORS = [
 MECHS = (TAUMechanism,) if NEGMAS_FASTRUN else (TAUMechanism, GeneralizedTAUMechanism)
 NEGOTIATORS = [
     WARNegotiator,
+    CABNegotiator,
     CANNegotiator,
     CARNegotiator,
     WANNegotiator,
-    CABNegotiator,
     WABNegotiator,
 ]
 
