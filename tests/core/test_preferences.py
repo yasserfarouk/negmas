@@ -38,7 +38,6 @@ from negmas.preferences.ops import (
     normalize,
     pareto_frontier_bf,
     pareto_frontier_numpy,
-    pareto_frontier_of,
     scale_max,
 )
 from negmas.sao.mechanism import SAOMechanism
@@ -420,7 +419,7 @@ def test_mechanism_pareto_frontier_matches_global(
     sort=st.booleans(),
 )
 @settings(deadline=60_000)
-def test_pareto_frontier_numpy_matches_bf(n_outcomes, n_negotiators, sort):
+def test_pareto_frontier_numpy_matches_bf2(n_outcomes, n_negotiators, sort):
     np.random.seed(0)
     utils = np.random.rand(n_outcomes, n_negotiators)
     bf = list(pareto_frontier_bf(utils, sort_by_welfare=sort))
@@ -440,11 +439,11 @@ def test_pareto_frontier_numpy_matches_bf(n_outcomes, n_negotiators, sort):
     sort=st.booleans(),
 )
 @settings(deadline=60_000)
-def test_pareto_frontier_of_matches_bf(n_outcomes, n_negotiators, sort):
+def test_pareto_frontier_numpy_matches_bf(n_outcomes, n_negotiators, sort):
     np.random.seed(0)
     utils = np.random.rand(n_outcomes, n_negotiators)
     bf = list(pareto_frontier_bf(utils, sort_by_welfare=sort))
-    x = list(pareto_frontier_of(utils, sort_by_welfare=sort))
+    x = list(pareto_frontier_numpy(utils, sort_by_welfare=sort))
     assert len(x) == len(bf), f"bf:{bf}\nfast:{x}"
     assert len(bf) == len(set(bf)), f"bf:{bf}\nfast:{x}"
     assert len(x) == len(set(x)), f"bf:{bf}\nfast:{x}"
@@ -486,12 +485,13 @@ def test_pareto_frontier_does_not_depend_on_order():
         outcomes=[(_,) for _ in range(10)],
     )
 
-    assert set(p1) == {(0.9419131964655383, 0.0), (0.7242899747791032, 1.0)}
-    assert set(p2) == {(1.0, 0.7242899747791032), (0.0, 0.9419131964655383)}
-    assert set(l1) == {6, 3}
     assert len(p1) == len(p2)
     # assert l2 == list(reversed(l1))
 
+    assert set(l1) == {6, 3}
+    assert set(l2) == {6, 3}
+    assert set(p1) == {(0.9419131964655383, 0.0), (0.7242899747791032, 1.0)}
+    assert set(p2) == {(1.0, 0.7242899747791032), (0.0, 0.9419131964655383)}
     # reverse order of p2
     p2 = [(_[1], _[0]) for _ in p2]
     for a in p1:

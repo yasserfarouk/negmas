@@ -67,8 +67,8 @@ def sort_by_utility(
     outcomes: Iterable[Outcome] | None = None,
     *,
     max_cardinality: int | float = float("inf"),
-    best_first: Literal[True] = True,
-    return_sorted_outcomes: bool = True,
+    best_first: bool = True,
+    return_sorted_outcomes: Literal[True] = True,
 ) -> tuple[NDArray[np.floating[Any]], list[Outcome]]:
     ...
 
@@ -79,7 +79,7 @@ def sort_by_utility(
     outcomes: Iterable[Outcome] | None = None,
     *,
     max_cardinality: int | float = float("inf"),
-    best_first: Literal[True] = True,
+    best_first: bool = True,
     return_sorted_outcomes: Literal[False],
 ) -> NDArray[np.floating[Any]]:
     ...
@@ -545,9 +545,8 @@ def pareto_frontier_numpy(
     n_points = points.shape[0]
     sorted_indices = []
     if presort:
-        sort_mask = points.sum(1).argsort()[::-1]
-        sorted_indices = np.arange(n_points, dtype=np.int32)[sort_mask]
-        points = points[sort_mask]
+        sorted_indices = points.sum(1).argsort()[::-1]
+        points = points[sorted_indices]
     warn_if_slow(
         n_points,
         f"Pareto's Operation is too Slow",
@@ -561,7 +560,7 @@ def pareto_frontier_numpy(
         if not indices[i]:
             continue
         # Keep any point with a higher utility
-        indices[indices] = np.any(points[indices] > c - eps, axis=1)
+        indices[indices] = np.any(points[indices] > c + eps, axis=1)
         indices[i] = True  # And keep self
     indices = np.nonzero(indices)[0]
 
@@ -712,9 +711,13 @@ def pareto_frontier_of(
                 found.append(p)
 
     if sort_by_welfare:
-        welfare = [_.sum() for _ in frontier]
-        indx = sorted(range(len(welfare)), key=lambda x: welfare[x], reverse=True)
-        found = [found[_] for _ in indx]
+        frontier = np.asarray(frontier)
+        welfare = np.sum(frontier, axis=1)
+        welfare_sort_order = welfare.argsort()[::-1]
+        found = [found[_] for _ in welfare_sort_order]
+        # welfare = [_.sum() for _ in frontier]
+        # indx = sorted(range(len(welfare)), key=lambda x: welfare[x], reverse=True)
+        # found = [found[_] for _ in indx]
     return np.asarray([_ for _ in found])
 
 
@@ -1680,9 +1683,14 @@ def get_ranks_bf(
     alloutcomes = list(ufun.outcome_space.enumerate_or_sample())
     n = len(alloutcomes)
     warn_if_slow(n, "Calculating Rank UFun is too Slow")
-    vals: list[tuple[float, Outcome | None]]
-    vals = [(ufun(_), _) for _ in alloutcomes]
-    ordered = sorted(vals, reverse=True)
+    # vals: list[tuple[float, Outcome | None]]
+    u, o = sort_by_utility(
+        ufun, alloutcomes, best_first=True, return_sorted_outcomes=True
+    )
+    ordered: list[tuple[float, Outcome | None]]
+    ordered = list(zip(u, o))
+    # vals = [(ufun(_), _) for _ in alloutcomes]
+    # ordered = sorted(vals, reverse=True)
     # insert null into its place
     r = ufun.reserved_value
     loc = n
@@ -1698,14 +1706,16 @@ def get_ranks_bf(
     else:
         ordered.insert(loc, (r, None))
 
-    ordered = list(zip(range(n, -1, -1), ordered, strict=True))
+    ordered_lists = list(zip(range(n, -1, -1), ordered, strict=True))
     # mark outcomes with equal utils with the same rank
-    for i, (second, first) in enumerate(zip(ordered[1:], ordered[:-1], strict=True)):
+    for i, (second, first) in enumerate(
+        zip(ordered_lists[1:], ordered_lists[:-1], strict=True)
+    ):
         if abs(first[1][0] - second[1][0]) < 1e-10:
-            ordered[i + 1] = (first[0], second[1])
+            ordered_lists[i + 1] = (first[0], second[1])
     results = []
     for outcome in outcomes:
-        for v in ordered:
+        for v in ordered_lists:
             k, _ = v
             u, o = _
             if o == outcome:
