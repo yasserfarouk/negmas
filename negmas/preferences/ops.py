@@ -4,7 +4,7 @@ import itertools
 import math
 from functools import reduce
 from math import sqrt
-from typing import TYPE_CHECKING, Any, Iterable, Sequence, TypeVar
+from typing import TYPE_CHECKING, Any, Iterable, Literal, Sequence, TypeVar, overload
 
 import numpy as np
 from attrs import define
@@ -56,7 +56,71 @@ __all__ = [
     "ScenarioStats",
     "OutcomeDistances",
     "OutcomeOptimality",
+    "sort_by_utility",
+    "calc_reserved_value",
 ]
+
+
+@overload
+def sort_by_utility(
+    ufun: BaseUtilityFunction,
+    outcomes: Iterable[Outcome] | None = None,
+    *,
+    max_cardinality: int | float = float("inf"),
+    best_first: Literal[True] = True,
+    return_sorted_outcomes: bool = True,
+) -> tuple[NDArray[np.floating[Any]], list[Outcome]]:
+    ...
+
+
+@overload
+def sort_by_utility(
+    ufun: BaseUtilityFunction,
+    outcomes: Iterable[Outcome] | None = None,
+    *,
+    max_cardinality: int | float = float("inf"),
+    best_first: Literal[True] = True,
+    return_sorted_outcomes: Literal[False],
+) -> NDArray[np.floating[Any]]:
+    ...
+
+
+def sort_by_utility(
+    ufun: BaseUtilityFunction,
+    outcomes: Iterable[Outcome] | None = None,
+    *,
+    max_cardinality: int | float = float("inf"),
+    best_first: bool = True,
+    return_sorted_outcomes: bool = True,
+) -> tuple[NDArray[np.floating[Any]], list[Outcome]] | NDArray[np.floating[Any]]:
+    """
+    Returns an ordered list of utility values and outcomes for the given ufun
+
+    Remarks:
+        - If outcomes is not given, the outcome-space of the ufun is used
+
+    Returns:
+        A tuple of two lists (first two are numpy arrays):
+        - utility values ordered from best to worst or worst to best based on `best_first`
+        - outcomes corresponding to the sorted utility values
+
+    """
+    if outcomes is None:
+        if ufun.outcome_space is None:
+            raise ValueError(
+                f"Cannot find outcomes of the given ufun. Pass them explicitly"
+            )
+        outcomes = ufun.outcome_space.enumerate_or_sample(
+            max_cardinality=max_cardinality
+        )
+    outcomes = list(outcomes)
+    c = -1.0 if best_first else 1.0
+    utils = c * np.asarray([float(ufun(outcome)) for outcome in outcomes], dtype=float)
+    indices = np.argsort(utils)
+    utils = c * utils
+    if not return_sorted_outcomes:
+        return utils[indices]
+    return utils[indices], [outcomes[_] for _ in indices]
 
 
 @define
@@ -175,7 +239,8 @@ def calc_reserved_value(
     finite: bool = True,
     tight: bool = True,
 ) -> float:
-    """Calculates a reserved value that keeps the given fraction of outcomes
+    """
+    Calculates a reserved value that keeps the given fraction of outcomes
     (saturated between nmin and nmax).
 
     Remarks:
@@ -188,19 +253,16 @@ def calc_reserved_value(
         raise ValueError(
             f"Cannot calc reserved values if the outcome space is not given and the same in all ufuns"
         )
-    outcomes = list(os.enumerate_or_sample(max_cardinality=max_cardinality))
-    noutcomes = len(outcomes)
+    utils, _ = sort_by_utility(ufun, max_cardinality=max_cardinality, best_first=True)
+    noutcomes = len(utils)
     warn_if_slow(
         noutcomes, "Calculating Reserved Value for the given fraction is too slow"
     )
-    utils = [ufun(o) for o in outcomes]
-    uo = sorted(list(zip(utils, outcomes, strict=True)), reverse=True)
-    utils = [_[0] for _ in uo]
     n = min(noutcomes, min(nmax, max(nmin, int(math.ceil(fraction * noutcomes)))))
     if n <= 0:
         r = utils[0] + 1e-9 if finite else float("inf")
     elif n < noutcomes:
-        r = 0.5 * (uo[n - 1][0] + uo[n][0])
+        r = 0.5 * (utils[n - 1] + utils[n])
     else:
         r = utils[-1] - 1e-9 if finite else float("-inf")
     if tight:
