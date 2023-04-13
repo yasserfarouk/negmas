@@ -68,6 +68,7 @@ def sort_by_utility(
     *,
     max_cardinality: int | float = float("inf"),
     best_first: bool = True,
+    rational_only: bool = False,
     return_sorted_outcomes: Literal[True] = True,
 ) -> tuple[NDArray[np.floating[Any]], list[Outcome]]:
     ...
@@ -80,6 +81,7 @@ def sort_by_utility(
     *,
     max_cardinality: int | float = float("inf"),
     best_first: bool = True,
+    rational_only: bool = False,
     return_sorted_outcomes: Literal[False],
 ) -> NDArray[np.floating[Any]]:
     ...
@@ -91,6 +93,7 @@ def sort_by_utility(
     *,
     max_cardinality: int | float = float("inf"),
     best_first: bool = True,
+    rational_only: bool = False,
     return_sorted_outcomes: bool = True,
 ) -> tuple[NDArray[np.floating[Any]], list[Outcome]] | NDArray[np.floating[Any]]:
     """
@@ -115,7 +118,17 @@ def sort_by_utility(
         )
     outcomes = list(outcomes)
     c = -1.0 if best_first else 1.0
-    utils = c * np.asarray([float(ufun(outcome)) for outcome in outcomes], dtype=float)
+    r = ufun.reserved_value
+    if r is None:
+        rational_only = False
+    if rational_only:
+        ou = [(outcome, u) for outcome in outcomes if (u := ufun(outcome)) >= r]
+        outcomes = [_[0] for _ in ou]
+        utils = c * np.asarray([_[1] for _ in ou], dtype=float)
+    else:
+        utils = c * np.asarray(
+            [float(ufun(outcome)) for outcome in outcomes], dtype=float
+        )
     indices = np.argsort(utils)
     utils = c * utils
     if not return_sorted_outcomes:

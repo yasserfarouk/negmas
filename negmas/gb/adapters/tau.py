@@ -11,6 +11,7 @@ from negmas.gb.components.acceptance import AcceptancePolicy, AcceptAnyRational
 from negmas.gb.negotiators.base import GBNegotiator
 from negmas.outcomes import Outcome
 from negmas.preferences import BaseUtilityFunction
+from negmas.preferences.ops import sort_by_utility
 from negmas.sao.common import SAOState
 from negmas.sao.negotiators.base import SAONegotiator
 
@@ -52,10 +53,10 @@ class UtilityAdapter:
     outcome_index: dict[Outcome, int] = field(init=False, default=dict)
     udiff: float = field(init=False, default=0.0)
     n_offers: int = field(init=False, default=0)
-    n_rational: int = field(init=False, default=float("inf"))
     last_offer: Outcome | None = field(init=False, default=None)
     nearest_above: NDArray[np.integer[Any]] = field(init=False, default=None)
     nearest_below: NDArray[np.integer[Any]] = field(init=False, default=None)
+    _n_rational: int = field(init=False, default=float("inf"))
 
     # @profile
     def __call__(self, outcome: Outcome | None) -> Outcome | None:
@@ -75,32 +76,43 @@ class UtilityAdapter:
                 "Unknown NMI. Cannot adapt an SAO offering policy to TAU without knowing the utility function."
             )
         # repeat last offer if there are no more rational offers that we can use
-        if self.extend_negotiation and len(self.offered) >= self.n_rational:
+        if self.extend_negotiation and len(self.offered) >= self._n_rational:
             return self.last_offer
-        reserve = self.ufun.reserved_value
-        if self.n_rational == float("inf"):
-            outcomes = self.nmi.outcomes
-            if outcomes is None:
-                raise ValueError(
-                    "Unknown outcome space. Cannot adapt an SAO offering policy to TAU without knowing the utility function."
-                )
-            if self.rational:
-                uoutcomes = sorted(
-                    (float(u), _) for _ in outcomes if (u := self.ufun(_)) >= reserve
-                )
-            else:
-                uoutcomes = sorted((float(self.ufun(_)), _) for _ in outcomes)
-            self.n_rational = len(uoutcomes)
-            self.outcome_index = dict(
-                zip([_[1] for _ in uoutcomes], range(len(uoutcomes)))
+        # reserve = self.ufun.reserved_value
+        if self._n_rational == float("inf"):
+            # outcomes = self.nmi.outcomes
+            # if outcomes is None:
+            #     raise ValueError(
+            #         "Unknown outcome space. Cannot adapt an SAO offering policy to TAU without knowing the utility function."
+            #     )
+            # if self.rational:
+            #     uoutcomes = sorted(
+            #         (float(u), _) for _ in outcomes if (u := self.ufun(_)) >= reserve
+            #     )
+            # else:
+            #     uoutcomes = sorted((float(self.ufun(_)), _) for _ in outcomes)
+            # self.sorted_outcomes = [_[1] for _ in uoutcomes]
+            # self.utils = [_[0] for _ in uoutcomes]
+            utils, self.sorted_outcomes = sort_by_utility(
+                self.ufun,
+                rational_only=self.rational,
+                return_sorted_outcomes=True,
+                best_first=False,
             )
-            self.sorted_outcomes = [_[1] for _ in uoutcomes]
-            self.utils = [_[0] for _ in uoutcomes]
+            self.utils = utils.tolist()
+            self._n_rational = len(self.sorted_outcomes)
+            self.outcome_index = dict(
+                zip(self.sorted_outcomes, range(self._n_rational))
+            )
             n = len(self.utils)
             self.nearest_above = np.arange(-1, n - 1, dtype=int)
             self.nearest_below = np.arange(1, n + 1, dtype=int)
             # assert all(_ >= self.ufun.reserved_value for _ in self.utils)
-        indx = self.outcome_index[outcome]
+        indx = self.outcome_index.get(outcome, None)
+        if indx is None:
+            self.offered.add(outcome)
+            self.last_offer = outcome
+            return outcome
         nearest, diff = indx, float("inf")
         u = float(self.ufun(outcome))
         # try higher utilities then lower utilities and choose the nearest
@@ -155,7 +167,7 @@ class UtilityAdapter:
 
     def on_preferences_changed(self, ufun: BaseUtilityFunction | None):
         self.ufun = ufun
-        self.n_rational = float("inf")  # type: ignore
+        self._n_rational = float("inf")  # type: ignore
         self.outcome_index = dict()
 
 
