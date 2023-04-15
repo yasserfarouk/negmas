@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+import random
 import time
 from pathlib import Path
 from typing import Iterable
@@ -7,7 +8,7 @@ from typing import Iterable
 import hypothesis.strategies as st
 import pkg_resources
 import pytest
-from hypothesis import Verbosity, given, settings
+from hypothesis import Verbosity, example, given, settings
 from matplotlib.axes import itertools
 
 from negmas.gb.evaluators.tau import INFINITE
@@ -763,7 +764,7 @@ def test_a_tau_session(neg, r1, r2, n1, n2, U1, U2):
         ), f"Suboptimal agreement in a supposedly optimal profile\n{_history(p)}{_plot(p, True, force=False)}"
 
 
-from negmas.gb.adapters.tau import TAUNegotiatorAdapter
+from negmas.gb.adapters.tau import TAUNegotiatorAdapter, UtilityAdapter
 
 
 @given(
@@ -878,3 +879,81 @@ def test_tau_matches_generalized(neg, r1, r2, n1, n2, U1, U2):
     assert (
         results[0]["steps"] == results[1]["steps"]
     ), f"{results[0]['trace']=}\n{results[1]['trace']=}"
+
+
+@given(vals=st.lists(st.floats(), min_size=2, max_size=100), r=st.floats())
+@example(
+    vals=[0.0, 0.0],
+    r=1.0,
+)
+def test_tau_adapter_adapts_correctly(vals, r):
+    r = (r - 0.5) * 2.5
+    # vals = [0.0, 0.0, 1.0, 2.0, 3.0, 6.999, 7.0, 7.0, 7.1, 7.22, 8.0, 10]
+    # r = random.choice(vals)
+    os = make_os([make_issue(len(vals))])
+    outcomes = list(os.enumerate_or_sample())
+    ufun = MappingUtilityFunction(
+        dict(zip(outcomes, vals)), outcome_space=os, reserved_value=r
+    )
+    utiladapter = UtilityAdapter(ufun)
+    for i in range(len(outcomes) - 1, -1, -1):
+        assert utiladapter(outcomes[i]) == outcomes[i]
+    rational_outcomes = [_ for _ in outcomes if ufun(_) >= r]
+    if len(rational_outcomes):
+        sample = random.choices(rational_outcomes, k=2 * len(vals))
+        outcomes = set(outcomes)
+        utiladapter = UtilityAdapter(ufun)
+        for outcome in sample:
+            shouldbesame = outcome not in utiladapter.offered
+            shouldrepeat = len(utiladapter.offered) == len(outcomes)
+            x = utiladapter(outcome)
+            if shouldrepeat:
+                assert (
+                    x == utiladapter.last_offer
+                ), f"{x=}, {outcome=}, {utiladapter.last_offer=}, {utiladapter.offered=}"
+            if shouldbesame:
+                assert (
+                    x == outcome
+                ), f"{x=}, {outcome=}, {utiladapter.last_offer=}, {utiladapter.offered=}"
+            if ufun(outcome) >= ufun.reserved_value:
+                if ufun(x) < ufun.reserved_value:
+                    pass
+                assert (
+                    ufun(x) >= ufun.reserved_value
+                ), f"{x=}, {outcome=}, {utiladapter.last_offer=}, {utiladapter.offered=}"
+            assert (
+                x in outcomes
+            ), f"{x=}, {outcome=}, {utiladapter.last_offer=}, {utiladapter.offered=}"
+            assert (
+                x in utiladapter.offered
+            ), f"{x=}, {outcome=}, {utiladapter.last_offer=}, {utiladapter.offered=}"
+
+    # testing crazy startegy with some irrational outcomes
+    sample = random.choices(list(outcomes), k=100)
+    outcomes = set(outcomes)
+    utiladapter = UtilityAdapter(ufun)
+    for outcome in sample:
+        print(outcome)
+        shouldbesame = outcome not in utiladapter.offered
+        shouldrepeat = len(utiladapter.offered) == len(outcomes)
+        x = utiladapter(outcome)
+        if shouldrepeat:
+            assert (
+                x == utiladapter.last_offer
+            ), f"{x=}, {outcome=}, {utiladapter.last_offer=}, {utiladapter.offered=}"
+        if shouldbesame:
+            assert (
+                x == outcome
+            ), f"{x=}, {outcome=}, {utiladapter.last_offer=}, {utiladapter.offered=}"
+        if ufun(outcome) >= ufun.reserved_value:
+            if ufun(x) < ufun.reserved_value:
+                pass
+            assert (
+                ufun(x) >= ufun.reserved_value or x == utiladapter.last_offer
+            ), f"{x=}, {outcome=}, {utiladapter.last_offer=}, {utiladapter.offered=}"
+        assert (
+            x in outcomes
+        ), f"{x=}, {outcome=}, {utiladapter.last_offer=}, {utiladapter.offered=}"
+        assert (
+            x in utiladapter.offered
+        ), f"{x=}, {outcome=}, {utiladapter.last_offer=}, {utiladapter.offered=}"

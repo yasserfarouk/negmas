@@ -28,7 +28,7 @@ class UtilityAdapter:
         nmi: `NegotiatorMechanismInterface` for the negotiation
         lower_switching_threshold: The relative time at which we check smaller utilities first.
         extend_negotiation: Whether to repeat last rational offers when no more rational offers are available
-        rational: Only offer rational outcomes
+        rational: Only offer rational outcomes except if the original offer was already irrational
         udiff_limit: Change the outcome only if it is possible to find an outcome with a utility within this from the input
         try_above: Try outcomes with higher utilities
         try_below: Try outcomes with lower utilities
@@ -41,7 +41,7 @@ class UtilityAdapter:
 
     ufun: BaseUtilityFunction | None = None
     nmi: NegotiatorMechanismInterface | None = None
-    lower_switching_threshold = 0.75
+    worse_switching_threshold = 0.75
     extend_negotiation: bool = True
     rational: bool = True
     udiff_limit: float = float("inf")
@@ -54,9 +54,11 @@ class UtilityAdapter:
     udiff: float = field(init=False, default=0.0)
     n_offers: int = field(init=False, default=0)
     last_offer: Outcome | None = field(init=False, default=None)
-    nearest_above: NDArray[np.integer[Any]] = field(init=False, default=None)
-    nearest_below: NDArray[np.integer[Any]] = field(init=False, default=None)
-    _n_rational: int = field(init=False, default=float("inf"))
+    nearest_worst: NDArray[np.integer[Any]] = field(init=False, default=None)
+    nearest_better: NDArray[np.integer[Any]] = field(init=False, default=None)
+    _n_rational: int = field(init=False, default=float("inf"))  # type: ignore
+    _last_irrational: int = field(init=False, default=-1)
+    _initialized: bool = field(init=False, default=False)
 
     # @profile
     def __call__(self, outcome: Outcome | None) -> Outcome | None:
@@ -71,15 +73,21 @@ class UtilityAdapter:
             raise ValueError(
                 "Unknown ufun. Cannot adapt an SAO offering policy to TAU without knowing the utility function."
             )
-        if not self.nmi:
-            raise ValueError(
-                "Unknown NMI. Cannot adapt an SAO offering policy to TAU without knowing the utility function."
-            )
+        # if not self.nmi:
+        #     raise ValueError(
+        #         "Unknown NMI. Cannot adapt an SAO offering policy to TAU without knowing the utility function."
+        #     )
         # repeat last offer if there are no more rational offers that we can use
-        if self.extend_negotiation and len(self.offered) >= self._n_rational:
+        if (
+            self.extend_negotiation
+            and self._initialized
+            and len(self.offered) >= len(self.sorted_outcomes)
+        ):
             return self.last_offer
-        # reserve = self.ufun.reserved_value
-        if self._n_rational == float("inf"):
+        r = self.ufun.reserved_value
+        if r is None:
+            r = float("-inf")
+        if not self._initialized:
             # outcomes = self.nmi.outcomes
             # if outcomes is None:
             #     raise ValueError(
@@ -95,41 +103,59 @@ class UtilityAdapter:
             # self.utils = [_[0] for _ in uoutcomes]
             utils, self.sorted_outcomes = sort_by_utility(
                 self.ufun,
-                rational_only=self.rational,
+                rational_only=False,
                 return_sorted_outcomes=True,
                 best_first=False,
             )
             self.utils = utils.tolist()
-            self._n_rational = len(self.sorted_outcomes)
-            self.outcome_index = dict(
-                zip(self.sorted_outcomes, range(self._n_rational))
-            )
             n = len(self.utils)
-            self.nearest_above = np.arange(-1, n - 1, dtype=int)
-            self.nearest_below = np.arange(1, n + 1, dtype=int)
+            self.outcome_index = dict(zip(self.sorted_outcomes, range(n)))
+            # self.nearest_worst = np.arange(-1, n - 1, dtype=int)
+            # self.nearest_better = np.arange(1, n + 1, dtype=int)
+            self.nearest_worst = np.arange(0, n, dtype=int)
+            self.nearest_better = np.arange(0, n, dtype=int)
+            self._n_rational = n
+            self._initialized = True
+            if self.rational:
+                for i, u in enumerate(utils):
+                    if u >= r:
+                        self._last_irrational = i - 1
+                        break
+
+                self._n_rational -= self._last_irrational + 1
             # assert all(_ >= self.ufun.reserved_value for _ in self.utils)
         indx = self.outcome_index.get(outcome, None)
         if indx is None:
+            # should never happen
             self.offered.add(outcome)
             self.last_offer = outcome
             return outcome
         nearest, diff = indx, float("inf")
         u = float(self.ufun(outcome))
         # try higher utilities then lower utilities and choose the nearest
-        above = (
-            range(self.nearest_above[indx], -1, -1) if self.try_above else range(0, 0)
-        )
-        below = (
-            range(self.nearest_below[indx], len(self.sorted_outcomes))
+        if self.rational and u >= r:
+            worse = (
+                range(self.nearest_worst[indx] - 1, self._last_irrational, -1)
+                if self.try_above
+                else range(0, 0)
+            )
+        else:
+            worse = (
+                range(self.nearest_worst[indx] - 1, -1, -1)
+                if self.try_above
+                else range(0, 0)
+            )
+        better = (
+            range(self.nearest_better[indx] + 1, len(self.sorted_outcomes))
             if self.try_below
             else range(0, 0)
         )
-        if self.nmi.state.relative_time <= self.lower_switching_threshold:
-            lsts = above, below
-            nearest_lists = self.nearest_above, self.nearest_below
+        if self.nmi and self.nmi.state.relative_time <= self.worse_switching_threshold:
+            lsts = worse, better
+            nearest_lists = self.nearest_worst, self.nearest_better
         else:
-            lsts = below, above
-            nearest_lists = self.nearest_below, self.nearest_above
+            lsts = better, worse
+            nearest_lists = self.nearest_better, self.nearest_worst
         for near, lst in zip(nearest_lists, lsts):
             for i in lst:
                 current = self.sorted_outcomes[i]
@@ -150,6 +176,8 @@ class UtilityAdapter:
         # If we are changing the offer, record the utility difference
         if nearest != indx:
             self.udiff += diff
+            if self.sorted_outcomes[nearest] in self.offered:
+                pass
         outcome = self.sorted_outcomes[nearest]
         self.offered.add(outcome)
         self.last_offer = outcome
@@ -169,6 +197,8 @@ class UtilityAdapter:
         self.ufun = ufun
         self._n_rational = float("inf")  # type: ignore
         self.outcome_index = dict()
+        self.offered = set()
+        self._initialized = False
 
 
 # @define(frozen=False)

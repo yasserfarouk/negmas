@@ -4,6 +4,8 @@ from .negotiator import GeniusNegotiator
 
 __all__ = [
     "ABMPAgent2",
+    "AgentSmith",
+    "AgentSmith2016",
     "AgentBuyong",
     "AgentHP2",
     "AgentK",
@@ -501,4 +503,16 @@ class BayesianAgent(GeniusNegotiator):
 class ConcederNegotiationParty(GeniusNegotiator):
     def __init__(self, **kwargs):
         kwargs["java_class_name"] = "negotiator.parties.ConcederNegotiationParty"
+        super().__init__(**kwargs)
+
+
+class AgentSmith2016(GeniusNegotiator):
+    def __init__(self, **kwargs):
+        kwargs["java_class_name"] = "agents.anac.y2016.agentsmith.AgentSmith2016"
+        super().__init__(**kwargs)
+
+
+class AgentSmith(GeniusNegotiator):
+    def __init__(self, **kwargs):
+        kwargs["java_class_name"] = "agents.anac.y2010.AgentSmith.AgentSmith"
         super().__init__(**kwargs)
