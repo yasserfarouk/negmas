@@ -308,15 +308,29 @@ class GeniusNegotiator(SAONegotiator):
         self.issues = nmi.cartesian_outcome_space.issues
         self.issue_names = [_.name for _ in self.issues]
         self.issue_index = dict(zip(self.issue_names, range(len(self.issue_names))))
-        if nmi.cartesian_outcome_space is not None and self.domain_file_name is None:
-            domain_file = tempfile.NamedTemporaryFile("w", suffix=".xml", delete=False)
+        # if nmi.cartesian_outcome_space is not None and self.domain_file_name is None:
+        if nmi.cartesian_outcome_space is not None:
+            if self.domain_file_name is None:
+                domain_file = tempfile.NamedTemporaryFile(
+                    "w", suffix=".xml", delete=False
+                )
+                self.domain_file_name = domain_file.name
+                self._temp_domain_file = True
+            else:
+                domain_file = open(self.domain_file_name, "w")
             self.domain_file_name = domain_file.name
             domain_file.write(issues_to_xml_str(nmi.cartesian_outcome_space.issues))
             domain_file.close()
-            self._temp_domain_file = True
-        if preferences is not None and self.utility_file_name is None:
-            utility_file = tempfile.NamedTemporaryFile("w", suffix=".xml", delete=False)
-            self.utility_file_name = utility_file.name
+        # if preferences is not None and self.utility_file_name is None:
+        if preferences is not None:
+            if self.utility_file_name is None:
+                utility_file = tempfile.NamedTemporaryFile(
+                    "w", suffix=".xml", delete=False
+                )
+                self.utility_file_name = utility_file.name
+                self._temp_preferences_file = True
+            else:
+                utility_file = open(self.utility_file_name, "w")
             utility_file.write(
                 UtilityFunction.to_xml_str(
                     preferences,
@@ -325,7 +339,6 @@ class GeniusNegotiator(SAONegotiator):
                 )
             )
             utility_file.close()
-            self._temp_preferences_file = True
         return result
 
     def _outcome2str(self, outcome):
@@ -499,7 +512,7 @@ class GeniusNegotiator(SAONegotiator):
             if result != OK:
                 s = (
                     f"{self._me()}: Failed Starting: {result.split(FIELD_SEP)}\nDomain file: {self.domain_file_name}\n"
-                    f"UFun file: {self.domain_file_name}\n{'strict' if self._strict else 'non-strict'} {n_steps=} {timeout=}"
+                    f"UFun file: {self.utility_file_name}\n{'strict' if self._strict else 'non-strict'} {n_steps=} {timeout=}"
                 )
                 if self._strict:
                     raise ValueError(s)
@@ -508,7 +521,7 @@ class GeniusNegotiator(SAONegotiator):
         except Exception as e:
             raise ValueError(
                 f"{self._me()}: Cannot start negotiation: {str(e)}\nDomain file: {self.domain_file_name}\n"
-                f"UFun file: {self.domain_file_name}\n{'strict' if self._strict else 'non-strict'} {n_steps=} {timeout=}"
+                f"UFun file: {self.utility_file_name}\n{'strict' if self._strict else 'non-strict'} {n_steps=} {timeout=}"
             )
 
     def cancel(self, reason=None) -> None:

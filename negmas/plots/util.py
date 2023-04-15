@@ -324,9 +324,10 @@ def plot_offer_utilities(
             a.legend(
                 loc=f"upper {'left' if not i else 'right'}", bbox_to_anchor=(i, 1.2)
             )
+    axes[0].set_title(f"{map_(negotiator)} Offers")
     if show_legend and len(plotting_negotiators) != 2:
         ax.legend(
-            bbox_to_anchor=(0.0, 1.02, 1.0, 0.102),
+            bbox_to_anchor=(0.0, 1.12, 1.0, 0.102),
             loc="lower left",
             ncol=2,
             mode="expand",
@@ -578,34 +579,34 @@ def plot_2dutils(
             with_lines=with_lines,
             linestyle=":",
         )
-    if not fast and frontier:
-        welfare, mx = [frontier[0]], sum(frontier[0])
-        for u in frontier[1:]:
-            if sum(u) < mx - 1e-12:
-                break
-            welfare.append(u)
-        ax.scatter(
-            [_[0] for _ in welfare],
-            [_[1] for _ in welfare],
-            color="magenta",
-            label=f"Max. Welfare",
-            marker="s",
-            alpha=WELFARE_ALPHA,
-            s=int(default_marker_size * WELFARE_SCALE),
-        )
-        if show_annotations:
-            for f in welfare:
-                ax.annotate(
-                    "Max. Welfare",
-                    xy=f,  # theta, radius
-                    xytext=(
-                        f[0] + 0.02,
-                        f[1] + 0.02 * yrange,
-                    ),
-                    horizontalalignment="left",
-                    verticalalignment="bottom",
-                )
-
+    # if not fast and frontier:
+    #     welfare, mx = [frontier[0]], sum(frontier[0])
+    #     for u in frontier[1:]:
+    #         if sum(u) < mx - 1e-12:
+    #             break
+    #         welfare.append(u)
+    #     ax.scatter(
+    #         [_[0] for _ in welfare],
+    #         [_[1] for _ in welfare],
+    #         color="magenta",
+    #         label=f"Max. Welfare",
+    #         marker="s",
+    #         alpha=WELFARE_ALPHA,
+    #         s=int(default_marker_size * WELFARE_SCALE),
+    #     )
+    #     if show_annotations:
+    #         for f in welfare:
+    #             ax.annotate(
+    #                 "Max. Welfare",
+    #                 xy=f,  # theta, radius
+    #                 xytext=(
+    #                     f[0] + 0.02,
+    #                     f[1] + 0.02 * yrange,
+    #                 ),
+    #                 horizontalalignment="left",
+    #                 verticalalignment="bottom",
+    #             )
+    #
     if agreement is not None:
         ax.scatter(
             [plotting_ufuns[0](agreement)],

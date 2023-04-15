@@ -894,7 +894,11 @@ class BaseUtilityFunction(Preferences, ABC):
             output += "</objective>\n"
             if discount_factor is not None:
                 output += f'<discount_factor value="{discount_factor}" />\n'
-        if self.reserved_value != float("-inf") and "<reservation value" not in output:
+        if (
+            self.reserved_value is not None
+            and self.reserved_value != float("-inf")
+            and "<reservation value" not in output
+        ):
             output += f'<reservation value="{self.reserved_value}" />\n'
         if "</utility_space>" not in output:
             output += "</utility_space>\n"

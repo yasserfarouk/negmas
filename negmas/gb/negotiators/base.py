@@ -167,6 +167,8 @@ class GBNegotiator(Negotiator):
         if offer is None:
             return SAOResponse(ResponseType.REJECT_OFFER, self.propose_(state=state))
         response = self.respond_(state=state, offer=offer)
+        if response == ResponseType.ACCEPT_OFFER:
+            return SAOResponse(response, offer)
         if response != ResponseType.REJECT_OFFER:
             return SAOResponse(response, None)
         return SAOResponse(response, self.propose_(state=state))

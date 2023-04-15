@@ -239,7 +239,7 @@ def run(
                 )
             negotiators = negotiators[: len(scenario.ufuns)]
 
-    negotiator_names = shortest_unique_names(negotiators)
+    negotiator_names = shortest_unique_names(negotiators, guarantee_unique=True)
     agents = [
         get_negotiator(_)(name=name) for _, name in zip(negotiators, negotiator_names, strict=True)  # type: ignore
     ]
@@ -291,6 +291,10 @@ def run(
         print(f"Steps: {session.current_step}")
         print(state)
     print(f"Agreement: {state.agreement}")
+    print(f"Utilities: {[u(state.agreement) for u in scenario.ufuns]}")
+    print(
+        f"Advantages: {[u(state.agreement) - (u.reserved_value if u.reserved_value is not None else float('inf')) for u in scenario.ufuns]}"
+    )
     fast = fast or fast is None and scenario.agenda.cardinality > 10_000
     if fast:
         # rank_stats = stats = False
