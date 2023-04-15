@@ -4,6 +4,8 @@ from .negotiator import GeniusNegotiator
 
 __all__ = [
     "ABMPAgent2",
+    "SouthamptonAgent",
+    "AgentFSEGA",
     "AgentSmith",
     "AgentSmith2016",
     "AgentBuyong",
@@ -515,4 +517,16 @@ class AgentSmith2016(GeniusNegotiator):
 class AgentSmith(GeniusNegotiator):
     def __init__(self, **kwargs):
         kwargs["java_class_name"] = "agents.anac.y2010.AgentSmith.AgentSmith"
+        super().__init__(**kwargs)
+
+
+class AgentFSEGA(GeniusNegotiator):
+    def __init__(self, **kwargs):
+        kwargs["java_class_name"] = "agents.anac.y2010.AgentFSEGA.AgentFSEGA"
+        super().__init__(**kwargs)
+
+
+class SouthamptonAgent(GeniusNegotiator):
+    def __init__(self, **kwargs):
+        kwargs["java_class_name"] = "agents.anac.y2010.Southampton.SouthamptonAgent"
         super().__init__(**kwargs)
