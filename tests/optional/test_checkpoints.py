@@ -1,6 +1,5 @@
 from __future__ import annotations
 
-from datetime import timedelta
 from pathlib import Path, PosixPath
 
 import hypothesis.strategies as st
@@ -13,7 +12,7 @@ from negmas.helpers import unique_name
 
 
 def checkpoint_every(args):
-    pass
+    _ = args
 
 
 # @settings(suppress_health_check=[HealthCheck.function_scoped_fixture])
@@ -161,7 +160,7 @@ def test_can_run_from_checkpoint(
     ufuns = MappingUtilityFunction.generate_random(n_negotiators, outcomes=n_outcomes)
     for i in range(n_negotiators):
         mechanism.add(
-            AspirationNegotiator(name=f"agent{i}", aspiration_type="conceder"),
+            AspirationNegotiator(name=f"agent{i}", aspiration_type="conceder"),  # type: ignore
             preferences=ufuns[i],
         )
 
@@ -197,11 +196,11 @@ def test_can_run_from_checkpoint(
     assert isinstance(runner.loaded_object, SAOMechanism)
     assert runner.loaded_object.state.step == runner.current_step
 
-    runner.goto(runner.next_step, exact=True)
+    runner.goto(runner.next_step, exact=True)  # type: ignore
     assert isinstance(runner.loaded_object, SAOMechanism)
     assert runner.loaded_object.state.step == runner.current_step
 
-    runner.goto(runner.previous_step, exact=True)
+    runner.goto(runner.previous_step, exact=True)  # type: ignore
     assert isinstance(runner.loaded_object, SAOMechanism)
     assert runner.loaded_object.state.step == runner.current_step
 
@@ -243,11 +242,11 @@ def test_can_run_from_checkpoint(
     assert isinstance(runner.loaded_object, SAOMechanism)
     assert runner.loaded_object.state.step == runner.current_step
 
-    runner.goto(runner.next_step, exact=True)
+    runner.goto(runner.next_step, exact=True)  # type: ignore
     assert isinstance(runner.loaded_object, SAOMechanism)
     assert runner.loaded_object.state.step == runner.current_step
 
-    runner.goto(runner.previous_step, exact=True)
+    runner.goto(runner.previous_step, exact=True)  # type: ignore
     assert isinstance(runner.loaded_object, SAOMechanism)
     assert runner.loaded_object.state.step == runner.current_step
 

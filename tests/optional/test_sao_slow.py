@@ -6,7 +6,7 @@ import time
 from collections import defaultdict
 from pathlib import Path
 from time import sleep
-from typing import Dict, List, Sequence
+from typing import Sequence
 
 import hypothesis.strategies as st
 import numpy as np
@@ -72,6 +72,7 @@ ALL_BUILTIN_NEGOTIATORS = [
 
 class MyRaisingNegotiator(SAONegotiator):
     def propose(self, state: SAOState) -> Outcome | None:
+        _ = state
         raise ValueError(exception_str)
 
 
@@ -249,8 +250,8 @@ def test_hidden_time_limit_words():
     ufuns = MappingUtilityFunction.generate_random(
         2, outcomes=mechanism.discrete_outcomes()
     )
-    mechanism.add(InfiniteLoopNegotiator(name=f"agent{0}", preferences=ufuns[0]))
-    mechanism.add(InfiniteLoopNegotiator(name=f"agent{1}", preferences=ufuns[1]))
+    mechanism.add(InfiniteLoopNegotiator(name=f"agent{0}", preferences=ufuns[0]))  # type: ignore
+    mechanism.add(InfiniteLoopNegotiator(name=f"agent{1}", preferences=ufuns[1]))  # type: ignore
     mechanism.run()
     assert mechanism.state.agreement is None
     assert mechanism.state.started

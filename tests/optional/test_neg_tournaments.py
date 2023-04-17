@@ -2,7 +2,8 @@ from __future__ import annotations
 
 import pytest
 
-from negmas.genius import Atlas3, NiceTitForTat, genius_bridge_is_running
+from negmas.genius import genius_bridge_is_running
+from negmas.genius.gnegotiators import Atlas3, NiceTitForTat
 from negmas.outcomes import make_issue
 from negmas.preferences import LinearUtilityFunction as U
 from negmas.sao import AspirationNegotiator, NaiveTitForTatNegotiator

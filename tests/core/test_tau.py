@@ -3,12 +3,11 @@ from __future__ import annotations
 import random
 import time
 from pathlib import Path
-from typing import Any, Iterable
+from typing import Iterable
 
 import hypothesis.strategies as st
 import pkg_resources
 import pytest
-from distributed.utils import Any
 from hypothesis import Verbosity, example, given, settings
 from matplotlib.axes import itertools
 
@@ -290,7 +289,7 @@ def run_buyer_seller(
     force_plot=False,
     do_asserts=True,
     n_steps=10 * 10 * 3,
-    mechanism_params: dict[str, Any] | None = None,
+    mechanism_params: dict | None = None,
 ):
     if not mechanism_params:
         mechanism_params = dict()
@@ -749,7 +748,7 @@ def test_anac_scenario_example_sao_single():
 
 @pytest.mark.skipif(not NEGMAS_RUN_GENIUS, reason="Skipping genius tests")
 def test_anac_scenario_example_genius_gao_single():
-    from negmas.genius import Atlas3
+    from negmas.genius.gnegotiators import Atlas3
 
     run_anac_example(
         Atlas3,
@@ -763,7 +762,7 @@ def test_anac_scenario_example_genius_gao_single():
 
 @pytest.mark.skipif(not NEGMAS_RUN_GENIUS, reason="Skipping genius tests")
 def test_anac_scenario_example_genius_sao_single():
-    from negmas.genius import Atlas3
+    from negmas.genius.gnegotiators import Atlas3
 
     run_anac_example(
         Atlas3,
@@ -793,7 +792,7 @@ def test_anac_scenario_example_gao():
 
 @pytest.mark.skipif(not NEGMAS_RUN_GENIUS, reason="Skipping genius tests")
 def test_anac_scenario_example_genius():
-    from negmas.genius import Atlas3
+    from negmas.genius.gnegotiators import Atlas3
 
     run_anac_example(
         Atlas3,
@@ -816,7 +815,7 @@ def test_adversarial_case_easy(neg1, neg2):
 
 @pytest.mark.skipif(not NEGMAS_RUN_GENIUS, reason="Skipping genius tests")
 def test_adversarial_case_gao_easy_genius():
-    from negmas.genius import Atlas3
+    from negmas.genius.gnegotiators import Atlas3
 
     run_adversarial_case(
         Atlas3,
@@ -913,7 +912,7 @@ def test_a_tau_session_with_adapter(neg, U1, U2):
 
 @pytest.mark.skipif(not NEGMAS_RUN_GENIUS, reason="Skipping genius tests")
 def test_buyer_seller_gao_easy_genius():
-    from negmas.genius import Atlas3
+    from negmas.genius.gnegotiators import Atlas3
 
     run_buyer_seller(
         Atlas3,
@@ -929,7 +928,7 @@ def test_buyer_seller_gao_easy_genius():
 
 @pytest.mark.skipif(not NEGMAS_RUN_GENIUS, reason="Skipping genius tests")
 def test_buyer_seller_sao_genius():
-    from negmas.genius import Atlas3
+    from negmas.genius.gnegotiators import Atlas3
 
     run_buyer_seller(
         Atlas3,
