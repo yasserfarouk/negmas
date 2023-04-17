@@ -86,6 +86,26 @@ GENIUS_INFO = {
                 ),
             ],
         ],
+        "finalists": [
+            [("CUHKAgent", "agents.anac.y2012.CUHKAgent.CUHKAgent")],
+            [("OMACagent", "agents.anac.y2012.OMACagent.OMACagent")],
+            [
+                (
+                    "TheNegotiatorReloaded",
+                    "agents.anac.y2012.TheNegotiatorReloaded.TheNegotiatorReloaded",
+                )
+            ],
+            [("BRAMAgent2", "agents.anac.y2011.BramAgent.BRAMAgent")],
+            [("MetaAgent2012", "agents.anac.y2012.MetaAgent.MetaAgent")],
+            [("AgentLG", "agents.anac.y2012.AgentLG.AgentLG")],
+            [
+                (
+                    "IAMhaggler2012",
+                    "agents.anac.y2012.IAMhaggler2012.agents2011.SouthamptonAgent",
+                )
+            ],
+            [("AgentMR", "agents.anac.y2012.AgentMR.AgentMR")],
+        ],
         "best_discounted": [
             (
                 "CUHKAgent",
@@ -132,6 +152,15 @@ GENIUS_INFO = {
                 )
             ],
             [("TMFAgent", "agents.anac.y2013.TMFAgent.TMFAgent")],
+        ],
+        "finalists": [
+            [("AgentKF", "agents.anac.y2013.AgentKF.AgentKF")],
+            [("TheFawkes", "agents.anac.y2013.TheFawkes.TheFawkes")],
+            [("TMFAgent", "agents.anac.y2013.TMFAgent.TMFAgent")],
+            [("MetaAgent", "agents.anac.y2012.MetaAgent.MetaAgent")],
+            [("GAgent", "agents.anac.y2013.GAgent.AgentI")],
+            [("InoxAgent", "agents.anac.y2013.InoxAgent.InoxAgent")],
+            [("SlavaAgent", "agents.anac.y2013.SlavaAgent.SlavaAgent")],
         ],
         "linear": True,
         "learning": True,
