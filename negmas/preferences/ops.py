@@ -58,6 +58,7 @@ __all__ = [
     "OutcomeOptimality",
     "sort_by_utility",
     "calc_reserved_value",
+    "dominating_points",
 ]
 
 
@@ -573,7 +574,7 @@ def pareto_frontier_numpy(
         if not indices[i]:
             continue
         # Keep any point with a higher utility
-        indices[indices] = np.any(points[indices] > c + eps, axis=1)
+        indices[indices] = np.any(points[indices] > c, axis=1)
         indices[i] = True  # And keep self
     indices = np.nonzero(indices)[0]
 
@@ -1299,6 +1300,20 @@ def max_relative_welfare_points(
         if val >= optim_val - eps:
             results.append((outcome, indx))
     return tuple(results)
+
+
+def dominating_points(
+    utils: NDArray[np.floating[Any]] | tuple[float, ...],
+    points: NDArray[np.floating[Any]] | tuple[tuple[float, ...]],
+) -> NDArray[np.integer[Any]]:
+    """
+    Tests whether the given point in utility space is dominated by any in the given points (eps is the tolerance).
+    """
+    points = np.asarray(points)
+    utils = np.asarray(utils)
+    dominating = np.any(points > utils, axis=1)
+    dominating[dominating] = np.all(points[dominating] >= utils, axis=1)
+    return np.nonzero(dominating)[0]
 
 
 def pareto_frontier(
