@@ -294,7 +294,7 @@ GENIUS_INFO = {
             [("BetaOne", "agents.anac.y2018.beta_one.Group2")],
         ],
         "winners_welfare": [
-            [("Herb", "agents.anac.y2018.agentherb.AgentHerb")],
+            [("AgentHerb", "agents.anac.y2018.agentherb.AgentHerb")],
             [("Agent33", "agents.anac.y2018.agent33.Agent33")],
             [("Sontag", "agents.anac.y2018.sontag.Sontag")],
         ],
