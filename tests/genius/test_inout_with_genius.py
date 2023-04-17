@@ -7,7 +7,7 @@ from pathlib import Path
 import pytest
 from pytest import mark
 
-from negmas.genius import genius_bridge_is_running
+from negmas.genius.bridge import genius_bridge_is_running
 from negmas.inout import Scenario
 from negmas.preferences.crisp.nonlinear import HyperRectangleUtilityFunction
 from negmas.preferences.discounted import DiscountedUtilityFunction
@@ -80,7 +80,7 @@ def get_all_scenarios():
 
 
 def compared_two_domains(domain, domain2):
-    from negmas.genius import AgentX, Atlas3
+    from negmas.genius.gnegotiators import AgentX, Atlas3
 
     assert len(domain.issues) == len(domain2.issues)
     for i1, i2 in zip(domain.issues, domain2.issues):
