@@ -171,6 +171,7 @@ def run(
     rank_stats: bool = None,  # type: ignore
     discount: bool = True,
     extend_negotiators: bool = False,
+    truncate_ufuns: bool = False,
     only2d: bool = False,
     show_agreement: bool = False,
     show_pareto_distance: bool = True,
@@ -217,6 +218,12 @@ def run(
             f"Mechanism: {shorten_protocol_name(get_full_type_name(scenario.mechanism_type))}"
         )
         print(f"steps: {steps}\ntimelimit: {timelimit}")
+    if (
+        truncate_ufuns
+        and len(scenario.ufuns) > len(negotiators)
+        and len(negotiators) > 1
+    ):
+        scenario.ufuns = scenario.ufuns[: len(negotiators)]
 
     if (
         extend_negotiators
