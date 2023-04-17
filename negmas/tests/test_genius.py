@@ -13,8 +13,8 @@ from negmas import (
     genius_bridge_is_running,
     load_genius_domain_from_folder,
 )
-from negmas.genius import AgentX, Atlas3, Caduceus, GeniusBridge, YXAgent
-from negmas.genius.gnegotiators import AgentK
+from negmas.genius import GeniusBridge
+from negmas.genius.gnegotiators import AgentK, AgentX, Atlas3, Caduceus, YXAgent
 
 DOMAIN_FOLDER = pathlib.Path(
     pkg_resources.resource_filename(
@@ -400,7 +400,6 @@ class TestGeniusAgentSessions:
         utils=(0, 0),
         single_issue=True,
     ):
-
         base_folder = pkg_resources.resource_filename(
             "negmas", resource_name="tests/data/Laptop"
         )

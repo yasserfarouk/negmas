@@ -134,7 +134,7 @@ class Mechanism(NamedObject, EventSource, CheckpointMixin, ABC):
         dynamic_entry=False,
         annotation: dict[str, Any] | None = None,
         nmi_factory=NegotiatorMechanismInterface,
-        extra_callbacks=True,
+        extra_callbacks=False,
         checkpoint_every: int = 1,
         checkpoint_folder: PathLike | None = None,
         checkpoint_filename: str | None = None,
@@ -1301,7 +1301,7 @@ class Mechanism(NamedObject, EventSource, CheckpointMixin, ABC):
 
     def pareto_frontier(
         self, max_cardinality: float = float("inf"), sort_by_welfare=True
-    ) -> tuple[list[tuple[float, ...]], list[Outcome]]:
+    ) -> tuple[tuple[tuple[float, ...]], list[Outcome]]:
         ufuns = tuple(self._get_preferences())
         if any(_ is None for _ in ufuns):
             raise ValueError(
@@ -1320,7 +1320,7 @@ class Mechanism(NamedObject, EventSource, CheckpointMixin, ABC):
     def max_welfare_points(
         self,
         max_cardinality: float = float("inf"),
-        frontier: list[tuple[float]] | None = None,
+        frontier: tuple[tuple[float]] | None = None,
         frontier_outcomes: list[Outcome] | None = None,
     ) -> tuple[tuple[tuple[float], Outcome]]:
         ufuns = self._get_preferences()
@@ -1338,7 +1338,7 @@ class Mechanism(NamedObject, EventSource, CheckpointMixin, ABC):
     def max_relative_welfare_points(
         self,
         max_cardinality: float = float("inf"),
-        frontier: list[tuple[float]] | None = None,
+        frontier: tuple[tuple[float]] | None = None,
         frontier_outcomes: list[Outcome] | None = None,
     ) -> tuple[tuple[tuple[float], Outcome]]:
         ufuns = self._get_preferences()
@@ -1356,7 +1356,7 @@ class Mechanism(NamedObject, EventSource, CheckpointMixin, ABC):
     def modified_kalai_points(
         self,
         max_cardinality: float = float("inf"),
-        frontier: list[tuple[float]] | None = None,
+        frontier: tuple[tuple[float]] | None = None,
         frontier_outcomes: list[Outcome] | None = None,
     ) -> tuple[tuple[tuple[float], Outcome]]:
         ufuns = self._get_preferences()
@@ -1377,7 +1377,7 @@ class Mechanism(NamedObject, EventSource, CheckpointMixin, ABC):
     def kalai_points(
         self,
         max_cardinality: float = float("inf"),
-        frontier: list[tuple[float]] | None = None,
+        frontier: tuple[tuple[float]] | None = None,
         frontier_outcomes: list[Outcome] | None = None,
     ) -> tuple[tuple[tuple[float], Outcome]]:
         ufuns = self._get_preferences()
@@ -1398,7 +1398,7 @@ class Mechanism(NamedObject, EventSource, CheckpointMixin, ABC):
     def nash_points(
         self,
         max_cardinality: float = float("inf"),
-        frontier: list[tuple[float]] | None = None,
+        frontier: tuple[tuple[float]] | None = None,
         frontier_outcomes: list[Outcome] | None = None,
     ) -> tuple[tuple[tuple[float], Outcome]]:
         ufuns = self._get_preferences()

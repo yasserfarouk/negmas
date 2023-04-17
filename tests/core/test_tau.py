@@ -3,11 +3,12 @@ from __future__ import annotations
 import random
 import time
 from pathlib import Path
-from typing import Iterable
+from typing import Any, Iterable
 
 import hypothesis.strategies as st
 import pkg_resources
 import pytest
+from distributed.utils import Any
 from hypothesis import Verbosity, example, given, settings
 from matplotlib.axes import itertools
 
@@ -29,7 +30,7 @@ from negmas.outcomes.outcome_space import DiscreteCartesianOutcomeSpace, make_os
 from negmas.preferences.crisp.linear import LinearAdditiveUtilityFunction as LU
 from negmas.preferences.crisp.mapping import MappingUtilityFunction
 from negmas.preferences.crisp_ufun import UtilityFunction
-from negmas.preferences.ops import pareto_frontier
+from negmas.preferences.ops import dominating_points, pareto_frontier
 from negmas.preferences.value_fun import AffineFun, IdentityFun, LinearFun, TableFun
 from negmas.sao.mechanism import SAOMechanism
 from tests.switches import NEGMAS_FASTRUN, NEGMAS_RUN_GENIUS
@@ -44,6 +45,7 @@ SAONEGOTIATORS = [
     AspirationNegotiator,
 ]
 MECHS = (TAUMechanism,) if NEGMAS_FASTRUN else (TAUMechanism, GeneralizedTAUMechanism)
+# TODO: resolve the infinite loop in WAN and WAB
 NEGOTIATORS = [
     WARNegotiator,
     CABNegotiator,
@@ -288,7 +290,10 @@ def run_buyer_seller(
     force_plot=False,
     do_asserts=True,
     n_steps=10 * 10 * 3,
+    mechanism_params: dict[str, Any] | None = None,
 ):
+    if not mechanism_params:
+        mechanism_params = dict()
     # create negotiation agenda (issues)
     issues = (
         make_issue(name="price", values=10),
@@ -298,11 +303,12 @@ def run_buyer_seller(
 
     # create the mechanism
     if mechanism_type == GeneralizedTAUMechanism:
-        session = mechanism_type(issues=issues, cardinality=cardinality, min_unique=min_unique)  # type: ignore
+        mechanism_params.update(dict(cardinality=cardinality, min_unique=min_unique))
     elif mechanism_type == TAUMechanism:
-        session = mechanism_type(issues=issues)
+        pass
     else:
-        session = mechanism_type(issues=issues, n_steps=n_steps)  # type: ignore
+        mechanism_params.update(dict(n_steps=n_steps))
+    session = mechanism_type(issues=issues, **mechanism_params)  # type: ignore
 
     # define buyer and seller utilities
     seller_utility = LU(
@@ -336,7 +342,7 @@ def run_buyer_seller(
     session.add(b, ufun=buyer_utility)
     session.add(s, ufun=seller_utility)
 
-    session.run()
+    agreement = session.run().agreement
 
     front_utils, front_outcomes = session.pareto_frontier(sort_by_welfare=True)
     eps = 1e-3
@@ -348,11 +354,19 @@ def run_buyer_seller(
     if do_asserts:
         if (buyer, seller) in COMPLETE:
             assert (
-                session.agreement is not None or no_valid_outcomes
+                agreement is not None or no_valid_outcomes
             ), f"No agreement in a supposedly complete profile\n{_history(session)}{_plot(session, True, force=force_plot)}"
         if (buyer, seller) in OPTIMAL:
+            x = tuple(float(u(agreement)) for u in [buyer_utility, seller_utility])
+            dominating = [
+                (front_utils[_], front_outcomes[_])
+                for _ in dominating_points(x, front_utils)
+            ]
             assert (
-                session.agreement in front_outcomes or session.agreement is None
+                len(dominating) == 0 or agreement is None
+            ), f"Suboptimal agreement in a supposedly optimal profile\nAgreement:{agreement} (u={x}) is dominated by {dominating}\n{_history(session)}{_plot(session, True, force=force_plot)}"
+            assert (
+                agreement in front_outcomes or agreement is None
             ), f"Suboptimal agreement in a supposedly optimal profile\n{_history(session)}{_plot(session, True, force=force_plot)}"
     _plot(session, force=force_plot)
     return session
@@ -466,6 +480,56 @@ def test_buyer_seller_easy(neg1, neg2):
     )
 
 
+# @pytest.mark.skip(reason="Known failure. Enters an infinite loop")
+def test_buyer_seller_alphainf_war_cab():
+    run_buyer_seller(
+        WARNegotiator,
+        CABNegotiator,
+        mechanism_type=TAUMechanism,
+        normalized=True,
+        seller_reserved=0.5,
+        buyer_reserved=0.6,
+        force_plot=FORCE_PLOT,
+        min_unique=0,
+        cardinality=INFINITE,
+    )
+
+
+# @pytest.mark.skip(reason="Known failure. Enters an infinite loop")
+def test_buyer_seller_easy_wab():
+    run_buyer_seller(
+        WABNegotiator,
+        WABNegotiator,
+        normalized=True,
+        seller_reserved=0.1,
+        buyer_reserved=0.1,
+        force_plot=FORCE_PLOT,
+    )
+
+
+# @pytest.mark.skip(reason="Known failure. Enters an infinite loop")
+def test_buyer_seller_easy_wan():
+    run_buyer_seller(
+        WANNegotiator,
+        WANNegotiator,
+        normalized=True,
+        seller_reserved=0.1,
+        buyer_reserved=0.1,
+        force_plot=FORCE_PLOT,
+    )
+
+
+def test_buyer_seller_easy_cab():
+    run_buyer_seller(
+        CABNegotiator,
+        CABNegotiator,
+        normalized=True,
+        seller_reserved=0.1,
+        buyer_reserved=0.1,
+        force_plot=FORCE_PLOT,
+    )
+
+
 def test_buyer_seller_gao_easy():
     run_buyer_seller(
         AspirationNegotiator,
@@ -532,25 +596,77 @@ def test_buyer_seller_alpha0(neg1, neg2):
 
 
 @pytest.mark.parametrize(
-    ["neg1", "neg2", "mechanism"],
+    ["neg1", "neg2"],
     [
         _
-        for _ in itertools.product(NEGOTIATORS, NEGOTIATORS, MECHS)
+        for _ in itertools.product(NEGOTIATORS, NEGOTIATORS)
         if (_[0], _[1]) not in NORAISE
     ],
 )
-def test_buyer_seller_betainf(neg1, neg2, mechanism):
+def test_buyer_seller_betainf(neg1, neg2):
     with pytest.raises(AssertionError):
         run_buyer_seller(
             neg1,
             neg2,
-            mechanism_type=mechanism,
+            mechanism_type=GeneralizedTAUMechanism,
             normalized=True,
             seller_reserved=0.5,
             buyer_reserved=0.6,
             force_plot=FORCE_PLOT,
             min_unique=INFINITE,
         )
+
+
+# @pytest.mark.parametrize(
+#     ["neg1", "neg2", "parallel", "accept_any"],
+#     [
+#         _
+#         for _ in itertools.product(
+#             NEGOTIATORS, NEGOTIATORS, [True, False], [True, False]
+#         )
+#         if (_[0], _[1]) not in NORAISE
+#     ],
+# )
+# def test_buyer_seller_tau_bilateral_any_acceptance_extension_passes(
+#     neg1, neg2, parallel, accept_any
+# ):
+#     run_buyer_seller(
+#         neg1,
+#         neg2,
+#         mechanism_type=TAUMechanism,
+#         normalized=True,
+#         seller_reserved=0.5,
+#         buyer_reserved=0.6,
+#         force_plot=FORCE_PLOT,
+#         min_unique=0,
+#         mechanism_params=dict(parallel=parallel, accept_in_any_thread=accept_any),
+#     )
+
+
+def test_buyer_seller_tau_bilateral_any_acceptance_extension_ok():
+    for neg1, neg2 in itertools.product(NEGOTIATORS, NEGOTIATORS):
+        if (neg1, neg2) in NORAISE:
+            continue
+        results = []
+        for parallel, accept_any in itertools.product([True, False], [True, False]):
+            x = run_buyer_seller(
+                neg1,
+                neg2,
+                mechanism_type=TAUMechanism,
+                normalized=True,
+                seller_reserved=0.5,
+                buyer_reserved=0.6,
+                force_plot=FORCE_PLOT,
+                min_unique=0,
+                mechanism_params=dict(
+                    parallel=parallel, accept_in_any_thread=accept_any
+                ),
+            )
+            if x is not None:
+                results.append(x.agreement)
+            else:
+                results.append(x)
+        assert all(a == b for a, b in zip(results[1:], results[:-1]))
 
 
 @pytest.mark.parametrize(
@@ -957,3 +1073,30 @@ def test_tau_adapter_adapts_correctly(vals, r):
         assert (
             x in utiladapter.offered
         ), f"{x=}, {outcome=}, {utiladapter.last_offer=}, {utiladapter.offered=}"
+
+
+def test_a_tau_session_example_cab():
+    for _ in range(100):
+        r1, r2, n1, n2 = 0.2, 0.3, 2, 2
+        eps = 1e-3
+        time.perf_counter()
+        os: DiscreteCartesianOutcomeSpace = make_os([make_issue(n1), make_issue(n2)])  # type: ignore
+        p = TAUMechanism(outcome_space=os)
+        ufuns = [LU.random(os, reserved_value=r1), LU.random(os, reserved_value=r2)]
+        for i, u in enumerate(ufuns):
+            p.add(
+                CABNegotiator(name=f"RCS{i}", id=f"RCS{i}"),
+                preferences=u,
+            )
+        front_utils, front_outcomes = p.pareto_frontier()
+        no_valid_outcomes = all(
+            u1 <= r1 + eps or u2 <= r2 + eps for u1, u2 in front_utils
+        )
+        p.run()
+        assert len(p.history) > 0, f"{p.state}"
+        assert (
+            p.agreement is not None or no_valid_outcomes
+        ), f"No agreement in a supposedly complete profile {_history(p)}{_plot(p, True)}"
+        assert (
+            p.agreement in front_outcomes or p.agreement is None
+        ), f"Suboptimal agreement in a supposedly optimal profile {_history(p)}{_plot(p, True)}"
