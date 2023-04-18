@@ -716,7 +716,7 @@ class GeniusNegotiator(SAONegotiator):
             return ResponseType.REJECT_OFFER
         received = self.java.receive_message(  # type: ignore
             self.java_uuid,
-            self.nmi.genius_id(source),
+            self.nmi.genius_id(state.last_thread if source is None else source),
             "Offer",
             self._outcome2str(offer),
             state.step,

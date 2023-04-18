@@ -278,6 +278,10 @@ class TAUNegotiatorAdapter(GBNegotiator):
         self.adapter = UtilityAdapter()
         super().__init__(*args, **kwargs)
 
+    @property
+    def java_uuid(self):
+        return self.base.java_uuid  # type: ignore
+
     def _sao_stat_from_gb_state(self, state: GBState) -> SAOState:
         if not state.last_thread:
             return SAOState(
