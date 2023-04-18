@@ -764,9 +764,17 @@ ALL_PASSING_NEGOTIATORS = list(
 ALL_ANAC_AGENTS = [_ for _ in ALL_NEGOTIATORS if "anac" in _]
 """All agents submitted to ANAC and registered in Genius."""
 
+
+def simplify_name(x: str):
+    for c in ("agent", "Agent", "_main"):
+        if x.endswith(c):
+            x = x[: -len(c)]
+    return x.replace("_", "")
+
+
 _names = shortest_unique_names(ALL_GENIUS_NEGOTIATORS)
-_names_simpler = [_.replace("_", "") for _ in _names]
-_names_lower = [_.lower().replace("agent", "") for _ in _names_simpler]
+_names_simpler = [simplify_name(_) for _ in _names]
+_names_lower = [simplify_name(_.lower()) for _ in _names_simpler]
 
 NAME_CLASS_MAP = dict(zip(_names_lower, ALL_GENIUS_NEGOTIATORS))
 """Mapping a short name to a Java class."""
@@ -803,7 +811,10 @@ def get_java_class(name: str) -> str | None:
     The name can be either the java class itself or the short agent name
     """
     java_class = NAME_CLASS_MAP.get(
-        name, name if name in ALL_GENIUS_NEGOTIATORS_SET else None
+        name,
+        NAME_CLASS_MAP.get(
+            name.lower(), name if name in ALL_GENIUS_NEGOTIATORS_SET else None
+        ),
     )
     return java_class
 
