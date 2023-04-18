@@ -96,7 +96,7 @@ GENIUS_INFO = {
                 )
             ],
             [("BRAMAgent2", "agents.anac.y2011.BramAgent.BRAMAgent")],
-            [("MetaAgent2012", "agents.anac.y2012.MetaAgent.MetaAgent")],
+            [("MetaAgent", "agents.anac.y2012.MetaAgent.MetaAgent")],
             [("AgentLG", "agents.anac.y2012.AgentLG.AgentLG")],
             [
                 (
@@ -131,7 +131,7 @@ GENIUS_INFO = {
                     "agents.anac.y2012.TheNegotiatorReloaded.TheNegotiatorReloaded",
                 )
             ],
-            [("MetaAgent2012", "agents.anac.y2012.MetaAgent.MetaAgent")],
+            [("MetaAgent", "agents.anac.y2012.MetaAgent.MetaAgent")],
         ],
         "linear": True,
         "learning": False,
