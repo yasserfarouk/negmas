@@ -1,62 +1,58 @@
-<negotiation_template number_of_sessions="1">
-<agent utility_space="Side_A_utility.xml" class="agents.QOAgent" name="Side_A">
-</agent>
-<agent utility_space="Side_B_utility.xml" class="agents.UIAgent" name="Side_B">
-</agent>
-<utility_space number_of_issues="0">
-<objective index="0" description="" name="root" type="objective" etype="objective">
-<issue index="1" name="Salary" vtype="discrete" type="discrete" etype="discrete">
-<item index="1" value="7,000 NIS">
-</item>
-<item index="2" value="12,000 NIS">
-</item>
-<item index="3" value="20,000 NIS">
-</item>
-</issue>
-<issue index="2" name="Job Description" vtype="discrete" type="discrete" etype="discrete">
-<item index="1" value="QA">
-</item>
-<item index="2" value="Programmer">
-</item>
-<item index="3" value="Team Manager">
-</item>
-<item index="4" value="Project Manager">
-</item>
-</issue>
-<issue index="3" name="Leased Car" vtype="discrete" type="discrete" etype="discrete">
-<item index="1" value="Without leased car">
-</item>
-<item index="2" value="With leased car">
-</item>
-<item index="3" value="No agreement">
-</item>
-</issue>
-<issue index="4" name="Pension Fund" vtype="discrete" type="discrete" etype="discrete">
-<item index="1" value="0%">
-</item>
-<item index="2" value="10%">
-</item>
-<item index="3" value="20%">
-</item>
-<item index="4" value="No agreement">
-</item>
-</issue>
-<issue index="5" name="Promotion Possibilities" vtype="discrete" type="discrete" etype="discrete">
-<item index="1" value="Slow promotion track">
-</item>
-<item index="2" value="Fast promotion track">
-</item>
-<item index="3" value="No agreement">
-</item>
-</issue>
-<issue index="6" name="Working Hours" vtype="discrete" type="discrete" etype="discrete">
-<item index="1" value="10 hours">
-</item>
-<item index="2" value="9 hours">
-</item>
-<item index="3" value="8 hours">
-</item>
-</issue>
+<negotiation_template>
+<utility_space number_of_issues="6">
+<objective description="" etype="objective" index="0" name="root" type="objective">
+    <issue etype="discrete" index="1" name="Salary" type="discrete" vtype="discrete">
+        <item index="1" value="7,000 NIS" cost="0" description="7,000 NIS">
+        </item>
+        <item index="2" value="12,000 NIS" cost="0" description="12,000 NIS">
+        </item>
+        <item index="3" value="20,000 NIS" cost="0" description="20,000 NIS">
+        </item>
+    </issue>
+    <issue etype="discrete" index="2" name="Job Description" type="discrete" vtype="discrete">
+        <item index="1" value="QA" cost="0" description="QA">
+        </item>
+        <item index="2" value="Programmer" cost="0" description="Programmer">
+        </item>
+        <item index="3" value="Team Manager" cost="0" description="Team Manager">
+        </item>
+        <item index="4" value="Project Manager" cost="0" description="Project Manager">
+        </item>
+    </issue>
+    <issue etype="discrete" index="3" name="Leased Car" type="discrete" vtype="discrete">
+        <item index="1" value="Without leased car" cost="0" description="Without leased car">
+        </item>
+        <item index="2" value="With leased car" cost="0" description="With leased car">
+        </item>
+        <item index="3" value="No agreement" cost="0" description="No agreement">
+        </item>
+    </issue>
+    <issue etype="discrete" index="4" name="Pension Fund" type="discrete" vtype="discrete">
+        <item index="1" value="0%" cost="0" description="0%">
+        </item>
+        <item index="2" value="10%" cost="0" description="10%">
+        </item>
+        <item index="3" value="20%" cost="0" description="20%">
+        </item>
+        <item index="4" value="No agreement" cost="0" description="No agreement">
+        </item>
+    </issue>
+    <issue etype="discrete" index="5" name="Promotion Possibilities" type="discrete" vtype="discrete">
+        <item index="1" value="Slow promotion track" cost="0" description="Slow promotion track">
+        </item>
+        <item index="2" value="Fast promotion track" cost="0" description="Fast promotion track">
+        </item>
+        <item index="3" value="No agreement" cost="0" description="No agreement">
+        </item>
+    </issue>
+    <issue etype="discrete" index="6" name="Working Hours" type="discrete" vtype="discrete">
+        <item index="1" value="10 hours" cost="0" description="10 hours">
+        </item>
+        <item index="2" value="9 hours" cost="0" description="9 hours">
+        </item>
+        <item index="3" value="8 hours" cost="0" description="8 hours">
+        </item>
+    </issue>
 </objective>
 </utility_space>
 </negotiation_template>
