@@ -427,6 +427,15 @@ class NegotiatorMechanismInterface:
         return self.state.n_negotiators
 
     @property
+    def genius_negotiator_ids(self) -> list[str]:
+        """Gets the Java IDs of all negotiators (if the negotiator is not a GeniusNegotiator, its normal ID is returned)"""
+        return self.mechanism.genius_negotiator_ids
+
+    def genius_id(self, id: str | None) -> str | None:
+        """Gets the Genius ID corresponding to the given negotiator if known otherwise its normal ID"""
+        return self.mechanism.genius_id(id)
+
+    @property
     def negotiator_ids(self) -> list[str]:
         """Gets the IDs of all negotiators"""
         return self.mechanism.negotiator_ids

@@ -762,6 +762,21 @@ class Mechanism(NamedObject, EventSource, CheckpointMixin, ABC):
         return [_.id for _ in self._negotiators]
 
     @property
+    def genius_negotiator_ids(self) -> list[str]:
+        return [
+            _.java_uuid if hasattr(_, "java_uuid") else _.id for _ in self._negotiators
+        ]
+
+    def genius_id(self, id: str | None) -> str | None:
+        """Gets the Genius ID corresponding to the given negotiator if known otherwise its normal ID"""
+        if id is None:
+            return None
+        negotiator = self._negotiator_map.get(id, None)
+        if not negotiator:
+            return id
+        return negotiator.java_uuid if hasattr(negotiator, "java_uuid") else negotiator.id  # type: ignore
+
+    @property
     def agent_ids(self) -> list[str]:
         return [_.owner.id for _ in self._negotiators if _.owner]
 
