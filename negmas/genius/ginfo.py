@@ -157,7 +157,7 @@ GENIUS_INFO = {
             [("AgentKF", "agents.anac.y2013.AgentKF.AgentKF")],
             [("TheFawkes", "agents.anac.y2013.TheFawkes.TheFawkes")],
             [("TMFAgent", "agents.anac.y2013.TMFAgent.TMFAgent")],
-            [("MetaAgent", "agents.anac.y2012.MetaAgent.MetaAgent")],
+            [("MetaAgent", "agents.anac.y2013.MetaAgent.MetaAgent2013")],
             [("GAgent", "agents.anac.y2013.GAgent.AgentI")],
             [("InoxAgent", "agents.anac.y2013.InoxAgent.InoxAgent")],
             [("SlavaAgent", "agents.anac.y2013.SlavaAgent.SlavaAgent")],

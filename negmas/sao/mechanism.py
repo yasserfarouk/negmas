@@ -150,7 +150,7 @@ class SAOMechanism(Mechanism):
 
     def add(
         self,
-        negotiator: SAONegotiator,
+        negotiator: SAONegotiator | GBNegotiator,
         *,
         preferences: Preferences | None = None,
         role: str | None = None,

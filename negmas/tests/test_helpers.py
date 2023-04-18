@@ -94,7 +94,6 @@ def test_is_nonzero_file(tmpdir):
 
 
 def test_pretty_string(capsys):
-
     assert pretty_string("Test with no components") == "Test with no components"
     assert pretty_string(4) == "4"
     assert pretty_string(2.5) == "2.5"

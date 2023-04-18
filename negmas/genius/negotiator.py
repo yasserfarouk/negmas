@@ -10,6 +10,7 @@ import os
 import random
 import tempfile
 from pathlib import Path
+from time import sleep
 
 from negmas import warnings
 from negmas.outcomes.base_issue import Issue
@@ -241,7 +242,7 @@ class GeniusNegotiator(SAONegotiator):
             raise ValueError(f"Cannot initialized {self.java_class_name}")
         return aid
 
-    def _connect(self, path: str, port: int, auto_load_java: bool = False) -> bool:
+    def _connect(self, path: str, port: int, auto_load_java: bool = True) -> bool:
         """
         Connects the negotiator to an appropriate genius-bridge running the actual agent
         """
@@ -259,6 +260,7 @@ class GeniusNegotiator(SAONegotiator):
             if gateway == None:
                 self.java = None
                 return False
+            sleep(3)
         self.java = gateway.entry_point  # type: ignore
         return True
 
@@ -297,7 +299,13 @@ class GeniusNegotiator(SAONegotiator):
                 auto_load_java=self.auto_load_java,
             )
             if not self.is_connected:
-                return False
+                self.connected = self._connect(
+                    path=self.genius_bridge_path,
+                    port=self.port,
+                    auto_load_java=self.auto_load_java,
+                )
+            if not self.is_connected:
+                raise ValueError(f"Cannot connect to the genius bridge")
 
         self.java_uuid = self._create()
 
