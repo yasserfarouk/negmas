@@ -515,7 +515,7 @@ class GeniusNegotiator(SAONegotiator):
                 self.utility_file_name,  # Negotiator file
                 timeout,
                 self._strict,
-                # "__;__NEGID__;__".join(self.nmi.genius_negotiator_ids),
+                "__;__NEGID__;__".join(self.nmi.genius_negotiator_ids),
             )
             self.__started = result == OK
             if result != OK:
