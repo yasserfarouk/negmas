@@ -515,6 +515,7 @@ class GeniusNegotiator(SAONegotiator):
                 self.utility_file_name,  # Negotiator file
                 timeout,
                 self._strict,
+                # "__;__NEGID__;__".join(self.nmi.genius_negotiator_ids),
             )
             self.__started = result == OK
             if result != OK:
@@ -651,7 +652,7 @@ class GeniusNegotiator(SAONegotiator):
             return
         received = self.java.receive_message(  # type: ignore
             self.java_uuid,
-            state.current_proposer,
+            self.nmi.genius_id(state.current_proposer),
             "Offer",
             self._outcome2str(offer),
             state.step,
