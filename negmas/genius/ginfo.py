@@ -772,6 +772,8 @@ def simplify_name(x: str):
     return x.replace("_", "")
 
 
+special_names = dict(HardHeaded="agents.anac.y2011.HardHeaded.KLH")
+
 _names = shortest_unique_names(ALL_GENIUS_NEGOTIATORS)
 _names_simpler = [simplify_name(_) for _ in _names]
 _names_lower = [simplify_name(_.lower()) for _ in _names_simpler]
@@ -810,6 +812,8 @@ def get_java_class(name: str) -> str | None:
 
     The name can be either the java class itself or the short agent name
     """
+    if name in special_names:
+        return special_names[name]
     java_class = NAME_CLASS_MAP.get(
         name,
         NAME_CLASS_MAP.get(
