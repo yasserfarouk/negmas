@@ -24,6 +24,8 @@ if TYPE_CHECKING:
 
 __all__ = ["GBMechanism", "ParallelGBMechanism", "SerialGBMechanism"]
 
+DEFAULT_COLORMAP = "jet"
+
 
 @define
 class GBThread:
@@ -269,7 +271,7 @@ class BaseGBMechanism(Mechanism):
         show_n_steps=True,
         colors: list | None = None,
         markers: list[str] | None = None,
-        colormap: str = "jet",
+        colormap: str = DEFAULT_COLORMAP,
         ylimits: tuple[float, float] | None = None,
         common_legend: bool = True,
         xdim: str = "step",
@@ -628,7 +630,7 @@ class GBMechanism(BaseGBMechanism):
         show_n_steps=True,
         colors: list | None = None,
         markers: list[str] | None = None,
-        colormap: str = "jet",
+        colormap: str = DEFAULT_COLORMAP,
         ylimits: tuple[float, float] | None = None,
         common_legend: bool = True,
         xdim: str = "step",

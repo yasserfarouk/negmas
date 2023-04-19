@@ -174,7 +174,10 @@ class PlottableMechanism(Protocol):
         ...
 
 
-def get_cmap(n, name="jet"):
+DEFAULT_COLORMAP = "jet"
+
+
+def get_cmap(n, name=DEFAULT_COLORMAP):
     """Returns a function that maps each index in 0, 1, ..., n-1 to a distinct
     RGB color; the keyword argument name must be a standard mpl colormap name."""
     import matplotlib.pyplot as plt
@@ -182,7 +185,7 @@ def get_cmap(n, name="jet"):
     return plt.cm.get_cmap(name, n)
 
 
-def make_colors_and_markers(colors, markers, n: int, colormap="jet"):
+def make_colors_and_markers(colors, markers, n: int, colormap=DEFAULT_COLORMAP):
     if not colors:
         cmap = get_cmap(n, colormap)
         colors = [cmap(i) for i in range(n)]
@@ -200,7 +203,7 @@ def plot_offer_utilities(
     name_map: dict[str, str] | Callable[[str], str] | None = None,
     colors: list | None = None,
     markers: list | None = None,
-    colormap: str = "jet",
+    colormap: str = DEFAULT_COLORMAP,
     ax: Axes | None = None,  # type: ignore
     sharey=False,
     xdim: str = "relative_time",
@@ -326,13 +329,18 @@ def plot_offer_utilities(
             )
     axes[0].set_title(f"{map_(negotiator)} Offers")
     if show_legend and len(plotting_negotiators) != 2:
+        print("showing legend", flush=True)
         ax.legend(
             bbox_to_anchor=(0.0, 1.12, 1.0, 0.102),
             loc="lower left",
             ncol=2,
             mode="expand",
             borderaxespad=0.0,
+            labelcolor=colors,
+            # labelcolor="linecolor",
+            # draggablebool=True,
         )
+        print("done legend", flush=True)
     if show_x_label:
         ax.set_xlabel(xdim)
 
@@ -363,7 +371,7 @@ def plot_2dutils(
     name_map: dict[str, str] | Callable[[str], str] | None = None,
     colors: list | None = None,
     markers: list[str] | None = None,
-    colormap: str = "jet",
+    colormap: str = DEFAULT_COLORMAP,
     ax: Axes | None = None,  # type: ignore
     colorizer: Colorizer | None = None,
     fast: bool = False,
@@ -750,7 +758,7 @@ def plot_mechanism_run(
     show_n_steps=True,
     colors: list | None = None,
     markers: list[str] | None = None,
-    colormap: str = "jet",
+    colormap: str = DEFAULT_COLORMAP,
     ylimits: tuple[float, float] | None = None,
     common_legend=True,
     extra_annotation: str = "",
