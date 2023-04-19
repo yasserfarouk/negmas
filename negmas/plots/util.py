@@ -207,7 +207,7 @@ def plot_offer_utilities(
     ylimits: tuple[float, float] | None = None,
     show_legend=True,
     show_x_label=True,
-    ignore_markers_limit=50,
+    ignore_markers_limit=200,
     show_reserved=True,
     colorizer: Colorizer | None = None,
     first_color_index: int = 0,
@@ -301,12 +301,12 @@ def plot_offer_utilities(
             color=thecolor,
             marker=markers[i % len(markers)]
             if len(trace_info) < ignore_markers_limit and neg == negotiator
-            else ".",
+            else "",
             label=f"{name} ({i})",
             ax=a,
             with_lines=True,
             linestyle="solid" if neg == negotiator else ":",
-            linewidth=1 if neg == negotiator else 0.25,
+            linewidth=1 if neg == negotiator else 0.5,
         )
         if reserved:
             a.plot(
