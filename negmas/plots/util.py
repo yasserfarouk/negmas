@@ -305,7 +305,7 @@ def plot_offer_utilities(
             marker=markers[i % len(markers)]
             if len(trace_info) < ignore_markers_limit and neg == negotiator
             else "",
-            label=f"{name} ({i})",
+            label=f"Utility" if simple_offers_view else name,
             ax=a,
             with_lines=True,
             linestyle="solid" if neg == negotiator else ":",
