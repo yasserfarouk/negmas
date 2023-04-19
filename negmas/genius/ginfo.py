@@ -244,7 +244,7 @@ GENIUS_INFO = {
             [("Caduceus", "agents.anac.y2016.caduceus.Caduceus")],
             [("YXAgent", "agents.anac.y2016.yxagent.YXAgent")],
             [("ParsCat", "agents.anac.y2016.parscat.ParsCat")],
-            [("Farma", "agents.anac.y2017.farma.Farma17")],
+            [("Farma", "agents.anac.y2016.farma.Farma")],
             [("MyAgent", "agents.anac.y2016.myagent.MyAgent")],
             [("Atlas32016", "agents.anac.y2016.atlas3.Atlas32016")],
             [("Ngent", "agents.anac.y2016.ngent.Ngent")],
@@ -266,6 +266,18 @@ GENIUS_INFO = {
             [("PonPokoAgent", "agents.anac.y2017.ponpokoagent.PonPokoAgent")],
             [("CaduceusDC16", "agents.anac.y2017.caduceusdc16.CaduceusDC16")],
             [("Rubick", "agents.anac.y2017.rubick.Rubick")],
+        ],
+        "finalists": [
+            [("PonPokoAgent", "agents.anac.y2017.ponpokoagent.PonPokoAgent")],
+            [("CaduceusDC16", "agents.anac.y2017.caduceusdc16.CaduceusDC16")],
+            [("ParsCat2", "agents.anac.y2016.parscat.ParsCat")],
+            [("Rubick", "agents.anac.y2017.rubick.Rubick")],
+            [("ParsAgent3", "agents.anac.y2017.parsagent3.ShahAgent")],
+            [("AgentKN", "agents.anac.y2017.agentkn.AgentKN")],
+            [("ParsCat2", "agents.anac.y2016.parscat.ParsCat")],
+            [("AgentF", "agents.anac.y2017.agentf.AgentF")],
+            [("SimpleAgent2017", "agents.anac.y2017.simpleagent.SimpleAgent")],
+            [("Mamenchis", "agents.anac.y2017.mamenchis.Mamenchis")],
         ],
         "winners_nash": [
             [("ParsCat2", "agents.anac.y2016.parscat.ParsCat")],
@@ -293,6 +305,26 @@ GENIUS_INFO = {
             [("MengWan", "agents.anac.y2018.meng_wan.Agent36")],
             [("BetaOne", "agents.anac.y2018.beta_one.Group2")],
         ],
+        "finalists": [
+            [("MengWan", "agents.anac.y2018.meng_wan.Agent36")],
+            [("IQSun2018", "agents.anac.y2018.iqson.IQSun2018")],
+            [("PonpokoRampage", "agents.anac.y2018.ponpokorampage.PonPokoRampage")],
+            [("AgentHerb", "agents.anac.y2018.agentherb.AgentHerb")],
+            [("FullAgent", "agents.anac.y2018.fullagent.FullAgent")],
+            [("BetaOne", "agents.anac.y2018.beta_one.Group2")],
+            [
+                (
+                    "AgreeableAgent2018",
+                    "agents.anac.y2018.agreeableagent2018.AgreeableAgent2018",
+                )
+            ],
+            [("Shiboy", "agents.anac.y2018.shiboy.Shiboy")],
+            [("ConDAgent", "agents.anac.y2018.condagent.ConDAgent")],
+            [("Yeela", "agents.anac.y2018.yeela.Yeela")],
+            [("Sontag", "agents.anac.y2018.sontag.Sontag")],
+            [("Agent33", "agents.anac.y2018.agent33.Agent33")],
+            [("AgentNP1", "agents.anac.y2018.agentnp1.AgentNP1")],
+        ],
         "winners_welfare": [
             [("AgentHerb", "agents.anac.y2018.agentherb.AgentHerb")],
             [("Agent33", "agents.anac.y2018.agent33.Agent33")],
@@ -308,19 +340,34 @@ GENIUS_INFO = {
         "uncertainty": False,
         "elicitation": False,
     },
-    # 2019: {
-    #     "winners": [[("AgentGG", "")], [("KakeSoba", "")], [("SAGA", "")]],
-    #     "winners_nash": [[("WinkyAgent", "")], [("FSEGA2019", "")], [("AgentGP", "")]],
-    #     "finalists": [[("AgentGG", "")], [("KakeSoba", "")], [("SAGA", "")]],
-    #     "linear": True,
-    #     "learning": False,
-    #     "multilateral": False,
-    #     "bilateral": True,
-    #     "reservation": None,
-    #     "discounting": None,
-    #     "uncertainty": True,
-    #     "elicitation": False,
-    # },
+    2019: {
+        "winners": [
+            [("AgentGG", "agents.anac.y2019.agentgg.AgentGG")],
+            [("KakeSoba", "agents.anac.y2019.kakesoba.KakeSoba")],
+            [("SAGA", "agents.anac.y2019.saga.SAGA")],
+        ],
+        "winners_nash": [
+            [("WinkyAgent", "agents.anac.y2019.winkyagent.winkyAgent")],
+            [("FSEGA2019", "agents.anac.y2019.fsega2019.agent.FSEGA2019")],
+            [("AgentGP", "agents.anac.y2019.agentgp.AgentGP")],
+        ],
+        "finalists": [
+            [("AgentGG", "agents.anac.y2019.agentgg.AgentGG")],
+            [("KakeSoba", "agents.anac.y2019.kakesoba.KakeSoba")],
+            [("SAGA", "agents.anac.y2019.saga.SAGA")],
+            [("WinkyAgent", "agents.anac.y2019.winkyagent.winkyAgent")],
+            [("FSEGA2019", "agents.anac.y2019.fsega2019.agent.FSEGA2019")],
+            [("AgentGP", "agents.anac.y2019.agentgp.AgentGP")],
+        ],
+        "linear": True,
+        "learning": False,
+        "multilateral": False,
+        "bilateral": True,
+        "reservation": None,
+        "discounting": None,
+        "uncertainty": True,
+        "elicitation": False,
+    },
     # 2020: {
     #     "winners": [],
     #     "linear": True,
@@ -521,6 +568,24 @@ ALL_GENIUS_NEGOTIATORS = [
     "agents.anac.y2018.smac_agent.SMAC_Agent",
     "agents.anac.y2018.sontag.Sontag",
     "agents.anac.y2018.yeela.Yeela",
+    "agents.anac.y2019.agentgg.AgentGG",
+    "agents.anac.y2019.agentgp.AgentGP",
+    "agents.anac.y2019.agentlarry.AgentLarry",
+    "agents.anac.y2019.dandikagent.dandikAgent",
+    "agents.anac.y2019.eagent.EAgent",
+    "agents.anac.y2019.fsega2019.agent.FSEGA2019",
+    "agents.anac.y2019.garavelagent.GaravelAgent",
+    "agents.anac.y2019.gravity.Gravity",
+    "agents.anac.y2019.harddealer.HardDealer",
+    "agents.anac.y2019.kagent.KAgent",
+    "agents.anac.y2019.kakesoba.KakeSoba",
+    "agents.anac.y2019.minf.MINF",
+    "agents.anac.y2019.podagent.Group1_BOA",
+    "agents.anac.y2019.sacra.SACRA",
+    "agents.anac.y2019.saga.SAGA",
+    "agents.anac.y2019.solveragent.SolverAgent",
+    "agents.anac.y2019.thenewdeal.TheNewDeal",
+    "agents.anac.y2019.winkyagent.winkyAgent",
 ]
 """All Negotiators Accessible through Genius UI."""
 
@@ -671,6 +736,44 @@ PARTY_BASED_NEGOTIATORS = [
     "agents.anac.y2017.ponpokoagent.PonPokoAgent",
     "agents.anac.y2017.tangxun.taxibox",
     "agents.anac.y2017.tucagent.TucAgent",
+    "agents.anac.y2018.agent33.Agent33",
+    "agents.anac.y2018.agentherb.AgentHerb",
+    "agents.anac.y2018.agentnp1.AgentNP1",
+    "agents.anac.y2018.agreeableagent2018.AgreeableAgent2018",
+    "agents.anac.y2018.ateamagent.ATeamAgent",
+    "agents.anac.y2018.beta_one.Group2",
+    "agents.anac.y2018.condagent.ConDAgent",
+    "agents.anac.y2018.exp_rubick.Exp_Rubick",
+    "agents.anac.y2018.fullagent.FullAgent",
+    "agents.anac.y2018.groupy.GroupY",
+    "agents.anac.y2018.iqson.IQSun2018",
+    "agents.anac.y2018.lancelot.Lancelot",
+    "agents.anac.y2018.libra.Libra",
+    "agents.anac.y2018.meng_wan.Agent36",
+    "agents.anac.y2018.ponpokorampage.PonPokoRampage",
+    "agents.anac.y2018.seto.Seto",
+    "agents.anac.y2018.shiboy.Shiboy",
+    "agents.anac.y2018.smac_agent.SMAC_Agent",
+    "agents.anac.y2018.sontag.Sontag",
+    "agents.anac.y2018.yeela.Yeela",
+    "agents.anac.y2019.agentgg.AgentGG",
+    "agents.anac.y2019.agentgp.AgentGP",
+    "agents.anac.y2019.agentlarry.AgentLarry",
+    "agents.anac.y2019.dandikagent.dandikAgent",
+    "agents.anac.y2019.eagent.EAgent",
+    "agents.anac.y2019.fsega2019.agent.FSEGA2019",
+    "agents.anac.y2019.garavelagent.GaravelAgent",
+    "agents.anac.y2019.gravity.Gravity",
+    "agents.anac.y2019.harddealer.HardDealer",
+    "agents.anac.y2019.kagent.KAgent",
+    "agents.anac.y2019.kakesoba.KakeSoba",
+    "agents.anac.y2019.minf.MINF",
+    "agents.anac.y2019.podagent.Group1_BOA",
+    "agents.anac.y2019.sacra.SACRA",
+    "agents.anac.y2019.saga.SAGA",
+    "agents.anac.y2019.solveragent.SolverAgent",
+    "agents.anac.y2019.thenewdeal.TheNewDeal",
+    "agents.anac.y2019.winkyagent.winkyAgent",
 ]
 """Genius agents based on the Party base-class.
 
@@ -772,7 +875,10 @@ def simplify_name(x: str):
     return x.replace("_", "")
 
 
-special_names = dict(HardHeaded="agents.anac.y2011.HardHeaded.KLH")
+special_names = dict(
+    HardHeaded="agents.anac.y2011.HardHeaded.KLH",
+    SimpleAgent2017="agents.anac.y2017.simpleagent.SimpleAgent",
+)
 
 _names = shortest_unique_names(ALL_GENIUS_NEGOTIATORS)
 _names_simpler = [simplify_name(_) for _ in _names]
@@ -915,3 +1021,168 @@ def get_anac_agents(
     ):
         agents = agents.intersection(get_agents(year, d))
     return list(agents)
+
+
+# All agents from genius 9.1.13
+# "agents.ABMPAgent2",
+# "agents.BayesianAgent",
+# "agents.FunctionalAcceptor",
+# "agents.FuzzyAgent",
+# "agents.ImmediateAcceptor",
+# "agents.OptimalBidderSimple",
+# "agents.SimilarityAgent",
+# "agents.SimpleAgent",
+# "agents.TimeDependentAgentBoulware",
+# "agents.TimeDependentAgentConceder",
+# "agents.TimeDependentAgentHardliner",
+# "agents.TimeDependentAgentLinear",
+# "agents.UtilityBasedAcceptor",
+# "agents.anac.y2010.AgentFSEGA.AgentFSEGA",
+# "agents.anac.y2010.AgentK.Agent_K",
+# "agents.anac.y2010.AgentSmith.AgentSmith",
+# "agents.anac.y2010.Nozomi.Nozomi",
+# "agents.anac.y2010.Southampton.IAMcrazyHaggler",
+# "agents.anac.y2010.Southampton.IAMhaggler",
+# "agents.anac.y2010.Yushu.Yushu",
+# "agents.anac.y2011.AgentK2.Agent_K2",
+# "agents.anac.y2011.BramAgent.BRAMAgent",
+# "agents.anac.y2011.Gahboninho.Gahboninho",
+# "agents.anac.y2011.HardHeaded.KLH",
+# "agents.anac.y2011.IAMhaggler2011.IAMhaggler2011",
+# "agents.anac.y2011.Nice_Tit_for_Tat.NiceTitForTat",
+# "agents.anac.y2011.TheNegotiator.TheNegotiator",
+# "agents.anac.y2011.ValueModelAgent.ValueModelAgent",
+# "agents.anac.y2012.AgentLG.AgentLG",
+# "agents.anac.y2012.AgentMR.AgentMR",
+# "agents.anac.y2012.BRAMAgent2.BRAMAgent2",
+# "agents.anac.y2012.CUHKAgent.CUHKAgent",
+# "agents.anac.y2012.IAMhaggler2012.IAMhaggler2012",
+# "agents.anac.y2012.MetaAgent.MetaAgent",
+# "agents.anac.y2012.OMACagent.OMACagent",
+# "agents.anac.y2012.TheNegotiatorReloaded.TheNegotiatorReloaded",
+# "agents.anac.y2013.AgentKF.AgentKF",
+# "agents.anac.y2013.GAgent.AgentI",
+# "agents.anac.y2013.InoxAgent.InoxAgent",
+# "agents.anac.y2013.MetaAgent.MetaAgent2013",
+# "agents.anac.y2013.SlavaAgent.SlavaAgent",
+# "agents.anac.y2013.TMFAgent.TMFAgent",
+# "agents.anac.y2013.TheFawkes.TheFawkes",
+# "agents.anac.y2014.AgentM.AgentM",
+# "agents.anac.y2014.AgentQuest.AgentQuest",
+# "agents.anac.y2014.AgentTD.AgentTD",
+# "agents.anac.y2014.AgentTRP.AgentTRP",
+# "agents.anac.y2014.AgentWhale.WhaleAgent",
+# "agents.anac.y2014.AgentYK.AgentYK",
+# "agents.anac.y2014.ArisawaYaki.ArisawaYaki",
+# "agents.anac.y2014.Aster.Aster",
+# "agents.anac.y2014.Atlas.Atlas",
+# "agents.anac.y2014.BraveCat.BraveCat",
+# "agents.anac.y2014.DoNA.DoNA",
+# "agents.anac.y2014.E2Agent.AnacSampleAgent",
+# "agents.anac.y2014.Flinch.Flinch",
+# "agents.anac.y2014.Gangster.Gangster",
+# "agents.anac.y2014.KGAgent.KGAgent",
+# "agents.anac.y2014.SimpaticoAgent.Simpatico",
+# "agents.anac.y2014.Sobut.Sobut",
+# "agents.anac.y2014.TUDelftGroup2.Group2Agent",
+# "agents.anac.y2015.AgentHP.AgentHP",
+# "agents.anac.y2015.AgentNeo.Groupn",
+# "agents.anac.y2015.AgentW.AgentW",
+# "agents.anac.y2015.AgentX.AgentX",
+# "agents.anac.y2015.AresParty.AresParty",
+# "agents.anac.y2015.Atlas3.Atlas3",
+# "agents.anac.y2015.DrageKnight.DrageKnight",
+# "agents.anac.y2015.JonnyBlack.JonnyBlack",
+# "agents.anac.y2015.Mercury.Mercury",
+# "agents.anac.y2015.ParsAgent.ParsAgent",
+# "agents.anac.y2015.Phoenix.PhoenixParty",
+# "agents.anac.y2015.RandomDance.RandomDance",
+# "agents.anac.y2015.SENGOKU.SENGOKU",
+# "agents.anac.y2015.TUDMixedStrategyAgent.TUDMixedStrategyAgent",
+# "agents.anac.y2015.agentBuyogV2.AgentBuyogMain",
+# "agents.anac.y2015.agenth.AgentH",
+# "agents.anac.y2015.cuhkagent2015.CUHKAgent2015",
+# "agents.anac.y2015.fairy.kawaii",
+# "agents.anac.y2015.group2.Group2",
+# "agents.anac.y2015.meanBot.MeanBot",
+# "agents.anac.y2015.pnegotiator.PNegotiator",
+# "agents.anac.y2015.pokerface.PokerFace",
+# "agents.anac.y2015.xianfa.XianFaAgent",
+# "agents.anac.y2016.agenthp2.AgentHP2_main",
+# "agents.anac.y2016.agentlight.AgentLight",
+# "agents.anac.y2016.agentsmith.AgentSmith2016",
+# "agents.anac.y2016.atlas3.Atlas32016",
+# "agents.anac.y2016.caduceus.Caduceus",
+# "agents.anac.y2016.clockworkagent.ClockworkAgent",
+# "agents.anac.y2016.farma.Farma",
+# "agents.anac.y2016.grandma.GrandmaAgent",
+# "agents.anac.y2016.maxoops.MaxOops",
+# "agents.anac.y2016.myagent.MyAgent",
+# "agents.anac.y2016.ngent.Ngent",
+# "agents.anac.y2016.pars2.ParsAgent2",
+# "agents.anac.y2016.parscat.ParsCat",
+# "agents.anac.y2016.syagent.SYAgent",
+# "agents.anac.y2016.terra.Terra",
+# "agents.anac.y2016.yxagent.YXAgent",
+# "agents.anac.y2017.agentf.AgentF",
+# "agents.anac.y2017.agentkn.AgentKN",
+# "agents.anac.y2017.caduceusdc16.CaduceusDC16",
+# "agents.anac.y2017.mamenchis.Mamenchis",
+# "agents.anac.y2017.parsagent3.ShahAgent",
+# "agents.anac.y2017.ponpokoagent.PonPokoAgent",
+# "agents.anac.y2017.rubick.Rubick",
+# "agents.anac.y2017.simpleagent.SimpleAgent",
+# "agents.anac.y2018.agent33.Agent33",
+# "agents.anac.y2018.agentherb.AgentHerb",
+# "agents.anac.y2018.agentnp1.AgentNP1",
+# "agents.anac.y2018.agreeableagent2018.AgreeableAgent2018",
+# "agents.anac.y2018.ateamagent.ATeamAgent",
+# "agents.anac.y2018.beta_one.Group2",
+# "agents.anac.y2018.condagent.ConDAgent",
+# "agents.anac.y2018.exp_rubick.Exp_Rubick",
+# "agents.anac.y2018.fullagent.FullAgent",
+# "agents.anac.y2018.groupy.GroupY",
+# "agents.anac.y2018.iqson.IQSun2018",
+# "agents.anac.y2018.lancelot.Lancelot",
+# "agents.anac.y2018.libra.Libra",
+# "agents.anac.y2018.meng_wan.Agent36",
+# "agents.anac.y2018.ponpokorampage.PonPokoRampage",
+# "agents.anac.y2018.seto.Seto",
+# "agents.anac.y2018.shiboy.Shiboy",
+# "agents.anac.y2018.smac_agent.SMAC_Agent",
+# "agents.anac.y2018.sontag.Sontag",
+# "agents.anac.y2018.yeela.Yeela",
+# "negotiator.parties.BoulwareNegotiationParty",
+# "negotiator.parties.ConcederNegotiationParty",
+# "negotiator.parties.CounterOfferHumanNegotiationParty",
+# "negotiator.parties.RandomCounterOfferNegotiationParty",
+# "negotiator.parties.RandomParty",
+# "negotiator.parties.RandomParty2",
+
+# Parties not used in SAO
+# <partyRepItem
+#     classPath="parties.AlternatingMultipleOffers.RandomAmopPartyMajority">
+# </partyRepItem>
+# <partyRepItem classPath="parties.simplemediator.RandomFlippingMediator">
+#     <properties>
+#         <property>isMediator</property>
+#     </properties>
+# </partyRepItem>
+# <partyRepItem classPath="parties.simplemediator.FixedOrderFlippingMediator">
+#     <properties>
+#         <property>isMediator</property>
+#     </properties>
+# </partyRepItem>
+# <partyRepItem classPath="parties.simplemediator.HillClimber">
+# </partyRepItem>
+# <partyRepItem classPath="parties.simplemediator.Annealer">
+# </partyRepItem>
+# <partyRepItem classPath="parties.simplemediator.FeedbackParty">
+# </partyRepItem>
+# <partyRepItem classPath="parties.feedbackmediator.FeedbackMediator">
+#     <properties>
+#         <property>isMediator</property>
+#     </properties>
+# </partyRepItem>
+# <partyRepItem classPath="negotiator.parties.FeedbackHillClimber">
+# </partyRepItem>
