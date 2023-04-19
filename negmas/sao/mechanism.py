@@ -31,6 +31,8 @@ __all__ = [
     "TraceElement",
 ]
 
+DEFAULT_COLORMAP = "jet"
+
 
 class SAOMechanism(Mechanism):
     """
@@ -150,7 +152,7 @@ class SAOMechanism(Mechanism):
 
     def add(
         self,
-        negotiator: SAONegotiator | GBNegotiator,
+        negotiator: SAONegotiator,
         *,
         preferences: Preferences | None = None,
         role: str | None = None,
@@ -657,7 +659,7 @@ class SAOMechanism(Mechanism):
         show_n_steps=True,
         colors: list | None = None,
         markers: list[str] | None = None,
-        colormap: str = "jet",
+        colormap: str = DEFAULT_COLORMAP,
         ylimits: tuple[float, float] | None = None,
         common_legend: bool = True,
         xdim: str = "relative_time",
