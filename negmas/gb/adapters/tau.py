@@ -283,6 +283,8 @@ class TAUNegotiatorAdapter(GBNegotiator):
         return self.base.java_uuid  # type: ignore
 
     def _sao_stat_from_gb_state(self, state: GBState) -> SAOState:
+        if isinstance(state, SAOState):
+            return state
         if not state.last_thread:
             return SAOState(
                 running=state.running,

@@ -191,7 +191,7 @@ class GBNegotiator(Negotiator):
         if not self._capabilities["propose"] or self.__end_negotiation:
             return None
         return self.propose(
-            state=self._state_from_sao_state(state),
+            state=self._gb_state_from_sao_state(state),
         )
 
     def respond_(self, state: SAOState, offer: Outcome) -> ResponseType:
@@ -225,12 +225,14 @@ class GBNegotiator(Negotiator):
         self.__received_offer[state.current_proposer] = offer
 
         return self.respond(
-            state=self._state_from_sao_state(state),
+            state=self._gb_state_from_sao_state(state),
             offer=offer,
             source=state.current_proposer if state.current_proposer else "",
         )
 
-    def _state_from_sao_state(self, state: SAOState) -> GBState:
+    def _gb_state_from_sao_state(self, state: SAOState) -> GBState:
+        if isinstance(state, GBState):
+            return state
         if not self.nmi:
             raise ValueError("No NMI. Cannot convert SAOState to GBState")
         threads = {

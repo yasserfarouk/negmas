@@ -650,9 +650,10 @@ class GeniusNegotiator(SAONegotiator):
         if offer is None:
             self.propose_sao(state)
             return
+        proposer_id = self.nmi.genius_id(state.current_proposer)
         received = self.java.receive_message(  # type: ignore
             self.java_uuid,
-            self.nmi.genius_id(state.current_proposer),
+            proposer_id,
             "Offer",
             self._outcome2str(offer),
             state.step,
@@ -714,9 +715,12 @@ class GeniusNegotiator(SAONegotiator):
             raise ValueError(f"{self._me()} got counter with a None offer.")
         if offer is None:
             return ResponseType.REJECT_OFFER
+        proposer_id = self.nmi.genius_id(
+            state.last_thread if source is None else source
+        )
         received = self.java.receive_message(  # type: ignore
             self.java_uuid,
-            self.nmi.genius_id(state.last_thread if source is None else source),
+            proposer_id,
             "Offer",
             self._outcome2str(offer),
             state.step,
