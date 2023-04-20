@@ -101,7 +101,7 @@ GENIUS_INFO = {
             [
                 (
                     "IAMhaggler2012",
-                    "agents.anac.y2012.IAMhaggler2012.agents2011.SouthamptonAgent",
+                    "agents.anac.y2012.IAMhaggler2012.IAMhaggler2012",
                 )
             ],
             [("AgentMR", "agents.anac.y2012.AgentMR.AgentMR")],
@@ -122,7 +122,7 @@ GENIUS_INFO = {
             [
                 (
                     "IAMhaggler2012",
-                    "agents.anac.y2012.IAMhaggler2012.agents2011.SouthamptonAgent",
+                    "agents.anac.y2012.IAMhaggler2012.IAMhaggler2012",
                 )
             ],
             [

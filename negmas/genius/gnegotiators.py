@@ -604,12 +604,6 @@ class Mercury(GeniusNegotiator):
         super().__init__(**kwargs)
 
 
-class MetaAgent2013(GeniusNegotiator):
-    def __init__(self, **kwargs):
-        kwargs["java_class_name"] = "agents.anac.y2013.MetaAgent.MetaAgent2013"
-        super().__init__(**kwargs)
-
-
 class PNegotiator(GeniusNegotiator):
     def __init__(self, **kwargs):
         kwargs["java_class_name"] = "agents.anac.y2015.pnegotiator.PNegotiator"
@@ -884,12 +878,6 @@ class Nozomi(GeniusNegotiator):
         super().__init__(**kwargs)
 
 
-class IAMhaggler(GeniusNegotiator):
-    def __init__(self, **kwargs):
-        kwargs["java_class_name"] = "agents.anac.y2010.Southampton.IAMhaggler"
-        super().__init__(**kwargs)
-
-
 class HardHeaded(GeniusNegotiator):
     def __init__(self, **kwargs):
         kwargs["java_class_name"] = "agents.anac.y2011.HardHeaded.KLH"
@@ -899,12 +887,6 @@ class HardHeaded(GeniusNegotiator):
 class Gahboninho(GeniusNegotiator):
     def __init__(self, **kwargs):
         kwargs["java_class_name"] = "agents.anac.y2011.Gahboninho.Gahboninho"
-        super().__init__(**kwargs)
-
-
-class IAMhaggler2011(GeniusNegotiator):
-    def __init__(self, **kwargs):
-        kwargs["java_class_name"] = "agents.anac.y2011.IAMhaggler2011.IAMhaggler2011"
         super().__init__(**kwargs)
 
 
@@ -964,23 +946,27 @@ class BRAMAgent2(GeniusNegotiator):
         super().__init__(**kwargs)
 
 
-class MetaAgent2012(GeniusNegotiator):
-    def __init__(self, **kwargs):
-        kwargs["java_class_name"] = "agents.anac.y2012.MetaAgent.MetaAgent"
-        super().__init__(**kwargs)
-
-
 class AgentLG(GeniusNegotiator):
     def __init__(self, **kwargs):
         kwargs["java_class_name"] = "agents.anac.y2012.AgentLG.AgentLG"
         super().__init__(**kwargs)
 
 
+class IAMhaggler(GeniusNegotiator):
+    def __init__(self, **kwargs):
+        kwargs["java_class_name"] = "agents.anac.y2010.Southampton.IAMhaggler"
+        super().__init__(**kwargs)
+
+
+class IAMhaggler2011(GeniusNegotiator):
+    def __init__(self, **kwargs):
+        kwargs["java_class_name"] = "agents.anac.y2011.IAMhaggler2011.IAMhaggler2011"
+        super().__init__(**kwargs)
+
+
 class IAMhaggler2012(GeniusNegotiator):
     def __init__(self, **kwargs):
-        kwargs[
-            "java_class_name"
-        ] = "agents.anac.y2012.IAMhaggler2012.agents2011.SouthamptonAgent"
+        kwargs["java_class_name"] = "agents.anac.y2012.IAMhaggler2012.IAMhaggler2012"
         super().__init__(**kwargs)
 
 
@@ -1005,6 +991,18 @@ class TheFawkes(GeniusNegotiator):
 class TMFAgent(GeniusNegotiator):
     def __init__(self, **kwargs):
         kwargs["java_class_name"] = "agents.anac.y2013.TMFAgent.TMFAgent"
+        super().__init__(**kwargs)
+
+
+class MetaAgent2013(GeniusNegotiator):
+    def __init__(self, **kwargs):
+        kwargs["java_class_name"] = "agents.anac.y2013.MetaAgent.MetaAgent2013"
+        super().__init__(**kwargs)
+
+
+class MetaAgent2012(GeniusNegotiator):
+    def __init__(self, **kwargs):
+        kwargs["java_class_name"] = "agents.anac.y2012.MetaAgent.MetaAgent"
         super().__init__(**kwargs)
 
 
