@@ -32,6 +32,15 @@ GENIUS_INFO = {
             [("Nozomi", "agents.anac.y2010.Nozomi.Nozomi")],
             [("IAMhaggler", "agents.anac.y2010.Southampton.IAMhaggler")],
         ],
+        "genius10": [
+            [("AgentFSEGA", "agents.anac.y2010.AgentFSEGA.AgentFSEGA")],
+            [("AgentK", "agents.anac.y2010.AgentK.Agent_K")],
+            [("AgentSmith", "agents.anac.y2010.AgentSmith.AgentSmith")],
+            [("Nozomi", "agents.anac.y2010.Nozomi.Nozomi")],
+            [("IAMcrazyHaggler", "agents.anac.y2010.Southampton.IAMcrazyHaggler")],
+            [("IAMhaggler", "agents.anac.y2010.Southampton.IAMhaggler")],
+            [("Yushu", "agents.anac.y2010.Yushu.Yushu")],
+        ],
         "linear": True,
         "learning": False,
         "multilateral": False,
@@ -55,6 +64,16 @@ GENIUS_INFO = {
             [("AgentK2", "agents.anac.y2011.AgentK2.Agent_K2")],
             [("TheNegotiator", "agents.anac.y2011.TheNegotiator.TheNegotiator")],
             [("NiceTitForTat", "agents.anac.y2011.Nice_Tit_for_Tat.NiceTitForTat")],
+            [("ValueModelAgent", "agents.anac.y2011.ValueModelAgent.ValueModelAgent")],
+        ],
+        "genius10": [
+            [("AgentK2", "agents.anac.y2011.AgentK2.Agent_K2")],
+            [("BramAgent", "agents.anac.y2011.BramAgent.BRAMAgent")],
+            [("Gahboninho", "agents.anac.y2011.Gahboninho.Gahboninho")],
+            [("HardHeaded", "agents.anac.y2011.HardHeaded.KLH")],
+            [("IAMhaggler2011", "agents.anac.y2011.IAMhaggler2011.IAMhaggler2011")],
+            [("NiceTitForTat", "agents.anac.y2011.Nice_Tit_for_Tat.NiceTitForTat")],
+            [("TheNegotiator", "agents.anac.y2011.TheNegotiator.TheNegotiator")],
             [("ValueModelAgent", "agents.anac.y2011.ValueModelAgent.ValueModelAgent")],
         ],
         "linear": True,
@@ -105,6 +124,21 @@ GENIUS_INFO = {
                 )
             ],
             [("AgentMR", "agents.anac.y2012.AgentMR.AgentMR")],
+        ],
+        "genius10": [
+            [("AgentLG", "agents.anac.y2012.AgentLG.AgentLG")],
+            [("AgentMR", "agents.anac.y2012.AgentMR.AgentMR")],
+            [("BRAMAgent2", "agents.anac.y2011.BramAgent.BRAMAgent")],
+            [("CUHKAgent", "agents.anac.y2012.CUHKAgent.CUHKAgent")],
+            [("IAMhaggler2012", "agents.anac.y2012.IAMhaggler2012.IAMhaggler2012")],
+            [("MetaAgent", "agents.anac.y2012.MetaAgent.MetaAgent")],
+            [("OMACagent", "agents.anac.y2012.OMACagent.OMACagent")],
+            [
+                (
+                    "TheNegotiatorReloaded",
+                    "agents.anac.y2012.TheNegotiatorReloaded.TheNegotiatorReloaded",
+                )
+            ],
         ],
         "best_discounted": [
             (
@@ -162,6 +196,15 @@ GENIUS_INFO = {
             [("InoxAgent", "agents.anac.y2013.InoxAgent.InoxAgent")],
             [("SlavaAgent", "agents.anac.y2013.SlavaAgent.SlavaAgent")],
         ],
+        "genius10": [
+            [("AgentKF", "agents.anac.y2013.AgentKF.AgentKF")],
+            [("GAgent", "agents.anac.y2013.GAgent.AgentI")],
+            [("InoxAgent", "agents.anac.y2013.InoxAgent.InoxAgent")],
+            [("MetaAgent2013", "agents.anac.y2013.MetaAgent.MetaAgent2013")],
+            [("SlavaAgent", "agents.anac.y2013.SlavaAgent.SlavaAgent")],
+            [("TheFawkes", "agents.anac.y2013.TheFawkes.TheFawkes")],
+            [("TMFAgent", "agents.anac.y2013.TMFAgent.TMFAgent")],
+        ],
         "linear": True,
         "learning": True,
         "multilateral": False,
@@ -193,6 +236,26 @@ GENIUS_INFO = {
             [("AgentYK", "agents.anac.y2014.AgentYK.AgentYK")],
             [("BraveCat", "agents.anac.y2014.BraveCat.BraveCat")],
         ],
+        "genius10": [
+            [("AgentM", "agents.anac.y2014.AgentM.AgentM")],
+            [("DoNA", "agents.anac.y2014.DoNA.DoNA")],
+            [("Gangester", "agents.anac.y2014.Gangster.Gangster")],
+            [("WhaleAgent", "agents.anac.y2014.AgentWhale.WhaleAgent")],
+            [("TUDelftGroup2", "agents.ai2014.group2.Group2")],
+            [("E2Agent", "agents.anac.y2014.E2Agent.AnacSampleAgent")],
+            [("KGAgent", "agents.anac.y2014.KGAgent.KGAgent")],
+            [("AgentYK", "agents.anac.y2014.AgentYK.AgentYK")],
+            [("BraveCat", "agents.anac.y2014.BraveCat.BraveCat")],
+            [("AgentQuest", "agents.anac.y2014.AgentQuest.AgentQuest")],
+            [("AgentTD", "agents.anac.y2014.AgentTD.AgentTD")],
+            [("AgentTRP", "agents.anac.y2014.AgentTRP.AgentTRP")],
+            [("ArisawaYaki", "agents.anac.y2014.ArisawaYaki.ArisawaYaki")],
+            [("Aster", "agents.anac.y2014.Aster.Aster")],
+            [("Atlas", "agents.anac.y2014.Atlas.Atlas")],
+            [("Flinch", "agents.anac.y2014.Flinch.Flinch")],
+            [("SimpaticoAgent", "agents.anac.y2014.SimpaticoAgent.Simpatico")],
+            [("Sobut", "agents.anac.y2014.Sobut.Sobut")],
+        ],
         "linear": False,
         "learning": False,
         "multilateral": False,
@@ -223,6 +286,42 @@ GENIUS_INFO = {
             [("XianFaAgent", "agents.anac.y2015.xianfa.XianFaAgent")],
             [("PokerFace", "agents.anac.y2015.pokerface.PokerFace")],
         ],
+        "genius10": [
+            [("Atlas3", "agents.anac.y2015.Atlas3.Atlas3")],
+            [("ParsAgent", "agents.anac.y2015.ParsAgent.ParsAgent")],
+            [("RandomDance", "agents.anac.y2015.RandomDance.RandomDance")],
+            [("Kawaii", "agents.anac.y2015.fairy.kawaii")],
+            [
+                (
+                    "AgentBuyong",
+                    "agents.anac.y2015.agentBuyogV2.AgentBuyogMain",
+                )
+            ],
+            [("PhoenixParty", "agents.anac.y2015.Phoenix.PhoenixParty")],
+            [("XianFaAgent", "agents.anac.y2015.xianfa.XianFaAgent")],
+            [("PokerFace", "agents.anac.y2015.pokerface.PokerFace")],
+            [("AgentH", "agents.anac.y2015.agenth.AgentH")],
+            [("AgentHP", "agents.anac.y2015.AgentHP.AgentHP")],
+            [("AgentNeo", "agents.anac.y2015.AgentNeo.Groupn")],
+            [("AgentW", "agents.anac.y2015.AgentW.AgentW")],
+            [("AgentX", "agents.anac.y2015.AgentX.AgentX")],
+            [("AresParty", "agents.anac.y2015.AresParty.AresParty")],
+            [("CUHKAgent2015", "agents.anac.y2015.cuhkagent2015.CUHKAgent2015")],
+            [("DrageKnight", "agents.anac.y2015.DrageKnight.DrageKnight")],
+            [("Fairy", "agents.anac.y2015.fairy.kawaii")],
+            [("Group2", "agents.anac.y2015.group2.Group2")],
+            [("JonnyBlack", "agents.anac.y2015.JonnyBlack.JonnyBlack")],
+            [("MeanBot", "agents.anac.y2015.meanBot.MeanBot")],
+            [("Mercury", "agents.anac.y2015.Mercury.Mercury")],
+            [("Pnegotiator", "agents.anac.y2015.pnegotiator.PNegotiator")],
+            [("SENGOKU", "agents.anac.y2015.SENGOKU.SENGOKU")],
+            [
+                (
+                    "TUDMixedStrategyAgent",
+                    "agents.anac.y2015.TUDMixedStrategyAgent.TUDMixedStrategyAgent",
+                )
+            ],
+        ],
         "linear": True,
         "learning": False,
         "multilateral": True,
@@ -252,6 +351,25 @@ GENIUS_INFO = {
             [("AgentHP2", "agents.anac.y2016.agenthp2.AgentHP2_main")],
             [("Terra", "agents.anac.y2016.terra.Terra")],
         ],
+        "genius10": [
+            [("Caduceus", "agents.anac.y2016.caduceus.Caduceus")],
+            [("YXAgent", "agents.anac.y2016.yxagent.YXAgent")],
+            [("ParsCat", "agents.anac.y2016.parscat.ParsCat")],
+            [("Farma", "agents.anac.y2016.farma.Farma")],
+            [("MyAgent", "agents.anac.y2016.myagent.MyAgent")],
+            [("Atlas32016", "agents.anac.y2016.atlas3.Atlas32016")],
+            [("Ngent", "agents.anac.y2016.ngent.Ngent")],
+            [("GrandmaAgent", "agents.anac.y2016.grandma.GrandmaAgent")],
+            [("AgentHP2", "agents.anac.y2016.agenthp2.AgentHP2_main")],
+            [("Terra", "agents.anac.y2016.terra.Terra")],
+            [("agentlight", "agents.anac.y2016.agentlight.AgentLight")],
+            [("agentsmith", "agents.anac.y2010.AgentSmith.AgentSmith")],
+            [("clockworkagent", "agents.anac.y2016.clockworkagent.ClockworkAgent")],
+            [("maxoops", "agents.anac.y2016.maxoops.MaxOops")],
+            [("pars2", "agents.anac.y2016.pars2.ParsAgent2")],
+            [("parscat", "agents.anac.y2016.parscat.ParsCat")],
+            [("syagent", "agents.anac.y2016.syagent.SYAgent")],
+        ],
         "linear": True,
         "learning": False,
         "multilateral": True,
@@ -278,6 +396,26 @@ GENIUS_INFO = {
             [("AgentF", "agents.anac.y2017.agentf.AgentF")],
             [("SimpleAgent2017", "agents.anac.y2017.simpleagent.SimpleAgent")],
             [("Mamenchis", "agents.anac.y2017.mamenchis.Mamenchis")],
+        ],
+        "genius10": [
+            [("PonPokoAgent", "agents.anac.y2017.ponpokoagent.PonPokoAgent")],
+            [("CaduceusDC16", "agents.anac.y2017.caduceusdc16.CaduceusDC16")],
+            [("ParsCat2", "agents.anac.y2016.parscat.ParsCat")],
+            [("Rubick", "agents.anac.y2017.rubick.Rubick")],
+            [("ParsAgent3", "agents.anac.y2017.parsagent3.ShahAgent")],
+            [("AgentKN", "agents.anac.y2017.agentkn.AgentKN")],
+            [("AgentF", "agents.anac.y2017.agentf.AgentF")],
+            [("SimpleAgent2017", "agents.anac.y2017.simpleagent.SimpleAgent")],
+            [("Mamenchis", "agents.anac.y2017.mamenchis.Mamenchis")],
+            [("farma2017", "agents.anac.y2017.farma.Farma17")],
+            [("geneking", "agents.anac.y2017.geneking.GeneKing")],
+            [("gin", "agents.anac.y2017.gin.Gin")],
+            [("group3", "agents.anac.y2017.group3.Group3")],
+            [("Imitator", "agents.anac.y2017.limitator.Imitator")],
+            [("madagent", "agents.anac.y2017.madagent.MadAgent")],
+            [("mosateam", "agents.anac.y2017.mosateam.Mosa")],
+            [("tangxun", "agents.anac.y2017.tangxun.taxibox")],
+            [("tucagent", "agents.anac.y2017.tucagent.TucAgent")],
         ],
         "winners_nash": [
             [("ParsCat2", "agents.anac.y2016.parscat.ParsCat")],
@@ -325,6 +463,33 @@ GENIUS_INFO = {
             [("Agent33", "agents.anac.y2018.agent33.Agent33")],
             [("AgentNP1", "agents.anac.y2018.agentnp1.AgentNP1")],
         ],
+        "genius10": [
+            [("MengWan", "agents.anac.y2018.meng_wan.Agent36")],
+            [("IQSun2018", "agents.anac.y2018.iqson.IQSun2018")],
+            [("PonpokoRampage", "agents.anac.y2018.ponpokorampage.PonPokoRampage")],
+            [("AgentHerb", "agents.anac.y2018.agentherb.AgentHerb")],
+            [("FullAgent", "agents.anac.y2018.fullagent.FullAgent")],
+            [("BetaOne", "agents.anac.y2018.beta_one.Group2")],
+            [
+                (
+                    "AgreeableAgent2018",
+                    "agents.anac.y2018.agreeableagent2018.AgreeableAgent2018",
+                )
+            ],
+            [("Shiboy", "agents.anac.y2018.shiboy.Shiboy")],
+            [("ConDAgent", "agents.anac.y2018.condagent.ConDAgent")],
+            [("Yeela", "agents.anac.y2018.yeela.Yeela")],
+            [("Sontag", "agents.anac.y2018.sontag.Sontag")],
+            [("Agent33", "agents.anac.y2018.agent33.Agent33")],
+            [("AgentNP1", "agents.anac.y2018.agentnp1.AgentNP1")],
+            [("ateamagent", "agents.anac.y2018.ateamagent.ATeamAgent")],
+            [("exp_rubick", "agents.anac.y2018.exp_rubick.Exp_Rubick")],
+            [("groupy", "agents.anac.y2018.groupy.GroupY")],
+            [("lancelot", "agents.anac.y2018.lancelot.Lancelot")],
+            [("libra", "agents.anac.y2018.libra.Libra")],
+            [("seto", "agents.anac.y2018.seto.Seto")],
+            [("smac_agent", "agents.anac.y2018.smac_agent.SMAC_Agent")],
+        ],
         "winners_welfare": [
             [("AgentHerb", "agents.anac.y2018.agentherb.AgentHerb")],
             [("Agent33", "agents.anac.y2018.agent33.Agent33")],
@@ -358,6 +523,26 @@ GENIUS_INFO = {
             [("WinkyAgent", "agents.anac.y2019.winkyagent.winkyAgent")],
             [("FSEGA2019", "agents.anac.y2019.fsega2019.agent.FSEGA2019")],
             [("AgentGP", "agents.anac.y2019.agentgp.AgentGP")],
+        ],
+        "genius10": [
+            [("AgentGG", "agents.anac.y2019.agentgg.AgentGG")],
+            [("KakeSoba", "agents.anac.y2019.kakesoba.KakeSoba")],
+            [("SAGA", "agents.anac.y2019.saga.SAGA")],
+            [("WinkyAgent", "agents.anac.y2019.winkyagent.winkyAgent")],
+            [("FSEGA2019", "agents.anac.y2019.fsega2019.agent.FSEGA2019")],
+            [("AgentGP", "agents.anac.y2019.agentgp.AgentGP")],
+            [("agentlarry", "agents.anac.y2019.agentlarry.AgentLarry")],
+            [("dandikagent", "agents.anac.y2019.dandikagent.dandikAgent")],
+            [("eagent", "agents.anac.y2019.eagent.EAgent")],
+            [("garavelagent", "agents.anac.y2019.garavelagent.GaravelAgent")],
+            [("gravity", "agents.anac.y2019.gravity.Gravity")],
+            [("harddealer", "agents.anac.y2019.harddealer.HardDealer")],
+            [("kagent", "agents.anac.y2019.kagent.KAgent")],
+            [("minf", "agents.anac.y2019.minf.MINF")],
+            [("podagent", "agents.anac.y2019.podagent.Group1_BOA")],
+            [("sacra", "agents.anac.y2019.sacra.SACRA")],
+            [("solveragent", "agents.anac.y2019.solveragent.SolverAgent")],
+            [("thenewdeal", "agents.anac.y2019.thenewdeal.TheNewDeal")],
         ],
         "linear": True,
         "learning": False,
@@ -736,6 +921,13 @@ PARTY_BASED_NEGOTIATORS = [
     "agents.anac.y2017.ponpokoagent.PonPokoAgent",
     "agents.anac.y2017.tangxun.taxibox",
     "agents.anac.y2017.tucagent.TucAgent",
+    "agents.anac.y2017.gin.Gin",
+    "agents.anac.y2017.group3.Group3",
+    "agents.anac.y2017.limitator.Imitator",
+    "agents.anac.y2017.madagent.MadAgent",
+    "agents.anac.y2017.mosateam.Mosa",
+    "agents.anac.y2017.tangxun.taxibox",
+    "agents.anac.y2017.tucagent.TucAgent",
     "agents.anac.y2018.agent33.Agent33",
     "agents.anac.y2018.agentherb.AgentHerb",
     "agents.anac.y2018.agentnp1.AgentNP1",
@@ -835,6 +1027,20 @@ TEST_FAILING_NEGOTIATORS = [
 
 """Agetns taht fail simple tests making them less robust over the bridge"""
 
+GENIUS10_NEGOTIATORS = list(
+    set(
+        list(
+            itertools.chain(
+                *(
+                    list(_[1] for _ in itertools.chain(*v["genius10"]))
+                    for _, v in GENIUS_INFO.items()
+                )
+            )
+        )
+    )
+)
+"""All agents supported by the Genius10 library"""
+
 TESTED_NEGOTIATORS = list(
     set(
         ["agents.anac.y2015.AgentX.AgentX"]
@@ -842,7 +1048,7 @@ TESTED_NEGOTIATORS = list(
             itertools.chain(
                 *(
                     list(_[1] for _ in itertools.chain(*v["winners"]))
-                    for year, v in GENIUS_INFO.items()
+                    for _, v in GENIUS_INFO.items()
                     if v["multilateral"] and not v["learning"]
                 )
             )
@@ -942,6 +1148,7 @@ def get_anac_agents(
     elicitation: bool | None = None,
     winners_only: bool = False,
     finalists_only: bool = False,
+    genius10: bool = False,
 ) -> list[tuple[str, str]]:
     """Get Genius agents matching some given criteria.
 
@@ -963,9 +1170,20 @@ def get_anac_agents(
         elif finalists_only:
             lst = d.get("finalists", [])
             lst = list(itertools.chain(*lst))
+        elif genius10:
+            lst = d.get("finalists", [])
+            lst = list(itertools.chain(*lst))
         else:
             lst = [_ for _ in ALL_NEGOTIATORS if str(year) in _]
             lst = [(_.split(".")[-1], _) for _ in lst]
+        if genius10:
+            if winners_only:
+                _ = d.get("winners", [[]])
+                lst = list(set(itertools.chain(*_)).intersection(set(lst)))
+            elif finalists_only:
+                _ = d.get("finalists", [[]])
+                lst = list(set(itertools.chain(*_)).intersection(set(lst)))
+
         # lst = tuple(lst)
         # if winners_only or finalists_only:
         #     return set(itertools.chain(*lst))
@@ -1186,3 +1404,6 @@ def get_anac_agents(
 # </partyRepItem>
 # <partyRepItem classPath="negotiator.parties.FeedbackHillClimber">
 # </partyRepItem>
+#
+#
+#
