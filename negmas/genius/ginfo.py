@@ -1171,7 +1171,7 @@ def get_anac_agents(
             lst = d.get("finalists", [])
             lst = list(itertools.chain(*lst))
         elif genius10:
-            lst = d.get("finalists", [])
+            lst = d.get("geinus10", [])
             lst = list(itertools.chain(*lst))
         else:
             lst = [_ for _ in ALL_NEGOTIATORS if str(year) in _]
