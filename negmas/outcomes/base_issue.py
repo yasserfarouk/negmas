@@ -20,15 +20,17 @@ if TYPE_CHECKING:
 
 __all__ = ["make_issue", "Issue", "DiscreteIssue"]
 
+MAX_CHECKS_OF_COMPARABILITY = 10
 
-def make_issue(values, *args, **kwargs):
+
+def make_issue(values, *args, optional: bool = False, **kwargs):
     """
     A factory for creating issues based on `values` type as well as the base class of all issues
 
     Args:
             values: Possible values for the issue
             name: Name of the issue. If not given, a random name will be generated
-            id: The ID of the issue. Should be unique in the whole system.
+            optional: If given an `OptionalIssue` will be created
 
     Remarks:
 
@@ -61,7 +63,11 @@ def make_issue(values, *args, **kwargs):
     from negmas.outcomes.contiguous_issue import ContiguousIssue
     from negmas.outcomes.continuous_issue import ContinuousIssue
     from negmas.outcomes.infinite import ContinuousInfiniteIssue, CountableInfiniteIssue
+    from negmas.outcomes.optional_issue import OptionalIssue
     from negmas.outcomes.ordinal_issue import DiscreteOrdinalIssue
+
+    if optional:
+        return OptionalIssue(make_issue(values, *args, **kwargs))
 
     if isinstance(values, numbers.Integral):
         return ContiguousIssue(int(values), *args, **kwargs)
@@ -100,10 +106,10 @@ def make_issue(values, *args, **kwargs):
     ):
         return DiscreteCardinalIssue(values, *args, **kwargs)
     if isinstance(values, Iterable):
-        values = list(values)
+        v = list(values)[:MAX_CHECKS_OF_COMPARABILITY]
         try:
-            for a, b in zip(values[1:], values[:-1]):
-                a - b
+            for a, b in zip(v[1:], v[:-1]):
+                _ = a - b
         except:
             return CategoricalIssue(values, *args, **kwargs)
         return DiscreteOrdinalIssue(values, *args, **kwargs)
@@ -130,6 +136,7 @@ class Issue(HasMinMax, Iterable, ABC):
         return make_issue(name=self.name, values=self._values)
 
     def __deepcopy__(self, memodict={}):
+        _ = memodict
         return make_issue(name=self.name, values=self._values)
 
     @property
@@ -454,6 +461,7 @@ class DiscreteIssue(Issue):
     def ordered_value_generator(
         self, n: int | float | None = 10, grid=True, compact=True, endpoints=True
     ) -> Generator[Any, None, None]:
+        _ = compact, grid, endpoints
         m = self.cardinality
         n = m if n is None or not math.isfinite(n) else int(n)
 
