@@ -347,7 +347,7 @@ def plot_offer_utilities(
 
 def plot_2dutils(
     trace: list[TraceElement],
-    plotting_ufuns: list[UtilityFunction],
+    plotting_ufuns: list[UtilityFunction] | tuple[UtilityFunction],
     plotting_negotiators: list[str],
     offering_negotiators: list[str] | None = None,
     agreement: Outcome | None = None,

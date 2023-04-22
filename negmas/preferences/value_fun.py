@@ -43,6 +43,7 @@ __all__ = [
     "AffineMultiFun",
     "LinearMultiFun",
     "LambdaMultiFun",
+    "make_fun_from_xml",
 ]
 
 
@@ -76,7 +77,7 @@ class BaseFun(ABC):
 
 @define
 class TableFun(BaseFun):
-    d: dict
+    mapping: dict
 
     @lru_cache
     def minmax(self, input: Issue) -> tuple[float, float]:
@@ -84,14 +85,14 @@ class TableFun(BaseFun):
 
     def shift_by(self, offset: float) -> TableFun:
         d = dict()
-        for k in self.d.keys():
-            d[k] = self.d[k] + offset
+        for k in self.mapping.keys():
+            d[k] = self.mapping[k] + offset
         return TableFun(d)
 
     def scale_by(self, scale: float) -> TableFun:
         d = dict()
-        for k in self.d.keys():
-            d[k] = self.d[k] * scale
+        for k in self.mapping.keys():
+            d[k] = self.mapping[k] * scale
         return TableFun(d)
 
     def xml(self, indx: int, issue: Issue, bias=0.0) -> str:
@@ -115,7 +116,7 @@ class TableFun(BaseFun):
         return output
 
     def __call__(self, x):
-        return self.d[x]
+        return self.mapping[x]
 
 
 @define
@@ -159,6 +160,7 @@ class ConstFun(BaseFun):
 
     @lru_cache
     def minmax(self, input: Issue) -> tuple[float, float]:
+        _ = input
         return (self.bias, self.bias)
 
     def shift_by(self, offset: float) -> ConstFun:
@@ -171,6 +173,7 @@ class ConstFun(BaseFun):
         return AffineFun(0.0, self.bias).xml(indx, issue, bias)
 
     def __call__(self, x: float):
+        _ = x
         return self.bias
 
 
@@ -327,7 +330,7 @@ class QuadraticFun(BaseFun):
 
 @define
 class PolynomialFun(BaseFun):
-    a: tuple[float]
+    coefficients: tuple[float]
     bias: float = 0
 
     @lru_cache
@@ -336,24 +339,27 @@ class PolynomialFun(BaseFun):
         return nonmonotonic_minmax(input, self)
 
     def shift_by(self, offset: float) -> PolynomialFun:
-        return PolynomialFun(bias=self.bias + offset, a=self.a)
+        return PolynomialFun(bias=self.bias + offset, coefficients=self.coefficients)
 
     def scale_by(self, scale: float) -> PolynomialFun:
-        return PolynomialFun(bias=self.bias * scale, a=tuple(_ * scale for _ in self.a))
+        return PolynomialFun(
+            bias=self.bias * scale,
+            coefficients=tuple(_ * scale for _ in self.coefficients),
+        )
 
     def xml(self, indx: int, issue: Issue, bias) -> str:
         issue_name = issue.name
         if issue.is_continuous():
             output = f'<issue index="{indx + 1}" etype="real" type="real" vtype="real" name="{issue_name}">\n'
             output += f'    <evaluator ftype="poynomial" parameter0="{bias+self.bias}"'
-            for i, x in enumerate(self.a):
+            for i, x in enumerate(self.coefficients):
                 output += f'parameter{i}="{x}"'
 
             output += "></evaluator>\n"
         elif isinstance(issue, ContiguousIssue):
             output = f'<issue index="{indx + 1}" etype="integer" type="integer" vtype="integer" name="{issue_name}">\n'
             output += f'    <evaluator ftype="poynomial" parameter0="{bias+self.bias}"'
-            for i, x in enumerate(self.a):
+            for i, x in enumerate(self.coefficients):
                 output += f'parameter{i}="{x}"'
 
             output += "></evaluator>\n"
@@ -366,7 +372,9 @@ class PolynomialFun(BaseFun):
         return output
 
     def __call__(self, x: float):
-        return reduce(add, [b * pow(x, p + 1) for p, b in enumerate(self.a)], self.bias)
+        return reduce(
+            add, [b * pow(x, p + 1) for p, b in enumerate(self.coefficients)], self.bias
+        )
 
 
 @define
@@ -600,7 +608,7 @@ class LogFun(BaseFun):
 
 @define
 class TableMultiFun(MultiIssueFun):
-    d: dict[tuple, Any]
+    mapping: dict[tuple, Any]
 
     @lru_cache
     def minmax(self, input: Iterable[Issue]) -> tuple[float, float]:
@@ -608,26 +616,26 @@ class TableMultiFun(MultiIssueFun):
 
     def shift_by(self, offset: float) -> TableMultiFun:
         d = dict()
-        for k in self.d.keys():
-            d[k] = self.d[k] + offset
+        for k in self.mapping.keys():
+            d[k] = self.mapping[k] + offset
         return TableMultiFun(d)
 
     def scale_by(self, scale: float) -> TableMultiFun:
         d = dict()
-        for k in self.d.keys():
-            d[k] = self.d[k] * scale
+        for k in self.mapping.keys():
+            d[k] = self.mapping[k] * scale
         return TableMultiFun(d)
 
     def dim(self) -> int:
-        if not len(self.d):
+        if not len(self.mapping):
             raise ValueError("Unkonwn dictionary in TableMultiFun")
-        return len(list(self.d.keys())[0])
+        return len(list(self.mapping.keys())[0])
 
     def xml(self, indx: int, issues: list[Issue], bias=0) -> str:
         raise NotImplementedError()
 
     def __call__(self, x):
-        return self.d[x]
+        return self.mapping[x]
 
 
 @define
@@ -720,7 +728,6 @@ class LambdaMultiFun(MultiIssueFun):
 
 
 def make_fun_from_xml(item) -> tuple[BaseFun, str]:
-
     if item.attrib["ftype"] == "linear":
         offset = item.attrib.get(
             "offset",
