@@ -193,7 +193,14 @@ class Scenario:
             return m
         negs: list[Negotiator]
         if not isinstance(negotiators, Iterable):
-            negs = [negotiators() for _ in range(self.n_negotiators)]
+            negs = [
+                negotiators(
+                    name=ufun.name.split("/")[-1]
+                    .replace(".xml", "")
+                    .replace(".yml", "")
+                )
+                for ufun in self.ufuns
+            ]
         else:
             negs = list(negotiators)
         if len(self.ufuns) != len(negs) or len(negs) < 1:
@@ -446,7 +453,7 @@ class Scenario:
         """
         Saves the scenario as yaml
         Args:
-            folder: The destiation path
+            folder: The destination path
         """
         self.dumpas(folder, "yml")
 
@@ -454,20 +461,20 @@ class Scenario:
         """
         Saves the scenario as json
         Args:
-            folder: The destiation path
+            folder: The destination path
         """
         self.dumpas(folder, "json")
 
-    def dumpas(self, folder: Path | str, type="yml") -> None:
+    def dumpas(self, folder: Path | str, type="yml", compact: bool = False) -> None:
         """
-        Dumps the scenrio in the given file format.
+        Dumps the scenario in the given file format.
         """
         folder = Path(folder)
         folder.mkdir(parents=True, exist_ok=True)
         serialized = self.serialize()
         dump(serialized["domain"], folder / f"{serialized['domain']['name']}.{type}")
         for u in serialized["ufuns"]:
-            dump(u, folder / f"{u['name']}.{type}")
+            dump(u, folder / f"{u['name']}.{type}", sort_keys=True, compact=compact)
 
     @staticmethod
     def from_genius_folder(
