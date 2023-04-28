@@ -143,7 +143,7 @@ class ComplexNonlinearUtilityFunction(_DependenceMixin, BaseUtilityFunction):
     def __init__(
         self,
         ufuns: Iterable[BaseUtilityFunction],
-        combination_function=Callable[[Iterable[Value]], Value],
+        combination_function: Callable[[Iterable[Value]], Value],
         **kwargs,
     ):
         super().__init__(**kwargs)
@@ -216,4 +216,4 @@ class ComplexNonlinearUtilityFunction(_DependenceMixin, BaseUtilityFunction):
         """
         if offer is None:
             return self.reserved_value
-        return self.combination_function([f(offer) for f in self.ufuns])  # type: ignore
+        return self.combination_function([f(offer) for f in self.ufuns])
