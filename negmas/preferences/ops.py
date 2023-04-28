@@ -153,11 +153,17 @@ class ScenarioStats:
     max_welfare_outcomes: list[Outcome]
     max_relative_welfare_utils: list[tuple[float, ...]]
     max_relative_welfare_outcomes: list[Outcome]
+    # TODO: Add more stats here. See the negobench overleaf for examples.
+    # Add advantage_range_ratio (ratio of rational ufun ranges), utility_range_ratio.
+    # Add distances between major points like kalai, nash and max-welfare
+    # Add max and min advantage-range and utility-range
+    # Add Spread = area of the convexhull of all points divided by are of the rectangle constructed by ranges
+    # Add Optimality = fraction of outcomes on the Pareto-frontier
 
     @classmethod
     def from_ufuns(
         cls,
-        ufuns: Sequence[UtilityFunction],
+        ufuns: list[UtilityFunction] | tuple[UtilityFunction, ...],
         outcomes: Sequence[Outcome] | None = None,
         eps=1e-12,
     ) -> ScenarioStats:
@@ -1145,7 +1151,7 @@ def calc_outcome_optimality(
 
 
 def calc_scenario_stats(
-    ufuns: Sequence[UtilityFunction],
+    ufuns: tuple[UtilityFunction, ...] | list[UtilityFunction],
     outcomes: Sequence[Outcome] | None = None,
     eps=1e-12,
 ) -> ScenarioStats:
@@ -1634,8 +1640,8 @@ def conflict_level(
             if o12 == o11 and o21 == o22:
                 continue
             signs.append(int((o12 > o11 and o21 > o22) or (o12 < o11 and o21 < o22)))
-    signs = np.array(signs)
-    # todo: confirm this is correct
+    signs = np.asarray(signs)
+    # TODO: confirm this is correct
     if len(signs) == 0:
         return 1.0
     return signs.mean()
@@ -1697,7 +1703,7 @@ def winwin_level(
             else:
                 win = (o11 - o12) + (o22 - o21)
         signed_diffs.append(win)
-    signed_diffs = np.array(signed_diffs)
+    signed_diffs = np.asarray(signed_diffs)
     if len(signed_diffs) == 0:
         raise ValueError("Could not calculate any signs")
     return signed_diffs.mean()
