@@ -5,14 +5,13 @@ from __future__ import annotations
 
 import math
 import numbers
-from typing import TYPE_CHECKING, Any, Iterable, Sequence, overload
+from typing import TYPE_CHECKING, Any, Sequence, overload
 
 import numpy as np
 
 from negmas.generics import ienumerate, iget, ikeys
 from negmas.helpers.numeric import isint, isreal
 from negmas.outcomes.cardinal_issue import CardinalIssue
-from negmas.outcomes.range_issue import RangeIssue
 
 from .base_issue import Issue
 
@@ -107,7 +106,7 @@ def outcome2dict(
 
 
 def dict2outcome(
-    d: dict[str, Any] | tuple | None, issues: Iterable[str | Issue]
+    d: dict[str, Any] | tuple | None, issues: tuple[str | Issue, ...]
 ) -> Outcome | None:
     """
     Converts the outcome to a tuple no matter what was its type
@@ -235,7 +234,7 @@ def min_dist(
     return min(distance_fun(test_outcome, _, outcome_space, **kwargs) for _ in outcomes)
 
 
-def outcome_is_valid(outcome: Outcome, issues: Iterable[Issue]) -> bool:
+def outcome_is_valid(outcome: Outcome, issues: tuple[Issue, ...]) -> bool:
     """
     Test validity of an outcome given a set of issues.
 
@@ -296,7 +295,7 @@ def outcome_is_valid(outcome: Outcome, issues: Iterable[Issue]) -> bool:
     #     return False
 
 
-def outcome_types_are_ok(outcome: Outcome, issues: Iterable[Issue]) -> bool:
+def outcome_types_are_ok(outcome: Outcome, issues: tuple[Issue, ...]) -> bool:
     """
     Checks that the types of all issue values in the outcome are correct
     """
@@ -310,7 +309,7 @@ def outcome_types_are_ok(outcome: Outcome, issues: Iterable[Issue]) -> bool:
     return True
 
 
-def cast_value_types(outcome: Outcome, issues: Iterable[Issue]) -> Outcome:
+def cast_value_types(outcome: Outcome, issues: tuple[Issue, ...]) -> Outcome:
     """
     Casts the types of values in the outcomes to the value-type of each issue (if given)
     """
@@ -324,7 +323,7 @@ def cast_value_types(outcome: Outcome, issues: Iterable[Issue]) -> Outcome:
     return tuple(new_outcome)
 
 
-def outcome_is_complete(outcome: Outcome, issues: Sequence[Issue]) -> bool:
+def outcome_is_complete(outcome: Outcome, issues: tuple[Issue, ...]) -> bool:
     """
     Tests that the outcome is valid and complete.
 
