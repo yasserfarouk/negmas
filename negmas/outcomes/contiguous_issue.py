@@ -3,7 +3,7 @@ from __future__ import annotations
 import math
 import numbers
 import random
-from typing import Generator
+from typing import Generator, Iterable
 
 import numpy as np
 
@@ -24,10 +24,27 @@ class ContiguousIssue(RangeIssue, DiscreteIssue):
         values: int | tuple[int, int],
         name: str | None = None,
     ) -> None:
-        if isinstance(values, numbers.Integral):
-            values = (0, int(values) - 1)
-        super().__init__(values, name)
-        self._n_values = values[1] - values[0] + 1  # type: ignore
+        vt: tuple[int, int]
+        vt = values  # type: ignore
+        if isinstance(vt, numbers.Integral):
+            vt = (0, int(vt) - 1)
+        if isinstance(vt, Iterable):
+            vt = tuple(vt)
+        if len(vt) != 2:
+            raise ValueError(
+                f"{self.__class__.__name__} should receive one or two values for "
+                f"the minimum and maximum limits but received {values=}"
+            )
+        if not isinstance(vt[0], numbers.Integral) or not isinstance(
+            vt[1], numbers.Integral
+        ):
+            raise ValueError(
+                f"{self.__class__.__name__} should receive one or two integers for"
+                f" the minimum and maximum limits but received {values=}"
+            )
+        vt = tuple(vt)
+        super().__init__(vt, name)
+        self._n_values = vt[1] - vt[0] + 1  # type: ignore
 
     def _to_xml_str(self, indx):
         # return (
