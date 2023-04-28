@@ -142,6 +142,15 @@ class GeniusNegotiator(SAONegotiator):
         self.connected = False
 
     @property
+    def strict(self):
+        return self._strict
+
+    @strict.setter
+    def strict(self, value: bool):
+        self._strict = value
+        return self._strict
+
+    @property
     def is_connected(self):
         return self.connected and self.java is not None
 
@@ -392,8 +401,21 @@ class GeniusNegotiator(SAONegotiator):
                         raise ValueError(
                             f"{self._me()} ended the negotiation but failed to destroy the agent. A possible memory leak"
                         )
+                    else:
+                        warnings.warn(
+                            f"{self._me()} ended the negotiation but failed to destroy the agent. A possible memory leak",
+                            warnings.NegmasMemoryWarning,
+                        )
                 elif self._strict:
-                    raise ValueError(f"{self._me()} failed to end the negotiation!!")
+                    if self._strict:
+                        raise ValueError(
+                            f"{self._me()} failed to end the negotiation!!"
+                        )
+                    else:
+                        warnings.warn(
+                            f"{self._me()} failed to end the negotiation!!",
+                            warnings.NegmasBridgeProcessWarning,
+                        )
             self.__destroyed = True
         if self._temp_preferences_file:
             try:
@@ -573,6 +595,11 @@ class GeniusNegotiator(SAONegotiator):
         if len(action) < 1:
             if self._strict:
                 raise ValueError(f"{self._me()} received no actions while parsing")
+            else:
+                warnings.warn(
+                    f"{self._me()} received no actions while parsing",
+                    warnings.NegmasBridgeProcessWarning,
+                )
             return ResponseType.REJECT_OFFER, None
         _, typ_, bid_str = action.split(FIELD_SEP)
         nmi = self.nmi
@@ -628,6 +655,11 @@ class GeniusNegotiator(SAONegotiator):
         elif typ_ in ("NullOffer", "Failure", "NoAction"):
             if self._strict:
                 raise ValueError(f"{self._me()} received {typ_} in action {action}")
+            else:
+                warnings.warn(
+                    f"{self._me()} received {typ_} in action {action}",
+                    warnings.NegmasBridgeProcessWarning,
+                )
             response = ResponseType.REJECT_OFFER
             outcome = None
         else:
