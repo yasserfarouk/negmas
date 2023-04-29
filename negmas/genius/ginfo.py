@@ -313,7 +313,7 @@ GENIUS_INFO = {
             [("JonnyBlack", "agents.anac.y2015.JonnyBlack.JonnyBlack")],
             [("MeanBot", "agents.anac.y2015.meanBot.MeanBot")],
             [("Mercury", "agents.anac.y2015.Mercury.Mercury")],
-            [("Pnegotiator", "agents.anac.y2015.pnegotiator.PNegotiator")],
+            [("PNegotiator", "agents.anac.y2015.pnegotiator.PNegotiator")],
             [("SENGOKU", "agents.anac.y2015.SENGOKU.SENGOKU")],
             [
                 (
