@@ -101,7 +101,7 @@ __all__ = [
     "Group8",
     "Group9",
     "GroupY",
-    "Groupn",
+    "AgentNeo",
     "HardDealer",
     "HardHeaded",
     "IAMcrazyHaggler",
@@ -538,7 +538,7 @@ class GroupY(GeniusNegotiator):
         super().__init__(**kwargs)
 
 
-class Groupn(GeniusNegotiator):
+class AgentNeo(GeniusNegotiator):
     def __init__(self, **kwargs):
         kwargs["java_class_name"] = "agents.anac.y2015.AgentNeo.Groupn"
         super().__init__(**kwargs)
