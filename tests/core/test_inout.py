@@ -10,6 +10,8 @@ import pytest
 from negmas import load_genius_domain_from_folder
 from negmas.inout import Scenario
 from negmas.outcomes import enumerate_issues
+from negmas.outcomes.outcome_space import DiscreteCartesianOutcomeSpace
+from negmas.preferences.crisp.linear import LinearAdditiveUtilityFunction
 from negmas.sao import AspirationNegotiator
 
 MAX_CARDINALITY = 10_000
@@ -21,6 +23,10 @@ try:
     resource.setrlimit(resource.RLIMIT_NOFILE, (50000, -1))
 except:
     pass
+
+GENIUSWEB_FOLDERS = Path(
+    pkg_resources.resource_filename("negmas", resource_name="tests/data/geniusweb")
+)
 
 
 @pytest.fixture
@@ -191,6 +197,51 @@ def test_enumerate_discrete_rational(r0, r1, n_above):
         )
         == n_above
     )
+
+
+def test_load_geniusweb_example_reserved_outcome():
+    domain = GENIUSWEB_FOLDERS / "Fitness"
+    scenario = Scenario.from_geniusweb_folder(domain, use_reserved_outcome=True)
+    assert scenario is not None
+    assert isinstance(scenario.agenda, DiscreteCartesianOutcomeSpace)
+    assert len(scenario.agenda.issues) == 5
+    for i, (name, vals) in enumerate(
+        (("type", 5), ("duration", 4), ("distance", 4), ("intensity", 4), ("price", 4))
+    ):
+        assert scenario.agenda.issues[i].name == name
+        assert scenario.agenda.issues[i].cardinality == vals
+    assert scenario.agenda.name == "fitness"
+    assert len(scenario.ufuns) == 2
+    assert all(isinstance(_, LinearAdditiveUtilityFunction) for _ in scenario.ufuns)
+    assert all(
+        (_.reserved_value is None or _.reserved_value == float("-inf"))
+        and _.reserved_outcome is not None
+        for _ in scenario.ufuns
+    )
+    assert scenario.ufuns[0].name == "fitness1"
+    assert scenario.ufuns[1].name == "fitness2"
+
+
+def test_load_geniusweb_example_reserved_value():
+    domain = GENIUSWEB_FOLDERS / "Fitness"
+    scenario = Scenario.from_geniusweb_folder(domain, use_reserved_outcome=False)
+    assert scenario is not None
+    assert isinstance(scenario.agenda, DiscreteCartesianOutcomeSpace)
+    assert len(scenario.agenda.issues) == 5
+    for i, (name, vals) in enumerate(
+        (("type", 5), ("duration", 4), ("distance", 4), ("intensity", 4), ("price", 4))
+    ):
+        assert scenario.agenda.issues[i].name == name
+        assert scenario.agenda.issues[i].cardinality == vals
+    assert scenario.agenda.name == "fitness"
+    assert len(scenario.ufuns) == 2
+    assert all(isinstance(_, LinearAdditiveUtilityFunction) for _ in scenario.ufuns)
+    assert all(
+        _.reserved_value is not None and _.reserved_outcome is None
+        for _ in scenario.ufuns
+    )
+    assert scenario.ufuns[0].name == "fitness1"
+    assert scenario.ufuns[1].name == "fitness2"
 
 
 # @pytest.mark.parametrize("folder_name", get_all_scenarios())

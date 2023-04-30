@@ -11,7 +11,7 @@ from typing import Any, Callable, Iterable, Sequence
 
 from attrs import define
 
-from negmas.helpers.inout import dump
+from negmas.helpers.inout import dump, load
 from negmas.helpers.types import get_full_type_name
 from negmas.outcomes.outcome_space import make_os
 from negmas.preferences.crisp.linear import LinearAdditiveUtilityFunction
@@ -20,7 +20,12 @@ from negmas.serialization import PYTHON_CLASS_IDENTIFIER, serialize
 
 from .mechanisms import Mechanism
 from .negotiators import Negotiator
-from .outcomes import CartesianOutcomeSpace, Issue, issues_from_genius
+from .outcomes import (
+    CartesianOutcomeSpace,
+    Issue,
+    issues_from_genius,
+    issues_from_geniusweb,
+)
 from .preferences import (
     DiscountedUtilityFunction,
     UtilityFunction,
@@ -37,11 +42,15 @@ __all__ = [
     "Scenario",
     "load_genius_domain",
     "load_genius_domain_from_folder",
-    "find_domain_and_utility_files",
+    "find_genius_domain_and_utility_files",
+    "load_geniusweb_domain",
+    "load_geniusweb_domain_from_folder",
+    "find_geniusweb_domain_and_utility_files",
     "get_domain_issues",
 ]
 
 STATS_MAX_CARDINALITY = 10_000_000_000
+GENIUSWEB_UFUN_TYPES = ("LinearAdditiveUtilitySpace",)
 
 
 @define
@@ -195,7 +204,7 @@ class Scenario:
         if not isinstance(negotiators, Iterable):
             negs = [
                 negotiators(
-                    name=ufun.name.split("/")[-1]
+                    name=ufun.name.split("/")[-1]  # type: ignore
                     .replace(".xml", "")
                     .replace(".yml", "")
                 )
@@ -508,6 +517,42 @@ class Scenario:
             normalize_max_only=False,
         )
 
+    @staticmethod
+    def from_geniusweb_folder(
+        path: PathLike | str,
+        ignore_discount=False,
+        ignore_reserved=False,
+        use_reserved_outcome=False,
+        safe_parsing=True,
+    ) -> Scenario | None:
+        return load_geniusweb_domain_from_folder(
+            folder_name=str(path),
+            ignore_discount=ignore_discount,
+            use_reserved_outcome=use_reserved_outcome,
+            ignore_reserved=ignore_reserved,
+            safe_parsing=safe_parsing,
+        )
+
+    @staticmethod
+    def from_geniusweb_files(
+        domain: PathLike,
+        ufuns: Iterable[PathLike],
+        ignore_discount=False,
+        ignore_reserved=False,
+        use_reserved_outcome=False,
+        safe_parsing=True,
+    ) -> Scenario | None:
+        return load_geniusweb_domain(
+            domain,
+            [_ for _ in ufuns],
+            safe_parsing=safe_parsing,
+            ignore_discount=ignore_discount,
+            ignore_reserved=ignore_reserved,
+            use_reserved_outcome=use_reserved_outcome,
+            normalize_utilities=False,
+            normalize_max_only=False,
+        )
+
 
 def get_domain_issues(
     domain_file_name: PathLike | str,
@@ -717,7 +762,67 @@ def load_genius_domain_from_folder(
     )
 
 
-def find_domain_and_utility_files(
+def load_geniusweb_domain_from_folder(
+    folder_name: str | PathLike,
+    ignore_reserved=False,
+    ignore_discount=False,
+    use_reserved_outcome=False,
+    safe_parsing=False,
+    **kwargs,
+) -> Scenario:
+    """
+    Loads a genius-web domain from a folder. See ``load_geniusweb_domain`` for more details.
+
+    Args:
+        folder_name: A folder containing one XML domain file and one or more ufun files in Genius format
+        ignore_reserved: Sets the reserved_value of all ufuns to -inf
+        ignore_discount: Ignores discounting
+        safe_parsing: Applies more stringent checks during parsing
+        kwargs: Extra arguments to pass verbatim to SAOMechanism constructor
+
+    Returns:
+        A domain ready for `make_session`
+
+    """
+    folder_name = str(folder_name)
+    domain_file_name, utility_file_names = find_geniusweb_domain_and_utility_files(
+        folder_name
+    )
+
+    if domain_file_name is None:
+        raise ValueError("Cannot find a domain file")
+    return load_geniusweb_domain(
+        domain_file_name=domain_file_name,
+        utility_file_names=utility_file_names,
+        safe_parsing=safe_parsing,
+        ignore_reserved=ignore_reserved,
+        ignore_discount=ignore_discount,
+        use_reserved_outcome=use_reserved_outcome,
+        **kwargs,
+    )
+
+
+def find_geniusweb_domain_and_utility_files(
+    folder_name,
+) -> tuple[PathLike | None, list[PathLike]]:
+    """Finds the domain and utility_function files in a GeniusWeb formatted json folder"""
+    files = sorted(listdir(folder_name))
+    domain_file_name = None
+    utility_file_names = []
+    folder_name = str(folder_name)
+    for f in files:
+        if not f.endswith(".json"):
+            continue
+        full_name = folder_name + "/" + f
+        d = load(full_name)
+        if any(_ in d.keys() for _ in GENIUSWEB_UFUN_TYPES):
+            utility_file_names.append(full_name)
+        elif "issuesValues" in d.keys():
+            domain_file_name = full_name
+    return domain_file_name, utility_file_names
+
+
+def find_genius_domain_and_utility_files(
     folder_name,
 ) -> tuple[PathLike | None, list[PathLike]]:
     """Finds the domain and utility_function files in a folder"""
@@ -736,3 +841,85 @@ def find_domain_and_utility_files(
         elif root.tag == "utility_space":
             utility_file_names.append(full_name)
     return domain_file_name, utility_file_names  # type: ignore
+
+
+def load_geniusweb_domain(
+    domain_file_name: PathLike,
+    utility_file_names: Iterable[PathLike] | None = None,
+    ignore_discount=False,
+    ignore_reserved=False,
+    use_reserved_outcome=False,
+    safe_parsing=True,
+    **kwargs,
+) -> Scenario:
+    """
+    Loads a geniusweb domain, creates appropriate negotiators if necessary
+
+    Args:
+        domain_file_name: XML file containing Genius-formatted domain spec
+        utility_file_names: XML files containing Genius-fromatted ufun spec
+        ignore_reserved: Sets the reserved_value of all ufuns to -inf
+        ignore_discount: Ignores discounting
+        safe_parsing: Applies more stringent checks during parsing
+        kwargs: Extra arguments to pass verbatim to SAOMechanism constructor
+
+    Returns:
+        A `Domain` ready to run
+
+    """
+    from .sao import SAOMechanism
+
+    issues = None
+    name = load(domain_file_name).get("name", domain_file_name)
+    if domain_file_name is not None:
+        issues, _ = issues_from_geniusweb(
+            domain_file_name,
+            safe_parsing=safe_parsing,
+        )
+
+    agent_info = []
+    if utility_file_names is None:
+        utility_file_names = []
+    for ufname in utility_file_names:
+        utility, discount_factor = UtilityFunction.from_geniusweb(
+            file_name=ufname,
+            issues=issues,
+            safe_parsing=safe_parsing,
+            ignore_discount=ignore_discount,
+            ignore_reserved=ignore_reserved,
+            use_reserved_outcome=use_reserved_outcome,
+            name=str(ufname),
+        )
+        agent_info.append(
+            {
+                "ufun": utility,
+                "ufun_name": ufname,
+                "reserved_value_func": utility.reserved_value
+                if utility is not None
+                else float("-inf"),
+                "discount_factor": discount_factor,
+            }
+        )
+    if domain_file_name is not None:
+        kwargs["dynamic_entry"] = False
+        kwargs["max_n_agents"] = None
+        if not ignore_discount:
+            for info in agent_info:
+                info["ufun"] = (
+                    info["ufun"]
+                    if info["discount_factor"] is None or info["discount_factor"] == 1.0
+                    else make_discounted_ufun(
+                        ufun=info["ufun"],
+                        discount_per_round=info["discount_factor"],
+                        power_per_round=1.0,
+                    )
+                )
+    if issues is None:
+        raise ValueError(f"Could not load domain {domain_file_name}")
+
+    return Scenario(
+        agenda=make_os(issues, name=name),
+        ufuns=[_["ufun"] for _ in agent_info],  # type: ignore
+        mechanism_type=SAOMechanism,
+        mechanism_params=kwargs,
+    )
