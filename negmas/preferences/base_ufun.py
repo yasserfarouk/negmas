@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+import json
 import math
 import xml.etree.ElementTree as ET
 from abc import ABC, abstractmethod
@@ -12,10 +13,12 @@ from negmas.common import Value
 from negmas.helpers import PathLike
 from negmas.helpers.prob import Distribution, Real, ScipyDistribution
 from negmas.helpers.types import get_full_type_name
-from negmas.outcomes import Issue, Outcome
+from negmas.outcomes import Issue, Outcome, dict2outcome
 from negmas.outcomes.common import check_one_at_most, os_or_none
+from negmas.outcomes.issue_ops import issues_from_geniusweb_json
 from negmas.outcomes.outcome_space import make_os
 from negmas.outcomes.protocols import IndependentIssuesOS, OutcomeSpace
+from negmas.preferences.value_fun import TableFun
 from negmas.serialization import PYTHON_CLASS_IDENTIFIER, deserialize, serialize
 from negmas.warnings import warn_if_slow
 
@@ -863,6 +866,104 @@ class BaseUtilityFunction(Preferences, ABC):
         with open(file_name) as f:
             xml_str = f.read()
         return cls.from_xml_str(xml_str=xml_str, **kwargs)
+
+    @classmethod
+    def from_geniusweb_json_str(
+        cls,
+        json_str: str | dict,
+        safe_parsing=True,
+        issues: Iterable[Issue] | Sequence[Issue] | None = None,
+        ignore_discount=False,
+        ignore_reserved=False,
+        use_reserved_outcome=False,
+        name: str | None = None,
+    ) -> tuple[BaseUtilityFunction | None, float | None]:
+        """Imports a utility function from a GeniusWeb JSON string.
+
+        Args:
+
+            json_str (str): The string containing GENIUS style XML utility function definition
+            issues (Sequence[Issue] | None): Optional issue space to confirm that the utility function is valid
+            product of all issues in the input
+            safe_parsing (bool): Turn on extra checks
+
+        Returns:
+
+            A utility function object (depending on the input file)
+
+        """
+        from negmas.preferences.crisp.linear import LinearAdditiveUtilityFunction
+
+        _ = safe_parsing
+
+        if isinstance(json_str, str):
+            d = json.loads(json_str)
+        else:
+            d = json_str
+        reserved_outcome, discount_factor, u = None, 1.0, None
+        if "LinearAdditiveUtilitySpace" in d.keys():
+            udict = d["LinearAdditiveUtilitySpace"]
+            domain = (
+                make_os(issues_from_geniusweb_json(udict["domain"])[0])
+                if "domain" in udict.keys()
+                else None
+            )
+            if domain is None and issues is not None:
+                domain = make_os(tuple(issues))
+            discount_factor = (
+                udict.get("discount_factor", 1.0) if not ignore_discount else 1.0
+            )
+            reserved_value = udict.get("reserved_value", None)
+            uname = udict.get("name", name)
+            reserved_dict = udict.get("reservationBid", dict()).get("issuevalues", None)
+            if reserved_dict and not ignore_reserved:
+                reserved_outcome = dict2outcome(reserved_dict, issues=domain.issues)  # type: ignore
+            weights = udict.get("issueWeights", None)
+            utils = udict.get("issueUtilities", dict())
+            values = dict()
+            for iname, idict in utils.items():
+                vals = idict.get("discreteutils", dict()).get("valueUtilities", dict())
+                values[iname] = TableFun(vals)
+            u = LinearAdditiveUtilityFunction(
+                values=values,
+                weights=weights,
+                bias=0.0,
+                name=uname,
+                reserved_outcome=None,
+                reserved_value=None,
+                outcome_space=domain,
+            )
+            if not ignore_reserved:
+                if reserved_outcome and not use_reserved_outcome:
+                    reserved_value = u(reserved_outcome)
+                if use_reserved_outcome:
+                    u.reserved_outcome = reserved_outcome  # type: ignore
+                u.reserved_value = reserved_value  # type: ignore
+
+        return u, discount_factor
+
+    @classmethod
+    def from_geniusweb(
+        cls, file_name: PathLike | str, **kwargs
+    ) -> tuple[BaseUtilityFunction | None, float | None]:
+        """Imports a utility function from a GeniusWeb json file.
+
+        Args:
+
+            file_name (str): File name to import from
+
+        Returns:
+
+            A utility function object (depending on the input file)
+
+        Remarks:
+            See ``from_geniusweb_json_str`` for all the parameters
+
+        """
+        kwargs["name"] = str(file_name)
+        with open(file_name) as f:
+            xml_str = f.read()
+        return cls.from_geniusweb_json_str(json_str=xml_str, **kwargs)
 
     def to_xml_str(
         self, issues: Iterable[Issue] | None = None, discount_factor=None
