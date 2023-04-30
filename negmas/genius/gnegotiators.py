@@ -40,8 +40,8 @@ __all__ = [
     "Atlas",
     "Atlas3",
     "Atlas32016",
-    "BRAMAgent",
-    "BRAMAgent2",
+    "BramAgent",
+    "BramAgent2",
     "BayesianAgent",
     "BetaOne",
     "Betaone",
@@ -878,7 +878,7 @@ class Gahboninho(GeniusNegotiator):
         super().__init__(**kwargs)
 
 
-class BRAMAgent(GeniusNegotiator):
+class BramAgent(GeniusNegotiator):
     def __init__(self, **kwargs):
         kwargs["java_class_name"] = "agents.anac.y2011.BramAgent.BRAMAgent"
         super().__init__(**kwargs)
@@ -928,7 +928,7 @@ class TheNegotiatorReloaded(GeniusNegotiator):
         super().__init__(**kwargs)
 
 
-class BRAMAgent2(GeniusNegotiator):
+class BramAgent2(GeniusNegotiator):
     def __init__(self, **kwargs):
         kwargs["java_class_name"] = "agents.anac.y2011.BramAgent.BRAMAgent"
         super().__init__(**kwargs)
