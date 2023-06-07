@@ -1,0 +1,46 @@
+{
+	"name": "fitness",
+	"issuesValues": {
+		"type": {
+			"values": [
+				"swimming",
+				"yoga",
+				"aerobics",
+				"running",
+				"tennis"
+			]
+		},
+		"duration": {
+			"values": [
+				"30 min",
+				"1 hour",
+				"3 hours",
+				"5 hours"
+			]
+		},
+		"distance": {
+			"values": [
+				"0 km",
+				"1 km",
+				"5 km",
+				"40 km"
+			]
+		},
+		"intensity": {
+			"values": [
+				"light",
+				"moderate",
+				"training",
+				"bootcamp"
+			]
+		},
+		"price": {
+			"values": [
+				"$5",
+				"$15",
+				"$50",
+				"$200"
+			]
+		}
+	}
+}

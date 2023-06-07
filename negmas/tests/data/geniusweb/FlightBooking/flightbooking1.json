@@ -1,0 +1,74 @@
+{
+	"LinearAdditiveUtilitySpace": {
+		"issueUtilities": {
+			"price": {
+				"discreteutils": {
+					"valueUtilities": {
+						"150000yen": 0.25,
+						"200000yen": 0.5,
+						"250000yen": 0.75,
+						"300000yen": 1.0
+					}
+				}
+			},
+			"departure airport": {
+				"discreteutils": {
+					"valueUtilities": {
+						"CentAir": 0.667,
+						"Narita": 1.0,
+						"Kansai": 0.333
+					}
+				}
+			},
+			"departure date": {
+				"discreteutils": {
+					"valueUtilities": {
+						"2 sept.": 0.333,
+						"3 sept.": 1.0,
+						"4 sept.": 0.667
+					}
+				}
+			}
+		},
+		"issueWeights": {
+			"price": 0.35,
+			"departure airport": 0.35,
+			"departure date": 0.3
+		},
+		"domain": {
+			"name": "flightbooking",
+			"issuesValues": {
+				"price": {
+					"values": [
+						"150000yen",
+						"200000yen",
+						"250000yen",
+						"300000yen"
+					]
+				},
+				"departure airport": {
+					"values": [
+						"CentAir",
+						"Narita",
+						"Kansai"
+					]
+				},
+				"departure date": {
+					"values": [
+						"2 sept.",
+						"3 sept.",
+						"4 sept."
+					]
+				}
+			}
+		},
+		"name": "flightbooking1",
+		"reservationBid": {
+			"issuevalues": {
+				"price": "200000yen",
+				"departure airport": "CentAir",
+				"departure date": "3 sept."
+			}
+		}
+	}
+}
