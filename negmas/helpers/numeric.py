@@ -98,7 +98,7 @@ def truncated_mean(
         limits: The limits to use for trimming the scores. If not given, they will
                 be calculated based on `top_limit`, `bottom_limit` and `base.`
                 You can pass the special value "mean" as a string to disable limits and
-                calcualte the mean. You can pass the special value "median" to calculate
+                calculate the mean. You can pass the special value "median" to calculate
                 the median (which is the same as passing top_limit==bottom_limit=0.5
                 and base == "scores").
         top_limit: top limit on scores to use for truncated mean calculation. See `base`
@@ -108,7 +108,7 @@ def truncated_mean(
               - zscore: the number of sigmas to remove above/below. A good default choice is 3. Pass inf to disable a side.
               - tukey: the fraction of IQR to remove above/below. A good default choice is 1.5 or 3 (we use 2). Pass inf to disable a side.
               - iqr : same as tukey
-              - iqr_fraction: the fraction is interpreted as the fraction of scores above/below the 1st/3rd qauntile
+              - iqr_fraction: the fraction is interpreted as the fraction of scores above/below the 1st/3rd quantile
               - scores: the fraction is interpreted as fraction of highest and lowest scores
               - fraction: the fraction is interpreted as literal fraction of the values (i.e. given 10 values and 0.1, removes 1 value)
               - mean: simply returns the mean (limits ignored)

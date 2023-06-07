@@ -399,21 +399,21 @@ class GeniusNegotiator(SAONegotiator):
                         and self._strict
                     ):
                         raise ValueError(
-                            f"{self._me()} ended the negotiation but failed to destroy the agent. A possible memory leak"
+                            f"{self._me()} ended the negotiation but failed to destroy the agent with result {result}. A possible memory leak"
                         )
                     else:
                         warnings.warn(
-                            f"{self._me()} ended the negotiation but failed to destroy the agent. A possible memory leak",
+                            f"{self._me()} ended the negotiation but failed to destroy the agent with result {result}. A possible memory leak",
                             warnings.NegmasMemoryWarning,
                         )
                 elif self._strict:
                     if self._strict:
                         raise ValueError(
-                            f"{self._me()} failed to end the negotiation!!"
+                            f"{self._me()} failed to end the negotiation with result {result}!!"
                         )
                     else:
                         warnings.warn(
-                            f"{self._me()} failed to end the negotiation!!",
+                            f"{self._me()} failed to end the negotiation with result {result}!!",
                             warnings.NegmasBridgeProcessWarning,
                         )
             self.__destroyed = True

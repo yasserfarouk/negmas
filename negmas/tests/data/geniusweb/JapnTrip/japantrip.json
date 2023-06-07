@@ -1,0 +1,36 @@
+{
+	"name": "japantrip",
+	"issuesValues": {
+		"place": {
+			"values": [
+				"Tokyo",
+				"Osaka",
+				"Negoya",
+				"Hokkaido"
+			]
+		},
+		"budget": {
+			"values": [
+				"900",
+				"1800",
+				"300",
+                "100"
+			]
+		},
+		"days": {
+			"values": [
+				"3",
+				"4",
+				"5",
+				"6"
+			]
+		},
+		"purpose": {
+			"values": [
+				"Sightseeing",
+				"Activity",
+				"Shopping"
+			]
+		}
+	}
+}
