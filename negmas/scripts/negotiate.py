@@ -288,12 +288,13 @@ def run(
         return
     if verbosity > 0:
         print(f"Adapters: {', '.join(adapter_names)}")
+    if verbosity > 1:
         print(f"Negotiators: {', '.join(negotiator_names)}")
     runner = session.run_with_progress if progress else session.run
     _start = perf_counter()
     state = runner()
     duration = perf_counter() - _start
-    if verbosity > 0:
+    if verbosity > 1:
         print(f"Time: {humanize_time(duration, show_ms=True, show_us=True)}")
         print(f"Steps: {session.current_step}")
         print(state)
