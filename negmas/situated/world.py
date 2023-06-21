@@ -345,6 +345,7 @@ class World(EventSink, EventSource, ConfigReader, NamedObject, CheckpointMixin, 
         if force_signing:
             batch_signing = False
         super().__init__()
+        self.__next_operation_index = 0
         NamedObject.__init__(self, name, id=id)
         CheckpointMixin.checkpoint_init(
             self,
@@ -463,6 +464,14 @@ class World(EventSink, EventSource, ConfigReader, NamedObject, CheckpointMixin, 
         self.__n_contracts_concluded = 0
         self.__n_contracts_cancelled = 0
         self.__n_contracts_dropped = 0
+        self.__stats_stage = 0
+        self.__stage = 0
+        self.__n_new_contract_executions = 0
+        self.__n_new_breaches = 0
+        self.__n_new_contract_errors = 0
+        self.__n_new_contract_nullifications = 0
+        self.__activity_level = 0
+        self.__blevel = 0.0
         self._saved_contracts: dict[str, dict[str, Any]] = {}
         self._saved_negotiations: dict[str, dict[str, Any]] = {}
         self._saved_breaches: dict[str, dict[str, Any]] = {}
@@ -1580,15 +1589,131 @@ class World(EventSink, EventSource, ConfigReader, NamedObject, CheckpointMixin, 
                 stats_file_name=self._stats_file_name,
             )
 
-    def step(self) -> bool:
-        """A single simulation step"""
+    def step(self, n_neg_steps: int | None = None) -> bool:
+        """
+        A single simulation step.
+
+        Remarks:
+            - We have two modes of operation depending on `n_neg_steps`
+              1. `n_neg_steps is None` will run a single complete simulation step every call including all negotiations and everything before and after them.
+              2. `n_neg_steps is an integer` will step the simulation so that the given number of simulation steps are executed every call. The simulator will run
+                 operations before and after negotiations appropriately.
+            - Never mix calls with `n_neg_steps` equaling `None` and an integer.
+            - Never call this method again on a world if it ever returned `False` on that world.
+
+        """
+        if self.time >= self.time_limit:
+            return False
+        if self.current_step >= self.n_steps:
+            return False
+        cross_step_boundary = n_neg_steps is not None
+
+        def _negotiate(n_steps_to_run: int | None = n_neg_steps) -> bool:
+            """Runs all bending negotiations.
+            Returns True if all negotiations are done"""
+            if n_steps_to_run is not None and n_steps_to_run == 0:
+                mechanisms = list(
+                    (_.mechanism, _.partners)
+                    for _ in self._negotiations.values()
+                    if _ is not None
+                )
+                running = [
+                    _[0] for _ in mechanisms if _ is not None and not _[0].state.ended
+                ]
+                return not running
+            _n_registered_negotiations_before = len(self._negotiations)
+            n_steps_broken, n_steps_success = 0, 0
+            n_broken, n_success = 0, 0
+
+            mechanisms = list(
+                (_.mechanism, _.partners)
+                for _ in self._negotiations.values()
+                if _ is not None
+            )
+            (
+                _,
+                _,
+                n_steps_broken_,
+                n_steps_success_,
+                n_broken_,
+                n_success_,
+            ) = self._step_negotiations(
+                [_[0] for _ in mechanisms],
+                n_steps_to_run,
+                False,
+                [_[1] for _ in mechanisms],
+            )
+            running = [
+                _[0] for _ in mechanisms if _ is not None and not _[0].state.ended
+            ]
+            if self.time < self.time_limit:
+                n_total_broken = n_broken + n_broken_
+                if n_total_broken > 0:
+                    n_steps_broken = (
+                        n_steps_broken * n_broken + n_steps_broken_ * n_broken_
+                    ) / n_total_broken
+                    n_broken = n_total_broken
+                n_total_success = n_success + n_success_
+                if n_total_success > 0:
+                    n_steps_success = (
+                        n_steps_success * n_success + n_steps_success_ * n_success_
+                    ) / n_total_success
+                    n_success = n_total_success
+
+            self._stats["n_registered_negotiations_before"].append(
+                _n_registered_negotiations_before
+            )
+            self._stats["n_negotiation_rounds_successful"].append(n_steps_success)
+            self._stats["n_negotiation_rounds_failed"].append(n_steps_broken)
+            self._stats["n_negotiation_successful"].append(n_success)
+            self._stats["n_negotiation_failed"].append(n_broken)
+            self._stats["n_registered_negotiations_after"].append(
+                len(self._negotiations)
+            )
+            return not running
+
+        if cross_step_boundary:
+            if self.operations[self.__next_operation_index] != Operations.Negotiations:
+                if not self._step_to_negotiations(cross_step_boundary):
+                    return False
+            if _negotiate(n_neg_steps):
+                self.__next_operation_index += 1
+                if self.__next_operation_index >= len(self.operations):
+                    self.__next_operation_index = 0
+            return True
+        assert self.__next_operation_index == 0
+        if not self._step_to_negotiations(cross_step_boundary):
+            return False
+        assert self.__next_operation_index != 0
+        while self.__next_operation_index != 0:
+            if not _negotiate(n_neg_steps):
+                print(
+                    "Some negotiations are still running but all should be completed by now"
+                )
+            self.__next_operation_index += 1
+            if self.__next_operation_index >= len(self.operations):
+                self.__next_operation_index = 0
+            if not self._step_to_negotiations(cross_step_boundary):
+                return False
+        return True
+
+    def _pre_step(self) -> bool:
         if self._start_time is None or self._start_time < 0:
             self._start_time = time.perf_counter()
         if self.time >= self.time_limit:
             return False
-        self._n_negs_per_agent_per_step = defaultdict(int)
         if self.current_step >= self.n_steps:
             return False
+
+        self.__stats_stage = 0
+        self.__stage = 0
+        self.__n_new_contract_executions = 0
+        self.__n_new_breaches = 0
+        self.__n_new_contract_errors = 0
+        self.__n_new_contract_nullifications = 0
+        self.__activity_level = 0
+        self.__blevel = 0.0
+        self._n_negs_per_agent_per_step = defaultdict(int)
         self._started = True
         if self.current_step == 0:
             self._sim_start = time.perf_counter()
@@ -1620,54 +1745,16 @@ class World(EventSink, EventSource, ConfigReader, NamedObject, CheckpointMixin, 
         self.loginfo(
             f"{len(self._negotiations)} Negotiations/{len(self.agents)} Agents"
         )
+        return True
+
+    def _step_to_negotiations(self, cross_step_boundary: bool = True) -> bool:
+        """Runs the operations before/after negotiations but not the negotiations themselves"""
+        if self.__next_operation_index == 0:
+            if not self._pre_step():
+                return False
 
         # initialize stats
         # ----------------
-        n_new_contract_executions = 0
-        n_new_breaches = 0
-        n_new_contract_errors = 0
-        n_new_contract_nullifications = 0
-        activity_level = 0
-        n_steps_broken, n_steps_success = 0, 0
-        n_broken, n_success = 0, 0
-        stage = 0
-        stats_stage = 0
-        blevel = 0.0
-
-        _n_registered_negotiations_before = len(self._negotiations)
-
-        def _run_negotiations(n_steps: int | None = None):
-            """Runs all bending negotiations"""
-            nonlocal n_steps_broken, n_steps_success, n_broken, n_success
-            mechanisms = list(
-                (_.mechanism, _.partners)
-                for _ in self._negotiations.values()
-                if _ is not None
-            )
-            (
-                _,
-                _,
-                n_steps_broken_,
-                n_steps_success_,
-                n_broken_,
-                n_success_,
-            ) = self._step_negotiations(
-                [_[0] for _ in mechanisms], n_steps, False, [_[1] for _ in mechanisms]
-            )
-            if self.time >= self.time_limit:
-                return
-            n_total_broken = n_broken + n_broken_
-            if n_total_broken > 0:
-                n_steps_broken = (
-                    n_steps_broken * n_broken + n_steps_broken_ * n_broken_
-                ) / n_total_broken
-                n_broken = n_total_broken
-            n_total_success = n_success + n_success_
-            if n_total_success > 0:
-                n_steps_success = (
-                    n_steps_success * n_success + n_steps_success_ * n_success_
-                ) / n_total_success
-                n_success = n_total_success
 
         def _step_agents():
             # Step all entities in the world once:
@@ -1686,21 +1773,25 @@ class World(EventSink, EventSource, ConfigReader, NamedObject, CheckpointMixin, 
             self._process_unsigned()
 
         def _simulation_step():
-            nonlocal stage
             try:
-                self.simulation_step(stage)
+                self.simulation_step(self.__stage)
                 if self.time >= self.time_limit:
                     return
             except Exception as e:
                 self.simulation_exceptions[self._current_step].append(exception2str())
                 if not self.ignore_simulation_exceptions:
                     raise (e)
-            stage += 1
+            self.__stage += 1
 
         def _execute_contracts():
             # execute contracts that are executable at this step
             # --------------------------------------------------
-            nonlocal n_new_breaches, n_new_contract_executions, n_new_contract_errors, n_new_contract_nullifications, activity_level, blevel
+            n_new_breaches = self.__n_new_breaches
+            n_new_contract_executions = self.__n_new_contract_executions
+            n_new_contract_errors = self.__n_new_contract_errors
+            n_new_contract_nullifications = self.__n_new_contract_nullifications
+            activity_level = self.__activity_level
+            blevel = self.__blevel
             current_contracts = [
                 _ for _ in self.executable_contracts() if _.nullified_at < 0
             ]
@@ -1883,82 +1974,91 @@ class World(EventSink, EventSource, ConfigReader, NamedObject, CheckpointMixin, 
             self.__n_contracts_dropped += len(dropped)
 
         def _stats_update():
-            nonlocal stats_stage
-            self.update_stats(stats_stage)
-            stats_stage += 1
+            self.update_stats(self.__stats_stage)
+            self.__stats_stage += 1
 
         operation_map = {
             Operations.AgentSteps: _step_agents,
             Operations.ContractExecution: _execute_contracts,
             Operations.ContractSigning: _sign_contracts,
-            Operations.Negotiations: _run_negotiations,
+            Operations.Negotiations: None,
             Operations.SimulationStep: _simulation_step,
             Operations.StatsUpdate: _stats_update,
         }
 
-        for operation in self.operations:
+        for i, operation in enumerate(self.operations):
+            if i < self.__next_operation_index:
+                continue
+            if operation == Operations.Negotiations:
+                self.__next_operation_index = i
+                break
             operation_map[operation]()
             if self.time >= self.time_limit:
+                self.__next_operation_index = i
                 return False
+        else:
+            self.__next_operation_index = 0
+            # remove all negotiations that are completed
+            # ------------------------------------------
+            completed = list(
+                k
+                for k, _ in self._negotiations.items()
+                if _ is not None and _.mechanism.completed
+            )
+            for key in completed:
+                self._negotiations.pop(key, None)
 
-        # remove all negotiations that are completed
-        # ------------------------------------------
-        completed = list(
-            k
-            for k, _ in self._negotiations.items()
-            if _ is not None and _.mechanism.completed
-        )
-        for key in completed:
-            self._negotiations.pop(key, None)
+            # update stats
+            # ------------
+            self._stats["n_contracts_executed"].append(self.__n_new_contract_executions)
+            self._stats["n_contracts_erred"].append(self.__n_new_contract_errors)
+            self._stats["n_contracts_nullified"].append(
+                self.__n_new_contract_nullifications
+            )
+            self._stats["n_contracts_cancelled"].append(self.__n_contracts_cancelled)
+            self._stats["n_contracts_dropped"].append(self.__n_contracts_dropped)
+            self._stats["n_breaches"].append(self.__n_new_breaches)
+            self._stats["breach_level"].append(self.__blevel)
+            self._stats["n_contracts_signed"].append(self.__n_contracts_signed)
+            self._stats["n_contracts_concluded"].append(self.__n_contracts_concluded)
+            self._stats["n_negotiations"].append(self.__n_negotiations)
+            self._stats["activity_level"].append(self.__activity_level)
+            current_time = time.perf_counter() - self._step_start
+            self._stats["step_time"].append(current_time)
+            total = self._stats.get("total_time", [0.0])[-1]
+            self._stats["total_time"].append(total + current_time)
+            self.__n_negotiations = 0
+            self.__n_contracts_signed = 0
+            self.__n_contracts_concluded = 0
+            self.__n_contracts_cancelled = 0
+            self.__n_contracts_dropped = 0
 
-        # update stats
-        # ------------
-        self._stats["n_registered_negotiations_before"].append(
-            _n_registered_negotiations_before
-        )
-        self._stats["n_contracts_executed"].append(n_new_contract_executions)
-        self._stats["n_contracts_erred"].append(n_new_contract_errors)
-        self._stats["n_contracts_nullified"].append(n_new_contract_nullifications)
-        self._stats["n_contracts_cancelled"].append(self.__n_contracts_cancelled)
-        self._stats["n_contracts_dropped"].append(self.__n_contracts_dropped)
-        self._stats["n_breaches"].append(n_new_breaches)
-        self._stats["breach_level"].append(blevel)
-        self._stats["n_contracts_signed"].append(self.__n_contracts_signed)
-        self._stats["n_contracts_concluded"].append(self.__n_contracts_concluded)
-        self._stats["n_negotiations"].append(self.__n_negotiations)
-        self._stats["n_negotiation_rounds_successful"].append(n_steps_success)
-        self._stats["n_negotiation_rounds_failed"].append(n_steps_broken)
-        self._stats["n_negotiation_successful"].append(n_success)
-        self._stats["n_negotiation_failed"].append(n_broken)
-        self._stats["n_registered_negotiations_after"].append(len(self._negotiations))
-        self._stats["activity_level"].append(activity_level)
-        current_time = time.perf_counter() - self._step_start
-        self._stats["step_time"].append(current_time)
-        total = self._stats.get("total_time", [0.0])[-1]
-        self._stats["total_time"].append(total + current_time)
-        self.__n_negotiations = 0
-        self.__n_contracts_signed = 0
-        self.__n_contracts_concluded = 0
-        self.__n_contracts_cancelled = 0
-        self.__n_contracts_dropped = 0
+            self.__n_new_contract_executions = 0
+            self.__n_new_breaches = 0
+            self.__n_new_contract_errors = 0
+            self.__n_new_contract_nullifications = 0
+            self.__activity_level = 0
+            self.__blevel = 0.0
 
-        self.append_stats()
-        for agent in self.agents.values():
-            self.call(agent, agent.on_simulation_step_ended)
-            if self.time >= self.time_limit:
-                return False
+            self.append_stats()
+            for agent in self.agents.values():
+                self.call(agent, agent.on_simulation_step_ended)
+                if self.time >= self.time_limit:
+                    return False
 
-        for monitor in self.stats_monitors:
-            if self.safe_stats_monitoring:
-                __stats = copy.deepcopy(self.stats)
-            else:
-                __stats = self.stats
-            monitor.step(__stats, world_name=self.name)
-        for monitor in self.world_monitors:
-            monitor.step(self)
+            for monitor in self.stats_monitors:
+                if self.safe_stats_monitoring:
+                    __stats = copy.deepcopy(self.stats)
+                else:
+                    __stats = self.stats
+                monitor.step(__stats, world_name=self.name)
+            for monitor in self.world_monitors:
+                monitor.step(self)
 
-        self._current_step += 1
-        self.frozen_time = self.time
+            self._current_step += 1
+            self.frozen_time = self.time
+            if cross_step_boundary:
+                return self._step_to_negotiations()
         # always indicate that the simulation is to continue
         return True
 
@@ -2152,7 +2252,6 @@ class World(EventSink, EventSource, ConfigReader, NamedObject, CheckpointMixin, 
         for partner in partners:
             self.negs_registered[partner.id] += 1
         if run_to_completion:
-
             running, contract = True, None
             while running:
                 contract, running = self._step_a_mechanism(neg.mechanism, True)
@@ -2671,7 +2770,6 @@ class World(EventSink, EventSource, ConfigReader, NamedObject, CheckpointMixin, 
             total_breach_levels[breach.perpetrator] += breach.level
 
         if self.breach_processing == BreachProcessing.VICTIM_THEN_PERPETRATOR:
-
             # give agents the chance to set renegotiation agenda in ascending order of their total breach levels
             for agent_name, _ in sorted(
                 zip(total_breach_levels.keys(), total_breach_levels.values()),
@@ -3057,12 +3155,14 @@ class World(EventSink, EventSource, ConfigReader, NamedObject, CheckpointMixin, 
     def post_step_stats(self):
         """Called at the end of the simulation step to update all stats
 
-        Kept for backward compatibility and will be dropped. Override `update_stats` ins"""
+        Kept for backward compatibility and will be dropped. Override `update_stats` ins
+        """
 
     def pre_step_stats(self):
         """Called at the beginning of the simulation step to prepare stats or update them
 
-        Kept for backward compatibility and will be dropped. Override `update_stats` instead"""
+        Kept for backward compatibility and will be dropped. Override `update_stats` instead
+        """
 
     def update_stats(self, stage: int):
         """
