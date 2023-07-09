@@ -9,16 +9,19 @@ import time
 from collections import defaultdict
 from typing import TYPE_CHECKING
 
+from attr import asdict
+from rich import print
+
 from negmas import warnings
 from negmas.helpers.strings import humanize_time
 
-from ..common import TraceElement
+from ..common import Action, TraceElement
 from ..events import Event
 from ..helpers import TimeoutCaller, TimeoutError, exception2str
 from ..mechanisms import Mechanism, MechanismStepResult
 from ..outcomes.common import Outcome
 from ..outcomes.outcome_ops import cast_value_types, outcome_types_are_ok
-from .common import ResponseType, SAOResponse, SAOState
+from .common import SAONMI, ResponseType, SAOResponse, SAOState
 
 if TYPE_CHECKING:
     from negmas.preferences import Preferences
@@ -96,6 +99,7 @@ class SAOMechanism(Mechanism):
         max_wait: int = sys.maxsize,
         sync_calls: bool = False,
         initial_state: SAOState | None = None,
+        one_offer_per_step: bool = False,
         **kwargs,
     ):
         if avoid_ultimatum:
@@ -111,6 +115,18 @@ class SAOMechanism(Mechanism):
             name=name,
             **kwargs,
         )
+        self.nmi = SAONMI(
+            **{
+                **asdict(self.nmi, recurse=False),
+                **dict(
+                    end_on_no_response=end_on_no_response,
+                    one_offer_per_step=one_offer_per_step,
+                ),
+            }
+        )
+        assert self.nmi.end_on_no_response == end_on_no_response
+        assert self.nmi.one_offer_per_step == one_offer_per_step
+        self._one_offer_per_step = one_offer_per_step
         self._current_state: SAOState
         n_steps, time_limit = self.n_steps, self.time_limit
         if (n_steps is None or n_steps == float("inf")) and (
@@ -121,6 +137,7 @@ class SAOMechanism(Mechanism):
                 warnings.NegmasInfiniteNegotiationWarning,
             )
         self._sync_calls = sync_calls
+        self.params["one_offer_per_step"] = one_offer_per_step
         self.params["end_on_no_response"] = end_on_no_response
         self.params["enable_callbacks"] = extra_callbacks
         self.params["sync_calls"] = sync_calls
@@ -198,14 +215,39 @@ class SAOMechanism(Mechanism):
                 new_offerer_agents.append(None)
         return current_proposer_agent, new_offerer_agents
 
+    def next_negotitor_ids(self) -> list[str]:
+        """Returns a list of negotiator IDs in the order they are to be run in the next call to step()"""
+        n_negotiators = len(self.negotiators)
+        if self._frozen_neg_list is not None:
+            ordered_indices = self._frozen_neg_list
+        else:
+            ordered_indices = [
+                (_ + self._last_checked_negotiator + 1) % n_negotiators
+                for _ in range(n_negotiators)
+            ]
+
+        if ordered_indices and self._one_offer_per_step:
+            ordered_indices = ordered_indices[:1]
+        ids = self.negotiator_ids
+        return [ids[_] for _ in ordered_indices]
+
     def _stop_waiting(self, negotiator_id):
         self._waiting_time[negotiator_id] = 0.0
         self._waiting_start[negotiator_id] = float("inf")
         self._n_waits = 0
         self._frozen_neg_list = None
 
-    def __call__(self, state: SAOState) -> MechanismStepResult:
-        """implements a round of the Stacked Alternating Offers Protocol."""
+    def __call__(
+        self, state: SAOState, action: dict[str, SAOResponse] | None = None
+    ) -> MechanismStepResult:
+        """
+        implements a round or a single step of the Stacked Alternating Offers Protocol.
+
+        Args:
+            state: Current state of the mechanism
+            action: The action to use as a mapping from negotiator ID to its response.
+                    If not given, the negotiator(s) is called to generate its response.
+        """
         state = self._current_state
         if self._frozen_neg_list is None:
             state.new_offers = []
@@ -237,6 +279,7 @@ class SAOMechanism(Mechanism):
                 rem,
                 self._hidden_time_limit - self.time,
             )
+            given_response = action.pop(negotiator.id, None) if action else None
             if timeout is None or timeout == float("inf") or self._sync_calls:
                 __strt = time.perf_counter()
                 try:
@@ -244,9 +287,17 @@ class SAOMechanism(Mechanism):
                         negotiator == self._current_proposer
                     ) and self._offering_is_accepting:
                         self._current_state.n_acceptances = 0
-                        response = negotiator(*args, **kwargs)
+                        response = (
+                            given_response
+                            if given_response
+                            else negotiator(*args, **kwargs)
+                        )
                     else:
-                        response = negotiator(*args, **kwargs)
+                        response = (
+                            given_response
+                            if given_response
+                            else negotiator(*args, **kwargs)
+                        )
                 except TimeoutError:
                     response = None
                     try:
@@ -275,9 +326,17 @@ class SAOMechanism(Mechanism):
                         negotiator == self._current_proposer
                     ) and self._offering_is_accepting:
                         state.n_acceptances = 0
-                        response = TimeoutCaller.run(fun, timeout=timeout)
+                        response = (
+                            given_response
+                            if given_response
+                            else TimeoutCaller.run(fun, timeout=timeout)
+                        )
                     else:
-                        response = TimeoutCaller.run(fun, timeout=timeout)
+                        response = (
+                            given_response
+                            if given_response
+                            else TimeoutCaller.run(fun, timeout=timeout)
+                        )
                 except TimeoutError:
                     response = None
                 except Exception as ex:
@@ -343,13 +402,14 @@ class SAOMechanism(Mechanism):
                 for _ in range(n_negotiators)
             ]
 
+        if ordered_indices and self._one_offer_per_step:
+            ordered_indices = ordered_indices[:1]
+
         for _, neg_indx in enumerate(ordered_indices):
             self._last_checked_negotiator = neg_indx
             neg = self.negotiators[neg_indx]
             strt = time.perf_counter()
-            resp, has_exceptions = _safe_counter(
-                neg, state=self.state, offer=state.current_offer
-            )
+            resp, has_exceptions = _safe_counter(neg, state=self.state)
             if has_exceptions:
                 state.broken = True
                 state.has_error = True
@@ -482,6 +542,10 @@ class SAOMechanism(Mechanism):
                     state.new_offerer_agents,
                 ) = self._agent_info()
 
+        # if action is not None:
+        #     assert (
+        #         not action
+        #     ), f"Not all negotiator actions were used in this step: {action}"
         return MechanismStepResult(
             state,
             times=times,

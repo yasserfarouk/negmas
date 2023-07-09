@@ -279,7 +279,7 @@ class ChainNegotiationsMechanism(Mechanism):
         else:
             self.__next_agent = (self.__last_proposer_index + 1) % len(self.__chain)
 
-    def __call__(self, state) -> MechanismStepResult:
+    def __call__(self, state, action=None) -> MechanismStepResult:
         # check that the chain is complete
         if not all(self.__chain):
             if self.dynamic_entry:
@@ -466,7 +466,7 @@ class MultiChainNegotiationsMechanism(Mechanism):
             )
         self.__next_agent_number = self.__number[self.__last_proposal.partner]
 
-    def __call__(self, state) -> MechanismStepResult:
+    def __call__(self, state, action=None) -> MechanismStepResult:
         # check that the chain is complete
         if not all(len(_) > 0 for _ in self.__chain):
             if self.dynamic_entry:

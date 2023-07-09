@@ -494,3 +494,13 @@ class AgentWorldInterface:
             A list of negotiation information objects (`RunningNegotiationInfo`)
         """
         return list(self.agent._running_negotiations.values())
+
+    @property
+    def running_mechanism_dicts(self) -> dict[str, RunningNegotiationInfo]:
+        """The negotiations currently requested by the agent as a mapping from mechanism ID to `RunningNegotiationInfo`
+
+        Returns:
+
+            A list of negotiation information objects (`RunningNegotiationInfo`)
+        """
+        return self.agent._running_negotiations

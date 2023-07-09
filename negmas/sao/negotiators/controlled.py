@@ -1,8 +1,7 @@
 from __future__ import annotations
 
-from ...common import MechanismState
 from ...outcomes import Outcome
-from ..common import ResponseType
+from ..common import ResponseType, SAOState
 from .base import SAONegotiator
 
 __all__ = [
@@ -17,20 +16,18 @@ class ControlledSAONegotiator(SAONegotiator):
     This negotiator simply calls its controler for everything.
     """
 
-    def propose(self, state: MechanismState) -> Outcome | None:
+    def propose(self, state: SAOState) -> Outcome | None:
         """Calls parent controller"""
         if self._Negotiator__parent:  # type: ignore
             return self._Negotiator__parent.propose(self.id, state)  # type: ignore
 
-    def respond(
-        self, state: MechanismState, offer: Outcome, source: str | None = None
-    ) -> ResponseType:
+    def respond(self, state: SAOState, source: str | None = None) -> ResponseType:
         """Calls parent controller"""
         if self._Negotiator__parent:  # type: ignore
             try:
-                return self._Negotiator__parent.respond(self.id, state, offer, source)  # type: ignore
+                return self._Negotiator__parent.respond(self.id, state, source)  # type: ignore
             except TypeError:
-                return self._Negotiator__parent.respond(self.id, state, offer)  # type: ignore
+                return self._Negotiator__parent.respond(self.id, state)  # type: ignore
         return ResponseType.REJECT_OFFER
 
     # def _on_negotiation_start(self, state: MechanismState) -> None:
@@ -38,12 +35,12 @@ class ControlledSAONegotiator(SAONegotiator):
     #     if self._Negotiator__parent:  # type: ignore
     #         return self._Negotiator__parent._on_negotiation_start(self.id, state)  # type: ignore
 
-    def on_negotiation_start(self, state: MechanismState) -> None:
+    def on_negotiation_start(self, state) -> None:
         """Calls parent controller"""
         if self._Negotiator__parent:  # type: ignore
             return self._Negotiator__parent.on_negotiation_start(self.id, state)  # type: ignore
 
-    def on_negotiation_end(self, state: MechanismState) -> None:
+    def on_negotiation_end(self, state) -> None:
         """Calls parent controller"""
         if self._Negotiator__parent:  # type: ignore
             return self._Negotiator__parent.on_negotiation_end(self.id, state)  # type: ignore

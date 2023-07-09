@@ -75,7 +75,11 @@ class AcceptNotWorseRational(AcceptancePolicy):
     def __call__(self, state: GBState, offer: Outcome, source: str) -> ResponseType:
         if not self.negotiator or not self.negotiator.preferences:
             return ResponseType.REJECT_OFFER
-        current = state.threads[source].current_offer
+        current = (
+            state.threads[state.last_thread].current_offer
+            if state.last_thread
+            else None
+        )
         pref = self.negotiator.preferences
         if pref.is_not_worse(offer, current):
             return ResponseType.ACCEPT_OFFER
@@ -91,7 +95,11 @@ class AcceptBetterRational(AcceptancePolicy):
     def __call__(self, state: GBState, offer: Outcome, source: str) -> ResponseType:
         if not self.negotiator or not self.negotiator.preferences:
             return ResponseType.REJECT_OFFER
-        current = state.threads[source].current_offer
+        current = (
+            state.threads[state.last_thread].current_offer
+            if state.last_thread
+            else None
+        )
         pref = self.negotiator.preferences
         if pref.is_better(offer, current) or (
             current is None and pref.is_not_worse(offer, current)

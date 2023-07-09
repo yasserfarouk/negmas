@@ -61,7 +61,8 @@ class UtilBasedNegotiator(GBNegotiator):
     def utility_range_to_accept(self, state) -> tuple[float, float]:
         ...
 
-    def respond(self, state, offer, source: str | None = None):
+    def respond(self, state, source: str | None = None):
+        offer = state.current_offer  # type: ignore
         if self._selector:
             self._selector.before_responding(state, offer, source)
         if self.ufun is None:

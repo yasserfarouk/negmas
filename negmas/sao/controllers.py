@@ -134,13 +134,12 @@ class SAOController(Controller):
         self,
         negotiator_id: str,
         state: MechanismState,
-        offer: Outcome,
         source: str | None = None,
     ) -> ResponseType:
         negotiator, cntxt = self._negotiators.get(negotiator_id, (None, None))
         if negotiator is None:
             raise ValueError(f"Unknown negotiator {negotiator_id}")
-        return self.call(negotiator, "respond", state=state, offer=offer, source=source)
+        return self.call(negotiator, "respond", state=state, source=source)
 
     def on_negotiation_end(self, negotiator_id: str, state: MechanismState) -> None:
         if self._auto_kill:
@@ -175,7 +174,6 @@ class SAORandomController(SAOController):
         self,
         negotiator_id: str,
         state: MechanismState,
-        offer: Outcome,
         source: str | None = None,
     ) -> ResponseType:
         negotiator, cntxt = self._negotiators.get(negotiator_id, (None, None))
@@ -307,9 +305,9 @@ class SAOSyncController(SAOController):
         self,
         negotiator_id: str,
         state: SAOState,
-        offer: Outcome,
         source: str | None = None,
     ) -> ResponseType:
+        offer = state.current_offer
         # get the saved response to this negotiator if any
         response = self.__responses.pop(negotiator_id, ResponseType.WAIT)
 
@@ -805,7 +803,7 @@ class SAOMetaNegotiatorController(SAOController):
         if negotiator is None:
             raise ValueError(f"Unknown negotiator {negotiator_id}")
         self.meta_negotiator._nmi = negotiator.nmi
-        return self.meta_negotiator.respond(state=state, offer=offer, source=source)
+        return self.meta_negotiator.respond(state=state, source=source)
 
 
 class SAOSingleAgreementRandomController(SAOSingleAgreementController):

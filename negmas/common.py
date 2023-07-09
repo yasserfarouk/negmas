@@ -7,7 +7,16 @@ from __future__ import annotations
 
 from collections import namedtuple
 from enum import Enum, auto, unique
-from typing import TYPE_CHECKING, Any, Iterable, Protocol, Union, runtime_checkable
+from typing import (
+    TYPE_CHECKING,
+    Any,
+    Callable,
+    Iterable,
+    Mapping,
+    Protocol,
+    Union,
+    runtime_checkable,
+)
 
 from attrs import asdict, define, field
 
@@ -213,13 +222,13 @@ class MechanismState:
     """True if the negotiation was timedout"""
     agreement: Outcome | None = None
     """Agreement at the end of the negotiation (it is always None until an agreement is reached)."""
-    results: Outcome | OutcomeSpace | None = None
-    """In its simplest form, an agreement is a single outcome (or None for failure). Nevertheless, it can be a list of
-    outcomes or even a complete outcome space.
+    results: Outcome | OutcomeSpace | tuple[Outcome] | None = None
+    """In its simplest form, an agreement is a single outcome (or None for failure).
+    Nevertheless, it can be a tuple of outcomes or even a complete outcome space.
     """
     n_negotiators: int = 0
-    """Number of agents currently in the negotiation. Notice that this may change over time if the mechanism supports
-    dynamic entry"""
+    """Number of agents currently in the negotiation. Notice that this may change
+    over time if the mechanism supports dynamic entry"""
     has_error: bool = False
     """Does the mechanism have any errors"""
     error_details: str = ""
@@ -485,3 +494,10 @@ TraceElement = namedtuple(
 
 AgentMechanismInterface = NegotiatorMechanismInterface
 """A **depricated** alias for `NegotiatorMechanismInterface`"""
+
+
+Action = Any
+"""Defines a negotiation action"""
+
+ReactiveStrategy = Mapping[MechanismState, Action] | Callable[[MechanismState], Action]
+"""Defines a negotiation strategy as a mapping from a mechanism state to an action"""

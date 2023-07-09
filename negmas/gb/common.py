@@ -80,3 +80,9 @@ def all_negotiator_types() -> list[GBNegotiator]:
         if issubclass(type, GBNegotiator):
             results.append(type)
     return results
+
+
+GBAction = dict[str, Outcome | None]
+"""
+An action for a GB mechanism is a mapping from one or more thread IDs to outcomes to offer.
+"""

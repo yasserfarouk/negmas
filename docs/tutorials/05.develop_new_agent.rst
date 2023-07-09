@@ -53,21 +53,25 @@ We can now start world simulations using our new world and agent
     world.run_with_progress()
 
 
+
+.. raw:: html
+
+    <pre style="white-space:pre;overflow-x:auto;line-height:normal;font-family:Menlo,'DejaVu Sans Mono',consolas,'Courier New',monospace"></pre>
+
+
+
+
 .. parsed-literal::
 
+    Output()
 
-      0%|                                                                                                                                                                                        | 0/10 [00:00<?, ?it/s]
-     10%|█████████████████▌                                                                                                                                                              | 1/10 [00:00<00:01,  6.98it/s]
-     20%|███████████████████████████████████▏                                                                                                                                            | 2/10 [00:00<00:03,  2.40it/s]
-     30%|████████████████████████████████████████████████████▊                                                                                                                           | 3/10 [00:01<00:03,  1.85it/s]
-     40%|██████████████████████████████████████████████████████████████████████▍                                                                                                         | 4/10 [00:01<00:03,  1.86it/s]
-     50%|████████████████████████████████████████████████████████████████████████████████████████                                                                                        | 5/10 [00:02<00:03,  1.60it/s]
-     60%|█████████████████████████████████████████████████████████████████████████████████████████████████████████▌                                                                      | 6/10 [00:03<00:02,  1.50it/s]
-     70%|███████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████▏                                                    | 7/10 [00:04<00:01,  1.55it/s]
-     80%|████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████▊                                   | 8/10 [00:04<00:01,  1.55it/s]
-     90%|██████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████▍                 | 9/10 [00:05<00:00,  1.47it/s]
-    100%|███████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████| 10/10 [00:06<00:00,  1.41it/s]
-    100%|███████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████| 10/10 [00:06<00:00,  1.59it/s]
+
+
+.. raw:: html
+
+    <pre style="white-space:pre;overflow-x:auto;line-height:normal;font-family:Menlo,'DejaVu Sans Mono',consolas,'Courier New',monospace">
+    </pre>
+
 
 
 Let’s see what happened in this run. Firstly, how many negotiations were
@@ -136,20 +140,12 @@ We can see a picture of contracting in this world as follows:
     plt.plot(world.stats["n_contracts_executed"], label="Executed Contracts")
     plt.legend()
     plt.xlabel("Simulation Step")
-    plt.ylabel("N. Contracts")
+    plt.ylabel("N. Contracts");
 
 
 
 
-
-.. parsed-literal::
-
-    Text(0, 0.5, 'N. Contracts')
-
-
-
-
-.. image:: 05.develop_new_agent_files/05.develop_new_agent_11_1.png
+.. image:: 05.develop_new_agent_files/05.develop_new_agent_11_0.png
 
 
 We can also check the breaches that happened
@@ -158,20 +154,12 @@ We can also check the breaches that happened
 
     plt.plot(world.stats["breach_level"])
     plt.xlabel("Simulation Step")
-    plt.ylabel("Total Breach Level")
+    plt.ylabel("Total Breach Level");
 
 
 
 
-
-.. parsed-literal::
-
-    Text(0, 0.5, 'Total Breach Level')
-
-
-
-
-.. image:: 05.develop_new_agent_files/05.develop_new_agent_13_1.png
+.. image:: 05.develop_new_agent_files/05.develop_new_agent_13_0.png
 
 
 We can actually check what happens to ALL agents
@@ -183,20 +171,12 @@ We can actually check what happens to ALL agents
     for name in snames:
         utility.plot(np.asarray(world.stats[f"total_utility_{name}"]), label=name)
     utility.set(xlabel="Simulation Step", ylabel="Player Total Utility")
-    utility.legend(loc="lower left")
+    utility.legend(loc="lower left");
 
 
 
 
-
-.. parsed-literal::
-
-    <matplotlib.legend.Legend at 0x129131f70>
-
-
-
-
-.. image:: 05.develop_new_agent_files/05.develop_new_agent_15_1.png
+.. image:: 05.develop_new_agent_files/05.develop_new_agent_15_0.png
 
 
 As you can see, the total utility is not monotonically increasing. This
@@ -283,31 +263,25 @@ Let’s try it
     world.run_with_progress()
 
 
+
+.. raw:: html
+
+    <pre style="white-space:pre;overflow-x:auto;line-height:normal;font-family:Menlo,'DejaVu Sans Mono',consolas,'Courier New',monospace"></pre>
+
+
+
+
 .. parsed-literal::
 
+    Output()
 
-      0%|                                                                                                                                                                                        | 0/20 [00:00<?, ?it/s]
-      5%|████████▊                                                                                                                                                                       | 1/20 [00:00<00:02,  8.86it/s]
-     10%|█████████████████▌                                                                                                                                                              | 2/20 [00:28<05:01, 16.78s/it]
-     15%|██████████████████████████▍                                                                                                                                                     | 3/20 [00:53<05:50, 20.63s/it]
-     20%|███████████████████████████████████▏                                                                                                                                            | 4/20 [01:13<05:25, 20.37s/it]
-     25%|████████████████████████████████████████████                                                                                                                                    | 5/20 [01:34<05:09, 20.63s/it]
-     30%|████████████████████████████████████████████████████▊                                                                                                                           | 6/20 [01:58<05:03, 21.66s/it]
-     35%|█████████████████████████████████████████████████████████████▌                                                                                                                  | 7/20 [02:18<04:35, 21.20s/it]
-     40%|██████████████████████████████████████████████████████████████████████▍                                                                                                         | 8/20 [02:42<04:23, 21.92s/it]
-     45%|███████████████████████████████████████████████████████████████████████████████▏                                                                                                | 9/20 [03:02<03:54, 21.28s/it]
-     50%|███████████████████████████████████████████████████████████████████████████████████████▌                                                                                       | 10/20 [03:22<03:30, 21.01s/it]
-     55%|████████████████████████████████████████████████████████████████████████████████████████████████▎                                                                              | 11/20 [03:42<03:06, 20.74s/it]
-     60%|█████████████████████████████████████████████████████████████████████████████████████████████████████████                                                                      | 12/20 [04:03<02:46, 20.80s/it]
-     65%|█████████████████████████████████████████████████████████████████████████████████████████████████████████████████▊                                                             | 13/20 [04:23<02:24, 20.66s/it]
-     70%|██████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████▍                                                    | 14/20 [04:44<02:03, 20.51s/it]
-     75%|███████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████▎                                           | 15/20 [05:05<01:43, 20.76s/it]
-     80%|████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████                                   | 16/20 [05:23<01:19, 19.99s/it]
-     85%|████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████▊                          | 17/20 [05:44<01:00, 20.18s/it]
-     90%|█████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████▌                 | 18/20 [06:06<00:41, 20.83s/it]
-     95%|██████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████▎        | 19/20 [06:29<00:21, 21.54s/it]
-    100%|███████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████| 20/20 [06:50<00:00, 21.39s/it]
-    100%|███████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████| 20/20 [06:50<00:00, 20.54s/it]
+
+
+.. raw:: html
+
+    <pre style="white-space:pre;overflow-x:auto;line-height:normal;font-family:Menlo,'DejaVu Sans Mono',consolas,'Courier New',monospace">
+    </pre>
+
 
 
 Let’s check how did our agent do
@@ -324,20 +298,12 @@ Let’s check how did our agent do
     for name in utils.keys():
         utility.plot(utils[name], label=name)
     utility.set(xlabel="Simulation Step", ylabel="Player Total Utility")
-    utility.legend(loc="lower left")
+    utility.legend(loc="lower left");
 
 
 
 
-
-.. parsed-literal::
-
-    <matplotlib.legend.Legend at 0x1294ed730>
-
-
-
-
-.. image:: 05.develop_new_agent_files/05.develop_new_agent_23_1.png
+.. image:: 05.develop_new_agent_files/05.develop_new_agent_23_0.png
 
 
 Better.

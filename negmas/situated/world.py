@@ -19,7 +19,7 @@ import pandas as pd
 import yaml
 
 from negmas.checkpoints import CheckpointMixin
-from negmas.common import NegotiatorMechanismInterface
+from negmas.common import Action, NegotiatorMechanismInterface
 from negmas.config import negmas_config
 from negmas.events import Event, EventLogger, EventSink, EventSource
 from negmas.genius import ANY_JAVA_PORT, DEFAULT_JAVA_PORT, get_free_tcp_port
@@ -173,116 +173,15 @@ class World(EventSink, EventSource, ConfigReader, NamedObject, CheckpointMixin, 
         genius_port: the port used to connect to Genius for all negotiators in this mechanism (0 means any).
     """
 
-    @property
-    def stats(self) -> dict[str, Any]:
-        return self._stats
-
-    @property
-    def breach_fraction(self) -> float:
-        """Fraction of signed contracts that led to breaches"""
-        n_breaches = sum(self.stats["n_breaches"])
-        n_signed_contracts = len(
-            [_ for _ in self._saved_contracts.values() if _["signed_at"] >= 0]
-        )
-        return n_breaches / n_signed_contracts if n_signed_contracts != 0 else 0.0
-
-    breach_rate = breach_fraction
-
-    def n_saved_contracts(self, ignore_no_issue: bool = True) -> int:
-        """
-        Number of saved contracts
-
-        Args:
-            ignore_no_issue: If true, only contracts resulting from negotiation (has some issues) will be counted
-        """
-        if ignore_no_issue:
-            return len([_ for _ in self._saved_contracts.values() if _["issues"]])
-        return len(self._saved_contracts)
-
-    @property
-    def agreement_fraction(self) -> float:
-        """Fraction of negotiations ending in agreement and leading to signed contracts"""
-        n_negs = sum(self.stats["n_negotiations"])
-        n_contracts = self.n_saved_contracts(True)
-        return n_contracts / n_negs if n_negs != 0 else np.nan
-
-    agreement_rate = agreement_fraction
-
-    @property
-    def cancellation_fraction(self) -> float:
-        """Fraction of contracts concluded (through negotiation or otherwise)
-        that were cancelled."""
-        n_negs = sum(self.stats["n_negotiations"])
-        n_contracts = self.n_saved_contracts(False)
-        n_signed_contracts = len(
-            [_ for _ in self._saved_contracts.values() if _["signed_at"] >= 0]
-        )
-        return (1.0 - n_signed_contracts / n_contracts) if n_contracts != 0 else np.nan
-
-    cancellation_rate = cancellation_fraction
-
-    def loginfo(self, s: str, event: Event | None = None) -> None:
-        """logs info-level information
-
-        Args:
-            s (str): The string to log
-            event (Event): The event to announce after logging
-
-        """
-        if event:
-            self.announce(event)
-        if self._no_logs or not self.logger:
-            return
-        self.logger.info(f"{self._log_header()}: " + s.strip())
-
-    def set_bulletin_board(self, bulletin_board):
-        self.bulletin_board = (
-            bulletin_board if bulletin_board is not None else BulletinBoard()
-        )
-        self.bulletin_board.add_section("breaches")
-        self.bulletin_board.add_section("stats")
-        self.bulletin_board.add_section("settings")
-        self.bulletin_board.record("settings", self.n_steps, "n_steps")
-        self.bulletin_board.record("settings", self.time_limit, "time_limit")
-        self.bulletin_board.record(
-            "settings", self.negotiation_speed, "negotiation_speed"
-        )
-        self.bulletin_board.record("settings", self.neg_n_steps, "neg_n_steps")
-        self.bulletin_board.record("settings", self.neg_time_limit, "neg_time_limit")
-        self.bulletin_board.record(
-            "settings", self.neg_step_time_limit, "neg_step_time_limit"
-        )
-        self.bulletin_board.record(
-            "settings", self.default_signing_delay, "default_signing_delay"
-        )
-        self.bulletin_board.record("settings", self.force_signing, "force_signing")
-        self.bulletin_board.record("settings", self.batch_signing, "batch_signing")
-        self.bulletin_board.record(
-            "settings", self.breach_processing, "breach_processing"
-        )
-        self.bulletin_board.record(
-            "settings",
-            list(self.mechanisms.keys()) if self.mechanisms is not None else [],
-            "mechanism_names",
-        )
-        self.bulletin_board.record(
-            "settings",
-            self.mechanisms if self.mechanisms is not None else dict(),
-            "mechanisms",
-        )
-        self.bulletin_board.record(
-            "settings", self.immediate_negotiations, "start_negotiations_immediately"
-        )
-
     def __init__(
         self,
         bulletin_board: BulletinBoard | None = None,
-        n_steps=10000,
-        time_limit=60 * 60,
-        negotiation_speed=None,
-        neg_n_steps=100,
-        neg_time_limit=3 * 60,
-        neg_step_time_limit=60,
+        n_steps: int = 10000,
+        time_limit: int | float | None = 60 * 60,
+        negotiation_speed: int | None = None,
+        neg_n_steps: int | None = 100,
+        neg_time_limit: int | float | None = 3 * 60,
+        neg_step_time_limit: int | float | None = 60,
         shuffle_negotiations=True,
         negotiation_quota_per_step: int = sys.maxsize,
         negotiation_quota_per_simulation: int = sys.maxsize,
@@ -459,6 +358,7 @@ class World(EventSink, EventSource, ConfigReader, NamedObject, CheckpointMixin, 
 
         self._log_folder = str(self._log_folder)
         self._stats: dict[str, list[Any]] = defaultdict(list)
+        self.__stepped_mechanisms: set[str] = set()
         self.__n_negotiations = 0
         self.__n_contracts_signed = 0
         self.__n_contracts_concluded = 0
@@ -572,6 +472,13 @@ class World(EventSink, EventSource, ConfigReader, NamedObject, CheckpointMixin, 
                     and self.negotiation_speed is not None
                     and self.neg_n_steps < self.negotiation_speed
                 )
+                or (
+                    self.neg_n_steps is None
+                    and (
+                        self.neg_time_limit is not None
+                        and not math.isinf(self.neg_time_limit)
+                    )
+                )
             ),
             default_signing_delay=default_signing_delay,
             batch_signing=batch_signing,
@@ -586,6 +493,107 @@ class World(EventSink, EventSource, ConfigReader, NamedObject, CheckpointMixin, 
             genius_port=self.genius_port,
         )
         self.loginfo(f"{self.name}: World Created")
+
+    @property
+    def stats(self) -> dict[str, Any]:
+        return self._stats
+
+    @property
+    def breach_fraction(self) -> float:
+        """Fraction of signed contracts that led to breaches"""
+        n_breaches = sum(self.stats["n_breaches"])
+        n_signed_contracts = len(
+            [_ for _ in self._saved_contracts.values() if _["signed_at"] >= 0]
+        )
+        return n_breaches / n_signed_contracts if n_signed_contracts != 0 else 0.0
+
+    breach_rate = breach_fraction
+
+    def n_saved_contracts(self, ignore_no_issue: bool = True) -> int:
+        """
+        Number of saved contracts
+
+        Args:
+            ignore_no_issue: If true, only contracts resulting from negotiation (has some issues) will be counted
+        """
+        if ignore_no_issue:
+            return len([_ for _ in self._saved_contracts.values() if _["issues"]])
+        return len(self._saved_contracts)
+
+    @property
+    def agreement_fraction(self) -> float:
+        """Fraction of negotiations ending in agreement and leading to signed contracts"""
+        n_negs = sum(self.stats["n_negotiations"])
+        n_contracts = self.n_saved_contracts(True)
+        return n_contracts / n_negs if n_negs != 0 else np.nan
+
+    agreement_rate = agreement_fraction
+
+    @property
+    def cancellation_fraction(self) -> float:
+        """Fraction of contracts concluded (through negotiation or otherwise)
+        that were cancelled."""
+        n_negs = sum(self.stats["n_negotiations"])
+        n_contracts = self.n_saved_contracts(False)
+        n_signed_contracts = len(
+            [_ for _ in self._saved_contracts.values() if _["signed_at"] >= 0]
+        )
+        return (1.0 - n_signed_contracts / n_contracts) if n_contracts != 0 else np.nan
+
+    cancellation_rate = cancellation_fraction
+
+    def loginfo(self, s: str, event: Event | None = None) -> None:
+        """logs info-level information
+
+        Args:
+            s (str): The string to log
+            event (Event): The event to announce after logging
+
+        """
+        if event:
+            self.announce(event)
+        if self._no_logs or not self.logger:
+            return
+        self.logger.info(f"{self._log_header()}: " + s.strip())
+
+    def set_bulletin_board(self, bulletin_board):
+        self.bulletin_board = (
+            bulletin_board if bulletin_board is not None else BulletinBoard()
+        )
+        self.bulletin_board.add_section("breaches")
+        self.bulletin_board.add_section("stats")
+        self.bulletin_board.add_section("settings")
+        self.bulletin_board.record("settings", self.n_steps, "n_steps")
+        self.bulletin_board.record("settings", self.time_limit, "time_limit")
+        self.bulletin_board.record(
+            "settings", self.negotiation_speed, "negotiation_speed"
+        )
+        self.bulletin_board.record("settings", self.neg_n_steps, "neg_n_steps")
+        self.bulletin_board.record("settings", self.neg_time_limit, "neg_time_limit")
+        self.bulletin_board.record(
+            "settings", self.neg_step_time_limit, "neg_step_time_limit"
+        )
+        self.bulletin_board.record(
+            "settings", self.default_signing_delay, "default_signing_delay"
+        )
+        self.bulletin_board.record("settings", self.force_signing, "force_signing")
+        self.bulletin_board.record("settings", self.batch_signing, "batch_signing")
+        self.bulletin_board.record(
+            "settings", self.breach_processing, "breach_processing"
+        )
+        self.bulletin_board.record(
+            "settings",
+            list(self.mechanisms.keys()) if self.mechanisms is not None else [],
+            "mechanism_names",
+        )
+        self.bulletin_board.record(
+            "settings",
+            self.mechanisms if self.mechanisms is not None else dict(),
+            "mechanisms",
+        )
+        self.bulletin_board.record(
+            "settings", self.immediate_negotiations, "start_negotiations_immediately"
+        )
 
     @classmethod
     def is_basic_stat(self, s: str) -> bool:
@@ -1467,10 +1475,12 @@ class World(EventSink, EventSource, ConfigReader, NamedObject, CheckpointMixin, 
         )
 
     def _step_a_mechanism(
-        self, mechanism, force_immediate_signing
+        self,
+        mechanism,
+        force_immediate_signing,
+        action: Action | None = None,
     ) -> tuple[Contract | None, bool]:
         """Steps a mechanism one step.
-
 
         Returns:
 
@@ -1478,7 +1488,7 @@ class World(EventSink, EventSource, ConfigReader, NamedObject, CheckpointMixin, 
         """
         contract = None
         try:
-            result = mechanism.step()
+            result = mechanism.step(action)
         except Exception as e:
             result = mechanism.abort()
             if not self.ignore_negotiation_exceptions:
@@ -1525,10 +1535,27 @@ class World(EventSink, EventSource, ConfigReader, NamedObject, CheckpointMixin, 
         self,
         mechanisms: list[Mechanism],
         n_steps: int | float | None,
-        force_immediate_signing,
+        force_immediate_signing: bool,
         partners: list[list[Agent]],
+        action: dict[str, Action | None] | None = None,
     ) -> tuple[list[Contract | None], list[bool], int, int, int, int]:
-        """Runs all bending negotiations"""
+        """
+        Runs all bending negotiations.
+
+        Args:
+            mechanisms: The mechanisms to step forward
+            n_steps: The maximum number of steps to step each mechanism.
+            force_immediate_signing: If true, all agreements are signed as contracts immediately upon agreement.
+            partners: List of partners for each mechanism.
+            action: Mapping of negotiator IDs to corresponding negotiation action (e.g. offer in SAO) for every mechanism.
+                         Negotiators will be called upon to act only if no action is passed here.
+
+        Remarks:
+            - The actual number of steps executed is
+              min(n_steps, self.negotiation_speed, mechanism.n_remaining_steps)
+              with any None substituted with float('inf')
+
+        """
         running = [_ is not None for _ in mechanisms]
         contracts: list[Contract | None] = [None] * len(mechanisms)
         indices = list(range(len(mechanisms)))
@@ -1537,6 +1564,8 @@ class World(EventSink, EventSource, ConfigReader, NamedObject, CheckpointMixin, 
         current_step = 0
         if n_steps is None:
             n_steps = float("inf")
+        if self.negotiation_speed is not None:
+            n_steps = min(n_steps, self.negotiation_speed)
 
         while any(running):
             if self.shuffle_negotiations:
@@ -1547,7 +1576,11 @@ class World(EventSink, EventSource, ConfigReader, NamedObject, CheckpointMixin, 
                 if self.time >= self.time_limit:
                     break
                 mechanism = mechanisms[i]
-                contract, r = self._step_a_mechanism(mechanism, force_immediate_signing)
+                contract, r = self._step_a_mechanism(
+                    mechanism,
+                    force_immediate_signing,
+                    action=action.get(mechanism.id, None) if action else None,
+                )
                 contracts[i] = contract
                 running[i] = r
                 if not running[i]:
@@ -1589,18 +1622,53 @@ class World(EventSink, EventSource, ConfigReader, NamedObject, CheckpointMixin, 
                 stats_file_name=self._stats_file_name,
             )
 
-    def step(self, n_neg_steps: int | None = None) -> bool:
+    def step(
+        self,
+        n_neg_steps: int | None = None,
+        n_mechanisms: int | None = None,
+        actions: dict[str, Any] | None = None,
+        neg_actions: dict[str, Action | None] | None = None,
+    ) -> bool:
         """
         A single simulation step.
 
+        Args:
+            n_mechanisms: Number of mechanisms to step (None for all)
+            n_neg_steps: Number of steps for every mechanism (None to complete one simulation step)
+            actions: Mapping of agent IDs to their actions. The agent will be asked to act only if this is not given
+            neg_actions: Mapping of negotiator IDs to corresponding negotiation action (e.g. offer in SAO) for every mechanism.
+                         Negotiators will be called upon to act only if no action is passed here.
+
         Remarks:
+
             - We have two modes of operation depending on `n_neg_steps`
-              1. `n_neg_steps is None` will run a single complete simulation step every call including all negotiations and everything before and after them.
-              2. `n_neg_steps is an integer` will step the simulation so that the given number of simulation steps are executed every call. The simulator will run
-                 operations before and after negotiations appropriately.
+
+              1. `n_neg_steps is None` will run a single complete simulation step every call
+                  including all negotiations and everything before and after them.
+              2. `n_neg_steps is an integer` will step the simulation so that the given number
+                  of simulation steps are executed every call. The simulator will run operations
+                  before and after negotiations appropriately.
+
+            - We have two modes of operation depending on `n_mechanisms`
+
+              1. `n_mechanisms is None` will step all negotiations according to `n_neg_steps`
+              2. `n_mechanisms` is an integer and `n_neg_steps` will step this number of
+                  mechanisms in parallel every call to step.
+
+            - We have a total of four modes:
+
+              1. `n_neg_steps` and `n_mechanisms` are both None: Each call to `step` corresponds
+                  to one simulation step from start to end.
+              2. `n_neg_steps` and `n_mechanisms` are both integers: Each call to `step` steps
+                 `n_mechanisms` mechanisms by `n_neg_steps` steps.
+              3. `n_neg_steps` is None and `n_mechanisms` is an integer: Each call to `step` runs
+                 `n_mechanisms` according to `negotiation_speed`
+              4. `n_neg_steps` is an integer and `n_mechanisms` is None: Each call to `step`
+                 steps all mechanisms `n_neg_steps` steps.
+
             - Never mix calls with `n_neg_steps` equaling `None` and an integer.
             - Never call this method again on a world if it ever returned `False` on that world.
-
+            - TODO Implement actions. Currently they are just ignored
         """
         if self.time >= self.time_limit:
             return False
@@ -1609,8 +1677,7 @@ class World(EventSink, EventSource, ConfigReader, NamedObject, CheckpointMixin, 
         cross_step_boundary = n_neg_steps is not None
 
         def _negotiate(n_steps_to_run: int | None = n_neg_steps) -> bool:
-            """Runs all bending negotiations.
-            Returns True if all negotiations are done"""
+            """Runs all bending negotiations. Returns True if all negotiations are done"""
             if n_steps_to_run is not None and n_steps_to_run == 0:
                 mechanisms = list(
                     (_.mechanism, _.partners)
@@ -1628,8 +1695,19 @@ class World(EventSink, EventSource, ConfigReader, NamedObject, CheckpointMixin, 
             mechanisms = list(
                 (_.mechanism, _.partners)
                 for _ in self._negotiations.values()
-                if _ is not None
+                if _ is not None and _.mechanism.id not in self.__stepped_mechanisms
             )
+            if n_mechanisms is not None and len(mechanisms) > n_mechanisms:
+                mechanisms = mechanisms[:n_mechanisms]
+            if not mechanisms:
+                self.__stepped_mechanisms = set()
+                mechanisms = list(
+                    (_.mechanism, _.partners)
+                    for _ in self._negotiations.values()
+                    if _ is not None
+                )
+                if n_mechanisms is not None and len(mechanisms) > n_mechanisms:
+                    mechanisms = mechanisms[:n_mechanisms]
             (
                 _,
                 _,
@@ -1642,9 +1720,17 @@ class World(EventSink, EventSource, ConfigReader, NamedObject, CheckpointMixin, 
                 n_steps_to_run,
                 False,
                 [_[1] for _ in mechanisms],
+                action=neg_actions,
+            )
+            self.__stepped_mechanisms = self.__stepped_mechanisms.union(
+                {_[0].id for _ in mechanisms}
             )
             running = [
-                _[0] for _ in mechanisms if _ is not None and not _[0].state.ended
+                _.mechanism.id
+                for _ in self._negotiations.values()
+                if _ is not None
+                and _.mechanism is not None
+                and not _.mechanism.state.ended
             ]
             if self.time < self.time_limit:
                 n_total_broken = n_broken + n_broken_
@@ -1674,22 +1760,28 @@ class World(EventSink, EventSource, ConfigReader, NamedObject, CheckpointMixin, 
 
         if cross_step_boundary:
             if self.operations[self.__next_operation_index] != Operations.Negotiations:
+                self.__stepped_mechanisms = set()
                 if not self._step_to_negotiations(cross_step_boundary):
                     return False
+
             if _negotiate(n_neg_steps):
                 self.__next_operation_index += 1
                 if self.__next_operation_index >= len(self.operations):
                     self.__next_operation_index = 0
+                if not self._step_to_negotiations(cross_step_boundary):
+                    return False
             return True
         assert self.__next_operation_index == 0
         if not self._step_to_negotiations(cross_step_boundary):
             return False
+        self.__stepped_mechanisms = set()
         assert self.__next_operation_index != 0
         while self.__next_operation_index != 0:
             if not _negotiate(n_neg_steps):
-                print(
-                    "Some negotiations are still running but all should be completed by now"
-                )
+                pass
+                # print(
+                #     "Some negotiations are still running but all should be completed by now"
+                # )
             self.__next_operation_index += 1
             if self.__next_operation_index >= len(self.operations):
                 self.__next_operation_index = 0
@@ -1698,6 +1790,7 @@ class World(EventSink, EventSource, ConfigReader, NamedObject, CheckpointMixin, 
         return True
 
     def _pre_step(self) -> bool:
+        self.__stepped_mechanisms = set()
         if self._start_time is None or self._start_time < 0:
             self._start_time = time.perf_counter()
         if self.time >= self.time_limit:
@@ -2299,7 +2392,7 @@ class World(EventSink, EventSource, ConfigReader, NamedObject, CheckpointMixin, 
         mechanism_name: str | None = None,
         mechanism_params: dict[str, Any] | None = None,
         group: str | None = None,
-    ) -> bool:
+    ) -> NegotiationInfo:
         """
         Requests to start a negotiation with some other agents
 
@@ -2389,7 +2482,7 @@ class World(EventSink, EventSource, ConfigReader, NamedObject, CheckpointMixin, 
             issues=issues,
         )
 
-        return success
+        return neg
 
     def run_negotiation(
         self,

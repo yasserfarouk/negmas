@@ -8,6 +8,8 @@ from copy import deepcopy
 
 from attrs import define, field
 
+from negmas.common import Action
+
 from .mechanisms import Mechanism, MechanismState, MechanismStepResult
 from .outcomes import Outcome
 
@@ -87,7 +89,9 @@ class VetoMTMechanism(Mechanism):
         """
         return self.random_outcomes(1)[0]
 
-    def __call__(self, state: MTState) -> MechanismStepResult:
+    def __call__(
+        self, state: MTState, action: Action | None = None
+    ) -> MechanismStepResult:
         """Single round of the protocol"""
         for i, current_offer in enumerate(state.current_offers):
             new_offer = self.next_outcome(current_offer)

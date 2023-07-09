@@ -14,7 +14,7 @@ from negmas.outcomes import Outcome
 from negmas.plots.util import default_colorizer
 from negmas.preferences import BaseUtilityFunction, Preferences
 
-from ..common import GBResponse, GBState, ResponseType, ThreadState
+from ..common import GBAction, GBResponse, GBState, ResponseType, ThreadState
 from ..constraints.base import LocalOfferingConstraint, OfferingConstraint
 from ..evaluators.base import EvaluationStrategy, LocalEvaluationStrategy, all_accept
 
@@ -41,11 +41,17 @@ class GBThread:
     def current(self):
         return self.state.current_offer
 
-    def run(self) -> tuple[ThreadState, GBResponse | None]:
+    def run(
+        self, action: dict[str, Outcome | None] | None = None
+    ) -> tuple[ThreadState, GBResponse | None]:
         mechanism_state: GBState = self.mechanism.state  # type: ignore
         history: list[GBState] = self.mechanism.history  # type: ignore
         source = self.negotiator.id
-        offer = self.negotiator.propose(mechanism_state)
+        if action is None:
+            offer = self.negotiator.propose(mechanism_state)
+        else:
+            offer = action.get(source, None)
+        # assert offer is None or isinstance(offer, Outcome)
         self.state.new_offer = offer
         if self.constraint and not self.constraint(
             mechanism_state.threads[source],
@@ -72,7 +78,7 @@ class GBThread:
         if self.mechanism._extra_callbacks:
             for n in self.responders:
                 n.on_partner_proposal(mechanism_state, source, offer)
-        responses = [_.respond(mechanism_state, offer, source) for _ in self.responders]
+        responses = [_.respond(mechanism_state, source=source) for _ in self.responders]
         if self.mechanism._extra_callbacks:
             for n, r in zip(self.responders, responses):
                 n.on_partner_response(mechanism_state, n.id, offer, r)
@@ -143,14 +149,16 @@ class BaseGBMechanism(Mechanism):
     def set_sync_call(self, v: bool):
         self._sync_call = v
 
-    def run_threads(self) -> dict[str, tuple[ThreadState, GBResponse | None]]:
+    def run_threads(
+        self, action: dict[str, Outcome | None] | None = None
+    ) -> dict[str, tuple[ThreadState, GBResponse | None]]:
         def _do_run(idd, thread: GBThread):
             if self.verbosity > 2:
                 print(
                     f"{self.name}: Thread {thread.negotiator.name} starts after {humanize_time(perf_counter() - self._start_time, show_ms=True) if self._start_time else 0}",
                     flush=True,
                 )
-            r = thread.run()
+            r = thread.run(action)
             state: GBState = self.state  # type: ignore
             state.last_thread = idd
             return r
@@ -487,9 +495,11 @@ class GBMechanism(BaseGBMechanism):
     def set_sync_call(self, v: bool):
         self._sync_call = v
 
-    def __call__(self, state: GBState) -> MechanismStepResult:
+    def __call__(
+        self, state: GBState, action: GBAction | None = None
+    ) -> MechanismStepResult:
         # print(f"Round {self._current_state.step}")
-        results = self.run_threads()
+        results = self.run_threads(action)
         # if state.step > self.outcome_space.cardinality:
         #     self.plot()
         #     breakpoint()

@@ -79,14 +79,11 @@ class GBNegotiator(Negotiator):
         """
 
     @abstractmethod
-    def respond(
-        self, state: GBState, offer: Outcome, source: str | None
-    ) -> ResponseType:
+    def respond(self, state: GBState, source: str | None) -> ResponseType:
         """Called to respond to an offer. This is the method that should be overriden to provide an acceptance strategy.
 
         Args:
             state: a `GBState` giving current state of the negotiation.
-            offer: offer being tested
 
         Returns:
             ResponseType: The response to the offer
@@ -95,6 +92,7 @@ class GBNegotiator(Negotiator):
             - The default implementation never ends the negotiation
             - The default implementation asks the negotiator to `propose`() and accepts the `offer` if its utility was
               at least as good as the offer that it would have proposed (and above the reserved value).
+            - Current offer is accessible through state.threads[source].current_offer as long as source != None otherwise it is None
 
         """
 
@@ -144,7 +142,7 @@ class GBNegotiator(Negotiator):
         """
 
     # compatibility with SAOMechanism
-    def __call__(self, state: SAOState, offer: Outcome | None) -> SAOResponse:
+    def __call__(self, state: SAOState) -> SAOResponse:
         """
         Called by the mechanism to counter the offer. It just calls `respond_` and `propose_` as needed.
 
@@ -158,6 +156,8 @@ class GBNegotiator(Negotiator):
         """
         from negmas.sao.common import SAOResponse
 
+        offer = state.current_offer
+
         if self.__end_negotiation:
             return SAOResponse(ResponseType.END_NEGOTIATION, None)
         if self.preferences is not None:
@@ -166,7 +166,7 @@ class GBNegotiator(Negotiator):
                 self.on_preferences_changed(changes)
         if offer is None:
             return SAOResponse(ResponseType.REJECT_OFFER, self.propose_(state=state))
-        response = self.respond_(state=state, offer=offer)
+        response = self.respond_(state=state)
         if response == ResponseType.ACCEPT_OFFER:
             return SAOResponse(response, offer)
         if response != ResponseType.REJECT_OFFER:
@@ -194,12 +194,11 @@ class GBNegotiator(Negotiator):
             state=self._gb_state_from_sao_state(state),
         )
 
-    def respond_(self, state: SAOState, offer: Outcome) -> ResponseType:
+    def respond_(self, state: SAOState) -> ResponseType:
         """The method to be called directly by the mechanism (through `counter` ) to respond to an offer.
 
         Args:
             state: a `SAOState` giving current state of the negotiation.
-            offer: the offer being responded to.
 
         Returns:
             ResponseType: The response to the offer. Possible values are:
@@ -218,15 +217,16 @@ class GBNegotiator(Negotiator):
               sent to the negotiator
             - The default implementation asks the negotiator to `propose`() and accepts the `offer` if its utility was
               at least as good as the offer that it would have proposed (and above the reserved value).
+            - Current offer is accessible through state.threads[source].current_offer as long as source != None otherwise it is None
 
         """
+        offer = state.current_offer
         if self.__end_negotiation:
             return ResponseType.END_NEGOTIATION
         self.__received_offer[state.current_proposer] = offer
 
         return self.respond(
             state=self._gb_state_from_sao_state(state),
-            offer=offer,
             source=state.current_proposer if state.current_proposer else "",
         )
 

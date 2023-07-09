@@ -16,7 +16,7 @@ __all__ = ["SimpleWorld"]
 
 class SimpleWorld(World, ABC):
     """
-    Represents a simple world simulation with sane values for most callbacks and methods.
+    Represents a simple world with no simulation and sane values for most callbacks and methods.
     """
 
     def delete_executed_contracts(self) -> None:

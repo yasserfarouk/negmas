@@ -187,7 +187,13 @@ def run(
     show_n_steps: bool = True,
     simple_offers_view: bool = None,  # type: ignore
     raise_exceptions: bool = False,
+    extra_params: str = "",
 ):
+    kwargs = dict()
+    if extra_params:
+        extra_params = "dict(" + extra_params + ")"
+        kwargs = eval(extra_params)
+
     if verbose and verbosity < 1:
         verbosity = 1
     for p in path:
@@ -280,6 +286,7 @@ def run(
         time_limit=timelimit,
         verbosity=verbosity - 1,
         **dict(ignore_negotiator_exceptions=not raise_exceptions),
+        **kwargs,
     )
     if len(session.negotiators) < 2:
         print(

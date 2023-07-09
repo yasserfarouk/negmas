@@ -7,6 +7,8 @@ import random
 
 from attrs import define, field
 
+from negmas.common import Action
+
 from .mechanisms import Mechanism, MechanismState, MechanismStepResult
 from .outcomes import Outcome
 
@@ -116,7 +118,9 @@ class GAMechanism(Mechanism):
                 self.dominant_outcomes.append(outcomes[target])
         self._current_state.dominant_outcomes = self.dominant_outcomes  # type: ignore
 
-    def __call__(self, state: GAState) -> MechanismStepResult:
+    def __call__(
+        self, state: GAState, action: Action | None = None
+    ) -> MechanismStepResult:
         self.update_ranks()
         self.update_dominant_outcomes()
         self.next_generation(self.select(self.population))

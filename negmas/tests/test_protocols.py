@@ -23,7 +23,7 @@ class MyMechanism(Mechanism):
         super().__init__(outcomes=20, n_steps=10, dynamic_entry=dynamic_entry, **kwargs)
         self.current = 0
 
-    def __call__(self, state) -> MechanismStepResult:
+    def __call__(self, state, action=None) -> MechanismStepResult:
         # r = random.random()
         # if r > 1.0 / self.n_steps:
         #    return None, False, None

@@ -21,7 +21,7 @@ from ..gb.common import GBState
 from ..negotiators import Controller
 from ..outcomes import CartesianOutcomeSpace, Outcome, issues_to_xml_str
 from ..preferences import UtilityFunction, make_discounted_ufun
-from ..sao.common import ResponseType, SAOResponse, SAOState
+from ..sao.common import SAONMI, ResponseType, SAOResponse, SAOState
 from ..sao.negotiators import SAONegotiator
 from .bridge import GeniusBridge
 from .common import (
@@ -394,18 +394,18 @@ class GeniusNegotiator(SAONegotiator):
                 )
                 if any(result.startswith(_) for _ in (OK, TIMEOUT)):
                     result = self.java.destroy_agent(self.java_uuid)  # type: ignore
-                    if (
-                        any(result.startswith(_) for _ in (FAILED, TIMEOUT))
-                        and self._strict
+                    if not result.startswith(OK) and any(
+                        result.startswith(_) for _ in (FAILED, TIMEOUT)
                     ):
-                        raise ValueError(
-                            f"{self._me()} ended the negotiation but failed to destroy the agent with result {result}. A possible memory leak"
-                        )
-                    else:
-                        warnings.warn(
-                            f"{self._me()} ended the negotiation but failed to destroy the agent with result {result}. A possible memory leak",
-                            warnings.NegmasMemoryWarning,
-                        )
+                        if self._strict:
+                            raise ValueError(
+                                f"{self._me()} ended the negotiation but failed to destroy the agent with result {result}. A possible memory leak"
+                            )
+                        else:
+                            warnings.warn(
+                                f"{self._me()} ended the negotiation but failed to destroy the agent with result {result}. A possible memory leak",
+                                warnings.NegmasMemoryWarning,
+                            )
                 elif self._strict:
                     if self._strict:
                         raise ValueError(
@@ -443,7 +443,7 @@ class GeniusNegotiator(SAONegotiator):
             self._strict = self.nmi.n_steps is not None and self.nmi.n_steps != float(
                 "inf"
             )
-        info = self.nmi
+        info: SAONMI = self.nmi  # type: ignore
         if info is None:
             raise ValueError("Cannot start a negotiation without a NMI")
         if self._preferences is not None and self.utility_file_name is None:
@@ -479,11 +479,10 @@ class GeniusNegotiator(SAONegotiator):
                     power_per_round=1.0,
                 )
             )
-        n_steps = (
-            -1
-            if info.n_steps is None or math.isinf(info.n_steps)
-            else int(info.n_steps)
-        )
+        n_rounds = info.n_steps
+        if n_rounds is not None and info.one_offer_per_step:
+            n_rounds = int(math.ceil(float(n_rounds) / info.n_negotiators))
+        n_steps = -1 if n_rounds is None or math.isinf(n_rounds) else int(n_rounds)
         n_seconds = (
             -1
             if info.time_limit is None or math.isinf(info.time_limit)
@@ -668,39 +667,47 @@ class GeniusNegotiator(SAONegotiator):
             )
         return response, tuple(outcome) if outcome else None
 
-    def __call__(self, state: SAOState, offer: Outcome | None) -> SAOResponse:
-        self.respond_sao(state, offer)
+    def __call__(self, state: SAOState) -> SAOResponse:
+        self.respond_sao(state)
         return SAOResponse(self.__my_last_response, self.__my_last_offer)
+
+    def _current_step(self, state):
+        s = state.step
+        if s is not None and self.nmi.one_offer_per_step:  # type: ignore
+            s = int(s / self.nmi.n_negotiators)
+        return s
 
     def respond_sao(
         self,
         state: SAOState,
-        offer: Outcome | None,
     ) -> None:
+        offer = state.current_offer
         if offer is None and self.__my_last_offer is not None and self._strict:
             raise ValueError(f"{self._me()} got counter with a None offer.")
         if offer is None:
             self.propose_sao(state)
             return
         proposer_id = self.nmi.genius_id(state.current_proposer)
+        current_step = self._current_step(state)
         received = self.java.receive_message(  # type: ignore
             self.java_uuid,
             proposer_id,
             "Offer",
             self._outcome2str(offer),
-            state.step,
+            current_step,
         )
         if self._strict and received.startswith(FAILED):
             raise ValueError(
-                f"{self._me()} failed to receive message in step {state.step}. {received.split(FIELD_SEP)[-1]}"
+                f"{self._me()} failed to receive message in step {current_step}. {received.split(FIELD_SEP)[-1]}"
             )
         self.propose_sao(state)
 
     def propose_sao(self, state: SAOState) -> SAOResponse:
-        if state.step == self.__my_last_offer_step:
+        current_step = self._current_step(state)
+        if current_step == self.__my_last_offer_step:
             return SAOResponse(self.__my_last_response, self.__my_last_offer)
         response, outcome = self.parse(
-            self.java.choose_action(self.java_uuid, state.step)  # type: ignore
+            self.java.choose_action(self.java_uuid, current_step)  # type: ignore
         )
         if response is None or (
             self._strict
@@ -715,13 +722,13 @@ class GeniusNegotiator(SAONegotiator):
             )
         ):
             raise ValueError(
-                f"{self._me()} returned a None counter offer in step {state.step}"
+                f"{self._me()} returned a None counter offer in step {current_step}"
             )
 
         self.__my_last_offer, self.__my_last_response, self.__my_last_offer_step = (
             outcome,
             response,
-            state.step,
+            current_step,
         )
         return SAOResponse(response, outcome)
 
@@ -734,14 +741,15 @@ class GeniusNegotiator(SAONegotiator):
     def respond(
         self,
         state: GBState,
-        offer: Outcome | None,
         source: str | None = None,
     ) -> ResponseType:
         if source is None:
             raise ValueError(
                 f"Respond is not supposed to be called directly for GeniusNegotiator"
             )
-        if state.step == self.__my_last_offer_step:
+        offer = state.threads[source].current_offer
+        current_step = self._current_step(state)
+        if current_step == self.__my_last_offer_step:
             return self.__my_last_response
         if offer is None and self.__my_last_offer is not None and self._strict:
             raise ValueError(f"{self._me()} got counter with a None offer.")
@@ -755,24 +763,25 @@ class GeniusNegotiator(SAONegotiator):
             proposer_id,
             "Offer",
             self._outcome2str(offer),
-            state.step,
+            current_step,
         )
         self.__my_last_received_offer = offer
         if self._strict and received.startswith(FAILED):
             raise ValueError(
-                f"{self._me()} failed to receive message in step {state.step}: {received.split(FIELD_SEP)[-1]}"
+                f"{self._me()} failed to receive message in step {current_step}: {received.split(FIELD_SEP)[-1]}"
             )
         self.propose(state)
         return self.__my_last_response
 
     def propose(self, state: GBState) -> Outcome | None:
         # saves one new offer/response every step
-        # if state.step >= 146:
+        # if current_step >= 146:
         #     breakpoint()
-        if state.step == self.__my_last_offer_step:
+        current_step = self._current_step(state)
+        if current_step == self.__my_last_offer_step:
             return self.__my_last_offer
         response, outcome = self.parse(
-            self.java.choose_action(self.java_uuid, state.step)  # type: ignore
+            self.java.choose_action(self.java_uuid, current_step)  # type: ignore
         )
         if response is None or (
             self._strict
@@ -787,7 +796,7 @@ class GeniusNegotiator(SAONegotiator):
             )
         ):
             raise ValueError(
-                f"{self._me()} returned a None counter offer in step {state.step}"
+                f"{self._me()} returned a None counter offer in step {current_step}"
             )
 
         if response == ResponseType.ACCEPT_OFFER:
@@ -795,6 +804,6 @@ class GeniusNegotiator(SAONegotiator):
         self.__my_last_offer, self.__my_last_response, self.__my_last_offer_step = (
             outcome,
             response,
-            state.step,
+            current_step,
         )
         return outcome

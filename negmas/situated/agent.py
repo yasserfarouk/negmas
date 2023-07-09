@@ -300,13 +300,17 @@ class Agent(Entity, EventSink, ConfigReader, Notifier, Rational, ABC):
             return
         if my_request:
             self.on_neg_request_accepted(req_id, mechanism)
-        self._running_negotiations[mechanism.id] = RunningNegotiationInfo(
-            extra=_request_dict[req_id].extra,
-            negotiator=neg.negotiator,
-            annotation=_request_dict[req_id].annotation,
-            uuid=req_id,
-            my_request=my_request,
-        )
+        if (
+            mechanism.id not in self._running_negotiations.keys()
+            or neg.negotiator is not None
+        ):
+            self._running_negotiations[mechanism.id] = RunningNegotiationInfo(
+                extra=_request_dict[req_id].extra,
+                negotiator=neg.negotiator,
+                annotation=_request_dict[req_id].annotation,
+                uuid=req_id,
+                my_request=my_request,
+            )
         _request_dict.pop(req_id, None)
 
     @abstractmethod
@@ -411,6 +415,17 @@ class Agent(Entity, EventSink, ConfigReader, Notifier, Rational, ABC):
             # I am the one who requested this negotiation
             info = self._requested_negotiations.get(req_id, None)
             if info and info.negotiator is not None:
+                if (
+                    mechanism.id not in self._running_negotiations.keys()
+                    or info.negotiator is not None
+                ):
+                    self._running_negotiations[mechanism.id] = RunningNegotiationInfo(
+                        extra=None,
+                        negotiator=info.negotiator,
+                        annotation=annotation,
+                        uuid=req_id,
+                        my_request=initiator == self.id,
+                    )
                 return info.negotiator
         negotiator = self._respond_to_negotiation_request(
             initiator=initiator,
@@ -431,6 +446,18 @@ class Agent(Entity, EventSink, ConfigReader, Notifier, Rational, ABC):
                 extra={"my_request": False},
                 requested=False,
             )
+
+            if (
+                mechanism.id not in self._running_negotiations.keys()
+                or negotiator is not None
+            ):
+                self._running_negotiations[mechanism.id] = RunningNegotiationInfo(
+                    extra=None,
+                    negotiator=negotiator,
+                    annotation=annotation,
+                    uuid=req_id,
+                    my_request=initiator == self.id,
+                )
         return negotiator
 
     def on_simulation_step_ended(self):

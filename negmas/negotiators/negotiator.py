@@ -1,13 +1,15 @@
 from __future__ import annotations
 
-from abc import ABC
-from typing import TYPE_CHECKING, Any
+from abc import ABC, abstractmethod
+from typing import TYPE_CHECKING, Any, Callable
 
 import negmas.warnings as warnings
 from negmas.common import (
+    Action,
     MechanismState,
     NegotiatorMechanismInterface,
     PreferencesChange,
+    ReactiveStrategy,
 )
 from negmas.events import Notifiable, Notification
 from negmas.types import Rational
@@ -416,3 +418,11 @@ class Negotiator(Rational, Notifiable, ABC):
 
     def __str__(self):
         return f"{self.name}"
+
+    # def __call__(self, state: MechanismState) -> Action:
+    #     """
+    #     Implements the negotiation strategy
+    #     """
+    #     raise NotImplementedError(
+    #         f"__call__ is not implemented. The MRO is\n {type(self).__mro__}"
+    #     )

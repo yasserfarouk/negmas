@@ -193,7 +193,7 @@ the ufuns will be changed appropriately.
 Java Support
 ------------
 
-Developping agents and negotiators in Java is no longer supported. This means that `jnegmas` is no longer needed or used.
+Developing agents and negotiators in Java is no longer supported. This means that `jnegmas` is no longer needed or used.
 
 
 Other Changes
@@ -233,3 +233,21 @@ Most of these changes have no effect on well-behaving code using the library:
      negotiation. It is a waste of resources to compute whatever
      `on_preferences_changed()` is computing in such cases as the preferences
      will never be really used.
+
+0.9->0.10 Upgrade Guide
+=======================
+
+NegMAS 0.10 is *not* backward compatible with NegMAS 0.9 and to use it you
+will need to make some modifications to your code. This guide aims at helping
+you achieve this with minimal hassle.
+
+================================  ===================================  ===============================================
+ from                              to                                   Notes
+================================  ===================================  ===============================================
+def respond(self,state, offer)     def respond(self, state)            SAO negotiator's respond() does not receive the offer anymore. You can get the offer as `state.current_offer`
+
+Other Changes
+-------------
+
+- You can now step any world focusing on negotiations instead of simulation step boundaries. See documentation of `World.step` for details which helps with exposing NegMAS worlds as RL environments.
+- You can now pass negotiation actions to the `SAOMechanism` (and to some extend the `GBMechanism` ) which is useful when using RL on negmas.

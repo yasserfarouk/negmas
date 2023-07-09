@@ -422,10 +422,9 @@ You can pick random valid or invalid values for the issue:
 
 .. parsed-literal::
 
-    [['to be',
-      '20221221H184049634058bzeXNr4jnot to be20221221H1840496340756yHxOxXB'],
-     [9, 14],
-     [0.4449890262755162, 1.6962868615831064]]
+    [['to be', '20230708H150401943599jJTGt6qBto be20230708H150401943620XtRgNy0I'],
+     [6, 10],
+     [0.6118970848141451, 1.928063278403899]]
 
 
 
@@ -536,7 +535,7 @@ for the last three issues given above:
 
 .. parsed-literal::
 
-    [True, True]
+    [False, False]
 
 
 
@@ -1666,33 +1665,43 @@ respond to every offer in parallel.
 .. code:: ipython3
 
     from concurrent.futures import ThreadPoolExecutor
+    from attr import define
+
     class ParallelResponseMechanism(Mechanism):
-        def __init__(self, *args, **kwargs):
-            super().__init__(*args, **kwargs)
-            self.current_offer = None
+        def __init__(self, *args, initial_state=None, **kwargs):
+            super().__init__(*args,
+                             initial_state=SAOState() if not initial_state else initial_state,
+                             **kwargs)
+            self.state.current_offer = None
             self.current_offerer = -1
 
-        def __call__(self, state):
+        def __call__(self, state, action=None):
             n_agents = len(self.negotiators)
             current = self.negotiators[(self.current_offerer + 1) % n_agents]
-            self.current_offer = current.propose(self.state)
+            offer = None
+            if action:
+                offer = action.pop(current.id, None)
+            self.state.current_offer = current.propose(self.state) if not offer else offer
 
-            def get_response(negotiator, offer=self.current_offer,
-                             state=self.state):
-                return negotiator.respond(state, offer, self.current_offerer)
+            def get_response(negotiator, state=self.state):
+                if action:
+                    response = action.pop(negotiator.id, None)
+                    if response:
+                        return response
+                return negotiator.respond(state, self.current_offerer)
 
             with ThreadPoolExecutor(4) as executor:
-                responses = executor.map(get_response, self.negotiators)
+                responses = executor.map(get_response, [_ for _ in self.negotiators if _.id != current.id])
             self.current_offerer = (self.current_offerer + 1) % n_agents
             if all(_== ResponseType.ACCEPT_OFFER for _ in responses):
-                state.agreement = self.current_offer
+                state.agreement = self.state.current_offer
             if any(_== ResponseType.END_NEGOTIATION for _ in responses):
                 state.broken = True
             return MechanismStepResult(state=state)
 
 
-We needed only to override the ``round`` method which defines one round
-of the negotiation. The protocol goes as follows:
+We needed only to override the ``__call__`` method which defines one
+round of the negotiation. The protocol goes as follows:
 
 1. Ask the next negotiator to propose.
 2. Get the response of all negotiators (using the thread-pool)
@@ -1707,6 +1716,11 @@ handled by the base ``Mechanism`` class. Nor did we need to handle
 adding agents to the negotiation, removing them (for dynamic protocols),
 checking for errors, etc.
 
+The ``__call__`` method receives the current mechanism state and an
+optional action. If the action is passed, then it is expected that the
+corresponding negotiator will not be called and will be just used
+instead of calling the corresponding negotiator.
+
 Agents can now engage in interactions with this protocol as easily as
 any built-in protocol:
 
@@ -1717,15 +1731,6 @@ any built-in protocol:
     p.add(LimitedOutcomesNegotiator(name='buyer', acceptable_outcomes=[(1,), (4,), (3,)]))
     state = p.run()
     p.state.agreement
-
-
-
-
-.. parsed-literal::
-
-    (3,)
-
-
 
 The negotiation ran with the expected results
 
@@ -1770,30 +1775,263 @@ Our mechanism keeps a history in the form of a list of
           <th>timedout</th>
           <th>agreement</th>
           <th>results</th>
-          <th>n_negotiators</th>
-          <th>has_error</th>
+          <th>...</th>
           <th>error_details</th>
+          <th>threads</th>
+          <th>last_thread</th>
+          <th>current_offer</th>
+          <th>current_proposer</th>
+          <th>current_proposer_agent</th>
+          <th>n_acceptances</th>
+          <th>new_offers</th>
+          <th>new_offerer_agents</th>
+          <th>last_negotiator</th>
         </tr>
       </thead>
       <tbody>
         <tr>
           <th>0</th>
-          <td>False</td>
+          <td>True</td>
           <td>False</td>
           <td>True</td>
           <td>0</td>
-          <td>0.0</td>
-          <td>0.0</td>
+          <td>0.000000</td>
+          <td>0.000000</td>
           <td>False</td>
           <td>False</td>
-          <td>[3]</td>
           <td>None</td>
-          <td>2</td>
-          <td>False</td>
+          <td>None</td>
+          <td>...</td>
           <td></td>
+          <td>{}</td>
+          <td></td>
+          <td>(5,)</td>
+          <td>None</td>
+          <td>None</td>
+          <td>0</td>
+          <td>&lt;class 'list'&gt;</td>
+          <td>&lt;class 'list'&gt;</td>
+          <td>None</td>
+        </tr>
+        <tr>
+          <th>1</th>
+          <td>True</td>
+          <td>False</td>
+          <td>True</td>
+          <td>1</td>
+          <td>0.001787</td>
+          <td>0.181818</td>
+          <td>False</td>
+          <td>False</td>
+          <td>None</td>
+          <td>None</td>
+          <td>...</td>
+          <td></td>
+          <td>{}</td>
+          <td></td>
+          <td>(4,)</td>
+          <td>None</td>
+          <td>None</td>
+          <td>0</td>
+          <td>&lt;class 'list'&gt;</td>
+          <td>&lt;class 'list'&gt;</td>
+          <td>None</td>
+        </tr>
+        <tr>
+          <th>2</th>
+          <td>True</td>
+          <td>False</td>
+          <td>True</td>
+          <td>2</td>
+          <td>0.002572</td>
+          <td>0.272727</td>
+          <td>False</td>
+          <td>False</td>
+          <td>None</td>
+          <td>None</td>
+          <td>...</td>
+          <td></td>
+          <td>{}</td>
+          <td></td>
+          <td>(5,)</td>
+          <td>None</td>
+          <td>None</td>
+          <td>0</td>
+          <td>&lt;class 'list'&gt;</td>
+          <td>&lt;class 'list'&gt;</td>
+          <td>None</td>
+        </tr>
+        <tr>
+          <th>3</th>
+          <td>True</td>
+          <td>False</td>
+          <td>True</td>
+          <td>3</td>
+          <td>0.003968</td>
+          <td>0.363636</td>
+          <td>False</td>
+          <td>False</td>
+          <td>None</td>
+          <td>None</td>
+          <td>...</td>
+          <td></td>
+          <td>{}</td>
+          <td></td>
+          <td>(4,)</td>
+          <td>None</td>
+          <td>None</td>
+          <td>0</td>
+          <td>&lt;class 'list'&gt;</td>
+          <td>&lt;class 'list'&gt;</td>
+          <td>None</td>
+        </tr>
+        <tr>
+          <th>4</th>
+          <td>True</td>
+          <td>False</td>
+          <td>True</td>
+          <td>4</td>
+          <td>0.004516</td>
+          <td>0.454545</td>
+          <td>False</td>
+          <td>False</td>
+          <td>None</td>
+          <td>None</td>
+          <td>...</td>
+          <td></td>
+          <td>{}</td>
+          <td></td>
+          <td>(2,)</td>
+          <td>None</td>
+          <td>None</td>
+          <td>0</td>
+          <td>&lt;class 'list'&gt;</td>
+          <td>&lt;class 'list'&gt;</td>
+          <td>None</td>
+        </tr>
+        <tr>
+          <th>5</th>
+          <td>True</td>
+          <td>False</td>
+          <td>True</td>
+          <td>5</td>
+          <td>0.004979</td>
+          <td>0.545455</td>
+          <td>False</td>
+          <td>False</td>
+          <td>None</td>
+          <td>None</td>
+          <td>...</td>
+          <td></td>
+          <td>{}</td>
+          <td></td>
+          <td>(1,)</td>
+          <td>None</td>
+          <td>None</td>
+          <td>0</td>
+          <td>&lt;class 'list'&gt;</td>
+          <td>&lt;class 'list'&gt;</td>
+          <td>None</td>
+        </tr>
+        <tr>
+          <th>6</th>
+          <td>True</td>
+          <td>False</td>
+          <td>True</td>
+          <td>6</td>
+          <td>0.005357</td>
+          <td>0.636364</td>
+          <td>False</td>
+          <td>False</td>
+          <td>None</td>
+          <td>None</td>
+          <td>...</td>
+          <td></td>
+          <td>{}</td>
+          <td></td>
+          <td>(5,)</td>
+          <td>None</td>
+          <td>None</td>
+          <td>0</td>
+          <td>&lt;class 'list'&gt;</td>
+          <td>&lt;class 'list'&gt;</td>
+          <td>None</td>
+        </tr>
+        <tr>
+          <th>7</th>
+          <td>True</td>
+          <td>False</td>
+          <td>True</td>
+          <td>7</td>
+          <td>0.005726</td>
+          <td>0.727273</td>
+          <td>False</td>
+          <td>False</td>
+          <td>None</td>
+          <td>None</td>
+          <td>...</td>
+          <td></td>
+          <td>{}</td>
+          <td></td>
+          <td>(4,)</td>
+          <td>None</td>
+          <td>None</td>
+          <td>0</td>
+          <td>&lt;class 'list'&gt;</td>
+          <td>&lt;class 'list'&gt;</td>
+          <td>None</td>
+        </tr>
+        <tr>
+          <th>8</th>
+          <td>True</td>
+          <td>False</td>
+          <td>True</td>
+          <td>8</td>
+          <td>0.006133</td>
+          <td>0.818182</td>
+          <td>False</td>
+          <td>False</td>
+          <td>None</td>
+          <td>None</td>
+          <td>...</td>
+          <td></td>
+          <td>{}</td>
+          <td></td>
+          <td>(5,)</td>
+          <td>None</td>
+          <td>None</td>
+          <td>0</td>
+          <td>&lt;class 'list'&gt;</td>
+          <td>&lt;class 'list'&gt;</td>
+          <td>None</td>
+        </tr>
+        <tr>
+          <th>9</th>
+          <td>True</td>
+          <td>False</td>
+          <td>True</td>
+          <td>9</td>
+          <td>0.006545</td>
+          <td>0.909091</td>
+          <td>False</td>
+          <td>False</td>
+          <td>None</td>
+          <td>None</td>
+          <td>...</td>
+          <td></td>
+          <td>{}</td>
+          <td></td>
+          <td>(4,)</td>
+          <td>None</td>
+          <td>None</td>
+          <td>0</td>
+          <td>&lt;class 'list'&gt;</td>
+          <td>&lt;class 'list'&gt;</td>
+          <td>None</td>
         </tr>
       </tbody>
     </table>
+    <p>10 rows × 22 columns</p>
     </div>
 
 
@@ -1903,7 +2141,7 @@ to confirm that the current offer and its source are stored.
           <td>0.000000</td>
           <td>False</td>
           <td>False</td>
-          <td>None</td>
+          <td>(5,)</td>
           <td>none</td>
         </tr>
         <tr>
@@ -1913,7 +2151,7 @@ to confirm that the current offer and its source are stored.
           <td>0.181818</td>
           <td>False</td>
           <td>False</td>
-          <td>None</td>
+          <td>(1,)</td>
           <td>none</td>
         </tr>
         <tr>
@@ -1923,7 +2161,7 @@ to confirm that the current offer and its source are stored.
           <td>0.272727</td>
           <td>False</td>
           <td>False</td>
-          <td>None</td>
+          <td>(5,)</td>
           <td>none</td>
         </tr>
         <tr>
@@ -1933,7 +2171,7 @@ to confirm that the current offer and its source are stored.
           <td>0.363636</td>
           <td>False</td>
           <td>False</td>
-          <td>None</td>
+          <td>(3,)</td>
           <td>none</td>
         </tr>
       </tbody>
@@ -2002,7 +2240,7 @@ acceptable outcomes in our case):
           <td>0.000000</td>
           <td>False</td>
           <td>False</td>
-          <td>None</td>
+          <td>(5,)</td>
           <td>none</td>
         </tr>
         <tr>
@@ -2012,7 +2250,7 @@ acceptable outcomes in our case):
           <td>0.285714</td>
           <td>False</td>
           <td>False</td>
-          <td>None</td>
+          <td>(1,)</td>
           <td>none</td>
         </tr>
         <tr>
@@ -2022,7 +2260,7 @@ acceptable outcomes in our case):
           <td>0.428571</td>
           <td>False</td>
           <td>False</td>
-          <td>None</td>
+          <td>(2,)</td>
           <td>none</td>
         </tr>
         <tr>
@@ -2032,7 +2270,7 @@ acceptable outcomes in our case):
           <td>0.571429</td>
           <td>False</td>
           <td>False</td>
-          <td>None</td>
+          <td>(3,)</td>
           <td>none</td>
         </tr>
         <tr>
@@ -2042,7 +2280,7 @@ acceptable outcomes in our case):
           <td>0.714286</td>
           <td>False</td>
           <td>False</td>
-          <td>None</td>
+          <td>(0,)</td>
           <td>none</td>
         </tr>
         <tr>
@@ -2052,7 +2290,7 @@ acceptable outcomes in our case):
           <td>0.857143</td>
           <td>False</td>
           <td>False</td>
-          <td>None</td>
+          <td>(4,)</td>
           <td>none</td>
         </tr>
       </tbody>
@@ -2122,7 +2360,7 @@ agree upon:
           <td>0.0</td>
           <td>False</td>
           <td>False</td>
-          <td>None</td>
+          <td>(3,)</td>
           <td>none</td>
         </tr>
       </tbody>

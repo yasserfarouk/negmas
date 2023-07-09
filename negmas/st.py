@@ -83,7 +83,7 @@ class VetoSTMechanism(Mechanism):
         """
         return self.random_outcomes(1)[0]
 
-    def __call__(self, state: STState) -> MechanismStepResult:
+    def __call__(self, state: STState, action=None) -> MechanismStepResult:
         """Single round of the protocol"""
 
         new_offer = self.next_outcome(state.current_offer)
@@ -334,7 +334,7 @@ class HillClimbingSTMechanism(VetoSTMechanism):
             random.randint(0, len(self.possible_offers)) - 1
         )
 
-    def __call__(self, state: STState) -> MechanismStepResult:
+    def __call__(self, state: STState, action=None) -> MechanismStepResult:
         """Single round of the protocol"""
 
         new_offer = self.next_outcome(state.current_offer)

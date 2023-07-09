@@ -88,7 +88,7 @@ def test_buy_sell_tft_tft():
 
 def test_buy_sell_asp_tft():
     session = run_buyer_seller(BoulwareTBNegotiator, NaiveTitForTatNegotiator)
-    assert session.agreement
+    assert session.state.agreement
 
 
 def test_buy_sell_micro():

@@ -63,8 +63,8 @@ class SAONegotiator(GBNegotiator):
             type_name=type_name,
         )
         self.__end_negotiation = False
-        self.my_last_proposal: Outcome | None = None
-        self._my_last_proposal_utility: Value | None = None
+        self.__my_last_proposal: Outcome | None = None
+        self.__my_last_proposal_time: int = -1
         self.add_capabilities(
             {"respond": True, "propose": can_propose, "max-proposals": 1}
         )
@@ -105,21 +105,25 @@ class SAONegotiator(GBNegotiator):
                 f"{self.name} asked to propose in a negotiation that is not running:\n{state}"
             )
             return None
-        return self.propose(state=state)
+        if (
+            self.__my_last_proposal_time == state.step
+            and self.__my_last_proposal is not None
+        ):
+            return self.__my_last_proposal
+        self.__my_last_proposal = self.propose(state=state)
+        self.__my_last_proposal_time = state.step
+        return self.__my_last_proposal
 
-    @abstractmethod
     def propose(self, state: SAOState) -> Outcome | None:
-        ...
+        return None
 
-    def respond(
-        self, state: SAOState, offer: Outcome, source: str | None = None
-    ) -> ResponseType:
+    def respond(self, state: SAOState, source: str | None = None) -> ResponseType:
         """
         Called to respond to an offer. This is the method that should be overriden to provide an acceptance strategy.
 
         Args:
             state: a `SAOState` giving current state of the negotiation.
-            offer: offer being tested
+            source: The ID of the negotiator that gave this offer
 
         Returns:
             ResponseType: The response to the offer
@@ -128,47 +132,39 @@ class SAONegotiator(GBNegotiator):
             - The default implementation never ends the negotiation
             - The default implementation asks the negotiator to `propose`() and accepts the `offer` if its utility was
               at least as good as the offer that it would have proposed (and above the reserved value).
+            - The current offer to respond to can be accessed through `state.current_offer`
 
         """
+        offer = state.current_offer
         # Always reject offers that we do not know or if we have no kknown preferences
         if offer is None or self.preferences is None:
             return ResponseType.REJECT_OFFER
-        offer_util = None
-        if self.has_ufun:
-            offer_util = self.ufun(offer)  # type: ignore
         # if the offer is worse than the reserved value or its utility is less than that of the reserved outcome, reject it
         if (
-            self.reserved_value is not None
-            and offer_util is not None
-            and offer_util < self.reserved_value
+            self.reserved_value is not None and self.preferences.is_worse(offer, None)
         ) or (
             self.reserved_outcome is not None
             and self.preferences.is_worse(offer, self.reserved_outcome)
         ):
             return ResponseType.REJECT_OFFER
         # find my last proposal (if any)
-        utility = None
-        if self._my_last_proposal_utility is not None:
-            utility = self._my_last_proposal_utility
+        myoffer = self.__my_last_proposal
         # if I never proposed, find what would I have proposed at this state and its utility
-        if utility is None:
+        if myoffer is None:
             myoffer = self.propose_(state=state)
             if myoffer is None:
-                return ResponseType.NO_RESPONSE
-            utility = self.ufun(myoffer)  # type: ignore
+                return ResponseType.REJECT_OFFER
         # accept only if I know what I would have proposed at this state (or the previous one) and it was worse than what I am about to proposed
-        if utility is not None and offer_util is not None and offer_util >= utility:
+        if self.preferences.is_not_worse(offer, myoffer):
             return ResponseType.ACCEPT_OFFER
         return ResponseType.REJECT_OFFER
 
-    def respond_(
-        self, state: SAOState, offer: Outcome, source: str | None = None
-    ) -> ResponseType:
+    def respond_(self, state: SAOState, source: str | None = None) -> ResponseType:
         """The method to be called directly by the mechanism (through `counter` ) to respond to an offer.
 
         Args:
             state: a `SAOState` giving current state of the negotiation.
-            offer: the offer being responded to.
+            source: The ID of the negotiator that gave the offer.
 
         Returns:
             ResponseType: The response to the offer. Possible values are:
@@ -189,6 +185,7 @@ class SAONegotiator(GBNegotiator):
               at least as good as the offer that it would have proposed (and above the reserved value).
 
         """
+        offer = state.current_offer
         if not state.running:
             warn(
                 f"{self.name} asked to respond to a negotiation that is not running:\n{state}"
@@ -197,22 +194,26 @@ class SAONegotiator(GBNegotiator):
         if self.__end_negotiation:
             return ResponseType.END_NEGOTIATION
         try:
-            return self.respond(state=state, offer=offer, source=source)
+            return self.respond(state=state, source=source)
         except TypeError:
-            return self.respond(state=state, offer=offer)
+            return self.respond(state=state)
 
-    def __call__(self, state: SAOState, offer: Outcome | None) -> SAOResponse:
+    def __call__(self, state: SAOState) -> SAOResponse:
         """
-        Called by the mechanism to counter the offer. It just calls `respond_` and `propose_` as needed.
+        Called by `Negotiator.__call__` (which is called by the mechanism) to counter the offer.
+        It just calls `respond_` and `propose_` as needed.
 
         Args:
             state: `SAOState` giving current state of the negotiation.
-            offer: The offer to be countered. None means no offer and the agent is requested to propose an offer
 
         Returns:
             Tuple[ResponseType, Outcome]: The response to the given offer with a counter offer if the response is REJECT
 
+        Remarks:
+            - The current offer is accessible through state.current_offer
+
         """
+        offer = state.current_offer
         if self.__end_negotiation:
             return SAOResponse(ResponseType.END_NEGOTIATION, None)
         if self.has_ufun:
@@ -224,13 +225,11 @@ class SAONegotiator(GBNegotiator):
         try:
             response = self.respond_(
                 state=state,
-                offer=offer,
                 source=state.current_proposer if state.current_proposer else "",
             )
         except TypeError:
             response = self.respond_(
                 state=state,
-                offer=offer,
             )
         if response != ResponseType.REJECT_OFFER:
             return SAOResponse(response, offer)

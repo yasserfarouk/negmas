@@ -20,9 +20,11 @@ from negmas import warnings
 from negmas.checkpoints import CheckpointMixin
 from negmas.common import (
     DEFAULT_JAVA_PORT,
+    Action,
     MechanismState,
     NegotiatorInfo,
     NegotiatorMechanismInterface,
+    ReactiveStrategy,
 )
 from negmas.events import Event, EventSource
 from negmas.helpers import snake_case
@@ -893,20 +895,30 @@ class Mechanism(NamedObject, EventSource, CheckpointMixin, ABC):
         return True
 
     @abstractmethod
-    def __call__(self, state: MechanismState) -> MechanismStepResult:
+    def __call__(
+        self, state: MechanismState, action: Action | None = None
+    ) -> MechanismStepResult:
         """
         Implements a single step of the mechanism. Override this!
+
+        Args:
+            state: The mechanism state. When overriding, set the type of this
+                   to the specific `MechanismState` descendent for your mechanism.
+            action: An optional action of the next negotiator. If given, the call
+                   should just execute the action without calling the next negotiator.
 
         Returns:
             `MechanismStepResult` showing the result of the negotiation step
         """
         ...
 
-    def step(self) -> MechanismState:
+    def step(self, action: Action | None = None) -> MechanismState:
         """Runs a single step of the mechanism.
 
         Returns:
             MechanismState: The state of the negotiation *after* the round is conducted
+            action: An optional action of the next negotiator. If given, the call
+                   should just execute the action without calling the next negotiator.
 
         Remarks:
 
@@ -1040,7 +1052,7 @@ class Mechanism(NamedObject, EventSource, CheckpointMixin, ABC):
         )
         self._last_start = step_start
         self._current_state.waiting = False
-        result = self(self._current_state)
+        result = self(self._current_state, action=action)
         self._current_state = result.state
         step_time = time.perf_counter() - step_start
         self._stats["round_times"].append(step_time)
@@ -1430,7 +1442,7 @@ class Mechanism(NamedObject, EventSource, CheckpointMixin, ABC):
         """A method for plotting a negotiation session."""
         _ = kwargs
 
-    def _get_ami(self, negotiator: Negotiator) -> NegotiatorMechanismInterface:  # type: ignore
+    def _get_ami(self, negotiator: ReactiveStrategy) -> NegotiatorMechanismInterface:  # type: ignore
         _ = negotiator
         warnings.deprecated(f"_get_ami is depricated. Use `get_nmi` instead of it")
         return self.nmi

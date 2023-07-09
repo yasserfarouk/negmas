@@ -108,8 +108,9 @@ class MySyncController(SAOSyncController):
         self.end_after = end_after
         self.offer_none_after = offer_none_after
 
-    def respond(self, negotiator_id, state, offer, source: str | None = None):
-        response = super().respond(negotiator_id, state, offer, source)
+    def respond(self, negotiator_id, state, source: str | None = None):
+        offer = state.current_offer
+        response = super().respond(negotiator_id, state, source)
         self.received_offers[negotiator_id][state.step].append(offer)
         if response == ResponseType.WAIT:
             self.wait_states[negotiator_id][state.step] += 1
@@ -182,7 +183,7 @@ class InfiniteLoopNegotiator(RandomNegotiator):
         super().__init__(*args, **kwargs)
         self.__stop = False
 
-    def __call__(self, state, offer):
+    def __call__(self, state):
         while not self.__stop:
             pass
 
@@ -208,7 +209,8 @@ class TimeWaster(RandomNegotiator):
             self.n_waits = random.randint(0, n_waits)
         self.waited = 0
 
-    def __call__(self, state, offer):
+    def __call__(self, state):
+        offer = state.current_offer
         if not self.nmi:
             return None
         if self.waited < self.n_waits and state.step > 0:
@@ -789,7 +791,7 @@ class MyNegotiator(SAONegotiator):
     def propose(self, state):
         return (3.0, 2, 1.0)
 
-    def respond(self, state, offer, source=None):
+    def respond(self, state, source=None):
         if state.step < 5:
             return ResponseType.REJECT_OFFER
         return ResponseType.ACCEPT_OFFER

@@ -84,7 +84,7 @@ negotiators is less than or equal to one:
             """
             return sum(u(outcome) for u in self.ufuns) <= (1.0 + 1e-3)
 
-        def __call__(self, state) -> MechanismStepResult:
+        def __call__(self, state, action=None) -> MechanismStepResult:
             """One round of the mechanism"""
             if len(self.negotiators) != 2:
                 state.has_error=True
@@ -181,7 +181,7 @@ Now let’s try our brand new mechanism and negotiator
 
 .. parsed-literal::
 
-    Agreement: (0.5000000026316054, 0.5000000052509953)
+    Agreement: (0.4999999969009592, 0.49999999749498625)
 
 
 As expected, the two negotiators agreed on the expected nash point (0.5,
@@ -362,7 +362,7 @@ We can then define the mechanism class itself:
             if added:
                 self.state.discounts.append(discount)
 
-        def __call__(self, state) -> MechanismStepResult:
+        def __call__(self, state, action=None) -> MechanismStepResult:
             """One round of the mechanism"""
             if state.step == 0:
                 if len(self.negotiators) != 2:
@@ -494,7 +494,7 @@ Now we can run negotiations using our new protocol and negotiator:
 
 .. parsed-literal::
 
-    Agreed to: (0.6489341268961364, 0.3510658731038636) after 406 steps
+    Agreed to: (0.5587054405718088, 0.44129455942819124) after 2457 steps
 
 
 
