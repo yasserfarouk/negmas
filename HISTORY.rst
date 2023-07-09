@@ -1,6 +1,12 @@
 History
 =======
 
+Release 0.10
+-------------
+
+* removing offer from SAO's respond() method.
+* allowing users to step worlds from the point of view of a set of agents ignoring simulation step boundaries and passing external actions if needed. See World.step() for details.
+
 Release 0.9.8
 -------------
 
