@@ -46,6 +46,9 @@ Overview
 .. image:: https://mybinder.org/badge_logo.svg
     :target: https://mybinder.org/v2/gh/yasserfarouk/negmas/master
 
+.. image:: https://static.pepy.tech/personalized-badge/negmas?period=total&units=international_system&left_color=black&right_color=blue&left_text=Downloads
+ :target: https://pepy.tech/project/negmas
+
 .. end-badges
 
 .. container:: twocol
