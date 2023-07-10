@@ -245,7 +245,7 @@ class SAOMechanism(Mechanism):
 
         Args:
             state: Current state of the mechanism
-            action: The action to use as a mapping from negotiator ID to its response.
+            action: The action to use as a mapping from negotiator ID (key) to its response (value).
                     If not given, the negotiator(s) is called to generate its response.
         """
         state = self._current_state

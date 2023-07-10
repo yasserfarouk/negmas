@@ -896,7 +896,7 @@ class Mechanism(NamedObject, EventSource, CheckpointMixin, ABC):
 
     @abstractmethod
     def __call__(
-        self, state: MechanismState, action: Action | None = None
+        self, state: MechanismState, action: dict[str, Action | None] | None = None
     ) -> MechanismStepResult:
         """
         Implements a single step of the mechanism. Override this!
@@ -904,7 +904,7 @@ class Mechanism(NamedObject, EventSource, CheckpointMixin, ABC):
         Args:
             state: The mechanism state. When overriding, set the type of this
                    to the specific `MechanismState` descendent for your mechanism.
-            action: An optional action of the next negotiator. If given, the call
+            action: An optional action (value) of the next negotiator (key). If given, the call
                    should just execute the action without calling the next negotiator.
 
         Returns:
@@ -912,12 +912,12 @@ class Mechanism(NamedObject, EventSource, CheckpointMixin, ABC):
         """
         ...
 
-    def step(self, action: Action | None = None) -> MechanismState:
+    def step(self, action: dict[str, Action | None] | None = None) -> MechanismState:
         """Runs a single step of the mechanism.
 
         Returns:
             MechanismState: The state of the negotiation *after* the round is conducted
-            action: An optional action of the next negotiator. If given, the call
+            action: An optional action (value) for the next negotiator (key). If given, the call
                    should just execute the action without calling the next negotiator.
 
         Remarks:

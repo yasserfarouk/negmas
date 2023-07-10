@@ -1478,7 +1478,7 @@ class World(EventSink, EventSource, ConfigReader, NamedObject, CheckpointMixin, 
         self,
         mechanism,
         force_immediate_signing,
-        action: Action | None = None,
+        action: dict[str, Action | None] | None = None,
     ) -> tuple[Contract | None, bool]:
         """Steps a mechanism one step.
 
@@ -1517,7 +1517,7 @@ class World(EventSink, EventSource, ConfigReader, NamedObject, CheckpointMixin, 
 
         agreement, is_running = result.agreement, result.running
         if agreement is not None or not is_running:
-            negotiation = self._negotiations.get(mechanism.id, None)
+            negotiation = self._negotiations.get(mechanism.uuid, None)
             if agreement is None:
                 self._register_failed_negotiation(mechanism.nmi, negotiation)
             else:
@@ -1537,7 +1537,7 @@ class World(EventSink, EventSource, ConfigReader, NamedObject, CheckpointMixin, 
         n_steps: int | float | None,
         force_immediate_signing: bool,
         partners: list[list[Agent]],
-        action: dict[str, Action | None] | None = None,
+        action: dict[str, dict[str, Action | None]] | None = None,
     ) -> tuple[list[Contract | None], list[bool], int, int, int, int]:
         """
         Runs all bending negotiations.
@@ -1627,7 +1627,7 @@ class World(EventSink, EventSource, ConfigReader, NamedObject, CheckpointMixin, 
         n_neg_steps: int | None = None,
         n_mechanisms: int | None = None,
         actions: dict[str, Any] | None = None,
-        neg_actions: dict[str, Action | None] | None = None,
+        neg_actions: dict[str, dict[str, Action | None]] | None = None,
     ) -> bool:
         """
         A single simulation step.
@@ -1636,8 +1636,10 @@ class World(EventSink, EventSource, ConfigReader, NamedObject, CheckpointMixin, 
             n_mechanisms: Number of mechanisms to step (None for all)
             n_neg_steps: Number of steps for every mechanism (None to complete one simulation step)
             actions: Mapping of agent IDs to their actions. The agent will be asked to act only if this is not given
-            neg_actions: Mapping of negotiator IDs to corresponding negotiation action (e.g. offer in SAO) for every mechanism.
+            neg_actions: Mapping of mechanism IDs to a negotiator action.
                          Negotiators will be called upon to act only if no action is passed here.
+                         This is a dict with keys corresponding to mechanism IDs and values corresponding to a dict mapping
+                         a negotiator (key) to its action (value)
 
         Remarks:
 
@@ -1675,7 +1677,16 @@ class World(EventSink, EventSource, ConfigReader, NamedObject, CheckpointMixin, 
         if self.current_step >= self.n_steps:
             return False
         cross_step_boundary = n_neg_steps is not None
+        existing = {
+            _.mechanism.id for _ in self._negotiations.values() if _ is not None
+        }
+        passed = set(neg_actions.keys()) if neg_actions else set()
+        missing = passed.difference(existing)
+        assert (
+            not missing
+        ), f"Mechanisms not found:\n{existing=} ({len(existing)})\n{passed=} ({len(passed)})\n{missing=} ({len(missing)})"
 
+        #
         def _negotiate(n_steps_to_run: int | None = n_neg_steps) -> bool:
             """Runs all bending negotiations. Returns True if all negotiations are done"""
             if n_steps_to_run is not None and n_steps_to_run == 0:
