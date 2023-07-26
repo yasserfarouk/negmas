@@ -236,7 +236,9 @@ class World(EventSink, EventSource, ConfigReader, NamedObject, CheckpointMixin, 
         disable_agent_printing: bool = False,
         name: str | None = None,
         id: str | None = None,
+        debug: bool = False,
     ):
+        self._debug = debug
         self.info = None
         self.disable_agent_printing = disable_agent_printing
         self.ignore_simulation_exceptions = ignore_simulation_exceptions
@@ -1515,9 +1517,13 @@ class World(EventSink, EventSource, ConfigReader, NamedObject, CheckpointMixin, 
                         list(zip(itertools.repeat(self._current_step), exceptions))
                     )
 
-        agreement, is_running = result.agreement, result.running
+        agreement, is_running = result.agreement, not result.ended
         if agreement is not None or not is_running:
-            negotiation = self._negotiations.get(mechanism.uuid, None)
+            negotiation = self._negotiations.get(mechanism.id, None)
+            if self._debug:
+                assert (
+                    negotiation is not None
+                ), f"{mecahanism.id} just finished but it is not in the set of running negotiations!!"
             if agreement is None:
                 self._register_failed_negotiation(mechanism.nmi, negotiation)
             else:
@@ -1527,8 +1533,7 @@ class World(EventSink, EventSource, ConfigReader, NamedObject, CheckpointMixin, 
                     self._tobe_signed_at(agreement, force_immediate_signing),
                 )
             self._log_negotiation(negotiation)
-            if negotiation:
-                self._negotiations.pop(mechanism.uuid, None)
+            self._negotiations.pop(mechanism.id, None)
         return contract, is_running
 
     def _step_negotiations(
@@ -1677,16 +1682,21 @@ class World(EventSink, EventSource, ConfigReader, NamedObject, CheckpointMixin, 
         if self.current_step >= self.n_steps:
             return False
         cross_step_boundary = n_neg_steps is not None
-        existing = {
-            _.mechanism.id for _ in self._negotiations.values() if _ is not None
-        }
-        passed = set(neg_actions.keys()) if neg_actions else set()
-        missing = passed.difference(existing)
-        assert (
-            not missing
-        ), f"Mechanisms not found:\n{existing=} ({len(existing)})\n{passed=} ({len(passed)})\n{missing=} ({len(missing)})"
+        if self._debug:
+            existing = {
+                _.mechanism.id for _ in self._negotiations.values() if _ is not None
+            }
+            passed = set(neg_actions.keys()) if neg_actions else set()
+            missing = passed.difference(existing)
+            assert (
+                not missing
+            ), f"Mechanisms not found:\n{existing=} ({len(existing)})\n{passed=} ({len(passed)})\n{missing=} ({len(missing)})"
 
         #
+        _n_registered_negotiations_before = len(self._negotiations)
+        n_steps_broken, n_steps_success = 0, 0
+        n_broken, n_success = 0, 0
+
         def _negotiate(n_steps_to_run: int | None = n_neg_steps) -> bool:
             """Runs all bending negotiations. Returns True if all negotiations are done"""
             if n_steps_to_run is not None and n_steps_to_run == 0:
@@ -1699,9 +1709,6 @@ class World(EventSink, EventSource, ConfigReader, NamedObject, CheckpointMixin, 
                     _[0] for _ in mechanisms if _ is not None and not _[0].state.ended
                 ]
                 return not running
-            _n_registered_negotiations_before = len(self._negotiations)
-            n_steps_broken, n_steps_success = 0, 0
-            n_broken, n_success = 0, 0
 
             mechanisms = list(
                 (_.mechanism, _.partners)
@@ -1743,30 +1750,17 @@ class World(EventSink, EventSource, ConfigReader, NamedObject, CheckpointMixin, 
                 and _.mechanism is not None
                 and not _.mechanism.state.ended
             ]
-            if self.time < self.time_limit:
-                n_total_broken = n_broken + n_broken_
-                if n_total_broken > 0:
-                    n_steps_broken = (
-                        n_steps_broken * n_broken + n_steps_broken_ * n_broken_
-                    ) / n_total_broken
-                    n_broken = n_total_broken
-                n_total_success = n_success + n_success_
-                if n_total_success > 0:
-                    n_steps_success = (
-                        n_steps_success * n_success + n_steps_success_ * n_success_
-                    ) / n_total_success
-                    n_success = n_total_success
 
-            self._stats["n_registered_negotiations_before"].append(
-                _n_registered_negotiations_before
-            )
-            self._stats["n_negotiation_rounds_successful"].append(n_steps_success)
-            self._stats["n_negotiation_rounds_failed"].append(n_steps_broken)
-            self._stats["n_negotiation_successful"].append(n_success)
-            self._stats["n_negotiation_failed"].append(n_broken)
-            self._stats["n_registered_negotiations_after"].append(
-                len(self._negotiations)
-            )
+            # self._stats["n_registered_negotiations_before"].append(
+            #     _n_registered_negotiations_before
+            # )
+            # self._stats["n_negotiation_rounds_successful"].append(n_steps_success)
+            # self._stats["n_negotiation_rounds_failed"].append(n_steps_broken)
+            # self._stats["n_negotiation_successful"].append(n_success)
+            # self._stats["n_negotiation_failed"].append(n_broken)
+            # self._stats["n_registered_negotiations_after"].append(
+            #     len(self._negotiations)
+            # )
             return not running
 
         if cross_step_boundary:
@@ -1777,16 +1771,47 @@ class World(EventSink, EventSource, ConfigReader, NamedObject, CheckpointMixin, 
 
             if _negotiate(n_neg_steps):
                 self.__next_operation_index += 1
+                # TODO correct this. Curently we just store whatever happens in the last negotiation step not for all negotiations.
+                #
+                n_steps_broken_ = 0
+                n_steps_success_ = 0
+                n_broken_ = 0
+                n_success_ = 0
+                if self.time < self.time_limit:
+                    n_total_broken = n_broken + n_broken_
+                    if n_total_broken > 0:
+                        n_steps_broken = (
+                            n_steps_broken * n_broken + n_steps_broken_ * n_broken_
+                        ) / n_total_broken
+                        n_broken = n_total_broken
+                    n_total_success = n_success + n_success_
+                    if n_total_success > 0:
+                        n_steps_success = (
+                            n_steps_success * n_success + n_steps_success_ * n_success_
+                        ) / n_total_success
+                        n_success = n_total_success
+                self._stats["n_registered_negotiations_before"].append(
+                    _n_registered_negotiations_before
+                )
+                self._stats["n_negotiation_rounds_successful"].append(n_steps_success)
+                self._stats["n_negotiation_rounds_failed"].append(n_steps_broken)
+                self._stats["n_negotiation_successful"].append(n_success)
+                self._stats["n_negotiation_failed"].append(n_broken)
+                self._stats["n_registered_negotiations_after"].append(
+                    len(self._negotiations)
+                )
                 if self.__next_operation_index >= len(self.operations):
                     self.__next_operation_index = 0
                 if not self._step_to_negotiations(cross_step_boundary):
                     return False
             return True
-        assert self.__next_operation_index == 0
+        if self._debug:
+            assert self.__next_operation_index == 0
         if not self._step_to_negotiations(cross_step_boundary):
             return False
         self.__stepped_mechanisms = set()
-        assert self.__next_operation_index != 0
+        if self._debug:
+            assert self.__next_operation_index != 0
         while self.__next_operation_index != 0:
             if not _negotiate(n_neg_steps):
                 pass
@@ -2107,7 +2132,7 @@ class World(EventSink, EventSource, ConfigReader, NamedObject, CheckpointMixin, 
             completed = list(
                 k
                 for k, _ in self._negotiations.items()
-                if _ is not None and _.mechanism.completed
+                if _ is not None and _.mechanism.ended
             )
             for key in completed:
                 self._negotiations.pop(key, None)
@@ -2351,7 +2376,7 @@ class World(EventSink, EventSource, ConfigReader, NamedObject, CheckpointMixin, 
             caller, partners, self._edges_negotiations_started, issues=issues
         )
         # if not run_to_completion:
-        self._negotiations[neg.mechanism.uuid] = neg
+        self._negotiations[neg.mechanism.id] = neg
         self.negs_initiated[caller.id] += 1
         for partner in partners:
             self.negs_registered[partner.id] += 1
@@ -2390,7 +2415,7 @@ class World(EventSink, EventSource, ConfigReader, NamedObject, CheckpointMixin, 
     def _unregister_negotiation(self, neg: MechanismFactory) -> None:
         if neg is None or neg.mechanism is None:
             return
-        del self._negotiations[neg.mechanism.uuid]
+        del self._negotiations[neg.mechanism.id]
 
     def request_negotiation_about(
         self,
