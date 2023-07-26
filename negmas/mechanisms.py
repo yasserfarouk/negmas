@@ -809,6 +809,7 @@ class Mechanism(NamedObject, EventSource, CheckpointMixin, ABC):
 
     @property
     def completed(self):
+        """Ended without timing out (either with agreement or broken by a negotiator)"""
         return self.agreement is not None or self._current_state.broken
 
     @property
