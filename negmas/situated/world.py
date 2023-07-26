@@ -234,12 +234,12 @@ class World(EventSink, EventSource, ConfigReader, NamedObject, CheckpointMixin, 
         info: dict[str, Any] | None = None,
         genius_port: int = DEFAULT_JAVA_PORT,
         disable_agent_printing: bool = False,
+        debug: bool = False,
         name: str | None = None,
         id: str | None = None,
-        debug: bool = False,
     ):
         self._debug = debug
-        if self._debug:
+        if debug:
             ignore_agent_exceptions = False
             ignore_negotiation_exceptions = False
             ignore_contract_execution_exceptions = False
