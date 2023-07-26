@@ -813,6 +813,11 @@ class Mechanism(NamedObject, EventSource, CheckpointMixin, ABC):
         return self.agreement is not None or self._current_state.broken
 
     @property
+    def ended(self):
+        """Ended in any way"""
+        return self._current_state.ended
+
+    @property
     def n_steps(self):
         return self.nmi.n_steps
 
