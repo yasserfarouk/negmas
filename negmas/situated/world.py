@@ -239,6 +239,11 @@ class World(EventSink, EventSource, ConfigReader, NamedObject, CheckpointMixin, 
         debug: bool = False,
     ):
         self._debug = debug
+        if self._debug:
+            ignore_agent_exceptions = False
+            ignore_negotiation_exceptions = False
+            ignore_contract_execution_exceptions = False
+            ignore_simulation_exceptions = False
         self.info = None
         self.disable_agent_printing = disable_agent_printing
         self.ignore_simulation_exceptions = ignore_simulation_exceptions
