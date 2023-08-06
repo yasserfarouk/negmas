@@ -49,6 +49,7 @@ GENIUS_INFO = {
         "discounting": True,
         "uncertainty": False,
         "elicitation": False,
+        "geniusweb": False,
     },
     2011: {
         "winners": [
@@ -84,6 +85,7 @@ GENIUS_INFO = {
         "discounting": True,
         "uncertainty": False,
         "elicitation": False,
+        "geniusweb": False,
     },
     2012: {
         "winners": [
@@ -175,6 +177,7 @@ GENIUS_INFO = {
         "discounting": True,
         "uncertainty": False,
         "elicitation": False,
+        "geniusweb": False,
     },
     2013: {
         "winners": [
@@ -213,6 +216,7 @@ GENIUS_INFO = {
         "discounting": True,
         "uncertainty": False,
         "elicitation": False,
+        "geniusweb": False,
     },
     2014: {
         "winners": [
@@ -264,6 +268,7 @@ GENIUS_INFO = {
         "discounting": False,
         "uncertainty": False,
         "elicitation": False,
+        "geniusweb": False,
     },
     2015: {
         "winners": [
@@ -330,6 +335,7 @@ GENIUS_INFO = {
         "discounting": False,
         "uncertainty": False,
         "elicitation": False,
+        "geniusweb": False,
     },
     2016: {
         "winners": [
@@ -378,6 +384,7 @@ GENIUS_INFO = {
         "discounting": False,
         "uncertainty": False,
         "elicitation": False,
+        "geniusweb": False,
     },
     2017: {
         "winners": [
@@ -431,6 +438,7 @@ GENIUS_INFO = {
         "discounting": False,
         "uncertainty": False,
         "elicitation": False,
+        "geniusweb": False,
     },
     2018: {
         "winners": [
@@ -504,6 +512,7 @@ GENIUS_INFO = {
         "discounting": True,
         "uncertainty": False,
         "elicitation": False,
+        "geniusweb": False,
     },
     2019: {
         "winners": [
@@ -552,6 +561,7 @@ GENIUS_INFO = {
         "discounting": False,
         "uncertainty": True,
         "elicitation": False,
+        "geniusweb": True,
     },
     # 2020: {
     #     "winners": [],
