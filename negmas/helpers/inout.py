@@ -398,7 +398,7 @@ def dump(
             )
     elif file_name.suffix in (".yaml", ".yml"):
         with open(file_name, "w") as f:
-            yaml.safe_dump(d, f, default_flow_style=False, sort_keys=sort_keys)
+            yaml.safe_dump(d, f, default_flow_style=compact, sort_keys=sort_keys)
     elif file_name.suffix == ".pickle":
         with open(file_name, "wb") as f:
             pickle.dump(d, f)
