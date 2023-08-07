@@ -242,11 +242,11 @@ class GeniusNegotiator(SAONegotiator):
             name=name,
         )
 
-    def _create(self):
+    def _create(self, indx: int):
         """Creates the corresponding java agent"""
         if self.java is None:
             raise ValueError(f"Cannot create Genius Agent (no java instance)")
-        aid = self.java.create_agent(self.java_class_name)  # type: ignore
+        aid = self.java.create_agent(self.java_class_name, indx)  # type: ignore
         if aid == FAILED:
             raise ValueError(f"Cannot initialized {self.java_class_name}")
         return aid
@@ -316,7 +316,7 @@ class GeniusNegotiator(SAONegotiator):
             if not self.is_connected:
                 raise ValueError(f"Cannot connect to the genius bridge")
 
-        self.java_uuid = self._create()
+        self.java_uuid = self._create(nmi.n_negotiators)
 
         if not isinstance(nmi.cartesian_outcome_space, CartesianOutcomeSpace):
             raise ValueError(
