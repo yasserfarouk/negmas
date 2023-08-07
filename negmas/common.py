@@ -308,6 +308,8 @@ class NegotiatorMechanismInterface:
     """A reference to the mechanism. MUST NEVER BE USED BY NEGOTIATORS. **must be treated as a private member**"""
     annotation: dict[str, Any] = field(default=dict)
     """An arbitrary annotation as a `dict[str, Any]` that is always available for all agents"""
+    one_offer_per_step: bool = False
+    """If true, a step should be atomic with only one action from one negotiator"""
 
     #     def __copy__(self):
     #         return NegotiatorMechanismInterface(**vars(self))

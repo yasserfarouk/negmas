@@ -129,7 +129,7 @@ class GBComponent(Component):
 @define
 class AcceptancePolicy(GBComponent):
     def respond(
-        self, state: GBState, offer: Outcome | None, source: str
+        self, state: GBState, offer: Outcome | None, source: str | None
     ) -> ResponseType:
         """Called to respond to an offer. This is the method that should be overriden to provide an acceptance strategy.
 
@@ -153,7 +153,7 @@ class AcceptancePolicy(GBComponent):
 
     @abstractmethod
     def __call__(
-        self, state: GBState, offer: Outcome | None, source: str
+        self, state: GBState, offer: Outcome | None, source: str | None
     ) -> ResponseType:
         ...
 

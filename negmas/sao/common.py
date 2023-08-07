@@ -46,7 +46,7 @@ class SAOState(GBState):
 @define(frozen=True)
 class SAONMI(NegotiatorMechanismInterface):
     end_on_no_response: bool = True
-    one_offer_per_step: bool = False
+    # one_offer_per_step: bool = False
 
 
 @lru_cache(1)

@@ -57,7 +57,9 @@ class AcceptAnyRational(AcceptancePolicy):
     Accepts any rational outcome.
     """
 
-    def __call__(self, state: GBState, offer: Outcome, source: str) -> ResponseType:
+    def __call__(
+        self, state: GBState, offer: Outcome, source: str | None
+    ) -> ResponseType:
         if not self.negotiator or not self.negotiator.preferences:
             return ResponseType.REJECT_OFFER
         pref = self.negotiator.preferences
@@ -72,7 +74,9 @@ class AcceptNotWorseRational(AcceptancePolicy):
     Accept any outcome not worse than the best so far.
     """
 
-    def __call__(self, state: GBState, offer: Outcome, source: str) -> ResponseType:
+    def __call__(
+        self, state: GBState, offer: Outcome, source: str | None
+    ) -> ResponseType:
         if not self.negotiator or not self.negotiator.preferences:
             return ResponseType.REJECT_OFFER
         current = (
@@ -92,7 +96,9 @@ class AcceptBetterRational(AcceptancePolicy):
     Accept first rational outcomes and then accept only outcomes better than the all accepted so far.
     """
 
-    def __call__(self, state: GBState, offer: Outcome, source: str) -> ResponseType:
+    def __call__(
+        self, state: GBState, offer: Outcome, source: str | None
+    ) -> ResponseType:
         if not self.negotiator or not self.negotiator.preferences:
             return ResponseType.REJECT_OFFER
         current = (
@@ -141,7 +147,9 @@ class ACLastKReceived(AcceptancePolicy):
         k = nmi.n_steps if self.k <= 0 and nmi.n_steps else self.k
         self._best = [float("inf") for _ in range(k)]  # type: ignore
 
-    def before_responding(self, state: GBState, offer: Outcome | None, source: str):
+    def before_responding(
+        self, state: GBState, offer: Outcome | None, source: str | None
+    ):
         if not self.negotiator or not self.negotiator.ufun:
             return
         self._best.append(float(self.negotiator.ufun(offer)))
@@ -170,7 +178,9 @@ class ACLastFractionReceived(AcceptancePolicy):
     op: Callable[[list[float]], float] = max
     _best: list[tuple[float, float]] = field(init=False, default=[])
 
-    def before_responding(self, state: GBState, offer: Outcome | None, source: str):
+    def before_responding(
+        self, state: GBState, offer: Outcome | None, source: str | None
+    ):
         if not self.negotiator or not self.negotiator.ufun:
             return
         self._best.append((float(self.negotiator.ufun(offer)), state.relative_time))
@@ -369,7 +379,9 @@ class RandomAcceptancePolicy(AcceptancePolicy):
     p_rejection: float = 0.25
     p_ending: float = 0.1
 
-    def __call__(self, state: GBState, offer: Outcome, source: str) -> ResponseType:
+    def __call__(
+        self, state: GBState, offer: Outcome, source: str | None
+    ) -> ResponseType:
         r = random.random()
         if r <= self.p_acceptance + 1e-8:
             return ResponseType.ACCEPT_OFFER
@@ -395,7 +407,9 @@ class AcceptBest(AcceptancePolicy):
         if not self.negotiator or not self.negotiator.ufun:
             return
 
-    def __call__(self, state: GBState, offer: Outcome, source: str) -> ResponseType:
+    def __call__(
+        self, state: GBState, offer: Outcome, source: str | None
+    ) -> ResponseType:
         if not self.negotiator or not self.negotiator.ufun:
             return ResponseType.REJECT_OFFER
 
@@ -430,7 +444,9 @@ class AcceptTop(AcceptancePolicy):
         ):
             self.negotiator.ufun.invert().init()
 
-    def __call__(self, state: GBState, offer: Outcome, source: str) -> ResponseType:
+    def __call__(
+        self, state: GBState, offer: Outcome, source: str | None
+    ) -> ResponseType:
         if not self.negotiator or not self.negotiator.ufun:
             return ResponseType.REJECT_OFFER
         top_k = self.negotiator.ufun.invert().within_indices((0, self.k))
@@ -455,7 +471,9 @@ class AcceptAbove(AcceptancePolicy):
         if not self.negotiator or not self.negotiator.ufun:
             return
 
-    def __call__(self, state: GBState, offer: Outcome, source: str) -> ResponseType:
+    def __call__(
+        self, state: GBState, offer: Outcome, source: str | None
+    ) -> ResponseType:
         if not self.negotiator or not self.negotiator.ufun:
             return ResponseType.REJECT_OFFER
         if (
@@ -472,7 +490,9 @@ class EndImmediately(AcceptancePolicy):
     Rejects immediately anything
     """
 
-    def __call__(self, state: GBState, offer: Outcome, source: str) -> ResponseType:
+    def __call__(
+        self, state: GBState, offer: Outcome, source: str | None
+    ) -> ResponseType:
         return ResponseType.END_NEGOTIATION
 
 
@@ -482,7 +502,9 @@ class RejectAlways(AcceptancePolicy):
     Rejects everything
     """
 
-    def __call__(self, state: GBState, offer: Outcome, source: str) -> ResponseType:
+    def __call__(
+        self, state: GBState, offer: Outcome, source: str | None
+    ) -> ResponseType:
         return ResponseType.REJECT_OFFER
 
 
@@ -492,7 +514,9 @@ class AcceptImmediately(AcceptancePolicy):
     Accepts immediately anything
     """
 
-    def __call__(self, state: GBState, offer: Outcome, source: str) -> ResponseType:
+    def __call__(
+        self, state: GBState, offer: Outcome, source: str | None
+    ) -> ResponseType:
         return ResponseType.ACCEPT_OFFER
 
 
@@ -523,7 +547,9 @@ class LimitedOutcomesAcceptancePolicy(AcceptancePolicy):
             prob=dict(zip(outcomes, prob)), p_ending=p_ending
         )
 
-    def __call__(self, state: GBState, offer: Outcome, source: str) -> ResponseType:
+    def __call__(
+        self, state: GBState, offer: Outcome, source: str | None
+    ) -> ResponseType:
         if random.random() < self.p_ending - 1e-12:
             return ResponseType.END_NEGOTIATION
         if self.prob is None:
@@ -545,8 +571,10 @@ class NegotiatorAcceptancePolicy(AcceptancePolicy):
 
     acceptor: GBNegotiator
 
-    def __call__(self, state: GBState, offer: Outcome, source: str) -> ResponseType:
-        return self.acceptor.respond(state, offer, source)
+    def __call__(
+        self, state: GBState, offer: Outcome, source: str | None
+    ) -> ResponseType:
+        return self.acceptor.respond(state, source)
 
 
 @define
@@ -576,7 +604,9 @@ class ConcensusAcceptancePolicy(AcceptancePolicy, ABC):
         Called to make a final decsision given the decisions of the stratgeis with indices `indices` (see `filter` for filtering rules)
         """
 
-    def __call__(self, state: GBState, offer: Outcome, source: str) -> ResponseType:
+    def __call__(
+        self, state: GBState, offer: Outcome, source: str | None
+    ) -> ResponseType:
         selected, selected_indices = [], []
         for i, s in enumerate(self.strategies):
             response = s.respond(state, offer, source)

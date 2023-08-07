@@ -747,7 +747,13 @@ class GeniusNegotiator(SAONegotiator):
             raise ValueError(
                 f"Respond is not supposed to be called directly for GeniusNegotiator"
             )
-        offer = state.threads[source].current_offer
+        if isinstance(state, SAOState):
+            offer = state.current_offer
+        else:
+            thread = state.threads.get(
+                source, state.threads.get(state.last_thread, None)
+            )
+            offer = thread.current_offer if thread else None
         current_step = self._current_step(state)
         if current_step == self.__my_last_offer_step:
             return self.__my_last_response
