@@ -758,7 +758,9 @@ class GeniusNegotiator(SAONegotiator):
         if current_step == self.__my_last_offer_step:
             return self.__my_last_response
         if offer is None and self.__my_last_offer is not None and self._strict:
-            raise ValueError(f"{self._me()} got counter with a None offer.")
+            raise ValueError(
+                f"{self._me()} got counter with a None offer from {source}.\n{state}"
+            )
         if offer is None:
             return ResponseType.REJECT_OFFER
         proposer_id = self.nmi.genius_id(
