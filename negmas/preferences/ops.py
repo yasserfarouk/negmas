@@ -1564,7 +1564,13 @@ def opposition_level(
         )
 
     nearest_val = float("inf")
+
+    def is_irrational(outcome, ufun: BaseUtilityFunction):
+        return ufun.is_worse(outcome, None)
+
     for outcome in outcomes:
+        if any(is_irrational(outcome, u) for u in ufuns):
+            continue
         v = sum(
             (1.0 - float(u(outcome)) / max_util) ** 2
             if max_util
