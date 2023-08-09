@@ -9,7 +9,7 @@ from attrs import define, field
 
 from negmas import warnings
 from negmas.common import PreferencesChange, PreferencesChangeType
-from negmas.gb.common import ResponseType
+from negmas.gb.common import ResponseType, current_thread_offer
 
 from .base import AcceptancePolicy, FilterResult
 from .concession import ConcessionRecommender
@@ -79,11 +79,9 @@ class AcceptNotWorseRational(AcceptancePolicy):
     ) -> ResponseType:
         if not self.negotiator or not self.negotiator.preferences:
             return ResponseType.REJECT_OFFER
-        current = (
-            state.threads[state.last_thread].current_offer
-            if state.last_thread
-            else None
-        )
+        current = current_thread_offer(state, source)
+        if current is None:
+            return ResponseType.REJECT_OFFER
         pref = self.negotiator.preferences
         if pref.is_not_worse(offer, current):
             return ResponseType.ACCEPT_OFFER
@@ -101,11 +99,9 @@ class AcceptBetterRational(AcceptancePolicy):
     ) -> ResponseType:
         if not self.negotiator or not self.negotiator.preferences:
             return ResponseType.REJECT_OFFER
-        current = (
-            state.threads[state.last_thread].current_offer
-            if state.last_thread
-            else None
-        )
+        current = current_thread_offer(state, source)
+        if current is None:
+            return ResponseType.REJECT_OFFER
         pref = self.negotiator.preferences
         if pref.is_better(offer, current) or (
             current is None and pref.is_not_worse(offer, current)

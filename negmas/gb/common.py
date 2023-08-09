@@ -82,6 +82,29 @@ def all_negotiator_types() -> list[GBNegotiator]:
     return results
 
 
+def current_thread_offer(state: GBState, source: str | None) -> Outcome | None:
+    """
+    Returns the current-offer of the thread associated with the source if given or last thread activated otherwise
+    """
+    thread = None
+    if source:
+        thread = state.threads[source]
+    elif state.last_thread:
+        thread = state.threads[state.last_thread]
+    return thread.current_offer if thread else None
+
+
+def get_offer(state: GBState, source: str | None) -> Outcome | None:
+    from negmas.sao import SAOState
+
+    if isinstance(state, SAOState):
+        return state.current_offer
+    tid = source if source else state.last_thread
+    if not tid:
+        return None
+    return state.threads[tid].new_offer
+
+
 GBAction = dict[str, Outcome | None]
 """
 An action for a GB mechanism is a mapping from one or more thread IDs to outcomes to offer.

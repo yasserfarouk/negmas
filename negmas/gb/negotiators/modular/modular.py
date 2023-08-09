@@ -3,6 +3,8 @@ from __future__ import annotations
 from abc import abstractmethod
 from typing import TYPE_CHECKING
 
+from negmas.gb.common import get_offer
+
 from ....negotiators.modular import ModularNegotiator
 from ..base import GBNegotiator
 
@@ -46,15 +48,7 @@ class GBModularNegotiator(ModularNegotiator, GBNegotiator):
         return offer
 
     def respond(self, state: GBState, source: str | None = None) -> ResponseType:
-        offer = (
-            state.current_offer  # type: ignore
-            if hasattr(state, "current_offer")
-            else (
-                None
-                if not state.last_thread
-                else state.threads[state.last_thread].current_offer
-            )
-        )
+        offer = get_offer(state, source)
         for c in self._components:
             c.before_responding(state=state, offer=offer, source=source)
         response = self.generate_response(state=state, offer=offer, source=source)
