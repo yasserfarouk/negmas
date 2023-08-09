@@ -99,10 +99,14 @@ def get_offer(state: GBState, source: str | None) -> Outcome | None:
 
     if isinstance(state, SAOState):
         return state.current_offer
-    tid = source if source else state.last_thread
-    if not tid:
-        return None
-    return state.threads[tid].new_offer
+    if isinstance(state, GBState):
+        tid = source if source else state.last_thread
+        if not tid:
+            return None
+        return state.threads[tid].new_offer
+    if hasattr(state, "current_offer"):
+        return state.current_offer
+    return None
 
 
 GBAction = dict[str, Outcome | None]

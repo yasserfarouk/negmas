@@ -18,6 +18,7 @@ from pytest import mark
 
 import negmas
 from negmas import SAOSyncController
+from negmas.gb.negotiators.cab import CABNegotiator
 from negmas.genius import genius_bridge_is_running
 from negmas.helpers import unique_name
 from negmas.helpers.strings import shorten
@@ -66,6 +67,12 @@ ALL_BUILTIN_NEGOTIATORS = [
         "BOANegotiator",
         "ControlledSAONegotiator",
         "MAPNegotiator",
+        "CABNegotiator",
+        "CANNegotiator",
+        "CARNegotiator",
+        "WABNegotiator",
+        "WANNegotiator",
+        "WARNegotiator",
     ]
 ]
 
