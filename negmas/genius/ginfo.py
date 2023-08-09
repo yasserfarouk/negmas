@@ -331,7 +331,7 @@ GENIUS_INFO = {
         "learning": False,
         "multilateral": True,
         "bilateral": False,
-        "reservation": None,
+        "reservation": True,
         "discounting": False,
         "uncertainty": False,
         "elicitation": False,
@@ -563,17 +563,76 @@ GENIUS_INFO = {
         "elicitation": False,
         "geniusweb": True,
     },
-    # 2020: {
-    #     "winners": [],
-    #     "linear": True,
-    #     "learning": True,
-    #     "multilateral": True,
-    #     "bilateral": False,
-    #     "reservation": None,
-    #     "discounting": None,
-    #     "uncertainty": True,
-    #     "elicitation": True,
-    # },
+    2020: {
+        "winners": [],
+        "finalists": [
+            [("Agentkt", None)],
+            [("AhBuNeAgent", None)],
+            [("ANGELParty", None)],
+            [("HammingAgent", None)],
+            [("ShineAgent", None)],
+        ],
+        "genius10": [],
+        "linear": True,
+        "learning": False,
+        "multilateral": False,
+        "bilateral": False,
+        "reservation": True,
+        "discounting": False,
+        "uncertainty": True,
+        "elicitation": True,
+    },
+    2021: {
+        "winners": [
+            [("AlphaBIU", None)],
+            [("MatrixAlienAgent", None)],
+            [("TripleAgent", None)],
+        ],
+        "finalists": [
+            [("AlphaBIU", None)],
+            [("MatrixAlienAgent", None)],
+            [("TripleAgent", None)],
+        ],
+        "genius10": [],
+        "linear": True,
+        "learning": True,
+        "multilateral": False,
+        "bilateral": False,
+        "reservation": True,
+        "discounting": False,
+        "uncertainty": True,
+        "elicitation": True,
+    },
+    2022: {
+        "winners": [],
+        "finalists": [
+            [("Agent007", None)],
+            [("ChargingBoul", None)],
+            [("DreamTeam109", None)],
+        ],
+        "genius10": [],
+        "linear": True,
+        "learning": True,
+        "multilateral": False,
+        "bilateral": False,
+        "reservation": True,
+        "discounting": False,
+        "uncertainty": True,
+        "elicitation": True,
+    },
+    2023: {
+        "winners": [],
+        "finalists": [],
+        "genius10": [],
+        "linear": True,
+        "learning": True,
+        "multilateral": False,
+        "bilateral": False,
+        "reservation": True,
+        "discounting": False,
+        "uncertainty": True,
+        "elicitation": True,
+    },
 }
 
 
@@ -1390,7 +1449,7 @@ def get_anac_agents(
         elicitation is not None and d["elicitation"] == elicitation
     ):
         agents = agents.intersection(get_agents(year, d))
-    return list(agents)
+    return [_ for _ in agents if _ and len(_) == 2 and _[-1]]
 
 
 # All agents from genius 9.1.13
