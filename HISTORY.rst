@@ -1,8 +1,14 @@
 History
 =======
 
-Release 0.10
--------------
+Release 0.10.1
+--------------
+
+* various bugfixes
+* Updating ginfo (Genius Information) with ANAC competition information up to the end of genius support and partial information for geniusweb years
+
+Release 0.10.0
+--------------
 
 * removing offer from SAO's respond() method.
 * allowing users to step worlds from the point of view of a set of agents ignoring simulation step boundaries and passing external actions if needed. See World.step() for details.
