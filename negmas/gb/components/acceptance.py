@@ -9,7 +9,7 @@ from attrs import define, field
 
 from negmas import warnings
 from negmas.common import PreferencesChange, PreferencesChangeType
-from negmas.gb.common import ResponseType, current_thread_offer
+from negmas.gb.common import ResponseType, current_thread_id
 
 from .base import AcceptancePolicy, FilterResult
 from .concession import ConcessionRecommender
@@ -74,16 +74,20 @@ class AcceptNotWorseRational(AcceptancePolicy):
     Accept any outcome not worse than the best so far.
     """
 
+    _accepted: dict[str, Outcome] = field(factory=dict)
+
     def __call__(
         self, state: GBState, offer: Outcome, source: str | None
     ) -> ResponseType:
         if not self.negotiator or not self.negotiator.preferences:
             return ResponseType.REJECT_OFFER
-        current = current_thread_offer(state, source)
-        if current is None:
+        tid = current_thread_id(state, source)
+        current = self._accepted.get(tid, None)
+        if offer is None:
             return ResponseType.REJECT_OFFER
         pref = self.negotiator.preferences
         if pref.is_not_worse(offer, current):
+            self._accepted[tid] = offer
             return ResponseType.ACCEPT_OFFER
         return ResponseType.REJECT_OFFER
 
@@ -94,18 +98,22 @@ class AcceptBetterRational(AcceptancePolicy):
     Accept first rational outcomes and then accept only outcomes better than the all accepted so far.
     """
 
+    _accepted: dict[str, Outcome] = field(factory=dict)
+
     def __call__(
         self, state: GBState, offer: Outcome, source: str | None
     ) -> ResponseType:
         if not self.negotiator or not self.negotiator.preferences:
             return ResponseType.REJECT_OFFER
-        current = current_thread_offer(state, source)
-        if current is None:
+        tid = current_thread_id(state, source)
+        current = self._accepted.get(tid, None)
+        if offer is None:
             return ResponseType.REJECT_OFFER
         pref = self.negotiator.preferences
         if pref.is_better(offer, current) or (
             current is None and pref.is_not_worse(offer, current)
         ):
+            self._accepted[tid] = offer
             return ResponseType.ACCEPT_OFFER
         return ResponseType.REJECT_OFFER
 

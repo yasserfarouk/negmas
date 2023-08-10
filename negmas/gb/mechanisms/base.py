@@ -38,8 +38,8 @@ class GBThread:
     constraint: LocalOfferingConstraint | None = None
 
     @property
-    def current(self):
-        return self.state.current_offer
+    def accepted_offers(self) -> list[Outcome]:
+        return self.state.accepted_offers
 
     def run(
         self, action: dict[str, Outcome | None] | None = None
@@ -83,7 +83,7 @@ class GBThread:
             for n, r in zip(self.responders, responses):
                 n.on_partner_response(mechanism_state, n.id, offer, r)
         if all(_ == ResponseType.ACCEPT_OFFER for _ in responses):
-            self.state.current_offer = offer
+            self.state.accepted_offers.append(offer)
         self.state.new_responses = dict(
             zip(tuple(_.id for _ in self.responders), responses)
         )
@@ -348,9 +348,9 @@ class BaseGBMechanism(Mechanism):
                 evaluator=None,
                 constraint=None,
                 state=ThreadState(
-                    None,
-                    None,
-                    {_.id: ResponseType.REJECT_OFFER for _ in responders},
+                    new_offer=None,
+                    new_responses={_.id: ResponseType.REJECT_OFFER for _ in responders},
+                    accepted_offers=[],
                 ),
             )
             self._threads.append(thread)
@@ -482,9 +482,9 @@ class GBMechanism(BaseGBMechanism):
                 evaluator=evaluator,
                 constraint=constraint,
                 state=ThreadState(
-                    None,
-                    None,
-                    {_.id: ResponseType.REJECT_OFFER for _ in responders},
+                    new_offer=None,
+                    new_responses={_.id: ResponseType.REJECT_OFFER for _ in responders},
+                    accepted_offers=[],
                 ),
             )
             self._threads.append(thread)

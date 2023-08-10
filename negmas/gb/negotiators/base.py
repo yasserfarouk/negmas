@@ -237,7 +237,6 @@ class GBNegotiator(Negotiator):
             raise ValueError("No NMI. Cannot convert SAOState to GBState")
         threads = {
             source: ThreadState(
-                current_offer=None,
                 new_offer=self.__received_offer.get(state.current_proposer, None),
             )
             for source in self.nmi.negotiator_ids

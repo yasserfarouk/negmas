@@ -39,9 +39,9 @@ class ResponseType(IntEnum):
 
 @define
 class ThreadState:
-    current_offer: Outcome | None = None
     new_offer: Outcome | None = None
     new_responses: dict[str, ResponseType] = field(factory=dict)
+    accepted_offers: list[Outcome] = field(factory=list)
 
 
 @define
@@ -82,16 +82,25 @@ def all_negotiator_types() -> list[GBNegotiator]:
     return results
 
 
-def current_thread_offer(state: GBState, source: str | None) -> Outcome | None:
+def current_thread_id(state: GBState, source: str | None) -> str:
     """
-    Returns the current-offer of the thread associated with the source if given or last thread activated otherwise
+    Returns the ID of the source thread if given or the last thread if not given. Will return an empty string if no such thread exists
+    """
+    return state.last_thread if not source else source
+
+
+def current_thread_accepeted_offers(
+    state: GBState, source: str | None
+) -> list[Outcome] | None:
+    """
+    Returns the accepted offers of the thread associated with the source if given or last thread activated otherwise
     """
     thread = None
     if source:
         thread = state.threads[source]
     elif state.last_thread:
         thread = state.threads[state.last_thread]
-    return thread.current_offer if thread else None
+    return thread.accepted_offers if thread else []
 
 
 def get_offer(state: GBState, source: str | None) -> Outcome | None:
