@@ -373,7 +373,6 @@ GENIUS_INFO = {
             [("ClockworkAgent", "agents.anac.y2016.clockworkagent.ClockworkAgent")],
             [("MaxOops", "agents.anac.y2016.maxoops.MaxOops")],
             [("ParsAgent2", "agents.anac.y2016.pars2.ParsAgent2")],
-            [("ParsAgent", "agents.anac.y2016.parscat.ParsCat")],
             [("SYAgent", "agents.anac.y2016.syagent.SYAgent")],
         ],
         "linear": True,
