@@ -215,6 +215,10 @@ class BetaOne(GeniusNegotiator):
         kwargs["java_class_name"] = "agents.anac.y2018.beta_one.Group2"
         super().__init__(**kwargs)
 
+class AteamAgent(GeniusNegotiator):
+    def __init__(self, **kwargs):
+        kwargs["java_class_name"] = "agents.anac.y2018.ateamagent.ATeamAgent"
+        super().__init__(**kwargs)
 
 class ateamAgent(GeniusNegotiator):
     def __init__(self, **kwargs):
