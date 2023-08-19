@@ -149,6 +149,7 @@ __all__ = [
     "PokerFace",
     "PonPokoAgent",
     "PonPokoRampage",
+    "PonpokoRampage",
     "Q12015Group2",
     "RandomCounterOfferNegotiationParty",
     "RandomDance",
@@ -212,6 +213,12 @@ class MengWan(GeniusNegotiator):
 class BetaOne(GeniusNegotiator):
     def __init__(self, **kwargs):
         kwargs["java_class_name"] = "agents.anac.y2018.beta_one.Group2"
+        super().__init__(**kwargs)
+
+
+class ateamAgent(GeniusNegotiator):
+    def __init__(self, **kwargs):
+        kwargs["java_class_name"] = "agents.anac.y2018.ateamagent.ATeamAgent"
         super().__init__(**kwargs)
 
 
@@ -616,6 +623,12 @@ class PNegotiator(GeniusNegotiator):
 class ParsAgent2(GeniusNegotiator):
     def __init__(self, **kwargs):
         kwargs["java_class_name"] = "agents.anac.y2016.pars2.ParsAgent2"
+        super().__init__(**kwargs)
+
+
+class PonpokoRampage(GeniusNegotiator):
+    def __init__(self, **kwargs):
+        kwargs["java_class_name"] = "agents.anac.y2018.ponpokorampage.PonPokoRampage"
         super().__init__(**kwargs)
 
 

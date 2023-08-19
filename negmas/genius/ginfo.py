@@ -1262,6 +1262,7 @@ special_names = dict(
     PokerFace="agents.anac.y2015.pokerface.PokerFace",
     PonPokoAgent="agents.anac.y2017.ponpokoagent.PonPokoAgent",
     PonpokoRampage="agents.anac.y2018.ponpokorampage.PonPokoRampage",
+    PonPokoRampage="agents.anac.y2018.ponpokorampage.PonPokoRampage",
     RandomDance="agents.anac.y2015.RandomDance.RandomDance",
     Rubick="agents.anac.y2017.rubick.Rubick",
     SACRA="agents.anac.y2019.sacra.SACRA",
