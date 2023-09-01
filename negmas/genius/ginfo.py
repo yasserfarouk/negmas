@@ -489,7 +489,7 @@ GENIUS_INFO = {
             [("Sontag", "agents.anac.y2018.sontag.Sontag")],
             [("Agent33", "agents.anac.y2018.agent33.Agent33")],
             [("AgentNP1", "agents.anac.y2018.agentnp1.AgentNP1")],
-            [("ateamagent", "agents.anac.y2018.ateamagent.ATeamAgent")],
+            [("Ateamagent", "agents.anac.y2018.ateamagent.ATeamAgent")],
             [("ExpRubick", "agents.anac.y2018.exp_rubick.Exp_Rubick")],
             [("GroupY", "agents.anac.y2018.groupy.GroupY")],
             [("Lancelot", "agents.anac.y2018.lancelot.Lancelot")],
