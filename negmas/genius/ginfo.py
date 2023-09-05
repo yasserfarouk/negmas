@@ -283,7 +283,7 @@ GENIUS_INFO = {
             [("Kawaii", "agents.anac.y2015.fairy.kawaii")],
             [
                 (
-                    "AgentBuyong",
+                    "AgentBuyog",
                     "agents.anac.y2015.agentBuyogV2.AgentBuyogMain",
                 )
             ],
@@ -298,7 +298,7 @@ GENIUS_INFO = {
             [("Kawaii", "agents.anac.y2015.fairy.kawaii")],
             [
                 (
-                    "AgentBuyong",
+                    "AgentBuyog",
                     "agents.anac.y2015.agentBuyogV2.AgentBuyogMain",
                 )
             ],
@@ -453,7 +453,7 @@ GENIUS_INFO = {
         "finalists": [
             [("MengWan", "agents.anac.y2018.meng_wan.Agent36")],
             [("IQSun2018", "agents.anac.y2018.iqson.IQSun2018")],
-            [("PonpokoRampage", "agents.anac.y2018.ponpokorampage.PonPokoRampage")],
+            [("PonPokoRampage", "agents.anac.y2018.ponpokorampage.PonPokoRampage")],
             [("AgentHerb", "agents.anac.y2018.agentherb.AgentHerb")],
             [("FullAgent", "agents.anac.y2018.fullagent.FullAgent")],
             [("BetaOne", "agents.anac.y2018.beta_one.Group2")],
@@ -489,7 +489,7 @@ GENIUS_INFO = {
             [("Sontag", "agents.anac.y2018.sontag.Sontag")],
             [("Agent33", "agents.anac.y2018.agent33.Agent33")],
             [("AgentNP1", "agents.anac.y2018.agentnp1.AgentNP1")],
-            [("Ateamagent", "agents.anac.y2018.ateamagent.ATeamAgent")],
+            [("AteamAgent", "agents.anac.y2018.ateamagent.ATeamAgent")],
             [("ExpRubick", "agents.anac.y2018.exp_rubick.Exp_Rubick")],
             [("GroupY", "agents.anac.y2018.groupy.GroupY")],
             [("Lancelot", "agents.anac.y2018.lancelot.Lancelot")],
@@ -1153,7 +1153,7 @@ def simplify_name(x: str):
 special_names = dict(
     AI2014Group2="agents.ai2014.group2.Group2",
     Agent33="agents.anac.y2018.agent33.Agent33",
-    AgentBuyong="agents.anac.y2015.agentBuyogV2.AgentBuyogMain",
+    AgentBuyog="agents.anac.y2015.agentBuyogV2.AgentBuyogMain",
     AgentF="agents.anac.y2017.agentf.AgentF",
     AgentFSEGA="agents.anac.y2010.AgentFSEGA.AgentFSEGA",
     AgentGG="agents.anac.y2019.agentgg.AgentGG",
