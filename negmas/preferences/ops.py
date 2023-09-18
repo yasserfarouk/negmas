@@ -1132,20 +1132,15 @@ def calc_outcome_optimality(
         # assert 0 <= optim[name] <= 1, f"{name=}, {optim[name]=}"
     for name, lst, diff in (
         ("max_welfare_optimality", stats.pareto_utils, dists.max_welfare),
-        # (
-        #     "max_relative_welfare_optimality",
-        #     stats.pareto_utils,
-        #     dists.max_relative_welfare,
-        # ),
     ):
         if not lst:
             optim[name] = float("nan")
             continue
-        if abs(max_dist) < 1e-12:
+        mx = max(sum(_) for _ in lst)
+        if abs(mx) < 1e-12:
             optim[name] = float("nan")
             continue
-        mx = max(sum(_) for _ in lst)
-        optim[name] = max(0, 1 - (mx - diff) / mx)
+        optim[name] = max(0, diff / mx)
         assert 0 <= optim[name], f"{name=}, {optim[name]=}"
     return OutcomeOptimality(**optim)
 
