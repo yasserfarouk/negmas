@@ -702,6 +702,12 @@ class SimpleAgent2017(GeniusNegotiator):
         super().__init__(**kwargs)
 
 
+class Group2(GeniusNegotiator):
+    def __init__(self, **kwargs):
+        kwargs["java_class_name"] = "agents.anac.y2015.group2.Group2"
+        super().__init__(**kwargs)
+
+
 class Y2015Group2(GeniusNegotiator):
     def __init__(self, **kwargs):
         kwargs["java_class_name"] = "agents.anac.y2015.group2.Group2"
