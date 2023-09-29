@@ -27,3 +27,4 @@ gif
 rich
 pygments>=2.7.4 # not directly required, pinned by Snyk to avoid a vulnerability
 numba; python_version < "3.11"
+pydantic>=2.4.0 # not directly required, pinned by Snyk to avoid a vulnerability
