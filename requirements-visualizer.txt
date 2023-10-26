@@ -3,3 +3,4 @@ dash
 dash[testing]
 dash-daq
 dash-bootstrap-components
+werkzeug>=3.0.1 # not directly required, pinned by Snyk to avoid a vulnerability
