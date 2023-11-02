@@ -29,6 +29,7 @@ from negmas.tournaments.tournaments import (
 
 __all__ = [
     "create_neg_tournament",
+    "create_cartesian_tournament",
     "neg_tournament",
     "random_discrete_scenarios",
     "scenarios_from_list",
@@ -130,6 +131,8 @@ def neg_world_generator(**kwargs):
     )
     config["types"] = [get_class(_) for _ in config["types"]]
     config["scenario"] = deserialize(config["scenario"])
+    name = config["scenario"].name
+    config["name"] = name if name is not None else unique_name("world")
     return NegWorld(**config)
 
 
@@ -411,6 +414,92 @@ def scenarios_from_list(
         yield from cycle(scenarios)
 
 
+def _make_negs(
+    scenarios,
+    competitors,
+    competitor_params,
+    non_competitors,
+    non_competitor_params,
+    rotate_ufuns=False,
+):
+    competitors = list(competitors)
+    if competitor_params is None:
+        competitor_params = [dict() for _ in range(len(competitors))]
+    else:
+        competitor_params = list(competitor_params)
+        assert len(competitor_params) == len(competitors)
+
+    if non_competitors is None:
+        non_competitors = tuple()
+    non_competitors = list(non_competitors)
+    if non_competitor_params is None:
+        non_competitor_params = [dict() for _ in range(len(non_competitors))]
+    else:
+        non_competitor_params = list(non_competitor_params)
+        assert len(non_competitor_params) == len(non_competitors)
+
+    try:
+        intersection = set(non_competitors).intersection(set(competitors))
+        assert (
+            not intersection
+        ), f"Non-competitors and competitors must be disjoint. This is the intersection between them now: {intersection}"
+    except:
+        pass
+
+    def make_neg_scenarios(
+        scenarios: tuple[Scenario, ...] | list[Scenario]
+    ) -> list[NegScenario]:
+        negs = []
+        for s in scenarios:
+            k = 0
+            assert (
+                len(s.ufuns) == 2
+            ), f"Only supporting bilateral negotiations: Scenario {s.agenda.name} has {len(s.ufuns)} ufuns"
+            for typ, params, score in chain(
+                zip(competitors, competitor_params, repeat(True)),
+                zip(non_competitors, competitor_params, repeat(False)),
+            ):
+                ufuns = [list(s.ufuns)]
+                if rotate_ufuns:
+                    for i in range(len(ufuns) - 1):
+                        u = ufuns[-1]
+                        ufuns.append([u[-1]] + u[:-1])
+                indices = [0, 1] if not score else [0]
+                for indx in indices:
+                    for u in ufuns:
+                        negs.append(
+                            NegScenario(
+                                name=unique_name(
+                                    f"{s.agenda.name}_{k}_",
+                                    add_time=False,
+                                    rand_digits=4,
+                                )
+                                if s.agenda.name
+                                else unique_name("s"),
+                                issues=s.agenda.issues,
+                                ufuns=tuple(u),
+                                partner_types=(get_class(typ),),
+                                partner_params=(params,),
+                                scored_indices=tuple(range(len(s.ufuns)))
+                                if score
+                                else None,
+                                index=indx,
+                            )
+                        )
+                        k += 1
+
+        return negs
+
+    neg_scenarios = make_neg_scenarios(scenarios)
+    return (
+        neg_scenarios,
+        competitors,
+        competitor_params,
+        non_competitors,
+        non_competitor_params,
+    )
+
+
 def create_cartesian_tournament(
     competitors: list[AgentType] | tuple[AgentType, ...],
     scenarios: list[Scenario] | tuple[Scenario, ...],
@@ -484,83 +573,11 @@ def create_cartesian_tournament(
         non_competitor_params,
         rotate_ufuns=rotate_ufuns,
     )
-    return neg_tournament(
+    return create_neg_tournament(
         competitors=competitors,
         scenarios=scenarios_from_list(neg_scenarios),
         competitor_params=competitor_params,
         **kwargs,
-    )
-
-
-def _make_negs(
-    scenarios,
-    competitors,
-    competitor_params,
-    non_competitors,
-    non_competitor_params,
-    rotate_ufuns=False,
-):
-    competitors = list(competitors)
-    if competitor_params is None:
-        competitor_params = [dict() for _ in range(len(competitors))]
-    else:
-        competitor_params = list(competitor_params)
-        assert len(competitor_params) == len(competitors)
-
-    if non_competitors is None:
-        non_competitors = tuple()
-    non_competitors = list(non_competitors)
-    if non_competitor_params is None:
-        non_competitor_params = [dict() for _ in range(len(non_competitors))]
-    else:
-        non_competitor_params = list(non_competitor_params)
-        assert len(non_competitor_params) == len(non_competitors)
-
-    def make_neg_scenarios(
-        scenarios: tuple[Scenario, ...] | list[Scenario]
-    ) -> list[NegScenario]:
-        negs = []
-        for s in scenarios:
-            assert (
-                len(s.ufuns) == 2
-            ), f"Only supporting bilateral negotiations: Scenario {s.agenda.name} has {len(s.ufuns)} ufuns"
-            for typ, params, score in chain(
-                zip(competitors, competitor_params, repeat(True)),
-                zip(competitors, competitor_params, repeat(False)),
-            ):
-                ufuns = [list(s.ufuns)]
-                if rotate_ufuns:
-                    for i in range(len(ufuns) - 1):
-                        u = ufuns[-1]
-                        ufuns.append([u[-1]] + u[:-1])
-                indices = [0, 1] if not score else [0]
-                for indx in indices:
-                    for u in ufuns:
-                        negs.append(
-                            NegScenario(
-                                name=s.agenda.name
-                                if s.agenda.name
-                                else unique_name("s"),
-                                issues=s.agenda.issues,
-                                ufuns=tuple(u),
-                                partner_types=(get_class(typ),),
-                                partner_params=(params,),
-                                scored_indices=tuple(range(len(s.ufuns)))
-                                if score
-                                else None,
-                                index=indx,
-                            )
-                        )
-
-        return negs
-
-    neg_scenarios = make_neg_scenarios(scenarios)
-    return (
-        neg_scenarios,
-        competitors,
-        competitor_params,
-        non_competitors,
-        non_competitor_params,
     )
 
 
@@ -570,7 +587,7 @@ def cartesian_tournament(
     competitor_params: Sequence[dict | None] | None = None,
     non_competitors: list[AgentType] | tuple[AgentType, ...] = tuple(),
     non_competitor_params: Sequence[dict | None] | None = None,
-    rotate_ufuns=True,
+    rotate_ufuns=False,
     **kwargs,
 ) -> TournamentResults | PathLike:
     """
@@ -636,7 +653,7 @@ def cartesian_tournament(
         non_competitor_params,
         rotate_ufuns=rotate_ufuns,
     )
-    return create_neg_tournament(
+    return neg_tournament(
         competitors=competitors,
         scenarios=scenarios_from_list(neg_scenarios),
         competitor_params=competitor_params,

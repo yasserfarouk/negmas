@@ -196,7 +196,7 @@ def _wrap_in_agents(types, params, agent_types):
     return types, params
 
 
-@dataclass(frozen=True)
+@dataclass
 class NegScenario:
     """
     A representation of a negotiation scenario in which a negotiator can be evaluated
@@ -231,7 +231,7 @@ class NegScenario:
             partner_params=serialize(self.partner_params),
             roles=self.roles,
             annotation=serialize(self.annotation),
-            scored_indices=scored_indices,
+            scored_indices=self.scored_indices,
         )
 
     @classmethod
@@ -390,12 +390,14 @@ class NegWorld(NoContractExecutionMixin, World):
             return lst[indx]
 
         for aid, agent in self._competitors.items():
-            partners = list(self._partners.keys())
-            partners.insert(self._scenario.index, aid)
+            partner_ids = list(self._partners.keys())
+            partners = list(self._partners.values())
+            partner_ids.insert(self._scenario.index, aid)
+            partners.insert(self._scenario.index, agent)
             _, mechanism = self.run_negotiation(
                 caller=agent,
                 issues=self._scenario.issues,
-                partners=partners,
+                partners=partner_ids,
                 roles=self._scenario.roles,
                 annotation=self._scenario.annotation,
                 negotiator=None,
@@ -428,8 +430,11 @@ class NegWorld(NoContractExecutionMixin, World):
                 )
                 self._received_advantage[current_aid].append(u - r)
                 pufuns = [
-                    (partners.index(pid), p.awi.get_preferences(partners.index(pid)))
-                    for pid, p in partners
+                    (
+                        partner_ids.index(pid),
+                        p.awi.get_preferences(partner_ids.index(pid)),
+                    )
+                    for pid, p in zip(partner_ids, partners)
                     if pid != current_aid
                 ]
                 pu = sum(unormalize(float(_(agreement)), i) for i, _ in pufuns)
@@ -440,7 +445,7 @@ class NegWorld(NoContractExecutionMixin, World):
                 )
                 self._partner_utility[current_aid].append(pu)
                 self._partner_advantage[current_aid].append(pa)
-            partner_names = [self.agents[_].name for _ in partners]
+            partner_names = [self.agents[_].name for _ in partner_ids]
             self.loginfo(f"{agent.name} : {partner_names} -> {agreement}")
 
     def received_utility(self, aid: str):

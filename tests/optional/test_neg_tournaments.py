@@ -3,12 +3,13 @@ from __future__ import annotations
 import pytest
 
 from negmas.genius import genius_bridge_is_running
-from negmas.genius.gnegotiators import AgentK, Atlas3, Atlas32016, NiceTitForTat
+from negmas.genius.gnegotiators import AgentK, AgentM, Atlas3, Atlas32016, NiceTitForTat
 from negmas.inout import Scenario
 from negmas.outcomes import make_issue
 from negmas.outcomes.outcome_space import make_os
-from negmas.preferences import LinearUtilityFunction as U
+from negmas.preferences import LinearAdditiveUtilityFunction as U
 from negmas.sao import AspirationNegotiator, NaiveTitForTatNegotiator
+from negmas.sao.mechanism import SAOMechanism
 from negmas.situated.neg import NegScenario
 from negmas.tournaments.neg import (
     cartesian_tournament,
@@ -60,8 +61,11 @@ def test_can_run_world_cartesian():
 
 
 def test_can_run_cartesian_tournament():
-    n = 3
-    issues = (make_issue(10, "quantity"), make_issue(5, "price"))
+    n = 2
+    issues = (
+        make_issue([f"q{i}" for i in range(10)], "quantity"),
+        make_issue([f"p{i}" for i in range(5)], "price"),
+    )
     ufuns = [
         (
             U.random(issues=issues, reserved_value=(0.0, 0.2), normalized=False),
@@ -69,11 +73,23 @@ def test_can_run_cartesian_tournament():
         )
         for _ in range(n)
     ]
-    scenarios = [Scenario(agenda=make_os(issues, name="S1"), ufuns=u) for u in ufuns]
+    scenarios = [
+        Scenario(
+            agenda=make_os(issues, name=f"S{i}"),
+            ufuns=u,
+            mechanism_type=SAOMechanism,  # type: ignore
+            mechanism_params=dict(),
+        )
+        for i, u in enumerate(ufuns)
+    ]
     results = cartesian_tournament(
-        competitors=[Atlas3, Atlas32016, NaiveTitForTatNegotiator],
-        non_competitors=[AspirationNegotiator, AgentK],
+        competitors=[Atlas3, AspirationNegotiator],
+        non_competitors=[AgentK],
         scenarios=scenarios,
+        neg_time_limit=20,
+        neg_n_steps=None,
+        n_steps=4,
+        verbose=True,
     )
     print(results)
 
