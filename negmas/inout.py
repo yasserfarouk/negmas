@@ -196,7 +196,10 @@ class Scenario:
         args = self.mechanism_params
         args.update(kwargs)
         m = self.mechanism_type(
-            outcome_space=self.agenda, n_steps=n_steps, time_limit=time_limit, **args
+            outcome_space=self.agenda,
+            n_steps=n_steps,
+            time_limit=time_limit,
+            **args,
         )
         if not negotiators:
             return m

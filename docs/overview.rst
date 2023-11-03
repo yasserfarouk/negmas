@@ -422,7 +422,7 @@ You can pick random valid or invalid values for the issue:
 
 .. parsed-literal::
 
-    [['to be', '20230708H150401943599jJTGt6qBto be20230708H150401943620XtRgNy0I'],
+    [['to be', '20230809H163632505749jJTGt6qBto be20230809H163632505767XtRgNy0I'],
      [6, 10],
      [0.6118970848141451, 1.928063278403899]]
 
@@ -1732,6 +1732,15 @@ any built-in protocol:
     state = p.run()
     p.state.agreement
 
+
+
+
+.. parsed-literal::
+
+    (3,)
+
+
+
 The negotiation ran with the expected results
 
 Our mechanism keeps a history in the form of a list of
@@ -1791,237 +1800,21 @@ Our mechanism keeps a history in the form of a list of
       <tbody>
         <tr>
           <th>0</th>
-          <td>True</td>
+          <td>False</td>
           <td>False</td>
           <td>True</td>
           <td>0</td>
-          <td>0.000000</td>
-          <td>0.000000</td>
+          <td>0.0</td>
+          <td>0.0</td>
           <td>False</td>
           <td>False</td>
-          <td>None</td>
+          <td>(3,)</td>
           <td>None</td>
           <td>...</td>
           <td></td>
           <td>{}</td>
           <td></td>
-          <td>(5,)</td>
-          <td>None</td>
-          <td>None</td>
-          <td>0</td>
-          <td>&lt;class 'list'&gt;</td>
-          <td>&lt;class 'list'&gt;</td>
-          <td>None</td>
-        </tr>
-        <tr>
-          <th>1</th>
-          <td>True</td>
-          <td>False</td>
-          <td>True</td>
-          <td>1</td>
-          <td>0.001787</td>
-          <td>0.181818</td>
-          <td>False</td>
-          <td>False</td>
-          <td>None</td>
-          <td>None</td>
-          <td>...</td>
-          <td></td>
-          <td>{}</td>
-          <td></td>
-          <td>(4,)</td>
-          <td>None</td>
-          <td>None</td>
-          <td>0</td>
-          <td>&lt;class 'list'&gt;</td>
-          <td>&lt;class 'list'&gt;</td>
-          <td>None</td>
-        </tr>
-        <tr>
-          <th>2</th>
-          <td>True</td>
-          <td>False</td>
-          <td>True</td>
-          <td>2</td>
-          <td>0.002572</td>
-          <td>0.272727</td>
-          <td>False</td>
-          <td>False</td>
-          <td>None</td>
-          <td>None</td>
-          <td>...</td>
-          <td></td>
-          <td>{}</td>
-          <td></td>
-          <td>(5,)</td>
-          <td>None</td>
-          <td>None</td>
-          <td>0</td>
-          <td>&lt;class 'list'&gt;</td>
-          <td>&lt;class 'list'&gt;</td>
-          <td>None</td>
-        </tr>
-        <tr>
-          <th>3</th>
-          <td>True</td>
-          <td>False</td>
-          <td>True</td>
-          <td>3</td>
-          <td>0.003968</td>
-          <td>0.363636</td>
-          <td>False</td>
-          <td>False</td>
-          <td>None</td>
-          <td>None</td>
-          <td>...</td>
-          <td></td>
-          <td>{}</td>
-          <td></td>
-          <td>(4,)</td>
-          <td>None</td>
-          <td>None</td>
-          <td>0</td>
-          <td>&lt;class 'list'&gt;</td>
-          <td>&lt;class 'list'&gt;</td>
-          <td>None</td>
-        </tr>
-        <tr>
-          <th>4</th>
-          <td>True</td>
-          <td>False</td>
-          <td>True</td>
-          <td>4</td>
-          <td>0.004516</td>
-          <td>0.454545</td>
-          <td>False</td>
-          <td>False</td>
-          <td>None</td>
-          <td>None</td>
-          <td>...</td>
-          <td></td>
-          <td>{}</td>
-          <td></td>
-          <td>(2,)</td>
-          <td>None</td>
-          <td>None</td>
-          <td>0</td>
-          <td>&lt;class 'list'&gt;</td>
-          <td>&lt;class 'list'&gt;</td>
-          <td>None</td>
-        </tr>
-        <tr>
-          <th>5</th>
-          <td>True</td>
-          <td>False</td>
-          <td>True</td>
-          <td>5</td>
-          <td>0.004979</td>
-          <td>0.545455</td>
-          <td>False</td>
-          <td>False</td>
-          <td>None</td>
-          <td>None</td>
-          <td>...</td>
-          <td></td>
-          <td>{}</td>
-          <td></td>
-          <td>(1,)</td>
-          <td>None</td>
-          <td>None</td>
-          <td>0</td>
-          <td>&lt;class 'list'&gt;</td>
-          <td>&lt;class 'list'&gt;</td>
-          <td>None</td>
-        </tr>
-        <tr>
-          <th>6</th>
-          <td>True</td>
-          <td>False</td>
-          <td>True</td>
-          <td>6</td>
-          <td>0.005357</td>
-          <td>0.636364</td>
-          <td>False</td>
-          <td>False</td>
-          <td>None</td>
-          <td>None</td>
-          <td>...</td>
-          <td></td>
-          <td>{}</td>
-          <td></td>
-          <td>(5,)</td>
-          <td>None</td>
-          <td>None</td>
-          <td>0</td>
-          <td>&lt;class 'list'&gt;</td>
-          <td>&lt;class 'list'&gt;</td>
-          <td>None</td>
-        </tr>
-        <tr>
-          <th>7</th>
-          <td>True</td>
-          <td>False</td>
-          <td>True</td>
-          <td>7</td>
-          <td>0.005726</td>
-          <td>0.727273</td>
-          <td>False</td>
-          <td>False</td>
-          <td>None</td>
-          <td>None</td>
-          <td>...</td>
-          <td></td>
-          <td>{}</td>
-          <td></td>
-          <td>(4,)</td>
-          <td>None</td>
-          <td>None</td>
-          <td>0</td>
-          <td>&lt;class 'list'&gt;</td>
-          <td>&lt;class 'list'&gt;</td>
-          <td>None</td>
-        </tr>
-        <tr>
-          <th>8</th>
-          <td>True</td>
-          <td>False</td>
-          <td>True</td>
-          <td>8</td>
-          <td>0.006133</td>
-          <td>0.818182</td>
-          <td>False</td>
-          <td>False</td>
-          <td>None</td>
-          <td>None</td>
-          <td>...</td>
-          <td></td>
-          <td>{}</td>
-          <td></td>
-          <td>(5,)</td>
-          <td>None</td>
-          <td>None</td>
-          <td>0</td>
-          <td>&lt;class 'list'&gt;</td>
-          <td>&lt;class 'list'&gt;</td>
-          <td>None</td>
-        </tr>
-        <tr>
-          <th>9</th>
-          <td>True</td>
-          <td>False</td>
-          <td>True</td>
-          <td>9</td>
-          <td>0.006545</td>
-          <td>0.909091</td>
-          <td>False</td>
-          <td>False</td>
-          <td>None</td>
-          <td>None</td>
-          <td>...</td>
-          <td></td>
-          <td>{}</td>
-          <td></td>
-          <td>(4,)</td>
+          <td>(3,)</td>
           <td>None</td>
           <td>None</td>
           <td>0</td>
@@ -2031,7 +1824,7 @@ Our mechanism keeps a history in the form of a list of
         </tr>
       </tbody>
     </table>
-    <p>10 rows × 22 columns</p>
+    <p>1 rows × 22 columns</p>
     </div>
 
 
@@ -2073,12 +1866,121 @@ did previously
     print(f"Agreement: {p.state.agreement}")
 
 
+::
 
-.. raw:: html
 
-    <pre style="white-space:pre;overflow-x:auto;line-height:normal;font-family:Menlo,'DejaVu Sans Mono',consolas,'Courier New',monospace">Agreement: <span style="font-weight: bold">(</span><span style="color: #008080; text-decoration-color: #008080; font-weight: bold">3</span>,<span style="font-weight: bold">)</span>
-    </pre>
+    ---------------------------------------------------------------------------
 
+    AttributeError                            Traceback (most recent call last)
+
+    Cell In[48], line 4
+          2 p.add(LimitedOutcomesNegotiator(name='seller', acceptable_outcomes=[(2,), (3,), (5,)]))
+          3 p.add(LimitedOutcomesNegotiator(name='buyer', acceptable_outcomes=[(1,), (4,), (3,)]))
+    ----> 4 p.run()
+          5 print(f"Agreement: {p.state.agreement}")
+
+
+    File ~/code/projects/negmas/negmas/mechanisms.py:1264, in Mechanism.run(self, timeout)
+       1262 def run(self, timeout=None) -> MechanismState:
+       1263     if timeout is None:
+    -> 1264         for _ in self:
+       1265             pass
+       1266     else:
+
+
+    File ~/code/projects/negmas/negmas/mechanisms.py:1133, in Mechanism.__next__(self)
+       1132 def __next__(self) -> MechanismState:
+    -> 1133     result = self.step()
+       1134     if not self._current_state.running:
+       1135         raise StopIteration
+
+
+    File ~/code/projects/negmas/negmas/mechanisms.py:1061, in Mechanism.step(self, action)
+       1059 self._last_start = step_start
+       1060 self._current_state.waiting = False
+    -> 1061 result = self(self._current_state, action=action)
+       1062 self._current_state = result.state
+       1063 step_time = time.perf_counter() - step_start
+
+
+    Cell In[44], line 30, in ParallelResponseMechanism.__call__(self, state, action)
+         28     responses = executor.map(get_response, [_ for _ in self.negotiators if _.id != current.id])
+         29 self.current_offerer = (self.current_offerer + 1) % n_agents
+    ---> 30 if all(_== ResponseType.ACCEPT_OFFER for _ in responses):
+         31     state.agreement = self.state.current_offer
+         32 if any(_== ResponseType.END_NEGOTIATION for _ in responses):
+
+
+    Cell In[44], line 30, in <genexpr>(.0)
+         28     responses = executor.map(get_response, [_ for _ in self.negotiators if _.id != current.id])
+         29 self.current_offerer = (self.current_offerer + 1) % n_agents
+    ---> 30 if all(_== ResponseType.ACCEPT_OFFER for _ in responses):
+         31     state.agreement = self.state.current_offer
+         32 if any(_== ResponseType.END_NEGOTIATION for _ in responses):
+
+
+    File /opt/homebrew/Cellar/python@3.11/3.11.4_1/Frameworks/Python.framework/Versions/3.11/lib/python3.11/concurrent/futures/_base.py:619, in Executor.map.<locals>.result_iterator()
+        616 while fs:
+        617     # Careful not to keep a reference to the popped future
+        618     if timeout is None:
+    --> 619         yield _result_or_cancel(fs.pop())
+        620     else:
+        621         yield _result_or_cancel(fs.pop(), end_time - time.monotonic())
+
+
+    File /opt/homebrew/Cellar/python@3.11/3.11.4_1/Frameworks/Python.framework/Versions/3.11/lib/python3.11/concurrent/futures/_base.py:317, in _result_or_cancel(***failed resolving arguments***)
+        315 try:
+        316     try:
+    --> 317         return fut.result(timeout)
+        318     finally:
+        319         fut.cancel()
+
+
+    File /opt/homebrew/Cellar/python@3.11/3.11.4_1/Frameworks/Python.framework/Versions/3.11/lib/python3.11/concurrent/futures/_base.py:449, in Future.result(self, timeout)
+        447     raise CancelledError()
+        448 elif self._state == FINISHED:
+    --> 449     return self.__get_result()
+        451 self._condition.wait(timeout)
+        453 if self._state in [CANCELLED, CANCELLED_AND_NOTIFIED]:
+
+
+    File /opt/homebrew/Cellar/python@3.11/3.11.4_1/Frameworks/Python.framework/Versions/3.11/lib/python3.11/concurrent/futures/_base.py:401, in Future.__get_result(self)
+        399 if self._exception:
+        400     try:
+    --> 401         raise self._exception
+        402     finally:
+        403         # Break a reference cycle with the exception in self._exception
+        404         self = None
+
+
+    File /opt/homebrew/Cellar/python@3.11/3.11.4_1/Frameworks/Python.framework/Versions/3.11/lib/python3.11/concurrent/futures/thread.py:58, in _WorkItem.run(self)
+         55     return
+         57 try:
+    ---> 58     result = self.fn(*self.args, **self.kwargs)
+         59 except BaseException as exc:
+         60     self.future.set_exception(exc)
+
+
+    Cell In[44], line 25, in ParallelResponseMechanism.__call__.<locals>.get_response(negotiator, state)
+         23     if response:
+         24         return response
+    ---> 25 return negotiator.respond(state, self.current_offerer)
+
+
+    File ~/code/projects/negmas/negmas/gb/negotiators/modular/modular.py:51, in GBModularNegotiator.respond(self, state, source)
+         50 def respond(self, state: GBState, source: str | None = None) -> ResponseType:
+    ---> 51     offer = get_offer(state, source)
+         52     for c in self._components:
+         53         c.before_responding(state=state, offer=offer, source=source)
+
+
+    File ~/code/projects/negmas/negmas/gb/common.py:105, in get_offer(state, source)
+        103 if not tid:
+        104     return None
+    --> 105 return state.threads[tid].new_offer
+
+
+    AttributeError: 'MyState' object has no attribute 'threads'
 
 
 We can now check the history again (showing few of the attributes only)
@@ -2101,85 +2003,6 @@ to confirm that the current offer and its source are stored.
             for _ in p.history])
     show_history(p)
 
-
-
-
-.. raw:: html
-
-    <div>
-    <style scoped>
-        .dataframe tbody tr th:only-of-type {
-            vertical-align: middle;
-        }
-
-        .dataframe tbody tr th {
-            vertical-align: top;
-        }
-
-        .dataframe thead th {
-            text-align: right;
-        }
-    </style>
-    <table border="1" class="dataframe">
-      <thead>
-        <tr style="text-align: right;">
-          <th></th>
-          <th>step</th>
-          <th>agreement</th>
-          <th>relative_time</th>
-          <th>timedout</th>
-          <th>broken</th>
-          <th>current_offer</th>
-          <th>current_offerer</th>
-        </tr>
-      </thead>
-      <tbody>
-        <tr>
-          <th>0</th>
-          <td>0</td>
-          <td>None</td>
-          <td>0.000000</td>
-          <td>False</td>
-          <td>False</td>
-          <td>(5,)</td>
-          <td>none</td>
-        </tr>
-        <tr>
-          <th>1</th>
-          <td>1</td>
-          <td>None</td>
-          <td>0.181818</td>
-          <td>False</td>
-          <td>False</td>
-          <td>(1,)</td>
-          <td>none</td>
-        </tr>
-        <tr>
-          <th>2</th>
-          <td>2</td>
-          <td>None</td>
-          <td>0.272727</td>
-          <td>False</td>
-          <td>False</td>
-          <td>(5,)</td>
-          <td>none</td>
-        </tr>
-        <tr>
-          <th>3</th>
-          <td>3</td>
-          <td>(3,)</td>
-          <td>0.363636</td>
-          <td>False</td>
-          <td>False</td>
-          <td>(3,)</td>
-          <td>none</td>
-        </tr>
-      </tbody>
-    </table>
-    </div>
-
-
-
 Let’s see what happens if agreement is impossible (no intersection of
 acceptable outcomes in our case):
 
@@ -2191,113 +2014,6 @@ acceptable outcomes in our case):
     p.run()
     print(f"Agreement: {p.state.agreement}")
     show_history(p)
-
-
-
-.. raw:: html
-
-    <pre style="white-space:pre;overflow-x:auto;line-height:normal;font-family:Menlo,'DejaVu Sans Mono',consolas,'Courier New',monospace">Agreement: <span style="color: #800080; text-decoration-color: #800080; font-style: italic">None</span>
-    </pre>
-
-
-
-
-
-.. raw:: html
-
-    <div>
-    <style scoped>
-        .dataframe tbody tr th:only-of-type {
-            vertical-align: middle;
-        }
-
-        .dataframe tbody tr th {
-            vertical-align: top;
-        }
-
-        .dataframe thead th {
-            text-align: right;
-        }
-    </style>
-    <table border="1" class="dataframe">
-      <thead>
-        <tr style="text-align: right;">
-          <th></th>
-          <th>step</th>
-          <th>agreement</th>
-          <th>relative_time</th>
-          <th>timedout</th>
-          <th>broken</th>
-          <th>current_offer</th>
-          <th>current_offerer</th>
-        </tr>
-      </thead>
-      <tbody>
-        <tr>
-          <th>0</th>
-          <td>0</td>
-          <td>None</td>
-          <td>0.000000</td>
-          <td>False</td>
-          <td>False</td>
-          <td>(5,)</td>
-          <td>none</td>
-        </tr>
-        <tr>
-          <th>1</th>
-          <td>1</td>
-          <td>None</td>
-          <td>0.285714</td>
-          <td>False</td>
-          <td>False</td>
-          <td>(1,)</td>
-          <td>none</td>
-        </tr>
-        <tr>
-          <th>2</th>
-          <td>2</td>
-          <td>None</td>
-          <td>0.428571</td>
-          <td>False</td>
-          <td>False</td>
-          <td>(2,)</td>
-          <td>none</td>
-        </tr>
-        <tr>
-          <th>3</th>
-          <td>3</td>
-          <td>None</td>
-          <td>0.571429</td>
-          <td>False</td>
-          <td>False</td>
-          <td>(3,)</td>
-          <td>none</td>
-        </tr>
-        <tr>
-          <th>4</th>
-          <td>4</td>
-          <td>None</td>
-          <td>0.714286</td>
-          <td>False</td>
-          <td>False</td>
-          <td>(0,)</td>
-          <td>none</td>
-        </tr>
-        <tr>
-          <th>5</th>
-          <td>5</td>
-          <td>None</td>
-          <td>0.857143</td>
-          <td>False</td>
-          <td>False</td>
-          <td>(4,)</td>
-          <td>none</td>
-        </tr>
-      </tbody>
-    </table>
-    </div>
-
-
 
 As expected, the negotiation timed out. Let’s try to make it possible
 for the agents to agree by providing a common outcome that they may
@@ -2311,63 +2027,6 @@ agree upon:
     p.run()
     print(f"Agreement: {p.state.agreement}")
     show_history(p)
-
-
-
-.. raw:: html
-
-    <pre style="white-space:pre;overflow-x:auto;line-height:normal;font-family:Menlo,'DejaVu Sans Mono',consolas,'Courier New',monospace">Agreement: <span style="font-weight: bold">(</span><span style="color: #008080; text-decoration-color: #008080; font-weight: bold">3</span>,<span style="font-weight: bold">)</span>
-    </pre>
-
-
-
-
-
-.. raw:: html
-
-    <div>
-    <style scoped>
-        .dataframe tbody tr th:only-of-type {
-            vertical-align: middle;
-        }
-
-        .dataframe tbody tr th {
-            vertical-align: top;
-        }
-
-        .dataframe thead th {
-            text-align: right;
-        }
-    </style>
-    <table border="1" class="dataframe">
-      <thead>
-        <tr style="text-align: right;">
-          <th></th>
-          <th>step</th>
-          <th>agreement</th>
-          <th>relative_time</th>
-          <th>timedout</th>
-          <th>broken</th>
-          <th>current_offer</th>
-          <th>current_offerer</th>
-        </tr>
-      </thead>
-      <tbody>
-        <tr>
-          <th>0</th>
-          <td>0</td>
-          <td>(3,)</td>
-          <td>0.0</td>
-          <td>False</td>
-          <td>False</td>
-          <td>(3,)</td>
-          <td>none</td>
-        </tr>
-      </tbody>
-    </table>
-    </div>
-
-
 
 We got an agreement again as expected.
 

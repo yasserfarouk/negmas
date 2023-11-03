@@ -6,9 +6,8 @@ from __future__ import annotations
 from collections import defaultdict
 from copy import deepcopy
 from functools import partial
-from itertools import chain, combinations, cycle, permutations, product, repeat
+from itertools import chain, combinations, cycle, permutations, repeat
 from os import PathLike
-from pathlib import Path
 from random import randint
 from typing import Any, Generator, Sequence
 
@@ -76,7 +75,7 @@ def neg_config_generator(
             f"n_agents_per_competitor must be 1 ({n_agents_per_competitor} given)"
         )
 
-    world_name = unique_name("", add_time=True, rand_digits=4)
+    world_name = unique_name(f"{scenario.name}", add_time=True, rand_digits=4, sep="_")
     no_logs = compact
     world_params = dict(
         name=world_name,
@@ -132,7 +131,7 @@ def neg_world_generator(**kwargs):
     config["types"] = [get_class(_) for _ in config["types"]]
     config["scenario"] = deserialize(config["scenario"])
     name = config["scenario"].name
-    config["name"] = name if name is not None else unique_name("world")
+    config["name"] = name if name is not None else unique_name("world", sep="_")
     return NegWorld(**config)
 
 
@@ -322,7 +321,7 @@ def random_discrete_scenarios(
     positions: int | tuple[int, int] | None = None,
     normalized=True,
     ufun_type=LinearUtilityFunction,
-    roles: list[str] | None = None,
+    roles: tuple[str, ...] | None = None,
     partner_extraction_method="round-robin",
 ) -> Generator[NegScenario, None, None]:
     """
@@ -469,11 +468,7 @@ def _make_negs(
                     for u in ufuns:
                         negs.append(
                             NegScenario(
-                                name=unique_name(
-                                    f"{s.agenda.name}_{k}_",
-                                    add_time=False,
-                                    rand_digits=4,
-                                )
+                                name=f"{s.agenda.name}_{k}"
                                 if s.agenda.name
                                 else unique_name("s"),
                                 issues=s.agenda.issues,
@@ -503,12 +498,12 @@ def _make_negs(
 def create_cartesian_tournament(
     competitors: list[AgentType] | tuple[AgentType, ...],
     scenarios: list[Scenario] | tuple[Scenario, ...],
-    competitor_params: Sequence[dict | None] | None = None,
+    competitor_params: Sequence[dict[str, None] | None] | None = None,
     non_competitors: list[AgentType] | tuple[AgentType, ...] = tuple(),
     non_competitor_params: Sequence[dict | None] | None = None,
     rotate_ufuns: bool = False,
     **kwargs,
-) -> Path:
+) -> PathLike:
     """
     Creates a Cartesian tournament (every competitor against every other competitor)
 
@@ -574,9 +569,9 @@ def create_cartesian_tournament(
         rotate_ufuns=rotate_ufuns,
     )
     return create_neg_tournament(
-        competitors=competitors,
+        competitors=competitors,  # type: ignore
         scenarios=scenarios_from_list(neg_scenarios),
-        competitor_params=competitor_params,
+        competitor_params=competitor_params,  # type: ignore
         **kwargs,
     )
 
@@ -591,7 +586,7 @@ def cartesian_tournament(
     **kwargs,
 ) -> TournamentResults | PathLike:
     """
-    Runs a tournament
+    Runs a Cartesian tournament between `competitors` optionally rotating preferences.
 
     Args:
 
