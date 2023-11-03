@@ -456,9 +456,9 @@ class PresortingInverseUtilityFunction(InverseUFun):
         results = []
         for util, w in zip(self.utils[lo : hi + 1], self.outcomes[lo : hi + 1]):
             if util > mx:
-                continue
-            if util < mn:
                 break
+            if util < mn:
+                continue
             results.append(w)
         if n and len(results) >= n:
             return random.sample(results, n)

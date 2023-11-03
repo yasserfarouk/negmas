@@ -181,7 +181,7 @@ Now let’s try our brand new mechanism and negotiator
 
 .. parsed-literal::
 
-    Agreement: (0.4999999969009592, 0.49999999749498625)
+    Agreement: (0.4999999936988203, 0.500000003911858)
 
 
 As expected, the two negotiators agreed on the expected nash point (0.5,
@@ -494,7 +494,7 @@ Now we can run negotiations using our new protocol and negotiator:
 
 .. parsed-literal::
 
-    Agreed to: (0.5587054405718088, 0.44129455942819124) after 2457 steps
+    Agreed to: (0.7732078028761935, 0.22679219712380644) after 1176 steps
 
 
 

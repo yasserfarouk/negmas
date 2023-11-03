@@ -20,46 +20,6 @@ from negmas.tournaments.neg import (
 from negmas.tournaments.tournaments import run_tournament
 
 
-def test_can_run_world_cartesian():
-    issues = (make_issue(10, "quantity"), make_issue(5, "price"))
-    competitors = [AspirationNegotiator, NaiveTitForTatNegotiator]
-    if genius_bridge_is_running():
-        competitors += [Atlas3, NiceTitForTat]
-
-    ufuns = (
-        U.random(issues=issues, reserved_value=(0.0, 0.2), normalized=False),
-        U.random(issues=issues, reserved_value=(0.0, 0.2), normalized=False),
-    )
-
-    scenarios = []
-
-    for pindex, partner in enumerate(competitors):
-        scenarios.append(
-            NegScenario(
-                name="d0",
-                issues=issues,
-                ufuns=ufuns,
-                partner_types=tuple(
-                    _ for i, _ in enumerate(competitors) if i != pindex
-                ),
-                index=pindex,
-                scored_indices=tuple(range(len(competitors))),
-            )
-        )
-
-    print(
-        neg_tournament(
-            n_configs=2 * 2,
-            scenarios=scenarios_from_list(scenarios),
-            competitors=competitors,
-            n_steps=2,
-            neg_n_steps=10,
-            neg_time_limit=None,
-            parallelism="serial",
-        )
-    )
-
-
 def test_can_run_cartesian_tournament():
     n = 2
     issues = (

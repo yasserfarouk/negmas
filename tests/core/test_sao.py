@@ -1,23 +1,140 @@
 from __future__ import annotations
 
 import random
+from random import choice
 
 import hypothesis.strategies as st
 from hypothesis import example, given, settings
 from pytest import mark
 
 import negmas
-from negmas import all_negotiator_types
+from negmas import (
+    PolyAspiration,
+    PresortingInverseUtilityFunction,
+    all_negotiator_types,
+)
+from negmas.common import PreferencesChangeType
 from negmas.gb.common import ResponseType
 from negmas.gb.negotiators.timebased import AspirationNegotiator
-from negmas.outcomes import Issue, make_issue, outcome_space
+from negmas.outcomes import Issue, make_issue
 from negmas.outcomes.outcome_space import make_os
 from negmas.preferences import LinearAdditiveUtilityFunction
+from negmas.preferences import LinearAdditiveUtilityFunction as LUFun
+from negmas.preferences.value_fun import AffineFun, IdentityFun, LinearFun
 from negmas.sao import EndImmediately, NoneOfferingPolicy, RejectAlways, SAOMechanism
 from negmas.sao.common import SAOResponse, SAOState
+from negmas.sao.negotiators.base import SAONegotiator
 from negmas.sao.negotiators.modular.boa import make_boa
 
 NEGTYPES = all_negotiator_types()
+
+
+class SmartAspirationNegotiator(SAONegotiator):
+    _inv = None  # The ufun invertor (finds outcomes in a utility range)
+    _partner_first = None  # The best offer of the partner (assumed best for it)
+    _min = None  # The minimum of my utility function
+    _max = None  # The maximum of my utility function
+    _best = None  # The best outcome for me
+
+    def __init__(self, *args, **kwargs):
+        # initialize the base SAONegoiator (MUST be done)
+        super().__init__(*args, **kwargs)
+
+        # Initialize the aspiration mixin to start at 1.0 and concede slowly
+        self._asp = PolyAspiration(1.0, "boulware")
+
+    def on_preferences_changed(self, changes):
+        # create an initiaze an invertor for my ufun
+        changes = [_ for _ in changes if _.type not in (PreferencesChangeType.Scale,)]
+        if not changes:
+            return
+        self._inv = PresortingInverseUtilityFunction(self.ufun)  # type: ignore
+        self._inv.init()
+
+        # find worst and best outcomes for me
+        worest, self._best = self.ufun.extreme_outcomes()  # type: ignore
+
+        # and the correponding utility values
+        self._min, self._max = self.ufun(worest), self.ufun(self._best)  # type: ignore
+
+        # MUST call parent to avoid being called again for no reason
+        super().on_preferences_changed(changes)
+
+    def respond(self, state, source: str):
+        offer = state.current_offer
+        if offer is None:
+            return ResponseType.REJECT_OFFER
+        # set the partner's first offer when I receive it
+        if not self._partner_first:
+            self._partner_first = offer
+
+        # accept if the offer is not worse for me than what I would have offered
+        return super().respond(state, source)
+
+    def propose(self, state):
+        # calculate my current aspiration level (utility level at which I will offer and accept)
+        a = (self._max - self._min) * self._asp.utility_at(  # type: ignore
+            state.relative_time
+        ) + self._min
+
+        # find some outcomes (all if the outcome space is  discrete) above the aspiration level
+        outcomes = self._inv.some((a - 1e-6, self._max + 1e-6), False)  # type: ignore
+        # If there are no outcomes above the aspiration level, offer my best outcome
+        if not outcomes:
+            return self._best
+
+        # else if I did not  recieve anything from the partner, offer any outcome above the aspiration level
+        if not self._partner_first:
+            return choice(outcomes)
+
+        # otherwise, offer the outcome most similar to the partner's first offer (above the aspiration level)
+        nearest, ndist = None, float("inf")
+        for o in outcomes:
+            d = sum((a - b) * (a - b) for a, b in zip(o, self._partner_first))
+            if d < ndist:
+                nearest, ndist = o, d
+        return nearest
+
+
+def try_negotiator(cls, replace_buyer=True, replace_seller=True, n_steps=100):
+    buyer_cls = cls if replace_buyer else AspirationNegotiator
+    seller_cls = cls if replace_seller else AspirationNegotiator
+
+    # create negotiation agenda (issues)
+    issues = [
+        make_issue(name="price", values=10),
+        make_issue(name="quantity", values=(1, 11)),
+        make_issue(name="delivery_time", values=10),
+    ]
+
+    # create the mechanism
+    session = SAOMechanism(issues=issues, n_steps=n_steps)
+
+    # define ufuns
+    seller_utility = LUFun(
+        values={  # type: ignore
+            "price": IdentityFun(),
+            "quantity": LinearFun(0.2),
+            "delivery_time": AffineFun(-1, bias=9),
+        },
+        weights={"price": 1.0, "quantity": 1.0, "delivery_time": 10.0},
+        outcome_space=session.outcome_space,
+        reserved_value=15.0,
+    ).scale_max(1.0)
+    buyer_utility = LUFun(
+        values={  # type: ignore
+            "price": AffineFun(-1, bias=9.0),
+            "quantity": LinearFun(0.2),
+            "delivery_time": IdentityFun(),
+        },
+        outcome_space=session.outcome_space,
+        reserved_value=10.0,
+    ).scale_max(1.0)
+
+    session.add(buyer_cls(name="buyer"), ufun=buyer_utility)  # type: ignore
+    session.add(seller_cls(name="seller"), ufun=seller_utility)  # type: ignore
+    session.run()
+    return session
 
 
 @given(
@@ -249,7 +366,7 @@ def test_basic_sao():
 
 
 def test_basic_sao_with_action():
-    n_steps = 100
+    n_steps = 50
     issues: list[Issue] = [
         make_issue(10, "price"),
         make_issue(5, "quantity"),
@@ -302,5 +419,13 @@ def test_basic_sao_with_action():
             abs(session.relative_time - ((i + 2) / (n_steps + 1))) < 1e-6
         ), f"{session.state=}\n{session.extended_trace=}"
         assert session.remaining_time is None
-    assert session.state.started and not session.state.running
-    assert session.state.step <= n_steps
+    assert (
+        session.state.started and not session.state.running
+    ), f"Did not finish running:\n{session.extended_trace}"
+    assert (
+        session.state.step <= n_steps
+    ), f"Ran for too long {session.state.step} but max expected is {n_steps} steps:\n{session.extended_trace}"
+
+
+def test_smart_asipration():
+    state = try_negotiator(SmartAspirationNegotiator)

@@ -43,16 +43,11 @@ seller negotiating over a deal using time-based negotiators.
     session.add(AspirationNegotiator(name="seller"), ufun=seller_utility)
     session.run()
     session.plot()
-
+    plt.show()
 
 
 
 .. image:: 02.develop_new_negotiator_files/02.develop_new_negotiator_1_0.png
-
-
-
-
-.. image:: 02.develop_new_negotiator_files/02.develop_new_negotiator_1_1.png
 
 
 The negotiation ended with an agreement far from the pareto-front
@@ -193,6 +188,7 @@ the buyer and/or seller negotiators in the code sample we used above:
         session.run()
         if plot:
             session.plot()
+            plt.show()
         return session
 
 … and try our first attempt:
@@ -220,9 +216,9 @@ exchanged (along with the agent that offered it):
 
 .. parsed-literal::
 
-    [('buyer-b7fb798f-5014-4b8c-bf20-52edde69c9f0', (0, 6, 9)),
-     ('seller-2cbe5e68-85e0-4386-899a-0be9d57dca9b', (3, 8, 9)),
-     ('buyer-b7fb798f-5014-4b8c-bf20-52edde69c9f0', (3, 7, 3))]
+    [('buyer-97c4a67d-ecf4-4e64-b871-462af72ba198', (5, 5, 8)),
+     ('seller-2d420ac9-4613-475b-97ba-231e186e589e', (3, 6, 5)),
+     ('buyer-97c4a67d-ecf4-4e64-b871-462af72ba198', (8, 7, 3))]
 
 
 
@@ -347,22 +343,22 @@ negotiation:
         <span style="color: #808000; text-decoration-color: #808000">waiting</span>=<span style="color: #ff0000; text-decoration-color: #ff0000; font-style: italic">False</span>,
         <span style="color: #808000; text-decoration-color: #808000">started</span>=<span style="color: #00ff00; text-decoration-color: #00ff00; font-style: italic">True</span>,
         <span style="color: #808000; text-decoration-color: #808000">step</span>=<span style="color: #008080; text-decoration-color: #008080; font-weight: bold">8</span>,
-        <span style="color: #808000; text-decoration-color: #808000">time</span>=<span style="color: #008080; text-decoration-color: #008080; font-weight: bold">0.0010860000002139714</span>,
+        <span style="color: #808000; text-decoration-color: #808000">time</span>=<span style="color: #008080; text-decoration-color: #008080; font-weight: bold">0.0008893340000213357</span>,
         <span style="color: #808000; text-decoration-color: #808000">relative_time</span>=<span style="color: #008080; text-decoration-color: #008080; font-weight: bold">0.42857142857142855</span>,
         <span style="color: #808000; text-decoration-color: #808000">broken</span>=<span style="color: #ff0000; text-decoration-color: #ff0000; font-style: italic">False</span>,
         <span style="color: #808000; text-decoration-color: #808000">timedout</span>=<span style="color: #ff0000; text-decoration-color: #ff0000; font-style: italic">False</span>,
-        <span style="color: #808000; text-decoration-color: #808000">agreement</span>=<span style="font-weight: bold">(</span><span style="color: #008080; text-decoration-color: #008080; font-weight: bold">8</span>, <span style="color: #008080; text-decoration-color: #008080; font-weight: bold">9</span>, <span style="color: #008080; text-decoration-color: #008080; font-weight: bold">0</span><span style="font-weight: bold">)</span>,
+        <span style="color: #808000; text-decoration-color: #808000">agreement</span>=<span style="font-weight: bold">(</span><span style="color: #008080; text-decoration-color: #008080; font-weight: bold">1</span>, <span style="color: #008080; text-decoration-color: #008080; font-weight: bold">8</span>, <span style="color: #008080; text-decoration-color: #008080; font-weight: bold">0</span><span style="font-weight: bold">)</span>,
         <span style="color: #808000; text-decoration-color: #808000">results</span>=<span style="color: #800080; text-decoration-color: #800080; font-style: italic">None</span>,
         <span style="color: #808000; text-decoration-color: #808000">n_negotiators</span>=<span style="color: #008080; text-decoration-color: #008080; font-weight: bold">2</span>,
         <span style="color: #808000; text-decoration-color: #808000">has_error</span>=<span style="color: #ff0000; text-decoration-color: #ff0000; font-style: italic">False</span>,
         <span style="color: #808000; text-decoration-color: #808000">error_details</span>=<span style="color: #008000; text-decoration-color: #008000">''</span>,
         <span style="color: #808000; text-decoration-color: #808000">threads</span>=<span style="font-weight: bold">{}</span>,
         <span style="color: #808000; text-decoration-color: #808000">last_thread</span>=<span style="color: #008000; text-decoration-color: #008000">''</span>,
-        <span style="color: #808000; text-decoration-color: #808000">current_offer</span>=<span style="font-weight: bold">(</span><span style="color: #008080; text-decoration-color: #008080; font-weight: bold">8</span>, <span style="color: #008080; text-decoration-color: #008080; font-weight: bold">9</span>, <span style="color: #008080; text-decoration-color: #008080; font-weight: bold">0</span><span style="font-weight: bold">)</span>,
-        <span style="color: #808000; text-decoration-color: #808000">current_proposer</span>=<span style="color: #008000; text-decoration-color: #008000">'buyer-61e19926-dadc-4105-8560-48c3013c264c'</span>,
+        <span style="color: #808000; text-decoration-color: #808000">current_offer</span>=<span style="font-weight: bold">(</span><span style="color: #008080; text-decoration-color: #008080; font-weight: bold">1</span>, <span style="color: #008080; text-decoration-color: #008080; font-weight: bold">8</span>, <span style="color: #008080; text-decoration-color: #008080; font-weight: bold">0</span><span style="font-weight: bold">)</span>,
+        <span style="color: #808000; text-decoration-color: #808000">current_proposer</span>=<span style="color: #008000; text-decoration-color: #008000">'buyer-f23ea587-49ba-4a47-83a1-2a9697b384a3'</span>,
         <span style="color: #808000; text-decoration-color: #808000">current_proposer_agent</span>=<span style="color: #800080; text-decoration-color: #800080; font-style: italic">None</span>,
         <span style="color: #808000; text-decoration-color: #808000">n_acceptances</span>=<span style="color: #008080; text-decoration-color: #008080; font-weight: bold">2</span>,
-        <span style="color: #808000; text-decoration-color: #808000">new_offers</span>=<span style="font-weight: bold">[(</span><span style="color: #008000; text-decoration-color: #008000">'buyer-61e19926-dadc-4105-8560-48c3013c264c'</span>, <span style="font-weight: bold">(</span><span style="color: #008080; text-decoration-color: #008080; font-weight: bold">8</span>, <span style="color: #008080; text-decoration-color: #008080; font-weight: bold">9</span>, <span style="color: #008080; text-decoration-color: #008080; font-weight: bold">0</span><span style="font-weight: bold">))]</span>,
+        <span style="color: #808000; text-decoration-color: #808000">new_offers</span>=<span style="font-weight: bold">[(</span><span style="color: #008000; text-decoration-color: #008000">'buyer-f23ea587-49ba-4a47-83a1-2a9697b384a3'</span>, <span style="font-weight: bold">(</span><span style="color: #008080; text-decoration-color: #008080; font-weight: bold">1</span>, <span style="color: #008080; text-decoration-color: #008080; font-weight: bold">8</span>, <span style="color: #008080; text-decoration-color: #008080; font-weight: bold">0</span><span style="font-weight: bold">))]</span>,
         <span style="color: #808000; text-decoration-color: #808000">new_offerer_agents</span>=<span style="font-weight: bold">[</span><span style="color: #800080; text-decoration-color: #800080; font-style: italic">None</span><span style="font-weight: bold">]</span>,
         <span style="color: #808000; text-decoration-color: #808000">last_negotiator</span>=<span style="color: #008000; text-decoration-color: #008000">'buyer'</span>
     <span style="font-weight: bold">)</span>
@@ -423,7 +419,7 @@ agreement for the agent that accepted it as follows:
 
 .. raw:: html
 
-    <pre style="white-space:pre;overflow-x:auto;line-height:normal;font-family:Menlo,'DejaVu Sans Mono',consolas,'Courier New',monospace"><span style="color: #008080; text-decoration-color: #008080; font-weight: bold">0.9861660079051383</span>
+    <pre style="white-space:pre;overflow-x:auto;line-height:normal;font-family:Menlo,'DejaVu Sans Mono',consolas,'Courier New',monospace"><span style="color: #008080; text-decoration-color: #008080; font-weight: bold">0.9150197628458497</span>
     </pre>
 
 
@@ -478,7 +474,7 @@ explain it:
 
     class SmartAspirationNegotiator(SAONegotiator):
         _inv = None  # The ufun invertor (finds outcomes in a utility range)
-        _partner_first = None  # The best offer of the parter (assumed best for it)
+        _partner_first = None  # The best offer of the partner (assumed best for it)
         _min = None  # The minimum of my utility function
         _max = None  # The maximum of my utility function
         _best = None  # The best outcome for me
@@ -524,9 +520,9 @@ explain it:
                 state.relative_time
             ) + self._min
 
-            # find some outcomes (all if the outcome space is  discrete) above the aspiration level
-            outcomes = self._inv.some((a, self._max), False)
 
+            # find some outcomes (all if the outcome space is  discrete) above the aspiration level
+            outcomes = self._inv.some((a - 1e-6, self._max + 1e-6), False)
             # If there are no outcomes above the aspiration level, offer my best outcome
             if not outcomes:
                 return self._best
@@ -653,10 +649,10 @@ with ``AspriationNegotiator`` on multiple negotiations:
 
 .. raw:: html
 
-    <pre style="white-space:pre;overflow-x:auto;line-height:normal;font-family:Menlo,'DejaVu Sans Mono',consolas,'Courier New',monospace"><span style="color: #808000; text-decoration-color: #808000">pdist</span>=<span style="color: #800080; text-decoration-color: #800080; font-weight: bold">defaultdict</span><span style="font-weight: bold">(&lt;</span><span style="color: #ff00ff; text-decoration-color: #ff00ff; font-weight: bold">class</span><span style="color: #000000; text-decoration-color: #000000"> </span><span style="color: #008000; text-decoration-color: #008000">'float'</span><span style="color: #000000; text-decoration-color: #000000">&gt;, </span><span style="color: #000000; text-decoration-color: #000000; font-weight: bold">{</span><span style="color: #008000; text-decoration-color: #008000">'AspirationNegotiator'</span><span style="color: #000000; text-decoration-color: #000000">: </span><span style="color: #008080; text-decoration-color: #008080; font-weight: bold">4.99999999999999</span><span style="color: #000000; text-decoration-color: #000000">, </span><span style="color: #008000; text-decoration-color: #008000">'RandomNegotiator'</span><span style="color: #000000; text-decoration-color: #000000">: </span>
-    <span style="color: #008080; text-decoration-color: #008080; font-weight: bold">5.373089660324921</span><span style="color: #000000; text-decoration-color: #000000; font-weight: bold">})</span>
-    <span style="color: #808000; text-decoration-color: #808000">ndiff</span><span style="color: #000000; text-decoration-color: #000000">=</span><span style="color: #800080; text-decoration-color: #800080; font-weight: bold">defaultdict</span><span style="color: #000000; text-decoration-color: #000000; font-weight: bold">(</span><span style="color: #000000; text-decoration-color: #000000">&lt;class </span><span style="color: #008000; text-decoration-color: #008000">'float'</span><span style="font-weight: bold">&gt;</span>, <span style="font-weight: bold">{</span><span style="color: #008000; text-decoration-color: #008000">'AspirationNegotiator'</span>: <span style="color: #008080; text-decoration-color: #008080; font-weight: bold">0.3953547528665905</span>, <span style="color: #008000; text-decoration-color: #008000">'RandomNegotiator'</span>:
-    <span style="color: #008080; text-decoration-color: #008080; font-weight: bold">0.3053428168903846</span><span style="font-weight: bold">})</span>
+    <pre style="white-space:pre;overflow-x:auto;line-height:normal;font-family:Menlo,'DejaVu Sans Mono',consolas,'Courier New',monospace"><span style="color: #808000; text-decoration-color: #808000">pdist</span>=<span style="color: #800080; text-decoration-color: #800080; font-weight: bold">defaultdict</span><span style="font-weight: bold">(&lt;</span><span style="color: #ff00ff; text-decoration-color: #ff00ff; font-weight: bold">class</span><span style="color: #000000; text-decoration-color: #000000"> </span><span style="color: #008000; text-decoration-color: #008000">'float'</span><span style="color: #000000; text-decoration-color: #000000">&gt;, </span><span style="color: #000000; text-decoration-color: #000000; font-weight: bold">{</span><span style="color: #008000; text-decoration-color: #008000">'AspirationNegotiator'</span><span style="color: #000000; text-decoration-color: #000000">: </span><span style="color: #008080; text-decoration-color: #008080; font-weight: bold">4.99999999999999</span><span style="color: #000000; text-decoration-color: #000000">, </span><span style="color: #008000; text-decoration-color: #008000">'SmartAspirationNegotiator'</span><span style="color: #000000; text-decoration-color: #000000">: </span><span style="color: #008080; text-decoration-color: #008080; font-weight: bold">0.0</span><span style="color: #000000; text-decoration-color: #000000">, </span>
+    <span style="color: #008000; text-decoration-color: #008000">'RandomNegotiator'</span><span style="color: #000000; text-decoration-color: #000000">: </span><span style="color: #008080; text-decoration-color: #008080; font-weight: bold">5.730781196666276</span><span style="color: #000000; text-decoration-color: #000000; font-weight: bold">})</span>
+    <span style="color: #808000; text-decoration-color: #808000">ndiff</span><span style="color: #000000; text-decoration-color: #000000">=</span><span style="color: #800080; text-decoration-color: #800080; font-weight: bold">defaultdict</span><span style="color: #000000; text-decoration-color: #000000; font-weight: bold">(</span><span style="color: #000000; text-decoration-color: #000000">&lt;class </span><span style="color: #008000; text-decoration-color: #008000">'float'</span><span style="font-weight: bold">&gt;</span>, <span style="font-weight: bold">{</span><span style="color: #008000; text-decoration-color: #008000">'AspirationNegotiator'</span>: <span style="color: #008080; text-decoration-color: #008080; font-weight: bold">0.3953547528665905</span>, <span style="color: #008000; text-decoration-color: #008000">'SmartAspirationNegotiator'</span>:
+    <span style="color: #008080; text-decoration-color: #008080; font-weight: bold">0.09861855750792485</span>, <span style="color: #008000; text-decoration-color: #008000">'RandomNegotiator'</span>: <span style="color: #008080; text-decoration-color: #008080; font-weight: bold">0.3391525456893517</span><span style="font-weight: bold">})</span>
     </pre>
 
 
@@ -690,3 +686,391 @@ in this negotiator?* Here are some answers:
 
 Now that you have some experience developing a negotiating agent, try to
 improve the design by handling these two issues.
+
+Running a tournament between negotiators
+----------------------------------------
+
+When evaluating your shiny new negotiator, you may want to run it
+against other negotiators on a set of negotiation scenarios to evaluate
+its performance. NegMAS simplifies this process by providing two types
+of negotiation tournaments:
+
+-  neg_tournament() is designed to run a number of **competitor
+   negotiators** against a common set of opponents.
+-  cartesian_tournament() is designed to run a number of competitors
+   against **themselves** as well as some other optional non-competing
+   negotiators.
+
+Here is a simple example of running a tounrmant to test the negotiator
+we just developed:
+
+.. code:: ipython3
+
+    from negmas.tournaments.neg import cartesian_tournament
+
+    from negmas.gb.negotiators.timebased import (
+        BoulwareTBNegotiator,
+        ConcederTBNegotiator,
+        LinearTBNegotiator,
+    )
+    from negmas.inout import Scenario
+    from negmas.outcomes import make_issue
+    from negmas.outcomes.outcome_space import make_os
+    from negmas.preferences import LinearAdditiveUtilityFunction as U
+    from negmas.tournaments.neg import cartesian_tournament
+
+    # Negotiation Issues
+    issues = (
+        make_issue([f"{i}" for i in range(10)], "quantity"),
+        make_issue([f"{i}" for i in range(5)], "price"),
+    )
+    # Create 2 ufun groups on the same issues
+    ufuns = [
+        (
+            U.random(issues=issues, reserved_value=(0.0, 0.6), normalized=True),
+            U.random(issues=issues, reserved_value=(0.0, 0.2), normalized=True),
+        )
+        for _ in range(2)
+    ]
+    # Create a negotiation Scenario for each ufun set
+    scenarios = [
+        Scenario(
+            agenda=make_os(issues, name=f"S{i}"),
+            ufuns=u,
+        )
+        for i, u in enumerate(ufuns)
+    ]
+    # Run the tournament with 10 seconds per negotiation and 4 repetitions of each scenario on
+    #  each negotiator combination.
+    results = cartesian_tournament(
+        competitors=[
+            BoulwareTBNegotiator, ConcederTBNegotiator, LinearTBNegotiator
+        ],
+        scenarios=scenarios,
+        neg_time_limit=10,
+        neg_n_steps=None,
+        n_steps=4,
+    )
+
+After running the tournament, we can check the resulting ``total_score``
+for each negotiator type:
+
+.. code:: ipython3
+
+    results.total_scores
+
+
+
+
+.. raw:: html
+
+    <div>
+    <style scoped>
+        .dataframe tbody tr th:only-of-type {
+            vertical-align: middle;
+        }
+
+        .dataframe tbody tr th {
+            vertical-align: top;
+        }
+
+        .dataframe thead th {
+            text-align: right;
+        }
+    </style>
+    <table border="1" class="dataframe">
+      <thead>
+        <tr style="text-align: right;">
+          <th></th>
+          <th>agent_type</th>
+          <th>score</th>
+        </tr>
+      </thead>
+      <tbody>
+        <tr>
+          <th>0</th>
+          <td>negmas.gb.negotiators.timebased.BoulwareTBNego...</td>
+          <td>0.952877</td>
+        </tr>
+        <tr>
+          <th>1</th>
+          <td>negmas.gb.negotiators.timebased.LinearTBNegoti...</td>
+          <td>0.796525</td>
+        </tr>
+        <tr>
+          <th>2</th>
+          <td>negmas.gb.negotiators.timebased.ConcederTBNego...</td>
+          <td>0.765100</td>
+        </tr>
+      </tbody>
+    </table>
+    </div>
+
+
+
+As expected, Boulware got higher scores compared with Linear and
+Conceder time-based strategies. We can check if these results are
+statistically significant using a t-test:
+
+.. code:: ipython3
+
+    results.ttest
+
+
+
+
+.. raw:: html
+
+    <div>
+    <style scoped>
+        .dataframe tbody tr th:only-of-type {
+            vertical-align: middle;
+        }
+
+        .dataframe tbody tr th {
+            vertical-align: top;
+        }
+
+        .dataframe thead th {
+            text-align: right;
+        }
+    </style>
+    <table border="1" class="dataframe">
+      <thead>
+        <tr style="text-align: right;">
+          <th></th>
+          <th>a</th>
+          <th>b</th>
+          <th>t</th>
+          <th>p</th>
+          <th>n_a</th>
+          <th>n_b</th>
+          <th>n_effective</th>
+        </tr>
+      </thead>
+      <tbody>
+        <tr>
+          <th>0</th>
+          <td>negmas.gb.negotiators.timebased.ConcederTBNego...</td>
+          <td>negmas.gb.negotiators.timebased.BoulwareTBNego...</td>
+          <td>-2.259107</td>
+          <td>0.026092</td>
+          <td>50</td>
+          <td>50</td>
+          <td>50</td>
+        </tr>
+        <tr>
+          <th>1</th>
+          <td>negmas.gb.negotiators.timebased.ConcederTBNego...</td>
+          <td>negmas.gb.negotiators.timebased.LinearTBNegoti...</td>
+          <td>-0.604205</td>
+          <td>0.547103</td>
+          <td>50</td>
+          <td>50</td>
+          <td>50</td>
+        </tr>
+        <tr>
+          <th>2</th>
+          <td>negmas.gb.negotiators.timebased.BoulwareTBNego...</td>
+          <td>negmas.gb.negotiators.timebased.LinearTBNegoti...</td>
+          <td>1.662623</td>
+          <td>0.099583</td>
+          <td>50</td>
+          <td>50</td>
+          <td>50</td>
+        </tr>
+      </tbody>
+    </table>
+    </div>
+
+
+
+Or a Kolmogorov-Smirnov test
+
+.. code:: ipython3
+
+    results.kstest
+
+
+
+
+.. raw:: html
+
+    <div>
+    <style scoped>
+        .dataframe tbody tr th:only-of-type {
+            vertical-align: middle;
+        }
+
+        .dataframe tbody tr th {
+            vertical-align: top;
+        }
+
+        .dataframe thead th {
+            text-align: right;
+        }
+    </style>
+    <table border="1" class="dataframe">
+      <thead>
+        <tr style="text-align: right;">
+          <th></th>
+          <th>a</th>
+          <th>b</th>
+          <th>t</th>
+          <th>p</th>
+          <th>n_a</th>
+          <th>n_b</th>
+          <th>n_effective</th>
+        </tr>
+      </thead>
+      <tbody>
+        <tr>
+          <th>0</th>
+          <td>negmas.gb.negotiators.timebased.ConcederTBNego...</td>
+          <td>negmas.gb.negotiators.timebased.BoulwareTBNego...</td>
+          <td>0.7</td>
+          <td>5.022006e-12</td>
+          <td>50</td>
+          <td>50</td>
+          <td>50</td>
+        </tr>
+        <tr>
+          <th>1</th>
+          <td>negmas.gb.negotiators.timebased.ConcederTBNego...</td>
+          <td>negmas.gb.negotiators.timebased.LinearTBNegoti...</td>
+          <td>0.3</td>
+          <td>2.170784e-02</td>
+          <td>50</td>
+          <td>50</td>
+          <td>50</td>
+        </tr>
+        <tr>
+          <th>2</th>
+          <td>negmas.gb.negotiators.timebased.BoulwareTBNego...</td>
+          <td>negmas.gb.negotiators.timebased.LinearTBNegoti...</td>
+          <td>0.4</td>
+          <td>5.822569e-04</td>
+          <td>50</td>
+          <td>50</td>
+          <td>50</td>
+        </tr>
+      </tbody>
+    </table>
+    </div>
+
+
+
+Or check the statistics of different negotiator scores:
+
+.. code:: ipython3
+
+    results.score_stats
+
+
+
+
+.. raw:: html
+
+    <div>
+    <style scoped>
+        .dataframe tbody tr th:only-of-type {
+            vertical-align: middle;
+        }
+
+        .dataframe tbody tr th {
+            vertical-align: top;
+        }
+
+        .dataframe thead th {
+            text-align: right;
+        }
+    </style>
+    <table border="1" class="dataframe">
+      <thead>
+        <tr style="text-align: right;">
+          <th></th>
+          <th>agent_type</th>
+          <th>count</th>
+          <th>mean</th>
+          <th>std</th>
+          <th>min</th>
+          <th>25%</th>
+          <th>median</th>
+          <th>75%</th>
+          <th>max</th>
+        </tr>
+      </thead>
+      <tbody>
+        <tr>
+          <th>0</th>
+          <td>negmas.gb.negotiators.timebased.BoulwareTBNego...</td>
+          <td>50.0</td>
+          <td>1.418755</td>
+          <td>0.707843</td>
+          <td>0.796525</td>
+          <td>0.796525</td>
+          <td>0.952877</td>
+          <td>2.250576</td>
+          <td>2.297271</td>
+        </tr>
+        <tr>
+          <th>1</th>
+          <td>negmas.gb.negotiators.timebased.ConcederTBNego...</td>
+          <td>50.0</td>
+          <td>1.111749</td>
+          <td>0.649888</td>
+          <td>0.648690</td>
+          <td>0.648690</td>
+          <td>0.765100</td>
+          <td>1.778457</td>
+          <td>2.224490</td>
+        </tr>
+        <tr>
+          <th>2</th>
+          <td>negmas.gb.negotiators.timebased.LinearTBNegoti...</td>
+          <td>50.0</td>
+          <td>1.190978</td>
+          <td>0.661351</td>
+          <td>0.648690</td>
+          <td>0.765100</td>
+          <td>0.796525</td>
+          <td>2.014516</td>
+          <td>2.260880</td>
+        </tr>
+      </tbody>
+    </table>
+    </div>
+
+
+
+We can also plot the KDE distribution of scores for each negotiator
+type. Note that we repeat every negotiation 4 times and the maximum
+score attainable for any negotiation is 1.0 which means that
+in-principle a negotiator may get a score of up to 4.0. The following
+plot shows that every one of the negotiators tested has a bimodal
+distribution with relatively higher proportion of the density on the
+high end of scores for Boulware compared with the other two variations.
+
+.. code:: ipython3
+
+    results.scores.groupby("agent_type")["score"].plot(kind="kde")
+    plt.legend()
+    plt.show()
+
+
+
+.. image:: 02.develop_new_negotiator_files/02.develop_new_negotiator_44_0.png
+
+
+We can check the complete logs wi
+
+.. code:: ipython3
+
+    results.path
+
+
+
+
+.. parsed-literal::
+
+    '/Users/yasser/negmas/tournaments/20231104H040324981536ZzZ-stage-000177b28df68efcdd4954f314bce70550cd7d64d6e6'
