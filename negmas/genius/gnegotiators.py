@@ -3,7 +3,7 @@ from __future__ import annotations
 from .negotiator import GeniusNegotiator
 
 __all__ = [
-    "AgentBuyong",
+    "AgentBuyog",
     "AgentF",
     "AgentFSEGA",
     "AgentGG",
@@ -11,7 +11,6 @@ __all__ = [
     "AgentH",
     "AgentHP",
     "AgentHP2",
-    "AgentHP2main",
     "AgentHerb",
     "AgentI",
     "AgentK",
@@ -29,6 +28,9 @@ __all__ = [
     "AgentSmith2016",
     "AgentTD",
     "AgentTRP",
+    "Agent33",
+    "Agent36",
+    "ABMPAgent2",
     "AgentW",
     "AgentX",
     "AgentYK",
@@ -37,6 +39,7 @@ __all__ = [
     "AresParty",
     "ArisawaYaki",
     "Aster",
+    "AteamAgent",
     "Atlas",
     "Atlas3",
     "Atlas32016",
@@ -64,6 +67,7 @@ __all__ = [
     "FSEGA2019",
     "Farma",
     "Farma17",
+    "Farma2017",
     "Flinch",
     "FullAgent",
     "FunctionalAcceptor",
@@ -72,6 +76,7 @@ __all__ = [
     "Gahboninho",
     "Gangester",
     "Gangster",
+    "GeneKing",
     "GaravelAgent",
     "Gin",
     "GrandmaAgent",
@@ -88,6 +93,7 @@ __all__ = [
     "Group18",
     "Group19",
     "Group1BOA",
+    "PodAgent",
     "TUDelftGroup2",
     "Group20",
     "Group21",
@@ -211,8 +217,12 @@ class BetaOne(GeniusNegotiator):
         kwargs["java_class_name"] = "agents.anac.y2018.beta_one.Group2"
         super().__init__(**kwargs)
 
+class Ateamagent(GeniusNegotiator):
+    def __init__(self, **kwargs):
+        kwargs["java_class_name"] = "agents.anac.y2018.ateamagent.ATeamAgent"
+        super().__init__(**kwargs)
 
-class ATeamAgent(GeniusNegotiator):
+class AteamAgent(GeniusNegotiator):
     def __init__(self, **kwargs):
         kwargs["java_class_name"] = "agents.anac.y2018.ateamagent.ATeamAgent"
         super().__init__(**kwargs)
@@ -227,12 +237,6 @@ class Agent33(GeniusNegotiator):
 class Agent36(GeniusNegotiator):
     def __init__(self, **kwargs):
         kwargs["java_class_name"] = "agents.anac.y2018.meng_wan.Agent36"
-        super().__init__(**kwargs)
-
-
-class AgentBuyogMain(GeniusNegotiator):
-    def __init__(self, **kwargs):
-        kwargs["java_class_name"] = "agents.anac.y2015.agentBuyogV2.AgentBuyogMain"
         super().__init__(**kwargs)
 
 
@@ -251,12 +255,6 @@ class AgentH(GeniusNegotiator):
 class AgentHP(GeniusNegotiator):
     def __init__(self, **kwargs):
         kwargs["java_class_name"] = "agents.anac.y2015.AgentHP.AgentHP"
-        super().__init__(**kwargs)
-
-
-class AgentHP2main(GeniusNegotiator):
-    def __init__(self, **kwargs):
-        kwargs["java_class_name"] = "agents.anac.y2016.agenthp2.AgentHP2_main"
         super().__init__(**kwargs)
 
 
@@ -708,6 +706,12 @@ class SimpleAgent2017(GeniusNegotiator):
         super().__init__(**kwargs)
 
 
+class Group2(GeniusNegotiator):
+    def __init__(self, **kwargs):
+        kwargs["java_class_name"] = "agents.anac.y2015.group2.Group2"
+        super().__init__(**kwargs)
+
+
 class Y2015Group2(GeniusNegotiator):
     def __init__(self, **kwargs):
         kwargs["java_class_name"] = "agents.anac.y2015.group2.Group2"
@@ -1096,7 +1100,7 @@ class Kawaii(GeniusNegotiator):
         super().__init__(**kwargs)
 
 
-class AgentBuyong(GeniusNegotiator):
+class AgentBuyog(GeniusNegotiator):
     def __init__(self, **kwargs):
         kwargs["java_class_name"] = "agents.anac.y2015.agentBuyogV2.AgentBuyogMain"
         super().__init__(**kwargs)
@@ -1145,6 +1149,12 @@ class Farma(GeniusNegotiator):
 
 
 class Farma17(GeniusNegotiator):
+    def __init__(self, **kwargs):
+        kwargs["java_class_name"] = "agents.anac.y2017.farma.Farma17"
+        super().__init__(**kwargs)
+
+
+class Farma2017(GeniusNegotiator):
     def __init__(self, **kwargs):
         kwargs["java_class_name"] = "agents.anac.y2017.farma.Farma17"
         super().__init__(**kwargs)
@@ -1252,6 +1262,12 @@ class GaravelAgent(GeniusNegotiator):
         super().__init__(**kwargs)
 
 
+class GeneKing(GeniusNegotiator):
+    def __init__(self, **kwargs):
+        kwargs["java_class_name"] = "agents.anac.y2017.geneking.GeneKing"
+        super().__init__(**kwargs)
+
+
 class Gravity(GeniusNegotiator):
     def __init__(self, **kwargs):
         kwargs["java_class_name"] = "agents.anac.y2019.gravity.Gravity"
@@ -1283,6 +1299,12 @@ class MINF(GeniusNegotiator):
 
 
 class Group1BOA(GeniusNegotiator):
+    def __init__(self, **kwargs):
+        kwargs["java_class_name"] = "agents.anac.y2019.podagent.Group1_BOA"
+        super().__init__(**kwargs)
+
+
+class PodAgent(GeniusNegotiator):
     def __init__(self, **kwargs):
         kwargs["java_class_name"] = "agents.anac.y2019.podagent.Group1_BOA"
         super().__init__(**kwargs)

@@ -15,6 +15,7 @@ from time import sleep
 from negmas import warnings
 from negmas.gb.common import get_offer
 from negmas.outcomes.base_issue import Issue
+from negmas.outcomes.outcome_space import DiscreteCartesianOutcomeSpace
 
 from ..common import MechanismState, NegotiatorMechanismInterface
 from ..config import CONFIG_KEY_GENIUS_BRIDGE_JAR, negmas_config
@@ -319,9 +320,11 @@ class GeniusNegotiator(SAONegotiator):
 
         self.java_uuid = self._create(nmi.n_negotiators)
 
-        if not isinstance(nmi.cartesian_outcome_space, CartesianOutcomeSpace):
+        if not isinstance(nmi.outcome_space, CartesianOutcomeSpace) and not isinstance(
+            nmi.outcome_space, DiscreteCartesianOutcomeSpace
+        ):
             raise ValueError(
-                f"Genius negotiators cannot be used with an out come space of type {nmi.cartesian_outcome_space.__class__.__name__}. Must use `CartesianOutcomeSpace`"
+                f"Genius negotiators cannot be used with an out come space of type {nmi.outcome_space.__class__.__name__}. Must use `CartesianOutcomeSpace/DiscreteCartesianOutcomeSpace`"
             )
         self.issues = nmi.cartesian_outcome_space.issues
         self.issue_names = [_.name for _ in self.issues]

@@ -9,7 +9,7 @@ from pathlib import Path
 from random import shuffle
 from typing import Any, Callable, Iterable, Sequence
 
-from attrs import define
+from attrs import define, field
 
 from negmas.helpers.inout import dump, load
 from negmas.helpers.types import get_full_type_name
@@ -61,8 +61,8 @@ class Scenario:
 
     agenda: CartesianOutcomeSpace
     ufuns: tuple[UtilityFunction, ...]
-    mechanism_type: type[Mechanism] | None
-    mechanism_params: dict
+    mechanism_type: type[Mechanism] | None = None
+    mechanism_params: dict = field(factory=dict)
 
     @property
     def issues(self) -> tuple[Issue, ...]:

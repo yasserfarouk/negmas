@@ -13,6 +13,7 @@ from negmas.helpers import get_class, get_full_type_name, instantiate
 from negmas.negotiators import Negotiator
 from negmas.outcomes import Issue
 from negmas.preferences import Preferences
+from negmas.sao import SAONegotiator
 from negmas.serialization import deserialize, serialize, to_flat_dict
 from negmas.situated import (
     Action,
@@ -28,7 +29,7 @@ from negmas.situated import (
 __all__ = [
     "NegWorld",
     "NegAgent",
-    "NegDomain",
+    "NegScenario",
 ]
 
 
@@ -196,27 +197,29 @@ def _wrap_in_agents(types, params, agent_types):
 
 
 @dataclass
-class NegDomain:
+class NegScenario:
     """
-    A representation of a negotiation domain in which a negotiator can be evaluated
+    A representation of a negotiation scenario in which a negotiator can be evaluated
     """
 
     name: str
-    """Domain name"""
+    """Scenario name"""
     issues: tuple[Issue, ...]
     """The issue space as a list of issues"""
     ufuns: tuple[Preferences, ...]
-    """The utility functions used by all negotiators in the domain"""
-    partner_types: tuple[str | Negotiator, ...]
+    """The utility functions used by all negotiators in the scenario"""
+    partner_types: tuple[str | type[Negotiator] | type[SAONegotiator], ...]
     """The types of all partners (other than the agent being evaluated). Its length must be one less than `ufuns`"""
     index: int = 0
     """The index of the negotiator being evaluated in the list of negotiators passed to the mechanism"""
     partner_params: tuple[dict[str, Any] | None, ...] | None = None
-    """Any paramters used to construct partners (must be the same length as `partner_types`)"""
+    """Any parameters used to construct partners (must be the same length as `partner_types`)"""
     roles: tuple[str, ...] | None = None
-    """Roles of all negotiators (includng the negotiator being evaluated) in order"""
+    """Roles of all negotiators (including the negotiator being evaluated) in order"""
     annotation: dict[str, Any] | None = None
     """Any extra annotation to add to the mechanism."""
+    scored_indices: tuple[int, ...] | None = None
+    """Indices of negotiators to be scored in this negotiation. `None` is equivalent to `[self.index]`"""
 
     def to_dict(self):
         return dict(
@@ -228,6 +231,7 @@ class NegDomain:
             partner_params=serialize(self.partner_params),
             roles=self.roles,
             annotation=serialize(self.annotation),
+            scored_indices=self.scored_indices,
         )
 
     @classmethod
@@ -241,6 +245,7 @@ class NegDomain:
             partner_params=deserialize(d["partner_params"]),  # type: ignore The type should be correct in the dict
             roles=d["roles"],
             annotation=deserialize(d["annotation"]),  # type: ignore The type should be correct in the dict
+            scored_indices=d["scored_indices"],
         )
 
 
@@ -253,15 +258,15 @@ class _NegAWI(AgentWorldInterface):
 
     def get_preferences(self, uid: int):
         """Get the agent's ufun"""
-        return self._world._domain.ufuns[uid]
+        return self._world._scenario.ufuns[uid]
 
 
 class NegWorld(NoContractExecutionMixin, World):
     """
-    A world that runs a list of negotiators in a given domain to evaluate them
+    A world that runs a list of negotiators in a given scenario to evaluate them
 
     Args:
-        domain: The `NegDomain` specifying all information about the situation
+        scenario: The `NegScenario` specifying all information about the situation
                 in which negotiators are to be evaluated including the partners.
         types: The negotiator types to be evaluated
         params: Any parameters needed to create negotiators
@@ -275,7 +280,7 @@ class NegWorld(NoContractExecutionMixin, World):
     def __init__(
         self,
         *args,
-        domain: NegDomain,
+        scenario: NegScenario,
         types: list[Negotiator | NegAgent],
         params: list[dict[str, Any] | None] | None = None,
         agent_names_reveal_type: bool = True,
@@ -304,13 +309,13 @@ class NegWorld(NoContractExecutionMixin, World):
 
         if self.info is None:
             self.info = {}
-        self.info["domain"] = serialize(domain)
+        self.info["scenario"] = serialize(scenario)
         self.info["n_steps"] = self.n_steps
-        self.info["n_negotiators"] = len(domain.ufuns)
+        self.info["n_negotiators"] = len(scenario.ufuns)
 
-        if domain.annotation is None:
-            domain.annotation = dict()
-        self._domain = domain
+        if scenario.annotation is None:
+            scenario.annotation = dict()
+        self._scenario = scenario
         self._received_utility: dict[str, list[float]] = defaultdict(list)
         self._partner_utility: dict[str, list[float]] = defaultdict(list)
         self._success: dict[str, bool] = defaultdict(bool)
@@ -322,14 +327,14 @@ class NegWorld(NoContractExecutionMixin, World):
         self._n_negs_per_copmetitor = defaultdict(int)
         self._normalize_scores = normalize_scores
         self._preferences_ranges = None
-        # if not all(isinstance(_, HasRange) for _ in domain.ufuns):
+        # if not all(isinstance(_, HasRange) for _ in scenario.ufuns):
         #     raise ValueError(f"Not all ufuns has a range!!!")
         if self._normalize_scores:
             self._preferences_ranges = [
-                u.minmax() for u in domain.ufuns  # type: ignore We already check just above
+                u.minmax() for u in scenario.ufuns  # type: ignore We already check just above
             ]
-        partner_types = domain.partner_types
-        partner_params = domain.partner_params
+        partner_types = scenario.partner_types
+        partner_params = scenario.partner_params
 
         if partner_params is None:
             partner_params = [dict() for _ in partner_types]
@@ -379,44 +384,68 @@ class NegWorld(NoContractExecutionMixin, World):
             u = ufun(agreement)
             return unormalize(u, indx)
 
+        def getid(indx, aid, special_index=self._scenario.index):
+            lst = list(self._partners.keys())
+            lst.insert(special_index, aid)
+            return lst[indx]
+
         for aid, agent in self._competitors.items():
-            partners = list(self._partners.keys())
-            partners.insert(self._domain.index, aid)
+            partner_ids = list(self._partners.keys())
+            partners = list(self._partners.values())
+            partner_ids.insert(self._scenario.index, aid)
+            partners.insert(self._scenario.index, agent)
             _, mechanism = self.run_negotiation(
                 caller=agent,
-                issues=self._domain.issues,
-                partners=partners,
-                roles=self._domain.roles,
-                annotation=self._domain.annotation,
+                issues=self._scenario.issues,
+                partners=partner_ids,
+                roles=self._scenario.roles,
+                annotation=self._scenario.annotation,
                 negotiator=None,
             )
             self._n_negs_per_copmetitor[aid] += 1
             agreement = mechanism.state.agreement if mechanism else None
             self._success[aid] = mechanism is not None
             agent = self.agents[aid]
-            ufun = self._domain.ufuns[self._domain.index]
-            u = float(
-                calcu(ufun, self._domain.index, agreement)
-                if agreement
-                else unormalize(ufun.reserved_value, self._domain.index)
-            )
-            r = unormalize(float(ufun.reserved_value), self._domain.index)
-            self._received_utility[aid].append(u)
-            self._n_agreements_per_cometitor[aid].append(int(mechanism is not None))
-            self._received_advantage[aid].append(u - r)
-            pufuns = [
-                (partners.index(pid), p.awi.get_preferences(partners.index(pid)))
-                for pid, p in self._partners.items()
-            ]
-            pu = sum(unormalize(float(_(agreement)), i) for i, _ in pufuns)
-            pa = sum(
-                unormalize(float(_(agreement)), i)
-                - unormalize(float(_.reserved_value), i)
-                for i, _ in pufuns
-            )
-            self._partner_utility[aid].append(pu)
-            self._partner_advantage[aid].append(pa)
-            partner_names = [self.agents[_].name for _ in partners]
+            # index = self._scenario.index
+            # caid = aid
+            scored_indices = self._scenario.scored_indices
+            if scored_indices is None:
+                scored_indices = [self._scenario.index]
+            for index in scored_indices:
+                current_aid = getid(index, aid)
+                if index == self._scenario.index:
+                    assert (
+                        current_aid == aid
+                    ), f"{index=}, {self._scenario.index=} but the IDS are not equal: {aid=}, {current_aid=}"
+                ufun = self._scenario.ufuns[index]
+                u = float(
+                    calcu(ufun, index, agreement)
+                    if agreement
+                    else unormalize(ufun.reserved_value, index)
+                )
+                r = unormalize(float(ufun.reserved_value), index)
+                self._received_utility[current_aid].append(u)
+                self._n_agreements_per_cometitor[current_aid].append(
+                    int(mechanism is not None)
+                )
+                self._received_advantage[current_aid].append(u - r)
+                pufuns = [
+                    (
+                        partner_ids.index(pid),
+                        p.awi.get_preferences(partner_ids.index(pid)),
+                    )
+                    for pid, p in zip(partner_ids, partners)
+                    if pid != current_aid
+                ]
+                pu = sum(unormalize(float(_(agreement)), i) for i, _ in pufuns)
+                pa = sum(
+                    unormalize(float(_(agreement)), i)
+                    - unormalize(float(_.reserved_value), i)
+                    for i, _ in pufuns
+                )
+                self._partner_utility[current_aid].append(pu)
+                self._partner_advantage[current_aid].append(pa)
+            partner_names = [self.agents[_].name for _ in partner_ids]
             self.loginfo(f"{agent.name} : {partner_names} -> {agreement}")
 
     def received_utility(self, aid: str):
@@ -525,7 +554,7 @@ if __name__ == "__main__":
     if genius_bridge_is_running():
         competitors += [Atlas3, NiceTitForTat]
 
-    domain = NegDomain(
+    scenario = NegScenario(
         name="d0",
         issues=issues,
         ufuns=[
@@ -536,7 +565,7 @@ if __name__ == "__main__":
         index=0,
     )
     world = NegWorld(
-        domain=domain,
+        scenario=scenario,
         types=competitors,
         n_steps=2,
         neg_n_steps=10,

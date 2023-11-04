@@ -6,18 +6,20 @@ from __future__ import annotations
 from collections import defaultdict
 from copy import deepcopy
 from functools import partial
-from itertools import combinations, cycle, permutations
+from itertools import chain, combinations, cycle, permutations, product, repeat
 from os import PathLike
+from pathlib import Path
 from random import randint
 from typing import Any, Generator, Sequence
 
 from negmas.helpers import get_class, unique_name
+from negmas.inout import Scenario
 from negmas.negotiators import Negotiator
 from negmas.outcomes import Issue, make_issue
 from negmas.preferences.crisp.linear import LinearUtilityFunction
 from negmas.serialization import deserialize, serialize
 from negmas.situated import Agent
-from negmas.situated.neg import NegAgent, NegDomain, NegWorld  # , _wrap_in_agents
+from negmas.situated.neg import NegAgent, NegScenario, NegWorld  # , _wrap_in_agents
 from negmas.tournaments.tournaments import (
     TournamentResults,
     WorldRunResults,
@@ -27,15 +29,20 @@ from negmas.tournaments.tournaments import (
 
 __all__ = [
     "create_neg_tournament",
+    "create_cartesian_tournament",
     "neg_tournament",
-    "random_discrete_domains",
-    "domains_from_list",
+    "random_discrete_scenarios",
+    "scenarios_from_list",
+    "cartesian_tournament",
 ]
+
+
+AgentType = str | type[Agent] | type[Negotiator]
 
 
 def neg_config_generator(
     n_competitors: int,
-    domains: Generator[NegDomain, None, None],
+    scenarios: Generator[NegScenario, None, None],
     n_agents_per_competitor: int = 1,
     agent_names_reveal_type: bool = False,
     non_competitors: tuple[str | NegAgent] | None = None,
@@ -48,7 +55,7 @@ def neg_config_generator(
 
     Args:
         n_competitors: How many competitors will run?
-        domains: A generator used to extract `NegDomain` objects (one config per `NegDomain`)
+        scenarios: A generator used to extract `NegScenario` objects (one config per `NegScenario`)
         n_agents_per_competitor: Must be 1
         agent_names_reveal_type: If given, the agent name will be the same as its class name
         non_competitors: Must be None
@@ -59,7 +66,7 @@ def neg_config_generator(
     Returns:
         A list containing one world configuration
     """
-    domain = next(domains)
+    scenario = next(scenarios)
     if non_competitors:
         raise ValueError(
             f"Non-competitors are not supported for negotiation tournaments. (You provided {non_competitors})"
@@ -73,7 +80,7 @@ def neg_config_generator(
     no_logs = compact
     world_params = dict(
         name=world_name,
-        domain=serialize(domain),
+        scenario=serialize(scenario),
         compact=compact,
         no_logs=no_logs,
     )
@@ -83,7 +90,7 @@ def neg_config_generator(
         "scoring_context": {},
         "non_competitors": None,
         "non_competitor_params": None,
-        "is_default": [False] * n_competitors + [True] * (len(domain.ufuns) - 1),
+        "is_default": [False] * n_competitors + [True] * (len(scenario.ufuns) - 1),
     }
     return [config]
 
@@ -123,7 +130,9 @@ def neg_world_generator(**kwargs):
         config["params"]
     )
     config["types"] = [get_class(_) for _ in config["types"]]
-    config["domain"] = deserialize(config["domain"])
+    config["scenario"] = deserialize(config["scenario"])
+    name = config["scenario"].name
+    config["name"] = name if name is not None else unique_name("world")
     return NegWorld(**config)
 
 
@@ -182,8 +191,8 @@ def neg_score_calculator(
     return result
 
 
-def _update_kwargs(kwargs, domains, competitors):
-    kwargs["config_generator"] = partial(neg_config_generator, domains=domains)
+def _update_kwargs(kwargs, scenarios, competitors):
+    kwargs["config_generator"] = partial(neg_config_generator, scenarios=scenarios)
     kwargs["config_assigner"] = neg_config_assigner
     kwargs["world_generator"] = neg_world_generator
     kwargs["score_calculator"] = neg_score_calculator
@@ -200,7 +209,7 @@ def _update_kwargs(kwargs, domains, competitors):
 
 def create_neg_tournament(
     competitors: Sequence[str | type[Agent]],
-    domains: Generator[NegDomain, None, None],
+    scenarios: Generator[NegScenario, None, None],
     competitor_params: Sequence[dict[str, Any]] | None = None,
     **kwargs,
 ) -> PathLike:
@@ -209,7 +218,7 @@ def create_neg_tournament(
 
     Args:
         competitors: A list of class names for the competitors
-        domains:A generator that yields `NegDomain` objects specifying negotiation domains upon request
+        scenarios:A generator that yields `NegScenario` objects specifying negotiation scenarios upon request
         name: Tournament name
         competitor_params: A list of competitor parameters (used to initialize the competitors).
         agent_names_reveal_type: If true then the type of an agent should be readable in its name (most likely at its
@@ -242,13 +251,13 @@ def create_neg_tournament(
     return create_tournament(
         competitors=competitors,
         competitor_params=competitor_params,
-        **_update_kwargs(kwargs, domains, competitors),
+        **_update_kwargs(kwargs, scenarios, competitors),
     )
 
 
 def neg_tournament(
-    competitors: Sequence[str | type[Agent] | type[Negotiator]],
-    domains: Generator[NegDomain, None, None],
+    competitors: list[AgentType] | tuple[AgentType, ...],
+    scenarios: Generator[NegScenario, None, None],
     competitor_params: Sequence[dict | None] | None = None,
     **kwargs,
 ) -> TournamentResults | PathLike:
@@ -258,7 +267,7 @@ def neg_tournament(
     Args:
 
         competitors: A list of class names for the competitors
-        domains:A generator that yields `NegDomain` objects specifying negotiation domains upon request
+        scenarios:A generator that yields `NegScenario` objects specifying negotiation scenarios upon request
         name: Tournament name
         competitor_params: A list of competitor parameters (used to initialize the competitors).
         stage_winners_fraction: in [0, 1).  Fraction of agents to to go to the next stage at every stage. If zero, and
@@ -300,24 +309,24 @@ def neg_tournament(
 
     """
     return tournament(
-        competitors=competitors,
-        competitor_params=competitor_params,
-        **_update_kwargs(kwargs, domains, competitors),
+        competitors=competitors,  # type: ignore
+        competitor_params=competitor_params,  # type: ignore
+        **_update_kwargs(kwargs, scenarios, competitors),
     )
 
 
-def random_discrete_domains(
+def random_discrete_scenarios(
     issues: list[Issue | int | tuple[int, int]],
-    partners: list[Negotiator],
+    partners: list[type[Negotiator]] | tuple[type[Negotiator], ...],
     n_negotiators=2,
-    positions: int | tuple[int, int] = None,
+    positions: int | tuple[int, int] | None = None,
     normalized=True,
     ufun_type=LinearUtilityFunction,
     roles: list[str] | None = None,
     partner_extraction_method="round-robin",
-) -> Generator[NegDomain, None, None]:
+) -> Generator[NegScenario, None, None]:
     """
-    Generates an infinite sequence of random discrete domains
+    Generates an infinite sequence of random discrete scenarios
 
     Args:
         issues: A list defining the issue space. Each element can be an `Issue`
@@ -326,7 +335,7 @@ def random_discrete_domains(
                 for the issue).
         partners: A list of `Negotiator` types from which partners are extracted.
                   The system will extract `n_negotiators` - 1 partners for each
-                  domain.
+                  scenario.
         n_negotiators: The number of negotiators in each negotiation.
         positions: The positions at which the competitors will be added in all
                    negotiations.
@@ -341,6 +350,7 @@ def random_discrete_domains(
                                    - random: Will sample randm sets of `n_negotiators` - 1 partners
                                    - compinations: Will use all `n_negotiators` - 1 combinations
     """
+    partners = list(partners)
     if positions is None:
         positions = (0, n_negotiators)
     elif isinstance(positions, int):
@@ -384,35 +394,284 @@ def random_discrete_domains(
             for index in range(*positions):
                 for p in partners_generator():
                     assert len(u) == len(p) + 1
-                    yield NegDomain(
+                    yield NegScenario(
                         name="d0",
                         ufuns=u,
-                        issues=current_issues,
-                        partner_types=p,
+                        issues=current_issues,  # type: ignore
+                        partner_types=tuple(p),
                         index=index,
                         roles=roles,
                     )
 
 
-def domains_from_list(domains: list[NegDomain]) -> Generator[NegDomain, None, None]:
+def scenarios_from_list(
+    scenarios: list[NegScenario],
+) -> Generator[NegScenario, None, None]:
     """
-    Creates an appropriate `NegDomain` generator from a list/tuple of domains
+    Creates an appropriate `NegScenario` generator from a list/tuple of scenarios
     """
     while True:
-        yield from cycle(domains)
+        yield from cycle(scenarios)
+
+
+def _make_negs(
+    scenarios,
+    competitors,
+    competitor_params,
+    non_competitors,
+    non_competitor_params,
+    rotate_ufuns=False,
+):
+    competitors = list(competitors)
+    if competitor_params is None:
+        competitor_params = [dict() for _ in range(len(competitors))]
+    else:
+        competitor_params = list(competitor_params)
+        assert len(competitor_params) == len(competitors)
+
+    if non_competitors is None:
+        non_competitors = tuple()
+    non_competitors = list(non_competitors)
+    if non_competitor_params is None:
+        non_competitor_params = [dict() for _ in range(len(non_competitors))]
+    else:
+        non_competitor_params = list(non_competitor_params)
+        assert len(non_competitor_params) == len(non_competitors)
+
+    try:
+        intersection = set(non_competitors).intersection(set(competitors))
+        assert (
+            not intersection
+        ), f"Non-competitors and competitors must be disjoint. This is the intersection between them now: {intersection}"
+    except:
+        pass
+
+    def make_neg_scenarios(
+        scenarios: tuple[Scenario, ...] | list[Scenario]
+    ) -> list[NegScenario]:
+        negs = []
+        for s in scenarios:
+            k = 0
+            assert (
+                len(s.ufuns) == 2
+            ), f"Only supporting bilateral negotiations: Scenario {s.agenda.name} has {len(s.ufuns)} ufuns"
+            for typ, params, score in chain(
+                zip(competitors, competitor_params, repeat(True)),
+                zip(non_competitors, competitor_params, repeat(False)),
+            ):
+                ufuns = [list(s.ufuns)]
+                if rotate_ufuns:
+                    for i in range(len(ufuns) - 1):
+                        u = ufuns[-1]
+                        ufuns.append([u[-1]] + u[:-1])
+                indices = [0, 1] if not score else [0]
+                for indx in indices:
+                    for u in ufuns:
+                        negs.append(
+                            NegScenario(
+                                name=unique_name(
+                                    f"{s.agenda.name}_{k}_",
+                                    add_time=False,
+                                    rand_digits=4,
+                                )
+                                if s.agenda.name
+                                else unique_name("s"),
+                                issues=s.agenda.issues,
+                                ufuns=tuple(u),
+                                partner_types=(get_class(typ),),
+                                partner_params=(params,),
+                                scored_indices=tuple(range(len(s.ufuns)))
+                                if score
+                                else None,
+                                index=indx,
+                            )
+                        )
+                        k += 1
+
+        return negs
+
+    neg_scenarios = make_neg_scenarios(scenarios)
+    return (
+        neg_scenarios,
+        competitors,
+        competitor_params,
+        non_competitors,
+        non_competitor_params,
+    )
+
+
+def create_cartesian_tournament(
+    competitors: list[AgentType] | tuple[AgentType, ...],
+    scenarios: list[Scenario] | tuple[Scenario, ...],
+    competitor_params: Sequence[dict | None] | None = None,
+    non_competitors: list[AgentType] | tuple[AgentType, ...] = tuple(),
+    non_competitor_params: Sequence[dict | None] | None = None,
+    rotate_ufuns: bool = False,
+    **kwargs,
+) -> Path:
+    """
+    Creates a Cartesian tournament (every competitor against every other competitor)
+
+    Args:
+
+        competitors: A list of class names for the competitors.
+        non_competitors: A list of class names for agents that will run against the competitors but never be evaluated themselves.
+        scenarios:A generator that yields `NegScenario` objects specifying negotiation scenarios upon request
+        name: Tournament name
+        competitor_params: A list of competitor parameters (used to initialize the competitors).
+        non_competitor_params: A list of non-competitor parameters (used to initialize the non-competitors).
+        rotate_ufuns: If `True`, all N rotations of the N ufuns in every scenario will be tried.
+        stage_winners_fraction: in [0, 1).  Fraction of agents to to go to the next stage at every stage. If zero, and
+                                            round_robin, it becomes a single stage competition.
+        agent_names_reveal_type: If true then the type of an agent should be readable in its name (most likely at its
+                                 beginning).
+        n_configs: The number of different world configs (up to competitor assignment) to be generated.
+        n_runs_per_world: Number of runs per world. All of these world runs will have identical competitor assignment
+                          and identical world configuration.
+        total_timeout: Total timeout for the complete process
+        tournament_path: Path at which to store all results. A new folder with the name of the tournament will be
+                         created at this path. A scores.csv file will keep the scores and logs folder will keep detailed
+                         logs
+        parallelism: Type of parallelism. Can be 'serial' for serial, 'parallel' for parallel and 'distributed' for
+                     distributed! For parallel, you can add the fraction of CPUs to use after a colon (e.g. parallel:0.5
+                     to use half of the CPU in the machine). By defaults parallel uses all CPUs in the machine
+        scheduler_port: Port of the dask scheduler if parallelism is dask, dist, or distributed
+        scheduler_ip:   IP Address of the dask scheduler if parallelism is dask, dist, or distributed
+        world_progress_callback: A function to be called after every step of every world run (only allowed for serial
+                                 and parallel evaluation and should be used with cautious).
+        tournament_progress_callback: A function to be called with `WorldRunResults` after each world finished
+                                      processing
+        verbose: Verbosity
+        configs_only: If true, a config file for each
+        compact: If true, compact logs will be created and effort will be made to reduce the memory footprint
+        print_exceptions: If true, print all exceptions to screen
+        metric: The metric to use for evaluation
+        forced_logs_fraction: The fraction of simulations for which to always save logs. Notice that this has no
+                              effect except if no logs were to be saved otherwise (i.e. `no_logs` is passed as True)
+        save_video_fraction: The fraction of simulations for which to save videos
+        video_params: The parameters to pass to the video saving function
+        video_saver: The parameters to pass to the video saving function after the world
+        max_attempts: The maximum number of times to retry running simulations
+        extra_scores_to_use: The type of extra-scores to use. If None normal scores will be used. Only effective if scores is None.
+        kwargs: Arguments to pass to the `config_generator` function
+
+    Returns:
+        `TournamentResults` The results of the tournament or a `PathLike` giving the location where configs were saved
+
+    """
+    (
+        neg_scenarios,
+        competitors,
+        competitor_params,
+        non_competitors,
+        non_competitor_params,
+    ) = _make_negs(
+        scenarios,
+        competitors,
+        competitor_params,
+        non_competitors,
+        non_competitor_params,
+        rotate_ufuns=rotate_ufuns,
+    )
+    return create_neg_tournament(
+        competitors=competitors,
+        scenarios=scenarios_from_list(neg_scenarios),
+        competitor_params=competitor_params,
+        **kwargs,
+    )
+
+
+def cartesian_tournament(
+    competitors: list[AgentType] | tuple[AgentType, ...],
+    scenarios: list[Scenario] | tuple[Scenario, ...],
+    competitor_params: Sequence[dict | None] | None = None,
+    non_competitors: list[AgentType] | tuple[AgentType, ...] = tuple(),
+    non_competitor_params: Sequence[dict | None] | None = None,
+    rotate_ufuns=False,
+    **kwargs,
+) -> TournamentResults | PathLike:
+    """
+    Runs a tournament
+
+    Args:
+
+        competitors: A list of class names for the competitors.
+        non_competitors: A list of class names for agents that will run against the competitors but never be evaluated themselves.
+        scenarios:A generator that yields `NegScenario` objects specifying negotiation scenarios upon request
+        name: Tournament name
+        competitor_params: A list of competitor parameters (used to initialize the competitors).
+        non_competitor_params: A list of non-competitor parameters (used to initialize the non-competitors).
+        stage_winners_fraction: in [0, 1).  Fraction of agents to to go to the next stage at every stage. If zero, and
+                                            round_robin, it becomes a single stage competition.
+        agent_names_reveal_type: If true then the type of an agent should be readable in its name (most likely at its
+                                 beginning).
+        n_configs: The number of different world configs (up to competitor assignment) to be generated.
+        n_runs_per_world: Number of runs per world. All of these world runs will have identical competitor assignment
+                          and identical world configuration.
+        total_timeout: Total timeout for the complete process
+        tournament_path: Path at which to store all results. A new folder with the name of the tournament will be
+                         created at this path. A scores.csv file will keep the scores and logs folder will keep detailed
+                         logs
+        parallelism: Type of parallelism. Can be 'serial' for serial, 'parallel' for parallel and 'distributed' for
+                     distributed! For parallel, you can add the fraction of CPUs to use after a colon (e.g. parallel:0.5
+                     to use half of the CPU in the machine). By defaults parallel uses all CPUs in the machine
+        scheduler_port: Port of the dask scheduler if parallelism is dask, dist, or distributed
+        scheduler_ip:   IP Address of the dask scheduler if parallelism is dask, dist, or distributed
+        world_progress_callback: A function to be called after every step of every world run (only allowed for serial
+                                 and parallel evaluation and should be used with cautious).
+        tournament_progress_callback: A function to be called with `WorldRunResults` after each world finished
+                                      processing
+        verbose: Verbosity
+        configs_only: If true, a config file for each
+        compact: If true, compact logs will be created and effort will be made to reduce the memory footprint
+        print_exceptions: If true, print all exceptions to screen
+        metric: The metric to use for evaluation
+        forced_logs_fraction: The fraction of simulations for which to always save logs. Notice that this has no
+                              effect except if no logs were to be saved otherwise (i.e. `no_logs` is passed as True)
+        save_video_fraction: The fraction of simulations for which to save videos
+        video_params: The parameters to pass to the video saving function
+        video_saver: The parameters to pass to the video saving function after the world
+        max_attempts: The maximum number of times to retry running simulations
+        extra_scores_to_use: The type of extra-scores to use. If None normal scores will be used. Only effective if scores is None.
+        kwargs: Arguments to pass to the `config_generator` function
+
+    Returns:
+        `TournamentResults` The results of the tournament or a `PathLike` giving the location where configs were saved
+
+    """
+    (
+        neg_scenarios,
+        competitors,
+        competitor_params,
+        non_competitors,
+        non_competitor_params,
+    ) = _make_negs(
+        scenarios,
+        competitors,
+        competitor_params,
+        non_competitors,
+        non_competitor_params,
+        rotate_ufuns=rotate_ufuns,
+    )
+    return neg_tournament(
+        competitors=competitors,
+        scenarios=scenarios_from_list(neg_scenarios),
+        competitor_params=competitor_params,
+        **kwargs,
+    )
 
 
 if __name__ == "__main__":
     from negmas.sao import AspirationNegotiator, NaiveTitForTatNegotiator
 
-    domains = random_discrete_domains(
+    scenarios = random_discrete_scenarios(
         issues=[5, 4, (3, 5)],
         partners=[AspirationNegotiator, NaiveTitForTatNegotiator],
     )
     print(
         neg_tournament(
             n_configs=2 * 2 * 2 * 4,
-            domains=domains,
+            scenarios=scenarios,
             competitors=[AspirationNegotiator, NaiveTitForTatNegotiator],
             n_steps=1,
             neg_n_steps=10,
