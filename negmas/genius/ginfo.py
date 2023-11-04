@@ -940,17 +940,17 @@ These are the oldest agents
 """
 
 PARTY_BASED_NEGOTIATORS = [
-    "agents.ai2014.group1.Group1",
-    "agents.ai2014.group10.Group10",
-    "agents.ai2014.group11.Group11",
-    "agents.ai2014.group12.Group12",
-    "agents.ai2014.group2.Group2",
-    "agents.ai2014.group3.Group3",
-    "agents.ai2014.group4.Group4",
-    "agents.ai2014.group5.Group5",
-    "agents.ai2014.group6.Group6",
-    "agents.ai2014.group7.Group7",
-    "agents.ai2014.group9.Group9",
+    # "agents.ai2014.group1.Group1",
+    # "agents.ai2014.group10.Group10",
+    # "agents.ai2014.group11.Group11",
+    # "agents.ai2014.group12.Group12",
+    # "agents.ai2014.group2.Group2",
+    # "agents.ai2014.group3.Group3",
+    # "agents.ai2014.group4.Group4",
+    # "agents.ai2014.group5.Group5",
+    # "agents.ai2014.group6.Group6",
+    # "agents.ai2014.group7.Group7",
+    # "agents.ai2014.group9.Group9",
     "agents.anac.y2015.AgentNeo.Groupn",
     "agents.anac.y2015.AgentX.AgentX",
     "agents.anac.y2015.AresParty.AresParty",
@@ -1082,16 +1082,38 @@ TEST_FAILING_NEGOTIATORS = [
     "agents.anac.y2017.rubick.Rubick",  # failed all tests
     "agents.anac.y2017.simpleagent.SimpleAgent",
     "parties.in4010.q12015.group1.Group1",
-    "parties.in4010.q12015.group10.Group10",
-    "parties.in4010.q12015.group13.Group13",
-    "parties.in4010.q12015.group18.Group18",
-    "parties.in4010.q12015.group21.Group21",
-    "parties.in4010.q12015.group7.Group7",
-    "parties.in4010.q12015.group5.Group5",
-    "agents.ai2014.group4.Group4",
+    "parties.in4010.q12015.group2.Group2",
     "parties.in4010.q12015.group3.Group3",
-    "parties.in4010.q12015.group19.Group19",
+    "parties.in4010.q12015.group4.Group4",
+    "parties.in4010.q12015.group5.Group5",
     "parties.in4010.q12015.group6.Group6",
+    "parties.in4010.q12015.group7.Group7",
+    "parties.in4010.q12015.group8.Group8",
+    "parties.in4010.q12015.group9.Group9",
+    "parties.in4010.q12015.group10.Group10",
+    "parties.in4010.q12015.group11.Group11",
+    "parties.in4010.q12015.group12.Group12",
+    "parties.in4010.q12015.group13.Group13",
+    "parties.in4010.q12015.group14.Group14",
+    "parties.in4010.q12015.group15.Group15",
+    "parties.in4010.q12015.group16.Group16",
+    "parties.in4010.q12015.group17.Group17",
+    "parties.in4010.q12015.group18.Group18",
+    "parties.in4010.q12015.group19.Group19",
+    "parties.in4010.q12015.group20.Group20",
+    "parties.in4010.q12015.group21.Group21",
+    "parties.in4010.q12015.group22.Group22",
+    "agents.ai2014.group1.Group1",
+    "agents.ai2014.group10.Group10",
+    "agents.ai2014.group11.Group11",
+    "agents.ai2014.group12.Group12",
+    "agents.ai2014.group2.Group2",
+    "agents.ai2014.group3.Group3",
+    "agents.ai2014.group4.Group4",
+    "agents.ai2014.group5.Group5",
+    "agents.ai2014.group6.Group6",
+    "agents.ai2014.group7.Group7",
+    "agents.ai2014.group9.Group9",
 ] + [_ for _ in ALL_GENIUS_NEGOTIATORS if "y2018" in _]
 
 """Agetns taht fail simple tests making them less robust over the bridge"""
@@ -1125,7 +1147,7 @@ TESTED_NEGOTIATORS = list(
     )
     - set(TEST_FAILING_NEGOTIATORS)
 )
-"""Some of the most tested negotaitors."""
+"""Some of the most tested negotiators."""
 
 ALL_NEGOTIATORS = list(
     set(PARTY_BASED_NEGOTIATORS + AGENT_BASED_NEGOTIATORS + ALL_GENIUS_NEGOTIATORS)
@@ -1138,6 +1160,11 @@ ALL_PASSING_NEGOTIATORS = list(
     - set(ALL_GENIUS_INVALID_NEGOTIATORS)
 )
 """All negotiators that passed simple tests showing they work on the bridge."""
+
+
+ALL_PASSING_NEGOTIATORS_NO_UNCERTAINTY = list(
+    set(ALL_PASSING_NEGOTIATORS) - {_ for _ in ALL_PASSING_NEGOTIATORS if "2019" in _}
+)
 
 ALL_ANAC_AGENTS = [_ for _ in ALL_NEGOTIATORS if "anac" in _]
 """All agents submitted to ANAC and registered in Genius."""

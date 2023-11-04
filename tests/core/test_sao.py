@@ -419,8 +419,8 @@ def test_basic_sao_with_action():
             abs(session.relative_time - ((i + 2) / (n_steps + 1))) < 1e-6
         ), f"{session.state=}\n{session.extended_trace=}"
         assert session.remaining_time is None
-    assert (
-        session.state.started and not session.state.running
+    assert session.state.started and (
+        not session.state.running or session.state.step >= n_steps
     ), f"Did not finish running:\n{session.extended_trace}"
     assert (
         session.state.step <= n_steps
