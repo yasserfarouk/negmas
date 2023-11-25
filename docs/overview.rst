@@ -422,7 +422,7 @@ You can pick random valid or invalid values for the issue:
 
 .. parsed-literal::
 
-    [['to be', '20231104H033541941438jJTGt6qBto be20231104H033541941455XtRgNy0I'],
+    [['to be', '20231110H001622435924jJTGt6qBto be20231110H001622435941XtRgNy0I'],
      [6, 10],
      [0.6118970848141451, 1.928063278403899]]
 
@@ -1613,7 +1613,7 @@ Mechanisms (Negotiations)
 The base ``Mechanism`` class is implemented in the ``mechanisms``
 module.
 
-All protocols in the package inherit from the ``Protocol`` class and
+All protocols in the package inherit from the ``Mechanism`` class and
 provide the following basic functionalities:
 
 -  checking ``capabilities`` of agents against ``requirements`` of the
@@ -1626,7 +1626,7 @@ provide the following basic functionalities:
    agents to engage in the negotiation. All of this is controlled
    through parameters to the protocol initializer.
 -  provide the basic flow of protocols so that new protocols can be
-   implemented by just overriding a single ``round()`` function.
+   implemented by just overriding a single ``__call__()`` function.
 -  provide basic callbacks that can be extended by new protocols.
 
    .. container:: alert alert-block alert-warning
@@ -1656,7 +1656,7 @@ provided protocols. This is an example of a full negotiation session:
 
 
 You can create a new protocol by overriding a single function in the
-``Protocol`` class.
+``Mechanism`` class.
 
 The built-in ``SAOMechanism`` calls negotiators sequentially. Let’s
 implement a simplified similar protocol that asks *all* negotiators to
@@ -1675,24 +1675,22 @@ respond to every offer in parallel.
             self.state.current_offer = None
             self.current_offerer = -1
 
-        def __call__(self, state, action=None):
+        def __call__(self, state):
             n_agents = len(self.negotiators)
-            current = self.negotiators[(self.current_offerer + 1) % n_agents]
+            nxt = (self.current_offerer + 1) % n_agents
+            current = self.negotiators[nxt]
             offer = None
-            if action:
-                offer = action.pop(current.id, None)
-            self.state.current_offer = current.propose(self.state) if not offer else offer
+            self.state.current_offer = current.propose(self.state) if offer is None else offer
 
             def get_response(negotiator, state=self.state):
-                if action:
-                    response = action.pop(negotiator.id, None)
-                    if response:
-                        return response
                 return negotiator.respond(state, self.current_offerer)
 
             with ThreadPoolExecutor(4) as executor:
-                responses = executor.map(get_response, [_ for _ in self.negotiators if _.id != current.id])
-            self.current_offerer = (self.current_offerer + 1) % n_agents
+                responses = executor.map(
+                    get_response,
+                    [_ for _ in self.negotiators if _.id != current.id]
+                )
+            self.current_offerer = nxt
             if all(_== ResponseType.ACCEPT_OFFER for _ in responses):
                 state.agreement = self.state.current_offer
             if any(_== ResponseType.END_NEGOTIATION for _ in responses):
@@ -1718,8 +1716,8 @@ checking for errors, etc.
 
 The ``__call__`` method receives the current mechanism state and an
 optional action. If the action is passed, then it is expected that the
-corresponding negotiator will not be called and will be just used
-instead of calling the corresponding negotiator.
+corresponding negotiator will not be called and the action will be just
+used instead of calling the corresponding negotiator.
 
 Agents can now engage in interactions with this protocol as easily as
 any built-in protocol:
@@ -1848,9 +1846,9 @@ filling it in the mechanism:
 
     class NewParallelResponseMechanism(ParallelResponseMechanism):
 
-        def __init__(self, *args, initial_state=None, **kwargs):
-            initial_state = MyState() if not initial_state else initial_state
-            super().__init__(*args, initial_state=initial_state, **kwargs)
+        def __init__(self, *args, **kwargs):
+            kwargs["initial_state"] = MyState()
+            super().__init__(*args, **kwargs)
 
 That is all. We just needed to define our new state type, set the
 state_factory of the mechanism to it and define how to fill it in the
@@ -2192,3 +2190,54 @@ inherited class that is capable of interacting with this world and a
 corresponding ``AgentWorldInterface``.
 
 You can see an example of a world simulation in the tutorials.
+
+
+.. code:: ipython3
+
+    # define the protocol as a single function
+    def sao(negotiators, *, n_steps: int):
+        offer = None
+        n_acceptances, n_negotiators = 1, len(negotiators)
+        for i in range(n_steps):
+            for current in negotiators:
+                response = current(offer)
+                # None means accept
+                if response is None:
+                    n_acceptances += 1
+                if n_acceptances >= n_negotiators:
+                    return offer
+                # an empty tuple means END
+                if not response:
+                    return None
+                offer = response
+                n_acceptances = 1
+        return None
+
+
+    # a negotiator as a single function
+    from random import choice
+    def limited_outcomes_negotiator(offer,*, acceptable):
+        # accept if in acceptables
+        if offer in acceptable:
+            return None
+        # otherwise offer a random acceptable offer
+        return choice(acceptable)
+
+
+.. code:: ipython3
+
+    # run a simple negotiation
+    from functools import partial
+    sao(
+        [
+        partial(limited_outcomes_negotiator, acceptable=[(2,), (3,), (5,)]),
+        partial(limited_outcomes_negotiator, acceptable=[(1,), (4,), (3,)]),
+        ],
+        n_steps=10)
+
+
+
+
+.. parsed-literal::
+
+    (3,)

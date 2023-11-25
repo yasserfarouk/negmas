@@ -146,6 +146,14 @@ class BaseGBMechanism(Mechanism):
         self.params["parallel"] = parallel
         self.params["sync_calls"] = sync_calls
 
+    @property
+    def state(self) -> GBState:
+        """Returns the current state.
+
+        Override `extra_state` if you want to keep extra state
+        """
+        return self._current_state
+
     def set_sync_call(self, v: bool):
         self._sync_call = v
 

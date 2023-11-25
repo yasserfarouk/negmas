@@ -75,7 +75,7 @@ class BaseFun(ABC):
         return mx
 
 
-@define
+@define(frozen=True)
 class TableFun(BaseFun):
     mapping: dict
 
@@ -115,11 +115,11 @@ class TableFun(BaseFun):
         output += "</issue>\n"
         return output
 
-    def __call__(self, x):
+    def __call__(self, x) -> float:
         return self.mapping[x]
 
 
-@define
+@define(frozen=True)
 class AffineFun(BaseFun):
     slope: float
     bias: float = 0
@@ -150,11 +150,11 @@ class AffineFun(BaseFun):
         output += "</issue>\n"
         return output
 
-    def __call__(self, x: float):
+    def __call__(self, x: float) -> float:
         return x * self.slope + self.bias
 
 
-@define
+@define(frozen=True)
 class ConstFun(BaseFun):
     bias: float
 
@@ -172,12 +172,12 @@ class ConstFun(BaseFun):
     def xml(self, indx: int, issue: Issue, bias=0.0) -> str:
         return AffineFun(0.0, self.bias).xml(indx, issue, bias)
 
-    def __call__(self, x: float):
+    def __call__(self, x: float) -> float:
         _ = x
         return self.bias
 
 
-@define
+@define(frozen=True)
 class LinearFun(BaseFun):
     slope: float
 
@@ -198,11 +198,11 @@ class LinearFun(BaseFun):
     def xml(self, indx: int, issue: Issue, bias=0.0) -> str:
         return AffineFun(self.slope, 0.0).xml(indx, issue, bias)
 
-    def __call__(self, x: float):
+    def __call__(self, x: float) -> float:
         return x * self.slope
 
 
-@define
+@define(frozen=True)
 class IdentityFun(BaseFun):
     def minmax(self, input: Issue) -> tuple[float, float]:
         return (input.min_value, input.max_value)
@@ -216,11 +216,11 @@ class IdentityFun(BaseFun):
     def xml(self, indx: int, issue: Issue, bias=0.0) -> str:
         return LinearFun(1.0).xml(indx, issue, bias)
 
-    def __call__(self, x: float):
+    def __call__(self, x: float) -> float:
         return x
 
 
-@define
+@define(frozen=True)
 class LambdaFun(BaseFun):
     f: Callable[[Any], float]
     bias: float = 0
@@ -278,7 +278,7 @@ class LambdaFun(BaseFun):
         return self.f(x) + self.bias
 
 
-@define
+@define(frozen=True)
 class QuadraticFun(BaseFun):
     a2: float
     a1: float
@@ -328,7 +328,7 @@ class QuadraticFun(BaseFun):
         return self.a2 * x * x + self.a1 * x + self.bias
 
 
-@define
+@define(frozen=True)
 class PolynomialFun(BaseFun):
     coefficients: tuple[float]
     bias: float = 0
@@ -377,7 +377,7 @@ class PolynomialFun(BaseFun):
         )
 
 
-@define
+@define(frozen=True)
 class TriangularFun(BaseFun):
     start: float
     middle: float
@@ -428,7 +428,7 @@ class TriangularFun(BaseFun):
         )
 
 
-@define
+@define(frozen=True)
 class ExponentialFun(BaseFun):
     tau: float
     bias: float = 0
@@ -466,7 +466,7 @@ class ExponentialFun(BaseFun):
         return pow(self.base, self.tau * x) + self.bias
 
 
-@define
+@define(frozen=True)
 class CosFun(BaseFun):
     multiplier: float = 1.0
     bias: float = 0.0
@@ -514,7 +514,7 @@ class CosFun(BaseFun):
         return self.amplitude * (cos(self.multiplier * x + self.phase)) + self.bias
 
 
-@define
+@define(frozen=True)
 class SinFun(BaseFun):
     multiplier: float = 1.0
     bias: float = 0.0
@@ -562,7 +562,7 @@ class SinFun(BaseFun):
         return self.amplitude * (sin(self.multiplier * x + self.phase)) + self.bias
 
 
-@define
+@define(frozen=True)
 class LogFun(BaseFun):
     tau: float
     bias: float = 0
@@ -606,7 +606,7 @@ class LogFun(BaseFun):
         return self.scale * log(self.tau * x, base=self.base) + self.bias
 
 
-@define
+@define(frozen=True)
 class TableMultiFun(MultiIssueFun):
     mapping: dict[tuple, Any]
 
@@ -638,7 +638,7 @@ class TableMultiFun(MultiIssueFun):
         return self.mapping[x]
 
 
-@define
+@define(frozen=True)
 class AffineMultiFun(MultiIssueFun):
     slope: tuple[float, ...]
     bias: float = 0
@@ -665,7 +665,7 @@ class AffineMultiFun(MultiIssueFun):
         return reduce(add, [a * b for a, b in zip(self.slope, x)], self.bias)
 
 
-@define
+@define(frozen=True)
 class LinearMultiFun(MultiIssueFun):
     slope: tuple[float, ...]
 
@@ -693,7 +693,7 @@ class LinearMultiFun(MultiIssueFun):
         return reduce(add, [a * b for a, b in zip(self.slope, x)], 0)
 
 
-@define
+@define(frozen=True)
 class LambdaMultiFun(MultiIssueFun):
     f: Callable[[Any], float]
     bias: float = 0

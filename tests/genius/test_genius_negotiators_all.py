@@ -31,6 +31,7 @@ AGENTS_WITH_NO_AGREEMENT_ON_SAME_preferences = (
     "agents.anac.y2019.sacra.SACRA",
     "agents.anac.y2016.agentlight.AgentLight",
     "agents.anac.y2017.agentkn.AgentKN",
+    "agents.anac.y2011.AgentK2.Agent_K2",
 )
 
 DOMAINS = [

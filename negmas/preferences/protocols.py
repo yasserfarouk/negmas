@@ -624,6 +624,7 @@ class Fun(Protocol):
         ...
 
     def minmax(self, input: Issue) -> tuple[float, float]:
+        # def minmax(self, input) -> Any:
         ...
 
     @abstractmethod
@@ -641,19 +642,6 @@ class Fun(Protocol):
 @runtime_checkable
 class SingleIssueFun(Fun, Protocol):
     """A value function mapping values from a **single** issue to a real number"""
-
-    # @property
-    # def dim(self) -> int:
-    #     ...
-    #
-    # def minmax(self, input: Issue) -> tuple[float, float]:
-    #     ...
-    #
-    # def shift_by(self, offset: float) -> Fun:
-    #     ...
-    #
-    # def scale_by(self, scale: float) -> Fun:
-    #     ...
 
     def xml(self, indx: int, issue: Issue, bias=0.0) -> str:
         ...

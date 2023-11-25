@@ -13,9 +13,10 @@ from attr import asdict
 from rich import print
 
 from negmas import warnings
+from negmas.gb.negotiators import GBNegotiator
 from negmas.helpers.strings import humanize_time
 
-from ..common import Action, TraceElement
+from ..common import TraceElement
 from ..events import Event
 from ..helpers import TimeoutCaller, TimeoutError, exception2str
 from ..mechanisms import Mechanism, MechanismStepResult
@@ -128,6 +129,8 @@ class SAOMechanism(Mechanism):
         assert self.nmi.one_offer_per_step == one_offer_per_step
         self._one_offer_per_step = one_offer_per_step
         self._current_state: SAOState
+
+        # self._history: list[SAOState] = []
         n_steps, time_limit = self.n_steps, self.time_limit
         if (n_steps is None or n_steps == float("inf")) and (
             time_limit is None or time_limit == float("inf")
@@ -167,9 +170,17 @@ class SAOMechanism(Mechanism):
         self._waiting_start: dict[str, float] = defaultdict(lambda: float("inf"))
         self._selected_first = 0
 
+    @property
+    def state(self) -> SAOState:
+        """Returns the current state.
+
+        Override `extra_state` if you want to keep extra state
+        """
+        return self._current_state
+
     def add(
         self,
-        negotiator: SAONegotiator,
+        negotiator: SAONegotiator | GBNegotiator,
         *,
         preferences: Preferences | None = None,
         role: str | None = None,

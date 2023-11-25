@@ -565,7 +565,6 @@ class LinearAdditiveUtilityFunction(  # type: ignore
         *args,
         **kwargs,
     ) -> None:
-
         super().__init__(*args, **kwargs)
         self._bias = bias
         if self.outcome_space and not isinstance(

@@ -160,12 +160,22 @@ class AcceptancePolicy(GBComponent):
     def __and__(self, s: AcceptancePolicy):
         from .acceptance import AllAcceptanceStrategies
 
+        if self.negotiator is None and s.negotiator is not None:
+            self.set_negotiator(s.negotiator)
+        elif s.negotiator is None and self.negotiator is not None:
+            s.set_negotiator(self.negotiator)
+
         if self.negotiator != s.negotiator:
             raise ValueError(f"Cannot combine strategies with different negotiators")
         return AllAcceptanceStrategies([self, s])
 
     def __or__(self, s: AcceptancePolicy):
         from .acceptance import AnyAcceptancePolicy
+
+        if self.negotiator is None and s.negotiator is not None:
+            self.set_negotiator(s.negotiator)
+        elif s.negotiator is None and self.negotiator is not None:
+            s.set_negotiator(self.negotiator)
 
         if self.negotiator != s.negotiator:
             raise ValueError(f"Cannot combine strategies with different negotiators")

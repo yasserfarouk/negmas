@@ -20,6 +20,40 @@ from negmas.tournaments.neg import (
 from negmas.tournaments.tournaments import run_tournament
 
 
+def test_can_run_cartesian_tournament_n_reps():
+    n = 2
+    issues = (
+        make_issue([f"q{i}" for i in range(10)], "quantity"),
+        make_issue([f"p{i}" for i in range(5)], "price"),
+    )
+    ufuns = [
+        (
+            U.random(issues=issues, reserved_value=(0.0, 0.2), normalized=False),
+            U.random(issues=issues, reserved_value=(0.0, 0.2), normalized=False),
+        )
+        for _ in range(n)
+    ]
+    scenarios = [
+        Scenario(
+            agenda=make_os(issues, name=f"S{i}"),
+            ufuns=u,
+            mechanism_type=SAOMechanism,  # type: ignore
+            mechanism_params=dict(),
+        )
+        for i, u in enumerate(ufuns)
+    ]
+    results = cartesian_tournament(
+        competitors=[Atlas3, AspirationNegotiator],
+        non_competitors=[AgentK],
+        scenarios=scenarios,
+        neg_time_limit=10,
+        neg_n_steps=None,
+        n_repetitions=4,
+        verbose=True,
+    )
+    print(results)
+
+
 def test_can_run_cartesian_tournament():
     n = 2
     issues = (
@@ -46,7 +80,7 @@ def test_can_run_cartesian_tournament():
         competitors=[Atlas3, AspirationNegotiator],
         non_competitors=[AgentK],
         scenarios=scenarios,
-        neg_time_limit=20,
+        neg_time_limit=10,
         neg_n_steps=None,
         n_steps=4,
         verbose=True,
@@ -107,8 +141,8 @@ def test_can_run_tournament():
                     name="d0",
                     issues=issues,
                     ufuns=(
-                        U.random(issues, reserved_value=(0.0, 0.2), normalized=False),
-                        U.random(issues, reserved_value=(0.0, 0.2), normalized=False),
+                        U.random(issues, reserved_value=(0.0, 0.2), normalized=False),  # type: ignore
+                        U.random(issues, reserved_value=(0.0, 0.2), normalized=False),  # type: ignore
                     ),
                     partner_types=(partner,),
                     index=index,

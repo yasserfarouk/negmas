@@ -402,10 +402,8 @@ class NegWorld(NoContractExecutionMixin, World):
                 annotation=self._scenario.annotation,
                 negotiator=None,
             )
-            self._n_negs_per_copmetitor[aid] += 1
             agreement = mechanism.state.agreement if mechanism else None
-            self._success[aid] = mechanism is not None
-            agent = self.agents[aid]
+            # agent = self.agents[aid]
             # index = self._scenario.index
             # caid = aid
             scored_indices = self._scenario.scored_indices
@@ -428,6 +426,8 @@ class NegWorld(NoContractExecutionMixin, World):
                 self._n_agreements_per_cometitor[current_aid].append(
                     int(mechanism is not None)
                 )
+                self._n_negs_per_copmetitor[current_aid] += 1
+                self._success[current_aid] = mechanism is not None
                 self._received_advantage[current_aid].append(u - r)
                 pufuns = [
                     (
@@ -446,7 +446,7 @@ class NegWorld(NoContractExecutionMixin, World):
                 self._partner_utility[current_aid].append(pu)
                 self._partner_advantage[current_aid].append(pa)
             partner_names = [self.agents[_].name for _ in partner_ids]
-            self.loginfo(f"{agent.name} : {partner_names} -> {agreement}")
+            self.loginfo(f"{partner_names} -> {agreement}")
 
     def received_utility(self, aid: str):
         return sum(

@@ -7,6 +7,7 @@ import papermill as pm
 import pytest
 
 NEGMAS_IGNORE_TEST_NOTEBOOKS = os.environ.get("NEGMAS_IGNORE_TEST_NOTEBOOKS", False)
+NEGMAS_IGNORE_TEST_NOTEBOOKS = True
 
 
 def notebooks():

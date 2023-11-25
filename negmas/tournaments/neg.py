@@ -47,6 +47,7 @@ def neg_config_generator(
     non_competitors: tuple[str | NegAgent] | None = None,
     non_competitor_params: tuple[dict[str, Any]] | None = None,
     compact: bool = False,
+    n_repetitions: int = 1,
     **kwargs,
 ) -> list[dict[str, Any]]:
     """
@@ -75,7 +76,7 @@ def neg_config_generator(
             f"n_agents_per_competitor must be 1 ({n_agents_per_competitor} given)"
         )
 
-    world_name = unique_name(f"{scenario.name}", add_time=True, rand_digits=4, sep="_")
+    world_name = unique_name(f"{scenario.name}", add_time=False, rand_digits=1, sep=".")
     no_logs = compact
     world_params = dict(
         name=world_name,
@@ -90,6 +91,7 @@ def neg_config_generator(
         "non_competitors": None,
         "non_competitor_params": None,
         "is_default": [False] * n_competitors + [True] * (len(scenario.ufuns) - 1),
+        "n_repetitions": n_repetitions,
     }
     return [config]
 
@@ -117,7 +119,15 @@ def neg_config_assigner(
     # competitors, params = _wrap_in_agents(competitors, params, NegAgent)
     config[0]["world_params"]["types"] = competitors
     config[0]["world_params"]["params"] = params
-    return [config]
+    n_reps = config[0].pop("n_repetitions", 1)
+    if n_reps == 1:
+        return [config]
+    configs = []
+    for i in range(n_reps):
+        c = deepcopy(config[0])
+        c["world_params"]["name"] += f"_{i}"
+        configs.append([c])
+    return configs
 
 
 def neg_world_generator(**kwargs):
@@ -130,8 +140,8 @@ def neg_world_generator(**kwargs):
     )
     config["types"] = [get_class(_) for _ in config["types"]]
     config["scenario"] = deserialize(config["scenario"])
-    name = config["scenario"].name
-    config["name"] = name if name is not None else unique_name("world", sep="_")
+    # name = config["scenario"].name
+    # config["name"] = name if name is not None else unique_name("world", sep="_")
     return NegWorld(**config)
 
 
@@ -157,41 +167,59 @@ def neg_score_calculator(
     """
     if scoring_context is not None:
         scoring_method = scoring_context.get("scoring_method", scoring_method)
-    assert len(worlds) == 1
-    world = worlds[0]
-
-    fun = dict(
-        received_utility=world.received_utility,
-        received_advantage=world.received_advantage,
-        partner_utility=world.partner_utility,
-        partner_advantage=world.partner_advantage,
-    )
-
+    assert len(worlds) >= 1
     result = WorldRunResults(
-        world_names=[world.name],
-        log_file_names=[world.log_file_name] if world.log_file_name else [],
+        world_names=[world.name for world in worlds],
+        log_file_names=[world.log_file_name for world in worlds]  # type: ignore
+        if worlds[0].log_file_name
+        else [],
     )
-    extra = defaultdict(list)
-    for aid, agent in world.competitors.items():
-        agent_type = agent.type_name
-        result.names.append(agent.name)
-        result.ids.append(agent.id)
-        result.types.append(agent_type)
-        if dry_run:
-            result.scores.append(float("nan"))
-            continue
-        result.scores.append(fun[scoring_method](aid))
-        for k, f in fun.items():
-            if k == scoring_method:
+
+    for world in worlds:
+
+        def sumdict(a, b):
+            return lambda x: 0.5 * (a(x) + b(x))
+
+        # world = worlds
+        scoring_map = dict(
+            received_utility=world.received_utility,
+            received_advantage=world.received_advantage,
+            partner_utility=world.partner_utility,
+            partner_advantage=world.partner_advantage,
+            welfare=sumdict(world.received_utility, world.partner_utility),
+            total_advantage=sumdict(world.received_advantage, world.partner_advantage),
+        )
+
+        extra = defaultdict(list)
+        for aid, agent in world.competitors.items():
+            agent_type = agent.type_name
+            result.names.append(agent.name)
+            result.ids.append(agent.id)
+            result.types.append(agent_type)
+            if dry_run:
+                result.scores.append(float("nan"))
                 continue
-            extra[k].append(dict(type=k, score=f(aid)))
-    for k in fun.keys():
-        result.extra_scores[k] = extra[k]
+            result.scores.append(scoring_map[scoring_method](aid))  # type: ignore
+            for k, f in scoring_map.items():
+                # if k == scoring_method:
+                #     continue
+                extra[k].append(
+                    dict(
+                        type=agent_type,
+                        score=f(aid),
+                        world=world.name,
+                        run_id=world.name,
+                    )
+                )
+        for k in scoring_map.keys():
+            result.extra_scores[k] = extra[k]
     return result
 
 
-def _update_kwargs(kwargs, scenarios, competitors):
-    kwargs["config_generator"] = partial(neg_config_generator, scenarios=scenarios)
+def _update_kwargs(kwargs, scenarios, competitors, n_repetitions):
+    kwargs["config_generator"] = partial(
+        neg_config_generator, scenarios=scenarios, n_repetitions=n_repetitions
+    )
     kwargs["config_assigner"] = neg_config_assigner
     kwargs["world_generator"] = neg_world_generator
     kwargs["score_calculator"] = neg_score_calculator
@@ -210,6 +238,7 @@ def create_neg_tournament(
     competitors: Sequence[str | type[Agent]],
     scenarios: Generator[NegScenario, None, None],
     competitor_params: Sequence[dict[str, Any]] | None = None,
+    n_repetitions: int = 1,
     **kwargs,
 ) -> PathLike:
     """
@@ -250,7 +279,7 @@ def create_neg_tournament(
     return create_tournament(
         competitors=competitors,
         competitor_params=competitor_params,
-        **_update_kwargs(kwargs, scenarios, competitors),
+        **_update_kwargs(kwargs, scenarios, competitors, n_repetitions=n_repetitions),
     )
 
 
@@ -258,6 +287,7 @@ def neg_tournament(
     competitors: list[AgentType] | tuple[AgentType, ...],
     scenarios: Generator[NegScenario, None, None],
     competitor_params: Sequence[dict | None] | None = None,
+    n_repetitions: int = 1,
     **kwargs,
 ) -> TournamentResults | PathLike:
     """
@@ -310,7 +340,7 @@ def neg_tournament(
     return tournament(
         competitors=competitors,  # type: ignore
         competitor_params=competitor_params,  # type: ignore
-        **_update_kwargs(kwargs, scenarios, competitors),
+        **_update_kwargs(kwargs, scenarios, competitors, n_repetitions=n_repetitions),
     )
 
 
@@ -460,7 +490,7 @@ def _make_negs(
             ):
                 ufuns = [list(s.ufuns)]
                 if rotate_ufuns:
-                    for i in range(len(ufuns) - 1):
+                    for _ in range(len(ufuns) - 1):
                         u = ufuns[-1]
                         ufuns.append([u[-1]] + u[:-1])
                 indices = [0, 1] if not score else [0]
@@ -502,6 +532,10 @@ def create_cartesian_tournament(
     non_competitors: list[AgentType] | tuple[AgentType, ...] = tuple(),
     non_competitor_params: Sequence[dict | None] | None = None,
     rotate_ufuns: bool = False,
+    n_repetitions: int = 1,
+    n_steps: int = 2,
+    n_rounds: int | None = None,
+    timelimit: float | None = None,
     **kwargs,
 ) -> PathLike:
     """
@@ -554,6 +588,11 @@ def create_cartesian_tournament(
         `TournamentResults` The results of the tournament or a `PathLike` giving the location where configs were saved
 
     """
+    kwargs["n_steps"] = n_steps
+    if n_rounds is not None:
+        kwargs["neg_n_steps"] = n_rounds
+    if timelimit is not None:
+        kwargs["neg_time_limit"] = n_rounds
     (
         neg_scenarios,
         competitors,
@@ -572,6 +611,7 @@ def create_cartesian_tournament(
         competitors=competitors,  # type: ignore
         scenarios=scenarios_from_list(neg_scenarios),
         competitor_params=competitor_params,  # type: ignore
+        n_repetitions=n_repetitions,
         **kwargs,
     )
 
@@ -583,6 +623,10 @@ def cartesian_tournament(
     non_competitors: list[AgentType] | tuple[AgentType, ...] = tuple(),
     non_competitor_params: Sequence[dict | None] | None = None,
     rotate_ufuns=False,
+    n_repetitions: int = 1,
+    n_steps: int = 2,
+    n_rounds: int | None = None,
+    timelimit: float | None = None,
     **kwargs,
 ) -> TournamentResults | PathLike:
     """
@@ -593,6 +637,9 @@ def cartesian_tournament(
         competitors: A list of class names for the competitors.
         non_competitors: A list of class names for agents that will run against the competitors but never be evaluated themselves.
         scenarios:A generator that yields `NegScenario` objects specifying negotiation scenarios upon request
+        n_repetitions: Number of time each world with a single negotiation scenario is repeated
+        timelimit: Time limit per negotiation
+        n_rounds: Number of rounds per negotiation
         name: Tournament name
         competitor_params: A list of competitor parameters (used to initialize the competitors).
         non_competitor_params: A list of non-competitor parameters (used to initialize the non-competitors).
@@ -634,6 +681,11 @@ def cartesian_tournament(
         `TournamentResults` The results of the tournament or a `PathLike` giving the location where configs were saved
 
     """
+    kwargs["n_steps"] = n_steps
+    if n_rounds is not None:
+        kwargs["neg_n_steps"] = n_rounds
+    if timelimit is not None:
+        kwargs["neg_time_limit"] = n_rounds
     (
         neg_scenarios,
         competitors,
@@ -652,6 +704,7 @@ def cartesian_tournament(
         competitors=competitors,
         scenarios=scenarios_from_list(neg_scenarios),
         competitor_params=competitor_params,
+        n_repetitions=n_repetitions,
         **kwargs,
     )
 

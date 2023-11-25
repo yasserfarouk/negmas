@@ -43,6 +43,7 @@ __all__ = [
     "ACLastFractionReceived",
     "ACTime",
     "AcceptAfter",
+    "AcceptAround",
     "AcceptBetween",
     "ACConst",
     "AcceptAnyRational",
@@ -263,7 +264,6 @@ class ACLast(AcceptancePolicy):
 class AcceptBetween(AcceptancePolicy):
     """
     Accepts in the given range of relative times.
-
     """
 
     min: float
@@ -373,6 +373,33 @@ class TFTAcceptancePolicy(AcceptancePolicy):
             my_concession = 0.0
         u = 1.0 - float(my_concession)
         if self.negotiator.ufun.eval_normalized(offer) >= u:
+            return ResponseType.ACCEPT_OFFER
+        return ResponseType.REJECT_OFFER
+
+
+@define
+class AcceptAround(AcceptancePolicy):
+    """Accepts around the given relative time (i.e. eps from it)"""
+
+    relative_time: float = 1.0
+    eps: float = 0.001
+
+    def __call__(
+        self, state: GBState, offer: Outcome, source: str | None
+    ) -> ResponseType:
+        if offer is None:
+            return ResponseType.REJECT_OFFER
+        # guarantee acceptance in the last step if relative_time <= 1
+        n_steps = self.negotiator.nmi.n_steps
+        if self.relative_time <= 1.0 and (
+            n_steps is not None and state.step >= n_steps - 1
+        ):
+            return ResponseType.ACCEPT_OFFER
+        # accept around the given time
+        if (
+            state.relative_time >= self.relative_time
+            or (self.relative_time - state.relative_time) < self.eps
+        ):
             return ResponseType.ACCEPT_OFFER
         return ResponseType.REJECT_OFFER
 
@@ -589,6 +616,14 @@ class ConcensusAcceptancePolicy(AcceptancePolicy, ABC):
 
     strategies: list[AcceptancePolicy]
 
+    def _set_child_negotiators(self) -> None:
+        for s in self.strategies:
+            self.set_negotiator(self.negotiator)
+
+    def on_negotiation_start(self, state) -> None:
+        self._set_child_negotiators()
+        return super().on_negotiation_start(state)
+
     def filter(self, indx: int, response: ResponseType) -> FilterResult:
         """
         Called with the decision of each strategy in order.
@@ -605,7 +640,7 @@ class ConcensusAcceptancePolicy(AcceptancePolicy, ABC):
     @abstractmethod
     def decide(self, indices: list[int], responses: list[ResponseType]) -> ResponseType:
         """
-        Called to make a final decsision given the decisions of the stratgeis with indices `indices` (see `filter` for filtering rules)
+        Called to make a final decision given the decisions of the strategies with indices `indices` (see `filter` for filtering rules)
         """
 
     def __call__(
@@ -613,13 +648,14 @@ class ConcensusAcceptancePolicy(AcceptancePolicy, ABC):
     ) -> ResponseType:
         selected, selected_indices = [], []
         for i, s in enumerate(self.strategies):
+            s._negotiator = self.negotiator  # type: ignore
             response = s.respond(state, offer, source)
             r = self.filter(i, response)
-            if not r.next:
-                break
             if r.save:
                 selected.append(response)
                 selected_indices.append(i)
+            if not r.next:
+                break
 
         return self.decide(selected_indices, selected)
 
@@ -656,4 +692,4 @@ class AnyAcceptancePolicy(ConcensusAcceptancePolicy):
     def decide(self, indices: list[int], responses: list[ResponseType]) -> ResponseType:
         if not responses:
             return ResponseType.REJECT_OFFER
-        return responses[0]
+        return ResponseType.ACCEPT_OFFER

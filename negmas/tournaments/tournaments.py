@@ -1959,8 +1959,14 @@ def create_tournament(
     ]
     for i, cs in enumerate(configs):
         for c in cs:
-            c["config_id"] = f"{i:04d}" + unique_name(
-                "", add_time=False, sep="", rand_digits=2
+            # c["config_id"] = f"{i:04d}" + unique_name(
+            #     c["world_params"].get("name", ""), add_time=False, sep="", rand_digits=2
+            # )
+            name_ = c["world_params"].get("name", "")
+            c["config_id"] = f"{i:04d}" + (
+                name_
+                if name_
+                else unique_name("", add_time=False, sep="", rand_digits=2)
             )
             c["world_params"]["name"] = c["config_id"]
     to_file(configs, tournament_path / "base_configs")
@@ -1998,7 +2004,7 @@ def create_tournament(
                 c["world_params"]["name"] += (
                     "_"
                     + "-".join(effective_names)
-                    + unique_name("", add_time=False, rand_digits=4, sep="")
+                    + unique_name("", add_time=False, rand_digits=3, sep=".")
                 )
         this_assigned = list(
             itertools.chain(
@@ -2055,7 +2061,7 @@ def create_tournament(
 
     if verbose:
         print(
-            f"Will run {len(assigned)}  different factory/manager assignments ({parallelism})",
+            f"Will run {len(assigned)}  different agent assignments ({parallelism})",
             flush=True,
         )
 
@@ -2714,8 +2720,8 @@ def tournament(
 
     competitor_indx = dict()
     for i, c in enumerate(competitors):
-        tname = get_full_type_name(c)
-        ctype = get_class(c)
+        tname = get_full_type_name(c)  # type: ignore
+        ctype = get_class(c)  # type: ignore
         if hasattr(ctype, "_type_name"):
             tname = ctype._type_name()  # type: ignore
         competitor_indx[tname] = i

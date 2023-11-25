@@ -3,7 +3,7 @@ from __future__ import annotations
 import math
 import random
 from abc import abstractmethod
-from typing import Sequence, TypeVar
+from typing import Iterable, Sequence, TypeVar
 
 import numpy as np
 
@@ -131,7 +131,10 @@ class UtilityFunction(_ExtremelyDynamic, BaseUtilityFunction):
 
     @classmethod
     def generate_random(
-        cls, n: int, outcomes: int | Sequence[Outcome], normalized: bool = True
+        cls,
+        n: int,
+        outcomes: int | Sequence[Outcome] | Iterable[Outcome],
+        normalized: bool = True,
     ) -> list[UtilityFunction]:
         """Generates N mapping utility functions
 
@@ -227,7 +230,7 @@ class UtilityFunction(_ExtremelyDynamic, BaseUtilityFunction):
             - If the maximum and the minium are equal, finite and above reserve, will return 1.0.
             - If the maximum and the minium are equal, initinte or below reserve, will return 0.0.
             - For probabilistic ufuns, a distribution will still be returned.
-            - The minimum and maximum will be evaluated freshly every time. If they are already caached in the ufun, the cache will be used.
+            - The minimum and maximum will be evaluated freshly every time. If they are already cached in the ufun, the cache will be used.
 
         """
         r = self.reserved_value

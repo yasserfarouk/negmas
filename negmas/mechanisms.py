@@ -1058,7 +1058,10 @@ class Mechanism(NamedObject, EventSource, CheckpointMixin, ABC):
         )
         self._last_start = step_start
         self._current_state.waiting = False
-        result = self(self._current_state, action=action)
+        try:
+            result = self(self._current_state, action=action)
+        except TypeError:
+            result = self(self._current_state)
         self._current_state = result.state
         step_time = time.perf_counter() - step_start
         self._stats["round_times"].append(step_time)
@@ -1166,7 +1169,10 @@ class Mechanism(NamedObject, EventSource, CheckpointMixin, ABC):
 
     @classmethod
     def runall(
-        cls, mechanisms: list[Mechanism], keep_order=True, method="serial"
+        cls,
+        mechanisms: list[Mechanism] | tuple[Mechanism, ...],
+        keep_order=True,
+        method="serial",
     ) -> list[MechanismState | None]:
         """Runs all mechanisms.
 
@@ -1210,7 +1216,7 @@ class Mechanism(NamedObject, EventSource, CheckpointMixin, ABC):
 
     @classmethod
     def stepall(
-        cls, mechanisms: list[Mechanism], keep_order=True
+        cls, mechanisms: list[Mechanism] | tuple[Mechanism, ...], keep_order=True
     ) -> list[MechanismState]:
         """Step all mechanisms.
 
