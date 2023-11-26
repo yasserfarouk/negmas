@@ -32,6 +32,7 @@ jobs:
           python -m pip install -r requirements-dev.txt
           python -m ipykernel install --user --name=negmas
           python -m pip install -e .
+          negmas genius-setup
       - name: "Setting up environment"
         run: |
           export NEGMAS_IGNORE_TEST_NOTEBOOKS=True
