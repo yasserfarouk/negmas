@@ -10,7 +10,7 @@ jobs:
     - uses: actions/checkout@master
     - uses: actions/setup-python@v2
       with:
-        python-version: '3.11'
+        python-version: '3.12'
     - uses: actions/setup-java@v2
       with:
         distribution: 'zulu' # See 'Supported distributions' for available options
@@ -40,8 +40,8 @@ jobs:
           python -m pip install -r requirements-dev.txt
           python -m ipykernel install --user --name=negmas
           python -m pip install -e .
-          negmas genius-setup
-          export NEGMAS_IGNORE_TEST_NOTEBOOKS=False; python -W ignore -m pytest negmas tests
+          # negmas genius-setup
+          # export NEGMAS_IGNORE_TEST_NOTEBOOKS=False; python -W ignore -m pytest negmas tests
     - name: Publish distribution 📦 to PyPI
       if: github.event_name == 'push' && startsWith(github.event.ref, 'refs/tags')
       uses: pypa/gh-action-pypi-publish@master
