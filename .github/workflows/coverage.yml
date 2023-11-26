@@ -20,6 +20,7 @@ jobs:
           python -m pip install -r requirements-dev.txt
           python -m pip install -e .
           python -m ipykernel install --user --name=negmas
+          negmas genius-setup
           export NEGMAS_SLOW_TEST=True
           export NEGMAS_BRIDGE_OPS
           unset NEGMAS_BRIDGE_OPS
