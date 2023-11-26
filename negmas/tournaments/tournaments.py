@@ -26,6 +26,7 @@ from typing import Any, Callable, Iterable, Sequence
 import numpy as np
 import pandas as pd
 import yaml
+from pandas.errors import EmptyDataError
 from scipy.stats import ks_2samp, ttest_ind
 from typing_extensions import Protocol
 
@@ -2410,25 +2411,43 @@ def evaluate_tournament(
         type_stats_file = tournament_path / TYPE_STATS_FILE
         agent_stats_file = tournament_path / AGENT_STATS_FILE
         params_file = tournament_path / PARAMS_FILE
-        if world_stats is None and world_stats_file.exists():
-            world_stats = pd.read_csv(world_stats_file, index_col=None)
-        if type_stats is None and type_stats_file.exists():
-            type_stats = pd.read_csv(type_stats_file, index_col=None)
-        if agent_stats is None and agent_stats_file.exists():
-            agent_stats = pd.read_csv(agent_stats_file, index_col=None)
-        if params_file.exists():
-            params = load(params_file)
-        if scores is None:
-            if recursive:
-                scores = combine_tournament_results(
-                    sources=[tournament_path], dest=None, verbose=verbose
-                )
-            else:
-                scores = pd.read_csv(scores_file, index_col=None)
+        try:
+            if world_stats is None and world_stats_file.exists():
+                world_stats = pd.read_csv(world_stats_file, index_col=None)
+            if type_stats is None and type_stats_file.exists():
+                type_stats = pd.read_csv(type_stats_file, index_col=None)
+            if agent_stats is None and agent_stats_file.exists():
+                agent_stats = pd.read_csv(agent_stats_file, index_col=None)
+            if params_file.exists():
+                params = load(params_file)
+            if scores is None:
+                if recursive:
+                    scores = combine_tournament_results(
+                        sources=[tournament_path], dest=None, verbose=verbose
+                    )
+                else:
+                    scores = pd.read_csv(scores_file, index_col=None)
 
-        if stats is None:
-            stats = combine_tournament_stats(
-                sources=[tournament_path], dest=None, verbose=False
+            if stats is None:
+                stats = combine_tournament_stats(
+                    sources=[tournament_path], dest=None, verbose=False
+                )
+        except EmptyDataError:
+            return TournamentResults(
+                scores=pd.DataFrame(),
+                total_scores=pd.DataFrame(),
+                winners=[],
+                winners_scores=np.array([]),
+                ttest=pd.DataFrame(),
+                kstest=pd.DataFrame(),
+                stats=pd.DataFrame(),
+                agg_stats=pd.DataFrame(),
+                score_stats=pd.DataFrame(),
+                path=str(tournament_path) if tournament_path is not None else None,
+                params=params,
+                world_stats=world_stats,
+                type_stats=type_stats,
+                agent_stats=agent_stats,
             )
     if scores is not None and not isinstance(scores, pd.DataFrame):
         scores = pd.DataFrame(data=scores)
