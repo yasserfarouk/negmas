@@ -3,21 +3,23 @@ from __future__ import annotations
 import pytest
 
 from negmas.genius import genius_bridge_is_running
-from negmas.genius.gnegotiators import AgentK, AgentM, Atlas3, Atlas32016, NiceTitForTat
 from negmas.inout import Scenario
 from negmas.outcomes import make_issue
 from negmas.outcomes.outcome_space import make_os
 from negmas.preferences import LinearAdditiveUtilityFunction as U
-from negmas.sao import AspirationNegotiator, NaiveTitForTatNegotiator
+from negmas.sao import (
+    AspirationNegotiator,
+    NaiveTitForTatNegotiator,
+    RandomAlwaysAcceptingNegotiator,
+    RandomNegotiator,
+)
 from negmas.sao.mechanism import SAOMechanism
 from negmas.situated.neg import NegScenario
 from negmas.tournaments.neg import (
     cartesian_tournament,
-    create_cartesian_tournament,
     neg_tournament,
     scenarios_from_list,
 )
-from negmas.tournaments.tournaments import run_tournament
 
 
 def test_can_run_cartesian_tournament_n_reps():
@@ -43,8 +45,8 @@ def test_can_run_cartesian_tournament_n_reps():
         for i, u in enumerate(ufuns)
     ]
     results = cartesian_tournament(
-        competitors=[Atlas3, AspirationNegotiator],
-        non_competitors=[AgentK],
+        competitors=[RandomNegotiator, AspirationNegotiator],
+        non_competitors=[NaiveTitForTatNegotiator],
         scenarios=scenarios,
         neg_time_limit=10,
         neg_n_steps=None,
@@ -77,8 +79,8 @@ def test_can_run_cartesian_tournament():
         for i, u in enumerate(ufuns)
     ]
     results = cartesian_tournament(
-        competitors=[Atlas3, AspirationNegotiator],
-        non_competitors=[AgentK],
+        competitors=[RandomNegotiator, AspirationNegotiator],
+        non_competitors=[NaiveTitForTatNegotiator],
         scenarios=scenarios,
         neg_time_limit=10,
         neg_n_steps=None,
@@ -92,7 +94,7 @@ def test_can_run_world_repeated_runs():
     issues = (make_issue(10, "quantity"), make_issue(5, "price"))
     competitors = [AspirationNegotiator, NaiveTitForTatNegotiator]
     if genius_bridge_is_running():
-        competitors += [Atlas3, NiceTitForTat]
+        competitors += [RandomNegotiator, RandomAlwaysAcceptingNegotiator]
 
     ufuns = (
         U.random(issues=issues, reserved_value=(0.0, 0.2), normalized=False),
@@ -131,7 +133,7 @@ def test_can_run_tournament():
     issues = (make_issue(10, "quantity"), make_issue(5, "price"))
     competitors = [AspirationNegotiator, NaiveTitForTatNegotiator]
     if genius_bridge_is_running():
-        competitors += [Atlas3, NiceTitForTat]
+        competitors += [RandomNegotiator, RandomAlwaysAcceptingNegotiator]
 
     domains = []
     for index in range(2):
@@ -168,7 +170,7 @@ def test_can_run_tournament_from_generator():
     n_repetitions = 1
     competitors = [AspirationNegotiator, NaiveTitForTatNegotiator]
     if genius_bridge_is_running():
-        competitors += [Atlas3, NiceTitForTat]
+        competitors += [RandomNegotiator, RandomAlwaysAcceptingNegotiator]
 
     domains = random_discrete_scenarios(issues=[5, 4, (3, 5)], partners=competitors)
 
