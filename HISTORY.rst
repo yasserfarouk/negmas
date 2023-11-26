@@ -1,6 +1,28 @@
 History
 =======
 
+Release 0.10.2
+--------------
+
+* Adding RandomOfferGuaranteedAcceptance negotiator
+* Fixing some failures in testing some genius agents
+* [Snyk] Security upgrade pillow from 9.5.0 to 10.0.1
+* [Snyk] Security upgrade werkzeug from 2.2.3 to 3.0.1
+* [Snyk] Security upgrade pillow from 9.5.0 to 10.0.0
+* fix: docs/requirements.txt to reduce vulnerabilities
+* Updating tutorials, adding a tournament there
+* Fixing an installation bug: hypothesis was needed to run test_situated under negmas/tests. This prevented users from running the fast set of tests after installation.
+* cartesian_tournament to run a simple tournament
+  - cartesian_tournament runs a simple tournament similar to Genius tournaments.
+  - create_cartesian_tournament creates a simple Cartesian tournament but does not run it. To run the tournament, call run_tournament passing it the returned path from create_cartesian_tournament.
+* fix: requirements-visualizer.txt to reduce vulnerabilities
+* Group2 defaults to Y2015Group2 in gnegotaitors
+* adding Ateamagent beside AteamAgent
+* Correcting few gnegotiator names
+* standardizing some gnegotiator names
+* renaming ateamAgent -> AteamAgent in genius
+* Adding some missing Genius negotiators to gnegotiators.py
+
 Release 0.10.1
 --------------
 
