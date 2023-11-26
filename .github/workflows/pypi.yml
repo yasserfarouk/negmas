@@ -40,6 +40,7 @@ jobs:
           python -m pip install -r requirements-dev.txt
           python -m ipykernel install --user --name=negmas
           python -m pip install -e .
+          negmas genius-setup
           export NEGMAS_IGNORE_TEST_NOTEBOOKS=False; python -W ignore -m pytest negmas tests
     - name: Publish distribution 📦 to PyPI
       if: github.event_name == 'push' && startsWith(github.event.ref, 'refs/tags')
