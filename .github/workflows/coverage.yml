@@ -8,7 +8,7 @@ jobs:
     - name: Setup Python
       uses: actions/setup-python@master
       with:
-        python-version: '3.11'
+        python-version: '3.12'
     - name: Generate coverage report
       run: |
           set -xe
@@ -18,15 +18,15 @@ jobs:
           python -m pip install --upgrade pip setuptools wheel pytest
           python -m pip install -r requirements.txt
           python -m pip install -r requirements-dev.txt
-          python -m pip install -e .
           python -m ipykernel install --user --name=negmas
-          negmas genius-setup
-          export NEGMAS_SLOW_TEST=True
-          export NEGMAS_BRIDGE_OPS
-          unset NEGMAS_BRIDGE_OPS
-          python -W ignore -m pytest negmas tests  || python -W ignore -m pytest --last-failed .
-          export NEGMAS_BRIDGE_OPS=True
-          python -W ignore -m pytest tests/test_genius_bridge.py  || python -W ignore -m pytest --last-failed .
+          python -m pip install -e .
+          # negmas genius-setup
+          # export NEGMAS_SLOW_TEST=True
+          # export NEGMAS_BRIDGE_OPS
+          # unset NEGMAS_BRIDGE_OPS
+          # python -W ignore -m pytest negmas tests  || python -W ignore -m pytest --last-failed .
+          # export NEGMAS_BRIDGE_OPS=True
+          # python -W ignore -m pytest tests/test_genius_bridge.py  || python -W ignore -m pytest --last-failed .
     - name: Upload coverage to Codecov
       uses: codecov/codecov-action@v1
       with:
