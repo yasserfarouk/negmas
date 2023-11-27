@@ -6,7 +6,7 @@ from .modular import MAPNegotiator
 
 __all__ = [
     "RandomNegotiator",
-    "RandomOfferGuaranteedAcceptance",
+    "RandomAlwaysAcceptingNegotiator",
 ]
 
 
@@ -38,7 +38,7 @@ class RandomNegotiator(MAPNegotiator):
         super().__init__(acceptance=acceptance, offering=offering, **kwargs)
 
 
-class RandomOfferGuaranteedAcceptance(MAPNegotiator):
+class RandomAlwaysAcceptingNegotiator(MAPNegotiator):
     def __init__(
         self,
         p_acceptance=0.15,

@@ -20,7 +20,7 @@ from pytest import mark
 import negmas
 from negmas import SAOSyncController
 from negmas.gb.negotiators.modular.mapneg import MAPNegotiator
-from negmas.gb.negotiators.randneg import RandomOfferGuaranteedAcceptance
+from negmas.gb.negotiators.randneg import RandomAlwaysAcceptingNegotiator
 from negmas.genius import genius_bridge_is_running
 from negmas.helpers import unique_name
 from negmas.helpers.strings import shorten
@@ -534,7 +534,7 @@ def test_random_offer_guaranteed_acceptance(n_steps, n_negotiators, oia):
         u.reserved_value = float(u.min()) - 0.1
     for i in range(n_negotiators):
         mechanism.add(
-            RandomOfferGuaranteedAcceptance(name=f"agent{i}"), preferences=ufuns[i]
+            RandomAlwaysAcceptingNegotiator(name=f"agent{i}"), preferences=ufuns[i]
         )
 
     state = mechanism.run()
@@ -578,7 +578,7 @@ def test_sync_controller(n_negs, n_negotiators, oia):
             u.reserved_value = float(u.min()) - 0.1
         for i in range(n_negotiators):
             mechanisms[-1].add(
-                RandomOfferGuaranteedAcceptance(name=f"agent{i}"), preferences=ufuns[i]
+                RandomAlwaysAcceptingNegotiator(name=f"agent{i}"), preferences=ufuns[i]
             )
 
         mechanisms[-1].add(controller.create_negotiator())
