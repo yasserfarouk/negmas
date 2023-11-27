@@ -7,10 +7,10 @@ sphinxcontrib-fulltoc
 sphinxcontrib-websupport
 sphinx-testing
 sphinx-rtd-theme
-sphinx-press-theme
-groundwork-sphinx-theme
-python-docs-theme
-sphinx-sizzle-theme
+# sphinx-press-theme
+# groundwork-sphinx-theme
+# python-docs-theme
+# sphinx-sizzle-theme
 nbformat
 nbsphinx
 nb2plots

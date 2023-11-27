@@ -1,4 +1,4 @@
-# negmas documentation build configuration file, created by
+# negmas documentation build configuration file, created byconf.py
 # sphinx-quickstart on Fri Jun  9 13:47:02 2017.
 #
 # This file is execfile()d with the current directory set to its
@@ -24,13 +24,12 @@ import os
 # NON_RTD_THEME = "python_docs_theme"
 # NON_RTD_THEME = "groundwork"
 # on_rtd is whether we are on readthedocs.org
-on_rtd = os.environ.get("READTHEDOCS", None) == "True"
+on_rtd = os.environ.get("READTHEDOCS", None)
 import sphinx_rtd_theme
 
 THEME_NAME = "sphinx_rtd_theme"
-THEME_PATH = [sphinx_rtd_theme.get_html_theme_path()]
-# if on_rtd:
-#     # THEME_PATH = None
+if not on_rtd:
+    THEME_PATH = [sphinx_rtd_theme.get_html_theme_path()]
 
 # typing.get_type_hints = lambda obj, *unused: obj
 
