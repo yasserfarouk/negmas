@@ -28,6 +28,7 @@ on_rtd = os.environ.get("READTHEDOCS", None)
 import sphinx_rtd_theme
 
 THEME_NAME = "sphinx_rtd_theme"
+THEME_PATH = None
 if not on_rtd:
     THEME_PATH = [sphinx_rtd_theme.get_html_theme_path()]
 
