@@ -147,7 +147,7 @@ widely known equilibria for the Nash bargaining game:
 
 .. math:: \text{argmax}_{\omega_1, \omega_2 \in P} \min_{i \in \{1,2\}}\left(\tilde u_i(\omega_{i}) - \tilde u_i(\phi)\right)
 
-We will not implement a negotiator that plays he nash-point strategy
+We will not implement a negotiator that plays the nash-point strategy
 with no prior knowledge of the utility function structure (i.e. it works
 for nonlinear nonconvex utility functions).
 
@@ -181,7 +181,7 @@ Now let’s try our brand new mechanism and negotiator
 
 .. parsed-literal::
 
-    Agreement: (0.4999999936988203, 0.500000003911858)
+    Agreement: (0.5000000026839123, 0.4999999975541203)
 
 
 As expected, the two negotiators agreed on the expected nash point (0.5,
@@ -247,7 +247,7 @@ What happens if the utility value of a negotiator had a different slope:
     for i, s in enumerate(slopes):
         m = NashBargainingGame()
         u1 = LinearUtilityFunction(
-            [s, 0.0], reserved_value=0.0, outcome_space=m.outcome_space
+            [s, 0], reserved_value=0.0, outcome_space=m.outcome_space
         )
         u2 = LinearUtilityFunction(
             [0, 1], reserved_value=0.0, outcome_space=m.outcome_space
@@ -379,6 +379,12 @@ We can then define the mechanism class itself:
                 return MechanismStepResult(state=state)
             if sum(outcomes[0]) <= 1 + 1e-3:
                 if self.extended:
+                    # If each negotiators offered itself nothing more than what its
+                    #  partner is offering it, this is an agreement with each negotiator
+                    #  getting what it offered itself. This is not a part of the
+                    #  Rubinstein protocol (hence extended). It was added to avoid
+                    #  very long negotiations as the original mechanism is supposed to
+                    #  allow an infinte time.
                     if (
                         outcomes[0][0] <= outcomes[1][0] + 1e-5
                         and outcomes[1][1] <= outcomes[0][1] + 1e-5
@@ -389,6 +395,9 @@ We can then define the mechanism class itself:
                             )
                         return MechanismStepResult(state=state)
                 elif max(abs(outcomes[0][i] - outcomes[1][i]) for i in range(2)) < 1e-3:
+                    # If both negotiators offer the same division of the pie (approximately),
+                    #  that is an agreement. This is the only method to end the run in the
+                    #  original Rubinstein protocol.
                     state.agreement=tuple(
                             0.5 * (outcomes[0][i] + outcomes[1][i]) for i in range(2)
                         )
@@ -400,20 +409,14 @@ We can then define the mechanism class itself:
 The mechanism is very similar to the Nash Bargaining Game with few
 modifications:
 
-1. The constructor passes the ``RubnisteinMechanismState`` as the
-   ``state_factory``. We also create explicit issues for the
-   negotiation. The number of steps is not limited to :math:`1`. Note
-   that we define two requirements for any negotiator that wants to
-   engage in this protocol.
-2. The ``add()`` method now creates the utility function for the
+1. The ``add()`` method now creates the utility function for the
    negotiator following the rules of the game. Each negotiator receives
    an exponentially discounted utility function of the portion it
    receives from the pie.
-3. We override ``extra_state`` to provide the ``discounts`` values to
-   the state factory.
-4. ``propose()`` in the negotiators is expected to receive a state of
+2. We expand ``state`` to provide the ``discounts`` values.
+3. ``propose()`` in the negotiators is expected to receive a state of
    type ``RubinsteinMechanismState`` .
-5. Each round all negotiators propose outcomes and the negotiation
+4. Each round all negotiators propose outcomes and the negotiation
    terminates with success only if both proposals are feasible (sum to
    no more than 1.0) and equal (approximately)
 
@@ -485,7 +488,7 @@ Now we can run negotiations using our new protocol and negotiator:
 
 .. code:: ipython3
 
-    mechanism = RubinsteinMechanism(extended=False)
+    mechanism = RubinsteinMechanism()
     mechanism.add(RandomRubinsteinNegotiator(), discount=0.75)
     mechanism.add(RandomRubinsteinNegotiator(), discount=0.75)
     print(f"Agreed to: {mechanism.run().agreement} after {mechanism.current_step} steps")
@@ -494,7 +497,7 @@ Now we can run negotiations using our new protocol and negotiator:
 
 .. parsed-literal::
 
-    Agreed to: (0.7732078028761935, 0.22679219712380644) after 1176 steps
+    Agreed to: (0.24123026556398708, 0.7587697344360129) after 566 steps
 
 
 
@@ -520,11 +523,16 @@ We can implement the optimal negotiator for this mechanism as follows:
     mechanism.add(OptimalRubinsteinNegotiator())
     mechanism.add(OptimalRubinsteinNegotiator())
     print(f"Agreed to: {mechanism.run().agreement} in {mechanism.current_step} steps")
+    plot_a_run(mechanism)
 
 
 .. parsed-literal::
 
     Agreed to: (0.5128205128205131, 0.4871794871794869) in 1 steps
+
+
+
+.. image:: 03.develop_new_mechanism_files/03.develop_new_mechanism_25_1.png
 
 
 We can see that even though both negotiators had the same time-pressure
@@ -548,7 +556,7 @@ other agent’s
             return (r, 1.0 - r) if self.my_index == 0 else (1.0 - r, r)
 
 
-    mechanism = RubinsteinMechanism(n_steps=100, extended=True)
+    mechanism = RubinsteinMechanism(n_steps=100)
     mechanism.add(AspirationRubinsteinNegotiator())
     mechanism.add(AspirationRubinsteinNegotiator())
     result = mechanism.run()
@@ -558,7 +566,7 @@ other agent’s
 
 .. parsed-literal::
 
-    Agreed to: (0.49504950495049505, 0.49504950495049505) in 51 steps
+    Agreed to: None in 100 steps
 
 
 
@@ -586,3 +594,104 @@ Now we can see when the first negotiator is a ``conceder`` :
 
 
 As expected, the agreement shifted toward the second agent.
+
+Now we can see when the first negotiator is a ``bolware`` (i.e. it
+concedes slowly in the beginning then fast near the end):
+
+.. code:: ipython3
+
+    mechanism = RubinsteinMechanism(n_steps=100, extended=True)
+    mechanism.add(AspirationRubinsteinNegotiator(aspiration_type="boulware"))
+    mechanism.add(AspirationRubinsteinNegotiator())
+    print(f"Agreed to: {mechanism.run().agreement} in {mechanism.current_step} steps")
+    plot_a_run(mechanism)
+
+
+.. parsed-literal::
+
+    Agreed to: (0.7118348986565985, 0.26732673267326734) in 74 steps
+
+
+
+.. image:: 03.develop_new_mechanism_files/03.develop_new_mechanism_31_1.png
+
+
+As expected, the agreement shifted toward the second agent.
+
+We can see now that the first agent is getting higher utility compared
+with when it did use the optimal negotiation behavior proved to be the
+equilibrium for this game by Rubinstein. Nevertheless, the second agent
+now notices that the first agent is conceding slower than itself and is
+expected to concede slowly itself to increase its utility leading to
+something like this:
+
+.. code:: ipython3
+
+    mechanism = RubinsteinMechanism(n_steps=100, extended=True)
+    mechanism.add(AspirationRubinsteinNegotiator(aspiration_type="boulware"))
+    mechanism.add(AspirationRubinsteinNegotiator(aspiration_type="boulware"))
+    print(f"Agreed to: {mechanism.run().agreement} in {mechanism.current_step} steps")
+    plot_a_run(mechanism)
+
+
+.. parsed-literal::
+
+    Agreed to: (0.498362254052817, 0.498362254052817) in 85 steps
+
+
+
+.. image:: 03.develop_new_mechanism_files/03.develop_new_mechanism_33_1.png
+
+
+Now we are back to the equilibirum achieved by the optimal negotiator in
+one stp but we needed many more steps to achieve it.
+
+What if the discounts were different for the two negotiators? Let’s try
+it:
+
+.. code:: ipython3
+
+    mechanism = RubinsteinMechanism()
+    mechanism.add(OptimalRubinsteinNegotiator(), discount=0.95)
+    mechanism.add(OptimalRubinsteinNegotiator(), discount=0.9)
+    print(f"Agreed to: {mechanism.run().agreement} in {mechanism.current_step} steps")
+    plot_a_run(mechanism)
+
+
+.. parsed-literal::
+
+    Agreed to: (0.6896551724137928, 0.3103448275862072) in 1 steps
+
+
+
+.. image:: 03.develop_new_mechanism_files/03.develop_new_mechanism_35_1.png
+
+
+A lower discount value indicates higher time pressure. This means that
+the second negotiator is under higher time pressure which is indicated
+in the first negotiator getting higher utility than before (i.e. the
+agreement shifts towards the agent with lower time pressure).
+
+What if we tried our boulware here:
+
+.. code:: ipython3
+
+    mechanism = RubinsteinMechanism(n_steps=100, extended=True)
+    mechanism.add(AspirationRubinsteinNegotiator(aspiration_type="boulware"), discount=0.95)
+    mechanism.add(AspirationRubinsteinNegotiator(aspiration_type="boulware"), discount=0.9)
+    print(f"Agreed to: {mechanism.run().agreement} in {mechanism.current_step} steps")
+    plot_a_run(mechanism)
+
+
+.. parsed-literal::
+
+    Agreed to: (0.498362254052817, 0.498362254052817) in 85 steps
+
+
+
+.. image:: 03.develop_new_mechanism_files/03.develop_new_mechanism_37_1.png
+
+
+The behavior did not change from the case with equal time pressure.
+There is no mystry here. The boulware agent does not take its own
+time-pressure (discount) into accout. Can you fix that?

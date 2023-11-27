@@ -260,7 +260,7 @@ concurrently running negotiations (or on expectations of future
 negotiations). NegMAS provides two ways to support this case shown in
 the following figure:
 
-.. figure:: figs/controllers.jpg
+.. figure:: figs/controllers.png
    :alt: controllers
 
    controllers
@@ -422,7 +422,7 @@ You can pick random valid or invalid values for the issue:
 
 .. parsed-literal::
 
-    [['to be', '20231110H001622435924jJTGt6qBto be20231110H001622435941XtRgNy0I'],
+    [['to be', '20231127H095041904848jJTGt6qBto be20231127H095041904865XtRgNy0I'],
      [6, 10],
      [0.6118970848141451, 1.928063278403899]]
 
@@ -2181,7 +2181,7 @@ state from the real world) and manages creation and destruction of
 ``AgentWorldInterface``\ s (AWI) and connecting them to ``Agent``\ s.
 
 ``Agent``\ s can join and leave worlds using the ``join`` and ``leave``
-methods and can interact with it through their AWI.
+methods and can interact with it through their AWIs.
 
 To create a new world type, you need to override a single method
 (``simulation_step``) in the base ``World`` class to define your
@@ -2190,54 +2190,3 @@ inherited class that is capable of interacting with this world and a
 corresponding ``AgentWorldInterface``.
 
 You can see an example of a world simulation in the tutorials.
-
-
-.. code:: ipython3
-
-    # define the protocol as a single function
-    def sao(negotiators, *, n_steps: int):
-        offer = None
-        n_acceptances, n_negotiators = 1, len(negotiators)
-        for i in range(n_steps):
-            for current in negotiators:
-                response = current(offer)
-                # None means accept
-                if response is None:
-                    n_acceptances += 1
-                if n_acceptances >= n_negotiators:
-                    return offer
-                # an empty tuple means END
-                if not response:
-                    return None
-                offer = response
-                n_acceptances = 1
-        return None
-
-
-    # a negotiator as a single function
-    from random import choice
-    def limited_outcomes_negotiator(offer,*, acceptable):
-        # accept if in acceptables
-        if offer in acceptable:
-            return None
-        # otherwise offer a random acceptable offer
-        return choice(acceptable)
-
-
-.. code:: ipython3
-
-    # run a simple negotiation
-    from functools import partial
-    sao(
-        [
-        partial(limited_outcomes_negotiator, acceptable=[(2,), (3,), (5,)]),
-        partial(limited_outcomes_negotiator, acceptable=[(1,), (4,), (3,)]),
-        ],
-        n_steps=10)
-
-
-
-
-.. parsed-literal::
-
-    (3,)

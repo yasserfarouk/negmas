@@ -1,13 +1,17 @@
-#!/usr/bin/env python
+#!/usr/bin/env DOCS_ZIP
 from __future__ import annotations
 
 """The NegMAS universal command line tool"""
 
+import http.server
 import json
 import os
 import pathlib
+import socketserver
 import sys
 import urllib.request
+import webbrowser
+import zipfile
 from functools import partial
 from pathlib import Path
 from time import perf_counter
@@ -50,6 +54,7 @@ n_completed = 0
 n_total = 0
 
 GENIUS_JAR_NAME = "geniusbridge.jar"
+DOCS_ZIP = "negmas_docs.zip"
 
 DEFAULT_NEGOTIATOR = "negmas.sao.AspirationNegotiator"
 
@@ -57,7 +62,7 @@ DEFAULT_NEGOTIATOR = "negmas.sao.AspirationNegotiator"
 def default_log_path():
     """Default location for all logs"""
 
-    return Path(negmas_config("log_base", Path.home() / "negmas" / "logs"))
+    return Path(negmas_config("log_base", Path.home() / "negmas" / "logs"))  # type: ignore
 
 
 def default_tournament_path():
@@ -868,7 +873,7 @@ def genius(path, port, debug, timeout):
         pass
 
 
-def download_and_set(key, url, file_name):
+def download_and_set(key, url, file_name, extract=False):
     """
     Downloads a file and sets the corresponding key in ~/negmas/config.json
 
@@ -876,24 +881,71 @@ def download_and_set(key, url, file_name):
         key: Key name in config.json
         url: URL to download from
         file_name: file name
+        extract: If extract, the file is extracted into a folder (assuming it is a zip)
 
     Returns:
 
     """
     config_path = Path.home() / "negmas"
-    jar_path = config_path / "files"
-    jar_path.mkdir(parents=True, exist_ok=True)
-    jar_path = jar_path / file_name
-    urllib.request.urlretrieve(url, jar_path)
+    file_path = config_path
+    if not extract:
+        file_path /= "files"
+    file_path.mkdir(parents=True, exist_ok=True)
+    file_path = file_path / file_name
+    urllib.request.urlretrieve(url, file_path)
     config = {}
     config_file = config_path / "config.json"
 
     if config_file.exists():
         with open(config_file) as f:
             config = json.load(f)
-    config[key] = str(jar_path)
+    if extract:
+        folder_name = file_name.replace(".zip", "").replace("negmas_", "")
+        extracted_path = file_path.parent / folder_name
+        with zipfile.ZipFile(file_path, "r") as zip_ref:
+            zip_ref.extractall(extracted_path)
+        try:
+            os.unlink(file_path)
+        except:
+            pass
+        file_path = extracted_path
+    config[key] = str(file_path)
     with open(config_file, "w") as f:
         json.dump(config, fp=f, sort_keys=True, indent=4)
+    return file_path
+
+
+@cli.command(help="Downloads and installs docs to ~/negmas/docs")
+def docs_setup():
+    url = f"http://www.yasserm.com/scml/{DOCS_ZIP}"
+    print(f"Downloading and extracting: {url}", end="", flush=True)
+    path = download_and_set(key="docs", url=url, file_name=DOCS_ZIP, extract=True)
+    print(
+        f" done successfully.\nYou can open the docs by going to: file://{Path(path).absolute()}/index.html"
+    )
+
+
+@cli.command(
+    help="Opens negmas docs in the browser. Make sure to install the docs first using negmas docs-setup"
+)
+def docs():
+    path = Path.home() / "negmas" / "docs"
+    if not path.exists():
+        print(
+            f"Cannot find docs in {path}.\nRun `negmas docs-setup` first then run `negmas docs` again."
+        )
+        return
+    # webbrowser.open(str(path))
+    PORT = 9970
+    DIRECTORY = str(path)
+
+    class Handler(http.server.SimpleHTTPRequestHandler):
+        def __init__(self, *args, **kwargs):
+            super().__init__(*args, directory=DIRECTORY, **kwargs)
+
+    with socketserver.TCPServer(("", PORT), Handler) as httpd:
+        print("serving at port", PORT)
+        httpd.serve_forever()
 
 
 @cli.command(help="Downloads the genius bridge and updates your settings")
