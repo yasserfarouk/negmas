@@ -5,7 +5,7 @@ sphinx-autodoc-typehints
 sphinx-automodapi
 sphinxcontrib-fulltoc
 sphinxcontrib-websupport
-sphinxtesters
+sphinx-testing
 sphinx-rtd-theme
 sphinx-press-theme
 groundwork-sphinx-theme
