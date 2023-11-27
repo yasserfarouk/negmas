@@ -1,6 +1,16 @@
 History
 =======
 
+Release 0.10.3
+--------------
+* Switching to readthedocs.io
+* doc update
+* adding RandomAlwaysAcceptingNegotiator
+* Upgrading CI tests to use python 3.12 by default
+* avoid genius when calculating coverage
+* Do not test notebooks before release (avoid genius)
+* Empty results when a tournament has no scores
+
 Release 0.10.2
 --------------
 
