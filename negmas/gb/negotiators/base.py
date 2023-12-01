@@ -47,6 +47,7 @@ class GBNegotiator(Negotiator):
         owner: Agent | None = None,
         id: str | None = None,
         type_name: str | None = None,
+        **kwargs,
     ):
         super().__init__(
             name=name,
@@ -56,6 +57,7 @@ class GBNegotiator(Negotiator):
             owner=owner,
             id=id,
             type_name=type_name,
+            **kwargs,
         )
         self.add_capabilities({"respond": True, "propose": True, "max-proposals": 1})
         self.__end_negotiation = False

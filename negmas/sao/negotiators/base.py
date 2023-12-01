@@ -52,6 +52,7 @@ class SAONegotiator(GBNegotiator):
         id: str | None = None,
         type_name: str | None = None,
         can_propose: bool = True,
+        **kwargs,
     ):
         super().__init__(
             name=name,
