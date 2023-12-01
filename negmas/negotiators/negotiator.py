@@ -56,10 +56,12 @@ class Negotiator(Rational, Notifiable, ABC):
         owner: Agent | None = None,
         id: str | None = None,
         type_name: str | None = None,
+        private_info: dict[str, Any] | None = None,
     ) -> None:
         if ufun is not None:
             preferences = ufun
         self.__parent = parent
+        self.__private_info = private_info if private_info else dict()
         self._capabilities = {"enter": True, "leave": True, "ultimatum": True}
         self._nmi: NegotiatorMechanismInterface | None = None
         self._initial_state = None
@@ -115,6 +117,11 @@ class Negotiator(Rational, Notifiable, ABC):
         if self.__saved_prefs is not None:
             self.__saved_prefs.outcome_space = self.__saved_pref_os
             self.__saved_prefs = None
+
+    @property
+    def annotation(self) -> dict[str, Any]:
+        """Returns the private information (annotation) not shared with other negotiators"""
+        return self.__private_info
 
     @property
     def parent(self) -> Controller | None:

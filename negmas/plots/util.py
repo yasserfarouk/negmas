@@ -325,14 +325,14 @@ def plot_offer_utilities(
         a.set_ylabel(f"{name} ({i})" if not one_y or simple_offers_view else "utility")
         if show_legend and len(plotting_negotiators) == 2:
             a.legend(
-                loc=f"upper {'left' if not i else 'right'}", bbox_to_anchor=(i, 1.2)
+                loc=f"upper {'left' if not i else 'right'}",
+                bbox_to_anchor=(0.0, 1.4, 1.0, 0.12),
             )
     axes[0].set_title(f"{map_(negotiator)} Offers")
     if show_legend and len(plotting_negotiators) != 2:
-        print("showing legend", flush=True)
         ax.legend(
-            bbox_to_anchor=(0.0, 1.12, 1.0, 0.102),
-            loc="lower left",
+            bbox_to_anchor=(0.0, 1.22, 1.0, 0.102),
+            loc="upper center",
             ncol=2,
             mode="expand",
             borderaxespad=0.0,
@@ -340,9 +340,10 @@ def plot_offer_utilities(
             # labelcolor="linecolor",
             # draggablebool=True,
         )
-        print("done legend", flush=True)
     if show_x_label:
         ax.set_xlabel(xdim)
+
+    plt.tight_layout(w_pad=1.08, h_pad=1.12)
 
 
 def plot_2dutils(
@@ -790,7 +791,7 @@ def plot_mechanism_run(
         plotting_ufuns.append(mechanism.negotiators[i].ufun)
 
     name_map = dict(zip(mechanism.negotiator_ids, mechanism.negotiator_names))
-    fig = plt.figure()
+    fig = plt.figure(figsize=(12.8, 4.8) if not only2d else None)
     if only2d:
         axu = fig.subplots()
     else:

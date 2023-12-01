@@ -51,6 +51,8 @@ def get_full_type_name(t: type[Any] | Callable | str) -> str:
         t = t.func
     if not hasattr(t, "__module__") and not hasattr(t, "__name__"):
         t = type(t)
+    if t.__module__ in ("__main__", "__mp_main__"):
+        return t.__name__
     return t.__module__ + "." + t.__name__  # type: ignore
 
 
@@ -80,6 +82,26 @@ def get_class(
     """Imports and creates a class object for the given class name"""
     if not isinstance(class_name, str):
         return class_name
+
+    # If the class is in the main module just load it directly
+    if "." not in class_name:
+        for module_name in ("__main__", "__mp_main__"):
+            try:
+                module = importlib.import_module(module_name)
+            except:
+                module = None
+            if module:
+                try:
+                    t = getattr(module, class_name)
+                    if t:
+                        return t
+                except:
+                    pass
+        else:
+            try:
+                return eval(class_name)
+            except:
+                raise ValueError(f"Cannot get the class {class_name} in main module")
 
     # remove explicit type annotation in the string. Used when serializing
     while class_name.startswith(TYPE_START):
