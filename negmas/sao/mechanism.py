@@ -276,7 +276,7 @@ class SAOMechanism(Mechanism):
             assert (
                 not state.waiting or negotiator.id == state.current_proposer
             ), f"We are waiting with {state.current_proposer} as the last offerer but we are asking {negotiator.id} to offer\n{state}"
-            if self.verbosity > 1:
+            if self.verbosity > 2:
                 print(
                     f"{self.name}: {negotiator.name} called after {humanize_time(time.perf_counter() - self._start_time, show_ms=True) if self._start_time else 0}",
                     flush=True,
@@ -568,14 +568,14 @@ class SAOMechanism(Mechanism):
         """Returns the negotiation history as a list of relative_time/step/negotiator/offer tuples"""
 
         def response(state: SAOState):
+            if state.agreement:
+                return "accepted"
             if state.timedout:
                 return "timedout"
             if state.ended:
                 return "ended"
             if state.has_error:
                 return "error"
-            if state.agreement:
-                return "accepted"
             return "rejected"
 
         def asint(state: SAOState):

@@ -935,7 +935,7 @@ class Mechanism(NamedObject, EventSource, CheckpointMixin, ABC):
 
         if self._start_time is None or self._start_time < 0:
             self._start_time = time.perf_counter()
-        if self.__verbosity > 0:
+        if self.__verbosity >= 1:
             if self.current_step == 0:
                 print(
                     f"{self.name}: Step {self.current_step} starting after {datetime.now()}",
