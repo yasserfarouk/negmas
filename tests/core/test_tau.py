@@ -440,16 +440,16 @@
 #         domain = domain.to_single_issue(randomize=True)
 #         assert len(domain.issues) == 1
 #     if remove_under:
-#         outcomes = remove_under_line(domain.agenda, domain.ufuns)  # type: ignore
+#         outcomes = remove_under_line(domain.outcome_space, domain.ufuns)  # type: ignore
 #         issue = CategoricalIssue(
-#             values=[_[0] for _ in outcomes], name=domain.agenda.issues[0].name
+#             values=[_[0] for _ in outcomes], name=domain.outcome_space.issues[0].name
 #         )
-#         domain.agenda = make_os([issue])
+#         domain.outcome_space = make_os([issue])
 #
-#         # domain.ufuns = [ MappingUtilityFunction(dict(zip(outcomes, [u(_) for _ in outcomes])), outcome_space=domain.agenda) for u in domain.ufuns ]
+#         # domain.ufuns = [ MappingUtilityFunction(dict(zip(outcomes, [u(_) for _ in outcomes])), outcome_space=domain.outcome_space) for u in domain.ufuns ]
 #     domain.mechanism_type = mechanism_type
 #     domain.mechanism_params = mechanism_params
-#     neg = domain.make_session([a1, a2], n_steps=domain.agenda.cardinality)
+#     neg = domain.make_session([a1, a2], n_steps=domain.outcome_space.cardinality)
 #     if neg is None:
 #         raise ValueError(f"Failed to lead domain from {base_folder}")
 #

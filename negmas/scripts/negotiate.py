@@ -400,7 +400,7 @@ def run(
         nutils = list(a for a, _ in utils_indices)
         print(f"Ordinal Max. Welfare Points: {pts} -- Diff = {diff(ranks, nutils)}")
         # pts = max_relative_welfare_points(
-        #     frontier=pareto, ufuns=ranks_ufuns, outcome_space=scenario.agenda
+        #     frontier=pareto, ufuns=ranks_ufuns, outcome_space=scenario.outcome_space
         # )
         # pts = tuple((a, pareto_outcomes[b]) for a, b in utils_indices)
         # nutils = list(a for a, _ in utils_indices)

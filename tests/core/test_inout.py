@@ -250,8 +250,8 @@ def test_load_geniusweb_example_reserved_value():
 #     # folder_name = "/Users/yasser/code/projects/negmas/tests/data/scenarios/anac/y2012/FitnessC"
 #     d2 = Domain.from_genius_folder(folder_name, safe_parsing=False)
 #     d2.discretize()
-#     assert isinstance(d2.agenda, DiscreteCartesianOutcomeSpace)
-#     n = d2.agenda.cardinality
+#     assert isinstance(d2.outcome_space, DiscreteCartesianOutcomeSpace)
+#     n = d2.outcome_space.cardinality
 #     if n < 10_000:
 #         d2.to_single_issue()
-#         assert d2.agenda.cardinality == n or d2.agenda.cardinality == float("inf")
+#         assert d2.outcome_space.cardinality == n or d2.outcome_space.cardinality == float("inf")

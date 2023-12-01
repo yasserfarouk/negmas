@@ -101,7 +101,7 @@ def compared_two_domains(domain, domain2):
             u2, HyperRectangleUtilityFunction
         ):
             continue
-        dm = domain.agenda.to_discrete(5)
+        dm = domain.outcome_space.to_discrete(5)
         for i, w in enumerate(dm):
             if i > MAX_CARDINALITY:
                 return
@@ -113,7 +113,7 @@ def compared_two_domains(domain, domain2):
     for ufun in domain.ufuns:
         if isinstance(ufun, HyperRectangleUtilityFunction):
             continue
-        m = domain.make_session(n_steps=100, name=domain.agenda.name)
+        m = domain.make_session(n_steps=100, name=domain.outcome_space.name)
         assert m is not None
         if not genius_bridge_is_running():
             continue

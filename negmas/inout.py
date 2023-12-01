@@ -332,15 +332,17 @@ class Scenario:
         Returns:
             A dictionary with the compiled stats
         """
-        agenda, ufuns = self.outcome_space, self.ufuns
-        outcomes = tuple(agenda.enumerate_or_sample(max_cardinality=max_cardinality))
+        outcome_space, ufuns = self.outcome_space, self.ufuns
+        outcomes = tuple(
+            outcome_space.enumerate_or_sample(max_cardinality=max_cardinality)
+        )
         frontier_utils, frontier_indices = pareto_frontier(
             ufuns, outcomes=outcomes, sort_by_welfare=True
         )
         frontier_outcomes = tuple(
             outcomes[_] for _ in frontier_indices if _ is not None
         )
-        pts = nash_points(ufuns, frontier_utils, outcome_space=agenda)
+        pts = nash_points(ufuns, frontier_utils, outcome_space=outcome_space)
         nash_utils, nash_indx = pts[0] if pts else (None, None)
         nash_outcome = frontier_outcomes[nash_indx] if nash_indx else None
         minmax = [u.minmax() for u in ufuns]

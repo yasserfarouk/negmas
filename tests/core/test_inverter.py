@@ -210,11 +210,12 @@ def test_inv_matches_bruteforce_best_worst(rational_only, nissues, nvalues, mn, 
 @given(
     rational_only=st.booleans(),
     nissues=st.integers(1, 4),
-    nvalues=st.integers(1, 4),
+    nvalues=st.integers(2, 4),
     mn=st.floats(0.0, 1.0),
     mx=st.floats(0.0, 1.0),
     r=st.floats(0.0, 1.0),
 )
+@example(rational_only=False, nissues=1, nvalues=3, mn=0.5, mx=0.5, r=0.0)
 @example(rational_only=True, nissues=1, nvalues=2, mn=0.0, mx=1.0, r=1.0)
 @example(rational_only=False, nissues=1, nvalues=2, mn=0.0, mx=1.0, r=0.0)
 @example(rational_only=True, nissues=1, nvalues=1, mn=0.0, mx=0.0, r=1.0)

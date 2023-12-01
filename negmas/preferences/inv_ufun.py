@@ -937,7 +937,9 @@ class PresortingInverseUtilityFunctionBruteForce(InverseUFun):
             raise ValueError(f"Unknown outcome space. Cannot invert the ufun")
 
         if os_.is_discrete():
-            return self.some(rng, normalized)
+            return self.some(
+                rng, normalized, fallback_to_higher=False, fallback_to_best=False
+            )
         raise ValueError(
             f"Cannot find all outcomes in a range for a continuous outcome space (there is in general an infinite number of them)"
         )
