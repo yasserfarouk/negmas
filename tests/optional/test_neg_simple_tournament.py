@@ -34,7 +34,7 @@ def test_can_run_cartesian_simple_tournament_n_reps():
         for i, u in enumerate(ufuns)
     ]
     competitors = [RandomNegotiator, AspirationNegotiator]
-    scores = cartesian_tournament(
+    results = cartesian_tournament(
         competitors=competitors,
         scenarios=scenarios,
         mechanism_params=dict(n_steps=10),
@@ -43,6 +43,7 @@ def test_can_run_cartesian_simple_tournament_n_reps():
         rotate_ufuns=rotate_ufuns,
         path=None,
     )
+    scores = results.scores
     assert (
         len(scores)
         == len(scenarios)
@@ -52,3 +53,13 @@ def test_can_run_cartesian_simple_tournament_n_reps():
         * n_repetitions
         * 2  # two scores per run
     )
+
+    assert (
+        len(results.details)
+        == len(scenarios)
+        * (int(rotate_ufuns) + 1)  # two variations if rotate_ufuns else one
+        * len(competitors)
+        * len(competitors)
+        * n_repetitions
+    )
+    assert len(results.final_scores) == len(competitors)
