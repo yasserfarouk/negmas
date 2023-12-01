@@ -29,7 +29,7 @@ from negmas.situated import (
 __all__ = [
     "NegWorld",
     "NegAgent",
-    "NegScenario",
+    "Condition",
 ]
 
 
@@ -197,7 +197,7 @@ def _wrap_in_agents(types, params, agent_types):
 
 
 @dataclass
-class NegScenario:
+class Condition:
     """
     A representation of a negotiation scenario in which a negotiator can be evaluated
     """
@@ -280,7 +280,7 @@ class NegWorld(NoContractExecutionMixin, World):
     def __init__(
         self,
         *args,
-        scenario: NegScenario,
+        scenario: Condition,
         types: list[Negotiator | NegAgent],
         params: list[dict[str, Any] | None] | None = None,
         agent_names_reveal_type: bool = True,
@@ -554,7 +554,7 @@ if __name__ == "__main__":
     if genius_bridge_is_running():
         competitors += [Atlas3, NiceTitForTat]
 
-    scenario = NegScenario(
+    scenario = Condition(
         name="d0",
         issues=issues,
         ufuns=[
