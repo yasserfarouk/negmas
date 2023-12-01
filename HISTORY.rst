@@ -1,6 +1,17 @@
 History
 =======
 
+Release 0.10.4
+--------------
+* Adding simple tournaments and testing them
+* improving plotting and minor typing enhancement
+* bugfix in time-based
+* Reducing verbosity
+* passing kwargs back to Negotitors
+* Adding simple tournaments
+* Fixing a pandas warning
+* Renaming Scenario.agenda -> outcome_space
+
 Release 0.10.3
 --------------
 * Switching to readthedocs.io
