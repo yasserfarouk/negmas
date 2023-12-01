@@ -51,8 +51,8 @@ def get_full_type_name(t: type[Any] | Callable | str) -> str:
         t = t.func
     if not hasattr(t, "__module__") and not hasattr(t, "__name__"):
         t = type(t)
-    if t.__module__ in ("__main__", "__mp_main__"):
-        return t.__name__
+    # if t.__module__ in ("__main__", "__mp_main__"):
+    #     return t.__name__
     return t.__module__ + "." + t.__name__  # type: ignore
 
 
