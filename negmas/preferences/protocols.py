@@ -415,7 +415,11 @@ class InverseUFun(Protocol):
 
     @abstractmethod
     def one_in(
-        self, rng: float | tuple[float, float], normalized: bool
+        self,
+        rng: float | tuple[float, float],
+        normalized: bool,
+        fallback_to_higher: bool = True,
+        fallback_to_best: bool = True,
     ) -> Outcome | None:
         """
         Finds an outcmoe with the given utility value.
@@ -423,6 +427,8 @@ class InverseUFun(Protocol):
         Args:
             rng: The range (or single value) of utility values to search for outcomes
             normalized: if `True`, the input `rng` will be understood as ranging from 0-1 (1=max, 0=min) independent of the ufun actual range
+            fall_back_to_higher: if `True`, any outcome above the minimum in the range will be returned if nothing can be found in the range
+            fall_back_to_best: if `True`, the best outcome will always be offered if no outcome in the given range is found.
         """
 
     @abstractmethod

@@ -238,7 +238,7 @@ class AspirationNegotiator(TimeBasedConcedingNegotiator):
         | Literal["linear"]
         | float = "boulware",
         stochastic=False,
-        presort: bool = False,
+        presort: bool = True,
         tolerance: float = 0.001,
         **kwargs,
     ):

@@ -511,7 +511,7 @@ class GBMechanism(BaseGBMechanism):
         # if state.step > self.outcome_space.cardinality:
         #     self.plot()
         #     breakpoint()
-        if self.verbosity == 2:
+        if self.verbosity > 2:
             print(
                 f"{self.name}: Central Processing after {humanize_time(perf_counter() - self._start_time, show_ms=True) if self._start_time else 0}",
                 flush=True,
