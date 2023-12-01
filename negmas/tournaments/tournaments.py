@@ -2216,9 +2216,9 @@ def _combine_stats(stats: pd.DataFrame | None) -> pd.DataFrame | None:
         stats.loc[
             :,
             [c for c in stats.columns if not c.startswith("_") and c not in ("path",)],
-        ]
-        .groupby(["world"])
-        .agg([np.mean, np.max, np.min, np.sum, np.var, np.median])
+        ].groupby(["world"])
+        # .agg([np.mean, np.max, np.min, np.sum, np.var, np.median])
+        .agg(["mean", "max", "min", "sum", "var", "median"])
     )
 
     def get_last(x):
