@@ -541,12 +541,12 @@ class TestGeniusAgentSessions:
         # atlas = GeniusNegotiator.random_negotiator(
         atlas = GeniusNegotiator(
             java_class_name=agent_name1,
-            domain_file_name=domain.agenda.name,
+            domain_file_name=domain.outcome_space.name,
             utility_file_name=domain.ufuns[0].name,
         )
         agentx = GeniusNegotiator(
             java_class_name=agent_name2,
-            domain_file_name=domain.agenda.name,
+            domain_file_name=domain.outcome_space.name,
             utility_file_name=domain.ufuns[1].name,
         )
         neg = domain.make_session(n_steps=100)

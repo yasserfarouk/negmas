@@ -241,10 +241,10 @@ def test_calc_reserved_fifty_fifty():
     )
 
     d = Scenario.from_genius_folder(folder_name, ignore_discount=True)
-    assert d is not None and d.agenda is not None and d.ufuns is not None
+    assert d is not None and d.outcome_space is not None and d.ufuns is not None
     d.normalize()
-    n_outcomes = d.agenda.cardinality
-    outcomes = d.agenda.enumerate_or_sample()
+    n_outcomes = d.outcome_space.cardinality
+    outcomes = d.outcome_space.enumerate_or_sample()
     f = 1.0
     for ufun in d.ufuns:
         r = calc_reserved_value(ufun, f)

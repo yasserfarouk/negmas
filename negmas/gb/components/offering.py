@@ -496,7 +496,7 @@ class UnanimousConcensusOfferingPolicy(ConcensusOfferingPolicy):
 @define
 class RandomConcensusOfferingPolicy(ConcensusOfferingPolicy):
     """
-    Offers a random response from the list of stratgies (different strategy every time).
+    Offers a random response from the list of strategies (different strategy every time).
     """
 
     prob: list[float] | None = None

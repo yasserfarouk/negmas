@@ -310,13 +310,13 @@ def run(
     print(
         f"Advantages: {[u(state.agreement) - (u.reserved_value if u.reserved_value is not None else float('inf')) for u in scenario.ufuns]}"
     )
-    fast = fast or fast is None and scenario.agenda.cardinality > 10_000
+    fast = fast or fast is None and scenario.outcome_space.cardinality > 10_000
     if fast:
         # rank_stats = stats = False
         if simple_offers_view is None:
             simple_offers_view = True
     rank_stats = (
-        rank_stats or rank_stats is None and scenario.agenda.cardinality < 10_000
+        rank_stats or rank_stats is None and scenario.outcome_space.cardinality < 10_000
     )
 
     if stats or rank_stats:
@@ -368,7 +368,7 @@ def run(
                 f"[bold red]Ordinal pareto outcomes do not match cardinal pareto outcomes[/bold red]\nOrdinal: {pareto_outcomes}\nCardinal: {pareto_save}"
             )
         utils_indices = nash_points(
-            frontier=pareto, ufuns=ranks_ufuns, outcome_space=scenario.agenda
+            frontier=pareto, ufuns=ranks_ufuns, outcome_space=scenario.outcome_space
         )
         pts = tuple((a, pareto_outcomes[b]) for a, b in utils_indices)
         nutils = list(a for a, _ in utils_indices)
@@ -376,7 +376,7 @@ def run(
         pts = kalai_points(
             frontier=pareto,
             ufuns=ranks_ufuns,
-            outcome_space=scenario.agenda,
+            outcome_space=scenario.outcome_space,
             subtract_reserved_value=True,
         )
         pts = tuple((a, pareto_outcomes[b]) for a, b in utils_indices)
@@ -385,7 +385,7 @@ def run(
         pts = kalai_points(
             frontier=pareto,
             ufuns=ranks_ufuns,
-            outcome_space=scenario.agenda,
+            outcome_space=scenario.outcome_space,
             subtract_reserved_value=False,
         )
         pts = tuple((a, pareto_outcomes[b]) for a, b in utils_indices)
@@ -394,7 +394,7 @@ def run(
             f"Ordinal Modified Kalai Points: {pts} -- Distance = {dist(ranks, nutils)}"
         )
         pts = max_welfare_points(
-            frontier=pareto, ufuns=ranks_ufuns, outcome_space=scenario.agenda
+            frontier=pareto, ufuns=ranks_ufuns, outcome_space=scenario.outcome_space
         )
         pts = tuple((a, pareto_outcomes[b]) for a, b in utils_indices)
         nutils = list(a for a, _ in utils_indices)

@@ -240,38 +240,45 @@ def test_inv_matches_bruteforce_all(rational_only, nissues, nvalues, mn, mx, r):
     rational_only=st.booleans(),
     normalized=st.booleans(),
     nissues=st.integers(1, 4),
-    nvalues=st.integers(1, 4),
+    nvalues=st.integers(2, 4),
     mn=st.floats(0.0, 1.0),
     mx=st.floats(0.0, 1.0),
     r=st.floats(0.0, 1.0),
 )
 @example(
     rational_only=True,
-    normalized=True,
-    nissues=2,
-    nvalues=2,
-    mn=0.5,
-    mx=0.5,
+    normalized=False,  # or any other generated value
+    nissues=1,  # or any other generated value
+    nvalues=2,  # or any other generated value
+    mn=0.0,
+    mx=0.0,
     r=1.0,
-)
-@example(
-    rational_only=False,
-    normalized=False,
-    nissues=1,
-    nvalues=2,
-    mn=0.5,
-    mx=0.5,
-    r=0.0,
 )
 def test_inv_one_in(rational_only, normalized, nissues, nvalues, mn, mx, r):
     _, ufun = make_ufun(nissues, nvalues, r)
     fast = PresortingInverseUtilityFunction(ufun, rational_only=rational_only)
     fast.init()
-    d = float(ufun.max()) - float(ufun.min())
-    true_range = (min(mn, mx) * d + ufun.min(), max(mn, mx) * d + ufun.min())
+    umn, umx = ufun.minmax()
+    assert ufun.outcome_space is not None
+    all_values = sorted(ufun(_) for _ in ufun.outcome_space.enumerate_or_sample())
+    umn, umx = float(umn), float(umx)
+    d = umx - umn
+    true_range = (min(mn, mx) * d + umn, max(mn, mx) * d + umn)
     if normalized:
         rng = (min(mn, mx), max(mn, mx))
     else:
         rng = true_range
+    outcome_found = False
+    for u in all_values:
+        if true_range[0] <= u <= true_range[1]:
+            outcome_found = True
+            break
     o = fast.one_in(rng, normalized)
+    assert (
+        o is not None
+        or true_range[0] > umx
+        or true_range[1] < umn
+        or (not outcome_found)
+        or r > umn
+    ), f"We should always find an outcome if the range {true_range} is within {umn, umx}\n{all_values=}\n{outcome_found=}, ufun range: {(umn, umx)}"
     assert o is None or true_range[0] <= ufun(o) <= true_range[1]

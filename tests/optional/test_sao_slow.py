@@ -19,7 +19,6 @@ from pytest import mark
 
 import negmas
 from negmas import SAOSyncController
-from negmas.gb.negotiators.modular.mapneg import MAPNegotiator
 from negmas.gb.negotiators.randneg import RandomAlwaysAcceptingNegotiator
 from negmas.genius import genius_bridge_is_running
 from negmas.helpers import unique_name
@@ -860,9 +859,11 @@ def test_acceptable_outcomes():
 
 class MyNegotiator(SAONegotiator):
     def propose(self, state):
+        _ = state
         return (3.0, 2, 1.0)
 
     def respond(self, state, source=None):
+        _ = source
         if state.step < 5:
             return ResponseType.REJECT_OFFER
         return ResponseType.ACCEPT_OFFER
@@ -925,9 +926,6 @@ def test_no_check_offers_tuple():
 
 
 def test_no_limits_raise_warning():
-    from pathlib import Path
-
-    from negmas.genius import GeniusNegotiator
     from negmas.inout import load_genius_domain_from_folder
 
     with pytest.warns(UserWarning):
@@ -935,12 +933,9 @@ def test_no_limits_raise_warning():
             "negmas", resource_name="tests/data/cameradomain"
         )
 
-        d = (
-            load_genius_domain_from_folder(folder_name)
-            .normalize()
-            .to_single_issue()
-            .make_session()
-        )
+        load_genius_domain_from_folder(
+            folder_name
+        ).normalize().to_single_issue().make_session()
 
 
 @given(
@@ -973,7 +968,6 @@ def test_single_mechanism_history_with_waiting(n_steps, n_waits, n_waits2):
     )
     mechanism.run()
     first = mechanism._selected_first
-    n_negotiators = len(mechanism.negotiators)
     assert first == 0
     assert mechanism.state.agreement is None
     assert mechanism.state.started
@@ -997,7 +991,6 @@ def test_single_mechanism_history_with_waiting(n_steps, n_waits, n_waits2):
     r = [defaultdict(int), defaultdict(int)]
     h = [defaultdict(int), defaultdict(int)]
     first_offers = []
-    ignored_offers = []
     for i, n in enumerate(mechanism.negotiators):
         first_offers.append(n.received_offers[0] is None)
 
@@ -1211,8 +1204,6 @@ def test_aspiration_continuous_issues(n_negotiators, n_issues, presort, stochast
             )
             for _ in range(n_negotiators)
         ]
-        best_outcome = tuple([1.0] * n_issues)
-        worst_outcome = tuple([0.0] * n_issues)
         i = 0
         assert mechanism.add(
             AspirationNegotiator(
@@ -1311,8 +1302,6 @@ def test_auto_checkpoint(tmp_path, single_checkpoint, checkpoint_every, exist_ok
     reason="No Genius Bridge, skipping genius-agent tests",
 )
 def test_genius_in_sao_with_time_limit_and_nsteps_raises_warning():
-    from pathlib import Path
-
     from negmas.genius import GeniusNegotiator
     from negmas.inout import load_genius_domain_from_folder
 
@@ -1325,7 +1314,7 @@ def test_genius_in_sao_with_time_limit_and_nsteps_raises_warning():
         mechanism = d.make_session(n_steps=60, time_limit=180)
         a1 = GeniusNegotiator(
             java_class_name="agents.anac.y2017.ponpokoagent.PonPokoAgent",
-            domain_file_name=d.agenda.name,
+            domain_file_name=d.outcome_space.name,
             utility_file_name=d.ufuns[0].name,
         )
         mechanism.add(a1)
@@ -1336,8 +1325,6 @@ def test_genius_in_sao_with_time_limit_and_nsteps_raises_warning():
     reason="No Genius Bridge, skipping genius-agent tests",
 )
 def test_genius_in_sao_with_time_limit_or_nsteps_raises_no_warning():
-    from pathlib import Path
-
     from negmas.genius import GeniusNegotiator
     from negmas.inout import load_genius_domain_from_folder
 
@@ -1350,7 +1337,7 @@ def test_genius_in_sao_with_time_limit_or_nsteps_raises_no_warning():
         mechanism = d.make_session(n_steps=None, time_limit=180)
         a1 = GeniusNegotiator(
             java_class_name="agents.anac.y2017.ponpokoagent.PonPokoAgent",
-            domain_file_name=d.agenda.name,
+            domain_file_name=d.outcome_space.name,
             utility_file_name=d.ufuns[0].name,
         )
         mechanism.add(a1)
@@ -1364,7 +1351,7 @@ def test_genius_in_sao_with_time_limit_or_nsteps_raises_no_warning():
         mechanism = d.make_session(n_steps=60, time_limit=None)
         a1 = GeniusNegotiator(
             java_class_name="agents.anac.y2017.ponpokoagent.PonPokoAgent",
-            domain_file_name=d.agenda.name,
+            domain_file_name=d.outcome_space.name,
             utility_file_name=d.ufuns[0].name,
         )
         mechanism.add(a1)

@@ -165,12 +165,12 @@ def test_enumerate_discrete_rational(r0, r1, n_above):
     ufuns = domain.ufuns
     ufuns[0].reserved_value = r0
     ufuns[1].reserved_value = r1
-    outcomes = list(domain.agenda.enumerate_or_sample())
+    outcomes = list(domain.outcome_space.enumerate_or_sample())
     assert len(outcomes) == 11
     assert (
         len(
             list(
-                domain.agenda.enumerate_or_sample_rational(
+                domain.outcome_space.enumerate_or_sample_rational(
                     preferences=domain.ufuns, aggregator=lambda x: True  # type: ignore
                 )
             )
@@ -180,7 +180,7 @@ def test_enumerate_discrete_rational(r0, r1, n_above):
     assert (
         len(
             list(
-                domain.agenda.enumerate_or_sample_rational(
+                domain.outcome_space.enumerate_or_sample_rational(
                     preferences=domain.ufuns, aggregator=lambda x: False  # type: ignore
                 )
             )
@@ -190,7 +190,7 @@ def test_enumerate_discrete_rational(r0, r1, n_above):
     assert (
         len(
             list(
-                domain.agenda.enumerate_or_sample_rational(
+                domain.outcome_space.enumerate_or_sample_rational(
                     preferences=domain.ufuns, aggregator=any
                 )
             )
@@ -203,14 +203,14 @@ def test_load_geniusweb_example_reserved_outcome():
     domain = GENIUSWEB_FOLDERS / "Fitness"
     scenario = Scenario.from_geniusweb_folder(domain, use_reserved_outcome=True)
     assert scenario is not None
-    assert isinstance(scenario.agenda, DiscreteCartesianOutcomeSpace)
-    assert len(scenario.agenda.issues) == 5
+    assert isinstance(scenario.outcome_space, DiscreteCartesianOutcomeSpace)
+    assert len(scenario.outcome_space.issues) == 5
     for i, (name, vals) in enumerate(
         (("type", 5), ("duration", 4), ("distance", 4), ("intensity", 4), ("price", 4))
     ):
-        assert scenario.agenda.issues[i].name == name
-        assert scenario.agenda.issues[i].cardinality == vals
-    assert scenario.agenda.name == "fitness"
+        assert scenario.outcome_space.issues[i].name == name
+        assert scenario.outcome_space.issues[i].cardinality == vals
+    assert scenario.outcome_space.name == "fitness"
     assert len(scenario.ufuns) == 2
     assert all(isinstance(_, LinearAdditiveUtilityFunction) for _ in scenario.ufuns)
     assert all(
@@ -226,14 +226,14 @@ def test_load_geniusweb_example_reserved_value():
     domain = GENIUSWEB_FOLDERS / "Fitness"
     scenario = Scenario.from_geniusweb_folder(domain, use_reserved_outcome=False)
     assert scenario is not None
-    assert isinstance(scenario.agenda, DiscreteCartesianOutcomeSpace)
-    assert len(scenario.agenda.issues) == 5
+    assert isinstance(scenario.outcome_space, DiscreteCartesianOutcomeSpace)
+    assert len(scenario.outcome_space.issues) == 5
     for i, (name, vals) in enumerate(
         (("type", 5), ("duration", 4), ("distance", 4), ("intensity", 4), ("price", 4))
     ):
-        assert scenario.agenda.issues[i].name == name
-        assert scenario.agenda.issues[i].cardinality == vals
-    assert scenario.agenda.name == "fitness"
+        assert scenario.outcome_space.issues[i].name == name
+        assert scenario.outcome_space.issues[i].cardinality == vals
+    assert scenario.outcome_space.name == "fitness"
     assert len(scenario.ufuns) == 2
     assert all(isinstance(_, LinearAdditiveUtilityFunction) for _ in scenario.ufuns)
     assert all(

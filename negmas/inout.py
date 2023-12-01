@@ -59,14 +59,14 @@ class Scenario:
     A class representing a negotiation domain
     """
 
-    agenda: CartesianOutcomeSpace
+    outcome_space: CartesianOutcomeSpace
     ufuns: tuple[UtilityFunction, ...]
     mechanism_type: type[Mechanism] | None = None
     mechanism_params: dict = field(factory=dict)
 
     @property
     def issues(self) -> tuple[Issue, ...]:
-        return self.agenda.issues
+        return self.outcome_space.issues
 
     def to_genius_files(self, domain_path: Path, ufun_paths: list[Path]):
         """
@@ -79,7 +79,7 @@ class Scenario:
                 f"I have {len(self.ufuns)} ufuns but {len(ufun_paths)} paths were passed!!"
             )
         domain_path.parent.mkdir(parents=True, exist_ok=True)
-        self.agenda.to_genius(domain_path)
+        self.outcome_space.to_genius(domain_path)
         for ufun, path in zip(self.ufuns, ufun_paths):
             ufun.to_genius(path, issues=self.issues)
         return self
@@ -89,9 +89,13 @@ class Scenario:
         Save domain and ufun files to the `path` as XML.
         """
         path.mkdir(parents=True, exist_ok=True)
-        domain_name = self.agenda.name.split("/")[-1] if self.agenda.name else "domain"
+        domain_name = (
+            self.outcome_space.name.split("/")[-1]
+            if self.outcome_space.name
+            else "domain"
+        )
         ufun_names = [_.name.split("/")[-1] for _ in self.ufuns]
-        self.agenda.to_genius(path / domain_name)
+        self.outcome_space.to_genius(path / domain_name)
         for ufun, name in zip(self.ufuns, ufun_names):
             ufun.to_genius(path / name, issues=self.issues)
         return self
@@ -102,11 +106,11 @@ class Scenario:
 
     @property
     def n_issues(self) -> int:
-        return len(self.agenda.issues)
+        return len(self.outcome_space.issues)
 
     @property
     def issue_names(self) -> list[str]:
-        return self.agenda.issue_names
+        return self.outcome_space.issue_names
 
     def to_numeric(self) -> Scenario:
         """
@@ -121,7 +125,7 @@ class Scenario:
         """
         Randomizes the outcomes in a single issue scneario
         """
-        shuffle(self.agenda.issues[0].values)
+        shuffle(self.outcome_space.issues[0].values)
         return self
 
     def to_single_issue(
@@ -139,10 +143,13 @@ class Scenario:
             - maps the agenda and ufuns to work correctly together
             - Only works if the outcome space is finite
         """
-        if hasattr(self.agenda, "issues") and len(self.agenda.issues) == 1:
+        if (
+            hasattr(self.outcome_space, "issues")
+            and len(self.outcome_space.issues) == 1
+        ):
             return self if not randomize else self._randomize()
-        outcomes = list(self.agenda.enumerate_or_sample())
-        sos = self.agenda.to_single_issue(numeric, stringify)
+        outcomes = list(self.outcome_space.enumerate_or_sample())
+        sos = self.outcome_space.to_single_issue(numeric, stringify)
         ufuns = []
         souts = list(sos.issues[0].all)
         for u in self.ufuns:
@@ -170,7 +177,7 @@ class Scenario:
                 )
             )
         self.ufuns = tuple(ufuns)
-        self.agenda = sos
+        self.outcome_space = sos
         return self if not randomize else self._randomize()
 
     def make_session(
@@ -196,7 +203,7 @@ class Scenario:
         args = self.mechanism_params
         args.update(kwargs)
         m = self.mechanism_type(
-            outcome_space=self.agenda,
+            outcome_space=self.outcome_space,
             n_steps=n_steps,
             time_limit=time_limit,
             **args,
@@ -291,7 +298,7 @@ class Scenario:
 
     def discretize(self, levels: int = 10):
         """Discretize all issues"""
-        self.agenda = self.agenda.to_discrete(levels)
+        self.outcome_space = self.outcome_space.to_discrete(levels)
         return self
 
     def remove_discounting(self):
@@ -325,7 +332,7 @@ class Scenario:
         Returns:
             A dictionary with the compiled stats
         """
-        agenda, ufuns = self.agenda, self.ufuns
+        agenda, ufuns = self.outcome_space, self.ufuns
         outcomes = tuple(agenda.enumerate_or_sample(max_cardinality=max_cardinality))
         frontier_utils, frontier_indices = pareto_frontier(
             ufuns, outcomes=outcomes, sort_by_welfare=True
@@ -452,7 +459,7 @@ class Scenario:
             return d
 
         domain = adjust(
-            serialize(self.agenda, shorten_type_field=True, add_type_field=True),
+            serialize(self.outcome_space, shorten_type_field=True, add_type_field=True),
             "domain",
         )
         ufuns = [
@@ -657,7 +664,7 @@ def load_genius_domain(
         raise ValueError(f"Could not load domain {domain_file_name}")
 
     return Scenario(
-        agenda=make_os(issues, name=str(domain_file_name)),
+        outcome_space=make_os(issues, name=str(domain_file_name)),
         ufuns=[_["ufun"] for _ in agent_info],  # type: ignore
         mechanism_type=SAOMechanism,
         mechanism_params=kwargs,
@@ -921,7 +928,7 @@ def load_geniusweb_domain(
         raise ValueError(f"Could not load domain {domain_file_name}")
 
     return Scenario(
-        agenda=make_os(issues, name=name),
+        outcome_space=make_os(issues, name=name),
         ufuns=[_["ufun"] for _ in agent_info],  # type: ignore
         mechanism_type=SAOMechanism,
         mechanism_params=kwargs,
