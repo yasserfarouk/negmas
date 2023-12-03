@@ -84,24 +84,24 @@ def get_class(
         return class_name
 
     # If the class is in the main module just load it directly
-    if "." not in class_name:
-        for module_name in ("__main__", "__mp_main__"):
-            try:
-                module = importlib.import_module(module_name)
-            except:
-                module = None
-            if module:
-                try:
-                    t = getattr(module, class_name)
-                    if t:
-                        return t
-                except:
-                    pass
-        else:
-            try:
-                return eval(class_name)
-            except:
-                raise ValueError(f"Cannot get the class {class_name} in main module")
+    # if "." not in class_name:
+    #     for module_name in ("__main__", "__mp_main__"):
+    #         try:
+    #             module = importlib.import_module(module_name)
+    #         except:
+    #             module = None
+    #         if module:
+    #             try:
+    #                 t = getattr(module, class_name)
+    #                 if t:
+    #                     return t
+    #             except:
+    #                 pass
+    #     else:
+    #         try:
+    #             return eval(class_name)
+    #         except:
+    #             raise ValueError(f"Cannot get the class {class_name} in main module")
 
     # remove explicit type annotation in the string. Used when serializing
     while class_name.startswith(TYPE_START):

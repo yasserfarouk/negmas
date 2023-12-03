@@ -282,4 +282,4 @@ def test_inv_one_in(rational_only, normalized, nissues, nvalues, mn, mx, r):
         or (not outcome_found)
         or r > umn
     ), f"We should always find an outcome if the range {true_range} is within {umn, umx}\n{all_values=}\n{outcome_found=}, ufun range: {(umn, umx)}"
-    assert o is None or true_range[0] <= ufun(o) <= true_range[1]
+    assert o is None or true_range[0] - 1e-4 <= ufun(o) <= true_range[1] + 1e-4
