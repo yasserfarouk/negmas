@@ -1,6 +1,10 @@
 History
 =======
 
+Release 0.10.5
+--------------
+* Minor bugfixes
+
 Release 0.10.4
 --------------
 * Adding simple tournaments and testing them
