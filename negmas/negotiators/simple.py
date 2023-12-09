@@ -262,7 +262,7 @@ class NLevelsComparatorNegotiator(Negotiator):
             )
         if not self.ufun:
             raise ValueError("Unknown preferences")
-        diff = self.ufun(first) - self.ufun(second)
+        diff = float(self.ufun(first)) - float(self.ufun(second))
         sign = 1 if diff > 0.0 else -1
         for i, th in enumerate(self.thresholds):
             if diff < th:
@@ -286,7 +286,7 @@ class NLevelsComparatorNegotiator(Negotiator):
             None if |utility(first) - utility(second)| <= epsilon or the utun is not defined
             False if utility(first) < utility(second) - epsilon
         """
-        if not self.has_preferences:
+        if self._preferences is None:
             return None
         return self._preferences.is_better(first, second)
 
@@ -322,7 +322,7 @@ class RankerWithWeightsNegotiator(Negotiator):
         """
         if not self.preferences:
             raise ValueError(f"Has no preferences. Cannot rank")
-        return self.preferences.rank_with_weights(outcomes, descending)
+        return self.preferences.rank_with_weights(outcomes, descending)  # type: ignore
 
     def is_better(
         self, first: Outcome, second: Outcome, epsilon: float = 1e-10
@@ -343,7 +343,7 @@ class RankerWithWeightsNegotiator(Negotiator):
         """
         if not self.has_preferences:
             return None
-        return self._preferences.is_better(first, second)
+        return self._preferences.is_better(first, second)  # type: ignore
 
 
 class RankerNegotiator(Negotiator):
@@ -371,7 +371,7 @@ class RankerNegotiator(Negotiator):
         """
         if not self.preferences:
             raise ValueError(f"Unknown preferences. Cannot rank")
-        return self.preferences.rank(outcomes, descending)
+        return self.preferences.rank(outcomes, descending)  # type: ignore
 
     def is_better(
         self, first: Outcome, second: Outcome, epsilon: float = 1e-10
@@ -390,7 +390,7 @@ class RankerNegotiator(Negotiator):
             None if |utility(first) - utility(second)| <= epsilon or the utun is not defined
             False if utility(first) < utility(second) - epsilon
         """
-        if not self.has_preferences:
+        if self._preferences is None:
             return None
         return self._preferences.is_better(first, second)
 
@@ -422,5 +422,11 @@ class SorterNegotiator(Negotiator):
         """
         if not self.has_preferences:
             raise ValueError(f"Cannot sort outcomes. Unknown preferences")
-        ranks = self._preferences.rank(outcomes, descending)
-        outcomes = itertools.chain(*tuple(ranks))
+        ranks = self._preferences.argrank(outcomes, descending)  # type: ignore
+        ranks = list(itertools.chain(*tuple(ranks)))
+        original = [_ for _ in outcomes]
+        for i in range(len(outcomes)):
+            if ranks[i] == None:
+                outcomes[i] = None
+                continue
+            outcomes[i] = original[ranks[i]]  # type: ignore
