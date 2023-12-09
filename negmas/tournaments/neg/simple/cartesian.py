@@ -1,7 +1,7 @@
 """
 Negotiation tournaments module.
 """
-from __future__ import annotations
+
 
 from concurrent.futures import ProcessPoolExecutor, as_completed
 from itertools import product
@@ -65,8 +65,11 @@ def run_negotiation(
     stats: ScenarioStats | None = None,
     annotation: dict[str, Any] | None = None,
     private_infos: tuple[dict[str, Any]] | None = None,
+    id_reveals_type: bool = False,
+    name_reveals_type: bool = False,
 ) -> dict[str, Any]:
-    """Run a single negotiation with fully specified parameters
+    """
+    Run a single negotiation with fully specified parameters
 
     Args:
         s: The `Scenario` representing the negotiation (outcome space and preferences).
@@ -85,6 +88,9 @@ def run_negotiation(
         stats: statistics of the scenario. If not given or `path` is `None`, statistics are not saved
         annotation: Common information saved in the mechanism's annotation (accessible by negotiators using `self.nmi.annotation`). `None` for nothing
         private_infos: Private information saved in the negotiator's `private_info` attribute (accessible by negotiators as `self.private_info`). `None` for nothing
+        id_reveals_type: Each negotiator ID will reveal its type.
+        name_reveals_type: Each negotiator name will reveal its type.
+
 
     Returns:
         A dictionary of negotiation results that contains the final state of the negotiation alongside other information
@@ -134,7 +140,14 @@ def run_negotiation(
     if not partner_names:
         partner_names = tuple(complete_names)
     for l, (negotiator, name, u) in enumerate(zip(negotiators, partner_names, s.ufuns)):
-        negotiator.id = negotiator.name = f"{name}@{l}"
+        if id_reveals_type:
+            negotiator.id = f"{name}@{l}"
+        else:
+            negotiator.id = unique_name("n", add_time=False, sep="")
+        if name_reveals_type:
+            negotiator.name = f"{name}@{l}"
+        else:
+            negotiator.name = unique_name("n", add_time=False, sep="")
         complete_names.append(name)
         m.add(negotiator, ufun=u)
 
@@ -224,6 +237,8 @@ def cartesian_tournament(
     save_every: int = 0,
     save_stats: bool = True,
     final_score: tuple[str, str] = ("advantage", "mean"),
+    id_reveals_type: bool = False,
+    name_reveals_type: bool = False,
 ) -> SimpleTournamentResults:
     """A simplified version of Cartesian tournaments not using the internal machinay of NegMAS  tournaments
 
@@ -236,18 +251,23 @@ def cartesian_tournament(
         path: Path on disk to save the results and details of this tournament. Pass None to disable logging
         n_jobs: Number of parallel jobs to run. -1 means running serially (useful for debugging) and 0 means using all cores.
         mechanism_type: The mechanism (protocol) used for all negotiations.
-        mechanism_params: Parameters of the mechanism (protocol). Usually you need to pass one or more of the following: time_limit (in seconds), n_steps (in rounds), p_ending (probability of ending the negotiation every step).
+        mechanism_params: Parameters of the mechanism (protocol). Usually you need to pass one or more of the following:
+                          time_limit (in seconds), n_steps (in rounds), p_ending (probability of ending the negotiation every step).
         plot_fraction: fraction of negotiations for which plots are to be saved (only if `path` is not `None`)
         verbosity: Verbosity level (minimum is 0)
         self_play: Allow negotiations in which all partners are of the same type
         randomize_runs: If `True` negotiations will be run in random order, otherwise each scenario/partner combination will be finished before starting on the next
         save_every: Number of negotiations after which we dump details and scores
         save_stats: Whether to calculate and save extra statistics like pareto_optimality, nash_optimality, kalai_optimality, etc
-        final_score: A tuple of two strings giving the metric used for ordering the negotiators for the final score: First string can be one of the following (advantage, utility,
-                    partner_welfare, welfare) or any statistic from the set calculated if `save_stats` is `True`. The second string can be mean, median, min, max, or std. The default is ('advantage', 'mean')
+        final_score: A tuple of two strings giving the metric used for ordering the negotiators for the final score:
+                     First string can be one of the following (advantage, utility,
+                     partner_welfare, welfare) or any statistic from the set calculated if `save_stats` is `True`.
+                     The second string can be mean, median, min, max, or std. The default is ('advantage', 'mean')
+        id_reveals_type: Each negotiator ID will reveal its type.
+        name_reveals_type: Each negotiator name will reveal its type.
 
     Returns:
-        A pandas dataframe with all negotiation results.
+        A pandas DataFrame with all negotiation results.
     """
     competitors = [get_class(_) for _ in competitors]
     if competitor_params is None:
@@ -362,6 +382,8 @@ def cartesian_tournament(
                         verbosity=verbosity - 1,
                         plot=random() < plot_fraction,
                         stats=stats,
+                        id_reveals_type=id_reveals_type,
+                        name_reveals_type=name_reveals_type,
                     )
                     for i in range(n_repetitions)
                 ]
