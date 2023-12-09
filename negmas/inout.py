@@ -1,7 +1,8 @@
+from __future__ import annotations
+
 """
 Defines import/export functionality
 """
-from __future__ import annotations
 
 import xml.etree.ElementTree as ET
 from os import PathLike, listdir

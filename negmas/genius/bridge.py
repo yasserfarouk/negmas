@@ -67,7 +67,7 @@ __all__ = [
 ]
 
 GENIUS_LOG_BASE = Path(
-    negmas_config("genius_log_base", Path.home() / "negmas" / "geniusbridge" / "logs")
+    negmas_config("genius_log_base", Path.home() / "negmas" / "geniusbridge" / "logs")  # type: ignore
 )
 
 
@@ -157,7 +157,7 @@ def init_genius_bridge(
     #     return True
 
     if not path:
-        path = negmas_config(
+        path = negmas_config(  # type: ignore
             CONFIG_KEY_GENIUS_BRIDGE_JAR,
             pathlib.Path.home() / "negmas" / "files" / "geniusbridge.jar",
         )
@@ -336,7 +336,7 @@ class GeniusBridge:
             port = get_free_tcp_port()
         if cls.is_running(port):
             return 0 if cls.gateway(port) is None else port
-        path = (
+        path = (  # type: ignore
             negmas_config(
                 CONFIG_KEY_GENIUS_BRIDGE_JAR,
                 pathlib.Path.home() / "negmas" / "files" / "geniusbridge.jar",

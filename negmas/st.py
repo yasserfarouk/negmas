@@ -1,7 +1,8 @@
+from __future__ import annotations
+
 """
 Implements single text negotiation mechanisms.
 """
-from __future__ import annotations
 
 import math
 import random

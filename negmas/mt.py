@@ -1,7 +1,8 @@
+from __future__ import annotations
+
 """
 Implements single text negotiation mechanisms
 """
-from __future__ import annotations
 
 import time
 from copy import deepcopy
@@ -87,6 +88,7 @@ class VetoMTMechanism(Mechanism):
             a new outcome or None to end the mechanism run
 
         """
+        _ = outcome
         return self.random_outcomes(1)[0]
 
     def __call__(
@@ -99,10 +101,15 @@ class VetoMTMechanism(Mechanism):
 
             for neg in self.negotiators:
                 strt = time.perf_counter()
-                responses.append(
+                is_better = (
                     neg.is_better(new_offer, current_offer, epsilon=self.epsilon)
-                    is not False
+                    if action is None
+                    else action.get(
+                        neg,
+                        neg.is_better(new_offer, current_offer, epsilon=self.epsilon),
+                    )
                 )
+                responses.append(is_better is not False)
                 if time.perf_counter() - strt > self.nmi.step_time_limit:
                     state.timedout = True
                     return MechanismStepResult(state)

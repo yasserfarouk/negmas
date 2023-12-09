@@ -1,9 +1,10 @@
+from __future__ import annotations
+
 """
 Common data-structures and classes used by all other modules.
 
 This module does not import anything from the library except during type checking
 """
-from __future__ import annotations
 
 from collections import namedtuple
 from enum import Enum, auto, unique
