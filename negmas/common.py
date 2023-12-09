@@ -458,20 +458,20 @@ class NegotiatorMechanismInterface:
             raise ValueError(f"No known index for negotiator {source}")
         return indx
 
-    @property
-    def negotiator_names(self) -> list[str]:
-        """Gets the namess of all negotiators"""
-        return self.mechanism.negotiator_names
+    # @property
+    # def negotiator_names(self) -> list[str]:
+    #     """Gets the namess of all negotiators"""
+    #     return self.mechanism.negotiator_names
 
     @property
     def agent_ids(self) -> list[str]:
         """Gets the IDs of all agents owning all negotiators"""
         return self.mechanism.agent_ids
 
-    @property
-    def agent_names(self) -> list[str]:
-        """Gets the names of all agents owning all negotiators"""
-        return self.mechanism.agent_names
+    # @property
+    # def agent_names(self) -> list[str]:
+    #     """Gets the names of all agents owning all negotiators"""
+    #     return self.mechanism.agent_names
 
     def keys(self):
         return self.__dict__.keys()
