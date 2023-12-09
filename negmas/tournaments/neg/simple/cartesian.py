@@ -66,7 +66,7 @@ def run_negotiation(
     annotation: dict[str, Any] | None = None,
     private_infos: tuple[dict[str, Any]] | None = None,
     id_reveals_type: bool = False,
-    name_reveals_type: bool = False,
+    name_reveals_type: bool = True,
 ) -> dict[str, Any]:
     """
     Run a single negotiation with fully specified parameters
@@ -169,6 +169,10 @@ def run_negotiation(
     run_record["params"] = param_dump
     run_record["scenario"] = m.name
     run_record["run_id"] = run_id
+    run_record["negotiator_names"] = m.negotiator_names
+    run_record["negotiator_ids"] = m.negotiator_ids
+    run_record["negotiator_types"] = [_.type_name for _ in m.negotiators]
+
     if m.nmi.annotation:
         run_record.update(m.nmi.annotation)
     if stats is not None:
@@ -238,7 +242,7 @@ def cartesian_tournament(
     save_stats: bool = True,
     final_score: tuple[str, str] = ("advantage", "mean"),
     id_reveals_type: bool = False,
-    name_reveals_type: bool = False,
+    name_reveals_type: bool = True,
 ) -> SimpleTournamentResults:
     """A simplified version of Cartesian tournaments not using the internal machinay of NegMAS  tournaments
 

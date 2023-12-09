@@ -41,6 +41,7 @@ def test_can_run_cartesian_simple_tournament_n_reps():
         n_repetitions=n_repetitions,
         verbosity=0,
         rotate_ufuns=rotate_ufuns,
+        # plot_fraction=0.5,
         path=None,
     )
     scores = results.scores
