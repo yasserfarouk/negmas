@@ -1,6 +1,13 @@
 History
 =======
 
+Release 0.10.6
+--------------
+* Adding the ability to hide types in cartesian_tournament
+* Name but not ID reveals type cartesian_tournament by default
+* Removing neg/agent_names from NMI. Now negotiators have access to each other's ID but not name by default
+* Correcting sorter negotiator
+
 Release 0.10.5
 --------------
 * Minor bugfixes
