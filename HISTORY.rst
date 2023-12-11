@@ -1,6 +1,10 @@
 History
 =======
 
+Release 0.10.7
+--------------
+* Saving path and controlling name-shortening in tournaments
+
 Release 0.10.6
 --------------
 * Adding the ability to hide types in cartesian_tournament
