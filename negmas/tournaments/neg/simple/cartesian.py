@@ -237,6 +237,7 @@ def cartesian_tournament(
     mechanism_params: dict[str, Any] | None = None,
     # full_names: bool = True,
     plot_fraction: float = 0.0,
+    plot_params: dict[str, Any] | None = None,
     verbosity: int = 1,
     self_play: bool = True,
     randomize_runs: bool = True,
@@ -261,6 +262,7 @@ def cartesian_tournament(
         mechanism_params: Parameters of the mechanism (protocol). Usually you need to pass one or more of the following:
                           time_limit (in seconds), n_steps (in rounds), p_ending (probability of ending the negotiation every step).
         plot_fraction: fraction of negotiations for which plots are to be saved (only if `path` is not `None`)
+        plot_params: Parameters to pass to the plotting function
         verbosity: Verbosity level (minimum is 0)
         self_play: Allow negotiations in which all partners are of the same type
         randomize_runs: If `True` negotiations will be run in random order, otherwise each scenario/partner combination will be finished before starting on the next
@@ -394,6 +396,7 @@ def cartesian_tournament(
                         stats=stats,
                         id_reveals_type=id_reveals_type,
                         name_reveals_type=name_reveals_type,
+                        plot_params=plot_params,
                     )
                     for i in range(n_repetitions)
                 ]
