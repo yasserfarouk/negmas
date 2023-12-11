@@ -2617,7 +2617,7 @@ def tournament(
     n_runs_per_world: int = 5,
     max_n_configs: int | None = None,
     n_runs_per_config: int | None = None,
-    tournament_path: str | None = None,
+    tournament_path: str | Path | None = None,
     total_timeout: int | None = None,
     parallelism="parallel",
     scheduler_ip: str | None = None,
