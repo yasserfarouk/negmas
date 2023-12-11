@@ -46,6 +46,8 @@ class SimpleTournamentResults:
     """All score statistics summarized per type"""
     final_scores: pd.DataFrame
     """A list of negotiators and their final scores sorted from highest (winner) to lowest score"""
+    path: Path | None = None
+    """Location at which the logs are stored"""
 
 
 def run_negotiation(
@@ -243,6 +245,7 @@ def cartesian_tournament(
     final_score: tuple[str, str] = ("advantage", "mean"),
     id_reveals_type: bool = False,
     name_reveals_type: bool = True,
+    shorten_names: bool = True,
 ) -> SimpleTournamentResults:
     """A simplified version of Cartesian tournaments not using the internal machinay of NegMAS  tournaments
 
@@ -269,6 +272,7 @@ def cartesian_tournament(
                      The second string can be mean, median, min, max, or std. The default is ('advantage', 'mean')
         id_reveals_type: Each negotiator ID will reveal its type.
         name_reveals_type: Each negotiator name will reveal its type.
+        shorten_names: If True, shorter versions of names will be used for results
 
     Returns:
         A pandas DataFrame with all negotiation results.
@@ -318,18 +322,20 @@ def cartesian_tournament(
     stats = None
 
     def shorten(name):
-        for s in ("Negotiator", "Agent"):
-            x = name.replace(s, "")
-            if not x:
-                return name
-            name = x
+        #        for s in ("Negotiator", "Agent"):
+        #            x = name.replace(s, "")
+        #            if not x:
+        #                return name
+        #            name = x
         return name
 
-    competitor_names = [
-        shorten(_)
-        for _ in shortest_unique_names([get_full_type_name(_) for _ in competitors])
-    ]
-
+    if shorten_names:
+        competitor_names = [
+            shorten(_)
+            for _ in shortest_unique_names([get_full_type_name(_) for _ in competitors])
+        ]
+    else:
+        competitor_names = [get_full_type_name(_) for _ in competitors]
     competitor_info = list(
         zip(competitors, competitor_params, competitor_names, strict=True)
     )
@@ -400,7 +406,7 @@ def cartesian_tournament(
         )
     results, scores = [], []
     results_path = path if not path else path / "details.csv"
-    scores_path = path if not path else path / "scores.csv"
+    scores_path = path if not path else path / "all_scores.csv"
 
     def process_record(record, results=results, scores=scores):
         results.append(record)
@@ -440,25 +446,35 @@ def cartesian_tournament(
                 process_record(f.result())
 
     scores_df = pd.DataFrame.from_records(scores)
-    final = (
+    if scores_path is not None:
+        scores_df.to_csv(scores_path, index_label="index")
+    type_scores = (
         scores_df[[_ for _ in scores_df.columns if _ not in ("scenario", "partners")]]
         .groupby("strategy")
-        .agg(["min", "mean", "std", "median", "max"])
+        .describe()
+        # .agg(["min", "mean", "std", "median", "max"])
         .sort_values(final_score, ascending=False)
     )
-    scores_df.to_csv(scores_path, index_label="index")
-    if final is not None and scores_path:
-        final.to_csv(scores_path.parent / "type_scores.csv")
+    final = pd.DataFrame()
+    if type_scores is not None:
+        if scores_path:
+            type_scores.to_csv(scores_path.parent / "type_scores.csv")
+        final = type_scores[final_score]
+        final.name = "score"
+        final = final.reset_index()
+        if scores_path:
+            final.to_csv(scores_path.parent / "scores.csv", index_label="index")
         if verbosity > 0:
-            print(final[final_score])
+            print(final)
     details_df = pd.DataFrame.from_records(results)
     if results_path:
         details_df.to_csv(results_path, index_label="index")
     return SimpleTournamentResults(
         scores=scores_df,
         details=details_df,
-        scores_summary=final,
-        final_scores=final[final_score],
+        scores_summary=type_scores,
+        final_scores=final,
+        path=path,
     )
 
 
