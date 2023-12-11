@@ -572,8 +572,8 @@ def plot_2dutils(
             )
     for a, neg in enumerate(offering_negotiators):
         negtrace = [_ for _ in trace if _.negotiator == neg]
-        x = [plotting_ufuns[0](_.offer) for _ in negtrace]
-        y = [plotting_ufuns[1](_.offer) for _ in negtrace]
+        x = [plotting_ufuns[0](_.offer) for _ in negtrace]  # type: ignore
+        y = [plotting_ufuns[1](_.offer) for _ in negtrace]  # type: ignore
         alphas = [colorizer(_) for _ in negtrace]
         # (ax.scatter if not with_lines else ax.plot)(
         plot_with_trancparency(
@@ -619,7 +619,7 @@ def plot_2dutils(
     if agreement is not None:
         ax.scatter(
             [plotting_ufuns[0](agreement)],
-            [plotting_ufuns[1](agreement)],
+            [plotting_ufuns[1](agreement)],  # type: ignore
             color="black",
             marker="*",
             s=int(default_marker_size * AGREEMENT_SCALE),
@@ -855,7 +855,7 @@ def plot_mechanism_run(
         offering_negotiators=mechanism.negotiator_ids,
         outcome_space=mechanism.outcome_space,
         outcomes=mechanism.discrete_outcomes(),
-        ax=axu,
+        ax=axu,  # type: ignore
         name_map=name_map,
         with_lines=with_lines,
         show_agreement=show_agreement,

@@ -112,11 +112,11 @@ def run_negotiation(
     else:
         annotation["rep"] = rep
     if partner_params is None:
-        partner_params = tuple(dict() for _ in partners)
+        partner_params = tuple(dict() for _ in partners)  # type: ignore
     if private_infos is None:
-        private_infos = tuple(dict() for _ in partners)
+        private_infos = tuple(dict() for _ in partners)  # type: ignore
     assert mechanism_params is not None
-    assert all(_ is not None for _ in partner_params)
+    assert all(_ is not None for _ in partner_params)  # type: ignore
 
     def _name(a: Negotiator) -> str:
         name = a.short_type_name if not full_names else a.type_name
@@ -132,7 +132,7 @@ def run_negotiation(
 
     m = mechanism_type(outcome_space=s.outcome_space, **mechanism_params)
     complete_names, negotiators = [], []
-    for type_, p, pinfo in zip(partners, partner_params, private_infos):
+    for type_, p, pinfo in zip(partners, partner_params, private_infos):  # type: ignore
         negotiator = type_(**p, private_info=pinfo)
         name = _name(negotiator)
         complete_names.append(name)
@@ -140,8 +140,8 @@ def run_negotiation(
         if p:
             name += str(hash(str(p)))
     if not partner_names:
-        partner_names = tuple(complete_names)
-    for l, (negotiator, name, u) in enumerate(zip(negotiators, partner_names, s.ufuns)):
+        partner_names = tuple(complete_names)  # type: ignore
+    for l, (negotiator, name, u) in enumerate(zip(negotiators, partner_names, s.ufuns)):  # type: ignore
         if id_reveals_type:
             negotiator.id = f"{name}@{l}"
         else:
@@ -154,7 +154,7 @@ def run_negotiation(
         m.add(negotiator, ufun=u)
 
     state = m.run()
-    param_dump = tuple(str(to_flat_dict(_)) if _ else None for _ in partner_params)
+    param_dump = tuple(str(to_flat_dict(_)) if _ else None for _ in partner_params)  # type: ignore
     if all(_ is None for _ in param_dump):
         param_dump = None
     agreement_utils = tuple(u(state.agreement) for u in s.ufuns)
@@ -185,7 +185,7 @@ def run_negotiation(
             )
         )
 
-    file_name = f"{s.outcome_space.name}_{'_'.join(partner_names)}_{rep}"
+    file_name = f"{s.outcome_space.name}_{'_'.join(partner_names)}_{rep}"  # type: ignore
     if path:
 
         def save_as_df(data: list[tuple], names, file_name):
