@@ -9,6 +9,7 @@ from math import exp, log
 from os import cpu_count
 from pathlib import Path
 from random import randint, random, shuffle
+from time import perf_counter
 from typing import Any, Sequence
 
 import matplotlib.pyplot as plt
@@ -187,7 +188,9 @@ def run_negotiation(
         complete_names.append(name)
         m.add(negotiator, ufun=u)
 
+    strt = perf_counter()
     state = m.run()
+    execution_time = perf_counter() - strt
     param_dump = tuple(str(to_flat_dict(_)) if _ else None for _ in partner_params)  # type: ignore
     if all(_ is None for _ in param_dump):
         param_dump = None
@@ -205,6 +208,7 @@ def run_negotiation(
     run_record["params"] = param_dump
     run_record["scenario"] = m.name
     run_record["run_id"] = run_id
+    run_record["execution_time"] = execution_time
     run_record["negotiator_names"] = m.negotiator_names
     run_record["negotiator_ids"] = m.negotiator_ids
     run_record["negotiator_types"] = [_.type_name for _ in m.negotiators]
