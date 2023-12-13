@@ -212,7 +212,17 @@ def run_negotiation(
     run_record["negotiator_names"] = m.negotiator_names
     run_record["negotiator_ids"] = m.negotiator_ids
     run_record["negotiator_types"] = [_.type_name for _ in m.negotiators]
-    run_record["negotiator_times"] = m.negotiator_times
+    run_record["negotiator_times"] = [m.negotiator_times[_] for _ in m.negotiator_ids]
+    run_record["n_steps"] = m.nmi.n_steps
+    run_record["time_limit"] = m.nmi.time_limit
+    run_record["pend"] = m.nmi.pend
+    run_record["pend_per_second"] = m.nmi.pend_per_second
+    run_record["step_time_limit"] = m.nmi.step_time_limit
+    run_record["negotiator_time_limit"] = m.nmi.negotiator_time_limit
+    run_record["annotation"] = m.nmi.annotation
+    run_record["scenario"] = s.outcome_space.name
+    run_record["mechanism_name"] = m.name
+    run_record["mechanism_type"] = m.type_name
 
     if m.nmi.annotation:
         run_record.update(m.nmi.annotation)
@@ -339,10 +349,12 @@ def cartesian_tournament(
     def make_scores(record: dict[str, Any]) -> list[dict[str, float]]:
         utils, partners = record["utilities"], record["partners"]
         reserved_values = record["reserved_values"]
-        max_utils = record["max_utils"]
+        max_utils, times = record["max_utils"], record.get(
+            "negotiator_times", [None] * len(utils)
+        )
         scores = []
-        for i, (u, r, a, m) in enumerate(
-            zip(utils, reserved_values, partners, max_utils)
+        for i, (u, r, a, m, t) in enumerate(
+            zip(utils, reserved_values, partners, max_utils, times)
         ):
             n_p = len(partners)
             bilateral = n_p == 2
@@ -358,6 +370,7 @@ def cartesian_tournament(
                 partners=(partners[_] for _ in range(len(partners)) if _ != i)
                 if not bilateral
                 else partners[1 - i],
+                time=t,
             )
             for c in (
                 "nash_optimality",
