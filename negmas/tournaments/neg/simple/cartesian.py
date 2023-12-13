@@ -5,9 +5,10 @@ Negotiation tournaments module.
 
 from concurrent.futures import ProcessPoolExecutor, as_completed
 from itertools import product
+from math import exp, log
 from os import cpu_count
 from pathlib import Path
-from random import random, shuffle
+from random import randint, random, shuffle
 from typing import Any, Sequence
 
 import matplotlib.pyplot as plt
@@ -48,6 +49,39 @@ class SimpleTournamentResults:
     """A list of negotiators and their final scores sorted from highest (winner) to lowest score"""
     path: Path | None = None
     """Location at which the logs are stored"""
+
+
+LOG_UNIFORM_LIMIT = 10
+
+
+def oneinint(x: int | tuple[int, int] | None, log_uniform=None) -> int | None:
+    """Returns x or a random sample within its values.
+
+    Args:
+        x: The value or 2-valued tuple to sample from
+        log_uniform: If true samples using a log-uniform distribution instead of a uniform distribution.
+                     If `None`, uses a log-uniform distribution if min > 0 and max/min >= 10
+
+    """
+    if isinstance(x, tuple):
+        if log_uniform is None:
+            log_uniform = x[0] > 0 and x[1] / x[0] >= LOG_UNIFORM_LIMIT
+        if x[0] == x[-1]:
+            return x[0]
+        if log_uniform:
+            l = [log(_) for _ in x]
+            return min(x[1], max(x[0], int(exp(random() * (l[1] - l[0]) + l[0]))))
+        return randint(*x)
+    return x
+
+
+def oneinfloat(x: float | tuple[float, float] | None) -> float | None:
+    """Returns x or a random sample within its values"""
+    if isinstance(x, tuple):
+        if x[0] == x[-1]:
+            return x[0]
+        return x[0] + random() * (x[1] - x[0])
+    return x
 
 
 def run_negotiation(
@@ -174,6 +208,7 @@ def run_negotiation(
     run_record["negotiator_names"] = m.negotiator_names
     run_record["negotiator_ids"] = m.negotiator_ids
     run_record["negotiator_types"] = [_.type_name for _ in m.negotiators]
+    run_record["negotiator_times"] = m.negotiator_times
 
     if m.nmi.annotation:
         run_record.update(m.nmi.annotation)
@@ -235,6 +270,12 @@ def cartesian_tournament(
     njobs: int = 0,
     mechanism_type: type[Mechanism] = SAOMechanism,
     mechanism_params: dict[str, Any] | None = None,
+    n_steps: int | tuple[int, int] | None = 100,
+    time_limit: float | tuple[float, float] | None = None,
+    pend: float | tuple[float, float] = 0.0,
+    pend_per_second: float | tuple[float, float] = 0.0,
+    step_time_limit: float | tuple[float, float] | None = None,
+    negotiator_time_limit: float | tuple[float, float] | None = None,
     # full_names: bool = True,
     plot_fraction: float = 0.0,
     plot_params: dict[str, Any] | None = None,
@@ -259,6 +300,12 @@ def cartesian_tournament(
         path: Path on disk to save the results and details of this tournament. Pass None to disable logging
         n_jobs: Number of parallel jobs to run. -1 means running serially (useful for debugging) and 0 means using all cores.
         mechanism_type: The mechanism (protocol) used for all negotiations.
+        n_steps: Number of steps/rounds allowed for the each negotiation (None for no-limit and a 2-valued tuple for sampling from a range)
+        time_limit: Number of seconds allowed for the each negotiation (None for no-limit and a 2-valued tuple for sampling from a range)
+        pend: Probability of ending the negotiation every step/round (None for no-limit and a 2-valued tuple for sampling from a range)
+        pend_per_second: Probability of ending the negotiation every second (None for no-limit and a 2-valued tuple for sampling from a range)
+        step_time_limit: Time limit for every negotiation step (None for no-limit and a 2-valued tuple for sampling from a range)
+        negotiator_time_limit: Time limit for all actions of every negotiator (None for no-limit and a 2-valued tuple for sampling from a range)
         mechanism_params: Parameters of the mechanism (protocol). Usually you need to pass one or more of the following:
                           time_limit (in seconds), n_steps (in rounds), p_ending (probability of ending the negotiation every step).
         plot_fraction: fraction of negotiations for which plots are to be saved (only if `path` is not `None`)
@@ -279,6 +326,8 @@ def cartesian_tournament(
     Returns:
         A pandas DataFrame with all negotiation results.
     """
+    if mechanism_params is None:
+        mechanism_params = dict()
     competitors = [get_class(_) for _ in competitors]
     if competitor_params is None:
         competitor_params = [dict() for _ in competitors]
@@ -378,6 +427,17 @@ def cartesian_tournament(
                 stats = calc_scenario_stats(scenario.ufuns)
                 if this_path:
                     dump(serialize(stats), this_path / "stats.json")
+
+            mechanism_params.update(
+                dict(
+                    n_steps=oneinint(n_steps),
+                    time_limit=oneinfloat(time_limit),
+                    pend=oneinfloat(pend),
+                    pend_per_second=oneinfloat(pend_per_second),
+                    negotiator_time_limit=oneinfloat(negotiator_time_limit),
+                    step_time_limit=oneinfloat(step_time_limit),
+                )
+            )
             for partners in partners_list:
                 runs += [
                     dict(
