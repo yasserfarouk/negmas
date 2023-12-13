@@ -214,6 +214,7 @@ def plot_offer_utilities(
     show_reserved=True,
     colorizer: Colorizer | None = None,
     first_color_index: int = 0,
+    mark_offers_view: bool = True,
 ):
     import matplotlib.pyplot as plt
 
@@ -311,6 +312,26 @@ def plot_offer_utilities(
             linestyle="solid" if neg == negotiator else ":",
             linewidth=1 if neg == negotiator else 0.5,
         )
+        if mark_offers_view and neg == negotiator:
+            mark_map = dict(
+                errors=dict(marker="x", s=110, color="red"),
+                agreement=dict(marker="*", s=110, color="black"),
+                timedout=dict(marker="o", s=110, color="black"),
+            )
+            for state, plotinfo in mark_map.items():
+                elements = [
+                    (_[1], u(_[0].offer)) for _ in trace_info if _[0].state == state
+                ]
+                if not elements:
+                    continue
+                elements = list(set(elements))
+                a.scatter(
+                    [_[0] for _ in elements],
+                    [_[1] for _ in elements],
+                    color=plotinfo.get("color", thecolor),
+                    marker=plotinfo["marker"],
+                    s=plotinfo["s"],
+                )
         if reserved:
             a.plot(
                 xx,
@@ -328,6 +349,7 @@ def plot_offer_utilities(
                 loc=f"upper {'left' if not i else 'right'}",
                 bbox_to_anchor=(0.0, 1.4, 1.0, 0.12),
             )
+
     axes[0].set_title(f"{map_(negotiator)} Offers")
     if show_legend and len(plotting_negotiators) != 2:
         ax.legend(
@@ -362,6 +384,11 @@ def plot_2dutils(
     show_nash_distance: bool = True,
     show_kalai_distance: bool = True,
     show_max_welfare_distance: bool = True,
+    mark_pareto_points: bool = True,
+    mark_all_outcomes: bool = True,
+    mark_nash_points: bool = True,
+    mark_kalai_points: bool = True,
+    mark_max_welfare_points: bool = True,
     show_max_relative_welfare_distance: bool = True,
     show_reserved: bool = True,
     show_total_time=True,
@@ -409,13 +436,14 @@ def plot_2dutils(
     if unknown_agreement_utility:
         show_pareto_distance = show_nash_distance = False
     default_marker_size = plt.rcParams.get("lines.markersize", 20) ** 2
-    ax.scatter(
-        [_[0] for _ in utils],
-        [_[1] for _ in utils],
-        color="gray",
-        marker=".",
-        s=int(default_marker_size * OUTCOMES_SCALE),
-    )
+    if mark_all_outcomes:
+        ax.scatter(
+            [_[0] for _ in utils],
+            [_[1] for _ in utils],
+            color="gray",
+            marker=".",
+            s=int(default_marker_size * OUTCOMES_SCALE),
+        )
     agent_names = [map_(_) for _ in plotting_negotiators]
     if fast:
         frontier, frontier_outcome = [], []
@@ -464,9 +492,10 @@ def plot_2dutils(
     nash_distance, kalai_distance = float("inf"), float("inf")
     max_welfare_distance, max_relative_welfare_distance = float("inf"), float("inf")
     f1, f2 = [_[0] for _ in frontier], [_[1] for _ in frontier]
-    ax.scatter(
-        f1, f2, color="red", marker="x", s=int(default_marker_size * PARETO_SCALE)
-    )
+    if mark_pareto_points:
+        ax.scatter(
+            f1, f2, color="red", marker="x", s=int(default_marker_size * PARETO_SCALE)
+        )
     ax.set_xlabel(agent_names[0] + f"(0) utility")
     ax.set_ylabel(agent_names[1] + f"(1) utility")
     cu = agreement_utility
@@ -638,7 +667,7 @@ def plot_2dutils(
                 verticalalignment="bottom",
             )
     if not fast:
-        if kalai_pts:
+        if kalai_pts and mark_kalai_points:
             ax.scatter(
                 [kalai[0] for kalai, _ in kalai_pts],
                 [kalai[1] for kalai, _ in kalai_pts],
@@ -683,7 +712,7 @@ def plot_2dutils(
         #                 verticalalignment="bottom",
         #             )
 
-        if nash_pts:
+        if nash_pts and mark_nash_points:
             ax.scatter(
                 [nash[0] for nash, _ in nash_pts],
                 [nash[1] for nash, _ in nash_pts],
@@ -706,7 +735,7 @@ def plot_2dutils(
                         verticalalignment="bottom",
                     )
 
-        if mwelfare_pts:
+        if mwelfare_pts and mark_max_welfare_points:
             ax.scatter(
                 [mwelfare[0] for mwelfare, _ in mwelfare_pts],
                 [mwelfare[1] for mwelfare, _ in mwelfare_pts],
@@ -739,6 +768,7 @@ def plot_2dutils(
 
 def plot_mechanism_run(
     mechanism: PlottableMechanism,
+    *,
     negotiators: tuple[int, int] | tuple[str, str] | None = (0, 1),
     save_fig: bool = False,
     path: str | None = None,
@@ -766,11 +796,20 @@ def plot_mechanism_run(
     xdim: str = "relative_time",
     colorizer: Colorizer | None = None,
     only2d: bool = False,
+    no2d: bool = False,
     fast: bool = False,
     simple_offers_view: bool = False,
+    mark_offers_view: bool = True,
+    mark_pareto_points: bool = True,
+    mark_all_outcomes: bool = True,
+    mark_nash_points: bool = True,
+    mark_kalai_points: bool = True,
+    mark_max_welfare_points: bool = True,
 ):
     import matplotlib.gridspec as gridspec
     import matplotlib.pyplot as plt
+
+    assert not (no2d and only2d), f"Cannot specify no2d and only2d together"
 
     if negotiators is None:
         negotiators = (0, 1)
@@ -791,11 +830,12 @@ def plot_mechanism_run(
         plotting_ufuns.append(mechanism.negotiators[i].ufun)
 
     name_map = dict(zip(mechanism.negotiator_ids, mechanism.negotiator_names))
-    fig = plt.figure(figsize=(12.8, 4.8) if not only2d else None)
+    fig = plt.figure(figsize=(12.8, 4.8) if not only2d and not no2d else None)
+    extra_col = int(not no2d)
     if only2d:
         axu = fig.subplots()
     else:
-        gs = gridspec.GridSpec(mechanism.nmi.n_negotiators, 2)
+        gs = gridspec.GridSpec(mechanism.nmi.n_negotiators, 1 + extra_col)
         axs = []
         colors, markers = make_colors_and_markers(
             colors, markers, len(mechanism.negotiators), colormap
@@ -804,9 +844,9 @@ def plot_mechanism_run(
         all_ufuns = [_.ufun for _ in mechanism.negotiators]
         for a, neg in enumerate(mechanism.negotiator_ids):
             if a == 0:
-                axs.append(fig.add_subplot(gs[a, 1]))
+                axs.append(fig.add_subplot(gs[a, extra_col]))
             else:
-                axs.append(fig.add_subplot(gs[a, 1], sharex=axs[0]))
+                axs.append(fig.add_subplot(gs[a, extra_col], sharex=axs[0]))
             plot_offer_utilities(
                 trace=mechanism.full_trace,
                 negotiator=neg,
@@ -826,57 +866,65 @@ def plot_mechanism_run(
                 xdim=xdim,
                 colorizer=colorizer,
                 first_color_index=a if simple_offers_view else 0,
+                mark_offers_view=mark_offers_view,
             )
-        axu = fig.add_subplot(gs[:, 0])
-    agreement = mechanism.agreement
-    state = mechanism.state
-    if not show_end_reason:
-        reason = None
-    else:
-        if state.timedout:
-            reason = "Negotiation Timedout"
-        elif agreement is not None:
-            reason = "Negotiation Success"
-        elif state.has_error:
-            reason = "Negotiation ERROR"
-        elif agreement is not None:
-            reason = "Agreemend Reached"
-        elif state.broken:
-            reason = "Negotiation Ended"
-        elif agreement is None:
-            reason = "No Agreement"
+        if not no2d:
+            axu = fig.add_subplot(gs[:, 0])
+    if not no2d:
+        agreement = mechanism.agreement
+        state = mechanism.state
+        if not show_end_reason:
+            reason = None
         else:
-            reason = "Unknown state!!"
+            if state.timedout:
+                reason = "Negotiation Timedout"
+            elif agreement is not None:
+                reason = "Negotiation Success"
+            elif state.has_error:
+                reason = "Negotiation ERROR"
+            elif agreement is not None:
+                reason = "Agreemend Reached"
+            elif state.broken:
+                reason = "Negotiation Ended"
+            elif agreement is None:
+                reason = "No Agreement"
+            else:
+                reason = "Unknown state!!"
 
-    plot_2dutils(
-        trace=mechanism.full_trace,
-        plotting_ufuns=plotting_ufuns,
-        plotting_negotiators=plotting_negotiators,
-        offering_negotiators=mechanism.negotiator_ids,
-        outcome_space=mechanism.outcome_space,
-        outcomes=mechanism.discrete_outcomes(),
-        ax=axu,  # type: ignore
-        name_map=name_map,
-        with_lines=with_lines,
-        show_agreement=show_agreement,
-        show_pareto_distance=show_pareto_distance,
-        show_nash_distance=show_nash_distance,
-        show_kalai_distance=show_kalai_distance,
-        show_max_welfare_distance=show_max_welfare_distance,
-        show_max_relative_welfare_distance=show_max_relative_welfare_distance,
-        show_annotations=show_annotations,
-        show_reserved=show_reserved,
-        colors=colors,
-        markers=markers,
-        agreement=mechanism.agreement,
-        end_reason=reason,
-        extra_annotation=extra_annotation,
-        colorizer=colorizer,
-        show_total_time=show_total_time,
-        show_relative_time=show_relative_time,
-        show_n_steps=show_n_steps,
-        fast=fast,
-    )
+        plot_2dutils(
+            trace=mechanism.full_trace,
+            plotting_ufuns=plotting_ufuns,
+            plotting_negotiators=plotting_negotiators,
+            offering_negotiators=mechanism.negotiator_ids,
+            outcome_space=mechanism.outcome_space,
+            outcomes=mechanism.discrete_outcomes(),
+            ax=axu,  # type: ignore
+            name_map=name_map,
+            with_lines=with_lines,
+            show_agreement=show_agreement,
+            show_pareto_distance=show_pareto_distance,
+            show_nash_distance=show_nash_distance,
+            show_kalai_distance=show_kalai_distance,
+            show_max_welfare_distance=show_max_welfare_distance,
+            show_max_relative_welfare_distance=show_max_relative_welfare_distance,
+            show_annotations=show_annotations,
+            show_reserved=show_reserved,
+            colors=colors,
+            markers=markers,
+            agreement=mechanism.agreement,
+            end_reason=reason,
+            extra_annotation=extra_annotation,
+            colorizer=colorizer,
+            show_total_time=show_total_time,
+            show_relative_time=show_relative_time,
+            show_n_steps=show_n_steps,
+            fast=fast,
+            mark_pareto_points=mark_pareto_points,
+            mark_all_outcomes=mark_all_outcomes,
+            mark_nash_points=mark_nash_points,
+            mark_kalai_points=mark_kalai_points,
+            mark_max_welfare_points=mark_max_welfare_points,
+        )
     if save_fig:
         if fig_name is None:
             fig_name = str(uuid.uuid4()) + ".png"
