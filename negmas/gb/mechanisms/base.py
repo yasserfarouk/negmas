@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+from collections import defaultdict
 from random import shuffle
 from time import perf_counter
 from typing import TYPE_CHECKING, Any, Callable
@@ -48,7 +49,11 @@ class GBThread:
         history: list[GBState] = self.mechanism.history  # type: ignore
         source = self.negotiator.id
         if action is None:
+            strt = perf_counter()
             offer = self.negotiator.propose(mechanism_state)
+            self.mechanism._negotiator_times[self.negotiator.id] += (
+                perf_counter() - strt
+            )
         else:
             offer = action.get(source, None)
         # assert offer is None or isinstance(offer, Outcome)
@@ -62,7 +67,9 @@ class GBThread:
         if offer is None:
             if self.mechanism._extra_callbacks:
                 for n in self.responders:
+                    strt = perf_counter()
                     n.on_partner_ended(source)
+                    self.mechanism._negotiator_times[n.id] += perf_counter() - strt
             self.state.new_responses = dict()
             return (
                 self.state,
@@ -77,11 +84,19 @@ class GBThread:
             )
         if self.mechanism._extra_callbacks:
             for n in self.responders:
+                strt = perf_counter()
                 n.on_partner_proposal(mechanism_state, source, offer)
-        responses = [_.respond(mechanism_state, source=source) for _ in self.responders]
+                self.mechanism._negotiator_times[n.id] += perf_counter() - strt
+        responses = []
+        for responder in self.responders:
+            strt = perf_counter()
+            responses.append(responder.respond(mechanism_state, source=source))
+            self.mechanism._negotiator_times[responder.id] += perf_counter() - strt
         if self.mechanism._extra_callbacks:
             for n, r in zip(self.responders, responses):
+                strt = perf_counter()
                 n.on_partner_response(mechanism_state, n.id, offer, r)
+                self.mechanism._negotiator_times[n.id] += perf_counter() - strt
         if all(_ == ResponseType.ACCEPT_OFFER for _ in responses):
             self.state.accepted_offers.append(offer)
         self.state.new_responses = dict(
@@ -196,8 +211,8 @@ class BaseGBMechanism(Mechanism):
             if state.has_error:
                 return "error"
             if state.agreement:
-                return "accepted"
-            return "rejected"
+                return "agreement"
+            return "continuing"
 
         offers = []
         self._history: list[GBState]  # type: ignore
@@ -295,6 +310,7 @@ class BaseGBMechanism(Mechanism):
         only2d: bool = False,
         fast=False,
         simple_offers_view=False,
+        **kwargs,
     ):
         from negmas.plots.util import plot_mechanism_run
 
@@ -329,9 +345,10 @@ class BaseGBMechanism(Mechanism):
             only2d=only2d,
             fast=fast,
             simple_offers_view=simple_offers_view,
+            **kwargs,
         )
 
-    def add(
+    def add(  # type: ignore
         self,
         negotiator: GBNegotiator,
         *,
@@ -503,7 +520,7 @@ class GBMechanism(BaseGBMechanism):
     def set_sync_call(self, v: bool):
         self._sync_call = v
 
-    def __call__(
+    def __call__(  # type: ignore
         self, state: GBState, action: GBAction | None = None
     ) -> MechanismStepResult:
         # print(f"Round {self._current_state.step}")
@@ -557,8 +574,8 @@ class GBMechanism(BaseGBMechanism):
             if state.has_error:
                 return "error"
             if state.agreement:
-                return "accepted"
-            return "rejected"
+                return "agreement"
+            return "continuing"
 
         offers = []
         self._history: list[GBState]  # type: ignore
@@ -654,6 +671,9 @@ class GBMechanism(BaseGBMechanism):
         xdim: str = "step",
         colorizer: Colorizer | None = default_colorizer,
         only2d: bool = False,
+        fast=False,
+        simple_offers_view=False,
+        **kwargs,
     ):
         from negmas.plots.util import plot_mechanism_run
 
@@ -686,6 +706,9 @@ class GBMechanism(BaseGBMechanism):
             show_relative_time=show_relative_time,
             show_n_steps=show_n_steps,
             only2d=only2d,
+            fast=fast,
+            simple_offers_view=simple_offers_view,
+            **kwargs,
         )
 
 

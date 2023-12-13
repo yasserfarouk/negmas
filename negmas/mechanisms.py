@@ -1,5 +1,6 @@
-"""Provides interfaces for defining negotiation mechanisms."""
 from __future__ import annotations
+
+"""Provides interfaces for defining negotiation mechanisms."""
 
 import copy
 import math
@@ -129,9 +130,9 @@ class Mechanism(NamedObject, EventSource, CheckpointMixin, ABC):
         time_limit: float | None = None,
         pend: float = 0,
         pend_per_second: float = 0,
-        hidden_time_limit: float = float("inf"),
         step_time_limit: float | None = None,
         negotiator_time_limit: float | None = None,
+        hidden_time_limit: float = float("inf"),
         max_n_agents: int | None = None,
         dynamic_entry=False,
         annotation: dict[str, Any] | None = None,
@@ -153,6 +154,8 @@ class Mechanism(NamedObject, EventSource, CheckpointMixin, ABC):
         outcome_space = ensure_os(outcome_space, issues, outcomes)
         self.__verbosity = verbosity
         super().__init__(name, id=id, type_name=type_name)
+
+        self._negotiator_times = defaultdict(float)
         CheckpointMixin.checkpoint_init(
             self,
             step_attrib="_step",
@@ -180,6 +183,10 @@ class Mechanism(NamedObject, EventSource, CheckpointMixin, ABC):
             n_steps = None
         if isinstance(n_steps, float):
             n_steps = int(n_steps)
+        if pend is None:
+            pend = 0
+        if pend_per_second is None:
+            pend_per_second = 0
         self.nmi = nmi_factory(
             id=self.id,
             n_outcomes=outcome_space.cardinality,
@@ -231,6 +238,13 @@ class Mechanism(NamedObject, EventSource, CheckpointMixin, ABC):
             genius_port=genius_port,
             annotation=annotation,
         )
+
+    @property
+    def negotiator_times(self) -> dict[str, float]:
+        """The total time consumed by every negotiator.
+
+        Each mechanism class is responsible of updating this for any activities of the negotiator it controls."""
+        return self._negotiator_times
 
     @property
     def negotiators(self):
@@ -728,7 +742,9 @@ class Mechanism(NamedObject, EventSource, CheckpointMixin, ABC):
         self._negotiator_map.pop(negotiator.id)
         self._negotiator_index.pop(negotiator.id)
         if self._extra_callbacks:
+            strt = time.perf_counter()
             negotiator.on_leave(self.nmi.state)
+            self._negotiator_times[negotiator.id] += time.perf_counter() - strt
         return True
 
     def add_requirements(self, requirements: dict) -> None:
@@ -861,7 +877,9 @@ class Mechanism(NamedObject, EventSource, CheckpointMixin, ABC):
         state = self.state
         if self._extra_callbacks:
             for a in self.negotiators:
+                strt = time.perf_counter()
                 a.on_mechanism_error(state)
+                self._negotiator_times[a.id] += time.perf_counter() - strt
 
     def on_negotiation_end(self) -> None:
         """Called at the end of each negotiation.
@@ -871,7 +889,9 @@ class Mechanism(NamedObject, EventSource, CheckpointMixin, ABC):
         """
         state = self.state
         for a in self.negotiators:
+            strt = time.perf_counter()
             a._on_negotiation_end(state)
+            self._negotiator_times[a.id] += time.perf_counter() - strt
         self.announce(
             Event(
                 type="negotiation_end",
@@ -1029,7 +1049,9 @@ class Mechanism(NamedObject, EventSource, CheckpointMixin, ABC):
                 ) = (None, False, False)
                 return self.state
             for a in self.negotiators:
+                strt = time.perf_counter()
                 a._on_negotiation_start(state=state)
+                self._negotiator_times[a.id] += time.perf_counter() - strt
             self.announce(Event(type="negotiation_start", data=None))
         else:
             # if no steps are remaining, end with a timeout
@@ -1050,7 +1072,9 @@ class Mechanism(NamedObject, EventSource, CheckpointMixin, ABC):
         # TODO check this.
         if not self._current_state.waiting and self._extra_callbacks:
             for agent in self._negotiators:
+                strt = time.perf_counter()
                 agent.on_round_start(state)
+                self._negotiator_times[agent.id] += time.perf_counter() - strt
 
         # run a round of the mechanism and get the new state
         step_start = (
@@ -1121,7 +1145,9 @@ class Mechanism(NamedObject, EventSource, CheckpointMixin, ABC):
             state4history = self.state4history
             if self._extra_callbacks:
                 for agent in self._negotiators:
+                    strt = time.perf_counter()
                     agent.on_round_end(state)
+                    self._negotiator_times[agent.id] += time.perf_counter() - strt
             self._add_to_history(state4history)
             # we only indicate a new step if no one is waiting
             self._current_state.step += 1
@@ -1161,7 +1187,9 @@ class Mechanism(NamedObject, EventSource, CheckpointMixin, ABC):
         self._current_state.running = False
         if self._extra_callbacks:
             for agent in self._negotiators:
+                strt = time.perf_counter()
                 agent.on_round_end(state)
+                self._negotiator_times[agent.id] += time.perf_counter() - strt
         self._add_to_history(state4history)
         self._current_state.step += 1
         self.on_negotiation_end()
@@ -1359,9 +1387,9 @@ class Mechanism(NamedObject, EventSource, CheckpointMixin, ABC):
     def max_welfare_points(
         self,
         max_cardinality: float = float("inf"),
-        frontier: tuple[tuple[float]] | None = None,
+        frontier: tuple[tuple[float, ...]] | None = None,
         frontier_outcomes: list[Outcome] | None = None,
-    ) -> tuple[tuple[tuple[float], Outcome]]:
+    ) -> tuple[tuple[tuple[float, ...], Outcome]]:
         ufuns = self._get_preferences()
         if not frontier:
             frontier, frontier_outcomes = self.pareto_frontier(max_cardinality)
@@ -1377,9 +1405,9 @@ class Mechanism(NamedObject, EventSource, CheckpointMixin, ABC):
     def max_relative_welfare_points(
         self,
         max_cardinality: float = float("inf"),
-        frontier: tuple[tuple[float]] | None = None,
+        frontier: tuple[tuple[float, ...]] | None = None,
         frontier_outcomes: list[Outcome] | None = None,
-    ) -> tuple[tuple[tuple[float], Outcome]]:
+    ) -> tuple[tuple[tuple[float, ...], Outcome]]:
         ufuns = self._get_preferences()
         if not frontier:
             frontier, frontier_outcomes = self.pareto_frontier(max_cardinality)
@@ -1395,9 +1423,9 @@ class Mechanism(NamedObject, EventSource, CheckpointMixin, ABC):
     def modified_kalai_points(
         self,
         max_cardinality: float = float("inf"),
-        frontier: tuple[tuple[float]] | None = None,
+        frontier: tuple[tuple[float, ...]] | None = None,
         frontier_outcomes: list[Outcome] | None = None,
-    ) -> tuple[tuple[tuple[float], Outcome]]:
+    ) -> tuple[tuple[tuple[float, ...], Outcome]]:
         ufuns = self._get_preferences()
         if not frontier:
             frontier, frontier_outcomes = self.pareto_frontier(max_cardinality)
@@ -1416,9 +1444,9 @@ class Mechanism(NamedObject, EventSource, CheckpointMixin, ABC):
     def kalai_points(
         self,
         max_cardinality: float = float("inf"),
-        frontier: tuple[tuple[float]] | None = None,
+        frontier: tuple[tuple[float, ...]] | None = None,
         frontier_outcomes: list[Outcome] | None = None,
-    ) -> tuple[tuple[tuple[float], Outcome]]:
+    ) -> tuple[tuple[tuple[float, ...], Outcome]]:
         ufuns = self._get_preferences()
         if not frontier:
             frontier, frontier_outcomes = self.pareto_frontier(max_cardinality)
@@ -1437,9 +1465,9 @@ class Mechanism(NamedObject, EventSource, CheckpointMixin, ABC):
     def nash_points(
         self,
         max_cardinality: float = float("inf"),
-        frontier: tuple[tuple[float]] | None = None,
+        frontier: tuple[tuple[float, ...]] | None = None,
         frontier_outcomes: list[Outcome] | None = None,
-    ) -> tuple[tuple[tuple[float], Outcome]]:
+    ) -> tuple[tuple[tuple[float, ...], Outcome]]:
         ufuns = self._get_preferences()
         if not frontier:
             frontier, frontier_outcomes = self.pareto_frontier(max_cardinality)
@@ -1450,7 +1478,7 @@ class Mechanism(NamedObject, EventSource, CheckpointMixin, ABC):
             (nash_utils, frontier_outcomes[indx]) for nash_utils, indx in nash_pts
         )
 
-    def plot(self, **kwargs):
+    def plot(self, **kwargs) -> Any:
         """A method for plotting a negotiation session."""
         _ = kwargs
 

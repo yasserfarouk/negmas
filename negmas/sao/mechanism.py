@@ -178,7 +178,7 @@ class SAOMechanism(Mechanism):
         """
         return self._current_state
 
-    def add(
+    def add(  # type: ignore
         self,
         negotiator: SAONegotiator | GBNegotiator,
         *,
@@ -248,7 +248,7 @@ class SAOMechanism(Mechanism):
         self._n_waits = 0
         self._frozen_neg_list = None
 
-    def __call__(
+    def __call__(  # type: ignore
         self, state: SAOState, action: dict[str, SAOResponse] | None = None
     ) -> MechanismStepResult:
         """
@@ -421,6 +421,7 @@ class SAOMechanism(Mechanism):
             neg = self.negotiators[neg_indx]
             strt = time.perf_counter()
             resp, has_exceptions = _safe_counter(neg, state=self.state)
+            self._negotiator_times[neg.id] += time.perf_counter() - strt
             if has_exceptions:
                 state.broken = True
                 state.has_error = True
@@ -569,14 +570,14 @@ class SAOMechanism(Mechanism):
 
         def response(state: SAOState):
             if state.agreement:
-                return "accepted"
+                return "agreement"
             if state.timedout:
                 return "timedout"
             if state.ended:
                 return "ended"
             if state.has_error:
                 return "error"
-            return "rejected"
+            return "continuing"
 
         def asint(state: SAOState):
             if state.ended:
@@ -639,7 +640,7 @@ class SAOMechanism(Mechanism):
         def not_equal(a, b):
             return any(x != y for x, y in zip(a, b))
 
-        self._history: list[SAOState]
+        self._history: list[SAOState]  # type: ignore
         # if the agreement does not appear as the last offer in the trace, add it.
         # this should not happen though!!
         if (
@@ -739,8 +740,16 @@ class SAOMechanism(Mechanism):
         common_legend: bool = True,
         xdim: str = "relative_time",
         only2d: bool = False,
+        no2d: bool = False,
         fast: bool = False,
         simple_offers_view: bool = False,
+        mark_offers_view: bool = True,
+        mark_pareto_points: bool = True,
+        mark_all_outcomes: bool = True,
+        mark_nash_points: bool = True,
+        mark_kalai_points: bool = True,
+        mark_max_welfare_points: bool = True,
+        **kwargs,
     ):
         from negmas.plots.util import plot_mechanism_run
 
@@ -779,7 +788,15 @@ class SAOMechanism(Mechanism):
             show_relative_time=show_relative_time,
             show_n_steps=show_n_steps,
             fast=fast,
+            no2d=no2d,
             simple_offers_view=simple_offers_view,
+            mark_offers_view=mark_offers_view,
+            mark_pareto_points=mark_pareto_points,
+            mark_all_outcomes=mark_all_outcomes,
+            mark_nash_points=mark_nash_points,
+            mark_kalai_points=mark_kalai_points,
+            mark_max_welfare_points=mark_max_welfare_points,
+            **kwargs,
         )
 
 
