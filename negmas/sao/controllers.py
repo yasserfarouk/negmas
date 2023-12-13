@@ -528,7 +528,7 @@ class SAOSingleAgreementController(SAOSyncController, ABC):
     @abstractmethod
     def is_better(
         self, a: Outcome | None, b: Outcome | None, negotiator: str, state: SAOState
-    ):
+    ) -> bool:
         """Compares two outcomes of the same negotiation
 
         Args:
@@ -794,8 +794,7 @@ class SAOMetaNegotiatorController(SAOController):
     def respond(
         self,
         negotiator_id: str,
-        state: SAOState,
-        offer: Outcome,
+        state: MechanismState,
         source: str | None = None,
     ) -> ResponseType:
         """Uses the meta negotiator to respond"""
@@ -825,7 +824,9 @@ class SAOSingleAgreementRandomController(SAOSingleAgreementController):
     def best_offer(self, offers: dict[str, Outcome]) -> str | None:
         return random.sample(list(offers.keys()), 1)[0]
 
-    def is_better(self, a: Outcome, b: Outcome, negotiator: str, state: SAOState):
+    def is_better(
+        self, a: Outcome | None, b: Outcome | None, negotiator: str, state: SAOState
+    ) -> bool:
         return random.random() > 0.5
 
 
@@ -872,7 +873,9 @@ class SAOSingleAgreementAspirationController(SAOSingleAgreementController):
             return False
         return self.ufun(offer) >= self.utility_at(state.relative_time)
 
-    def is_better(self, a: Outcome, b: Outcome, negotiator: str, state: SAOState):
+    def is_better(
+        self, a: Outcome | None, b: Outcome | None, negotiator: str, state: SAOState
+    ) -> bool:
         if not self.ufun:
             raise ValueError("No ufun is defined")
         return self.ufun.is_better(a, b)
