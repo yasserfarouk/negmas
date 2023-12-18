@@ -7,6 +7,7 @@ if TYPE_CHECKING:
     from negmas.common import MechanismState, NegotiatorMechanismInterface
     from negmas.negotiators import Negotiator
     from negmas.outcomes.common import Outcome
+    from negmas.preferences import UtilityFunction
 
 __all__ = [
     "VolatileUFunMixin",
@@ -107,8 +108,8 @@ class StationaryMixin:
     def is_stationary(self) -> bool:
         return True
 
-    def to_stationary(self):
-        return self
+    def to_stationary(self) -> UtilityFunction:
+        return self  # type: ignore
 
     # @lru_cache(maxsize=100)
     # def eval_normalized(

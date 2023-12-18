@@ -49,7 +49,7 @@ class Preferences(NamedObject, ABC):
         self._changes: list[PreferencesChange] = []
 
     @abstractmethod
-    def is_volatile(self):
+    def is_volatile(self) -> bool:
         """
         Does the utility of an outcome depend on factors outside the negotiation?
 
@@ -65,13 +65,13 @@ class Preferences(NamedObject, ABC):
         ...
 
     @abstractmethod
-    def is_session_dependent(self):
+    def is_session_dependent(self) -> bool:
         """
         Does the utility of an outcome depend on the `NegotiatorMechanismInterface`?
         """
 
     @abstractmethod
-    def is_state_dependent(self):
+    def is_state_dependent(self) -> bool:
         """
         Does the utility of an outcome depend on the negotiation state?
         """

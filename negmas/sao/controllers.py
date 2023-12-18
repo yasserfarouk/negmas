@@ -100,7 +100,7 @@ class SAOController(Controller):
         """
         return True
 
-    def create_negotiator(
+    def create_negotiator(  # type: ignore
         self,
         negotiator_type: str | ControlledNegotiatorType | None = None,
         name: str | None = None,
@@ -301,7 +301,7 @@ class SAOSyncController(SAOController):
 
         """
 
-    def respond(
+    def respond(  # type: ignore
         self,
         negotiator_id: str,
         state: SAOState,
@@ -320,7 +320,7 @@ class SAOSyncController(SAOController):
         # we get here if there was no saved response (WAIT should never be saved)
 
         # set the saved offer for this negotiator
-        self.__offers[negotiator_id] = offer
+        self.__offers[negotiator_id] = offer  # type: ignore
         self.__offer_states[negotiator_id] = state
         n_negotiators = len(self.active_negotiators)
         # if we did not get all the offers yet and can still wait, wait
@@ -522,7 +522,7 @@ class SAOSingleAgreementController(SAOSyncController, ABC):
             ufun = self.ufun
         if ufun is None:
             return None
-        _, top_outcome = ufun.extreme_outcomes(outcome_space=neg.nmi.outcome_space)
+        _, top_outcome = ufun.extreme_outcomes()
         return top_outcome
 
     @abstractmethod
@@ -744,7 +744,7 @@ class SAOSingleAgreementController(SAOSyncController, ABC):
         """
         return self._best_outcomes[negotiator][0]
 
-    def after_join(
+    def after_join(  # type: ignore
         self, negotiator_id, nmi, state, *, preferences=None, role="negotiator"
     ):
         super().after_join(
@@ -783,7 +783,7 @@ class SAOMetaNegotiatorController(SAOController):
             )
         self.meta_negotiator = meta_negotiator
 
-    def propose(self, negotiator_id: str, state: SAOState) -> Outcome | None:
+    def propose(self, negotiator_id: str, state: SAOState) -> Outcome | None:  # type: ignore
         """Uses the meta negotiator to propose"""
         negotiator, _ = self._negotiators.get(negotiator_id, (None, None))
         if negotiator is None:
@@ -802,7 +802,7 @@ class SAOMetaNegotiatorController(SAOController):
         if negotiator is None:
             raise ValueError(f"Unknown negotiator {negotiator_id}")
         self.meta_negotiator._nmi = negotiator.nmi
-        return self.meta_negotiator.respond(state=state, source=source)
+        return self.meta_negotiator.respond(state=state, source=source)  # type: ignore
 
 
 class SAOSingleAgreementRandomController(SAOSingleAgreementController):
