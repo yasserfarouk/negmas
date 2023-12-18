@@ -184,7 +184,7 @@ class Preferences(NamedObject, ABC):
         """
         return self.is_not_worse(first, second) and self.is_not_worse(second, first)
 
-    def is_not_better(self, first: Outcome, second: Outcome | None) -> bool:
+    def is_not_better(self, first: Outcome | None, second: Outcome | None) -> bool:
         """
         Compares two offers using the `ufun` returning whether the first is worse or equivalent than the second
 

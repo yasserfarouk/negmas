@@ -104,6 +104,7 @@ def run_negotiation(
     private_infos: tuple[dict[str, Any]] | None = None,
     id_reveals_type: bool = False,
     name_reveals_type: bool = True,
+    mask_scenario_name: bool = True,
 ) -> dict[str, Any]:
     """
     Run a single negotiation with fully specified parameters
@@ -111,6 +112,7 @@ def run_negotiation(
     Args:
         s: The `Scenario` representing the negotiation (outcome space and preferences).
         partners: The partners running the negotiation in order of addition to the mechanism.
+        real_scenario_name: The real name of the scenario (used when saving logs).
         partner_names: Names of partners. Either `None` for defaults or a tuple of the same length as `partners`
         partner_params: Parameters used to create the partners. Either `None` for defaults or a tuple of the same length as `partners`
         rep: The repetition number for this run of the negotiation
@@ -137,9 +139,19 @@ def run_negotiation(
         for name in ("negotiations", "plots", "results"):
             (path / name).mkdir(exist_ok=True, parents=True)
     assert s.outcome_space is not None
+    real_scenario_name = s.outcome_space.name
     if not run_id:
-        run_id = unique_name("run")
+        run_id = unique_name("run", add_time=False, sep=".")
     run_id = str(run_id)
+    effective_scenario_name = real_scenario_name
+    if mask_scenario_name:
+        effective_scenario_name = run_id
+        new_os = type(s.outcome_space)(
+            issues=s.outcome_space.issues, name=effective_scenario_name
+        )
+        for u in s.ufuns:
+            s.outcome_space = new_os
+        s = Scenario(outcome_space=new_os, ufuns=s.ufuns)
     if mechanism_params is None:
         mechanism_params = dict()
     if annotation is None:
@@ -161,7 +173,7 @@ def run_negotiation(
 
     max_utils = [_.max() for _ in s.ufuns]
 
-    mechanism_params["name"] = s.outcome_space.name
+    mechanism_params["name"] = effective_scenario_name
     mechanism_params["verbosity"] = verbosity - 1
     mechanism_params["annotation"] = annotation
 
@@ -198,7 +210,7 @@ def run_negotiation(
     reservations = tuple(u.reserved_value for u in s.ufuns)
     if verbosity > 0:
         print(
-            f" {partner_names} on {s.outcome_space.name}: {state.agreement} in {state.relative_time:4.2%} of the time with advantages: {tuple(a - b for a, b in zip(agreement_utils, reservations))}, "
+            f" {partner_names} on {real_scenario_name}: {state.agreement} in {state.relative_time:4.2%} of the time with advantages: {tuple(a - b for a, b in zip(agreement_utils, reservations))}, "
         )
     run_record = asdict(state)
     run_record["utilities"] = agreement_utils
@@ -220,9 +232,10 @@ def run_negotiation(
     run_record["step_time_limit"] = m.nmi.step_time_limit
     run_record["negotiator_time_limit"] = m.nmi.negotiator_time_limit
     run_record["annotation"] = m.nmi.annotation
-    run_record["scenario"] = s.outcome_space.name
+    run_record["scenario"] = real_scenario_name
     run_record["mechanism_name"] = m.name
     run_record["mechanism_type"] = m.type_name
+    run_record["effective_scenario_name"] = s.outcome_space.name
 
     if m.nmi.annotation:
         run_record.update(m.nmi.annotation)
@@ -234,7 +247,7 @@ def run_negotiation(
             )
         )
 
-    file_name = f"{s.outcome_space.name}_{'_'.join(partner_names)}_{rep}"  # type: ignore
+    file_name = f"{real_scenario_name}_{'_'.join(partner_names)}_{rep}_{run_id}"  # type: ignore
     if path:
 
         def save_as_df(data: list[tuple], names, file_name):
@@ -303,6 +316,7 @@ def cartesian_tournament(
     name_reveals_type: bool = True,
     shorten_names: bool = True,
     raise_exceptions: bool = True,
+    mask_scenario_names: bool = True,
 ) -> SimpleTournamentResults:
     """A simplified version of Cartesian tournaments not using the internal machinay of NegMAS  tournaments
 
@@ -338,6 +352,7 @@ def cartesian_tournament(
         name_reveals_type: Each negotiator name will reveal its type.
         shorten_names: If True, shorter versions of names will be used for results
         raise_exceptions: When given, negotiators and mechanisms are allowed to raise exceptions stopping the tournament
+        mask_scenario_names: If given, scenario names will be masked so that the negotiators do not know the original scenario name
 
     Returns:
         A pandas DataFrame with all negotiation results.
@@ -478,6 +493,7 @@ def cartesian_tournament(
                         id_reveals_type=id_reveals_type,
                         name_reveals_type=name_reveals_type,
                         plot_params=plot_params,
+                        mask_scenario_name=mask_scenario_names,
                     )
                     for i in range(n_repetitions)
                 ]
