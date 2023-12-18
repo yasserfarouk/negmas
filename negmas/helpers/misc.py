@@ -5,7 +5,9 @@ Extra helpers
 from __future__ import annotations
 
 import itertools
+import random
 import socket
+from math import exp, log
 from typing import Any, Callable, Iterable, Sequence
 
 from ..protocols import HasMinMax
@@ -17,7 +19,45 @@ __all__ = [
     "nonmonotonic_minmax",
     "make_callable",
     "get_free_tcp_port",
+    "intin",
+    "floatin",
 ]
+
+
+def floatin(
+    x: float | tuple[float, float] | Sequence[float], log_uniform: bool
+) -> float:
+    """Samples a value. A random choice is made if x is another sequence, a value between the two limits is used if the input is a tuple otherwise x is returned"""
+    if isinstance(x, tuple) and len(x) == 2:
+        x = tuple(float(_) for _ in x)
+        if x[0] == x[-1]:
+            return x[0]
+        if log_uniform:
+            l = [log(_) for _ in x]
+            return min(x[1], max(x[0], exp(random.random() * (l[1] - l[0]) + l[0])))
+
+        return random.random() * (x[1] - x[0]) + x[0]
+    if isinstance(x, Sequence):
+        return float(random.choice(x))
+    return float(x)
+
+
+def intin(x: int | tuple[int, int] | Sequence[int], log_uniform: bool = False) -> int:
+    """Samples a value. A random choice is made if x is another sequence, a value between the two limits is used if the input is a tuple otherwise x is returned"""
+    if isinstance(x, tuple) and len(x) == 2:
+        x = tuple(int(_) for _ in x)
+        if x[0] == x[-1]:
+            return int(x[0])
+        if log_uniform:
+            l = [log(_) for _ in x]
+            return min(
+                x[1], max(x[0], int(0.5 + exp(random.random() * (l[1] - l[0]) + l[0])))
+            )
+
+        return random.randint(*x)
+    if isinstance(x, Sequence):
+        return int(random.choice(x))
+    return int(x)
 
 
 def nonmonotonic_minmax(
