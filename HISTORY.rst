@@ -1,6 +1,23 @@
 History
 =======
 
+Release 0.10.8
+--------------
+
+* Adding exception handling and testing Cartesian Tournaments
+* Adding ufun generators with controlled Pareto
+* Stopping saving "stats.json" in tournaments. stats.csv contains the same information
+* Allowing nash calculation without ufuns
+* Exception handling in cartesian tournaments. Note that I assume that ignore_negotiator_exceptions can be passed to the mechanism class
+* intin and floatin in the helpers to sample.
+* Saving negotiator times in cartesian
+* Adding execution_time to cartesian logs
+* Finer conntrol on timing in Cartesian tournaments. Also recording negotiator times
+* Adding negotiator_times to Mechanisms
+* Finer control on mechanism printing
+* Ignoring some typing errors
+* Passing plot_params in cartesian_tournament
+
 Release 0.10.7
 --------------
 * Saving path and controlling name-shortening in tournaments
