@@ -302,6 +302,7 @@ def cartesian_tournament(
     id_reveals_type: bool = False,
     name_reveals_type: bool = True,
     shorten_names: bool = True,
+    raise_exceptions: bool = True,
 ) -> SimpleTournamentResults:
     """A simplified version of Cartesian tournaments not using the internal machinay of NegMAS  tournaments
 
@@ -336,12 +337,15 @@ def cartesian_tournament(
         id_reveals_type: Each negotiator ID will reveal its type.
         name_reveals_type: Each negotiator name will reveal its type.
         shorten_names: If True, shorter versions of names will be used for results
+        raise_exceptions: When given, negotiators and mechanisms are allowed to raise exceptions stopping the tournament
 
     Returns:
         A pandas DataFrame with all negotiation results.
     """
     if mechanism_params is None:
         mechanism_params = dict()
+    mechanism_params["ignore_negotiator_exceptions"] = not raise_exceptions
+
     competitors = [get_class(_) for _ in competitors]
     if competitor_params is None:
         competitor_params = [dict() for _ in competitors]
