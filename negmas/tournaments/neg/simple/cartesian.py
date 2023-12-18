@@ -563,4 +563,75 @@ def cartesian_tournament(
 
 
 if __name__ == "__main__":
-    ...
+    from random import randint, random
+
+    from negmas.helpers.misc import intin
+    from negmas.outcomes import make_issue, make_os
+    from negmas.preferences.crisp.linear import LinearAdditiveUtilityFunction as U
+    from negmas.preferences.generators import generate_utility_values
+    from negmas.preferences.value_fun import TableFun
+    from negmas.sao.negotiators import (
+        AspirationNegotiator,
+        MiCRONegotiator,
+        NaiveTitForTatNegotiator,
+    )
+
+    n_scenarios, n_outcomes = 5, (10, 100)
+    ufun_sets = []
+
+    for i in range(n_scenarios):
+        r = random()
+        n = intin(n_outcomes, log_uniform=True)
+        name = "S"
+        if r < 0.3:
+            n_pareto = n
+            name = "DivideThePieGen"
+        else:
+            n_pareto = randint(min(5, n // 2), n // 2)
+        if r < 0.05:
+            vals = generate_utility_values(
+                n_pareto,
+                n,
+                n_ufuns=2,
+                pareto_first=False,
+                pareto_generator="zero_sum",
+            )
+            name = "DivideThePie"
+        else:
+            vals = generate_utility_values(
+                n_pareto,
+                n,
+                n_ufuns=2,
+                pareto_first=False,
+                pareto_generator="curve" if random() < 0.5 else "piecewise_linear",
+            )
+
+        issues = (make_issue([f"{i}_{n-1 - i}" for i in range(n)], "portions"),)
+        ufuns = tuple(
+            U(
+                values=(
+                    TableFun(
+                        {_: float(vals[i][k]) for i, _ in enumerate(issues[0].all)}
+                    ),
+                ),
+                name=f"{uname}{i}",
+                reserved_value=0.0,
+                outcome_space=make_os(issues, name=f"{name}{i}"),
+            )
+            for k, uname in enumerate(("First", "Second"))
+        )
+        ufun_sets.append(ufuns)
+
+    scenarios = [
+        Scenario(
+            outcome_space=ufuns[0].outcome_space,  # type: ignore We are sure this is not None
+            ufuns=ufuns,
+        )
+        for ufuns in ufun_sets
+    ]
+
+    cartesian_tournament(
+        competitors=(AspirationNegotiator, NaiveTitForTatNegotiator, MiCRONegotiator),
+        scenarios=scenarios,
+        n_repetitions=1,
+    )
