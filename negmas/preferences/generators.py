@@ -1,6 +1,5 @@
 import random
-from math import exp, log
-from typing import Any, Callable, Iterable, Literal, Sequence
+from typing import Any, Callable, Iterable, Literal
 
 import numpy as np
 
@@ -167,12 +166,13 @@ def make_non_pareto(
     limit: tuple[float, float] = (0, 0),
     eps: float = 1e-4,
 ):
-    """Adds non-pareto outcomes to the input pareto outcomes.
+    """Adds extra outcomes dominated by the given Pareto outcomes
 
     Args:
         pareto: list of pareto points in the utility space.
         n: number of outcomes to add that are dominated by the pareto outcomes
         limit: The minimum x and y values allowed
+        eps: A small margin
     """
     if n < 1 or len(pareto) < 1:
         return []
@@ -238,7 +238,7 @@ def make_curve_pareto(
     | tuple[float, float]
     | list[float] = (0.1, 6),
 ):
-    """Generate a piecewise-linear Pareto generator of the given number of segments"""
+    """Generate a Pareto curve of the given shape."""
     if isinstance(shape, Iterable) and not isinstance(shape, str):
         shape = floatin(shape, log_uniform=True)
     curve = make_curve(shape)
@@ -249,6 +249,8 @@ def make_curve_pareto(
 
 
 ParetoGenerator = Callable[[int], list[tuple[float, ...]]]
+"""Type of Pareto generators. Receives a number of points and returns a list of utility values corresponding to a Pareto front of that size"""
+
 GENERATOR_MAP: dict[str, ParetoGenerator] = dict(
     piecewise_linear=make_piecewise_linear_pareto,
     curve=make_curve_pareto,
