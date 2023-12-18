@@ -86,7 +86,7 @@ def save_stats(
     with open(logdir_ / "params.json", "w") as f_:
         f_.write(str(serialize(params)))
 
-    dump(world.stats, logdir_ / stats_file_name)
+    # dump(world.stats, logdir_ / stats_file_name)
 
     if world.info is not None:
         dump(world.info, logdir_ / "info")
@@ -94,11 +94,8 @@ def save_stats(
     if hasattr(world, "info") and world.info is not None:
         dump(world.info, logdir_ / "info")
 
-    try:
-        data = pd.DataFrame.from_dict(world.stats)
-        data.to_csv(str(logdir_ / f"{stats_file_name}.csv"), index_label="index")
-    except:
-        pass
+    data = pd.DataFrame.from_dict(world.stats)
+    data.to_csv(str(logdir_ / f"{stats_file_name}.csv"), index_label="index")
 
     if world.save_negotiations:
         if len(world.saved_negotiations) > 0:
