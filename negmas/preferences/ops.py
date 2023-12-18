@@ -887,7 +887,7 @@ def kalai_points(
 
 
 def nash_points(
-    ufuns: Sequence[UtilityFunction],
+    ufuns: Sequence[UtilityFunction] | None,
     frontier: Sequence[tuple[float, ...]],
     ranges: Sequence[tuple[float, ...]] | None = None,
     outcome_space: OutcomeSpace | None = None,
@@ -899,7 +899,7 @@ def nash_points(
     negotiation.
 
     Args:
-        ufuns: A list of ufuns to use
+        ufuns: A list of ufuns to use. If not given, the reserved value is assumed to be zero for all ufuns
         frontier: a list of tuples each giving the utility values at some outcome on the frontier (usually found by `pareto_frontier`) to search within
         outcome_space: The outcome-space to consider
         issues: The issues on which the ufun is defined (outcomes may be passed instead)
@@ -915,10 +915,11 @@ def nash_points(
 
         - The function searches within the given frontier only.
     """
-    if not frontier:
+    if not frontier or len(frontier) == 0:
         return tuple()
     # calculate the minimum and maximum value for each ufun
     if not ranges:
+        assert ufuns is not None
         ranges = [
             _.minmax(outcome_space, above_reserve=False)
             if outcome_space
@@ -927,8 +928,13 @@ def nash_points(
             else _.minmax(outcomes=outcomes, above_reserve=False)
             for _ in ufuns
         ]
+    n_ufuns = len(ufuns) if ufuns else len(frontier[0])
     # find reserved values
-    rs = tuple(_.reserved_value for _ in ufuns)
+    rs = (
+        tuple(_.reserved_value for _ in ufuns)
+        if ufuns
+        else tuple(0 for _ in range(n_ufuns))
+    )
     rs = tuple(float(_) if _ is not None else float("-inf") for _ in rs)
     # find all reserved values
     ranges = list(ranges)
@@ -1325,7 +1331,7 @@ def pareto_frontier(
     max_cardinality: int | float = float("inf"),
     sort_by_welfare=True,
     eps: float = 1e-12,
-) -> tuple[tuple[tuple[float, ...]], tuple[int]]:
+) -> tuple[tuple[tuple[float, ...], ...], tuple[int, ...]]:
     """Finds all pareto-optimal outcomes in the list.
 
     Args:
@@ -1351,9 +1357,12 @@ def pareto_frontier(
     # calculate all candidate outcomes
     if outcomes is None:
         if issues is None:
-            return tuple(), tuple()
+            try:
+                issues = ufuns[0].outcome_space.issues  # type: ignore
+            except:
+                return ((), ())
         outcomes = discretize_and_enumerate_issues(
-            issues, n_discretization=n_discretization, max_cardinality=max_cardinality
+            issues, n_discretization=n_discretization, max_cardinality=max_cardinality  # type: ignore
         )
         # outcomes = itertools.product(
         #     *[issue.value_generator(n=n_discretization) for issue in issues]
