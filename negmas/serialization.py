@@ -275,6 +275,8 @@ def deserialize(
     remove_type_field=True,
     keep_private=False,
     fallback_class_name: str | None = None,
+    python_class_identifier=PYTHON_CLASS_IDENTIFIER,
+    base_module: str = "",
 ):
     """Decodes a dict/object coming from `serialize`
 
@@ -301,33 +303,63 @@ def deserialize(
     def good_field(k: str):
         if not isinstance(k, str):
             return True
-        return keep_private or not (k != PYTHON_CLASS_IDENTIFIER and k.startswith("_"))
+        return keep_private or not (k != python_class_identifier and k.startswith("_"))
 
     if d is None or isinstance(d, int) or isinstance(d, float) or isinstance(d, str):
         return d
     if isinstance(d, dict):
         if remove_type_field:
-            python_class_name = d.pop(PYTHON_CLASS_IDENTIFIER, fallback_class_name)
+            python_class_name = d.pop(python_class_identifier, fallback_class_name)
         else:
-            python_class_name = d.get(PYTHON_CLASS_IDENTIFIER, fallback_class_name)
+            python_class_name = d.get(python_class_identifier, fallback_class_name)
         if python_class_name is not None and python_class_name != "functools.partial":
-            python_class = get_class(python_class_name)
+            try:
+                python_class = get_class(python_class_name)
+            except Exception as e:
+                if base_module:
+                    python_class = get_class(f"{base_module}.{python_class_name}")
+                else:
+                    raise e
             # we resolve sub-objects first from the dict if deep is specified before calling deserialize on the class
             if deep:
                 d = {
-                    k: deserialize(v, deep=deep) for k, v in d.items() if good_field(k)
+                    k: deserialize(
+                        v,
+                        deep=deep,
+                        python_class_identifier=python_class_identifier,
+                        base_module=base_module,
+                    )
+                    for k, v in d.items()
+                    if good_field(k)
                 }
             # deserialize needs to do a shallow conversion from a dict as deep conversion is taken care of already.
             if hasattr(python_class, "from_dict"):
                 return python_class.from_dict({k: v for k, v in d.items()})  # type: ignore
             if deep:
-                d = {k: deserialize(v) for k, v in d.items() if good_field(k)}
+                d = {
+                    k: deserialize(
+                        v,
+                        python_class_identifier=python_class_identifier,
+                        base_module=base_module,
+                    )
+                    for k, v in d.items()
+                    if good_field(k)
+                }
             else:
                 d = {k: v for k, v in d.items() if good_field(k)}
             return python_class(**d)
         if not deep:
             return d
-        return {k: deserialize(v, deep=deep) for k, v in d.items() if good_field(k)}
+        return {
+            k: deserialize(
+                v,
+                deep=deep,
+                python_class_identifier=python_class_identifier,
+                base_module=base_module,
+            )
+            for k, v in d.items()
+            if good_field(k)
+        }
     if not deep:
         return d
     if isinstance(d, str):
@@ -347,5 +379,12 @@ def deserialize(
         #     return json.loads(d[JSON_START:])
         return d
     if isinstance(d, tuple) or isinstance(d, list):
-        return type(d)(deserialize(_) for _ in d)
+        return type(d)(
+            deserialize(
+                _,
+                python_class_identifier=python_class_identifier,
+                base_module=base_module,
+            )
+            for _ in d
+        )
     return d

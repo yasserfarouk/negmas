@@ -435,9 +435,9 @@ def load(file_name: str | os.PathLike | pathlib.Path) -> Any:
     if file_name.suffix == ".json":
         with open(file_name) as f:
             d = json.load(f)
-    elif file_name.suffix == ".yaml":
+    elif file_name.suffix in (".yaml", ".yml"):
         with open(file_name) as f:
-            yaml.safe_load(f)
+            d = yaml.safe_load(f)
     elif file_name.suffix == ".pickle":
         with open(file_name, "rb") as f:
             d = pickle.load(f)

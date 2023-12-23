@@ -54,6 +54,8 @@ def intin(x: int | tuple[int, int] | Sequence[int], log_uniform: bool = False) -
                 x[1], max(x[0], int(0.5 + exp(random.random() * (l[1] - l[0]) + l[0])))
             )
 
+        if x[0] == x[1]:
+            return int(x[0])
         return random.randint(*x)
     if isinstance(x, Sequence):
         return int(random.choice(x))

@@ -8,7 +8,7 @@ import xml.etree.ElementTree as ET
 from os import PathLike, listdir
 from pathlib import Path
 from random import shuffle
-from typing import Any, Callable, Iterable, Sequence
+from typing import Any, Callable, Iterable, Sequence, Union
 
 from attrs import define, field
 
@@ -17,7 +17,7 @@ from negmas.helpers.types import get_full_type_name
 from negmas.outcomes.outcome_space import make_os
 from negmas.preferences.crisp.linear import LinearAdditiveUtilityFunction
 from negmas.preferences.ops import ScenarioStats, calc_scenario_stats
-from negmas.serialization import PYTHON_CLASS_IDENTIFIER, serialize
+from negmas.serialization import PYTHON_CLASS_IDENTIFIER, deserialize, serialize
 
 from .mechanisms import Mechanism
 from .negotiators import Negotiator
@@ -358,7 +358,7 @@ class Scenario:
         )
         opposition = opposition_level(
             ufuns,
-            max_utils=tuple(_[1] for _ in minmax),
+            max_utils=tuple(_[1] for _ in minmax),  # type: ignore
             outcomes=outcomes,
             max_tests=max_cardinality,
         )
@@ -512,6 +512,34 @@ class Scenario:
             safe_parsing=safe_parsing,
         )
 
+    @classmethod
+    def load(cls, folder: Path | str, safe_parsing=False) -> Scenario | None:
+        """
+        Loads the scenario from a folder with supported formats: XML, YML
+        """
+        for finder, loader in (
+            (find_domain_and_utility_files_yaml, cls.from_yaml_folder),
+            (find_domain_and_utility_files_xml, cls.from_genius_folder),
+            (find_domain_and_utility_files_geniusweb, cls.from_geniusweb_folder),
+        ):
+            domain, _ = finder(folder)
+            if domain is not None:
+                return loader(folder, safe_parsing=safe_parsing)
+
+    @classmethod
+    def is_loadable(cls, path: PathLike | str):
+        if not Path(path).is_dir():
+            return False
+        for finder in (
+            find_domain_and_utility_files_yaml,
+            find_domain_and_utility_files_xml,
+            find_domain_and_utility_files_geniusweb,
+        ):
+            d, _ = finder(Path(path))
+            if d is not None:
+                return True
+        return False
+
     @staticmethod
     def from_genius_files(
         domain: PathLike,
@@ -566,6 +594,80 @@ class Scenario:
             normalize_max_only=False,
         )
 
+    @classmethod
+    def from_yaml_folder(
+        cls,
+        path: PathLike | str,
+        ignore_discount=False,
+        ignore_reserved=False,
+        safe_parsing=True,
+    ) -> Scenario | None:
+        domain, ufuns = find_domain_and_utility_files_yaml(path)
+        if not domain:
+            return None
+        return cls.from_yaml_files(
+            domain=domain,
+            ufuns=ufuns,
+            ignore_discount=ignore_discount,
+            ignore_reserved=ignore_reserved,
+            safe_parsing=safe_parsing,
+        )
+
+    @classmethod
+    def from_yaml_files(
+        cls,
+        domain: PathLike,
+        ufuns: Iterable[PathLike],
+        ignore_discount=False,
+        ignore_reserved=False,
+        safe_parsing=True,
+    ) -> Scenario | None:
+        _ = safe_parsing  # yaml parsing is always safe
+
+        def adjust_type(d: dict, base: str = "negmas", domain=None) -> dict:
+            d["type"] = f"{base}.{d['type']}"
+            if domain is not None:
+                d["outcome_space"] = domain
+            return d
+
+        os = deserialize(
+            adjust_type(load(domain)),
+            python_class_identifier="type",
+            base_module="negmas",
+        )
+        utils = tuple(
+            deserialize(
+                adjust_type(load(fname), domain=os),
+                python_class_identifier="type",
+                base_module="negmas",
+            )
+            for fname in ufuns
+        )
+
+        # d = load(domain)
+        # type_ = d.pop("type", "")
+        # assert (
+        #     "OutcomeSpace" in type_
+        # ), f"Unknown type or no type for domain file: {domain=}\n{d=}"
+        # type_ = f"negmas.outcomes.{type_}"
+        # d["issues"]
+        # os = instantiate(type_, **d)
+        # utils = []
+        # for fname in ufuns:
+        #     d = load(fname)
+        #     type_ = d.pop("type", "")
+        #     assert (
+        #         "Fun" in type_
+        #     ), f"Unknown type or no type for ufun file: {domain=}\n{d=}"
+        #     type_ = f"negmas.preferences.{type_}"
+        #     utils.append(instantiate(type_, **d))
+        s = Scenario(outcome_space=os, ufuns=tuple(utils))  # type: ignore
+        if s and ignore_discount:
+            s = s.remove_discounting()
+        if s and ignore_reserved:
+            s = s.remove_reserved_values()
+        return s
+
 
 def get_domain_issues(
     domain_file_name: PathLike | str,
@@ -612,13 +714,11 @@ def load_genius_domain(
         ignore_reserved: Sets the reserved_value of all ufuns to -inf
         ignore_discount: Ignores discounting
         safe_parsing: Applies more stringent checks during parsing
-        kwargs: Extra arguments to pass verbatim to SAOMechanism constructor
 
     Returns:
         A `Domain` ready to run
 
     """
-    from .sao import SAOMechanism
 
     issues = None
     if domain_file_name is not None:
@@ -631,14 +731,20 @@ def load_genius_domain(
     if utility_file_names is None:
         utility_file_names = []
     for ufname in utility_file_names:
-        utility, discount_factor = UtilityFunction.from_genius(
-            file_name=ufname,
-            issues=issues,
-            safe_parsing=safe_parsing,
-            ignore_discount=ignore_discount,
-            ignore_reserved=ignore_reserved,
-            name=str(ufname),
-        )
+        try:
+            utility, discount_factor = UtilityFunction.from_genius(
+                file_name=ufname,
+                issues=issues,
+                safe_parsing=safe_parsing,
+                ignore_discount=ignore_discount,
+                ignore_reserved=ignore_reserved,
+                name=str(ufname),
+            )
+        except Exception as e:
+            raise OSError(
+                f"Ufun named {Path(ufname).name} cannot be read: {e.__class__.__name__}({e})"
+            )
+
         agent_info.append(
             {
                 "ufun": utility,
@@ -667,10 +773,8 @@ def load_genius_domain(
         raise ValueError(f"Could not load domain {domain_file_name}")
 
     return Scenario(
-        outcome_space=make_os(issues, name=str(domain_file_name)),
-        ufuns=[_["ufun"] for _ in agent_info],  # type: ignore
-        mechanism_type=SAOMechanism,
-        mechanism_params=kwargs,
+        outcome_space=make_os(issues, name=str(domain_file_name)),  # type: ignore
+        ufuns=tuple(_["ufun"] for _ in agent_info),  # type: ignore
     )
 
 
@@ -698,15 +802,10 @@ def load_genius_domain_from_folder(
 
         >>> import pkg_resources
         >>> from negmas import load_genius_domain_from_folder
-        >>> from negmas import AspirationNegotiator
 
         Try loading and running a domain with predetermined agents:
         >>> domain = load_genius_domain_from_folder(
         ...     pkg_resources.resource_filename('negmas', resource_name='tests/data/Laptop'))
-        >>> mechanism = domain.make_session(AspirationNegotiator, n_steps=100)
-        >>> state = mechanism.run()
-        >>> state.agreement is not None
-        True
 
 
         Try loading a domain and check the resulting ufuns
@@ -717,7 +816,7 @@ def load_genius_domain_from_folder(
         (3, 2)
 
         >>> [type(_) for _ in domain.ufuns]
-        [<class 'negmas.preferences.crisp.linear.LinearAdditiveUtilityFunction'>, <class 'negmas.preferences.crisp.linear.LinearAdditiveUtilityFunction'>]
+        [<class 'negmas.preferences.linear.LinearAdditiveUtilityFunction'>, <class 'negmas.preferences.linear.LinearAdditiveUtilityFunction'>]
 
         Try loading a domain forcing a single issue space
         >>> domain = load_genius_domain_from_folder(
@@ -726,7 +825,7 @@ def load_genius_domain_from_folder(
         >>> domain.n_issues, domain.n_negotiators
         (1, 2)
         >>> [type(_) for _ in domain.ufuns]
-        [<class 'negmas.preferences.crisp.linear.LinearAdditiveUtilityFunction'>, <class 'negmas.preferences.crisp.linear.LinearAdditiveUtilityFunction'>]
+        [<class 'negmas.preferences.linear.LinearAdditiveUtilityFunction'>, <class 'negmas.preferences.linear.LinearAdditiveUtilityFunction'>]
 
 
         Try loading a domain with nonlinear ufuns:
@@ -737,7 +836,7 @@ def load_genius_domain_from_folder(
         >>> print(domain.n_negotiators)
         2
         >>> print([type(u) for u in domain.ufuns])
-        [<class 'negmas.preferences.crisp.nonlinear.HyperRectangleUtilityFunction'>, <class 'negmas.preferences.crisp.nonlinear.HyperRectangleUtilityFunction'>]
+        [<class 'negmas.preferences.nonlinear.HyperRectangleUtilityFunction'>, <class 'negmas.preferences.nonlinear.HyperRectangleUtilityFunction'>]
         >>> u = domain.ufuns[0]
         >>> print(u.outcome_ranges[0])
         {1: (7.0, 9.0), 3: (2.0, 7.0), 5: (0.0, 8.0), 8: (0.0, 7.0)}
@@ -773,6 +872,68 @@ def load_genius_domain_from_folder(
         ignore_discount=ignore_discount,
         **kwargs,
     )
+
+
+def find_domain_and_utility_files_yaml(
+    folder_name,
+) -> tuple[PathLike | None, list[PathLike]]:
+    """Finds the domain and utility_function files in a folder"""
+    files = sorted(listdir(folder_name))
+    domain_file_name = None
+    utility_file_names = []
+    folder_name = str(folder_name)
+    for f in files:
+        if not f.endswith(".yml") and not f.endswith(".yaml"):
+            continue
+        full_name = folder_name + "/" + f
+        data = load(full_name)
+        if data and "OutcomeSpace" in data.get("type", ""):
+            domain_file_name = full_name
+        elif data and ("fun" in data.get("type", "").lower()):
+            utility_file_names.append(full_name)
+    return domain_file_name, utility_file_names
+
+
+def find_domain_and_utility_files_geniusweb(
+    folder_name,
+) -> tuple[PathLike | None, list[PathLike]]:
+    """Finds the domain and utility_function files in a folder"""
+    files = sorted(listdir(folder_name))
+    domain_file_name = None
+    utility_file_names = []
+    folder_name = str(folder_name)
+    for f in files:
+        if not f.endswith(".json") or f.endswith("specials.json"):
+            continue
+        full_name = folder_name + "/" + f
+        data = load(full_name)
+
+        if data and "issuesValues" in data.keys():
+            domain_file_name = full_name
+        elif data and "LinearAdditiveUtilitySpace" in data.keys():
+            utility_file_names.append(full_name)
+    return domain_file_name, utility_file_names
+
+
+def find_domain_and_utility_files_xml(
+    folder_name,
+) -> tuple[PathLike | None, list[PathLike]]:
+    """Finds the domain and utility_function files in a folder"""
+    files = sorted(listdir(folder_name))
+    domain_file_name = None
+    utility_file_names = []
+    folder_name = str(folder_name)
+    for f in files:
+        if not f.endswith(".xml") or f.endswith("pareto.xml"):
+            continue
+        full_name = folder_name + "/" + f
+        root = ET.parse(full_name).getroot()
+
+        if root.tag == "negotiation_template":
+            domain_file_name = full_name
+        elif root.tag == "utility_space":
+            utility_file_names.append(full_name)
+    return domain_file_name, utility_file_names  # type: ignore
 
 
 def load_geniusweb_domain_from_folder(
@@ -880,7 +1041,6 @@ def load_geniusweb_domain(
         A `Domain` ready to run
 
     """
-    from .sao import SAOMechanism
 
     issues = None
     name = load(domain_file_name).get("name", domain_file_name)
@@ -933,6 +1093,4 @@ def load_geniusweb_domain(
     return Scenario(
         outcome_space=make_os(issues, name=name),
         ufuns=[_["ufun"] for _ in agent_info],  # type: ignore
-        mechanism_type=SAOMechanism,
-        mechanism_params=kwargs,
     )
