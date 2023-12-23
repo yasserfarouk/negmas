@@ -62,6 +62,7 @@ class SAONegotiator(GBNegotiator):
             owner=owner,
             id=id,
             type_name=type_name,
+            **kwargs,
         )
         self.__end_negotiation = False
         self.__my_last_proposal: Outcome | None = None
