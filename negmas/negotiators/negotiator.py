@@ -1,15 +1,13 @@
 from __future__ import annotations
 
-from abc import ABC, abstractmethod
-from typing import TYPE_CHECKING, Any, Callable
+from abc import ABC
+from typing import TYPE_CHECKING, Any
 
 import negmas.warnings as warnings
 from negmas.common import (
-    Action,
     MechanismState,
     NegotiatorMechanismInterface,
     PreferencesChange,
-    ReactiveStrategy,
 )
 from negmas.events import Notifiable, Notification
 from negmas.types import Rational
@@ -61,7 +59,6 @@ class Negotiator(Rational, Notifiable, ABC):
         if ufun is not None:
             preferences = ufun
         self.__parent = parent
-        self.__private_info = private_info if private_info else dict()
         self._capabilities = {"enter": True, "leave": True, "ultimatum": True}
         self._nmi: NegotiatorMechanismInterface | None = None
         self._initial_state = None
@@ -71,6 +68,7 @@ class Negotiator(Rational, Notifiable, ABC):
             name=name, ufun=None, preferences=None, id=id, type_name=type_name
         )
         self._preferences = preferences
+        self._private_info = private_info if private_info else dict()
         self.__saved_pref_os = None
         self.__saved_prefs = None
 
@@ -101,7 +99,7 @@ class Negotiator(Rational, Notifiable, ABC):
             self.__saved_prefs = self._preferences
             self._preferences.outcome_space = self.nmi.outcome_space
 
-    def set_preferences(self, value: Preferences, force=False) -> Preferences | None:
+    def set_preferences(self, value: Preferences | None, force=False) -> None:
         if self._nmi is None:
             self._preferences = value
             return
@@ -121,7 +119,12 @@ class Negotiator(Rational, Notifiable, ABC):
     @property
     def annotation(self) -> dict[str, Any]:
         """Returns the private information (annotation) not shared with other negotiators"""
-        return self.__private_info
+        return self._private_info
+
+    @property
+    def private_info(self) -> dict[str, Any]:
+        """Returns the private information (annotation) not shared with other negotiators"""
+        return self._private_info
 
     @property
     def parent(self) -> Controller | None:

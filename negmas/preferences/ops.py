@@ -901,6 +901,7 @@ def nash_points(
     Args:
         ufuns: A list of ufuns to use. If not given, the reserved value is assumed to be zero for all ufuns
         frontier: a list of tuples each giving the utility values at some outcome on the frontier (usually found by `pareto_frontier`) to search within
+        ranges: The ranges of the utility functions involved.
         outcome_space: The outcome-space to consider
         issues: The issues on which the ufun is defined (outcomes may be passed instead)
         outcomes: The outcomes on which the ufun is defined (outcomes may be passed instead)
@@ -1324,7 +1325,7 @@ def dominating_points(
 
 
 def pareto_frontier(
-    ufuns: Sequence[UtilityFunction],
+    ufuns: Sequence[BaseUtilityFunction],
     outcomes: Sequence[Outcome] | None = None,
     issues: Sequence[Issue] | None = None,
     n_discretization: int | None = None,

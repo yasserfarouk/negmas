@@ -101,7 +101,7 @@ def run_negotiation(
     run_id: int | str | None = None,
     stats: ScenarioStats | None = None,
     annotation: dict[str, Any] | None = None,
-    private_infos: tuple[dict[str, Any]] | None = None,
+    private_infos: tuple[dict[str, Any] | None] | None = None,
     id_reveals_type: bool = False,
     name_reveals_type: bool = True,
     mask_scenario_name: bool = True,
@@ -290,8 +290,10 @@ def run_negotiation(
 def cartesian_tournament(
     competitors: list[type[Negotiator] | str] | tuple[type[Negotiator] | str, ...],
     scenarios: list[Scenario] | tuple[Scenario, ...],
+    private_infos: list[None | tuple[dict, ...]] | None = None,
     competitor_params: Sequence[dict | None] | None = None,
     rotate_ufuns: bool = True,
+    rotate_private_infos: bool = True,
     n_repetitions: int = 1,
     path: Path | None = None,
     njobs: int = 0,
@@ -324,7 +326,9 @@ def cartesian_tournament(
         competitors: A tuple of the competing negotiator types.
         scenarios: A tuple of base scenarios to use for the tournament.
         competitor_params: Either None for no-parameters or a tuple of dictionaries with parameters to initialize the competitors (in order).
+        private_infos: If given, a list of the same length as scenarios. Each item is a tuple giving the private information to be passed to every negotiator in every scenario.
         rotate_ufuns: If `True`, the ufuns will be rotated over negotiator positions (for bilateral negotiation this leads to two scenarios for each input scenario with reversed ufun order).
+        rotate_private_infos: If `True` and `rotate_ufuns` is also `True`, private information will be rotated with the utility functions.
         n_repetitions: Number of times to repeat each scenario/partner combination
         path: Path on disk to save the results and details of this tournament. Pass None to disable logging
         n_jobs: Number of parallel jobs to run. -1 means running serially (useful for debugging) and 0 means using all cores.
@@ -364,6 +368,8 @@ def cartesian_tournament(
     competitors = [get_class(_) for _ in competitors]
     if competitor_params is None:
         competitor_params = [dict() for _ in competitors]
+    if private_infos is None:
+        private_infos = [tuple(dict() for _ in s.ufuns) for s in scenarios]
 
     def make_scores(record: dict[str, Any]) -> list[dict[str, float]]:
         utils, partners = record["utilities"], record["partners"]
@@ -426,22 +432,31 @@ def cartesian_tournament(
     competitor_info = list(
         zip(competitors, competitor_params, competitor_names, strict=True)
     )
-    for s in scenarios:
+    for s, pinfo in zip(scenarios, private_infos):
+        pinfolst = list(pinfo) if pinfo else [dict() for _ in s.ufuns]
         n = len(s.ufuns)
         partners_list = list(product(*tuple([competitor_info] * n)))
         if not self_play:
-            partners_list = [_ for _ in partners_list if len(set(serialize(_))) > 1]
+            partners_list = [
+                _ for _ in partners_list if len({str(serialize(p)) for p in _}) > 1
+            ]
 
         ufun_sets = [list(s.ufuns)]
+        pinfo_sets = [pinfo]
         for i, u in enumerate(s.ufuns):
             u.name = f"{i}_{u.name}"
         if rotate_ufuns:
             for _ in range(len(ufun_sets)):
                 ufuns = ufun_sets[-1]
                 ufun_sets.append([ufuns[-1]] + ufuns[:-1])
+                if rotate_private_infos and pinfolst:
+                    pinfo_sets.append(tuple([pinfolst[-1]] + pinfolst[:-1]))
+                else:
+                    pinfo_sets.append(pinfo)
+
         original_name = s.outcome_space.name
         # original_ufun_names = [_.name for _ in s.ufuns]
-        for i, ufuns in enumerate(ufun_sets):
+        for i, (ufuns, pinfo_tuple) in enumerate(zip(ufun_sets, pinfo_sets)):
             if len(ufun_sets) > 1:
                 for j, u in enumerate(ufuns):
                     n = "_".join(u.name.split("_")[1:])
@@ -494,6 +509,7 @@ def cartesian_tournament(
                         name_reveals_type=name_reveals_type,
                         plot_params=plot_params,
                         mask_scenario_name=mask_scenario_names,
+                        private_infos=pinfo_tuple,
                     )
                     for i in range(n_repetitions)
                 ]

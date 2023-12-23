@@ -14,6 +14,10 @@ __all__ = [
     "make_non_pareto",
     "generate_utility_values",
     "ParetoGenerator",
+    "GENERATOR_MAP",
+    "make_curve_pareto",
+    "make_piecewise_linear_pareto",
+    "make_zero_sum_pareto",
 ]
 
 
@@ -51,8 +55,7 @@ def distribute_integer_randomly(n: int, m: int) -> list[int]:
     """
 
     if n < m:
-        raise ValueError("n must be greater than or equal to m.")
-
+        raise ValueError(f"Cannot distribute {n} over {m} bins.")
     # Calculate base distribution and remainder
     base_distribution = 1
     remainder = n - m
@@ -110,6 +113,8 @@ def make_pareto(
     """
     assert len(endpoints) > 1
     num_segments = len(endpoints) - 1
+    if n_outcomes <= num_segments:
+        n_outcomes = num_segments + 1
     if n_outcomes <= num_segments:
         n_per_segment = [1] * n_outcomes + [0] * (num_segments - n_outcomes)
     n_per_segment = distribute_integer_randomly(n_outcomes - 1, num_segments)
@@ -224,6 +229,8 @@ def make_piecewise_linear_pareto(
 ):
     """Generate a piecewise-linear Pareto generator of the given number of segments"""
     endpoints = make_endpoints(n_segments)
+    if len(endpoints) < n_pareto:
+        endpoints = endpoints[: n_pareto - 1]
     return make_pareto(endpoints, n_pareto)
 
 
@@ -265,6 +272,7 @@ def generate_utility_values(
     pareto_first=False,
     pareto_generator: ParetoGenerator | str = "piecewise_linear",
     generator_params: dict[str, Any] | None = None,
+    n_trials=10,
 ) -> list[tuple[float, ...]]:
     """
     Generates ufuns that have a controllable Pareto frontier
