@@ -18,6 +18,7 @@ from attr import asdict, define
 from rich import print
 from rich.progress import track
 
+from negmas.gb.mechanisms.base import GBMechanism
 from negmas.helpers import unique_name
 from negmas.helpers.inout import dump
 from negmas.helpers.strings import shortest_unique_names
@@ -255,8 +256,10 @@ def run_negotiation(
 
         full_name = path / "negotiations" / f"{file_name}.csv"
         assert not full_name.exists(), f"{full_name} already found"
-        if issubclass(mechanism_type, SAOMechanism):
-            save_as_df(m.extended_trace, ("step", "negotiator", "offer"), full_name)  # type: ignore
+        if issubclass(mechanism_type, SAOMechanism) or issubclass(
+            mechanism_type, GBMechanism
+        ):
+            save_as_df(m.full_trace, ("time", "relative_time", "step", "negotiator", "offer", "responses", "state"), full_name)  # type: ignore
             for i, negotiator in enumerate(m.negotiators):
                 neg_name = (
                     path
@@ -464,7 +467,7 @@ def cartesian_tournament(
                 scenario = Scenario(
                     type(s.outcome_space)(
                         issues=s.outcome_space.issues,
-                        name=f"{original_name}_{i}" if i else original_name,
+                        name=f"{original_name}-{i}" if i else original_name,
                     ),
                     tuple(ufuns),
                 )
