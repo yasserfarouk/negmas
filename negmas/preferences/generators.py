@@ -266,7 +266,6 @@ def generate_utility_values(
     pareto_first=False,
     pareto_generator: ParetoGenerator | str = "piecewise_linear",
     generator_params: dict[str, Any] | None = None,
-    n_trials=10,
 ) -> list[tuple[float, ...]]:
     """
     Generates ufuns that have a controllable Pareto frontier
@@ -277,7 +276,6 @@ def generate_utility_values(
         pareto_first: If given, Pareto outcomes come first in the returned results.
         pareto_generator: The method used to generate the Pareto front utilities
         generator_params: The parameters passed to the Pareto generator
-        n_trials: How many times to retry generation if the generator fails
 
     Returns:
         A list of tuples each giving the utilities of one outcome
