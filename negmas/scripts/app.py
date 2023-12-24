@@ -53,6 +53,7 @@ except:
 n_completed = 0
 n_total = 0
 
+BASE_WEBSITE = "https://yasserfarouk.github.io/files/"
 GENIUS_JAR_NAME = "geniusbridge.jar"
 DOCS_ZIP = "negmas_docs.zip"
 
@@ -840,7 +841,7 @@ def combine_results(path, dest, metric, significance, compile, verbose):
     "read the path from ~/negmas/config.json"
     "\n\tConfig key is genius_bridge_jar"
     "\nYou can download this jar from: "
-    "http://www.yasserm.com/scml/geniusbridge.jar",
+    f"{BASE_WEBSITE}geniusbridge.jar",
 )
 @click.option(
     "--port",
@@ -917,7 +918,7 @@ def download_and_set(key, url, file_name, extract=False):
 
 @cli.command(help="Downloads and installs docs to ~/negmas/docs")
 def docs_setup():
-    url = f"http://www.yasserm.com/scml/{DOCS_ZIP}"
+    url = f"{BASE_WEBSITE}{DOCS_ZIP}"
     print(f"Downloading and extracting: {url}", end="", flush=True)
     path = download_and_set(key="docs", url=url, file_name=DOCS_ZIP, extract=True)
     print(
@@ -950,7 +951,7 @@ def docs():
 
 @cli.command(help="Downloads the genius bridge and updates your settings")
 def genius_setup():
-    url = f"http://www.yasserm.com/scml/{GENIUS_JAR_NAME}"
+    url = f"{BASE_WEBSITE}{GENIUS_JAR_NAME}"
     print(f"Downloading: {url}", end="", flush=True)
     download_and_set(key="genius_bridge_jar", url=url, file_name=GENIUS_JAR_NAME)
     print(" done successfully")
