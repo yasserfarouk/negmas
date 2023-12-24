@@ -17,6 +17,7 @@ from negmas.helpers.types import get_full_type_name
 from negmas.outcomes.outcome_space import make_os
 from negmas.preferences.crisp.linear import LinearAdditiveUtilityFunction
 from negmas.preferences.ops import ScenarioStats, calc_scenario_stats
+from negmas.sao.mechanism import SAOMechanism
 from negmas.serialization import PYTHON_CLASS_IDENTIFIER, deserialize, serialize
 
 from .mechanisms import Mechanism
@@ -62,7 +63,7 @@ class Scenario:
 
     outcome_space: CartesianOutcomeSpace
     ufuns: tuple[UtilityFunction, ...]
-    mechanism_type: type[Mechanism] | None = None
+    mechanism_type: type[Mechanism] | None = SAOMechanism
     mechanism_params: dict = field(factory=dict)
 
     @property
@@ -816,7 +817,7 @@ def load_genius_domain_from_folder(
         (3, 2)
 
         >>> [type(_) for _ in domain.ufuns]
-        [<class 'negmas.preferences.linear.LinearAdditiveUtilityFunction'>, <class 'negmas.preferences.linear.LinearAdditiveUtilityFunction'>]
+        [<class 'negmas.preferences.crisp.linear.LinearAdditiveUtilityFunction'>, <class 'negmas.preferences.crisp.linear.LinearAdditiveUtilityFunction'>]
 
         Try loading a domain forcing a single issue space
         >>> domain = load_genius_domain_from_folder(
@@ -825,7 +826,7 @@ def load_genius_domain_from_folder(
         >>> domain.n_issues, domain.n_negotiators
         (1, 2)
         >>> [type(_) for _ in domain.ufuns]
-        [<class 'negmas.preferences.linear.LinearAdditiveUtilityFunction'>, <class 'negmas.preferences.linear.LinearAdditiveUtilityFunction'>]
+        [<class 'negmas.preferences.crisp.linear.LinearAdditiveUtilityFunction'>, <class 'negmas.preferences.crisp.linear.LinearAdditiveUtilityFunction'>]
 
 
         Try loading a domain with nonlinear ufuns:
@@ -836,7 +837,7 @@ def load_genius_domain_from_folder(
         >>> print(domain.n_negotiators)
         2
         >>> print([type(u) for u in domain.ufuns])
-        [<class 'negmas.preferences.nonlinear.HyperRectangleUtilityFunction'>, <class 'negmas.preferences.nonlinear.HyperRectangleUtilityFunction'>]
+        [<class 'negmas.preferences.crisp.nonlinear.HyperRectangleUtilityFunction'>, <class 'negmas.preferences.crisp.nonlinear.HyperRectangleUtilityFunction'>]
         >>> u = domain.ufuns[0]
         >>> print(u.outcome_ranges[0])
         {1: (7.0, 9.0), 3: (2.0, 7.0), 5: (0.0, 8.0), 8: (0.0, 7.0)}
