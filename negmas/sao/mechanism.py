@@ -589,8 +589,28 @@ class SAOMechanism(Mechanism):
             return int(ResponseType.REJECT_OFFER)
 
         offers = []
+
+        def get_acceptances(state: SAOState):
+            neg = state.current_proposer
+            n_acceptances = state.n_acceptances
+            if self._offering_is_accepting:
+                n_acceptances -= 1
+            if neg is None:
+                indices = []
+            else:
+                indx = self.negotiator_index(neg)
+                n = self.nmi.n_negotiators
+                if indx is None:
+                    indices = []
+                else:
+                    indices = [
+                        _ if _ < n else _ % n for _ in range(indx, n_acceptances + indx)
+                    ]
+            return [self.negotiator_ids[_] for _ in indices]
+
         for state in self._history:
             state: SAOState
+            acceptances = get_acceptances(state)
             offers += [
                 TraceElement(
                     state.time,
@@ -598,7 +618,7 @@ class SAOMechanism(Mechanism):
                     state.step,
                     n,
                     o,
-                    (asint(state),),
+                    {n: ResponseType.ACCEPT_OFFER for n in acceptances},
                     response(state),
                 )
                 for n, o in state.new_offers
@@ -613,8 +633,9 @@ class SAOMechanism(Mechanism):
         if (
             self.agreement is not None
             and offers
-            and not_equal(offers[-1][-1], self.agreement)
+            and not_equal(offers[-1].offer, self.agreement)
         ):
+            acceptances = get_acceptances(self._history[-1])
             offers.append(
                 TraceElement(
                     self._history[-1].time,
@@ -622,7 +643,7 @@ class SAOMechanism(Mechanism):
                     self._history[-1].step,
                     self._history[-1].current_proposer,
                     self.agreement,
-                    (asint(self._history[-1]),),
+                    {n: ResponseType.ACCEPT_OFFER for n in acceptances},
                     response(self._history[-1]),
                 )
             )

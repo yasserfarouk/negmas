@@ -7,6 +7,7 @@ from typing import TYPE_CHECKING, Callable, Protocol
 
 from negmas.common import MechanismState, NegotiatorMechanismInterface, TraceElement
 from negmas.gb import ResponseType
+from negmas.gb.negotiators.timebased import AspirationNegotiator
 from negmas.helpers.misc import make_callable
 from negmas.helpers.strings import humanize_time
 from negmas.negotiators import Negotiator
@@ -34,6 +35,7 @@ __all__ = [
     "opacity_colorizer",
     "default_colorizer",
     "Colorizer",
+    "plot_offline_run",
 ]
 
 
@@ -762,6 +764,181 @@ def plot_2dutils(
             mode="expand",
             borderaxespad=0.0,
         )
+
+
+def plot_offline_run(
+    trace: list[TraceElement],
+    ids: list[str],
+    ufuns: list[BaseUtilityFunction] | tuple[BaseUtilityFunction],
+    state: MechanismState,
+    names: list[str] | None = None,
+    *,
+    negotiators: tuple[int, int] | tuple[str, str] | None = (0, 1),
+    save_fig: bool = False,
+    path: str | None = None,
+    fig_name: str | None = None,
+    ignore_none_offers: bool = True,
+    with_lines: bool = True,
+    show_agreement: bool = False,
+    show_pareto_distance: bool = True,
+    show_nash_distance: bool = True,
+    show_kalai_distance: bool = True,
+    show_max_welfare_distance: bool = True,
+    show_max_relative_welfare_distance: bool = False,
+    show_end_reason: bool = True,
+    show_annotations: bool = False,
+    show_reserved: bool = True,
+    show_total_time=True,
+    show_relative_time=True,
+    show_n_steps=True,
+    colors: list | None = None,
+    markers: list[str] | None = None,
+    colormap: str = DEFAULT_COLORMAP,
+    ylimits: tuple[float, float] | None = None,
+    common_legend=True,
+    extra_annotation: str = "",
+    xdim: str = "relative_time",
+    colorizer: Colorizer | None = None,
+    only2d: bool = False,
+    no2d: bool = False,
+    fast: bool = False,
+    simple_offers_view: bool = False,
+    mark_offers_view: bool = True,
+    mark_pareto_points: bool = True,
+    mark_all_outcomes: bool = True,
+    mark_nash_points: bool = True,
+    mark_kalai_points: bool = True,
+    mark_max_welfare_points: bool = True,
+):
+    import matplotlib.gridspec as gridspec
+    import matplotlib.pyplot as plt
+
+    if names is None:
+        names = [_ for _ in ids]
+
+    assert not (no2d and only2d), f"Cannot specify no2d and only2d together"
+
+    if negotiators is None:
+        negotiators = (0, 1)
+    if len(negotiators) != 2:
+        raise ValueError(
+            f"Cannot plot the 2D plot for the mechanism run without knowing two plotting negotiators"
+        )
+    plotting_negotiators = []
+    plotting_ufuns = []
+    for n in negotiators:
+        if isinstance(n, int):
+            i = n
+        else:
+            i = ids.index(n)
+            if i is None:
+                raise ValueError(f"Cannot find negotiator with ID {n}")
+        plotting_negotiators.append(ids[i])
+        plotting_ufuns.append(ufuns[i])
+
+    name_map = dict(zip(ids, names))
+    fig = plt.figure(figsize=(12.8, 4.8) if not only2d and not no2d else None)
+    extra_col = int(not no2d)
+    if only2d:
+        axu = fig.subplots()
+    else:
+        gs = gridspec.GridSpec(len(ids), 1 + extra_col)
+        axs = []
+        colors, markers = make_colors_and_markers(colors, markers, len(ids), colormap)
+
+        all_ufuns = ufuns
+        for a, neg in enumerate(ids):
+            if a == 0:
+                axs.append(fig.add_subplot(gs[a, extra_col]))
+            else:
+                axs.append(fig.add_subplot(gs[a, extra_col], sharex=axs[0]))
+            plot_offer_utilities(
+                trace=trace,
+                negotiator=neg,
+                plotting_ufuns=[all_ufuns[a]] if simple_offers_view else all_ufuns,  # type: ignore
+                plotting_negotiators=[neg] if simple_offers_view else ids,
+                ax=axs[-1],
+                name_map=name_map,
+                colors=colors,
+                markers=markers,
+                ignore_none_offers=ignore_none_offers,
+                ylimits=ylimits,
+                show_legend=(not common_legend or a == 0) and not simple_offers_view,
+                show_x_label=a == len(ids) - 1,
+                show_reserved=show_reserved,
+                xdim=xdim,
+                colorizer=colorizer,
+                first_color_index=a if simple_offers_view else 0,
+                mark_offers_view=mark_offers_view,
+            )
+        if not no2d:
+            axu = fig.add_subplot(gs[:, 0])
+    if not no2d:
+        agreement = state.agreement
+        state = state
+        if not show_end_reason:
+            reason = None
+        else:
+            if state.timedout:
+                reason = "Negotiation Timedout"
+            elif agreement is not None:
+                reason = "Negotiation Success"
+            elif state.has_error:
+                reason = "Negotiation ERROR"
+            elif agreement is not None:
+                reason = "Agreemend Reached"
+            elif state.broken:
+                reason = "Negotiation Ended"
+            elif agreement is None:
+                reason = "No Agreement"
+            else:
+                reason = "Unknown state!!"
+
+        assert len(ufuns) and ufuns[0].outcome_space
+        plot_2dutils(
+            trace=trace,
+            plotting_ufuns=plotting_ufuns,
+            plotting_negotiators=plotting_negotiators,
+            offering_negotiators=ids,
+            outcome_space=ufuns[0].outcome_space,
+            outcomes=list(ufuns[0].outcome_space.enumerate_or_sample(levels=10)),
+            ax=axu,  # type: ignore
+            name_map=name_map,
+            with_lines=with_lines,
+            show_agreement=show_agreement,
+            show_pareto_distance=show_pareto_distance,
+            show_nash_distance=show_nash_distance,
+            show_kalai_distance=show_kalai_distance,
+            show_max_welfare_distance=show_max_welfare_distance,
+            show_max_relative_welfare_distance=show_max_relative_welfare_distance,
+            show_annotations=show_annotations,
+            show_reserved=show_reserved,
+            colors=colors,
+            markers=markers,
+            agreement=agreement,
+            end_reason=reason,
+            extra_annotation=extra_annotation,
+            colorizer=colorizer,
+            show_total_time=show_total_time,
+            show_relative_time=show_relative_time,
+            show_n_steps=show_n_steps,
+            fast=fast,
+            mark_pareto_points=mark_pareto_points,
+            mark_all_outcomes=mark_all_outcomes,
+            mark_nash_points=mark_nash_points,
+            mark_kalai_points=mark_kalai_points,
+            mark_max_welfare_points=mark_max_welfare_points,
+        )
+    if save_fig:
+        if fig_name is None:
+            fig_name = str(uuid.uuid4()) + ".png"
+        if path is None:
+            path_ = pathlib.Path().absolute()
+        else:
+            path_ = pathlib.Path(path)
+        path_.mkdir(parents=True, exist_ok=True)
+        fig.savefig(str(path_ / fig_name), bbox_inches="tight", transparent=False, pad_inches=0.05)  # type: ignore
+    return fig
 
 
 def plot_mechanism_run(
