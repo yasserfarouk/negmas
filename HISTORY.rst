@@ -1,6 +1,18 @@
 History
 =======
 
+Release 0.10.9
+--------------
+
+* Correcting the path to the genius bridge
+* Adding plotting of offline runs
+* Better styling of plots
+* removing n_trials from generate_utility (not needed)
+* Full testing of ufun generators
+* Passing private_infos to cartesian tournaments
+* bugfix: Private info not passed from SAONegotiator
+* Supporting yaml for saving and loading domains
+
 Release 0.10.8
 --------------
 
