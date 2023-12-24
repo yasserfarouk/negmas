@@ -3,11 +3,10 @@ from typing import Any, Callable, Iterable, Literal
 
 import numpy as np
 
-from negmas.helpers.misc import floatin, intin
+from negmas.helpers.misc import distribute_integer_randomly, floatin, intin
 from negmas.negotiators.helpers import PolyAspiration, TimeCurve
 
 __all__ = [
-    "distribute_integer_randomly",
     "sample_between",
     "make_pareto",
     "make_endpoints",
@@ -39,119 +38,37 @@ def make_curve(
     return PolyAspiration(starting_utility, curve)
 
 
-def distribute_integer_randomly(n: int, m: int) -> list[int]:
+def sample_between(
+    start: float,
+    end: float,
+    n: int,
+    endpoint=True,
+    main_range: tuple[float, float] = (0.3, 0.5),
+):
     """
-    Distributes an integer n over a list of m values randomly, with each value at least one.
+    Samples n values between the start and end given, optionally with the endpoint included.
 
-    Args:
-      n: The integer to distribute.
-      m: The number of values to distribute over.
-
-    Returns:
-      A list of m integers, where each value is at least one.
-
-    Raises:
-      ValueError: If n is less than m.
-    """
-
-    if n < m:
-        raise ValueError(f"Cannot distribute {n} over {m} bins.")
-    # Calculate base distribution and remainder
-    base_distribution = 1
-    remainder = n - m
-
-    # Create a list with base distribution for each value
-    distribution = [base_distribution] * m
-
-    # Shuffle the list to randomize remainder distribution
-    random.shuffle(distribution)
-
-    # Add remainder to the first `remainder` elements randomly
-    for _ in range(remainder):
-        distribution[random.randrange(m)] += 1
-
-    return distribution
-
-
-def sample_between(start_x, end_x, n, endpoint=True):
-    """
-    Samples n values between the start and end given, optionally with the endpoint encluded.
+    Remarks:
+        - The samples are drawn to be somewhere between main_range limits of the range between start and end.
+        - Samples that end up smaller than start are sent back to the first 50% of the range between start and end.
+        - Samples that end up larger than end are sent back to the first 50% of the range between start and end.
     """
     if n == 0:
         return []
-    samples = np.linspace(start_x, end_x, num=n, endpoint=endpoint)
+    samples = np.linspace(start, end, num=n, endpoint=endpoint)
     if len(samples) > 2:
         samples[1:-1] += (
-            0.3 * (end_x - start_x) * (np.random.random(len(samples) - 2) - 0.5)
+            main_range[0]
+            * (end - start)
+            * (np.random.random(len(samples) - 2) - main_range[1])
         )
-        samples[samples < start_x] = (
-            start_x
-            + np.random.random(len(samples[samples < start_x])) * (end_x - start_x) / 2
-        )
-        samples[samples > end_x] = (
-            end_x
-            - np.random.random(len(samples[samples > end_x])) * (end_x - start_x) / 2
-        )
+        samples[samples < start] = start + np.random.random(
+            len(samples[samples < start])
+        ) * 0.5 * (end - start)
+        samples[samples > end] = end - np.random.random(
+            len(samples[samples > end])
+        ) * 0.5 * (end - start)
     return samples
-
-
-def make_pareto(
-    endpoints: list[tuple[float, ...]], n_outcomes: int
-) -> list[tuple[float, ...]]:
-    """
-    Generates a piecewise linear curve with a specified number of segments and all slopes negative.
-
-    Args:
-      endpoints: A list of (x, y) coordinates for the endpoints of each segment.
-      n_outcomes: number of values to distribute in the piecewise linear lines connecting the endpoints
-
-    Returns:
-      None
-
-    Raises:
-      ValueError: If the number of endpoints is not equal to the number of segments + 1.
-    """
-    assert len(endpoints) > 1
-    num_segments = len(endpoints) - 1
-    if n_outcomes <= num_segments:
-        n_outcomes = num_segments + 1
-    if n_outcomes <= num_segments:
-        n_per_segment = [1] * n_outcomes + [0] * (num_segments - n_outcomes)
-    n_per_segment = distribute_integer_randomly(n_outcomes - 1, num_segments)
-    # print(n_per_segment)
-    # tmp = np.random.random(num_segments)
-    # tmp /=tmp.sum()
-    # n_per_segment=np.round((n_outcomes - n_segments) * tmp).astype(int) + 1
-    # assert n_per_segment.sum() == n_outcomes, f"{n_outcomes=}, {n_per_segment.sum()=}"
-
-    # Calculate slopes based on difference in y-coordinates
-    slopes = [
-        (endpoints[i + 1][1] - endpoints[i][1])
-        / (endpoints[i + 1][0] - endpoints[i][0])
-        for i in range(num_segments)
-    ]
-
-    # # Check if all slopes are negative
-    # if not all(slope < 0 for slope in slopes):
-    #   raise ValueError("All slopes must be negative.")
-
-    points = []
-
-    # Iterate through each segment and generate its points
-    for i in range(num_segments):
-        start_x, start_y = endpoints[i]
-        end_x = endpoints[i + 1][0]
-        slope = slopes[i]
-        n = n_per_segment[i] - 1
-        samples = sample_between(start_x, end_x, n, endpoint=False)
-        points.append((start_x, start_y))
-
-        # Calculate x and y values for each point on the segment
-        for x in samples:
-            y = start_y + slope * (x - start_x)
-            points.append((x, y))
-    points.append((endpoints[-1][0], endpoints[-1][1]))
-    return points
 
 
 def make_endpoints(
@@ -165,12 +82,83 @@ def make_endpoints(
     return list(zip(x, y))
 
 
+def make_pareto(
+    endpoints: list[tuple[float, ...]], n_outcomes: int
+) -> list[tuple[float, ...]]:
+    """
+    Generates a piecewise linear curve with a specified number of segments and all slopes negative.
+
+    Args:
+      endpoints: A list of (x, y) coordinates for the endpoints of each segment.
+      n_outcomes: number of values to distribute in the piecewise linear lines connecting the endpoints
+
+    Returns:
+        list of tuples representing utilities at the pareto-frontier
+
+    Remarks:
+      - If the number of end points is less than n_outcomes + 1,
+    """
+    if not endpoints and n_outcomes < 1:
+        return []
+    if len(endpoints) < 2:
+        return [endpoints[0]] * n_outcomes
+    if n_outcomes < 2:
+        return [endpoints[0]] * n_outcomes
+    num_segments = len(endpoints) - 1
+    if n_outcomes <= num_segments:
+        n_per_segment = [1] * (n_outcomes - 1) + [0] * (num_segments - n_outcomes) + [1]
+    else:
+        n_per_segment = distribute_integer_randomly(n_outcomes - 1, num_segments)
+
+    # Calculate slopes based on difference in y-coordinates
+    slopes = [
+        (endpoints[i + 1][1] - endpoints[i][1])
+        / (endpoints[i + 1][0] - endpoints[i][0])
+        for i in range(num_segments)
+    ]
+
+    points = []
+
+    # Iterate through each segment and generate its points
+    for i in range(num_segments):
+        start_x, start_y = endpoints[i]
+        end_x = endpoints[i + 1][0]
+        slope = slopes[i]
+        n = n_per_segment[i] - 1
+        if n == 0:
+            end_y = endpoints[i + 1][1]
+            if i == 0:
+                points.append((start_x, start_y))
+            elif i < num_segments - 1:
+                r = random.random()
+                if r < 0.5:
+                    points.append((start_x, start_y))
+                else:
+                    points.append((end_x, end_y))
+            else:
+                points.append((end_x, end_y))
+            continue
+        if n < 0:
+            continue
+        samples = sample_between(start_x, end_x, n, endpoint=False)
+        points.append((start_x, start_y))
+
+        # Calculate x and y values for each point on the segment
+        for x in samples:
+            y = start_y + slope * (x - start_x)
+            points.append((x, y))
+    # append the last point representing the last endpoint
+    if len(points) < n_outcomes:
+        points.append((endpoints[-1][0], endpoints[-1][1]))
+    return points
+
+
 def make_non_pareto(
     pareto: list[tuple[float, ...]],
     n: int,
     limit: tuple[float, float] = (0, 0),
     eps: float = 1e-4,
-):
+) -> list[tuple[float, ...]]:
     """Adds extra outcomes dominated by the given Pareto outcomes
 
     Args:
@@ -179,8 +167,12 @@ def make_non_pareto(
         limit: The minimum x and y values allowed
         eps: A small margin
     """
-    if n < 1 or len(pareto) < 1:
+    if n < 1:
         return []
+    if len(pareto) < 1:
+        raise ValueError(
+            f"Cannot use a pareto frontier with zero points. No such thing can exist!!"
+        )
     ndims = len(pareto[0])
     available_indices, ok = [], []
     # remove points in the pareto under the limit from consideration
@@ -191,6 +183,8 @@ def make_non_pareto(
                 continue
             available.append(d)
             available_indices.append(tuple(available))
+        if not available_indices:
+            continue
         ok.append(len(available_indices[-1]) > 0)
     _ok = np.asarray(ok, dtype=bool)
     pareto = np.asarray(pareto)[_ok].tolist()
@@ -283,6 +277,7 @@ def generate_utility_values(
         pareto_first: If given, Pareto outcomes come first in the returned results.
         pareto_generator: The method used to generate the Pareto front utilities
         generator_params: The parameters passed to the Pareto generator
+        n_trials: How many times to retry generation if the generator fails
 
     Returns:
         A list of tuples each giving the utilities of one outcome

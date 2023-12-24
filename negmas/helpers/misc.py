@@ -21,7 +21,64 @@ __all__ = [
     "get_free_tcp_port",
     "intin",
     "floatin",
+    "distribute_integer_randomly",
 ]
+
+
+def distribute_integer_randomly(n: int, m: int, min_per_bin: int = 1) -> list[int]:
+    """
+    Distributes an integer n over a list of m values randomly, with each value at least one.
+
+    Args:
+      n: The integer to distribute.
+      m: The number of values to distribute over.
+      min_per_bin: Minimum number of elements per bin. This is only guaranteed if n >= m * min_per_bin.
+                   If None, then the distribution will be as normal as possible
+
+    Returns:
+      A list of m integers, where each value is at least one.
+
+    Remarks:
+        - if n < m * min_per_bin, n will be distributed randomly with some zeros inserted.
+
+    """
+    if m < 1 and n != 0:
+        raise ValueError(f"Cannot distribute {n} over {m} bins")
+    if n == 0:
+        return [0] * m
+
+    # if n < m:
+    #     raise ValueError(f"Cannot distribute {n} over {m} bins.")
+    # just distribute as much as possible if min_per_bin cannot be achieved
+    if n < m * min_per_bin:
+        n_active = int(n // min_per_bin)
+        assert (
+            0 <= n_active <= n
+        ), f"Distributing {n} over {m} with {min_per_bin=} leads to {n_active} values which should be between {0} and {n}!!"
+        lst = [min_per_bin] * n_active + [0] * (m - n_active)
+        random.shuffle(lst)
+        return lst
+    # Find the min_per_bin if equal distribution is asked for
+    equal_dist = False
+    if min_per_bin is None:
+        min_per_bin = int(n // m)
+        equal_dist = True
+    # Calculate base distribution and remainder
+    base_distribution = int(min_per_bin)
+    remainder = n - m * base_distribution
+
+    # Create a list with base distribution for each value
+    distribution = [base_distribution] * m
+
+    # Add remainder to the first `remainder` elements randomly
+    for i in range(remainder):
+        nxt = random.randrange(m) if not equal_dist else (i % m)
+        distribution[nxt] += 1
+
+    # # Shuffle the list to randomize remainder distribution
+    # random.shuffle(distribution)
+
+    return distribution
 
 
 def floatin(
