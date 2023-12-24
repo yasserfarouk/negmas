@@ -29,8 +29,8 @@ if TYPE_CHECKING:
 
 __all__ = [
     "plot_offer_utilities",
-    "plot_mechanism_run",
     "plot_2dutils",
+    "plot_mechanism_run",
     "opacity_colorizer",
     "default_colorizer",
     "Colorizer",
@@ -88,15 +88,6 @@ def plot_with_trancparency(
     linewidth: float | int = 1,
     linestyle="solid",
 ):
-    # a.plot(
-    #     xx,
-    #     y,
-    #     label=f"{name} ({i})",
-    #     color=thecolor,
-    #     linestyle="solid" if neg == negotiator else "dotted",
-    #     linewidth=2 if neg == negotiator else 1,
-    #     marker=None,
-    # )
     if alpha_global is not None:
         alpha = [alpha_global * _ for _ in alpha]
     scatter_with_transparency(
@@ -122,6 +113,7 @@ def plot_with_trancparency(
 ALL_MARKERS = ["s", "o", "v", "^", "<", ">", "p", "P", "h", "H", "1", "2", "3", "4"]
 PROPOSALS_ALPHA = 0.9
 AGREEMENT_ALPHA = 0.9
+PARETO_ALPHA = 0.6
 NASH_ALPHA = 0.6
 KALAI_ALPHA = 0.6
 RESERVED_ALPHA = 0.08
@@ -131,7 +123,7 @@ NASH_SCALE = 4
 KALAI_SCALE = 4
 WELFARE_SCALE = 2
 OUTCOMES_SCALE = 0.5
-PARETO_SCALE = 1.5
+PARETO_SCALE = 1.0
 
 
 class PlottableMechanism(Protocol):
@@ -494,7 +486,13 @@ def plot_2dutils(
     f1, f2 = [_[0] for _ in frontier], [_[1] for _ in frontier]
     if mark_pareto_points:
         ax.scatter(
-            f1, f2, color="red", marker="x", s=int(default_marker_size * PARETO_SCALE)
+            f1,
+            f2,
+            c=[(238 / 255.0, 232 / 255.0, 170 / 255.0)] * len(f1),
+            marker="o",
+            s=int(default_marker_size * PARETO_SCALE),
+            alpha=PARETO_ALPHA,
+            label="Pareto",
         )
     ax.set_xlabel(agent_names[0] + f"(0) utility")
     ax.set_ylabel(agent_names[1] + f"(1) utility")
@@ -739,7 +737,7 @@ def plot_2dutils(
             ax.scatter(
                 [mwelfare[0] for mwelfare, _ in mwelfare_pts],
                 [mwelfare[1] for mwelfare, _ in mwelfare_pts],
-                color="brown",
+                color="blue",
                 label=f"Max Welfare Points",
                 marker="p",
                 alpha=NASH_ALPHA,
