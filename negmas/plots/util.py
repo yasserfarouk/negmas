@@ -770,7 +770,10 @@ def plot_offline_run(
     trace: list[TraceElement],
     ids: list[str],
     ufuns: list[BaseUtilityFunction] | tuple[BaseUtilityFunction],
-    state: MechanismState,
+    agreement: Outcome | None,
+    timedout: bool,
+    broken: bool,
+    has_error: bool,
     names: list[str] | None = None,
     *,
     negotiators: tuple[int, int] | tuple[str, str] | None = (0, 1),
@@ -874,20 +877,20 @@ def plot_offline_run(
         if not no2d:
             axu = fig.add_subplot(gs[:, 0])
     if not no2d:
-        agreement = state.agreement
-        state = state
+        # agreement = state.agreement
+        # state = state
         if not show_end_reason:
             reason = None
         else:
-            if state.timedout:
+            if timedout:
                 reason = "Negotiation Timedout"
             elif agreement is not None:
                 reason = "Negotiation Success"
-            elif state.has_error:
+            elif has_error:
                 reason = "Negotiation ERROR"
             elif agreement is not None:
                 reason = "Agreemend Reached"
-            elif state.broken:
+            elif broken:
                 reason = "Negotiation Ended"
             elif agreement is None:
                 reason = "No Agreement"
