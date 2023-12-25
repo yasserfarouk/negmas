@@ -3,6 +3,7 @@ Negotiation tournaments module.
 """
 
 
+import copy
 from concurrent.futures import ProcessPoolExecutor, as_completed
 from itertools import product
 from math import exp, log
@@ -482,7 +483,8 @@ def cartesian_tournament(
                 if this_path:
                     dump(serialize(stats), this_path / "stats.json")
 
-            mechanism_params.update(
+            mparams = copy.deepcopy(mechanism_params)
+            mparams.update(
                 dict(
                     n_steps=oneinint(n_steps),
                     time_limit=oneinfloat(time_limit),
@@ -503,7 +505,7 @@ def cartesian_tournament(
                         annotation=dict(rep=i, n_repetitions=n_repetitions),
                         path=path if path else None,
                         mechanism_type=mechanism_type,
-                        mechanism_params=mechanism_params,
+                        mechanism_params=mparams,
                         full_names=True,
                         verbosity=verbosity - 1,
                         plot=random() < plot_fraction,
