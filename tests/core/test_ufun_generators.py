@@ -47,6 +47,15 @@ def test_distribute_integer_randomly(n, m, min_per_bin):
     assert sum(lst) == n
 
 
+@given(n=st.integers(0, 100), m=st.integers(1, 200))
+def test_distribute_integer_randomly_on_none(n, m):
+    lst = distribute_integer_randomly(n, m, min_per_bin=None)
+    assert len(lst) == m
+    assert sum(lst) == n
+    if lst:
+        assert max(lst) - min(lst) <= 1
+
+
 @given(
     start=st.floats(0.0, 1.0),
     rng=st.floats(0.0, 1.0),

@@ -25,7 +25,9 @@ __all__ = [
 ]
 
 
-def distribute_integer_randomly(n: int, m: int, min_per_bin: int = 1) -> list[int]:
+def distribute_integer_randomly(
+    n: int, m: int, min_per_bin: int | None = 1
+) -> list[int]:
     """
     Distributes an integer n over a list of m values randomly, with each value at least one.
 
@@ -42,7 +44,7 @@ def distribute_integer_randomly(n: int, m: int, min_per_bin: int = 1) -> list[in
         - if n < m * min_per_bin, n will be distributed randomly with some zeros inserted.
 
     """
-    if m < 1 and n != 0:
+    if m < 1 and n != 0 and min_per_bin is not None:
         raise ValueError(f"Cannot distribute {n} over {m} bins")
     if n == 0:
         return [0] * m
@@ -50,7 +52,7 @@ def distribute_integer_randomly(n: int, m: int, min_per_bin: int = 1) -> list[in
     # if n < m:
     #     raise ValueError(f"Cannot distribute {n} over {m} bins.")
     # just distribute as much as possible if min_per_bin cannot be achieved
-    if n < m * min_per_bin:
+    if min_per_bin is not None and n < m * min_per_bin:
         n_active = int(n // min_per_bin)
         assert (
             0 <= n_active <= n
