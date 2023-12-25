@@ -55,6 +55,8 @@ def sample_between(
     """
     if n == 0:
         return []
+    if end - start < 1e-8:
+        return [start] * n
     samples = np.linspace(start, end, num=n, endpoint=endpoint)
     if len(samples) > 2:
         samples[1:-1] += (

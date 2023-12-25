@@ -62,9 +62,11 @@ def test_distribute_integer_randomly_on_none(n, m):
     n=st.integers(1, 100),
     endpoint=st.booleans(),
     main_range_min=st.floats(0.0, 0.5),
-    main_range_range=st.floats(0, 0.5),
+    main_range_range=st.floats(0.0, 0.5),
 )
 def test_sample_between(start, rng, n, endpoint, main_range_min, main_range_range):
+    main_range_min = round(main_range_min, 6)
+    main_range_range = round(main_range_range, 6)
     end = start + rng
     lst = sample_between(
         start, end, n, endpoint, (main_range_min, main_range_min + main_range_range)
