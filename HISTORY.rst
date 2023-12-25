@@ -1,6 +1,13 @@
 History
 =======
 
+Release 0.10.10
+---------------
+
+* bugfix: Distributing integers correctly when approximate equality is wanted
+* bugfix: Caretsian tournaments not varying n_steps
+* bugfix: sample_between failing on small ranges
+
 Release 0.10.9
 --------------
 
