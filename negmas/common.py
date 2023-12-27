@@ -485,8 +485,28 @@ class NegotiatorMechanismInterface:
         return asdict(self)
 
     def __getitem__(self, item):
-        """Makes the outcome type behave like a dict"""
+        """Makes the NMI behave like a dict"""
         return getattr(self, item)
+
+    def log_info(self, nid: str, data: dict[str, Any]) -> None:
+        """Logs at info level"""
+        self.mechanism.log(nid, level="info", data=data)
+
+    def log_debug(self, nid: str, data: dict[str, Any]) -> None:
+        """Logs at debug level"""
+        self.mechanism.log(nid, level="debug", data=data)
+
+    def log_warning(self, nid: str, data: dict[str, Any]) -> None:
+        """Logs at warning level"""
+        self.mechanism.log(nid, level="warning", data=data)
+
+    def log_error(self, nid: str, data: dict[str, Any]) -> None:
+        """Logs at error level"""
+        self.mechanism.log(nid, level="error", data=data)
+
+    def log_critical(self, nid: str, data: dict[str, Any]) -> None:
+        """Logs at critical level"""
+        self.mechanism.log(nid, level="critical", data=data)
 
 
 TraceElement = namedtuple(

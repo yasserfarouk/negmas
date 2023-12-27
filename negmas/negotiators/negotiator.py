@@ -80,6 +80,10 @@ class Negotiator(Rational, Notifiable, ABC):
         return self._nmi  # type: ignore
 
     @property
+    def opponent_ufun(self) -> BaseUtilityFunction | None:
+        return self.private_info.get("opponent_ufun", None)
+
+    @property
     def nmi(self) -> NegotiatorMechanismInterface:
         return self._nmi  # type: ignore
 

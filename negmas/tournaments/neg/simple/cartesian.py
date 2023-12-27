@@ -154,6 +154,7 @@ def run_negotiation(
         for u in s.ufuns:
             s.outcome_space = new_os
         s = Scenario(outcome_space=new_os, ufuns=s.ufuns)
+
     if mechanism_params is None:
         mechanism_params = dict()
     if annotation is None:
@@ -254,6 +255,18 @@ def run_negotiation(
 
         def save_as_df(data: list[tuple], names, file_name):
             pd.DataFrame(data=data, columns=names).to_csv(file_name, index=False)
+
+        for k, v in m._negotiator_logs.items():
+            if not v:
+                continue
+            if k in m.negotiator_ids:
+                k = m._negotiator_map[k].name
+            neg_name = path / "logs" / file_name / f"{k}.csv"
+            assert not neg_name.exists(), f"{neg_name} already found"
+            neg_name.parent.mkdir(parents=True, exist_ok=True)
+            pd.DataFrame.from_records(v).to_csv(
+                neg_name, index=True, index_label="index"
+            )
 
         full_name = path / "negotiations" / f"{file_name}.csv"
         assert not full_name.exists(), f"{full_name} already found"

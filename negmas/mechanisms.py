@@ -153,6 +153,7 @@ class Mechanism(NamedObject, EventSource, CheckpointMixin, ABC):
         check_one_and_only(outcome_space, issues, outcomes)
         outcome_space = ensure_os(outcome_space, issues, outcomes)
         self.__verbosity = verbosity
+        self._negotiator_logs: dict[str, list[dict[str, Any]]] = defaultdict(list)
         super().__init__(name, id=id, type_name=type_name)
 
         self._negotiator_times = defaultdict(float)
@@ -239,11 +240,42 @@ class Mechanism(NamedObject, EventSource, CheckpointMixin, ABC):
             annotation=annotation,
         )
 
+    def log(self, nid: str, data: dict[str, Any], level: str) -> None:
+        """Saves a log for a negotiator"""
+        d = data | dict(
+            step=self.current_step,
+            relative_time=self.relative_time,
+            time=self.time,
+            level=level,
+        )
+        self._negotiator_logs[nid].append(d)
+
+    def log_info(self, nid: str, data: dict[str, Any]) -> None:
+        """Logs at info level"""
+        self.log(nid, level="info", data=data)
+
+    def log_debug(self, nid: str, data: dict[str, Any]) -> None:
+        """Logs at debug level"""
+        self.log(nid, level="debug", data=data)
+
+    def log_warning(self, nid: str, data: dict[str, Any]) -> None:
+        """Logs at warning level"""
+        self.log(nid, level="warning", data=data)
+
+    def log_error(self, nid: str, data: dict[str, Any]) -> None:
+        """Logs at error level"""
+        self.log(nid, level="error", data=data)
+
+    def log_critical(self, nid: str, data: dict[str, Any]) -> None:
+        """Logs at critical level"""
+        self.log(nid, level="critical", data=data)
+
     @property
     def negotiator_times(self) -> dict[str, float]:
         """The total time consumed by every negotiator.
 
-        Each mechanism class is responsible of updating this for any activities of the negotiator it controls."""
+        Each mechanism class is responsible of updating this for any activities of the negotiator it controls.
+        """
         return self._negotiator_times
 
     @property
