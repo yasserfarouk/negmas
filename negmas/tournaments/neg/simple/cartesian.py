@@ -140,6 +140,7 @@ def run_negotiation(
         path = Path(path)
         for name in ("negotiations", "plots", "results"):
             (path / name).mkdir(exist_ok=True, parents=True)
+    s = copy.deepcopy(s)
     assert s.outcome_space is not None
     real_scenario_name = s.outcome_space.name
     if not run_id:
@@ -221,7 +222,6 @@ def run_negotiation(
     run_record["reserved_values"] = reservations
     run_record["partners"] = partner_names
     run_record["params"] = param_dump
-    run_record["scenario"] = m.name
     run_record["run_id"] = run_id
     run_record["execution_time"] = execution_time
     run_record["negotiator_names"] = m.negotiator_names
