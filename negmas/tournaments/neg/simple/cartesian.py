@@ -27,6 +27,7 @@ from negmas.helpers.types import get_class, get_full_type_name
 from negmas.inout import Scenario
 from negmas.mechanisms import Mechanism
 from negmas.negotiators import Negotiator
+from negmas.plots.util import plot_offline_run
 from negmas.preferences.ops import (
     ScenarioStats,
     calc_outcome_distances,
@@ -330,6 +331,7 @@ def cartesian_tournament(
     randomize_runs: bool = True,
     save_every: int = 0,
     save_stats: bool = True,
+    save_scenario_figs: bool = True,
     final_score: tuple[str, str] = ("advantage", "mean"),
     id_reveals_type: bool = False,
     name_reveals_type: bool = True,
@@ -365,6 +367,7 @@ def cartesian_tournament(
         randomize_runs: If `True` negotiations will be run in random order, otherwise each scenario/partner combination will be finished before starting on the next
         save_every: Number of negotiations after which we dump details and scores
         save_stats: Whether to calculate and save extra statistics like pareto_optimality, nash_optimality, kalai_optimality, etc
+        save_scenario_figs: Whether to save a png of the scenario represented in the utility domain for every scenario.
         final_score: A tuple of two strings giving the metric used for ordering the negotiators for the final score:
                      First string can be one of the following (advantage, utility,
                      partner_welfare, welfare) or any statistic from the set calculated if `save_stats` is `True`.
@@ -491,6 +494,34 @@ def cartesian_tournament(
             if scenarios_path:
                 this_path = scenarios_path / str(scenario.outcome_space.name)
                 scenario.to_yaml(this_path)
+                if save_scenario_figs:
+                    plot_offline_run(
+                        trace=[],
+                        ids=["First", "Second"],
+                        ufuns=s.ufuns,  # type: ignore
+                        agreement=None,
+                        timedout=False,
+                        broken=False,
+                        has_error=False,
+                        names=["First", "Second"],
+                        save_fig=True,
+                        path=str(this_path),
+                        fig_name="fig.png",
+                        only2d=True,
+                        show_annotations=False,
+                        show_agreement=False,
+                        show_pareto_distance=False,
+                        show_nash_distance=False,
+                        show_kalai_distance=False,
+                        show_max_welfare_distance=False,
+                        show_max_relative_welfare_distance=False,
+                        show_end_reason=False,
+                        show_reserved=True,
+                        show_total_time=False,
+                        show_relative_time=False,
+                        show_n_steps=False,
+                    )
+            plt.close()
             if save_stats:
                 stats = calc_scenario_stats(scenario.ufuns)
                 if this_path:
