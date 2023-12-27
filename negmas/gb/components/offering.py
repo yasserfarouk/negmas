@@ -9,6 +9,7 @@ from attrs import define, field
 
 from negmas import warnings
 from negmas.common import PreferencesChangeType, Value
+from negmas.negotiators.helpers import PolyAspiration
 from negmas.preferences.inv_ufun import PresortingInverseUtilityFunction
 
 from .base import FilterResult, OfferingPolicy
@@ -39,7 +40,40 @@ __all__ = [
     "OfferBest",
     "TFTOfferingPolicy",
     "MiCROOfferingPolicy",
+    "TimeBasedOfferingStrategy",
 ]
+
+
+@define
+class TimeBasedOfferingStrategy(OfferingPolicy):
+    curve: PolyAspiration = field(factory=lambda: PolyAspiration(1.0, "boulware"))
+    stochastic: bool = False
+
+    def on_preferences_changed(self, changes: list[PreferencesChange]):
+        if not self.negotiator or not self.negotiator.ufun:
+            return
+        if self.sorter is not None:
+            warnings.warn(
+                f"Sorter is already initialized. May be on_preferences_changed is called twice!!"
+            )
+        self.sorter = PresortingInverseUtilityFunction(
+            self.negotiator.ufun, rational_only=True, eps=-1, rel_eps=-1
+        )
+        self.sorter.init()
+
+    def __call__(self, state: GBState):
+        assert self.negotiator.ufun is not None
+        asp = self.curve.utility_at(state.relative_time)
+        mn, mx = self.sorter.minmax()
+        assert mn >= self.negotiator.ufun.reserved_value
+        asp = asp * (mx - mn) + mn
+        if self.stochastic:
+            outcome = self.sorter.one_in((asp, mx), normalized=True)
+        else:
+            outcome = self.sorter.worst_in((asp - 1e-5, mx), normalized=True)
+        if outcome:
+            return outcome
+        return self.sorter.best()
 
 
 @define
