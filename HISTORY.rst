@@ -1,6 +1,34 @@
 History
 =======
 
+Release 0.10.11
+---------------
+* Adding TimeBasedOfferingStrategy
+* bugfix: Incorrect scenario names sometimes. Caused by updating the same scenario object in multiple consecutive runs specially when running serial tournaments.
+* feature: Negotiator logs in mechanisms
+
+    - Negotiators can use self.nmi.log_info to log information in the
+      mechanism that is accessible for any one who can access the mechanism.
+      log_warning, log_error, log_debug, log_critical are also available.
+    - Logs are stored as structured dicts that will be converted to data
+      frames. IT IS NECESSARY for all logs with the same key to have the
+      same EXACT keys and it is recommended for their values to have the
+      same type.
+    - Cartesian tournaments will now save these logs after the mechanism
+      ends if any are given and logging is enabled (i.e. path is passed to
+      cartesian_tournament()).
+
+    Limitations:
+
+       - You MUST pass a key (nid) to all log functions. If two different
+         negotiators passed the same key, these logs will be combined in a
+         single file. This may be too cooperative and confusing!!
+       - The logs are not returned in SimpleTournamentResults. If you need
+         to read the logs you must save logs to the HDD. This is by design
+         because these logs may be too large and keeping them to return them
+         after the tournament may consume too much memory. Currently, they
+         will be deleted from memory with the mechanism.
+
 Release 0.10.10
 ---------------
 
