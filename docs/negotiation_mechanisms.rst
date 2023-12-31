@@ -5,6 +5,7 @@ Negotiation Mechanisms
 .. toctree::
     :maxdepth: 2
 
+    modules/gb
     modules/sao
     modules/st
     modules/mt
