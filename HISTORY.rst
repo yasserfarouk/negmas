@@ -1,6 +1,12 @@
 History
 =======
 
+Release 0.10.12
+---------------
+* Adding GB to the mechanisms docs
+* Saving scenario figs by default in Cartesian tournaments
+* Showing inheritance graphs in docs
+
 Release 0.10.11
 ---------------
 * Adding TimeBasedOfferingStrategy
