@@ -1920,11 +1920,11 @@ class World(EventSink, EventSource, ConfigReader, NamedObject, CheckpointMixin, 
         def _execute_contracts():
             # execute contracts that are executable at this step
             # --------------------------------------------------
-            n_new_breaches = self.__n_new_breaches
-            n_new_contract_executions = self.__n_new_contract_executions
-            n_new_contract_errors = self.__n_new_contract_errors
-            n_new_contract_nullifications = self.__n_new_contract_nullifications
-            activity_level = self.__activity_level
+            # n_new_breaches = self.__n_new_breaches
+            # n_new_contract_executions = self.__n_new_contract_executions
+            # n_new_contract_errors = self.__n_new_contract_errors
+            # n_new_contract_nullifications = self.__n_new_contract_nullifications
+            # activity_level = self.__activity_level
             blevel = self.__blevel
             current_contracts = [
                 _ for _ in self.executable_contracts() if _.nullified_at < 0
@@ -1963,7 +1963,7 @@ class World(EventSink, EventSource, ConfigReader, NamedObject, CheckpointMixin, 
                             self._edges_contracts_erred,
                             bi=True,
                         )
-                        n_new_contract_errors += 1
+                        self.__n_new_contract_errors += 1
                         if not self.ignore_contract_execution_exceptions:
                             raise e
                         exc_type, exc_value, exc_traceback = sys.exc_info()
@@ -1992,7 +1992,7 @@ class World(EventSink, EventSource, ConfigReader, NamedObject, CheckpointMixin, 
                             bi=True,
                         )
                         self._saved_contracts[contract.id]["erred_at"] = -1
-                        n_new_contract_nullifications += 1
+                        sellf.__n_new_contract_nullifications += 1
                         self.loginfo(
                             f"Contract nullified: {str(contract)}",
                             Event("contract-nullified", dict(contract=contract)),
@@ -2014,10 +2014,10 @@ class World(EventSink, EventSource, ConfigReader, NamedObject, CheckpointMixin, 
                         self._saved_contracts[contract.id]["nullified_at"] = -1
                         self._saved_contracts[contract.id]["erred_at"] = -1
                         executed.add(contract)
-                        n_new_contract_executions += 1
+                        self.__n_new_contract_executions += 1
                         _size = self.contract_size(contract)
                         if _size is not None:
-                            activity_level += _size
+                            self.__activity_level += _size
                         for partner in contract.partners:
                             self.call(
                                 self.agents[partner],
@@ -2062,10 +2062,10 @@ class World(EventSink, EventSource, ConfigReader, NamedObject, CheckpointMixin, 
                             contract, list(contract_breaches)
                         )
                         if resolution is None:
-                            n_new_breaches += 1
+                            self.__n_new_breaches += 1
                             blevel += sum(_.level for _ in contract_breaches)
                         else:
-                            n_new_contract_executions += 1
+                            self.__n_new_contract_executions += 1
                             self.loginfo(
                                 f"Breach resolution cor {str(contract)}: {str(resolution)} ",
                                 Event(
