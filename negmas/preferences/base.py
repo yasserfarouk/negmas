@@ -15,5 +15,7 @@ UtilityValue = Value
 An alias for `Value` which is either a probability `Distribution` or a `float`
 """
 
-OutcomeUtilityMapping = Union[Callable[[Outcome], Value], Mapping[Outcome, Value]]
+OutcomeUtilityMapping = Union[
+    Callable[[Outcome | None], Value], Mapping[Outcome | None, Value]
+]
 """A mapping from an outcome to its utility value"""

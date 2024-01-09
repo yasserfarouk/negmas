@@ -5,7 +5,6 @@ from typing import Callable, Iterable
 
 import numpy as np
 
-from negmas.common import Distribution
 from negmas.generics import gmap
 from negmas.helpers import get_full_type_name
 from negmas.outcomes import Issue, Outcome
@@ -73,14 +72,14 @@ class MappingUtilityFunction(StationaryMixin, UtilityFunction):
 
     Remarks:
         - If the mapping used failed on the outcome (for example because it is not a valid outcome), then the
-        ``default`` value given to the constructor (which defaults to None) will be returned.
+        ``default`` value given to the constructor (which defaults to 0.0) will be returned.
 
     """
 
     def __init__(
         self,
         mapping: OutcomeUtilityMapping,
-        default=None,
+        default: float = 0.0,
         *args,
         **kwargs,
     ) -> None:
@@ -107,7 +106,7 @@ class MappingUtilityFunction(StationaryMixin, UtilityFunction):
         d["mapping"] = deserialize(d["mapping"])
         return cls(**d)
 
-    def eval(self, offer: Outcome | None) -> Distribution | float | None:
+    def eval(self, offer: Outcome | None) -> float:
         # noinspection PyBroadException
         if offer is None:
             return self.reserved_value

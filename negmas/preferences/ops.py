@@ -141,7 +141,7 @@ def sort_by_utility(
 class ScenarioStats:
     opposition: float
     utility_ranges: list[tuple[float, float]]
-    pareto_utils: tuple[tuple[float, ...]]
+    pareto_utils: tuple[tuple[float, ...], ...]
     pareto_outcomes: list[Outcome]
     nash_utils: list[tuple[float, ...]]
     nash_outcomes: list[Outcome]
@@ -1209,7 +1209,7 @@ def calc_scenario_stats(
     minmax = [u.minmax() for u in ufuns]
     opposition = opposition_level(
         ufuns,
-        max_utils=tuple(_[1] for _ in minmax),
+        max_utils=tuple(_[1] for _ in minmax),  # type: ignore
         outcomes=outcomes,
     )
     return ScenarioStats(
