@@ -70,6 +70,18 @@ class Scenario:
     def issues(self) -> tuple[Issue, ...]:
         return self.outcome_space.issues
 
+    def plot(self, **kwargs):
+        from negmas.plots.util import plot_2dutils
+
+        return plot_2dutils(
+            [],
+            self.ufuns,  # type: ignore
+            tuple(_.name for _ in self.ufuns),  # type: ignore
+            offering_negotiators=tuple(_.name for _ in self.ufuns),  # type: ignore
+            issues=self.outcome_space.issues,  # type: ignore
+            **kwargs,
+        )
+
     def to_genius_files(self, domain_path: Path, ufun_paths: list[Path]):
         """
         Save domain and ufun files to the `path` as XML.
