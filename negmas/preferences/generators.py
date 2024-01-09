@@ -3,8 +3,16 @@ from typing import Any, Callable, Iterable, Literal
 
 import numpy as np
 
-from negmas.helpers.misc import distribute_integer_randomly, floatin, intin
+from negmas.helpers.misc import (
+    distribute_integer_randomly,
+    floatin,
+    generate_random_weights,
+    intin,
+)
 from negmas.negotiators.helpers import PolyAspiration, TimeCurve
+from negmas.outcomes import make_issue, make_os
+from negmas.preferences.crisp.linear import LinearUtilityAggregationFunction
+from negmas.preferences.value_fun import TableFun
 
 __all__ = [
     "sample_between",
@@ -12,6 +20,7 @@ __all__ = [
     "make_endpoints",
     "make_non_pareto",
     "generate_utility_values",
+    "generate_multi_issue_ufuns",
     "ParetoGenerator",
     "GENERATOR_MAP",
     "make_curve_pareto",
@@ -297,6 +306,84 @@ def generate_utility_values(
     if not pareto_first:
         random.shuffle(points)
     return points
+
+
+# @override
+# def generate_multi_issue_utility_values(
+#     n_issues: int,
+#     n_values: None,
+#     sizes: tuple[int, ...],
+#     n_ufuns: int = 2,
+#     pareto_generators: tuple[ParetoGenerator | str, ...] = ("piecewise_linear",),
+#     generator_params: tuple[dict[str, Any], ...] | None = None,
+#     os_name: str | None = None,
+# ) -> tuple[LinearUtilityAggregationFunction, ...]:
+#     ...
+
+
+def generate_multi_issue_ufuns(
+    n_issues: int,
+    n_values: int | tuple[int, int] | None = None,
+    sizes: tuple[int, ...] | None = None,
+    n_ufuns: int = 2,
+    pareto_generators: tuple[ParetoGenerator | str, ...] = ("piecewise_linear",),
+    generator_params: tuple[dict[str, Any], ...] | None = None,
+    os_name: str | None = None,
+    ufun_names: tuple[str, ...] | None = None,
+) -> tuple[LinearUtilityAggregationFunction, ...]:
+    """Generates a set of ufuns with an outcome space of the given number of issues.
+
+    Args:
+        n_issues: Number of issues
+        n_values: Range of issue sizes. Only used if `sizes` is not passed
+        sizes: Sizes of issues
+        n_ufuns: Number of ufuns to generate
+        pareto_generators: The generators to use internally to generate value functions
+        generator_params: parameters of the generators.
+        os_name: Name of the outcomes space in the ufuns created
+        ufun_names: Names of utility functions
+
+    Returns:
+        A tuple of `n_ufuns` utility functions.
+    """
+    if ufun_names is None:
+        ufun_names = tuple(f"u{i+1}" for i in range(n_ufuns))
+    vals = [dict() for _ in range(n_ufuns)]
+    if not generator_params:
+        generator_params = [dict() for _ in pareto_generators]  # type: ignore
+    gp = list(zip(pareto_generators, generator_params))  # type: ignore
+    if sizes is None:
+        assert n_values is not None
+        sizes = tuple(intin(n_values) for _ in range(n_issues))
+    for i, n in enumerate(sizes):
+        g, p = random.choice(gp)
+        v = generate_utility_values(
+            n, n, n_ufuns, pareto_generator=g, generator_params=p
+        )
+        for j in range(n_ufuns):
+            vals[j][i] = [float(_[j]) for _ in v]
+    weights = [float(_) for _ in generate_random_weights(n_issues)]
+    os = make_os(
+        issues=[
+            make_issue([f"v{k+1}" for k in range(ni)], name=f"i{i+1}")
+            for i, ni in enumerate(sizes)
+        ],
+        name=os_name,
+    )
+    return tuple(
+        LinearUtilityAggregationFunction(
+            values=[
+                TableFun(
+                    dict(zip([f"v{k+1}" for k in range(len(vals[j][i]))], vals[j][i]))
+                )
+                for i in range(n_issues)
+            ],
+            weights=weights,
+            outcome_space=os,
+            name=name,
+        )
+        for j, name in enumerate(ufun_names)
+    )
 
 
 if __name__ == "__main__":

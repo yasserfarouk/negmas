@@ -10,6 +10,8 @@ import socket
 from math import exp, log
 from typing import Any, Callable, Iterable, Sequence
 
+import numpy as np
+
 from ..protocols import HasMinMax
 
 __all__ = [
@@ -22,7 +24,26 @@ __all__ = [
     "intin",
     "floatin",
     "distribute_integer_randomly",
+    "generate_random_weights",
 ]
+
+
+def generate_random_weights(n):
+    """
+    Generates a list of n random weights between 0 and 1 that sum to 1.
+
+    Args:
+      n: The number of weights to generate.
+
+    Returns:
+      A list of n random weights between 0 and 1 that sum to 1.
+    """
+
+    # Generate n random numbers between 0 and 1 using the Dirichlet distribution,
+    # which ensures equal probability of generating any valid combination of weights.
+    weights = np.random.dirichlet(np.ones(n))
+
+    return weights
 
 
 def distribute_integer_randomly(

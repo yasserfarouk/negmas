@@ -4,8 +4,10 @@ from hypothesis import example, given
 from hypothesis import strategies as st
 
 from negmas.helpers.misc import distribute_integer_randomly
+from negmas.outcomes.outcome_space import CartesianOutcomeSpace
 from negmas.preferences.generators import (
     GENERATOR_MAP,
+    generate_multi_issue_ufuns,
     generate_utility_values,
     make_curve_pareto,
     make_endpoints,
@@ -195,3 +197,18 @@ def test_generate_utility_values(n_pareto, n_non, generator):
         assert any(
             dominates(x, y) for x in pareto
         ), f"{y} is non-pareto but not dominated by any pareto outcome"
+
+
+def test_generate_multiissue_utility_values_example():
+    from negmas.inout import Scenario
+
+    ufuns = generate_multi_issue_ufuns(
+        5,
+        n_values=10,
+        sizes=None,
+        n_ufuns=2,
+        pareto_generators=tuple(GENERATOR_MAP.keys()),
+    )
+    assert len(ufuns) > 0
+    assert ufuns[0].outcome_space is not None
+    assert isinstance(ufuns[0].outcome_space, CartesianOutcomeSpace)
