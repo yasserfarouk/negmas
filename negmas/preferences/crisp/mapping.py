@@ -61,7 +61,7 @@ class MappingUtilityFunction(StationaryMixin, UtilityFunction):
         >>> f = MappingUtilityFunction(lambda x: x['price'] if x['delivery'] == 'delivered' else -1.0)
         >>> g = MappingUtilityFunction(lambda x: x['price'] if x['delivery'] == 'delivered' else -1.0
         ...     , default=-1000 )
-        >>> f({'price': 16.0}) is None
+        >>> f({'price': 16.0}) == float("-inf")
         True
         >>> g({'price': 16.0})
         -1000
@@ -79,7 +79,7 @@ class MappingUtilityFunction(StationaryMixin, UtilityFunction):
     def __init__(
         self,
         mapping: OutcomeUtilityMapping,
-        default: float = 0.0,
+        default: float = float("-inf"),
         *args,
         **kwargs,
     ) -> None:
