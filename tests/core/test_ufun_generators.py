@@ -1,13 +1,17 @@
-from re import L
+import random
 
 from hypothesis import example, given
 from hypothesis import strategies as st
+from pytest_check import pytest
 
 from negmas.helpers.misc import distribute_integer_randomly
 from negmas.outcomes.outcome_space import CartesianOutcomeSpace
+from negmas.preferences.crisp.linear import LinearAdditiveUtilityFunction
+from negmas.preferences.crisp.mapping import MappingUtilityFunction
 from negmas.preferences.generators import (
     GENERATOR_MAP,
     generate_multi_issue_ufuns,
+    generate_single_issue_ufuns,
     generate_utility_values,
     make_curve_pareto,
     make_endpoints,
@@ -33,7 +37,7 @@ def dominates(x, y):
     n_segments_min=2,
     n_segments_range=1,
 )
-def test_make_piecewise_pareto(n_pareto, n_segments_min, n_segments_range):
+def test_make_piecewise_pareto2(n_pareto, n_segments_min, n_segments_range):
     make_piecewise_linear_pareto(
         n_pareto,
         n_segments=(n_segments_min, n_segments_min + n_segments_range)
@@ -199,16 +203,119 @@ def test_generate_utility_values(n_pareto, n_non, generator):
         ), f"{y} is non-pareto but not dominated by any pareto outcome"
 
 
-def test_generate_multiissue_utility_values_example():
-    from negmas.inout import Scenario
+@pytest.mark.parametrize(
+    "ufun_type, val_type, numeric, linear",
+    [
+        (LinearAdditiveUtilityFunction, int, True, True),
+        (LinearAdditiveUtilityFunction, str, False, True),
+        (MappingUtilityFunction, int, True, False),
+        (MappingUtilityFunction, str, False, False),
+    ],
+)
+def test_generate_singleissue_utility_values_example(
+    ufun_type, val_type, numeric, linear
+):
+    ufuns = generate_single_issue_ufuns(
+        n_pareto=100,
+        n_outcomes=30,
+        n_ufuns=2,
+        pareto_generator=random.choice(list(GENERATOR_MAP.keys())),
+        linear=linear,
+        numeric=numeric,
+    )
+    assert len(ufuns) > 0
+    assert ufuns[0].outcome_space is not None
+    assert isinstance(ufuns[0].outcome_space, CartesianOutcomeSpace)
+    assert all([isinstance(_, ufun_type) for _ in ufuns])
+    outcome = ufuns[0].outcome_space.random_outcome()
+    assert all([isinstance(_, val_type) for _ in outcome])
 
+
+@pytest.mark.parametrize(
+    "ufun_type, val_type, numeric, linear",
+    [
+        (LinearAdditiveUtilityFunction, int, True, True),
+        (LinearAdditiveUtilityFunction, str, False, True),
+        (MappingUtilityFunction, int, True, False),
+        (MappingUtilityFunction, str, False, False),
+    ],
+)
+def test_generate_multiissue_utility_values_example(
+    ufun_type, val_type, numeric, linear
+):
     ufuns = generate_multi_issue_ufuns(
         5,
         n_values=10,
         sizes=None,
         n_ufuns=2,
         pareto_generators=tuple(GENERATOR_MAP.keys()),
+        linear=linear,
+        numeric=numeric,
     )
     assert len(ufuns) > 0
     assert ufuns[0].outcome_space is not None
     assert isinstance(ufuns[0].outcome_space, CartesianOutcomeSpace)
+    assert all([isinstance(_, ufun_type) for _ in ufuns])
+    outcome = ufuns[0].outcome_space.random_outcome()
+    assert all([isinstance(_, val_type) for _ in outcome])
+
+
+@given(
+    fractions=st.lists(st.floats(0, 1), min_size=2, max_size=2),
+    generator=st.sampled_from(list(GENERATOR_MAP.keys())),
+)
+def test_generate_singleissue_utility_rational_fraction(fractions, generator):
+    ufuns = generate_single_issue_ufuns(
+        n_pareto=100,
+        n_outcomes=30,
+        n_ufuns=2,
+        pareto_generator=generator,
+        rational_fractions=fractions,
+        reservation_selector=lambda a, _: a,
+    )
+    for ufun, f in zip(ufuns, fractions):
+        assert ufun.outcome_space
+        outcomes = list(ufun.outcome_space.enumerate_or_sample())
+        n_outcomes = ufun.outcome_space.cardinality
+        assert (
+            abs(
+                int(f * n_outcomes + 0.5)
+                - len(
+                    [
+                        v
+                        for outcome in outcomes
+                        if (v := float(ufun(outcome))) >= ufun.reserved_value
+                    ]
+                )
+            )
+            < 2
+        )
+
+
+@pytest.mark.parametrize(
+    "ufun_type, val_type, numeric, linear",
+    [
+        (LinearAdditiveUtilityFunction, int, True, True),
+        (LinearAdditiveUtilityFunction, str, False, True),
+        (MappingUtilityFunction, int, True, False),
+        (MappingUtilityFunction, str, False, False),
+    ],
+)
+def test_generate_multiissue_utility_values_example(
+    ufun_type, val_type, numeric, linear
+):
+    ufuns = generate_multi_issue_ufuns(
+        5,
+        n_values=10,
+        sizes=None,
+        n_ufuns=2,
+        pareto_generators=tuple(GENERATOR_MAP.keys()),
+        linear=linear,
+        numeric=numeric,
+    )
+    assert len(ufuns) > 0
+    assert ufuns[0].outcome_space is not None
+    assert isinstance(ufuns[0].outcome_space, CartesianOutcomeSpace)
+    assert all([isinstance(_, ufun_type) for _ in ufuns])
+    outcome = ufuns[0].outcome_space.random_outcome()
+    assert all([isinstance(_, val_type) for _ in outcome])

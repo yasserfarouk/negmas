@@ -1,5 +1,6 @@
+import itertools
 import random
-from typing import Any, Callable, Iterable, Literal
+from typing import Any, Callable, Iterable, Literal, overload
 
 import numpy as np
 
@@ -11,7 +12,8 @@ from negmas.helpers.misc import (
 )
 from negmas.negotiators.helpers import PolyAspiration, TimeCurve
 from negmas.outcomes import make_issue, make_os
-from negmas.preferences.crisp.linear import LinearUtilityAggregationFunction
+from negmas.preferences.crisp.linear import LinearAdditiveUtilityFunction
+from negmas.preferences.crisp.mapping import MappingUtilityFunction
 from negmas.preferences.value_fun import TableFun
 
 __all__ = [
@@ -21,6 +23,7 @@ __all__ = [
     "make_non_pareto",
     "generate_utility_values",
     "generate_multi_issue_ufuns",
+    "generate_single_issue_ufuns",
     "ParetoGenerator",
     "GENERATOR_MAP",
     "make_curve_pareto",
@@ -308,29 +311,223 @@ def generate_utility_values(
     return points
 
 
-# @override
-# def generate_multi_issue_utility_values(
-#     n_issues: int,
-#     n_values: None,
-#     sizes: tuple[int, ...],
-#     n_ufuns: int = 2,
-#     pareto_generators: tuple[ParetoGenerator | str, ...] = ("piecewise_linear",),
-#     generator_params: tuple[dict[str, Any], ...] | None = None,
-#     os_name: str | None = None,
-# ) -> tuple[LinearUtilityAggregationFunction, ...]:
-#     ...
+def zip_cycle(A, *args):
+    """Zips generators A and B, cycling through B as needed if it's shorter.
+
+    Args:
+        A: The first generator.
+        args: Other generators
+
+    Yields:
+        Pairs of elements from A and B, cycling through B as needed.
+
+    Raises:
+        ValueError: If B is longer than A.
+    """
+
+    if len(A) < min(len(_) for _ in args):  # Check for invalid length relationship
+        raise ValueError("Generator A must be equal to or longer than generator B.")
+
+    cyc = (itertools.cycle(_) for _ in args)
+    return zip(A, *cyc)
+
+
+def zip_cycle_longest(A, B):
+    """Zips generators A and B, cycling through B as needed if it's shorter.
+
+    Args:
+        A: The first generator.
+        B: The second generator.
+
+    Yields:
+        Pairs of elements from A and B, cycling through B as needed.
+
+    Raises:
+        ValueError: If B is longer than A.
+    """
+
+    if len(A) < len(B):  # Check for invalid length relationship
+        raise ValueError("Generator A must be equal to or longer than generator B.")
+
+    B_cycle = itertools.cycle(B)  # Create a cycle of the shorter generator B
+    return zip(A, B_cycle)  # Zip A with the cycled B
+
+
+def _adjust_ufuns(
+    ufuns,
+    os,
+    linear,
+    rational_fractions,
+    selector: Callable[[float, float], float] = max,
+):
+    outcomes = None
+    if rational_fractions:
+        for u, f in zip_cycle_longest(ufuns, rational_fractions):
+            outcomes = os.enumerate_or_sample()
+            vals = sorted(u(_) for _ in outcomes)
+            n_outcomes = len(vals)
+            limit = max(0, min(len(vals) - 1, int((1 - f) * len(vals) + 0.5)))
+            if f * n_outcomes <= 1:
+                r = vals[-1] + 0.001
+            elif f >= 1.0:
+                r = vals[0] - 0.001
+            else:
+                r = vals[limit] - 1e-9
+            u.reserved_value = selector(r, u.reserved_value)
+
+    if linear:
+        return ufuns
+    maps = []
+    if outcomes is None:
+        outcomes = os.enumerate_or_sample()
+    for u in ufuns:
+        maps.append(
+            MappingUtilityFunction(
+                dict(zip(outcomes, [u(_) for _ in outcomes])),
+                outcome_space=os,
+                name=u.name,
+                reserved_value=u.reserved_value,
+            )
+        )
+    return tuple(maps)
+
+
+def generate_single_issue_ufuns(
+    n_pareto: int,
+    n_outcomes: int,
+    n_ufuns: int = 2,
+    pareto_first=False,
+    pareto_generator: ParetoGenerator | str = "piecewise_linear",
+    generator_params: dict[str, Any] | None = None,
+    reserved_values: list[float] | tuple[float, float] | float = 0.0,
+    rational_fractions: list[float] | None = None,
+    reservation_selector: Callable[[float, float], float] = max,
+    issue_name: str = "portions",
+    os_name: str = "S",
+    ufun_names: tuple[str, ...] | list[str] | None = None,
+    numeric: bool = False,
+    linear: bool = True,
+) -> tuple[LinearAdditiveUtilityFunction | MappingUtilityFunction, ...]:
+    """Generates a set of single-issue ufuns
+
+    Args:
+        pareto_first: return the pareto outcomes first in the outcome-space
+        n_pareto: number of pareto outcomes
+        n_outcomes: number of outcomes. Must be >= `n_pareto`
+        n_ufuns: number of ufuns
+        pareto_generator: The generation method. See `GENERATOR_MAP`
+        generator_params: parameters of the generator
+        reserved_values: Reserved values to use for generated ufuns.
+                         A list to cycle through, or a tuple to sample within or a single value to repeat.
+        rational_fractions: Fraction of rational outcomes for each ufun. Should have `n_ufuns` values
+                            (or it will cycle). If given with `reserved_values`, the `reservation_selector`
+                            will be used to select the final reservation value
+        reservation_selector: A function that receives the reserved value suggested by rational_fraction and
+                               that suggested by reserved_value and selects the final reserved values. The
+                               default is `max`. You can replace that with `min`, the first, the second,
+                               mean, or any combination.
+        issue_name: Name of the single issue.
+        os_name: Name of the outcomes space in the ufuns created
+        ufun_names: Names of utility functions
+        numeric: All issue values are numeric (integers)
+        linear: Whether to use a linear-additive-ufun instead of the general mapping ufun
+
+    Returns:
+        A tuple of single-issue ufuns
+    """
+    if (
+        isinstance(reserved_values, tuple)
+        and len(reserved_values) == 2
+        and reserved_values[0] <= reserved_values[1]
+    ):
+        reserved_values = [
+            floatin(reserved_values, log_uniform=False) for _ in range(n_ufuns)
+        ]
+    elif not isinstance(reserved_values, Iterable):
+        reserved_values = [float(reserved_values)] * n_ufuns
+    vals = generate_utility_values(
+        n_pareto, n_outcomes, n_ufuns, pareto_first, pareto_generator, generator_params
+    )
+    n = len(vals)
+
+    if numeric:
+        issues = (make_issue(n, issue_name),)
+    else:
+        issues = (make_issue([f"{i}_{n-1 - i}" for i in range(n)], issue_name),)
+    os = make_os(issues, name=os_name)
+    if not ufun_names:
+        ufun_names = tuple(f"u{i}" for i in range(n_ufuns))
+    ufuns = tuple(
+        LinearAdditiveUtilityFunction(
+            values=(
+                TableFun({_: float(vals[i][k]) for i, _ in enumerate(issues[0].all)}),
+            ),
+            name=uname,
+            outcome_space=os,
+            reserved_value=r,
+        )
+        for k, (r, uname) in enumerate(zip_cycle_longest(ufun_names, reserved_values))
+        # for k, (uname, r) in enumerate(zip(("First", "Second"), reserved_ranges))
+    )
+    return _adjust_ufuns(ufuns, os, linear, rational_fractions, reservation_selector)
+
+
+@overload
+def generate_multi_issue_ufuns(
+    n_issues: int,
+    n_values: int | tuple[int, int] = 0,
+    sizes: None = None,
+    n_ufuns: int = 2,
+    pareto_generators: tuple[ParetoGenerator | str, ...] = ("piecewise_linear",),
+    generator_params: tuple[dict[str, Any], ...] | None = None,
+    reserved_values: list[float] | tuple[float, float] | float = 0.0,
+    rational_fractions: list[float] | None = None,
+    reservation_selector: Callable[[float, float], float] = max,
+    issue_names: tuple[str, ...] | list[str] | None = None,
+    os_name: str | None = None,
+    ufun_names: tuple[str, ...] | None = None,
+    numeric: bool = False,
+    linear: bool = True,
+) -> tuple[LinearAdditiveUtilityFunction | MappingUtilityFunction, ...]:
+    ...
+
+
+@overload
+def generate_multi_issue_ufuns(
+    n_issues: int,
+    n_values: None = None,
+    sizes: tuple[int, ...] | list[int] = tuple(),
+    n_ufuns: int = 2,
+    pareto_generators: tuple[ParetoGenerator | str, ...] = ("piecewise_linear",),
+    generator_params: tuple[dict[str, Any], ...] | None = None,
+    reserved_values: list[float] | tuple[float, float] | float = 0.0,
+    rational_fractions: list[float] | None = None,
+    reservation_selector: Callable[[float, float], float] = max,
+    issue_names: tuple[str, ...] | list[str] | None = None,
+    os_name: str | None = None,
+    ufun_names: tuple[str, ...] | None = None,
+    numeric: bool = False,
+    linear: bool = True,
+) -> tuple[LinearAdditiveUtilityFunction | MappingUtilityFunction, ...]:
+    ...
 
 
 def generate_multi_issue_ufuns(
     n_issues: int,
     n_values: int | tuple[int, int] | None = None,
-    sizes: tuple[int, ...] | None = None,
+    sizes: None | tuple[int, ...] | list[int] = None,
     n_ufuns: int = 2,
-    pareto_generators: tuple[ParetoGenerator | str, ...] = ("piecewise_linear",),
+    pareto_generators: tuple[ParetoGenerator | str, ...] = tuple(GENERATOR_MAP.keys()),
     generator_params: tuple[dict[str, Any], ...] | None = None,
+    reserved_values: list[float] | tuple[float, float] | float = 0.0,
+    rational_fractions: list[float] | None = None,
+    reservation_selector: Callable[[float, float], float] = max,
+    issue_names: tuple[str, ...] | list[str] | None = None,
     os_name: str | None = None,
     ufun_names: tuple[str, ...] | None = None,
-) -> tuple[LinearUtilityAggregationFunction, ...]:
+    numeric: bool = False,
+    linear: bool = True,
+) -> tuple[LinearAdditiveUtilityFunction | MappingUtilityFunction, ...]:
     """Generates a set of ufuns with an outcome space of the given number of issues.
 
     Args:
@@ -340,21 +537,45 @@ def generate_multi_issue_ufuns(
         n_ufuns: Number of ufuns to generate
         pareto_generators: The generators to use internally to generate value functions
         generator_params: parameters of the generators.
+        reserved_values: Reserved values to use for generated ufuns.
+                         A list to cycle through, or a tuple to sample within or a single value to repeat.
+        rational_fractions: Fraction of rational outcomes for each ufun. Should have `n_ufuns` values
+                            (or it will cycle). If given with `reserved_values`, the `reservation_selector`
+                            will be used to select the final reservation value
+        reservation_selector: A function that receives the reserved value suggested by rational_fraction and
+                               that suggested by reserved_value and selects the final reserved values. The
+                               default is `max`. You can replace that with `min`, the first, the second,
+                               mean, or any combination.
         os_name: Name of the outcomes space in the ufuns created
         ufun_names: Names of utility functions
+        numeric: All issue values are numeric (integers)
+        linear: Whether to use a linear-additive-ufun instead of the general mapping ufun
 
     Returns:
         A tuple of `n_ufuns` utility functions.
     """
+    if (
+        isinstance(reserved_values, tuple)
+        and len(reserved_values) == 2
+        and reserved_values[0] <= reserved_values[1]
+    ):
+        reserved_values = [
+            floatin(reserved_values, log_uniform=False) for _ in range(n_ufuns)
+        ]
+    elif not isinstance(reserved_values, Iterable):
+        reserved_values = [float(reserved_values)] * n_ufuns
     if ufun_names is None:
         ufun_names = tuple(f"u{i+1}" for i in range(n_ufuns))
     vals = [dict() for _ in range(n_ufuns)]
     if not generator_params:
         generator_params = [dict() for _ in pareto_generators]  # type: ignore
+    if not issue_names:
+        issue_names = tuple(f"i{k+1}" for k in range(n_issues))
     gp = list(zip(pareto_generators, generator_params))  # type: ignore
     if sizes is None:
         assert n_values is not None
-        sizes = tuple(intin(n_values) for _ in range(n_issues))
+        sizes = tuple(intin(n_values) for _ in range(n_issues))  # type: ignore
+    assert sizes is not None
     for i, n in enumerate(sizes):
         g, p = random.choice(gp)
         v = generate_utility_values(
@@ -365,25 +586,37 @@ def generate_multi_issue_ufuns(
     weights = [float(_) for _ in generate_random_weights(n_issues)]
     os = make_os(
         issues=[
-            make_issue([f"v{k+1}" for k in range(ni)], name=f"i{i+1}")
-            for i, ni in enumerate(sizes)
+            make_issue(ni, name=iname)
+            if numeric
+            else make_issue([f"v{k+1}" for k in range(ni)], name=f"i{i+1}")
+            for i, (ni, iname) in enumerate(zip(sizes, issue_names))
         ],
         name=os_name,
     )
-    return tuple(
-        LinearUtilityAggregationFunction(
+    ufuns = tuple(
+        LinearAdditiveUtilityFunction(
             values=[
                 TableFun(
-                    dict(zip([f"v{k+1}" for k in range(len(vals[j][i]))], vals[j][i]))
+                    dict(
+                        zip(
+                            [
+                                k if numeric else f"v{k+1}"
+                                for k in range(len(vals[j][i]))
+                            ],
+                            vals[j][i],
+                        )
+                    )
                 )
                 for i in range(n_issues)
             ],
             weights=weights,
             outcome_space=os,
             name=name,
+            reserved_value=r,
         )
-        for j, name in enumerate(ufun_names)
+        for j, (name, r) in enumerate(zip_cycle_longest(ufun_names, reserved_values))
     )
+    return _adjust_ufuns(ufuns, os, linear, rational_fractions, reservation_selector)
 
 
 if __name__ == "__main__":
