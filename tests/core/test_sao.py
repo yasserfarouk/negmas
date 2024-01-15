@@ -427,5 +427,53 @@ def test_basic_sao_with_action():
     ), f"Ran for too long {session.state.step} but max expected is {n_steps} steps:\n{session.extended_trace}"
 
 
+class MyNeg(AspirationNegotiator):
+    def __init__(self, *args, **kwargs):
+        super().__init__(*args, **kwargs)
+        self.negstarted = False
+        self.negended = False
+
+    def on_negotiation_start(self, *args, **kwargs):
+        assert not self.negstarted
+        self.negstarted = True
+        super().on_negotiation_start(*args, **kwargs)
+
+    def respond(self, *args, **kwargs):
+        return ResponseType.REJECT_OFFER
+
+    def on_negotiation_end(self, *args, **kwargs):
+        assert not self.negended
+        self.negended = True
+        super().on_negotiation_end(*args, **kwargs)
+
+
+def test_hidden_time_works_and_no_call_repetitions():
+    time, hidden = 18000, 30
+    issues: list[Issue] = [
+        make_issue(10, "price"),
+        make_issue(5, "quantity"),
+        make_issue(["red", "green", "blue"], "color"),
+    ]
+    os = make_os(issues)
+    ufuns = [
+        LinearAdditiveUtilityFunction.random(outcome_space=os, reserved_value=0.0),
+        LinearAdditiveUtilityFunction.random(outcome_space=os, reserved_value=0.0),
+    ]
+    session = SAOMechanism(
+        time_limit=time,
+        n_steps=None,
+        hidden_time_limit=hidden,
+        outcome_space=os,
+        one_offer_per_step=False,
+        ignore_negotiator_exceptions=False,
+    )
+    agents = [MyNeg() for _ in range(len(ufuns))]
+    for u, a in zip(ufuns, agents):
+        assert session.add(a, ufun=u)  # type: ignore
+    state = session.run()
+    assert state.timedout
+    assert 0.85 * hidden <= state.time <= hidden * 1.3
+
+
 def test_smart_asipration():
     state = try_negotiator(SmartAspirationNegotiator)
