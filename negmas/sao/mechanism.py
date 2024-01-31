@@ -68,6 +68,10 @@ class SAOMechanism(Mechanism):
         ignore_negotiator_exceptions: just silently ignore negotiator exceptions and consider them no-responses.
         offering_is_accepting: Offering an outcome implies accepting it. If not, the agent who proposed an offer will
                                be asked to respond to it after all other agents.
+        sync_calls: If given, calls to negotiators will be synchronized. This will not enforce timeouts on
+                    single calls which means that a negotiator in an infinite loop will hog the CPU. By default
+                    calls are done using a different thread that is killed when the timeout passes. This may, but
+                    is not guaranteed to, resolve this issue at the expense of slower negotiations and harder debugging
         name: Name of the mecnanism
         **kwargs: Extra paramters passed directly to the `Mechanism` constructor
 
@@ -103,6 +107,9 @@ class SAOMechanism(Mechanism):
         one_offer_per_step: bool = False,
         **kwargs,
     ):
+        debug = kwargs.get("debug", False)
+        if debug:
+            sync_calls = True
         if avoid_ultimatum:
             warnings.warn(
                 "Support for Avoid-Ultimatum will be removed soon. We will force avoid_ultimatum to False",
