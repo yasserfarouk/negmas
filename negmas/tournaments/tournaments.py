@@ -1759,7 +1759,7 @@ def run_tournament(
             max_attempts,
         )
     if verbose:
-        print(f"Tournament completed successfully")
+        print(f"[blue]Tournament completed[/blue]")
 
 
 def create_tournament(
