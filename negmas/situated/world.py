@@ -502,6 +502,21 @@ class World(EventSink, EventSource, ConfigReader, NamedObject, CheckpointMixin, 
         self.loginfo(f"{self.name}: World Created")
 
     @property
+    def stat_names(self, peragent: bool = False):
+        """Returns names of all stats available"""
+        names = sorted(list(self.stats.keys()))
+        if peragent:
+            return names
+        final = []
+        for name in names:
+            parts = name.split("_")
+            if any(parts[-1] == _ for _ in self.agents.keys()):
+                final.append("_".join(parts[:-1]))
+                continue
+            final.append(name)
+        return sorted(list(set(final)))
+
+    @property
     def stats(self) -> dict[str, Any]:
         return self._stats
 
@@ -1992,7 +2007,7 @@ class World(EventSink, EventSource, ConfigReader, NamedObject, CheckpointMixin, 
                             bi=True,
                         )
                         self._saved_contracts[contract.id]["erred_at"] = -1
-                        sellf.__n_new_contract_nullifications += 1
+                        self.__n_new_contract_nullifications += 1
                         self.loginfo(
                             f"Contract nullified: {str(contract)}",
                             Event("contract-nullified", dict(contract=contract)),
@@ -3417,3 +3432,153 @@ class World(EventSink, EventSource, ConfigReader, NamedObject, CheckpointMixin, 
             file_level=self.log_file_level,
             app_wide_log_file=True,
         )
+
+    def plot_stats(
+        self,
+        stats: str | tuple[str, ...],
+        pertype=False,
+        use_sum=False,
+        makefig=False,
+        title=True,
+        ylabel=False,
+        xlabel=False,
+        legend=True,
+        figsize=None,
+        ylegend=2.0,
+    ):
+        """Plots statistics of the world in a single plot
+
+        Args:
+            stats: The statistics to plot. If `None`, some selected stats will be displayed
+            pertype: combine agent-statistics  per type
+            use_sum: plot sum for type statistics instead of mean
+            title: If given a title will be added to each subplot
+            ylabel: If given, the ylabel will be added to each subplot
+            xlabel: If given The xlabel will be added (Simulation Step)
+            legend: If given, a legend will be displayed
+            makefig: If given a new figure will be started
+            figsize: Size of the figure to host the plot
+            ylegend: y-axis of legend for cases with large number of labels
+        """
+        import matplotlib.pyplot as plt
+
+        if makefig:
+            plt.figure(figsize=figsize)
+        n_plots = 0
+        suffixes = tuple()
+        if isinstance(stats, str):
+            stats = (stats,)
+
+        styles = [
+            ("solid", "solid"),  # same as (0, ()) or '-'
+            ("dotted", "dotted"),  # same as (0, (1, 1)) or ':'
+            ("dashed", "dashed"),  # same as '--'
+            ("dashdot", "dashdot"),
+            ("loosely dotted", (0, (1, 10))),
+            ("dotted", (0, (1, 1))),
+            ("densely dotted", (0, (1, 1))),
+            ("long dash with offset", (5, (10, 3))),
+            ("loosely dashed", (0, (5, 10))),
+            ("dashed", (0, (5, 5))),
+            ("densely dashed", (0, (5, 1))),
+            ("loosely dashdotted", (0, (3, 10, 1, 10))),
+            ("dashdotted", (0, (3, 5, 1, 5))),
+            ("densely dashdotted", (0, (3, 1, 1, 1))),
+            ("dashdotdotted", (0, (3, 5, 1, 5, 1, 5))),
+            ("loosely dashdotdotted", (0, (3, 10, 1, 10, 1, 10))),
+            ("densely dashdotdotted", (0, (3, 1, 1, 1, 1, 1))),
+        ]
+        n_per_style = 5
+        for stat in stats:
+            suffix = (
+                stat.split("_")[-1] if any(stat.endswith(_) for _ in suffixes) else ""
+            )
+            prefix = (
+                "_".join(stat.split("_")[:-1])
+                if any(stat.endswith(_) for _ in suffixes)
+                else stat
+            )
+            world_stats = [
+                _
+                for _ in self.stats.keys()
+                if _.startswith(prefix) and (not suffix or _.endswith(suffix))
+            ]
+            if len(world_stats) == 0:
+                continue
+            if len(world_stats) == 1:
+                linestyle = styles[n_plots // n_per_style][1]
+                n_plots += 1
+                plt.plot(
+                    self.stats[world_stats[0]],
+                    label=world_stats[0],
+                    linestyle=linestyle,
+                )
+                if title:
+                    plt.title(stat)
+                if ylabel:
+                    plt.ylabel(stat)
+                if xlabel:
+                    plt.xlabel("Simulation Step")
+                continue
+            type_world_stats = defaultdict(list)
+            base = ""
+            for s in world_stats:
+                parts = s.split("_")
+                base, aid = "_".join(parts[:-1]), parts[-1]
+                if suffix:
+                    assert suffix == aid, f"{suffix=}, {aid=}, {s=}, {base=}, {stat=}"
+                    bparts = base.split("_")
+                    base = f"{'_'.join(bparts[:-1])}_{suffix}"
+                    aid = bparts[-1]
+                if pertype:
+                    type_ = self.agents[aid].type_name.split(":")[-1].split(".")[-1]
+                    type_world_stats[type_].append(self.stats[s])
+                    continue
+                n_plots += 1
+                linestyle = styles[n_plots // n_per_style][1]
+                plt.plot(self.stats[s], label=aid, linestyle=linestyle)
+            if not pertype:
+                if title:
+                    plt.title(base)
+                if ylabel:
+                    plt.ylabel(base)
+                if xlabel:
+                    plt.xlabel("Simulation Step")
+                continue
+            for t, s in type_world_stats.items():
+                if not s:
+                    continue
+                n = len(s)
+                y = sum(np.asarray(_) for _ in s)
+                yerr = None
+                if n > 1 and not use_sum:
+                    y /= n
+                    s = np.asarray([list(_) for _ in s])
+                    yerr = np.std(s, axis=0) / np.sqrt(n)
+                    assert len(yerr) == len(y), f"{yerr=}\n{y=}\n{s=}"  # type: ignore
+                n_plots += 1
+                linestyle = styles[n_plots // n_per_style][1]
+                plt.errorbar(
+                    range(len(y)),  # type: ignore
+                    y,
+                    yerr,
+                    linestyle=linestyle,
+                    label=t if len(stats) == 1 else f"{t} ({base})",
+                )
+            if len(stats) == 1 and title:
+                plt.title(base)
+            if len(stats) == 1 and ylabel:
+                plt.ylabel(base)
+            if len(stats) == 1 and xlabel:
+                plt.xlabel("Simulation Step")
+        if n_plots > 1 and legend:
+            if n_plots < 4:
+                plt.legend()
+            else:
+                plt.legend(
+                    loc="upper left",
+                    bbox_to_anchor=(-0.02, ylegend),
+                    ncol=8,
+                    fancybox=True,
+                    shadow=True,
+                )
