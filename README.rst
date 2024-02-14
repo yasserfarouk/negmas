@@ -57,7 +57,7 @@ Overview
 
       .. image:: http://yasserm.com/images/negmas-small.png
             :width: 200
-            :alt: Negmas Log
+            :alt: Negmas Logo
 
    .. container:: rightside
 
