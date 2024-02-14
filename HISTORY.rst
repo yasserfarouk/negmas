@@ -1,6 +1,27 @@
 History
 =======
 
+Release 0.10.13
+---------------
+* Minor coloring in tournaments
+* Adding plot_stats() and stat_names to World
+* Always using sync-calls when debugging
+* Testing hidden time limit
+* Better ufun generation. negmas.preferences.generators now have two functions:
+    generate_single_issue_ufuns and generate_multi_issue_ufuns. These can be
+    used to generate ufuns using any generator in the GENERATOR_MAP with
+    full control:
+    - can control issue, outcome and ufun names
+    - can control reserved values and/or rational fractions
+    - can control the type: numeric/string issues and linear-additive/mapping ufuns
+* MappingUFun returns -inf for non-existing outcomes
+* Now mapping ufuns will return 0.0 for unknown values not None
+* bugfix: fixing activity level and other stat calculation
+* Adding generate_multi_issue_ufuns. This generator generates a set of ufuns for a multi-issue scenario with
+    controllable pareto generators
+* Adding plotting to Scenario
+* doc: removing svg explicit setting
+
 Release 0.10.12
 ---------------
 * Adding GB to the mechanisms docs
