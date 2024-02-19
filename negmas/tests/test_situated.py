@@ -21,7 +21,7 @@ from negmas.events import Event, EventSink, EventSource
 from negmas.gb.common import ResponseType
 from negmas.outcomes import Outcome, make_issue
 from negmas.sao import SAOState
-from negmas.sao.common import ResponseType, SAOResponse
+from negmas.sao.common import SAOResponse
 from negmas.sao.negotiators.base import SAONegotiator
 from negmas.serialization import to_flat_dict
 from negmas.situated import Action, Agent, Breach, Contract, Operations, World
@@ -55,12 +55,12 @@ class NegPerStepWorld(World):
         )
         self.the_agents = []
 
-    def join(self, x: Agent, simulation_priority: int = 0):
+    def join(self, x: Agent, simulation_priority: int = 0, **kwargs):
         super().join(x=x, simulation_priority=simulation_priority)
         self.the_agents.append(x)
 
     def complete_contract_execution(
-        self, contract: Contract, breaches: list[Breach], resolved: bool
+        self, contract: Contract, breaches: list[Breach], resolution: Contract
     ) -> None:
         pass
 
@@ -105,7 +105,7 @@ class NegPerStepWorld(World):
         return to_flat_dict(breach)
 
     def execute_action(
-        self, action: Action, agent: Agent, callback: Callable = None
+        self, action: Action, agent: Agent, callback: Callable | None = None
     ) -> bool:
         return True
 
@@ -113,7 +113,7 @@ class NegPerStepWorld(World):
         s = {"partners": [_ for _ in self.the_agents if _ is not agent]}
         return s
 
-    def simulation_step(self, stage: int):
+    def simulation_step(self, stage: int = 0):
         pass
 
 
@@ -171,7 +171,7 @@ class BilateralNegAgent(Agent):
         if random() > self.p_request:
             return
         self.__current_step = self.awi.current_step
-        issues = [make_issue(10, name="i1")]
+        issues = (make_issue(10, name="i1"),)
         partners = self.awi.state["partners"]
         for partner in partners:
             self._request_negotiation(partners=[partner.name, self.name], issues=issues)
@@ -196,7 +196,11 @@ class BilateralNegAgent(Agent):
         a = -1 if random() < 0.5 else 1
         negotiator = neg_type(
             preferences=MappingUtilityFunction(
-                mapping=lambda x: random() - a * x[0] / (random() + 1.0 * 9.0),
+                mapping=lambda x: (
+                    random() - a * x[0] / (random() + 1.0 * 9.0)
+                    if x is not None
+                    else 0.0
+                ),
                 issues=issues,
             )
         )
@@ -278,7 +282,7 @@ class NegAgent(Agent):
         if random() > self.p_request:
             return
         self.__current_step = self.awi.current_step
-        issues = [make_issue(10, name="i1")]
+        issues = (make_issue(10, name="i1"),)
         partners = self.awi.state["partners"]
         self._request_negotiation(
             partners=[_.name for _ in partners] + [self.name], issues=issues
@@ -304,7 +308,11 @@ class NegAgent(Agent):
         a = -1 if random() < 0.5 else 1
         negotiator = neg_type(
             preferences=MappingUtilityFunction(
-                mapping=lambda x: random() - a * x[0] / (random() + 1.0 * 9.0),
+                mapping=lambda x: (
+                    random() - a * x[0] / (random() + 1.0 * 9.0)
+                    if x is not None
+                    else 0.0
+                ),
                 issues=issues,
             )
         )
@@ -372,7 +380,7 @@ class DummyWorld(World):
         self.the_agents = []
 
     def complete_contract_execution(
-        self, contract: Contract, breaches: list[Breach], resolved: bool
+        self, contract: Contract, breaches: list[Breach], resolution: Contract
     ) -> None:
         pass
 
@@ -385,7 +393,7 @@ class DummyWorld(World):
     def contract_size(self, contract: Contract) -> float:
         return 0.0
 
-    def join(self, x: Agent, simulation_priority: int = 0):
+    def join(self, x: Agent, simulation_priority: int = 0, **kwargs):
         super().join(x=x, simulation_priority=simulation_priority)
         self.the_agents.append(x)
 
@@ -421,7 +429,7 @@ class DummyWorld(World):
         return to_flat_dict(breach)
 
     def execute_action(
-        self, action: Action, agent: Agent, callback: Callable = None
+        self, action: Action, agent: Agent, callback: Callable | None = None
     ) -> bool:
         return True
 
@@ -429,7 +437,7 @@ class DummyWorld(World):
         s = {"partners": [_ for _ in self.the_agents if _ is not agent]}
         return s
 
-    def simulation_step(self, stage: int):
+    def simulation_step(self, stage: int = 0):
         pass
 
 
@@ -454,7 +462,8 @@ class DummyAgent(Agent):
     ) -> Negotiator | None:
         negotiator = AspirationNegotiator(
             preferences=MappingUtilityFunction(
-                mapping=lambda x: 1.0 - x[0] / 10.0, issues=issues
+                mapping=lambda x: 1.0 - x[0] / 10.0 if x is not None else 0.0,
+                issues=issues,
             )
         )
         return negotiator
@@ -516,7 +525,7 @@ class DummyAgent(Agent):
         if (self.__current_step == 2 and self.name.endswith("1")) or (
             self.__current_step == 4 and self.name.endswith("2")
         ):
-            issues = [make_issue(10, name="i1")]
+            issues = (make_issue(10, name="i1"),)
             partners = self.awi.state["partners"]
             self._request_negotiation(
                 partners=[_.name for _ in partners] + [self.name], issues=issues
@@ -546,7 +555,7 @@ class ExceptionAgent(Agent):
     ) -> Negotiator | None:
         negotiator = AspirationNegotiator(
             preferences=MappingUtilityFunction(
-                mapping=lambda x: 1.0 - x[0] / 10.0,
+                mapping=lambda x: 1.0 - x[0] / 10.0 if x is not None else 0.0,
                 issues=issues,
             ),
         )
@@ -609,7 +618,7 @@ class ExceptionAgent(Agent):
         if (self.__current_step == 2 and self.name.endswith("1")) or (
             self.__current_step == 4 and self.name.endswith("2")
         ):
-            issues = [make_issue(10, name="i1")]
+            issues = (make_issue(10, name="i1"),)
             partners = self.awi.state["partners"]
             self._request_negotiation(
                 partners=[_.name for _ in partners] + [self.name], issues=issues
@@ -676,6 +685,8 @@ def test_config_reader_with_a_world():
     assert world.n_steps == 10000
 
     world = DummyWorld.from_config(scope=globals(), config={"n_steps": N_NEG_STEPS})
+    assert world is not None
+    assert isinstance(world, World)
     assert world.bulletin_board is not None
     assert world.n_steps == N_NEG_STEPS
 
@@ -688,6 +699,8 @@ def test_config_reader_with_a_world_with_enum():
     world = DummyWorld.from_config(
         scope=globals(), config={"n_steps": N_NEG_STEPS, "negotiation_speed": 2}
     )
+    assert world is not None
+    assert isinstance(world, World)
     assert world.bulletin_board is not None
     assert world.n_steps == N_NEG_STEPS
     assert world.negotiation_speed == 2
@@ -730,6 +743,8 @@ def test_world_checkpoint(tmp_path):
 
     w = DummyWorld.from_checkpoint(file_name)
 
+    assert w is not None
+    assert isinstance(w, DummyWorld)
     assert world.current_step == w.current_step
     assert world.agents == w.agents
     assert w.bulletin_board is not None
@@ -740,6 +755,8 @@ def test_world_checkpoint(tmp_path):
     file_name = world.checkpoint(tmp_path)
     w = DummyWorld.from_checkpoint(file_name)
 
+    assert w is not None
+    assert isinstance(w, DummyWorld)
     assert world.current_step == w.current_step
     assert world.agents == w.agents
     assert w.bulletin_board is not None
@@ -752,6 +769,8 @@ def test_world_checkpoint(tmp_path):
     file_name = world.checkpoint(tmp_path)
     w = DummyWorld.from_checkpoint(file_name)
 
+    assert w is not None
+    assert isinstance(w, DummyWorld)
     assert world.current_step == w.current_step
     assert world.agents == w.agents
     assert w.bulletin_board is not None
@@ -780,6 +799,7 @@ def test_agent_checkpoint(tmp_path):
 
     assert a.id == b.id
 
+    assert isinstance(b, DummyAgent)
     b.step_()
 
 
@@ -804,6 +824,7 @@ def test_agent_checkpoint_in_world(tmp_path):
 
         assert a.id == b.id
 
+        assert isinstance(b, DummyAgent)
         b.step_()
 
 

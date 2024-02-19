@@ -12,10 +12,11 @@ import traceback
 from abc import ABC, abstractmethod
 from collections import defaultdict
 from pathlib import Path
-from typing import TYPE_CHECKING, Any, Callable, Collection, Iterable, Literal
+from typing import TYPE_CHECKING, Any, Callable, Collection, Iterable
 
 import numpy as np
 import pandas as pd
+import scipy
 import yaml
 
 from negmas.checkpoints import CheckpointMixin
@@ -555,7 +556,6 @@ class World(EventSink, EventSource, ConfigReader, NamedObject, CheckpointMixin, 
     def cancellation_fraction(self) -> float:
         """Fraction of contracts concluded (through negotiation or otherwise)
         that were cancelled."""
-        n_negs = sum(self.stats["n_negotiations"])
         n_contracts = self.n_saved_contracts(False)
         n_signed_contracts = len(
             [_ for _ in self._saved_contracts.values() if _["signed_at"] >= 0]
@@ -1206,11 +1206,13 @@ class World(EventSink, EventSource, ConfigReader, NamedObject, CheckpointMixin, 
             "ended_at": self.current_step,
             "mechanism_type": mechanism.__class__.__name__,
             "issues": [str(issue) for issue in negotiation.issues],
-            "final_status": "running"
-            if running
-            else "succeeded"
-            if agreement is not None
-            else "failed",
+            "final_status": (
+                "running"
+                if running
+                else "succeeded"
+                if agreement is not None
+                else "failed"
+            ),
             "failed": agreement is None,
             "agreement": str(agreement),
             "group": negotiation.group,
@@ -1543,7 +1545,7 @@ class World(EventSink, EventSource, ConfigReader, NamedObject, CheckpointMixin, 
             if self._debug:
                 assert (
                     negotiation is not None
-                ), f"{mecahanism.id} just finished but it is not in the set of running negotiations!!"
+                ), f"{mechanism.id} just finished but it is not in the set of running negotiations!!"
             if agreement is None:
                 self._register_failed_negotiation(mechanism.nmi, negotiation)
             else:
@@ -1619,9 +1621,11 @@ class World(EventSink, EventSource, ConfigReader, NamedObject, CheckpointMixin, 
                         self._add_edges(
                             _p[0],
                             _p,
-                            self._edges_negotiations_succeeded
-                            if contract is not None
-                            else self._edges_negotiations_failed,
+                            (
+                                self._edges_negotiations_succeeded
+                                if contract is not None
+                                else self._edges_negotiations_failed
+                            ),
                             issues=mechanism.issues,
                             bi=True,
                         )
@@ -2374,9 +2378,9 @@ class World(EventSink, EventSource, ConfigReader, NamedObject, CheckpointMixin, 
             neg_n_steps=self.neg_n_steps,
             neg_time_limit=self.neg_time_limit,
             neg_step_time_limit=self.neg_step_time_limit,
-            log_ufuns_file=str(Path(self._log_folder) / "ufuns.csv")
-            if self._log_ufuns
-            else None,
+            log_ufuns_file=(
+                str(Path(self._log_folder) / "ufuns.csv") if self._log_ufuns else None
+            ),
         )
         neg = factory.init()
         if neg is None:
@@ -2408,9 +2412,11 @@ class World(EventSink, EventSource, ConfigReader, NamedObject, CheckpointMixin, 
             self._add_edges(
                 caller,
                 partners,
-                self._edges_negotiations_succeeded
-                if contract is not None
-                else self._edges_negotiations_failed,
+                (
+                    self._edges_negotiations_succeeded
+                    if contract is not None
+                    else self._edges_negotiations_failed
+                ),
                 issues=issues,
             )
             return None, contract, neg.mechanism
@@ -2422,9 +2428,11 @@ class World(EventSink, EventSource, ConfigReader, NamedObject, CheckpointMixin, 
                     self._add_edges(
                         caller,
                         partners,
-                        self._edges_negotiations_succeeded
-                        if contract is not None
-                        else self._edges_negotiations_failed,
+                        (
+                            self._edges_negotiations_succeeded
+                            if contract is not None
+                            else self._edges_negotiations_failed
+                        ),
                         issues=issues,
                     )
                     return None, contract, neg.mechanism
@@ -2532,9 +2540,11 @@ class World(EventSink, EventSource, ConfigReader, NamedObject, CheckpointMixin, 
         self._add_edges(
             caller,
             partners,
-            self._edges_negotiation_requests_accepted
-            if success
-            else self._edges_negotiation_requests_rejected,
+            (
+                self._edges_negotiation_requests_accepted
+                if success
+                else self._edges_negotiation_requests_rejected
+            ),
             issues=issues,
         )
 
@@ -2720,7 +2730,7 @@ class World(EventSink, EventSource, ConfigReader, NamedObject, CheckpointMixin, 
         if caller_roles is None or isinstance(caller_roles, str):
             caller_roles = [caller_roles] * n_negs
         if negotiators is None or isinstance(negotiators, Negotiator):
-            raise ValueError(f"Must pass all negotiators for run_negotiations")
+            raise ValueError("Must pass all negotiators for run_negotiations")
         if preferences is None or isinstance(preferences, Preferences):
             preferences = [preferences] * n_negs
 
@@ -3011,8 +3021,12 @@ class World(EventSink, EventSource, ConfigReader, NamedObject, CheckpointMixin, 
             if isinstance(steps, int):
                 steps = [steps, steps + 1]
             steps = tuple(min(self.n_steps, max(0, _)) for _ in steps)
+
+            def yes(x):
+                return True
+
             if who is None:
-                who = lambda x: True
+                who = yes
             agents = [_.id for _ in self.agents.values() if who(_)]
             if together:
                 g = nx.MultiDiGraph()
@@ -3082,8 +3096,12 @@ class World(EventSink, EventSource, ConfigReader, NamedObject, CheckpointMixin, 
             if isinstance(steps, int):
                 steps = [steps, steps + 1]
             steps = tuple(min(self.n_steps, max(0, _)) for _ in steps)
+
+            def yes(x):
+                return True
+
             if who is None:
-                who = lambda x: True
+                who = yes
             if together:
                 titles = [""]
             else:
@@ -3433,6 +3451,199 @@ class World(EventSink, EventSource, ConfigReader, NamedObject, CheckpointMixin, 
             app_wide_log_file=True,
         )
 
+    @staticmethod
+    def combine_stats(
+        worlds: tuple[World, ...] | World,
+        stat: str,
+        pertype=False,
+        method=np.mean,
+        n_steps: int | None = None,
+    ):
+        """Combines statistics by the given combination method.
+
+        Args:
+            worlds: The worlds to combine stats from
+            stat: The statistic to combine
+            pertype: combine agent-statistics  per type
+            method: plot sum for type statistics instead of mean
+            n_steps: If not given, then absolute step number will be used for
+                     combining stats, otherwise all stats will be resampled to
+                     be n_steps before being combined. If a negative number, then
+                     the maximum number of steps in all worlds will be used
+        """
+        if isinstance(worlds, World):
+            worlds = (worlds,)
+        if not worlds:
+            return dict()
+
+        if n_steps is not None and n_steps < 0:
+            n_steps = max(_.n_steps for _ in worlds)
+
+        combined_stats = defaultdict(list)
+        max_length = defaultdict(int)
+        for world in worlds:
+            world_stats = [_ for _ in world.stats.keys() if _.startswith(stat)]
+            if len(world_stats) == 0:
+                continue
+            type_world_stats = defaultdict(list)
+            for s in world_stats:
+                if not pertype or not any(s.endswith(_) for _ in world.agents.keys()):
+                    # this is not an agent statistic or an agent statistic but we are not combining types
+                    z = world.stats[s]
+                    combined_stats[s].append(np.asarray(z))
+                    max_length[s] = max(max_length[s], len(z))
+                    continue
+                parts = s.split("_")
+                base, aid = "_".join(parts[:-1]), parts[-1]
+                if aid not in world.agents.keys():
+                    z = world.stats[s]
+                    combined_stats[s].append(np.asarray(z))
+                    max_length[s] = max(max_length[s], len(z))
+                    continue
+                type_ = world.agents[aid].short_type_name
+                key = type_ if base == stat else f"{type_} ({base})"
+                z = world.stats[s]
+                combined_stats[key].append(np.asarray(z))
+                max_length[key] = max(max_length[key], len(z))
+        if n_steps is None:
+            combined_stats = {
+                k: [
+                    np.pad(x.flatten(), (0, max_length[k] - len(x)))
+                    if len(x) < max_length[k]
+                    else x.flatten()
+                    for x in v
+                ]
+                for k, v in combined_stats.items()
+                if v
+            }
+        else:
+            combined_stats = {
+                k: [
+                    np.interp(np.arange(n_steps), np.arange(len(x)), x)
+                    if len(x) != n_steps
+                    else x
+                    for x in v
+                ]
+                for k, v in combined_stats.items()
+                if v
+            }
+        combined_stats = {
+            k: method(np.vstack(tuple(_.reshape((1, len(_))) for _ in v)), axis=0)
+            for k, v in combined_stats.items()
+            if v
+        }
+        return combined_stats
+
+    @classmethod
+    def plot_combined_stats(
+        cls,
+        worlds: tuple[World, ...] | World,
+        stats: str | tuple[str, ...],
+        n_steps: int | None = -1,
+        pertype=False,
+        use_sum=False,
+        makefig=False,
+        title=True,
+        ylabel=False,
+        xlabel=False,
+        legend=True,
+        figsize=None,
+        ylegend=2.0,
+        legend_ncols=8,
+    ):
+        """Plots combined statistics of multiple worlds in a single plot
+
+        Args:
+            stats: The statistics to plot. If `None`, some selected stats will be displayed
+            pertype: combine agent-statistics  per type
+            use_sum: plot sum for type statistics instead of mean
+            title: If given a title will be added to each subplot
+            ylabel: If given, the ylabel will be added to each subplot
+            xlabel: If given The xlabel will be added (Simulation Step)
+            legend: If given, a legend will be displayed
+            makefig: If given a new figure will be started
+            figsize: Size of the figure to host the plot
+            ylegend: y-axis of legend for cases with large number of labels
+            legend_n_cols: number of columns in the legend
+        """
+        import matplotlib.pyplot as plt
+
+        if makefig:
+            fig = plt.figure(figsize=figsize)
+        n_plots = 0
+        if isinstance(stats, str):
+            stats = (stats,)
+
+        styles = [
+            ("solid", "solid"),  # same as (0, ()) or '-'
+            ("dotted", "dotted"),  # same as (0, (1, 1)) or ':'
+            ("dashed", "dashed"),  # same as '--'
+            ("dashdot", "dashdot"),
+            ("loosely dotted", (0, (1, 10))),
+            ("dotted", (0, (1, 1))),
+            ("densely dotted", (0, (1, 1))),
+            ("long dash with offset", (5, (10, 3))),
+            ("loosely dashed", (0, (5, 10))),
+            ("dashed", (0, (5, 5))),
+            ("densely dashed", (0, (5, 1))),
+            ("loosely dashdotted", (0, (3, 10, 1, 10))),
+            ("dashdotted", (0, (3, 5, 1, 5))),
+            ("densely dashdotted", (0, (3, 1, 1, 1))),
+            ("dashdotdotted", (0, (3, 5, 1, 5, 1, 5))),
+            ("loosely dashdotdotted", (0, (3, 10, 1, 10, 1, 10))),
+            ("densely dashdotdotted", (0, (3, 1, 1, 1, 1, 1))),
+        ]
+        n_per_style = 5
+        for stat in stats:
+            means = cls.combine_stats(
+                worlds, stat=stat, pertype=pertype, method=np.mean, n_steps=n_steps
+            )
+            sterrs = cls.combine_stats(
+                worlds,
+                stat=stat,
+                pertype=pertype,
+                method=scipy.stats.sem,
+                n_steps=n_steps,
+            )
+            for k, mean in means.items():
+                sterr = np.maximum(sterrs.get(k, np.zeros_like(mean)), 0)
+                no_err = np.all(sterr < 1e-10)
+                linestyle = styles[n_plots // n_per_style][1]
+                n_plots += 1
+                if no_err:
+                    plt.plot(mean, label=k, linestyle=linestyle)
+                else:
+                    if np.any(sterr < 0):
+                        pass
+                    plt.errorbar(
+                        range(mean.size)
+                        if n_steps is None or n_steps > 0
+                        else np.linspace(0, 1, len(mean)),
+                        mean,
+                        sterr,
+                        linestyle=linestyle,
+                        label=k,
+                    )
+                if title:
+                    plt.title(stat)
+                if ylabel:
+                    plt.ylabel(stat)
+                if xlabel:
+                    plt.xlabel(
+                        "Simulation Step" if n_steps is not None else "Relative Time"
+                    )
+        if legend:
+            if n_plots < 4:
+                plt.legend()
+            else:
+                plt.legend(
+                    loc="upper left",
+                    bbox_to_anchor=(-0.02, ylegend),
+                    ncol=legend_ncols,
+                    fancybox=True,
+                    shadow=True,
+                )
+
     def plot_stats(
         self,
         stats: str | tuple[str, ...],
@@ -3445,6 +3656,7 @@ class World(EventSink, EventSource, ConfigReader, NamedObject, CheckpointMixin, 
         legend=True,
         figsize=None,
         ylegend=2.0,
+        legend_ncols=8,
     ):
         """Plots statistics of the world in a single plot
 
@@ -3459,6 +3671,7 @@ class World(EventSink, EventSource, ConfigReader, NamedObject, CheckpointMixin, 
             makefig: If given a new figure will be started
             figsize: Size of the figure to host the plot
             ylegend: y-axis of legend for cases with large number of labels
+            legend_n_cols: number of columns in the legend
         """
         import matplotlib.pyplot as plt
 
@@ -3552,7 +3765,7 @@ class World(EventSink, EventSource, ConfigReader, NamedObject, CheckpointMixin, 
                 y = sum(np.asarray(_) for _ in s)
                 yerr = None
                 if n > 1 and not use_sum:
-                    y /= n
+                    y = y / int(n)
                     s = np.asarray([list(_) for _ in s])
                     yerr = np.std(s, axis=0) / np.sqrt(n)
                     assert len(yerr) == len(y), f"{yerr=}\n{y=}\n{s=}"  # type: ignore
@@ -3578,7 +3791,7 @@ class World(EventSink, EventSource, ConfigReader, NamedObject, CheckpointMixin, 
                 plt.legend(
                     loc="upper left",
                     bbox_to_anchor=(-0.02, ylegend),
-                    ncol=8,
+                    ncol=legend_ncols,
                     fancybox=True,
                     shadow=True,
                 )
