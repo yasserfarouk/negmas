@@ -166,7 +166,7 @@ class Agent(Entity, EventSink, ConfigReader, Notifier, Rational, ABC):
 
     def _request_negotiation(
         self,
-        issues: list[Issue],
+        issues: tuple[Issue, ...],
         partners: list[str],
         roles: list[str] | None = None,
         annotation: dict[str, Any] | None = None,

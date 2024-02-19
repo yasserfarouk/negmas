@@ -2601,7 +2601,7 @@ def evaluate_tournament(
 
 
 def tournament(
-    competitors: list[str | Agent] | tuple[str, Agent],
+    competitors: list[str | Agent] | tuple[str | Agent, ...] | Sequence[str | Agent],
     config_generator: ConfigGenerator,
     config_assigner: ConfigAssigner,
     world_generator: WorldGenerator,

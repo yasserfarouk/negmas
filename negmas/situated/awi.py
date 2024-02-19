@@ -1,6 +1,6 @@
 from __future__ import annotations
 
-from typing import TYPE_CHECKING, Any, Callable, Collection
+from typing import TYPE_CHECKING, Any, Callable
 
 from negmas.common import NegotiatorMechanismInterface
 from negmas.negotiators import Negotiator
