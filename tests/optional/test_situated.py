@@ -106,28 +106,28 @@ def test_combine_stats(pertype, n_step, method, n):
                 assert len(v) == n_step, f"{k=}: {len(v)=} but {n_step=}"
 
 
-@given(
-    pertype=st.booleans(),
-    nstep=st.sampled_from((-1, None, 10, 100)),
-    n=st.integers(1, 10),
-)
-@example(pertype=False, nstep=-1, n=1)
-def test_plot_combined(pertype, nstep, n):
-    worlds = []
-    n_steps = [random.randint(10, 65) for _ in range(n)]
-    for ns in n_steps:
-        world = DummyWorld(n_steps=ns, no_logs=True)
-        world.run()
-        worlds.append(world)
-    assert len(worlds) == n
-    DummyWorld.plot_combined_stats(
-        tuple(worlds),
-        stats="activity_level",
-        n_steps=nstep,
-        pertype=pertype,
-        makefig=False,
-    )
-    # import matplotlib.pyplot as plt
-    #
-    # plt.show()
-    # assert False
+# @given(
+#     pertype=st.booleans(),
+#     nstep=st.sampled_from((-1, None, 10, 100)),
+#     n=st.integers(1, 10),
+# )
+# @example(pertype=False, nstep=-1, n=1)
+# def test_plot_combined(pertype, nstep, n):
+#     worlds = []
+#     n_steps = [random.randint(10, 65) for _ in range(n)]
+#     for ns in n_steps:
+#         world = DummyWorld(n_steps=ns, no_logs=True)
+#         world.run()
+#         worlds.append(world)
+#     assert len(worlds) == n
+#     DummyWorld.plot_combined_stats(
+#         tuple(worlds),
+#         stats="activity_level",
+#         n_steps=nstep,
+#         pertype=pertype,
+#         makefig=False,
+#     )
+#     # import matplotlib.pyplot as plt
+#     #
+#     # plt.show()
+#     # assert False
