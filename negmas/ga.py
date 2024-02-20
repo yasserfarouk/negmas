@@ -116,7 +116,7 @@ class GAMechanism(Mechanism):
                 self.dominant_outcomes.append(outcomes[target])
         self._current_state.dominant_outcomes = self.dominant_outcomes  # type: ignore
 
-    def __call__(
+    def __call__(  # type: ignore
         self, state: GAState, action: Action | None = None
     ) -> MechanismStepResult:
         self.update_ranks()

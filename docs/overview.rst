@@ -139,7 +139,7 @@ environment, takes care of running negotiations and keeps track of
 agreement signing and the resulting **Contract**\ s. The **World**
 object also controls logging, event management, serialization,
 visualization, etc. Refer to the
-`World <http://www.yasserm.com/negmas/api/negmas.situated.World.html>`__
+`World <https://yasserfarouk.readthedocs.io/en/latest/api/negmas.situated.World.html>`__
 documentation for more details (*you need to do that only if you are
 implementing new world simulations*).
 
@@ -149,7 +149,7 @@ abstract methods in the base **World** class.
 The logic of an agent is NegMAS is implemented in an **Agent** object.
 The designer of the simulation, should provide a base class for its
 specific world inherited from NegMAS’s **Agent** class. Refer to the
-`Agent <http://www.yasserm.com/negmas/api/negmas.situated.Agent.html>`__
+`Agent <https://yasserfarouk.readthedocs.io/en/latest/api/negmas.situated.Agent.html>`__
 documentation for more details about general NegMAS agents.
 
 So now we have the **World** and the **Agent** objects, and we already
@@ -173,7 +173,7 @@ The world designer usually defines an AWI for its world that inherits
 NegMAS’s **AgentWorldInterface** class and provides any special services
 for agents interacting in this world. You can find all the services
 available to your agent through the AgentWorldInterface
-`here <http://www.yasserm.com/negmas/api/negmas.situated.AgentWorldInterface.html>`__.
+`here <https://yasserfarouk.readthedocs.io/en/latest/api/negmas.situated.AgentWorldInterface.html>`__.
 These methods and properties are still available for your agent in SCML.
 Nevertheless, in many cases, more convenient ways to access some of the
 information (e.g. the bulletin board) is provided in the specific AWIs
@@ -199,7 +199,7 @@ objects call methods in **Negotiator** objects directly but
 **Negotiator** objects can only access services provided by the
 **Mechanism** object through a **NegotiatorMechanismInterface** (AMI).
 You can find more details about the general NegMAS NMI
-`here <http://www.yasserm.com/negmas/api/negmas.common.NegotiatorMechanismInterface.html>`__.
+`here <https://yasserfarouk.readthedocs.io/en/latest/api/negmas.common.NegotiatorMechanismInterface.html>`__.
 
 Each specific **Mechanism** defines a corresponding specific
 **AgentMechanismInterface** class (in the same way that **World**
@@ -211,14 +211,14 @@ preferences over different possible **Outcome**\ s of the negotiation
 (where an outcome is a full assignment of values to all negotiated
 **Issue**\ s). NegMAS provides an extensive set of preferences types,
 utility functions, and issue types. Please refer to this
-`overview <http://www.yasserm.com/negmas/overview.html>`__ and
-`tutorials <http://www.yasserm.com/negmas/tutorials.html>`__ for more
+`overview <https://yasserfarouk.readthedocs.io/en/latest/overview.html>`__ and
+`tutorials <https://yasserfarouk.readthedocs.io/en/latest/tutorials.html>`__ for more
 details. NegMAS also provides some basic **SAONegotiator**\ s for the
 **SAOMechanism** (Check the class diagram
-`here <http://www.yasserm.com/negmas/modules/sao.html>`__). Moreover,
+`here <https://yasserfarouk.readthedocs.io/en/latest/modules/sao.html>`__). Moreover,
 you can access almost all `Genius <http://ii.tudelft.nl/genius/>`__
 agents using NegMAS’s
-`GeniusNegotiator <http://www.yasserm.com/negmas/api/negmas.genius.GeniusNegotiator.html>`__
+`GeniusNegotiator <https://yasserfarouk.readthedocs.io/en/latest/api/negmas.genius.GeniusNegotiator.html>`__
 including all finalists and winners of all past ANAC competitions.
 
 Now we understand how agents interact with worlds through AWIs and
