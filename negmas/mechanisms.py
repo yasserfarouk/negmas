@@ -830,11 +830,9 @@ class Mechanism(NamedObject, EventSource, CheckpointMixin, ABC):
         negotiator = self._negotiator_map.get(id, None)
         if not negotiator:
             return id
-        from negmas.genius.negotiator import GeniusNegotiator
 
-        assert isinstance(negotiator, GeniusNegotiator)
         return (
-            negotiator.java_uuid if hasattr(negotiator, "java_uuid") else negotiator.id
+            negotiator.java_uuid if hasattr(negotiator, "java_uuid") else negotiator.id  # type: ignore
         )
 
     @property
