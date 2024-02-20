@@ -1,5 +1,4 @@
 from __future__ import annotations
-
 import math
 import numbers
 import random
@@ -110,7 +109,7 @@ def make_issue(values, *args, optional: bool = False, **kwargs):
         try:
             for a, b in zip(v[1:], v[:-1]):
                 _ = a - b
-        except:
+        except Exception:
             return CategoricalIssue(values, *args, **kwargs)
         return DiscreteOrdinalIssue(values, *args, **kwargs)
     return CategoricalIssue(values, *args, **kwargs)
@@ -121,11 +120,7 @@ class Issue(HasMinMax, Iterable, ABC):
     Base class of all issues in NegMAS
     """
 
-    def __init__(
-        self,
-        values,
-        name: str | None = None,
-    ) -> None:
+    def __init__(self, values, name: str | None = None) -> None:
         self.name = name if name else unique_name("issue", add_time=False, sep="")
         self._value_type = object
         self._values = values
@@ -239,10 +234,7 @@ class Issue(HasMinMax, Iterable, ABC):
             return d
         d.pop(PYTHON_CLASS_IDENTIFIER, None)
         d["values"] = deserialize(d["values"])
-        return cls(
-            values=d.get("values", None),
-            name=d.get("name", None),
-        )
+        return cls(values=d.get("values", None), name=d.get("name", None))
 
     def to_dict(self):
         """
@@ -250,10 +242,7 @@ class Issue(HasMinMax, Iterable, ABC):
         """
         d = {PYTHON_CLASS_IDENTIFIER: get_full_type_name(type(self))}
         return dict(
-            **d,
-            values=serialize(self.values),
-            name=self.name,
-            n_values=self._n_values,
+            **d, values=serialize(self.values), name=self.name, n_values=self._n_values
         )
 
     @abstractmethod
@@ -349,8 +338,7 @@ class Issue(HasMinMax, Iterable, ABC):
             return self
 
         return CategoricalIssue(
-            list(self.value_generator(n, grid, compact, endpoints)),
-            name=self.name,
+            list(self.value_generator(n, grid, compact, endpoints)), name=self.name
         )
 
     @abstractmethod
@@ -488,7 +476,7 @@ class DiscreteIssue(Issue):
         """Picks a random valid value."""
         return random.choice(self._values)  # type: ignore
 
-    def rand_outcomes(
+    def rand_outcomes(  # type: ignore
         self, n: int, with_replacement=False, fail_if_not_enough=False
     ) -> Iterable[Outcome]:
         """Picks a set of random outcomes"""

@@ -69,7 +69,7 @@ dropped-contract                     contract: `Contract`
 =================================   ===============================================================================
 
 """
-from __future__ import annotations
+
 
 from .common import *
 from .action import *

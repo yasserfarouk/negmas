@@ -1,5 +1,4 @@
 from __future__ import annotations
-
 from typing import Callable, Literal, Sequence, TypeVar
 
 from negmas.gb.components.selectors import (
@@ -260,7 +259,7 @@ class AspirationNegotiator(TimeBasedConcedingNegotiator):
 
     def utility_at(self, t):
         if not self._offering_curve:
-            raise ValueError(f"No inverse ufun is known yet")
+            raise ValueError("No inverse ufun is known yet")
         return self._offering_curve.utility_at(t)  # type: ignore (I know it is an Aspiration not a TimeCurve)
 
     @property

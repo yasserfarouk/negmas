@@ -1,5 +1,4 @@
 from __future__ import annotations
-
 import random
 from typing import Iterable
 
@@ -247,11 +246,7 @@ def test_mechanisms_get_some_rounds():
 
 
 def test_alternating_offers_mechanism_fails_on_no_offerer():
-    p = SAOMechanism(
-        outcomes=10,
-        n_steps=10,
-        dynamic_entry=False,
-    )
+    p = SAOMechanism(outcomes=10, n_steps=10, dynamic_entry=False)
     to_be_offered = [(0,), (1,), (2,)]
     to_be_accepted = [(2,)]
     a1 = LimitedOutcomesAcceptor(acceptable_outcomes=to_be_offered)
@@ -275,12 +270,10 @@ def test_alternating_offers_mechanism_with_one_agent_run():
     accepted = [(2,), (3,), (4,), (5,)]
     neg = SAOMechanism(outcomes=n_outcomes, n_steps=n_steps)
     agent = LimitedOutcomesNegotiator(
-        acceptable_outcomes=accepted,
-        acceptance_probabilities=[1.0] * len(accepted),
+        acceptable_outcomes=accepted, acceptance_probabilities=[1.0] * len(accepted)
     )
     opponent = LimitedOutcomesNegotiator(
-        acceptable_outcomes=accepted,
-        acceptance_probabilities=[1.0] * len(accepted),
+        acceptable_outcomes=accepted, acceptance_probabilities=[1.0] * len(accepted)
     )
     neg.add(agent)
     neg.add(opponent)
@@ -294,12 +287,10 @@ def test_same_utility_leads_to_agreement():
     accepted = [(2,), (3,), (4,), (5,)]
     neg = SAOMechanism(outcomes=n_outcomes, n_steps=n_steps)
     opponent = LimitedOutcomesNegotiator(
-        acceptable_outcomes=accepted,
-        acceptance_probabilities=[1.0] * len(accepted),
+        acceptable_outcomes=accepted, acceptance_probabilities=[1.0] * len(accepted)
     )
     acceptor = LimitedOutcomesAcceptor(
-        acceptable_outcomes=accepted,
-        acceptance_probabilities=[1.0] * len(accepted),
+        acceptable_outcomes=accepted, acceptance_probabilities=[1.0] * len(accepted)
     )
     neg.add(opponent)
     neg.add(acceptor)

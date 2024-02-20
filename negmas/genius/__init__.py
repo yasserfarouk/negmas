@@ -2,6 +2,7 @@
 """
 Manages connections to Genius allowing NegMAS users to run Genius agents as negotiators.
 """
+
 from __future__ import annotations
 
 from .bridge import *

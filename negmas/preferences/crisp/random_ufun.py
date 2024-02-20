@@ -1,5 +1,4 @@
 from __future__ import annotations
-
 from random import random
 from typing import TYPE_CHECKING
 
@@ -15,16 +14,8 @@ __all__ = ["RandomUtilityFunction"]
 class RandomUtilityFunction(StationaryMixin, UtilityFunction):
     """A random utility function for a discrete outcome space"""
 
-    def __init__(
-        self,
-        rng: tuple[float, float] = (0.0, 1.0),
-        *args,
-        **kwargs,
-    ):
-        super().__init__(
-            *args,
-            **kwargs,
-        )
+    def __init__(self, rng: tuple[float, float] = (0.0, 1.0), *args, **kwargs):
+        super().__init__(*args, **kwargs)
         self._cache: dict[Outcome | None, float] = dict()
         self._scale = rng[1] - rng[0]
         self._offset = rng[0]

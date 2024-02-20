@@ -1,5 +1,4 @@
 from __future__ import annotations
-
 import numbers
 from random import random
 from typing import Any, Generator
@@ -19,11 +18,7 @@ class OptionalIssue(Issue):
     the cardinality)
     """
 
-    def __init__(
-        self,
-        base: Issue,
-        name: str | None = None,
-    ) -> None:
+    def __init__(self, base: Issue, name: str | None = None) -> None:
         self.base = base
         self._n_values = self.base._n_values + 1
         super().__init__(values=base.values, name=name)
@@ -88,10 +83,7 @@ class OptionalIssue(Issue):
             return d
         d.pop(PYTHON_CLASS_IDENTIFIER, None)
         d["base"] = deserialize(d["base"])
-        return cls(
-            base=d.get("base", None),
-            name=d.get("name", None),
-        )
+        return cls(base=d.get("base", None), name=d.get("name", None))
 
     def to_dict(self):
         """

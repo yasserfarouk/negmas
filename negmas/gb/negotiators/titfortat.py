@@ -1,5 +1,4 @@
 from __future__ import annotations
-
 from typing import TYPE_CHECKING, Literal
 
 from negmas.gb.components.concession import KindConcessionRecommender
@@ -11,10 +10,7 @@ if TYPE_CHECKING:
     pass
 
 
-__all__ = [
-    "NaiveTitForTatNegotiator",
-    "SimpleTitForTatNegotiator",
-]
+__all__ = ["NaiveTitForTatNegotiator", "SimpleTitForTatNegotiator"]
 
 
 class NaiveTitForTatNegotiator(MAPNegotiator):

@@ -1,5 +1,4 @@
 from __future__ import annotations
-
 from negmas.helpers.prob import ScipyDistribution
 from negmas.preferences import IPUtilityFunction
 

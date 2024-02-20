@@ -1,5 +1,4 @@
 from __future__ import annotations
-
 import numpy as np
 import pytest
 
@@ -140,13 +139,13 @@ def test_values_contained_in_issues_contiguous():
         assert v in i1
 
     assert i2 in i1
-    assert not i1 in i2
+    assert i1 not in i2
     assert i3 in i1
-    assert not i1 in i3
-    assert not i2 in i3
+    assert i1 not in i3
+    assert i2 not in i3
     for ix in (i1, i2, i3):
-        assert not i4 in ix
-        assert not ix in i4
+        assert i4 not in ix
+        assert ix not in i4
 
     for ix in (i1, i2, i3):
         assert ix in i5
@@ -174,14 +173,14 @@ def test_values_contained_in_outcome_spaces():
     for x in (a, b, c):
         assert x in x
     assert b in a
-    assert not a in b
+    assert a not in b
     assert c not in a
 
-    assert not make_issue(10) in a
+    assert make_issue(10) not in a
     assert make_issue(10, name=a.issues[0].name) in a
     for i in a.issues:
         assert i in a
-        assert not i in b
+        assert i not in b
         assert i not in c
 
 

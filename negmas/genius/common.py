@@ -1,5 +1,4 @@
 from __future__ import annotations
-
 import sys
 
 from ..common import DEFAULT_JAVA_PORT

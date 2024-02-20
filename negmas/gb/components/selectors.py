@@ -1,5 +1,4 @@
 from __future__ import annotations
-
 from abc import abstractmethod
 from random import choice
 from typing import TYPE_CHECKING, Callable, Protocol, Sequence
@@ -57,11 +56,7 @@ def additive_score(
     utils = [float(ufun(_)) for _ in outcomes]
     dists = [
         min_dist(
-            w,
-            partner_offers,
-            ufun.outcome_space,
-            distance_fun=distance_fun,
-            **kwargs,
+            w, partner_offers, ufun.outcome_space, distance_fun=distance_fun, **kwargs
         )
         for w in outcomes
     ]
@@ -94,11 +89,7 @@ def multiplicative_score(
     utils = [float(ufun(_)) for _ in outcomes]
     dists = [
         min_dist(
-            w,
-            partner_offers,
-            ufun.outcome_space,
-            distance_fun=distance_fun,
-            **kwargs,
+            w, partner_offers, ufun.outcome_space, distance_fun=distance_fun, **kwargs
         )
         for w in outcomes
     ]
@@ -260,7 +251,7 @@ class OfferOrientedSelector(OfferSelector):
 
     def __call__(self, outcomes: Sequence[Outcome], state: GBState) -> Outcome | None:
         if not self._negotiator or not self._negotiator.ufun:
-            raise ValueError(f"Unknown ufun or negotiator")
+            raise ValueError("Unknown ufun or negotiator")
         if not self._pivot:
             return choice(outcomes)
         nearest, ndist = None, float("inf")
@@ -311,7 +302,7 @@ class BestOfferOrientedSelector(OfferOrientedSelector):
         if offer is None:
             return
         if not self._negotiator or not self._negotiator.ufun:
-            raise ValueError(f"Unknown ufun or negotiator")
+            raise ValueError("Unknown ufun or negotiator")
         u = self._negotiator.ufun(offer)
         if u is None:
             return
@@ -346,15 +337,12 @@ class OutcomeSetOrientedSelector(OfferSelector):
 
     def __call__(self, outcomes: Sequence[Outcome], state: GBState) -> Outcome | None:
         if not self._negotiator or not self._negotiator.ufun:
-            raise ValueError(f"Unknown ufun or negotiator")
+            raise ValueError("Unknown ufun or negotiator")
         outcomes = self._offer_filter(outcomes, state)
         if not self._pivots:
             return choice(outcomes)
         scores = self.calculate_scores(outcomes, self._pivots, state)
-        scores = sorted(
-            scores,
-            reverse=True,
-        )
+        scores = sorted(scores, reverse=True)
         return scores[0][1]
 
 
@@ -381,7 +369,7 @@ class MultiplicativePartnerOffersOrientedSelector(PartnerOffersOrientedSelector)
         self, outcomes: Sequence[Outcome], pivots: list[Outcome], state: GBState
     ) -> Sequence[tuple[float, Outcome]]:
         if not self._negotiator or not self._negotiator.ufun:
-            raise ValueError(f"Unknown ufun or negotiator")
+            raise ValueError("Unknown ufun or negotiator")
         return multiplicative_score(
             outcomes,
             pivots,
@@ -407,7 +395,7 @@ class AdditivePartnerOffersOrientedSelector(PartnerOffersOrientedSelector):
         self, outcomes: Sequence[Outcome], pivots: list[Outcome], state: GBState
     ) -> Sequence[tuple[float, Outcome]]:
         if not self._negotiator or not self._negotiator.ufun:
-            raise ValueError(f"Unknown ufun or negotiator")
+            raise ValueError("Unknown ufun or negotiator")
         return additive_score(
             outcomes,
             pivots,

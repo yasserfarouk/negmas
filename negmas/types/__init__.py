@@ -2,7 +2,6 @@
 Implements basice data types used to construct different entities in NegMAS
 """
 
-from __future__ import annotations
 
 from .named import *
 from .runnable import *

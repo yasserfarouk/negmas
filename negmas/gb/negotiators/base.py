@@ -1,5 +1,4 @@
 from __future__ import annotations
-
 from abc import abstractmethod
 from collections import defaultdict
 from typing import TYPE_CHECKING
@@ -15,9 +14,7 @@ if TYPE_CHECKING:
     from negmas.sao.common import SAOResponse, SAOState
     from negmas.situated import Agent
 
-__all__ = [
-    "GBNegotiator",
-]
+__all__ = ["GBNegotiator"]
 
 
 class GBNegotiator(Negotiator):
@@ -114,11 +111,7 @@ class GBNegotiator(Negotiator):
         """
 
     def on_partner_response(
-        self,
-        state: GBState,
-        partner_id: str,
-        outcome: Outcome,
-        response: ResponseType,
+        self, state: GBState, partner_id: str, outcome: Outcome, response: ResponseType
     ) -> None:
         """
         A callback called by the mechanism when a partner responds to some offer
@@ -192,9 +185,7 @@ class GBNegotiator(Negotiator):
         """
         if not self._capabilities["propose"] or self.__end_negotiation:
             return None
-        return self.propose(
-            state=self._gb_state_from_sao_state(state),
-        )
+        return self.propose(state=self._gb_state_from_sao_state(state))
 
     def respond_(self, state: SAOState) -> ResponseType:
         """The method to be called directly by the mechanism (through `counter` ) to respond to an offer.
@@ -239,7 +230,7 @@ class GBNegotiator(Negotiator):
             raise ValueError("No NMI. Cannot convert SAOState to GBState")
         threads = {
             source: ThreadState(
-                new_offer=self.__received_offer.get(state.current_proposer, None),
+                new_offer=self.__received_offer.get(state.current_proposer, None)
             )
             for source in self.nmi.negotiator_ids
         }

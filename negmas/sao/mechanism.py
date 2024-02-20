@@ -1,6 +1,7 @@
 """
 Implements Stacked Alternating Offers (SAO) mechanism.
 """
+
 from __future__ import annotations
 
 import functools
@@ -29,11 +30,7 @@ if TYPE_CHECKING:
 
     from .negotiators import SAONegotiator
 
-__all__ = [
-    "SAOMechanism",
-    "SAOProtocol",
-    "TraceElement",
-]
+__all__ = ["SAOMechanism", "SAOProtocol", "TraceElement"]
 
 DEFAULT_COLORMAP = "jet"
 
@@ -320,7 +317,7 @@ class SAOMechanism(Mechanism):
                     response = None
                     try:
                         negotiator.cancel()
-                    except:
+                    except Exception:
                         pass
                 except Exception as ex:
                     exceptions[negotiator.id].append(exception2str())
@@ -381,7 +378,8 @@ class SAOMechanism(Mechanism):
                 # todo: do not use .issues here as they are not guaranteed to exist (if it is not a cartesial outcome space)
                 if self._enforce_issue_types and hasattr(self.outcome_space, "issues"):
                     if outcome_types_are_ok(
-                        response.outcome, self.outcome_space.issues  # type: ignore
+                        response.outcome,
+                        self.outcome_space.issues,  # type: ignore
                     ):
                         return response, False
                     elif self._cast_offers:
@@ -389,7 +387,8 @@ class SAOMechanism(Mechanism):
                             SAOResponse(
                                 response.response,
                                 cast_value_types(
-                                    response.outcome, self.outcome_space.issues  # type: ignore
+                                    response.outcome,
+                                    self.outcome_space.issues,  # type: ignore
                                 ),
                             ),
                             False,
@@ -433,18 +432,10 @@ class SAOMechanism(Mechanism):
                 state.broken = True
                 state.has_error = True
                 state.error_details = str(exceptions[neg.id])
-                return MechanismStepResult(
-                    state,
-                    times=times,
-                    exceptions=exceptions,
-                )
+                return MechanismStepResult(state, times=times, exceptions=exceptions)
             if resp is None:
                 state.timedout = True
-                return MechanismStepResult(
-                    state,
-                    times=times,
-                    exceptions=exceptions,
-                )
+                return MechanismStepResult(state, times=times, exceptions=exceptions)
             if resp.response == ResponseType.WAIT:
                 self._waiting_start[neg.id] = min(self._waiting_start[neg.id], strt)
                 self._waiting_time[neg.id] += time.perf_counter() - strt
@@ -466,11 +457,7 @@ class SAOMechanism(Mechanism):
 
             if resp is None or time.perf_counter() - strt > self.nmi.step_time_limit:
                 state.timedout = True
-                return MechanismStepResult(
-                    state,
-                    times=times,
-                    exceptions=exceptions,
-                )
+                return MechanismStepResult(state, times=times, exceptions=exceptions)
             if self._extra_callbacks:
                 if state.current_offer is not None:
                     for other in self.negotiators:
@@ -489,23 +476,13 @@ class SAOMechanism(Mechanism):
                     state.timedout = True
                     state.waiting = False
                     return MechanismStepResult(
-                        state,
-                        times=times,
-                        exceptions=exceptions,
+                        state, times=times, exceptions=exceptions
                     )
                 state.waiting = True
-                return MechanismStepResult(
-                    state,
-                    times=times,
-                    exceptions=exceptions,
-                )
+                return MechanismStepResult(state, times=times, exceptions=exceptions)
             if resp.response == ResponseType.END_NEGOTIATION:
                 state.broken = True
-                return MechanismStepResult(
-                    state,
-                    times=times,
-                    exceptions=exceptions,
-                )
+                return MechanismStepResult(state, times=times, exceptions=exceptions)
             if resp.response == ResponseType.ACCEPT_OFFER:
                 state.n_acceptances += 1
                 if state.n_acceptances == n_negotiators:
@@ -532,9 +509,7 @@ class SAOMechanism(Mechanism):
                     ):
                         state.broken = True
                         return MechanismStepResult(
-                            state,
-                            times=times,
-                            exceptions=exceptions,
+                            state, times=times, exceptions=exceptions
                         )
                     state.n_acceptances = 0
                 else:
@@ -565,11 +540,7 @@ class SAOMechanism(Mechanism):
         #     assert (
         #         not action
         #     ), f"Not all negotiator actions were used in this step: {action}"
-        return MechanismStepResult(
-            state,
-            times=times,
-            exceptions=exceptions,
-        )
+        return MechanismStepResult(state, times=times, exceptions=exceptions)
 
     @property
     def full_trace(self) -> list[TraceElement]:
@@ -705,12 +676,7 @@ class SAOMechanism(Mechanism):
             and offers
             and not_equal(offers[-1][-1], self.agreement)
         ):
-            offers.append(
-                (
-                    self._history[-1].current_proposer,
-                    self.agreement,
-                )
-            )
+            offers.append((self._history[-1].current_proposer, self.agreement))
 
         return offers
 

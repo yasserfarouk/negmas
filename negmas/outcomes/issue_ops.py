@@ -1,5 +1,4 @@
 from __future__ import annotations
-
 import copy
 import itertools
 import json
@@ -98,27 +97,36 @@ def sample_outcomes(
         enumberate the whole space
 
         >>> from negmas.outcomes import make_issue
-        >>> issues = [make_issue(values=(0.0, 1.0), name='Price'), make_issue(values=['a', 'b'], name='Name')]
+        >>> issues = [
+        ...     make_issue(values=(0.0, 1.0), name="Price"),
+        ...     make_issue(values=["a", "b"], name="Name"),
+        ... ]
         >>> sample_outcomes(issues=issues)
         [(0.0, 'a'), (0.0, 'b'), (0.25, 'a'), (0.25, 'b'), (0.5, 'a'), (0.5, 'b'), (0.75, 'a'), (0.75, 'b'), (1.0, 'a'), (1.0, 'b')]
 
         enumerate with sampling for very large space (we have 10 outcomes in the discretized space)
 
         >>> from negmas.outcomes import make_issue
-        >>> issues = [make_issue(values=(0.0, 1.0), name='Price'), make_issue(values=['a', 'b'], name='Name')]
+        >>> issues = [
+        ...     make_issue(values=(0.0, 1.0), name="Price"),
+        ...     make_issue(values=["a", "b"], name="Name"),
+        ... ]
         >>> issues[0].is_continuous()
         True
-        >>> sampled=sample_outcomes(issues=issues, n_outcomes=5)
+        >>> sampled = sample_outcomes(issues=issues, n_outcomes=5)
         >>> len(sampled)
         5
         >>> len(set(sampled))
         5
 
         >>> from negmas.outcomes import make_issue
-        >>> issues = [make_issue(values=(0, 1), name='Price'), make_issue(values=['a', 'b'], name='Name')]
+        >>> issues = [
+        ...     make_issue(values=(0, 1), name="Price"),
+        ...     make_issue(values=["a", "b"], name="Name"),
+        ... ]
         >>> issues[0].is_continuous()
         False
-        >>> sampled=sample_outcomes(issues=issues, n_outcomes=5)
+        >>> sampled = sample_outcomes(issues=issues, n_outcomes=5)
         >>> len(sampled)
         4
         >>> len(set(sampled))
@@ -253,13 +261,7 @@ def _sample_issues(
         return values
     return values.union(
         _sample_issues(
-            issues,
-            remaining,
-            with_replacement,
-            n_total,
-            values,
-            trial + 1,
-            max_trials,
+            issues, remaining, with_replacement, n_total, values, trial + 1, max_trials
         )
     )
 
@@ -287,7 +289,10 @@ def sample_issues(
     Examples:
 
         >>> from negmas.outcomes import make_issue
-        >>> issues = [make_issue(name='price', values=(0.0, 3.0)), make_issue(name='quantity', values=10)]
+        >>> issues = [
+        ...     make_issue(name="price", values=(0.0, 3.0)),
+        ...     make_issue(name="quantity", values=10),
+        ... ]
 
         Sampling outcomes as tuples
 
@@ -317,7 +322,7 @@ def sample_issues(
         return enumerate_discrete_issues(issues=issues)  # type: ignore I know that these issues are discrete
     if n_total is None and n_outcomes is None:
         raise ValueError(
-            f"Cannot sample unknown number of outcomes from continuous outcome spaces"
+            "Cannot sample unknown number of outcomes from continuous outcome spaces"
         )
     return list(
         _sample_issues(issues, n_outcomes, with_replacement, n_total, set(), 0, 10)
@@ -325,8 +330,7 @@ def sample_issues(
 
 
 def enumerate_issues(
-    issues: Sequence[Issue],
-    max_cardinality: int | float | None = None,
+    issues: Sequence[Issue], max_cardinality: int | float | None = None
 ) -> list[Outcome]:
     """
     Enumerates the outcomes of a list of issues.
@@ -480,8 +484,11 @@ def issues_to_xml_str(issues: Sequence[Issue]) -> str:
 
     Examples:
 
-        >>> issues = [make_issue(values=10, name='i1'), make_issue(values=['a', 'b', 'c'], name='i2'),
-        ... make_issue(values=(2.5, 3.5), name='i3')]
+        >>> issues = [
+        ...     make_issue(values=10, name="i1"),
+        ...     make_issue(values=["a", "b", "c"], name="i2"),
+        ...     make_issue(values=(2.5, 3.5), name="i3"),
+        ... ]
         >>> s = issues_to_xml_str(issues)
         >>> print(s.strip())
         <negotiation_template>
@@ -542,7 +549,7 @@ def issues_to_xml_str(issues: Sequence[Issue]) -> str:
 
     for indx, issue in enumerate(issues):
         output += issue._to_xml_str(indx)
-    output += f"</objective>\n</utility_space>\n</negotiation_template>"
+    output += "</objective>\n</utility_space>\n</negotiation_template>"
 
     return output
 
@@ -564,25 +571,38 @@ def issues_to_genius(issues: Sequence[Issue], file_name: PathLike | str) -> None
     Examples:
 
         >>> import pkg_resources
-        >>> issues, _ = issues_from_genius(file_name = pkg_resources.resource_filename('negmas'
-        ...                                      , resource_name='tests/data/Laptop/Laptop-C-domain.xml'))
-        >>> issues_to_genius(issues=issues, file_name = pkg_resources.resource_filename('negmas'
-        ...                                    , resource_name='tests/data/LaptopConv/Laptop-C-domain.xml'))
-        >>> issues2, _ = issues_from_genius(file_name = pkg_resources.resource_filename('negmas'
-        ...                                    , resource_name='tests/data/LaptopConv/Laptop-C-domain.xml'))
-        >>> print('\\n'.join([' '.join(list(issue.all)) for issue in issues]))
+        >>> issues, _ = issues_from_genius(
+        ...     file_name=pkg_resources.resource_filename(
+        ...         "negmas", resource_name="tests/data/Laptop/Laptop-C-domain.xml"
+        ...     )
+        ... )
+        >>> issues_to_genius(
+        ...     issues=issues,
+        ...     file_name=pkg_resources.resource_filename(
+        ...         "negmas", resource_name="tests/data/LaptopConv/Laptop-C-domain.xml"
+        ...     ),
+        ... )
+        >>> issues2, _ = issues_from_genius(
+        ...     file_name=pkg_resources.resource_filename(
+        ...         "negmas", resource_name="tests/data/LaptopConv/Laptop-C-domain.xml"
+        ...     )
+        ... )
+        >>> print("\\n".join([" ".join(list(issue.all)) for issue in issues]))
         Dell Macintosh HP
         60 Gb 80 Gb 120 Gb
         19'' LCD 20'' LCD 23'' LCD
-        >>> print('\\n'.join([' '.join(list(issue.all)) for issue in issues2]))
+        >>> print("\\n".join([" ".join(list(issue.all)) for issue in issues2]))
         Dell Macintosh HP
         60 Gb 80 Gb 120 Gb
         19'' LCD 20'' LCD 23'' LCD
 
         - Forcing Single outcome
 
-        >>> issues, _ = issues_from_genius(file_name = pkg_resources.resource_filename('negmas'
-        ...                                      , resource_name='tests/data/Laptop/Laptop-C-domain.xml'))
+        >>> issues, _ = issues_from_genius(
+        ...     file_name=pkg_resources.resource_filename(
+        ...         "negmas", resource_name="tests/data/Laptop/Laptop-C-domain.xml"
+        ...     )
+        ... )
         >>> print([list(issue.all) for issue in issues])
         [['Dell', 'Macintosh', 'HP'], ['60 Gb', '80 Gb', '120 Gb'], ["19'' LCD", "20'' LCD", "23'' LCD"]]
 
@@ -595,9 +615,7 @@ def issues_to_genius(issues: Sequence[Issue], file_name: PathLike | str) -> None
 
 
 def issues_from_geniusweb_json(
-    d: dict,
-    safe_parsing=True,
-    n_discretization: int | None = None,
+    d: dict, safe_parsing=True, n_discretization: int | None = None
 ) -> tuple[Sequence[Issue] | None, Sequence[str] | None]:
     """
     Exports a list of issues from a GeniusWeb loaded dict
@@ -625,9 +643,7 @@ def issues_from_geniusweb_json(
 
 
 def issues_from_geniusweb_json_str(
-    json_str: str,
-    safe_parsing=True,
-    n_discretization: int | None = None,
+    json_str: str, safe_parsing=True, n_discretization: int | None = None
 ) -> tuple[Sequence[Issue] | None, Sequence[str] | None]:
     """
     Exports a list/dict of issues from a GeniusWeb json file.
@@ -651,9 +667,7 @@ def issues_from_geniusweb_json_str(
 
 
 def issues_from_xml_str(
-    xml_str: str,
-    safe_parsing=True,
-    n_discretization: int | None = None,
+    xml_str: str, safe_parsing=True, n_discretization: int | None = None
 ) -> tuple[Sequence[Issue] | None, Sequence[str] | None]:
     """
     Exports a list/dict of issues from a GENIUS XML file.
@@ -674,22 +688,24 @@ def issues_from_xml_str(
     Examples:
 
         >>> import pkg_resources
-        >>> domain_file_name = pkg_resources.resource_filename('negmas'
-        ...                                      , resource_name='tests/data/Laptop/Laptop-C-domain.xml')
-        >>> with open(domain_file_name, 'r') as ff:
+        >>> domain_file_name = pkg_resources.resource_filename(
+        ...     "negmas", resource_name="tests/data/Laptop/Laptop-C-domain.xml"
+        ... )
+        >>> with open(domain_file_name, "r") as ff:
         ...     issues, _ = issues_from_xml_str(ff.read())
         >>> print([_.cardinality for _ in issues])
         [3, 3, 3]
 
-        >>> domain_file_name = pkg_resources.resource_filename('negmas'
-        ...                              , resource_name='tests/data/fuzzyagent/single_issue_domain.xml')
-        >>> with open(domain_file_name, 'r') as ff:
+        >>> domain_file_name = pkg_resources.resource_filename(
+        ...     "negmas", resource_name="tests/data/fuzzyagent/single_issue_domain.xml"
+        ... )
+        >>> with open(domain_file_name, "r") as ff:
         ...     issues, _ = issues_from_xml_str(ff.read())
         >>> len(issues)
         1
         >>> type(issues)
         <class 'tuple'>
-        >>> str(issues[0]).split(': ')[-1]
+        >>> str(issues[0]).split(": ")[-1]
         '(10.0, 40.0)'
         >>> print([_.cardinality for _ in issues])
         [inf]
@@ -716,7 +732,7 @@ def issues_from_xml_str(
 
     if utility_space is None:
         if safe_parsing:
-            raise ValueError(f"No objective child was found in the root")
+            raise ValueError("No objective child was found in the root")
         utility_space = root
     issues_dict: dict[int | str, Any] = {}
     issue_info = {}
@@ -804,9 +820,7 @@ def issues_from_xml_str(
 
 
 def issues_from_geniusweb(
-    file_name: PathLike | str,
-    safe_parsing=True,
-    n_discretization: int | None = None,
+    file_name: PathLike | str, safe_parsing=True, n_discretization: int | None = None
 ) -> tuple[Sequence[Issue] | None, Sequence[str] | None]:
     """
     Imports a the domain issues from a GENIUS XML file.
@@ -828,8 +842,11 @@ def issues_from_geniusweb(
     Examples:
 
         >>> import pkg_resources
-        >>> issues, _ = issues_from_genius(file_name = pkg_resources.resource_filename('negmas'
-        ...                                      , resource_name='tests/data/Laptop/Laptop-C-domain.xml'))
+        >>> issues, _ = issues_from_genius(
+        ...     file_name=pkg_resources.resource_filename(
+        ...         "negmas", resource_name="tests/data/Laptop/Laptop-C-domain.xml"
+        ...     )
+        ... )
         >>> print([_.name for _ in issues])
         ['Laptop', 'Harddisk', 'External Monitor']
 
@@ -848,9 +865,7 @@ def issues_from_geniusweb(
 
 
 def issues_from_genius(
-    file_name: PathLike | str,
-    safe_parsing=True,
-    n_discretization: int | None = None,
+    file_name: PathLike | str, safe_parsing=True, n_discretization: int | None = None
 ) -> tuple[Sequence[Issue] | None, Sequence[str] | None]:
     """
     Imports a the domain issues from a GENIUS XML file.
@@ -872,8 +887,11 @@ def issues_from_genius(
     Examples:
 
         >>> import pkg_resources
-        >>> issues, _ = issues_from_genius(file_name = pkg_resources.resource_filename('negmas'
-        ...                                      , resource_name='tests/data/Laptop/Laptop-C-domain.xml'))
+        >>> issues, _ = issues_from_genius(
+        ...     file_name=pkg_resources.resource_filename(
+        ...         "negmas", resource_name="tests/data/Laptop/Laptop-C-domain.xml"
+        ...     )
+        ... )
         >>> print([_.name for _ in issues])
         ['Laptop', 'Harddisk', 'External Monitor']
 

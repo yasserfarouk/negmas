@@ -1,5 +1,4 @@
 from __future__ import annotations
-
 from collections import namedtuple
 from typing import TYPE_CHECKING, Any, TypeVar
 
@@ -18,9 +17,7 @@ if TYPE_CHECKING:
     from .controlled import ControlledNegotiator
 
 
-__all__ = [
-    "Controller",
-]
+__all__ = ["Controller"]
 
 NegotiatorInfo = namedtuple("NegotiatorInfo", ["negotiator", "context"])
 """
@@ -157,11 +154,7 @@ class Controller(Rational):
             args.update(kwargs)
         return negotiator_type(name=name, parent=self, **args)  # type: ignore I already make sure it is a class in advance
 
-    def add_negotiator(
-        self,
-        negotiator: Negotiator,
-        cntxt: Any = None,
-    ) -> None:
+    def add_negotiator(self, negotiator: Negotiator, cntxt: Any = None) -> None:
         """
         Adds a negotiator to the controller.
 

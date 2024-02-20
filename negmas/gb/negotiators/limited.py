@@ -1,5 +1,4 @@
 from __future__ import annotations
-
 from negmas import warnings
 from negmas.gb.components.acceptance import LimitedOutcomesAcceptancePolicy
 from negmas.gb.components.offering import LimitedOutcomesOfferingPolicy
@@ -8,10 +7,7 @@ from ...outcomes import Outcome
 from .base import GBNegotiator
 from .modular.mapneg import MAPNegotiator
 
-__all__ = [
-    "LimitedOutcomesNegotiator",
-    "LimitedOutcomesAcceptor",
-]
+__all__ = ["LimitedOutcomesNegotiator", "LimitedOutcomesAcceptor"]
 
 
 class LimitedOutcomesNegotiator(MAPNegotiator):
@@ -51,7 +47,7 @@ class LimitedOutcomesNegotiator(MAPNegotiator):
             preferences = ufun
         if preferences is not None:
             warnings.warn(
-                f"LimitedOutcomesAcceptor negotiators ignore preferences but they are given",
+                "LimitedOutcomesAcceptor negotiators ignore preferences but they are given",
                 warnings.NegmasUnusedValueWarning,
             )
         if not proposable_outcomes:
@@ -61,29 +57,21 @@ class LimitedOutcomesNegotiator(MAPNegotiator):
             p_ending=p_no_response,
         )
         if acceptance_probabilities is None and acceptable_outcomes is None:
-            acceptance = LimitedOutcomesAcceptancePolicy(
-                prob=0.5,
-                p_ending=p_ending,
-            )
+            acceptance = LimitedOutcomesAcceptancePolicy(prob=0.5, p_ending=p_ending)
         elif acceptance_probabilities is None and acceptable_outcomes is not None:
             acceptance = LimitedOutcomesAcceptancePolicy.from_outcome_list(
-                acceptable_outcomes,
-                p_ending=p_ending,
+                acceptable_outcomes, p_ending=p_ending
             )
         elif isinstance(acceptance_probabilities, float):
             acceptance = LimitedOutcomesAcceptancePolicy(
-                prob=acceptance_probabilities,
-                p_ending=p_ending,
+                prob=acceptance_probabilities, p_ending=p_ending
             )
         elif acceptable_outcomes is None:
             warnings.warn(
                 "No outcomes are given but we have a list of acceptance probabilities for a limited negotiatoor!! Will just reject everything and offer nothing",
                 warnings.NegmasUnexpectedValueWarning,
             )
-            acceptance = LimitedOutcomesAcceptancePolicy(
-                prob=0.0,
-                p_ending=p_ending,
-            )
+            acceptance = LimitedOutcomesAcceptancePolicy(prob=0.0, p_ending=p_ending)
         else:
             if acceptance_probabilities is None:
                 acceptance_probabilities = [1.0] * len(acceptable_outcomes)
@@ -118,33 +106,25 @@ class LimitedOutcomesAcceptor(MAPNegotiator, GBNegotiator):
             preferences = ufun
         if preferences is not None:
             warnings.warn(
-                f"LimitedOutcomesAcceptor negotiators ignore preferences but they are given",
+                "LimitedOutcomesAcceptor negotiators ignore preferences but they are given",
                 warnings.NegmasUnusedValueWarning,
             )
         if acceptance_probabilities is None and acceptable_outcomes is None:
-            acceptance = LimitedOutcomesAcceptancePolicy(
-                prob=None,
-                p_ending=p_ending,
-            )
+            acceptance = LimitedOutcomesAcceptancePolicy(prob=None, p_ending=p_ending)
         elif acceptance_probabilities is None and acceptable_outcomes is not None:
             acceptance = LimitedOutcomesAcceptancePolicy.from_outcome_list(
-                acceptable_outcomes,
-                p_ending=p_ending,
+                acceptable_outcomes, p_ending=p_ending
             )
         elif isinstance(acceptance_probabilities, float):
             acceptance = LimitedOutcomesAcceptancePolicy(
-                prob=acceptance_probabilities,
-                p_ending=p_ending,
+                prob=acceptance_probabilities, p_ending=p_ending
             )
         elif acceptable_outcomes is None:
             warnings.warn(
                 "No outcomes are given but we have a list of acceptance probabilities for a limited negotiatoor!! Will just reject everything and offer nothing",
                 warnings.NegmasUnexpectedValueWarning,
             )
-            acceptance = LimitedOutcomesAcceptancePolicy(
-                prob=0.0,
-                p_ending=p_ending,
-            )
+            acceptance = LimitedOutcomesAcceptancePolicy(prob=0.0, p_ending=p_ending)
         else:
             acceptance = LimitedOutcomesAcceptancePolicy(
                 prob=dict(zip(acceptable_outcomes, acceptance_probabilities)),  # type: ignore I know that acceptance probabilitis is not none by now

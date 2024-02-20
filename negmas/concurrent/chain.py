@@ -1,6 +1,7 @@
 """Implements a concurrent set of negotiations creating a chain of bilateral negotiations."""
 from __future__ import annotations
 
+
 from abc import ABC, abstractmethod
 from collections import defaultdict, namedtuple
 from dataclasses import dataclass
@@ -302,9 +303,9 @@ class ChainNegotiationsMechanism(Mechanism):
 
         # if all agreements are finalized end the mechanism session with success
         agreements = [
-            self.__agreements[l]
-            for l in range(len(self.__chain))
-            if self.__agreements[l] is not None
+            self.__agreements[L]
+            for L in range(len(self.__chain))
+            if self.__agreements[L] is not None
         ]
 
         if len(agreements) == len(self.__chain) - 1:
@@ -489,9 +490,9 @@ class MultiChainNegotiationsMechanism(Mechanism):
 
         # if all agreements are finalized end the mechanism session with success
         agreements = [
-            self.__agreements[l]
-            for l in range(len(self.__chain))
-            if self.__agreements[l] is not None
+            self.__agreements[L]
+            for L in range(len(self.__chain))
+            if self.__agreements[L] is not None
         ]
 
         if len(agreements) == len(self.__chain) - 1:
@@ -512,7 +513,6 @@ class MultiChainNegotiationsMechanism(Mechanism):
             ResponseType.END_NEGOTIATION,
         ):
             state.has_error = True
-            error_details = "An unacceptable response was returned"
             return MechanismStepResult(state)
 
         # If the response is to end the negotiation, end it but only if there are not partial negotiations

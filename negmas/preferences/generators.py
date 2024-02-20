@@ -1,3 +1,4 @@
+from __future__ import annotations
 import itertools
 import random
 from typing import Any, Callable, Iterable, Literal, overload
@@ -185,7 +186,7 @@ def make_non_pareto(
         return []
     if len(pareto) < 1:
         raise ValueError(
-            f"Cannot use a pareto frontier with zero points. No such thing can exist!!"
+            "Cannot use a pareto frontier with zero points. No such thing can exist!!"
         )
     ndims = len(pareto[0])
     available_indices, ok = [], []

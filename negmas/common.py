@@ -1,11 +1,10 @@
-from __future__ import annotations
-
 """
 Common data-structures and classes used by all other modules.
 
 This module does not import anything from the library except during type checking
 """
 
+from __future__ import annotations
 from collections import namedtuple
 from enum import Enum, auto, unique
 from typing import (
@@ -20,16 +19,16 @@ from typing import (
 )
 
 from attrs import asdict, define, field
+from .outcomes import (
+    CartesianOutcomeSpace,
+    DiscreteOutcomeSpace,
+    Issue,
+    Outcome,
+    OutcomeSpace,
+)
 
 if TYPE_CHECKING:
     from .mechanisms import Mechanism
-    from .outcomes import (
-        CartesianOutcomeSpace,
-        DiscreteOutcomeSpace,
-        Issue,
-        Outcome,
-        OutcomeSpace,
-    )
 
 
 __all__ = [

@@ -1,7 +1,5 @@
 from __future__ import annotations
-
 from dataclasses import dataclass
-from typing import List
 
 import numpy as np
 
@@ -121,7 +119,7 @@ class User(Rational):
             return cost + q.answers[answer_id].cost
         return cost + sum(a.cost for a in q.answers) / len(q.answers)
 
-    def is_satisfied(self, constraint: Constraint, outcomes=List[Outcome]) -> bool:
+    def is_satisfied(self, constraint: Constraint, outcomes=list[Outcome]) -> bool:
         """Checks if the given consgtraint is satisfied for the user
         utility fun and the given outocmes.
 

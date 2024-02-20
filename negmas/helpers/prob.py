@@ -195,12 +195,12 @@ class ScipyDistribution(Distribution):
 
     Examples:
 
-        >>> d2 = ScipyDistribution('uniform')
+        >>> d2 = ScipyDistribution("uniform")
         >>> print(d2.mean())
         0.5
 
         >>> try:
-        ...     d = ScipyDistribution('something crazy')
+        ...     d = ScipyDistribution("something crazy")
         ... except ValueError as e:
         ...     print(str(e))
         Unknown distribution something crazy

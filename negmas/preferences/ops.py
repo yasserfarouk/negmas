@@ -1,5 +1,4 @@
 from __future__ import annotations
-
 import itertools
 import math
 from functools import reduce
@@ -112,7 +111,7 @@ def sort_by_utility(
     if outcomes is None:
         if ufun.outcome_space is None:
             raise ValueError(
-                f"Cannot find outcomes of the given ufun. Pass them explicitly"
+                "Cannot find outcomes of the given ufun. Pass them explicitly"
             )
         outcomes = ufun.outcome_space.enumerate_or_sample(
             max_cardinality=max_cardinality
@@ -194,21 +193,24 @@ class ScenarioStats:
         modified_kalai = kalai_points(
             ufuns, ranges=ranges, frontier=pareto_utils, subtract_reserved_value=False
         )
-        modified_kalai_utils, modified_kalai_indices = [_[0] for _ in modified_kalai], [
-            _[1] for _ in modified_kalai
-        ]
+        modified_kalai_utils, modified_kalai_indices = (
+            [_[0] for _ in modified_kalai],
+            [_[1] for _ in modified_kalai],
+        )
         modified_kalai_outcomes = [pareto_outcomes[_] for _ in modified_kalai_indices]
         welfare = max_welfare_points(ufuns, ranges=ranges, frontier=pareto_utils)
-        welfare_utils, welfare_indices = [_[0] for _ in welfare], [
-            _[1] for _ in welfare
-        ]
+        welfare_utils, welfare_indices = (
+            [_[0] for _ in welfare],
+            [_[1] for _ in welfare],
+        )
         welfare_outcomes = [pareto_outcomes[_] for _ in welfare_indices]
         relative_welfare = max_relative_welfare_points(
             ufuns, ranges=ranges, frontier=pareto_utils
         )
-        relative_welfare_utils, relative_welfare_indices = [
-            _[0] for _ in relative_welfare
-        ], [_[1] for _ in relative_welfare]
+        relative_welfare_utils, relative_welfare_indices = (
+            [_[0] for _ in relative_welfare],
+            [_[1] for _ in relative_welfare],
+        )
         relative_welfare_outcomes = [
             pareto_outcomes[_] for _ in relative_welfare_indices
         ]
@@ -271,7 +273,7 @@ def calc_reserved_value(
     os = ufun.outcome_space
     if os is None:
         raise ValueError(
-            f"Cannot calc reserved values if the outcome space is not given and the same in all ufuns"
+            "Cannot calc reserved values if the outcome space is not given and the same in all ufuns"
         )
     utils, _ = sort_by_utility(ufun, max_cardinality=max_cardinality, best_first=True)
     noutcomes = len(utils)
@@ -367,18 +369,14 @@ def make_discounted_ufun(
 
 
 def pareto_frontier_bf(
-    points: np.ndarray | Iterable[Iterable[float]],
-    eps=-1e-12,
-    sort_by_welfare=True,
+    points: np.ndarray | Iterable[Iterable[float]], eps=-1e-12, sort_by_welfare=True
 ) -> np.ndarray:
     points = np.asarray(points, dtype=np.float32)
     if len(points) < 1:
         return points
 
     warn_if_slow(
-        len(points),
-        f"Pareto's Quadratic Operation is too Slow",
-        lambda x: x * x,
+        len(points), "Pareto's Quadratic Operation is too Slow", lambda x: x * x
     )
     return _pareto_frontier_bf(points, eps, sort_by_welfare)
 
@@ -409,11 +407,7 @@ def pareto_frontier_chatgpt(
         sort_mask = points.sum(1).argsort()[::-1]
         sorted_indices = np.arange(n_points, dtype=np.int32)[sort_mask]
         points = points[sort_mask]
-    warn_if_slow(
-        n_points,
-        f"Pareto's Operation is too Slow",
-        lambda x: x * 10,
-    )
+    warn_if_slow(n_points, "Pareto's Operation is too Slow", lambda x: x * 10)
     points = -points
     indices = np.arange(n_points, dtype=np.int32)
     points = np.asarray(points)
@@ -465,11 +459,7 @@ def pareto_frontier_convex_hull(
         sort_mask = points.sum(1).argsort()[::-1]
         sorted_indices = np.arange(n_points, dtype=np.int32)[sort_mask]
         points = points[sort_mask]
-    warn_if_slow(
-        n_points,
-        f"Pareto's Operation is too Slow",
-        lambda x: x * 10,
-    )
+    warn_if_slow(n_points, "Pareto's Operation is too Slow", lambda x: x * 10)
     n_negotiators = points.shape[1]
     if n_points < 1 or n_negotiators < 1:
         return np.empty(0, dtype=np.int64)
@@ -567,11 +557,7 @@ def pareto_frontier_numpy(
     if presort:
         sorted_indices = points.sum(1).argsort()[::-1]
         points = points[sorted_indices]
-    warn_if_slow(
-        n_points,
-        f"Pareto's Operation is too Slow",
-        lambda x: x * 10,
-    )
+    warn_if_slow(n_points, "Pareto's Operation is too Slow", lambda x: x * 10)
     n_negotiators = points.shape[1]
     if n_points < 1 or n_negotiators < 1:
         return np.empty(0, dtype=np.int64)
@@ -629,11 +615,7 @@ def pareto_frontier_numpy_faster(
         sort_mask = points.sum(1).argsort()[::-1]
         sorted_indices = np.arange(n_points, dtype=np.int32)[sort_mask]
         points = points[sort_mask]
-    warn_if_slow(
-        n_points,
-        f"Pareto's Operation is too Slow",
-        lambda x: x * 10,
-    )
+    warn_if_slow(n_points, "Pareto's Operation is too Slow", lambda x: x * 10)
     n_negotiators = points.shape[1]
     if n_points < 1 or n_negotiators < 1:
         return np.empty(0, dtype=np.int64)
@@ -661,9 +643,7 @@ def pareto_frontier_numpy_faster(
 
 
 def pareto_frontier_of(
-    points: np.ndarray | Iterable[Iterable[float]],
-    eps=-1e-12,
-    sort_by_welfare=True,
+    points: np.ndarray | Iterable[Iterable[float]], eps=-1e-12, sort_by_welfare=True
 ) -> np.ndarray:
     """Finds the pareto-frontier of a set of utils (i.e. utility values). Uses
     a fast algorithm.
@@ -677,7 +657,7 @@ def pareto_frontier_of(
     """
     utils = np.asarray(points)
     n = len(utils)
-    warn_if_slow(n, f"Pareto's Linear Operation is too Slow", lambda x: x * 5)
+    warn_if_slow(n, "Pareto's Linear Operation is too Slow", lambda x: x * 5)
     # for j in range(utils.shape[1]):
     #     order = utils[:, 0].argsort()[::-1]
     #     utils = utils[order]
@@ -743,9 +723,7 @@ def pareto_frontier_of(
 
 @jit(nopython=True)
 def _pareto_frontier_bf(
-    points: np.ndarray,
-    eps=-1e-12,
-    sort_by_welfare=True,
+    points: np.ndarray, eps=-1e-12, sort_by_welfare=True
 ) -> np.ndarray:
     """
     Finds the pareto-frontier of a set of points using brute-force. This is
@@ -1073,8 +1051,7 @@ def is_irrational(utils: Iterable[UtilityFunction], outcome: Outcome) -> bool:
 
 
 def calc_outcome_distances(
-    utils: tuple[float, ...],
-    stats: ScenarioStats,
+    utils: tuple[float, ...], stats: ScenarioStats
 ) -> OutcomeDistances:
     pdist = distance_to(utils, stats.pareto_utils)
     ndist = distance_to(utils, stats.nash_utils)
@@ -1092,8 +1069,7 @@ def estimate_max_dist(ufuns: Sequence[UtilityFunction]) -> float:
 
 
 def estimate_max_dist_using_outcomes(
-    ufuns: Sequence[UtilityFunction],
-    outcome_utils: Sequence[tuple[float, ...]],
+    ufuns: Sequence[UtilityFunction], outcome_utils: Sequence[tuple[float, ...]]
 ) -> float:
     if not outcome_utils:
         return estimate_max_dist(ufuns)
@@ -1114,9 +1090,7 @@ def estimate_max_dist_using_outcomes(
 
 
 def calc_outcome_optimality(
-    dists: OutcomeDistances,
-    stats: ScenarioStats,
-    max_dist: float,
+    dists: OutcomeDistances, stats: ScenarioStats, max_dist: float
 ) -> OutcomeOptimality:
     optim = dict()
     for name, lst, diff in (
@@ -1164,7 +1138,7 @@ def calc_scenario_stats(
     ranges = [_.minmax(os, above_reserve=False) for _ in ufuns]
     if os is None:
         raise ValueError(
-            f"Cannot find stats if the outcome space is not given and the same in all ufuns"
+            "Cannot find stats if the outcome space is not given and the same in all ufuns"
         )
     for i, u in enumerate(ufuns):
         if u.outcome_space is None or u.outcome_space != os:
@@ -1192,9 +1166,10 @@ def calc_scenario_stats(
     modified_kalai = kalai_points(
         ufuns, ranges=ranges, frontier=pareto_utils, subtract_reserved_value=False
     )
-    modified_kalai_utils, modified_kalai_indices = [_[0] for _ in modified_kalai], [
-        _[1] for _ in modified_kalai
-    ]
+    modified_kalai_utils, modified_kalai_indices = (
+        [_[0] for _ in modified_kalai],
+        [_[1] for _ in modified_kalai],
+    )
     modified_kalai_outcomes = [pareto_outcomes[_] for _ in modified_kalai_indices]
     welfare = max_welfare_points(ufuns, ranges=ranges, frontier=pareto_utils)
     welfare_utils, welfare_indices = [_[0] for _ in welfare], [_[1] for _ in welfare]
@@ -1202,9 +1177,10 @@ def calc_scenario_stats(
     relative_welfare = max_relative_welfare_points(
         ufuns, ranges=ranges, frontier=pareto_utils
     )
-    relative_welfare_utils, relative_welfare_indices = [
-        _[0] for _ in relative_welfare
-    ], [_[1] for _ in relative_welfare]
+    relative_welfare_utils, relative_welfare_indices = (
+        [_[0] for _ in relative_welfare],
+        [_[1] for _ in relative_welfare],
+    )
     relative_welfare_outcomes = [pareto_outcomes[_] for _ in relative_welfare_indices]
     minmax = [u.minmax() for u in ufuns]
     opposition = opposition_level(
@@ -1360,10 +1336,12 @@ def pareto_frontier(
         if issues is None:
             try:
                 issues = ufuns[0].outcome_space.issues  # type: ignore
-            except:
+            except Exception:
                 return ((), ())
         outcomes = discretize_and_enumerate_issues(
-            issues, n_discretization=n_discretization, max_cardinality=max_cardinality  # type: ignore
+            issues,  # type: ignore
+            n_discretization=n_discretization,
+            max_cardinality=max_cardinality,  # type: ignore
         )
         # outcomes = itertools.product(
         #     *[issue.value_generator(n=n_discretization) for issue in issues]
@@ -1394,12 +1372,12 @@ def pareto_frontier(
 
 
 def scale_max(
-    ufun: UFunType,
+    ufun: BaseUtilityFunction,
     to: float = 1.0,
     outcome_space: OutcomeSpace | None = None,
     issues: Sequence[Issue] | None = None,
     outcomes: Sequence[Outcome] | None = None,
-) -> UFunType:
+) -> BaseUtilityFunction:
     """Normalizes a utility function to the given range.
 
     Args:
@@ -1551,7 +1529,10 @@ def opposition_level(
         0.0
 
         - Opposition level of two ufuns that are zero-sum
-        >>> u1, u2 = MappingUtilityFunction(lambda x: x[0]), MappingUtilityFunction(lambda x: 9 - x[0])
+        >>> u1, u2 = (
+        ...     MappingUtilityFunction(lambda x: x[0]),
+        ...     MappingUtilityFunction(lambda x: 9 - x[0]),
+        ... )
         >>> opposition_level([u1, u2], outcomes=10, max_utils=9)
         0.7114582486036499
     """
@@ -1573,10 +1554,10 @@ def opposition_level(
     def is_irrational(outcome, ufun: BaseUtilityFunction):
         try:
             return ufun.is_worse(outcome, None)
-        except:
+        except Exception:
             try:
                 return ufun(outcome) < ufun(None)
-            except:
+            except Exception:
                 return False
 
     for outcome in outcomes:
@@ -1615,10 +1596,12 @@ def conflict_level(
         >>> from negmas.preferences.crisp.mapping import MappingUtilityFunction
         >>> from negmas.preferences import conflict_level
         >>> outcomes = [(_,) for _ in range(10)]
-        >>> u1 = MappingUtilityFunction(dict(zip(outcomes,
-        ... np.random.random(len(outcomes)))))
-        >>> u2 = MappingUtilityFunction(dict(zip(outcomes,
-        ... 1.0 - np.array(list(u1.mapping.values())))))
+        >>> u1 = MappingUtilityFunction(
+        ...     dict(zip(outcomes, np.random.random(len(outcomes))))
+        ... )
+        >>> u2 = MappingUtilityFunction(
+        ...     dict(zip(outcomes, 1.0 - np.array(list(u1.mapping.values()))))
+        ... )
         >>> print(conflict_level(u1=u1, u2=u2, outcomes=outcomes))
         1.0
 
@@ -1628,10 +1611,12 @@ def conflict_level(
 
         - A linear strictly zero sum case
         >>> outcomes = [(i,) for i in range(10)]
-        >>> u1 = MappingUtilityFunction(dict(zip(outcomes,
-        ... np.linspace(0.0, 1.0, len(outcomes), endpoint=True))))
-        >>> u2 = MappingUtilityFunction(dict(zip(outcomes,
-        ... np.linspace(1.0, 0.0, len(outcomes), endpoint=True))))
+        >>> u1 = MappingUtilityFunction(
+        ...     dict(zip(outcomes, np.linspace(0.0, 1.0, len(outcomes), endpoint=True)))
+        ... )
+        >>> u2 = MappingUtilityFunction(
+        ...     dict(zip(outcomes, np.linspace(1.0, 0.0, len(outcomes), endpoint=True)))
+        ... )
         >>> print(conflict_level(u1=u1, u2=u2, outcomes=outcomes))
         1.0
     """
@@ -1641,7 +1626,7 @@ def conflict_level(
         outcomes = list(outcomes)
     n_outcomes = len(outcomes)
     if n_outcomes == 0:
-        raise ValueError(f"Cannot calculate conflit level with no outcomes")
+        raise ValueError("Cannot calculate conflit level with no outcomes")
     points = np.array([[u1(o), u2(o)] for o in outcomes])
     order = np.random.permutation(np.array(range(n_outcomes)))
     p1, p2 = points[order, 0], points[order, 1]
@@ -1680,15 +1665,18 @@ def winwin_level(
         - A nonlinear same ufun case
         >>> from negmas.preferences.crisp.mapping import MappingUtilityFunction
         >>> outcomes = [(_,) for _ in range(10)]
-        >>> u1 = MappingUtilityFunction(dict(zip(outcomes,
-        ... np.linspace(1.0, 0.0, len(outcomes), endpoint=True))))
+        >>> u1 = MappingUtilityFunction(
+        ...     dict(zip(outcomes, np.linspace(1.0, 0.0, len(outcomes), endpoint=True)))
+        ... )
 
         - A linear strictly zero sum case
         >>> outcomes = [(_,) for _ in range(10)]
-        >>> u1 = MappingUtilityFunction(dict(zip(outcomes,
-        ... np.linspace(0.0, 1.0, len(outcomes), endpoint=True))))
-        >>> u2 = MappingUtilityFunction(dict(zip(outcomes,
-        ... np.linspace(1.0, 0.0, len(outcomes), endpoint=True))))
+        >>> u1 = MappingUtilityFunction(
+        ...     dict(zip(outcomes, np.linspace(0.0, 1.0, len(outcomes), endpoint=True)))
+        ... )
+        >>> u2 = MappingUtilityFunction(
+        ...     dict(zip(outcomes, np.linspace(1.0, 0.0, len(outcomes), endpoint=True)))
+        ... )
     """
     if isinstance(outcomes, int):
         outcomes = [(_,) for _ in range(outcomes)]

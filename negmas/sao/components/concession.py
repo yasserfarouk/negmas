@@ -1,3 +1,4 @@
+# ruff: noqa: F403
 import negmas.gb.components.concession as _n
 from negmas.gb.components.concession import *
 

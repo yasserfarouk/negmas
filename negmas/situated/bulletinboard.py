@@ -1,5 +1,4 @@
 from __future__ import annotations
-
 import copy
 import re
 import uuid
@@ -145,7 +144,7 @@ class BulletinBoard(EventSource, ConfigReader):
         if key is None:
             try:
                 skey = str(hash(value))
-            except:
+            except Exception:
                 skey = str(uuid.uuid4())
         else:
             skey = key

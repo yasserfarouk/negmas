@@ -1,5 +1,4 @@
 from __future__ import annotations
-
 from copy import deepcopy
 from random import choice, random
 from typing import Any, Callable, Collection
@@ -557,7 +556,7 @@ class ExceptionAgent(Agent):
             preferences=MappingUtilityFunction(
                 mapping=lambda x: 1.0 - x[0] / 10.0 if x is not None else 0.0,
                 issues=issues,
-            ),
+            )
         )
         return negotiator
 
@@ -860,7 +859,7 @@ def test_neg_world_steps_serial_n_neg_steps_mode_all_requested_and_timeout():
     for _ in range(n_agents):
         world.join(NegAgent(p_request=1.0, never_agree=True, name=f"a{_}"))
     assert world.current_step == 0
-    i, s, n = 0, 0, 0
+    i, _s, _n = 0, 0, 0
     while world.step(n_neg_steps=1, n_mechanisms=1):
         i += 1
     # n. negotiations == n. agents
@@ -878,7 +877,7 @@ def test_neg_world_steps_n_neg_steps_mode_all_requested_and_timeout():
     for _ in range(n_agents):
         world.join(NegAgent(p_request=1.0, never_agree=True, name=f"a{_}"))
     assert world.current_step == 0
-    i, s, n = 0, 0, 0
+    i, _s, _n = 0, 0, 0
     while world.step(n_neg_steps=1):
         i += 1
     assert i == (N_NEG_STEPS + 1) * n_steps - 1
@@ -903,7 +902,7 @@ def test_neg_world_steps_n_neg_steps_mode_all_requested_and_timeout_with_action(
             a.should_never_be_called = True
         world.join(a)
     assert world.current_step == 0
-    i, s, n = 0, 0, 0
+    i, _s, _n = 0, 0, 0
     world.step(0)
     while True:
         # get all running negotiations for this agent
@@ -960,7 +959,7 @@ def test_neg_world_steps_n_neg_steps_mode_all_requested():
     for _ in range(n_agents):
         world.join(NegAgent(p_request=1.0, never_agree=False, name=f"a{_}"))
     assert world.current_step == 0
-    i, s, n = 0, 0, 0
+    i, _s, _n = 0, 0, 0
     while world.step(n_neg_steps=1):
         i += 1
     assert i <= (N_NEG_STEPS + 1) * n_steps - 1

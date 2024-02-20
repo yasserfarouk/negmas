@@ -3,6 +3,7 @@ Functions for handling outcome spaces
 """
 from __future__ import annotations
 
+
 import math
 import numbers
 from typing import TYPE_CHECKING, Any, Sequence, overload
@@ -14,6 +15,7 @@ from negmas.helpers.numeric import isint, isreal
 from negmas.outcomes.cardinal_issue import CardinalIssue
 
 from .base_issue import Issue
+
 
 if TYPE_CHECKING:
     from .common import Outcome, OutcomeRange
@@ -268,7 +270,7 @@ def outcome_is_valid(outcome: Outcome, issues: tuple[Issue, ...]) -> bool:
         if not o:
             return False
         return all(issue.is_valid(v) for v, issue in zip(o, issues, strict=True))
-    except:
+    except Exception:
         return False
     # outcome_dict = outcome2dict(outcome, [_.name for _ in issues])
     #
@@ -407,52 +409,57 @@ def outcome_in_range(
 
     Examples:
 
-        >>> outcome_range = {'price': (0.0, 2.0), 'distance': [0.3, 0.4], 'type': ['a', 'b'], 'area': 3}
-        >>> outcome_range_2 = {'price': [(0.0, 1.0), (1.5, 2.0)], 'area': [(3, 4), (7, 9)]}
-        >>> outcome_in_range({'price':3.0}, outcome_range)
+        >>> outcome_range = {
+        ...     "price": (0.0, 2.0),
+        ...     "distance": [0.3, 0.4],
+        ...     "type": ["a", "b"],
+        ...     "area": 3,
+        ... }
+        >>> outcome_range_2 = {"price": [(0.0, 1.0), (1.5, 2.0)], "area": [(3, 4), (7, 9)]}
+        >>> outcome_in_range({"price": 3.0}, outcome_range)
         False
-        >>> outcome_in_range({'date': '2018.10.4'}, outcome_range)
+        >>> outcome_in_range({"date": "2018.10.4"}, outcome_range)
         True
-        >>> outcome_in_range({'date': '2018.10.4'}, outcome_range, strict=True)
+        >>> outcome_in_range({"date": "2018.10.4"}, outcome_range, strict=True)
         False
-        >>> outcome_in_range({'area': 3}, outcome_range, fail_incomplete=True)
+        >>> outcome_in_range({"area": 3}, outcome_range, fail_incomplete=True)
         False
-        >>> outcome_in_range({'area': 3}, outcome_range)
+        >>> outcome_in_range({"area": 3}, outcome_range)
         True
-        >>> outcome_in_range({'type': 'c'}, outcome_range)
+        >>> outcome_in_range({"type": "c"}, outcome_range)
         False
-        >>> outcome_in_range({'type': 'a'}, outcome_range)
+        >>> outcome_in_range({"type": "a"}, outcome_range)
         True
-        >>> outcome_in_range({'date': '2018.10.4'}, outcome_range_2)
+        >>> outcome_in_range({"date": "2018.10.4"}, outcome_range_2)
         True
-        >>> outcome_in_range({'area': 3.1}, outcome_range_2)
+        >>> outcome_in_range({"area": 3.1}, outcome_range_2)
         True
-        >>> outcome_in_range({'area': 3}, outcome_range_2)
+        >>> outcome_in_range({"area": 3}, outcome_range_2)
         False
-        >>> outcome_in_range({'area': 5}, outcome_range_2)
+        >>> outcome_in_range({"area": 5}, outcome_range_2)
         False
-        >>> outcome_in_range({'price': 0.4}, outcome_range_2)
+        >>> outcome_in_range({"price": 0.4}, outcome_range_2)
         True
-        >>> outcome_in_range({'price': 0.4}, outcome_range_2, fail_incomplete=True)
+        >>> outcome_in_range({"price": 0.4}, outcome_range_2, fail_incomplete=True)
         False
-        >>> outcome_in_range({'price': 1.2}, outcome_range_2)
+        >>> outcome_in_range({"price": 1.2}, outcome_range_2)
         False
-        >>> outcome_in_range({'price': 0.4, 'area': 3.9}, outcome_range_2)
+        >>> outcome_in_range({"price": 0.4, "area": 3.9}, outcome_range_2)
         True
-        >>> outcome_in_range({'price': 0.4, 'area': 10}, outcome_range_2)
+        >>> outcome_in_range({"price": 0.4, "area": 10}, outcome_range_2)
         False
-        >>> outcome_in_range({'price': 1.2, 'area': 10}, outcome_range_2)
+        >>> outcome_in_range({"price": 1.2, "area": 10}, outcome_range_2)
         False
-        >>> outcome_in_range({'price': 1.2, 'area': 4}, outcome_range_2)
+        >>> outcome_in_range({"price": 1.2, "area": 4}, outcome_range_2)
         False
-        >>> outcome_in_range({'type': 'a'}, outcome_range_2)
+        >>> outcome_in_range({"type": "a"}, outcome_range_2)
         True
-        >>> outcome_in_range({'type': 'a'}, outcome_range_2, strict=True)
+        >>> outcome_in_range({"type": "a"}, outcome_range_2, strict=True)
         False
-        >>> outcome_range = {'price': 10}
-        >>> outcome_in_range({'price': 10}, outcome_range)
+        >>> outcome_range = {"price": 10}
+        >>> outcome_in_range({"price": 10}, outcome_range)
         True
-        >>> outcome_in_range({'price': 11}, outcome_range)
+        >>> outcome_in_range({"price": 11}, outcome_range)
         False
 
     Returns:

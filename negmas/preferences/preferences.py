@@ -1,5 +1,4 @@
 from __future__ import annotations
-
 from abc import ABC, abstractmethod
 from typing import TYPE_CHECKING, Any
 
@@ -132,9 +131,17 @@ class Preferences(NamedObject, ABC):
         Examples:
             >>> from negmas.preferences import *
             >>> from negmas.outcomes import make_issue
-            >>> print(LinearAdditiveUtilityFunction((lambda x:x, lambda x:x), issues=[make_issue((0, 1), (0, 1))]).type)
+            >>> print(
+            ...     LinearAdditiveUtilityFunction(
+            ...         (lambda x: x, lambda x: x), issues=[make_issue((0, 1), (0, 1))]
+            ...     ).type
+            ... )
             linear_additive
-            >>> print(MappingUtilityFunction([lambda x: x], issues=[make_issue((0.0, 1.0))]).type)
+            >>> print(
+            ...     MappingUtilityFunction(
+            ...         [lambda x: x], issues=[make_issue((0.0, 1.0))]
+            ...     ).type
+            ... )
             mapping
 
         Returns:

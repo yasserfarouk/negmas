@@ -1,5 +1,4 @@
 from __future__ import annotations
-
 from negmas.inout import Scenario
 from negmas.outcomes import make_issue
 from negmas.outcomes.outcome_space import make_os

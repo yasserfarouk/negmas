@@ -1,5 +1,4 @@
 from __future__ import annotations
-
 import numbers
 import random
 from abc import abstractmethod
@@ -12,9 +11,7 @@ from negmas.outcomes import Outcome
 
 from .base_ufun import BaseUtilityFunction, _ExtremelyDynamic
 
-__all__ = [
-    "ProbUtilityFunction",
-]
+__all__ = ["ProbUtilityFunction"]
 
 
 class ProbUtilityFunction(_ExtremelyDynamic, BaseUtilityFunction):
@@ -48,18 +45,21 @@ class ProbUtilityFunction(_ExtremelyDynamic, BaseUtilityFunction):
 
             >>> from negmas.preferences import UtilityFunction
             >>> from negmas.preferences import conflict_level
-            >>> u1, u2 = UtilityFunction.generate_bilateral(outcomes=10, conflict_level=0.0
-            ...                                             , conflict_delta=0.0)
+            >>> u1, u2 = UtilityFunction.generate_bilateral(
+            ...     outcomes=10, conflict_level=0.0, conflict_delta=0.0
+            ... )
             >>> print(conflict_level(u1, u2, outcomes=10))
             0.0
 
-            >>> u1, u2 = UtilityFunction.generate_bilateral(outcomes=10, conflict_level=1.0
-            ...                                             , conflict_delta=0.0)
+            >>> u1, u2 = UtilityFunction.generate_bilateral(
+            ...     outcomes=10, conflict_level=1.0, conflict_delta=0.0
+            ... )
             >>> print(conflict_level(u1, u2, outcomes=10))
             1.0
 
-            >>> u1, u2 = UtilityFunction.generate_bilateral(outcomes=10, conflict_level=0.5
-            ...                                             , conflict_delta=0.0)
+            >>> u1, u2 = UtilityFunction.generate_bilateral(
+            ...     outcomes=10, conflict_level=0.5, conflict_delta=0.0
+            ... )
             >>> 0.0 < conflict_level(u1, u2, outcomes=10) < 1.0
             True
 
@@ -258,11 +258,11 @@ class ProbAdapter(ProbUtilityFunction):
     def __init__(self, ufun: BaseUtilityFunction):
         self._ufun = ufun
 
-    def eval(self, offer):
+    def eval(self, offer: Outcome) -> Distribution:
         v = self._ufun.eval(offer)
         if isinstance(v, numbers.Real):
             return Real(v)
-        return v
+        return v  # type: ignore
 
     def to_stationary(self):
         return ProbAdapter(self._ufun.to_stationary())

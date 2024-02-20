@@ -1,12 +1,9 @@
 from __future__ import annotations
-
 from ..components.acceptance import MiCROAcceptancePolicy
 from ..components.offering import MiCROOfferingPolicy
 from .modular.mapneg import MAPNegotiator
 
-__all__ = [
-    "MiCRONegotiator",
-]
+__all__ = ["MiCRONegotiator"]
 
 
 class MiCRONegotiator(MAPNegotiator):

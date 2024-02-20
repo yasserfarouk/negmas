@@ -15,7 +15,7 @@
 # relative to the documentation root, use os.path.abspath to make it
 # absolute, like shown here.
 #
-from __future__ import annotations
+
 
 import os
 
@@ -24,8 +24,9 @@ import os
 # NON_RTD_THEME = "python_docs_theme"
 # NON_RTD_THEME = "groundwork"
 # on_rtd is whether we are on readthedocs.org
-on_rtd = os.environ.get("READTHEDOCS", None)
 import sphinx_rtd_theme
+
+on_rtd = os.environ.get("READTHEDOCS", None)
 
 THEME_NAME = "sphinx_rtd_theme"
 THEME_PATH = None

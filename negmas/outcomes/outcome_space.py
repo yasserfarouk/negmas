@@ -1,6 +1,4 @@
 from __future__ import annotations
-
-import random
 from functools import reduce
 from itertools import filterfalse
 from operator import mul
@@ -64,11 +62,11 @@ def make_os(
     """
     if issues and outcomes:
         raise ValueError(
-            f"Cannot make an outcome space passing both issues and outcomes"
+            "Cannot make an outcome space passing both issues and outcomes"
         )
     if not issues and not outcomes:
         raise ValueError(
-            f"Cannot make an outcome space without passing issues or outcomes"
+            "Cannot make an outcome space without passing issues or outcomes"
         )
     if not issues and outcomes:
         issues_ = issues_from_outcomes(outcomes)
@@ -76,7 +74,7 @@ def make_os(
         issues_ = issues
     if issues_ is None:
         raise ValueError(
-            f"Cannot make an outcome space without passing issues or outcomes"
+            "Cannot make an outcome space without passing issues or outcomes"
         )
 
     issues_ = tuple(issues_)
@@ -133,11 +131,7 @@ class CartesianOutcomeSpace(XmlSerializable):
 
     def to_dict(self):
         d = {PYTHON_CLASS_IDENTIFIER: get_full_type_name(type(self))}
-        return dict(
-            **d,
-            name=self.name,
-            issues=serialize(self.issues),
-        )
+        return dict(**d, name=self.name, issues=serialize(self.issues))
 
     @classmethod
     def from_dict(cls, d):
@@ -211,12 +205,10 @@ class CartesianOutcomeSpace(XmlSerializable):
         cls, xml_str: str, safe_parsing=True, name=None
     ) -> CartesianOutcomeSpace:
         issues, _ = issues_from_xml_str(
-            xml_str,
-            safe_parsing=safe_parsing,
-            n_discretization=None,
+            xml_str, safe_parsing=safe_parsing, n_discretization=None
         )
         if not issues:
-            raise ValueError(f"Failed to read an issue space from an xml string")
+            raise ValueError("Failed to read an issue space from an xml string")
         issues = tuple(issues)
         if all(isinstance(_, DiscreteIssue) for _ in issues):
             return DiscreteCartesianOutcomeSpace(issues, name=name)
@@ -245,10 +237,7 @@ class CartesianOutcomeSpace(XmlSerializable):
         return cast_value_types(outcome, self.issues)
 
     def sample(
-        self,
-        n_outcomes: int,
-        with_replacement: bool = True,
-        fail_if_not_enough=True,
+        self, n_outcomes: int, with_replacement: bool = True, fail_if_not_enough=True
     ) -> Iterable[Outcome]:
         return sample_issues(
             self.issues, n_outcomes, with_replacement, fail_if_not_enough
@@ -261,23 +250,21 @@ class CartesianOutcomeSpace(XmlSerializable):
         self, levels: int, max_cardinality: int | float = float("inf")
     ) -> int:
         c = reduce(
-            mul,
-            [_.cardinality if _.is_discrete() else levels for _ in self.issues],
-            1,
+            mul, [_.cardinality if _.is_discrete() else levels for _ in self.issues], 1
         )
         return min(c, max_cardinality)
 
     def to_largest_discrete(
         self, levels: int, max_cardinality: int | float = float("inf"), **kwargs
     ) -> DiscreteCartesianOutcomeSpace:
-        for l in range(levels, 0, -1):
+        for level in range(levels, 0, -1):
             if self.cardinality_if_discretized(levels) < max_cardinality:
                 break
         else:
             raise ValueError(
                 f"Cannot discretize with levels <= {levels} keeping the cardinality under {max_cardinality} Outocme space cardinality is {self.cardinality}\nOutcome space: {self}"
             )
-        return self.to_discrete(l, max_cardinality, **kwargs)
+        return self.to_discrete(level, max_cardinality, **kwargs)
 
     def enumerate_or_sample_rational(
         self,
@@ -533,10 +520,7 @@ class DiscreteCartesianOutcomeSpace(CartesianOutcomeSpace):
             if numeric
             else CategoricalIssue(values, name="-".join(self.issue_names))
         )
-        return DiscreteCartesianOutcomeSpace(
-            issues=(issue,),
-            name=self.name,
-        )
+        return DiscreteCartesianOutcomeSpace(issues=(issue,), name=self.name)
 
     # def sample(
     #     self,

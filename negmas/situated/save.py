@@ -1,5 +1,4 @@
 from __future__ import annotations
-
 import json
 import os
 from os import PathLike
@@ -40,7 +39,7 @@ def save_stats(
     def is_json_serializable(x):
         try:
             json.dumps(x)
-        except:
+        except Exception:
             return False
         return True
 

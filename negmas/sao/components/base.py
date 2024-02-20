@@ -1,3 +1,5 @@
+# ruff: noqa: F403
+from __future__ import annotations
 import negmas.gb.components.base as _n
 from negmas.gb.components.base import *
 

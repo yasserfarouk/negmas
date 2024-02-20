@@ -1,5 +1,4 @@
 from __future__ import annotations
-
 import pathlib
 from math import isclose
 
@@ -93,14 +92,8 @@ def test_genius_agent_top2016_caduceus_first(init_genius):
     issues = domain.issues
     p = domain.make_session(
         [
-            Caduceus(
-                domain_file_name=DOMAIN_FILE,
-                utility_file_name=UTIL1,
-            ),
-            AgentX(
-                domain_file_name=DOMAIN_FILE,
-                utility_file_name=UTIL2,
-            ),
+            Caduceus(domain_file_name=DOMAIN_FILE, utility_file_name=UTIL1),
+            AgentX(domain_file_name=DOMAIN_FILE, utility_file_name=UTIL2),
         ],
         time_limit=20,
         n_steps=None,
@@ -395,11 +388,7 @@ def test_genius_agent_same_utility():
 
 
 class TestGeniusAgentSessions:
-    def prepare(
-        self,
-        utils=(0, 0),
-        single_issue=True,
-    ):
+    def prepare(self, utils=(0, 0), single_issue=True):
         base_folder = pkg_resources.resource_filename(
             "negmas", resource_name="tests/data/Laptop"
         )
@@ -464,12 +453,7 @@ class TestGeniusAgentSessions:
         front, _ = neg.pareto_frontier(sort_by_welfare=True)
         assert_almost_equal(
             front,
-            [
-                (0.7715, 0.845),
-                (0.577, 1.0),
-                (1.0, 0.5136),
-                (0.805, 0.668),
-            ],
+            [(0.7715, 0.845), (0.577, 1.0), (1.0, 0.5136), (0.805, 0.668)],
             decimal=2,
         )
 

@@ -1,5 +1,3 @@
-from __future__ import annotations
-
 import pytest
 
 if __name__ == "__main__":

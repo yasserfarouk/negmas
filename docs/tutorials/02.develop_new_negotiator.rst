@@ -518,7 +518,6 @@ explain it:
                 state.relative_time
             ) + self._min
 
-
             # find some outcomes (all if the outcome space is  discrete) above the aspiration level
             outcomes = self._inv.some((a - 1e-6, self._max + 1e-6), False)
             # If there are no outcomes above the aspiration level, offer my best outcome
@@ -616,6 +615,7 @@ with ``AspriationNegotiator`` on multiple negotiations:
     nash_utils, nash_outcome = s.nash_points()[0]
     nash_welfare = sum(nash_utils)
 
+
     # define the distance (Euclidean) to pareto frontier
     def ed(a, b):
         return math.sqrt(sum((x - y) ** 2 for x, y in zip(a, b)))
@@ -639,7 +639,9 @@ with ``AspriationNegotiator`` on multiple negotiations:
             pdist[cls.__name__] += pareto_dist(a, frontier_outcomes) / n
             ndiff[cls.__name__] += nash_diff(a, nash_welfare) / n
 
-    print(f"Distance to Pareto Frontier: {dict(pdist)}\nDistance to the Nash Bargaining Solution: {dict(ndiff)}")
+    print(
+        f"Distance to Pareto Frontier: {dict(pdist)}\nDistance to the Nash Bargaining Solution: {dict(ndiff)}"
+    )
 
 
 
@@ -718,6 +720,7 @@ scenarios with two issues each:
     from negmas.helpers import humanize_time
     import time
 
+
     def get_scenarios(n=2) -> list[Scenario]:
         # generates/reads the set of scenarios to be used in the tournament
 
@@ -736,10 +739,7 @@ scenarios with two issues each:
         ]
         # Create a negotiation Scenario for each ufun set
         return [
-            Scenario(
-                outcome_space=make_os(issues, name=f"S{i}"),
-                ufuns=u,
-            )
+            Scenario(outcome_space=make_os(issues, name=f"S{i}"), ufuns=u)
             for i, u in enumerate(ufuns)
         ]
 
@@ -755,13 +755,11 @@ We can now run a simple Cartesian tournament as follows:
     tic = time.perf_counter()
     path = Path.home() / "negmas" / unique_name("test")
     results = cartesian_tournament(
-        competitors=[
-            BoulwareTBNegotiator, ConcederTBNegotiator, LinearTBNegotiator
-        ],
+        competitors=[BoulwareTBNegotiator, ConcederTBNegotiator, LinearTBNegotiator],
         scenarios=get_scenarios(),
-        mechanism_params =dict(time_limit=5),       # time per negotiation in seconds and rounds
-        n_repetitions=5,     # number of repetition of each negotiation (these are not combined in score)
-        path=path
+        mechanism_params=dict(time_limit=5),  # time per negotiation in seconds and rounds
+        n_repetitions=5,  # number of repetition of each negotiation (these are not combined in score)
+        path=path,
     )
     print(f"Done in {humanize_time(time.perf_counter() - tic)}")
 

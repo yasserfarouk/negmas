@@ -1,8 +1,7 @@
 #!/usr/bin/env DOCS_ZIP
-from __future__ import annotations
-
 """The NegMAS universal command line tool"""
 
+from __future__ import annotations
 import http.server
 import json
 import os
@@ -10,7 +9,6 @@ import pathlib
 import socketserver
 import sys
 import urllib.request
-import webbrowser
 import zipfile
 from functools import partial
 from pathlib import Path
@@ -38,7 +36,7 @@ from negmas.tournaments import (
 
 try:
     from .vendor.quick.quick import gui_option  # type: ignore
-except:
+except Exception:
 
     def gui_option(x):
         return x
@@ -47,7 +45,7 @@ except:
 try:
     # disable a warning in yaml 1b1 version
     yaml.warnings({"YAMLLoadWarning": False})
-except:
+except Exception:
     pass
 
 n_completed = 0
@@ -159,12 +157,7 @@ def tournament(ctx, ignore_warnings):
     type=int,
     help="Maximum number of steps (only used if --steps was not passed",
 )
-@click.option(
-    "--agents",
-    default=3,
-    type=int,
-    help="Number of agents per competitor",
-)
+@click.option("--agents", default=3, type=int, help="Number of agents per competitor")
 @click.option(
     "--competitors",
     help="A semicolon (;) separated list of agent types to use for the competition.",
@@ -504,7 +497,7 @@ def display_results(results, metric, significance):
             "business",
         ]
         print(tabulate(agg_stats.describe(), headers="keys", tablefmt="psql"))
-    except:
+    except Exception:
         pass
 
 
@@ -635,10 +628,7 @@ def run(
 
 
 @tournament.command(help="Evaluates a tournament and returns the results")
-@click.argument(
-    "path",
-    type=click.Path(dir_okay=True, file_okay=False),
-)
+@click.argument("path", type=click.Path(dir_okay=True, file_okay=False))
 @click.option(
     "--metric",
     default="truncated_mean",
@@ -655,11 +645,7 @@ def run(
     default=True,
     help="Whether to recompile results from individual world runs or just show the already-compiled results",
 )
-@click.option(
-    "--verbose/--silent",
-    default=True,
-    help="Whether to be verbose",
-)
+@click.option("--verbose/--silent", default=True, help="Whether to be verbose")
 @click_config_file.configuration_option()
 @click.pass_context
 def eval(ctx, path, metric, significance, compile, verbose):
@@ -696,11 +682,7 @@ def eval(ctx, path, metric, significance, compile, verbose):
     type=str,
     help="The statistical metric used for choosing the winners. Possibilities are mean, median, std, var, sum, truncated_mean",
 )
-@click.option(
-    "--verbose/--silent",
-    default=True,
-    help="Whether to be verbose",
-)
+@click.option("--verbose/--silent", default=True, help="Whether to be verbose")
 @click.option(
     "--significance/--no-significance",
     default=False,
@@ -759,16 +741,8 @@ def _path(path) -> Path:
 
 
 @tournament.command(help="Combine multiple tournaments at the given base path(s)")
-@click.argument(
-    "path",
-    type=click.Path(dir_okay=True, file_okay=False),
-    nargs=-1,
-)
-@click.option(
-    "--verbose/--silent",
-    default=True,
-    help="Whether to be verbose",
-)
+@click.argument("path", type=click.Path(dir_okay=True, file_okay=False), nargs=-1)
+@click.option("--verbose/--silent", default=True, help="Whether to be verbose")
 @click.option(
     "--dest",
     "-d",
@@ -808,11 +782,7 @@ def combine(path, dest, verbose):
     default=False,
     help="Whether to show significance table",
 )
-@click.option(
-    "--verbose/--silent",
-    default=True,
-    help="Whether to be verbose",
-)
+@click.option("--verbose/--silent", default=True, help="Whether to be verbose")
 @click.option(
     "--compile/--show",
     default=True,
@@ -865,10 +835,7 @@ def genius(path, port, debug, timeout):
         print(f"Genius Bridge is already running on port {port} ... exiting")
         sys.exit()
     negmas.init_genius_bridge(
-        path=path if path != "auto" else None,
-        port=port,
-        debug=debug,
-        timeout=timeout,
+        path=path if path != "auto" else None, port=port, debug=debug, timeout=timeout
     )
     while True:
         pass
@@ -907,7 +874,7 @@ def download_and_set(key, url, file_name, extract=False):
             zip_ref.extractall(extracted_path)
         try:
             os.unlink(file_path)
-        except:
+        except Exception:
             pass
         file_path = extracted_path
     config[key] = str(file_path)

@@ -2,6 +2,7 @@
 """
 A set of utilities to handle strings
 """
+
 from __future__ import annotations
 
 import datetime
@@ -74,13 +75,7 @@ def shorten(name: str, length: int = 4, common_parts=COMMON_NAME_PARTS) -> str:
     return "".join(caps[:length])
 
 
-def unique_name(
-    base,
-    add_time=True,
-    add_host=False,
-    rand_digits=8,
-    sep="/",
-) -> str:
+def unique_name(base, add_time=True, add_host=False, rand_digits=8, sep="/") -> str:
     """Return a unique name.
 
     Can be used to return a unique directory name on the givn base.
@@ -93,7 +88,7 @@ def unique_name(
 
     Examples:
 
-        >>> a = unique_name('')
+        >>> a = unique_name("")
         >>> len(a) == 8 + 1 + 6 + 8 + 6
         True
 
@@ -165,17 +160,17 @@ def shortest_unique_names(
         for i, s in enumerate(names):
             locs[s].append(i)
         mapping = {"": ""}
-        for s, l in locs.items():
+        for s, L_ in locs.items():
             if len(s) < 1:
                 continue
-            if len(l) == 1:
-                mapping[strs_unique[l[0]]] = s
+            if len(L_) == 1:
+                mapping[strs_unique[L_[0]]] = s
                 continue
-            strs_unique_new = [sep.join(lsts[_][:-1]) for _ in l]
+            strs_unique_new = [sep.join(lsts[_][:-1]) for _ in L_]
             prefixes = shortest_unique_names(
                 strs_unique_new, sep, max_compression, guarantee_unique
             )
-            for loc, prefix in zip(l, prefixes):
+            for loc, prefix in zip(L_, prefixes):
                 x = sep.join([prefix, s])
                 if x.startswith(sep):
                     x = x[len(sep) :]
@@ -201,7 +196,7 @@ def snake_case(s: str) -> str:
 
     Example:
 
-        >>> print(snake_case('ThisIsATest'))
+        >>> print(snake_case("ThisIsATest"))
         this_is_a_test
 
 
@@ -224,13 +219,13 @@ def camel_case(
 
     Example:
 
-        >>> print(camel_case('this_is_a_test'))
+        >>> print(camel_case("this_is_a_test"))
         thisIsATest
-        >>> print(camel_case('this_is_a_test', capitalize_first=True))
+        >>> print(camel_case("this_is_a_test", capitalize_first=True))
         ThisIsATest
-        >>> print(camel_case('This_is_a_test', lower_first=True))
+        >>> print(camel_case("This_is_a_test", lower_first=True))
         thisIsATest
-        >>> print(camel_case('This_is_a_test'))
+        >>> print(camel_case("This_is_a_test"))
         ThisIsATest
 
     Args:

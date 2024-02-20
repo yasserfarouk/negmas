@@ -2,8 +2,8 @@
 """
 Tournament generation and management.
 """
-from __future__ import annotations
 
+from __future__ import annotations
 
 from .neg import *
 from .tournaments import *

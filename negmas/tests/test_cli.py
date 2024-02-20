@@ -1,5 +1,4 @@
 from __future__ import annotations
-
 from click.testing import CliRunner
 
 from negmas.scripts.app import cli as main

@@ -87,9 +87,9 @@ negotiators is less than or equal to one:
         def __call__(self, state, action=None) -> MechanismStepResult:
             """One round of the mechanism"""
             if len(self.negotiators) != 2:
-                state.has_error=True
-                state.error_details=f"Got {len(self.negotiators)} negotiators!!"
-                state.broken=True
+                state.has_error = True
+                state.error_details = f"Got {len(self.negotiators)} negotiators!!"
+                state.broken = True
                 return MechanismStepResult(state=state)
             outcome = tuple(
                 n.propose_for_self(self.ufuns, i) for i, n in enumerate(self.negotiators)
@@ -117,7 +117,6 @@ mechanism.
         @abstractmethod
         def propose_for_self(self, ufuns: List[UtilityFunction], my_indx: int) -> float:
             """Propose some outcome which is just a real number"""
-
 
 Note that any agreement with utilities that sum to the maximum possible
 value within the feasible space is a nash equilibrium to this game and
@@ -336,7 +335,7 @@ We can then define the mechanism class itself:
                     ],
                     max_n_agents=2,
                     dynamic_entry=False,
-                    initial_state=RubinsteinMechanismState()
+                    initial_state=RubinsteinMechanismState(),
                 )
             )
             super().__init__(**kwargs)
@@ -346,11 +345,7 @@ We can then define the mechanism class itself:
             self.extended = extended
 
         def add(
-            self,
-            negotiator: "Negotiator",
-            *,
-            discount: float = 0.95,
-            **kwargs,
+            self, negotiator: "Negotiator", *, discount: float = 0.95, **kwargs
         ) -> Optional[bool]:
             weights = [1, 0] if len(self.negotiators) == 0 else [0, 1]
             ufun = ExpDiscountedUFun(
@@ -366,16 +361,16 @@ We can then define the mechanism class itself:
             """One round of the mechanism"""
             if state.step == 0:
                 if len(self.negotiators) != 2:
-                    state.error=True,
-                    state.error_details=f"Got {len(self.negotiators)} negotiators!!",
-                    state.broken=True,
+                    state.error = (True,)
+                    state.error_details = (f"Got {len(self.negotiators)} negotiators!!",)
+                    state.broken = (True,)
                     return MechanismStepResult(state=state)
                 for i, n in enumerate(self.negotiators):
                     n.set_index(i)
             outcomes = list(n.propose(self.state) for n in self.negotiators)
             self.proposals.append(outcomes)
             if any(o is None for o in outcomes):
-                state.broken=True
+                state.broken = True
                 return MechanismStepResult(state=state)
             if sum(outcomes[0]) <= 1 + 1e-3:
                 if self.extended:
@@ -389,22 +384,21 @@ We can then define the mechanism class itself:
                         outcomes[0][0] <= outcomes[1][0] + 1e-5
                         and outcomes[1][1] <= outcomes[0][1] + 1e-5
                     ):
-                        state.agreement=(
-                                min(outcomes[0][0], outcomes[1][0]),
-                                min(outcomes[0][1], outcomes[1][1]),
-                            )
+                        state.agreement = (
+                            min(outcomes[0][0], outcomes[1][0]),
+                            min(outcomes[0][1], outcomes[1][1]),
+                        )
                         return MechanismStepResult(state=state)
                 elif max(abs(outcomes[0][i] - outcomes[1][i]) for i in range(2)) < 1e-3:
                     # If both negotiators offer the same division of the pie (approximately),
                     #  that is an agreement. This is the only method to end the run in the
                     #  original Rubinstein protocol.
-                    state.agreement=tuple(
-                            0.5 * (outcomes[0][i] + outcomes[1][i]) for i in range(2)
-                        )
+                    state.agreement = tuple(
+                        0.5 * (outcomes[0][i] + outcomes[1][i]) for i in range(2)
+                    )
                     return MechanismStepResult(state=state)
 
             return MechanismStepResult(state=state)
-
 
 The mechanism is very similar to the Nash Bargaining Game with few
 modifications:

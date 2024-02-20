@@ -1,5 +1,4 @@
 from __future__ import annotations
-
 from pathlib import Path, PosixPath
 
 import hypothesis.strategies as st

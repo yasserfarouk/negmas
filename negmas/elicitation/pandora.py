@@ -1,5 +1,4 @@
 from __future__ import annotations
-
 import functools
 import random
 import time
@@ -185,9 +184,7 @@ class BasePandoraElicitor(BaseElicitor):
         self.cutoff_utility = None
         self.opponent_model = None
         self._elicitation_time = None
-        self.offerable_outcomes = (
-            []
-        )  # will contain outcomes with known or at least elicited utilities
+        self.offerable_outcomes = []  # will contain outcomes with known or at least elicited utilities
         self.cutoff_utility = None
         self.unknown = None
         self.assume_uniform = assume_uniform
@@ -412,9 +409,7 @@ class BasePandoraElicitor(BaseElicitor):
         return True
 
     def init_elicitation(
-        self,
-        preferences: IPUtilityFunction | Distribution | None,
-        **kwargs,
+        self, preferences: IPUtilityFunction | Distribution | None, **kwargs
     ):
         """
         Initializes the elicitation process (called only once).
@@ -496,9 +491,7 @@ class FullElicitor(BasePandoraElicitor):
         pass
 
     def init_elicitation(
-        self,
-        preferences: IPUtilityFunction | Distribution | None,
-        **kwargs,
+        self, preferences: IPUtilityFunction | Distribution | None, **kwargs
     ):
         super().init_elicitation(preferences=preferences)
         strt_time = time.perf_counter()
@@ -583,12 +576,7 @@ class PandoraElicitor(BasePandoraElicitor):
        (https://dl.acm.org/doi/10.5555/2832249.2832250).
     """
 
-    def __init__(
-        self,
-        strategy: EStrategy,
-        user: User,
-        **kwargs,
-    ) -> None:
+    def __init__(self, strategy: EStrategy, user: User, **kwargs) -> None:
         kwargs.update(
             dict(
                 base_negotiator=AspirationNegotiator(),
@@ -607,11 +595,7 @@ class PandoraElicitor(BasePandoraElicitor):
                 true_utility_on_zero_cost=False,
             )
         )
-        super().__init__(
-            strategy=strategy,
-            user=user,
-            **kwargs,
-        )
+        super().__init__(strategy=strategy, user=user, **kwargs)
 
 
 class FastElicitor(PandoraElicitor):
@@ -637,54 +621,27 @@ class OptimalIncrementalElicitor(FastElicitor):
     by changes in the opponent model.
     """
 
-    def __init__(
-        self,
-        strategy: EStrategy,
-        user: User,
-        **kwargs,
-    ) -> None:
+    def __init__(self, strategy: EStrategy, user: User, **kwargs) -> None:
         kwargs.update(dict(incremental=True))
-        super().__init__(
-            strategy=strategy,
-            user=user,
-            **kwargs,
-        )
+        super().__init__(strategy=strategy, user=user, **kwargs)
 
 
 class MeanElicitor(OptimalIncrementalElicitor):
     """Same as `OptimalIncrementalElicitor` using `MeanExpector` for
     estimating utilities"""
 
-    def __init__(
-        self,
-        strategy: EStrategy,
-        user: User,
-        **kwargs,
-    ) -> None:
+    def __init__(self, strategy: EStrategy, user: User, **kwargs) -> None:
         kwargs.update(dict(expector_factory=MeanExpector))
-        super().__init__(
-            strategy=strategy,
-            user=user,
-            **kwargs,
-        )
+        super().__init__(strategy=strategy, user=user, **kwargs)
 
 
 class BalancedElicitor(OptimalIncrementalElicitor):
     """Same as `OptimalIncrementalElicitor` using `MeanExpector` for
     estimating utilities"""
 
-    def __init__(
-        self,
-        strategy: EStrategy,
-        user: User,
-        **kwargs,
-    ) -> None:
+    def __init__(self, strategy: EStrategy, user: User, **kwargs) -> None:
         kwargs.update(dict(expector_factory=BalancedExpector))
-        super().__init__(
-            strategy=strategy,
-            user=user,
-            **kwargs,
-        )
+        super().__init__(strategy=strategy, user=user, **kwargs)
 
 
 class AspiringElicitor(OptimalIncrementalElicitor):
@@ -724,33 +681,15 @@ class PessimisticElicitor(OptimalIncrementalElicitor):
     """Same as `OptimalIncrementalElicitor` using the minimum to estimate
     utilities."""
 
-    def __init__(
-        self,
-        strategy: EStrategy,
-        user: User,
-        **kwargs,
-    ) -> None:
+    def __init__(self, strategy: EStrategy, user: User, **kwargs) -> None:
         kwargs.update(dict(expector_factory=MinExpector))
-        super().__init__(
-            strategy=strategy,
-            user=user,
-            **kwargs,
-        )
+        super().__init__(strategy=strategy, user=user, **kwargs)
 
 
 class OptimisticElicitor(OptimalIncrementalElicitor):
     """Same as `OptimalIncrementalElicitor` using the maximum to estimate
     utilities."""
 
-    def __init__(
-        self,
-        strategy: EStrategy,
-        user: User,
-        **kwargs,
-    ) -> None:
+    def __init__(self, strategy: EStrategy, user: User, **kwargs) -> None:
         kwargs.update(dict(expector_factory=MaxExpector))
-        super().__init__(
-            strategy=strategy,
-            user=user,
-            **kwargs,
-        )
+        super().__init__(strategy=strategy, user=user, **kwargs)

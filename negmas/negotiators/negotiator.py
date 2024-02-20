@@ -1,5 +1,4 @@
 from __future__ import annotations
-
 from abc import ABC
 from typing import TYPE_CHECKING, Any
 
@@ -19,9 +18,7 @@ if TYPE_CHECKING:
 
     from .controller import Controller
 
-__all__ = [
-    "Negotiator",
-]
+__all__ = ["Negotiator"]
 
 
 class Negotiator(Rational, Notifiable, ABC):

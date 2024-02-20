@@ -1,5 +1,4 @@
 from __future__ import annotations
-
 import math
 from itertools import chain
 from typing import TYPE_CHECKING
@@ -43,7 +42,7 @@ class RankOnlyUtilityFunction(StationaryMixin, UtilityFunction):
     ):
         if ufun.outcome_space is None:
             raise ValueError(
-                f"Cannot craerte a RankOnly utility function for the given ufun because the outcome space is not konwn"
+                "Cannot craerte a RankOnly utility function for the given ufun because the outcome space is not konwn"
             )
         if not ufun.outcome_space.is_finite():
             raise ValueError(
@@ -82,4 +81,8 @@ class RankOnlyUtilityFunction(StationaryMixin, UtilityFunction):
             self.reserved_value = self.eval(None)  # type: ignore
 
     def to_mapping_ufun(self) -> MappingUtilityFunction:
-        return MappingUtilityFunction(self._mapping, outcome_space=self.outcome_space, reserved_value=self.reserved_value)  # type: ignore
+        return MappingUtilityFunction(
+            self._mapping,
+            outcome_space=self.outcome_space,
+            reserved_value=self.reserved_value,
+        )  # type: ignore

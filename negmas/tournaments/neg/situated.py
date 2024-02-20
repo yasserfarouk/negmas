@@ -2,7 +2,6 @@
 Negotiation tournaments created and manged as standard situated tournaments.
 """
 from __future__ import annotations
-
 from collections import defaultdict
 from copy import deepcopy
 from functools import partial
@@ -79,10 +78,7 @@ def neg_config_generator(
     world_name = unique_name(f"{scenario.name}", add_time=False, rand_digits=1, sep=".")
     no_logs = compact
     world_params = dict(
-        name=world_name,
-        scenario=serialize(scenario),
-        compact=compact,
-        no_logs=no_logs,
+        name=world_name, scenario=serialize(scenario), compact=compact, no_logs=no_logs
     )
     world_params.update(kwargs)
     config = {
@@ -135,8 +131,9 @@ def neg_world_generator(**kwargs):
     Generates the world
     """
     config = kwargs.pop("world_params", dict())
-    config["types"], config["params"] = deepcopy(config["types"]), deepcopy(
-        config["params"]
+    config["types"], config["params"] = (
+        deepcopy(config["types"]),
+        deepcopy(config["params"]),
     )
     config["types"] = [get_class(_) for _ in config["types"]]
     config["scenario"] = deserialize(config["scenario"])
@@ -434,9 +431,7 @@ def random_discrete_scenarios(
                     )
 
 
-def scenarios_from_list(
-    scenarios: list[Condition],
-) -> Generator[Condition, None, None]:
+def scenarios_from_list(scenarios: list[Condition]) -> Generator[Condition, None, None]:
     """
     Creates an appropriate `NegScenario` generator from a list/tuple of scenarios
     """
@@ -470,14 +465,12 @@ def _make_negs(
 
     try:
         intersection = set(non_competitors).intersection(set(competitors))
-        assert (
-            not intersection
-        ), f"Non-competitors and competitors must be disjoint. This is the intersection between them now: {intersection}"
-    except:
+        assert not intersection, f"Non-competitors and competitors must be disjoint. This is the intersection between them now: {intersection}"
+    except Exception:
         pass
 
     def make_neg_scenarios(
-        scenarios: tuple[Scenario, ...] | list[Scenario]
+        scenarios: tuple[Scenario, ...] | list[Scenario],
     ) -> list[Condition]:
         negs = []
         for s in scenarios:
@@ -712,8 +705,7 @@ if __name__ == "__main__":
     from negmas.sao import AspirationNegotiator, NaiveTitForTatNegotiator
 
     scenarios = random_discrete_scenarios(
-        issues=[5, 4, (3, 5)],
-        partners=[AspirationNegotiator, NaiveTitForTatNegotiator],
+        issues=[5, 4, (3, 5)], partners=[AspirationNegotiator, NaiveTitForTatNegotiator]
     )
     print(
         neg_tournament(

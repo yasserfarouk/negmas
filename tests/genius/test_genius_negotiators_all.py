@@ -1,12 +1,10 @@
-from __future__ import annotations
+# ruff: noqa: F405, F403
 
+from __future__ import annotations
 import pkg_resources
 import pytest
 
-from negmas.genius.ginfo import (
-    ALL_PASSING_NEGOTIATORS_NO_UNCERTAINTY,
-    TESTED_NEGOTIATORS,
-)
+from negmas.genius.ginfo import TESTED_NEGOTIATORS
 from negmas.genius.gnegotiators import *
 from negmas.genius.negotiator import GeniusNegotiator
 from negmas.inout import Scenario
@@ -34,10 +32,7 @@ AGENTS_WITH_NO_AGREEMENT_ON_SAME_preferences = (
     "agents.anac.y2011.AgentK2.Agent_K2",
 )
 
-DOMAINS = [
-    "tests/data/ItexvsCypress",
-    "tests/data/Laptop",
-]
+DOMAINS = ["tests/data/ItexvsCypress", "tests/data/Laptop"]
 
 SKIP_CONDITION = NEGMAS_FASTRUN or not NEGMAS_RUN_GENIUS
 # SKIP_CONDITION = False
@@ -92,9 +87,7 @@ def do_test_same_ufun(agent_factory, base_folder, n_steps, time_limit, n_trials=
         if neg.agreement is not None:
             break
     else:
-        assert (
-            False
-        ), f"failed to get an agreement in {n_trials} trials even using the same ufun\n{neg.trace}"  # type: ignore It makes not sense to have n_trials == 0 so we are safe
+        assert False, f"failed to get an agreement in {n_trials} trials even using the same ufun\n{neg.trace}"  # type: ignore It makes not sense to have n_trials == 0 so we are safe
 
 
 def do_test_genius_agent(
@@ -104,9 +97,14 @@ def do_test_genius_agent(
     strict_test=STRICT_TEST,
 ):
     if java_class_name is not None:
-        AgentFactory = lambda *args, **kwargs: GeniusNegotiator(
-            *args, java_class_name=java_class_name, strict=strict_test, **kwargs
-        )
+
+        def MyAgentFactory(*args, **kwargs):
+            return GeniusNegotiator(
+                *args, java_class_name=java_class_name, strict=strict_test, **kwargs
+            )
+
+        AgentFactory = MyAgentFactory
+
         agent_class_name = java_class_name
     else:
         agent_class_name = AgentFactory.__name__
@@ -148,29 +146,20 @@ def do_test_genius_agent(
     # GeniusBridge.clean()
 
 
-@pytest.mark.skipif(
-    condition=SKIP_CONDITION,
-    reason="Either no-genius or fast-run",
-)
+@pytest.mark.skipif(condition=SKIP_CONDITION, reason="Either no-genius or fast-run")
 @pytest.mark.parametrize("negotiator", ALL_NEGOTIATORS)
 def test_all_negotiators(negotiator):
     do_test_genius_agent(None, java_class_name=negotiator)
 
 
-@pytest.mark.skipif(
-    condition=SKIP_CONDITION,
-    reason="Either no-genius or fast-run",
-)
+@pytest.mark.skipif(condition=SKIP_CONDITION, reason="Either no-genius or fast-run")
 def test_boulware_party():
     do_test_genius_agent(
         None, java_class_name="negotiator.parties.BoulwareNegotiationParty"
     )
 
 
-@pytest.mark.skipif(
-    condition=SKIP_CONDITION,
-    reason="Either no-genius or fast-run",
-)
+@pytest.mark.skipif(condition=SKIP_CONDITION, reason="Either no-genius or fast-run")
 def test_boulware_agent():
     do_test_genius_agent(None, java_class_name="agents.TimeDependentAgentBoulware")
 

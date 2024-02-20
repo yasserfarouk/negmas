@@ -3,10 +3,11 @@ Base Evaluation Strategies
 """
 from __future__ import annotations
 
+
 from abc import ABC, abstractmethod
 from random import choice
 
-from attrs import asdict, define
+from attrs import define
 
 from negmas.common import MechanismState
 from negmas.gb.common import GBResponse, GBState, ThreadState

@@ -1,12 +1,9 @@
 from __future__ import annotations
-
 from ..components.acceptance import AcceptImmediately
 from ..components.offering import RandomOfferingPolicy
 from .modular.mapneg import MAPNegotiator
 
-__all__ = [
-    "NiceNegotiator",
-]
+__all__ = ["NiceNegotiator"]
 
 
 class NiceNegotiator(MAPNegotiator):

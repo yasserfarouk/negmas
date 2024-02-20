@@ -1,4 +1,5 @@
 """Keeps information about ANAC competitions and Genius Agents."""
+
 from __future__ import annotations
 
 import itertools
@@ -89,18 +90,10 @@ GENIUS_INFO = {
     },
     2012: {
         "winners": [
-            [
-                (
-                    "CUHKAgent",
-                    "agents.anac.y2012.CUHKAgent.CUHKAgent",
-                )
-            ],
+            [("CUHKAgent", "agents.anac.y2012.CUHKAgent.CUHKAgent")],
             [("AgentLG", "agents.anac.y2012.AgentLG.AgentLG")],
             [
-                (
-                    "OMACagent",
-                    "agents.anac.y2012.OMACagent.OMACagent",
-                ),
+                ("OMACagent", "agents.anac.y2012.OMACagent.OMACagent"),
                 (
                     "TheNegotiatorReloaded",
                     "agents.anac.y2012.TheNegotiatorReloaded.TheNegotiatorReloaded",
@@ -119,12 +112,7 @@ GENIUS_INFO = {
             [("BramAgent2", "agents.anac.y2011.BramAgent.BRAMAgent")],
             [("MetaAgent", "agents.anac.y2012.MetaAgent.MetaAgent")],
             [("AgentLG", "agents.anac.y2012.AgentLG.AgentLG")],
-            [
-                (
-                    "IAMhaggler2012",
-                    "agents.anac.y2012.IAMhaggler2012.IAMhaggler2012",
-                )
-            ],
+            [("IAMhaggler2012", "agents.anac.y2012.IAMhaggler2012.IAMhaggler2012")],
             [("AgentMR", "agents.anac.y2012.AgentMR.AgentMR")],
         ],
         "genius10": [
@@ -142,25 +130,15 @@ GENIUS_INFO = {
                 )
             ],
         ],
-        "best_discounted": [
-            (
-                "CUHKAgent",
-                "agents.anac.y2012.CUHKAgent.CUHKAgent",
-            )
-        ],
+        "best_discounted": [("CUHKAgent", "agents.anac.y2012.CUHKAgent.CUHKAgent")],
         "best_undiscounted": [
             (
                 "TheNegotiatorReloaded",
                 "agents.anac.y2012.TheNegotiatorReloaded.TheNegotiatorReloaded",
-            ),
+            )
         ],
         "winners_welfare": [
-            [
-                (
-                    "IAMhaggler2012",
-                    "agents.anac.y2012.IAMhaggler2012.IAMhaggler2012",
-                )
-            ],
+            [("IAMhaggler2012", "agents.anac.y2012.IAMhaggler2012.IAMhaggler2012")],
             [
                 (
                     "TheNegotiatorReloaded",
@@ -182,12 +160,7 @@ GENIUS_INFO = {
     2013: {
         "winners": [
             [("TheFawkes", "agents.anac.y2013.TheFawkes.TheFawkes")],
-            [
-                (
-                    "MetaAgent2013",
-                    "agents.anac.y2013.MetaAgent.MetaAgent2013",
-                )
-            ],
+            [("MetaAgent2013", "agents.anac.y2013.MetaAgent.MetaAgent2013")],
             [("TMFAgent", "agents.anac.y2013.TMFAgent.TMFAgent")],
         ],
         "finalists": [
@@ -281,12 +254,7 @@ GENIUS_INFO = {
             [("ParsAgent", "agents.anac.y2015.ParsAgent.ParsAgent")],
             [("RandomDance", "agents.anac.y2015.RandomDance.RandomDance")],
             [("Kawaii", "agents.anac.y2015.fairy.kawaii")],
-            [
-                (
-                    "AgentBuyog",
-                    "agents.anac.y2015.agentBuyogV2.AgentBuyogMain",
-                )
-            ],
+            [("AgentBuyog", "agents.anac.y2015.agentBuyogV2.AgentBuyogMain")],
             [("PhoenixParty", "agents.anac.y2015.Phoenix.PhoenixParty")],
             [("XianFaAgent", "agents.anac.y2015.xianfa.XianFaAgent")],
             [("PokerFace", "agents.anac.y2015.pokerface.PokerFace")],
@@ -296,12 +264,7 @@ GENIUS_INFO = {
             [("ParsAgent", "agents.anac.y2015.ParsAgent.ParsAgent")],
             [("RandomDance", "agents.anac.y2015.RandomDance.RandomDance")],
             [("Kawaii", "agents.anac.y2015.fairy.kawaii")],
-            [
-                (
-                    "AgentBuyog",
-                    "agents.anac.y2015.agentBuyogV2.AgentBuyogMain",
-                )
-            ],
+            [("AgentBuyog", "agents.anac.y2015.agentBuyogV2.AgentBuyogMain")],
             [("PhoenixParty", "agents.anac.y2015.Phoenix.PhoenixParty")],
             [("XianFaAgent", "agents.anac.y2015.xianfa.XianFaAgent")],
             [("PokerFace", "agents.anac.y2015.pokerface.PokerFace")],
@@ -871,9 +834,7 @@ ALL_GENIUS_SIMPLE_MEDIATOR_NEGOTIATORS = [
 ]
 """All Genius negotiators for the Simple Mediator Protocol."""
 
-ALL_GENIUS_FEEDBACK_MEDIATOR_NEGOTIATORS = [
-    "parties.feedbackmediator.FeedbackMediator",
-]
+ALL_GENIUS_FEEDBACK_MEDIATOR_NEGOTIATORS = ["parties.feedbackmediator.FeedbackMediator"]
 """All Genius negotiators for the Feedback Mediator Protocol."""
 
 AGENT_BASED_NEGOTIATORS = [

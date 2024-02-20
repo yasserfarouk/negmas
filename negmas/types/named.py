@@ -7,6 +7,7 @@ The system manages the `id` making sure it is unique for every entity.
 The user **can** override the system assigned `id` but should always make sure that
 no entities in the entire system has te same `id`
 """
+
 from __future__ import annotations
 
 import datetime

@@ -2,6 +2,7 @@
 Tournament generation and management.
 
 """
+
 from __future__ import annotations
 
 import concurrent.futures as futures
@@ -109,7 +110,7 @@ WINNERS_FILE = "winners.csv"
 try:
     # disable a warning in yaml 1b1 version
     yaml.warnings({"YAMLLoadWarning": False})
-except:
+except Exception:
     pass
 
 
@@ -161,8 +162,8 @@ class ConfigGenerator(Protocol):
         n_competitors: int,
         n_agents_per_competitor: int,
         agent_names_reveal_type: bool = False,
-        non_competitors: tuple[str | Any] | None = None,
-        non_competitor_params: tuple[dict[str, Any]] | None = None,
+        non_competitors: tuple[str | Any, ...] | None = None,
+        non_competitor_params: tuple[dict[str, Any], ...] | None = None,
         compact: bool = False,
         **kwargs,
     ) -> list[dict[str, Any]]:
@@ -442,7 +443,7 @@ class TournamentResults:
     """Aggregated stats per world"""
     score_stats: pd.DataFrame | None = None
     """Score statistics for different competitor types"""
-    path: str | None = None
+    path: str | Path | None = None
     """Path at which tournament results are stored"""
     world_stats: pd.DataFrame | None = None
     """Some statistics about each world run"""
@@ -727,7 +728,7 @@ def _run_worlds(
         #         type_stats = results.type_stats
         #         agent_stats = results.agent_stats
         #         break
-        #     except:
+        #     except Exception:
         #         world = world_generator(**world_params)
         # else:
         #     world = world_generator(**world_params)
@@ -761,7 +762,7 @@ def _run_worlds(
                 # TODO reorganize the code so that the worlds are run in parallel when there are multiple of them
                 if not dry_run:
                     scores_ = serialize(
-                        score_calculator(worlds=worlds, scoring_context=scoring_context, dry_run=False),  # type: ignore
+                        score_calculator(worlds, scoring_context, False),
                         add_type_field=False,
                     )
                     scores_["n_steps"] = world.n_steps
@@ -857,17 +858,17 @@ def _run_worlds(
                 n_negotiator_exceptions += len(v)
 
     for w in worlds:
-        for k, l in w.simulation_exceptions.items():
-            if l:
-                simulation_exceptions.append((k, l))
+        for k, L in w.simulation_exceptions.items():
+            if L:
+                simulation_exceptions.append((k, L))
     for w in worlds:
-        for k, l in w.mechanism_exceptions.items():
-            if l:
-                mechanism_exceptions.append((k, l))
+        for k, L in w.mechanism_exceptions.items():
+            if L:
+                mechanism_exceptions.append((k, L))
     for w in worlds:
-        for k, l in w.contract_exceptions.items():
-            if l:
-                contract_exceptions.append((k, l))
+        for k, L in w.contract_exceptions.items():
+            if L:
+                contract_exceptions.append((k, L))
     for w in worlds:
         for aid, _ in w.times.items():
             if _:
@@ -1011,8 +1012,7 @@ def run_world(
     score_calculator = world_params.get("__score_calculator", None)
     tournament_name = world_params.get("__tournament_name", unique_name(base=""))
     assert world_generator and score_calculator, (
-        f"Cannot run without specifying both a world generator and a score "
-        f"calculator"
+        "Cannot run without specifying both a world generator and a score " "calculator"
     )
 
     world_generator = import_by_name(world_generator)
@@ -1078,22 +1078,15 @@ def run_worlds(
     """
     params = []
     if len(worlds_params) < 1:
-        return (
-            _hash(worlds_params),
-            [],
-            None,
-            None,
-            None,
-            None,
-        )
+        return (_hash(worlds_params), [], None, None, None, None)
     world_generator, score_calculator = None, None
     for world_params in worlds_params:
         world_generator = world_params.get("__world_generator", None)
         score_calculator = world_params.get("__score_calculator", None)
         tournament_name = world_params.get("__tournament_name", unique_name(base=""))
         assert world_generator and score_calculator, (
-            f"Cannot run without specifying both a world generator and a score "
-            f"calculator"
+            "Cannot run without specifying both a world generator and a score "
+            "calculator"
         )
         world_generator = import_by_name(world_generator)
         score_calculator = import_by_name(score_calculator)
@@ -1123,9 +1116,7 @@ def run_worlds(
 
 
 def process_world_run(
-    run_id: str,
-    results: WorldRunResults | None,
-    tournament_name: str,
+    run_id: str, results: WorldRunResults | None, tournament_name: str
 ) -> tuple[list[dict[str, Any]], dict[str, list[dict[str, Any]]]]:
     """
     Generates a data-frame with the results of this world run
@@ -1196,10 +1187,10 @@ def _get_executor(
     if method == "dask":
         try:
             import distributed
-        except:
+        except Exception:
             raise RuntimeError(
-                f"The library 'dask' is not installed. You can use parallel/serial tournaments but not "
-                f"dask/distributed. To enable dask/distribued tournaments run:\n\t>> pip install dask[complete]"
+                "The library 'dask' is not installed. You can use parallel/serial tournaments but not "
+                "dask/distributed. To enable dask/distribued tournaments run:\n\t>> pip install dask[complete]"
             )
         if scheduler_ip is None and scheduler_port is None:
             address = None
@@ -1263,10 +1254,7 @@ def _submit_all(
             )
         )
     if verbose:
-        print(
-            f"Submitted all processes ",
-            end="",
-        )
+        print("Submitted all processes ", end="")
         if len(assigned) > 0:
             print(f"{len(future_results)/len(assigned):5.2%}")
         else:
@@ -1471,7 +1459,7 @@ def get_world_paths(
             assignments = load(tournament_path / ASSIGNED_CONFIGS_PICKLE_FILE)
             if assignments is None or len(assignments) == 0:
                 assignments = from_file(tournament_path / ASSIGNED_CONFIGS_JSON_FILE)
-        except:
+        except Exception:
             assignments = from_file(tournament_path / ASSIGNED_CONFIGS_JSON_FILE)
     assert assignments is not None
     for a in assignments:
@@ -1569,7 +1557,7 @@ def run_tournament(
         assigned = load(tournament_path / ASSIGNED_CONFIGS_PICKLE_FILE)
         if assigned is None or len(assigned) == 0:
             assigned = from_file(tournament_path / ASSIGNED_CONFIGS_JSON_FILE)
-    except:
+    except Exception:
         assigned = from_file(tournament_path / ASSIGNED_CONFIGS_JSON_FILE)
     random.shuffle(assigned)
 
@@ -1583,7 +1571,7 @@ def run_tournament(
     #         tmp_ = pd.read_csv(scores_file)
     #         if "run_id" in tmp_.columns:
     #             run_ids = set(tmp_["run_id"].values)
-    #     except:
+    #     except Exception:
     #         pass
     world_paths_ = get_world_paths(assignments=assigned)
     for dir_name_ in world_paths_:
@@ -1594,7 +1582,7 @@ def run_tournament(
         try:
             results_ = load(dir_name_.parent / RESULTS_FILE)
             run_ids.add(results_["run_id"])
-        except:
+        except Exception:
             continue
 
     # save and check attempts
@@ -1616,7 +1604,7 @@ def run_tournament(
                     n_attempts = int(f.read())
                 except Exception:
                     n_attempts = 0
-        except:
+        except Exception:
             # This means that the file was there then was removed
             # This happens when another process runs this world. I should
             # just ignore this file and update the run_ids
@@ -1628,7 +1616,7 @@ def run_tournament(
                 try:
                     results_ = load(dir_name_.parent / RESULTS_FILE)
                     run_ids.add(results_["run_id"])
-                except:
+                except Exception:
                     continue
             if fname not in run_ids:
                 n_attempts = 0
@@ -1640,7 +1628,7 @@ def run_tournament(
     for afile in files_to_remove:
         try:
             os.remove(afile)
-        except:
+        except Exception:
             print(f"Failed to remove {str(afile)}")
 
     scores_file = str(scores_file)
@@ -1670,7 +1658,7 @@ def run_tournament(
         )
     if n_to_run == 0:
         if verbose:
-            print(f"Nothing to run. Returning!!", flush=True)
+            print("Nothing to run. Returning!!", flush=True)
         return
 
     if parallelism in serial_options:
@@ -1759,7 +1747,7 @@ def run_tournament(
             max_attempts,
         )
     if verbose:
-        print(f"[blue]Tournament completed[/blue]")
+        print("[blue]Tournament completed[/blue]")
 
 
 def create_tournament(
@@ -1783,10 +1771,10 @@ def create_tournament(
     parallelism="parallel",
     scheduler_ip: str | None = None,
     scheduler_port: str | None = None,
-    non_competitors: tuple[str | Any] | None = None,
-    non_competitor_params: tuple[dict[str, Any]] | None = None,
-    dynamic_non_competitors: tuple[str | Any] | None = None,
-    dynamic_non_competitor_params: tuple[dict[str, Any]] | None = None,
+    non_competitors: tuple[str | Any, ...] | None = None,
+    non_competitor_params: tuple[dict[str, Any], ...] | None = None,
+    dynamic_non_competitors: tuple[str | Any, ...] | None = None,
+    dynamic_non_competitor_params: tuple[dict[str, Any], ...] | None = None,
     exclude_competitors_from_reassignment: bool = True,
     name: str | None = None,
     verbose: bool = False,
@@ -2122,7 +2110,7 @@ def create_tournament(
                                     (
                                         tournament_path / run_id / _[subkey]["name"]
                                     ).absolute()
-                                ),
+                                )
                             )
                         )
 
@@ -2142,7 +2130,7 @@ def create_tournament(
                                 (
                                     tournament_path / run_id / _["world_params"]["name"]
                                 ).absolute()
-                            ),
+                            )
                         )
                     )
     if save_video_fraction > 1e-5:
@@ -2193,7 +2181,7 @@ def extract_basic_stats(filename):
         return None
     try:
         data = pd.DataFrame.from_dict(data)
-    except:
+    except Exception:
         # adjust lengths. Some columns are longer than others
         min_len = min(len(_) for _ in data.values())
         for k, v in data.items():
@@ -2216,7 +2204,8 @@ def _combine_stats(stats: pd.DataFrame | None) -> pd.DataFrame | None:
         stats.loc[
             :,
             [c for c in stats.columns if not c.startswith("_") and c not in ("path",)],
-        ].groupby(["world"])
+        ]
+        .groupby(["world"])
         # .agg([np.mean, np.max, np.min, np.sum, np.var, np.median])
         .agg(["mean", "max", "min", "sum", "var", "median"])
     )
@@ -2262,9 +2251,7 @@ def _combine_stats(stats: pd.DataFrame | None) -> pd.DataFrame | None:
 
 
 def combine_tournament_stats(
-    sources: Iterable[str | Path],
-    dest: str | Path | None = None,
-    verbose=False,
+    sources: Iterable[str | Path], dest: str | Path | None = None, verbose=False
 ) -> pd.DataFrame:
     """Combines statistical results of several tournament runs in the destination path."""
     slist = []
@@ -2289,9 +2276,7 @@ def combine_tournament_stats(
     return stats
 
 
-def compile_results(
-    path: str | Path | Path,
-):
+def compile_results(path: str | Path | Path):
     path = _path(path)
     if not path.exists():
         return
@@ -2308,7 +2293,7 @@ def compile_results(
             continue
         try:
             results = load(results_path)
-        except:
+        except Exception:
             continue
         scores += results["scores"]
         world_stats += results["world_stats"]
@@ -2326,9 +2311,7 @@ def compile_results(
 
 
 def combine_tournament_results(
-    sources: Iterable[str | Path],
-    dest: str | Path | None = None,
-    verbose=False,
+    sources: Iterable[str | Path], dest: str | Path | None = None, verbose=False
 ) -> pd.DataFrame:
     """Combines results of several tournament runs in the destination path."""
 
@@ -2340,7 +2323,7 @@ def combine_tournament_results(
                 scores.append(pd.read_csv(filename))
                 if verbose:
                     print(f"Read: {str(filename)}")
-            except:
+            except Exception:
                 if verbose:
                     print(f"FAILED {str(filename)}")
     if len(scores) < 1:
@@ -2556,7 +2539,7 @@ def evaluate_tournament(
                 )
     if verbose:
         print(f"Winners: {list(zip(winners, winner_scores))}")
-        print(f"Saving results")
+        print("Saving results")
 
     agg_stats = pd.DataFrame()
     ks_df, ttest_df = None, None
@@ -2576,7 +2559,7 @@ def evaluate_tournament(
             stats.to_csv(str(tournament_path / STATS_FILE), index=False)
             agg_stats = _combine_stats(stats)
             if agg_stats is None:
-                raise ValueError(f"Aggregation stats is None")
+                raise ValueError("Aggregation stats is None")
             agg_stats.to_csv(str(tournament_path / AGGREGATE_STATS_FILE), index=False)
 
     if verbose:
@@ -2850,11 +2833,11 @@ def tournament(
             if len(competitors) == 1:
                 if results is None:
                     raise ValueError(
-                        f"Results could not be calculated even though there are competitors"
+                        "Results could not be calculated even though there are competitors"
                     )
                 return results
         stage += 1
-    raise ValueError(f"Results could not be calculated. May be no-competitors")
+    raise ValueError("Results could not be calculated. May be no-competitors")
 
 
 def is_already_run(world_params) -> bool:
@@ -2862,9 +2845,7 @@ def is_already_run(world_params) -> bool:
 
 
 def combine_tournaments(
-    sources: Iterable[str | Path],
-    dest: str | Path,
-    verbose=False,
+    sources: Iterable[str | Path], dest: str | Path, verbose=False
 ) -> tuple[int, int]:
     """
     Combines contents of several tournament runs in the destination path
@@ -2886,7 +2867,7 @@ def combine_tournaments(
                 if verbose:
                     print(f"{filename.parent} ", end="")
                 a, c = load(filename), from_file(filename.parent / "base_configs.json")
-            except:
+            except Exception:
                 if verbose:
                     print("FAILED.")
                 continue

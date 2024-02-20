@@ -1,5 +1,4 @@
 from __future__ import annotations
-
 import copy
 import operator
 import pprint
@@ -34,11 +33,7 @@ class Constraint(ABC):
 
     def __init__(
         self,
-        full_range: Sequence[tuple[float, float]]
-        | tuple[float, float] = (
-            0.0,
-            1.0,
-        ),
+        full_range: Sequence[tuple[float, float]] | tuple[float, float] = (0.0, 1.0),
         outcomes: list[Outcome] = None,
     ):
         super().__init__()
@@ -112,11 +107,7 @@ class RankConstraint(MarginalNeutralConstraint):
     def __init__(
         self,
         rankings: list[int],
-        full_range: Sequence[tuple[float, float]]
-        | tuple[float, float] = (
-            0.0,
-            1.0,
-        ),
+        full_range: Sequence[tuple[float, float]] | tuple[float, float] = (0.0, 1.0),
         outcomes: list[Outcome] = None,
     ):
         super().__init__(full_range=full_range, outcomes=outcomes)
@@ -140,11 +131,7 @@ class ComparisonConstraint(MarginalNeutralConstraint):
     def __init__(
         self,
         op: str | Callable[[Value, Value], bool],
-        full_range: Sequence[tuple[float, float]]
-        | tuple[float, float] = (
-            0.0,
-            1.0,
-        ),
+        full_range: Sequence[tuple[float, float]] | tuple[float, float] = (0.0, 1.0),
         outcomes: list[Outcome] = None,
     ):
         super().__init__(full_range=full_range, outcomes=outcomes)
@@ -194,11 +181,7 @@ class RangeConstraint(Constraint):
     def __init__(
         self,
         rng: tuple = (None, None),
-        full_range: Sequence[tuple[float, float]]
-        | tuple[float, float] = (
-            0.0,
-            1.0,
-        ),
+        full_range: Sequence[tuple[float, float]] | tuple[float, float] = (0.0, 1.0),
         outcomes: list[Outcome] = None,
         eps=1e-5,
     ):
@@ -342,7 +325,7 @@ def possible_queries(
     def _possible_queries(outcome, strategy=strategy, nmi=nmi):
         queries_before = user.elicited_queries()
         utility_before = strategy.utility_estimate(outcome)
-        lower_before, upper_before = _loc(utility_before), _upper(utility_before)
+        _lower_before, _upper_before = _loc(utility_before), _upper(utility_before)
         n_before = len(queries_before)
         while True:
             u, _ = strategy.apply(user=user, outcome=outcome)

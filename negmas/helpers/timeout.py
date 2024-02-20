@@ -2,6 +2,7 @@
 """
 Utilities for handling timeout and async calls
 """
+
 from __future__ import annotations
 
 import atexit
@@ -12,12 +13,7 @@ from contextlib import contextmanager
 
 from negmas import warnings
 
-__all__ = [
-    "TimeoutError",
-    "TimeoutCaller",
-    "force_single_thread",
-    "single_thread",
-]
+__all__ = ["TimeoutError", "TimeoutCaller", "force_single_thread", "single_thread"]
 SINGLE_THREAD_FORCED = False
 
 
@@ -74,7 +70,7 @@ class TimeoutCaller:
                 for t in cls.pool._threads:
                     # we are using an undocumented private value here. DANGEROUS
                     del thread._threads_queues[t]  # type: ignore
-            except:
+            except Exception:
                 warnings.warn(
                     "NegMAS have finished processing but there may be some "
                     "threads still hanging there!! If your program does "

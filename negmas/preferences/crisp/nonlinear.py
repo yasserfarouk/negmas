@@ -1,5 +1,4 @@
 from __future__ import annotations
-
 from typing import Callable, Iterable
 
 from negmas.generics import GenericMapping, gmap, ikeys
@@ -46,23 +45,36 @@ class NonLinearAggregationUtilityFunction(StationaryMixin, UtilityFunction):
 
         >>> from negmas.outcomes import make_issue
         >>> from negmas.preferences.crisp.mapping import MappingUtilityFunction
-        >>> issues = [make_issue((10.0, 20.0), 'price'), make_issue(['delivered', 'not delivered'], 'delivery')
-        ...           , make_issue(5, 'quality')]
+        >>> issues = [
+        ...     make_issue((10.0, 20.0), "price"),
+        ...     make_issue(["delivered", "not delivered"], "delivery"),
+        ...     make_issue(5, "quality"),
+        ... ]
         >>> print(list(map(str, issues)))
         ['price: (10.0, 20.0)', "delivery: ['delivered', 'not delivered']", 'quality: (0, 4)']
-        >>> g = NonLinearAggregationUtilityFunction({'price': lambda x: 2.0*x
-        ...                                         , 'delivery': {'delivered': 10, 'not delivered': -10}
-        ...                                         , 'quality': MappingUtilityFunction(lambda x: x-3)}
-        ...         , f=lambda u: u[0]  + 2.0 * u[-1], issues=issues)
-        >>> g((14.0, 'delivered', 2)) - ((2.0*14.0)+2.0*(2-3))
+        >>> g = NonLinearAggregationUtilityFunction(
+        ...     {
+        ...         "price": lambda x: 2.0 * x,
+        ...         "delivery": {"delivered": 10, "not delivered": -10},
+        ...         "quality": MappingUtilityFunction(lambda x: x - 3),
+        ...     },
+        ...     f=lambda u: u[0] + 2.0 * u[-1],
+        ...     issues=issues,
+        ... )
+        >>> g((14.0, "delivered", 2)) - ((2.0 * 14.0) + 2.0 * (2 - 3))
         0.0
 
         You must pass a value for each issue in the outcome. If some issues are not used for the ufun, you can pass them as any value that is acceptable to the corresponding value function
 
-        >>> g = NonLinearAggregationUtilityFunction({'price'    : lambda x: 2.0*x
-        ...                                         , 'delivery': {'delivered': 10, 'not delivered': -10}}
-        ...         , f=lambda u: 2.0 * u[0], issues=issues[:2])
-        >>> g((14.0, 'delivered')) - (2.0*(2.0*14))
+        >>> g = NonLinearAggregationUtilityFunction(
+        ...     {
+        ...         "price": lambda x: 2.0 * x,
+        ...         "delivery": {"delivered": 10, "not delivered": -10},
+        ...     },
+        ...     f=lambda u: 2.0 * u[0],
+        ...     issues=issues[:2],
+        ... )
+        >>> g((14.0, "delivered")) - (2.0 * (2.0 * 14))
         0.0
 
     """
@@ -99,11 +111,7 @@ class NonLinearAggregationUtilityFunction(StationaryMixin, UtilityFunction):
 
     def to_dict(self):
         d = {PYTHON_CLASS_IDENTIFIER: get_full_type_name(type(self))}
-        return dict(
-            **d,
-            values=serialize(self.values),
-            f=serialize(self.f),
-        )
+        return dict(**d, values=serialize(self.values), f=serialize(self.f))
 
     @classmethod
     def from_dict(cls, d):
@@ -112,7 +120,7 @@ class NonLinearAggregationUtilityFunction(StationaryMixin, UtilityFunction):
             d[k] = deserialize(d.get(k, None))
         return cls(**d)
 
-    def eval(self, offer: Outcome | None) -> float | None:
+    def eval(self, offer: Outcome | None) -> float:
         if offer is None:
             return self.reserved_value
         if self.values is None:
@@ -145,45 +153,66 @@ class HyperRectangleUtilityFunction(StationaryMixin, UtilityFunction):
 
          Now create the utility function with
 
-         >>> f = HyperRectangleUtilityFunction(outcome_ranges=[
-         ...                                        {0: (1.0, 2.0), 1: (1.0, 2.0)},
-         ...                                        {0: (1.4, 2.0), 2: (2.0, 3.0)}]
-         ...                                , utilities= [2.0, lambda x: 2 * x[2] + x[0]])
-         >>> g = HyperRectangleUtilityFunction(outcome_ranges=[
-         ...                                        {0: (1.0, 2.0), 1: (1.0, 2.0)},
-         ...                                        {0: (1.4, 2.0), 2: (2.0, 3.0)}]
-         ...                                , utilities= [2.0, lambda x: 2 * x[2] + x[0]]
-         ...                                , ignore_issues_not_in_input=True)
-         >>> h = HyperRectangleUtilityFunction(outcome_ranges=[
-         ...                                        {0: (1.0, 2.0), 1: (1.0, 2.0)},
-         ...                                        {0: (1.4, 2.0), 2: (2.0, 3.0)}]
-         ...                                , utilities= [2.0, lambda x: 2 * x[2] + x[0]]
-         ...                                , ignore_failing_range_utilities=True)
+         >>> f = HyperRectangleUtilityFunction(
+         ...     outcome_ranges=[
+         ...         {0: (1.0, 2.0), 1: (1.0, 2.0)},
+         ...         {0: (1.4, 2.0), 2: (2.0, 3.0)},
+         ...     ],
+         ...     utilities=[2.0, lambda x: 2 * x[2] + x[0]],
+         ... )
+         >>> g = HyperRectangleUtilityFunction(
+         ...     outcome_ranges=[
+         ...         {0: (1.0, 2.0), 1: (1.0, 2.0)},
+         ...         {0: (1.4, 2.0), 2: (2.0, 3.0)},
+         ...     ],
+         ...     utilities=[2.0, lambda x: 2 * x[2] + x[0]],
+         ...     ignore_issues_not_in_input=True,
+         ... )
+         >>> h = HyperRectangleUtilityFunction(
+         ...     outcome_ranges=[
+         ...         {0: (1.0, 2.0), 1: (1.0, 2.0)},
+         ...         {0: (1.4, 2.0), 2: (2.0, 3.0)},
+         ...     ],
+         ...     utilities=[2.0, lambda x: 2 * x[2] + x[0]],
+         ...     ignore_failing_range_utilities=True,
+         ... )
 
          We can now calcualte the utility_function of some outcomes:
 
          * An outcome that belongs to the both outcome_ranges:
-         >>> [f({0: 1.5,1: 1.5, 2: 2.5}), g({0: 1.5,1: 1.5, 2: 2.5}), h({0: 1.5,1: 1.5, 2: 2.5})]
+         >>> [
+         ...     f({0: 1.5, 1: 1.5, 2: 2.5}),
+         ...     g({0: 1.5, 1: 1.5, 2: 2.5}),
+         ...     h({0: 1.5, 1: 1.5, 2: 2.5}),
+         ... ]
          [8.5, 8.5, 8.5]
 
          * An outcome that belongs to the first hypervolume only:
-         >>> [f({0: 1.5,1: 1.5, 2: 1.0}), g({0: 1.5,1: 1.5, 2: 1.0}), h({0: 1.5,1: 1.5, 2: 1.0})]
+         >>> [
+         ...     f({0: 1.5, 1: 1.5, 2: 1.0}),
+         ...     g({0: 1.5, 1: 1.5, 2: 1.0}),
+         ...     h({0: 1.5, 1: 1.5, 2: 1.0}),
+         ... ]
          [2.0, 2.0, 2.0]
 
          * An outcome that belongs to and has the first hypervolume only:
          >>> [f({0: 1.5}), g({0: 1.5}), h({0: 1.5})]
-         [None, 0.0, None]
+         [nan, 0.0, nan]
 
          * An outcome that belongs to the second hypervolume only:
-         >>> [f({0: 1.5,2: 2.5}), g({0: 1.5,2: 2.5}), h({0: 1.5,2: 2.5})]
-         [None, 6.5, None]
+         >>> [f({0: 1.5, 2: 2.5}), g({0: 1.5, 2: 2.5}), h({0: 1.5, 2: 2.5})]
+         [nan, 6.5, nan]
 
          * An outcome that has and belongs to the second hypervolume only:
          >>> [f({2: 2.5}), g({2: 2.5}), h({2: 2.5})]
-         [None, 0.0, None]
+         [nan, 0.0, nan]
 
          * An outcome that belongs to no outcome_ranges:
-         >>> [f({0: 11.5,1: 11.5, 2: 12.5}), g({0: 11.5,1: 11.5, 2: 12.5}), h({0: 11.5,1: 11.5, 2: 12.5})]
+         >>> [
+         ...     f({0: 11.5, 1: 11.5, 2: 12.5}),
+         ...     g({0: 11.5, 1: 11.5, 2: 12.5}),
+         ...     h({0: 11.5, 1: 11.5, 2: 12.5}),
+         ... ]
          [0.0, 0.0, 0.0]
 
 
@@ -200,7 +229,7 @@ class HyperRectangleUtilityFunction(StationaryMixin, UtilityFunction):
 
     def __init__(
         self,
-        outcome_ranges: Iterable[OutcomeRange],
+        outcome_ranges: Iterable[OutcomeRange | None],
         utilities: list[float] | list[OutcomeUtilityMapping],
         weights: list[float] | None = None,
         ignore_issues_not_in_input=False,
@@ -227,12 +256,22 @@ class HyperRectangleUtilityFunction(StationaryMixin, UtilityFunction):
         Examples:
 
             >>> from negmas.outcomes import make_issue
-            >>> f = HyperRectangleUtilityFunction(outcome_ranges=[
-            ...                                        {0: (1.0, 2.0), 1: (1.0, 2.0)},
-            ...                                        {0: (1.4, 2.0), 2: (2.0, 3.0)}]
-            ...                                , utilities= [2.0, 9.0 + 4.0])
-            >>> print(f.xml([make_issue((0.0, 4.0), name='0'), make_issue((0.0, 9.0), name='1')
-            ... , make_issue((0.0, 9.0), name='2')]).strip())
+            >>> f = HyperRectangleUtilityFunction(
+            ...     outcome_ranges=[
+            ...         {0: (1.0, 2.0), 1: (1.0, 2.0)},
+            ...         {0: (1.4, 2.0), 2: (2.0, 3.0)},
+            ...     ],
+            ...     utilities=[2.0, 9.0 + 4.0],
+            ... )
+            >>> print(
+            ...     f.xml(
+            ...         [
+            ...             make_issue((0.0, 4.0), name="0"),
+            ...             make_issue((0.0, 9.0), name="1"),
+            ...             make_issue((0.0, 9.0), name="2"),
+            ...         ]
+            ...     ).strip()
+            ... )
             <issue index="1" name="0" vtype="real" type="real" etype="real">
                 <range lowerbound="0.0" upperbound="4.0"></range>
             </issue><issue index="2" name="1" vtype="real" type="real" etype="real">
@@ -277,9 +316,11 @@ class HyperRectangleUtilityFunction(StationaryMixin, UtilityFunction):
         for rect, u, w in zip(self.outcome_ranges, self.mappings, self.weights):
             if not isinstance(u, float):
                 raise ValueError(
-                    f"Only hyper-rectangles with constant utility per rectangle can be convereted to xml"
+                    "Only hyper-rectangles with constant utility per rectangle can be convereted to xml"
                 )
             output += f'        <hyperRectangle utility_function="{u * w}">\n'
+            if not rect:
+                continue
             for key in rect.keys():
                 # indx = [i for i, _ in enumerate(issues) if _.name == key][0] + 1
                 indx = key + 1
@@ -295,7 +336,7 @@ class HyperRectangleUtilityFunction(StationaryMixin, UtilityFunction):
                 output += (
                     f'            <INCLUDES index="{indx}" min="{mn}" max="{mx}" />\n'
                 )
-            output += f"        </hyperRectangle>\n"
+            output += "        </hyperRectangle>\n"
         output += "    </ufun>\n</utility_function>"
         return output
 
@@ -304,12 +345,7 @@ class HyperRectangleUtilityFunction(StationaryMixin, UtilityFunction):
 
     @classmethod
     def random(
-        cls,
-        outcome_space,
-        reserved_value,
-        normalized=True,
-        rectangles=(1, 4),
-        **kwargs,
+        cls, outcome_space, reserved_value, normalized=True, rectangles=(1, 4), **kwargs
     ) -> HyperRectangleUtilityFunction:
         """Generates a random ufun of the given type"""
         raise NotImplementedError("random hyper-rectangle ufuns are not implemented")
@@ -333,13 +369,13 @@ class HyperRectangleUtilityFunction(StationaryMixin, UtilityFunction):
             d[k] = deserialize(d.get(k, None))
         return cls(**d)
 
-    def eval(self, offer: Outcome | None) -> float | None:
+    def eval(self, offer: Outcome | None) -> float:
         if offer is None:
             return self.reserved_value
         u = self.bias
         for weight, outcome_range, mapping in zip(
             self.weights, self.outcome_ranges, self.mappings
-        ):  # type: ignore
+        ):
             # fail on any outcome_range that constrains issues not in the presented outcome
             if (
                 outcome_range is not None
@@ -348,21 +384,20 @@ class HyperRectangleUtilityFunction(StationaryMixin, UtilityFunction):
                 if self.ignore_issues_not_in_input:
                     continue
 
-                return None
+                return float("nan")
 
             elif outcome_range is None or outcome_in_range(offer, outcome_range):
-                if isinstance(mapping, float):
+                if isinstance(mapping, float) or isinstance(mapping, int):
                     u += weight * mapping
                 else:
                     # fail if any outcome_range utility_function cannot be calculated from the input
                     try:
-                        # noinspection PyTypeChecker
                         u += weight * gmap(mapping, offer)
                     except KeyError:
                         if self.ignore_failing_range_utilities:
                             continue
 
-                        return None
+                        return float("nan")
 
         return u
 
@@ -387,11 +422,7 @@ class NonlinearHyperRectangleUtilityFunction(StationaryMixin, UtilityFunction):
         reserved_value: float = float("-inf"),
         id=None,
     ) -> None:
-        super().__init__(
-            name=name,
-            reserved_value=reserved_value,
-            id=id,
-        )
+        super().__init__(name=name, reserved_value=reserved_value, id=id)
         self.hypervolumes = hypervolumes
         self.mappings = mappings
         self.f = f
@@ -416,7 +447,7 @@ class NonlinearHyperRectangleUtilityFunction(StationaryMixin, UtilityFunction):
             d[k] = deserialize(d.get(k, None))
         return cls(**d)
 
-    def eval(self, offer: Outcome | None) -> float | None:
+    def eval(self, offer: Outcome | None) -> float:
         if offer is None:
             return self.reserved_value
         if not isinstance(self.hypervolumes, Iterable):

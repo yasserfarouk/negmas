@@ -1,5 +1,4 @@
 from __future__ import annotations
-
 import shutil
 from os import walk
 from pathlib import Path
@@ -19,7 +18,7 @@ try:
     import resource
 
     resource.setrlimit(resource.RLIMIT_NOFILE, (50000, -1))
-except:
+except Exception:
     pass
 
 # todo: get these to work
@@ -146,7 +145,7 @@ def do_enc_dec_trial(tmp, folder_name, with_discounting=True):
     compared_two_domains(domain, domain2)
     try:
         shutil.rmtree(tmp)
-    except:
+    except Exception:
         pass
 
 

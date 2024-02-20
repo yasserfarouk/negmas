@@ -1,5 +1,4 @@
 from __future__ import annotations
-
 from abc import abstractmethod
 from os import PathLike
 from pathlib import Path

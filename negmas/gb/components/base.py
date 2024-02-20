@@ -1,5 +1,4 @@
 from __future__ import annotations
-
 from abc import abstractmethod
 from collections import namedtuple
 from typing import TYPE_CHECKING
@@ -166,7 +165,7 @@ class AcceptancePolicy(GBComponent):
             s.set_negotiator(self.negotiator)
 
         if self.negotiator != s.negotiator:
-            raise ValueError(f"Cannot combine strategies with different negotiators")
+            raise ValueError("Cannot combine strategies with different negotiators")
         return AllAcceptanceStrategies([self, s])
 
     def __or__(self, s: AcceptancePolicy):
@@ -178,7 +177,7 @@ class AcceptancePolicy(GBComponent):
             s.set_negotiator(self.negotiator)
 
         if self.negotiator != s.negotiator:
-            raise ValueError(f"Cannot combine strategies with different negotiators")
+            raise ValueError("Cannot combine strategies with different negotiators")
         return AnyAcceptancePolicy([self, s])
 
 
@@ -234,14 +233,14 @@ class OfferingPolicy(GBComponent):
         from .offering import UnanimousConcensusOfferingPolicy
 
         if self.negotiator != s.negotiator:
-            raise ValueError(f"Cannot combine strategies with different negotiators")
+            raise ValueError("Cannot combine strategies with different negotiators")
         return UnanimousConcensusOfferingPolicy([self, s])
 
     def __or__(self, s: OfferingPolicy):
         from .offering import RandomConcensusOfferingPolicy
 
         if self.negotiator != s.negotiator:
-            raise ValueError(f"Cannot combine strategies with different negotiators")
+            raise ValueError("Cannot combine strategies with different negotiators")
         return RandomConcensusOfferingPolicy([self, s])
 
 

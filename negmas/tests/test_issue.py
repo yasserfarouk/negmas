@@ -1,11 +1,8 @@
 from __future__ import annotations
-
 import pytest
 
 from negmas.outcomes import generate_issues
 from negmas.outcomes.outcome_space import CartesianOutcomeSpace
-
-from .fixtures import bissue, cissue, dissue, hamlet, uissue
 
 
 def test_type(hamlet, cissue, dissue):

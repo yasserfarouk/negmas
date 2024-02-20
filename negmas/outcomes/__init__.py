@@ -24,9 +24,8 @@ Examples:
   >>> a = {'price': 1.2, 'date': '2018.10.04', 'count': 4}
 
 """
+
 from __future__ import annotations
-
-
 from .common import *
 from .protocols import *
 from .base_issue import *

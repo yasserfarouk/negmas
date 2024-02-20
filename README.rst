@@ -55,7 +55,7 @@ Overview
 
    .. container:: leftside
 
-      .. image:: http://yasserm.com/images/negmas-small.png
+      .. image:: https://yasserfarouk.github.io/images/negmas-small.png
             :width: 200
             :alt: Negmas Logo
 
@@ -90,7 +90,7 @@ of one session is affected by what happens in other sessions.
 
 The documentation is available at: documentation_  (Automatically built versions are available on readthedocs_ )
 
-.. _documentation: http://yasserm.com/negmas/
+.. _documentation: https://negmas.readthedocs.io/en/latest/
 .. _readthedocs: https://negmas.readthedocs.io/en/latest/
 
 Main Features

@@ -1,5 +1,4 @@
 from __future__ import annotations
-
 import uuid
 from abc import ABC, abstractmethod
 from typing import Any
@@ -15,12 +14,7 @@ from negmas.types import Rational
 
 from .awi import AgentWorldInterface
 from .breaches import Breach
-from .common import (
-    NegotiationInfo,
-    NegotiationRequestInfo,
-    RenegotiationRequest,
-    RunningNegotiationInfo,
-)
+from .common import NegotiationRequestInfo, RenegotiationRequest, RunningNegotiationInfo
 from .contract import Contract
 from .entity import Entity
 
@@ -64,7 +58,7 @@ class Agent(Entity, EventSink, ConfigReader, Notifier, Rational, ABC):
     #         d = to_dict(vars(dict), deep=False, keep_private=False, add_type_field=False)
     #         # _ = json.dumps(d)
     #         return d
-    #     except:
+    #     except Exception:
     #         return {"id": self.id, "name": self.name}
 
     @property

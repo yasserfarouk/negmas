@@ -1,8 +1,9 @@
-# -*- coding: utf-8 -*-
 """
 Implements Generalized Bargaining Protocol (GB) set of mechanisms and basic negotiators.
 """
+
 from __future__ import annotations
+
 
 from .common import *
 from .components import *

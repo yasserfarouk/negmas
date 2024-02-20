@@ -5,6 +5,7 @@ A set of utilities that can be used by agents developed for the platform.
 This set of utlities can be extended but must be backward compatible for at
 least two versions
 """
+
 from __future__ import annotations
 
 import random
@@ -139,7 +140,10 @@ def truncated_mean(
     elif base == "iqr_fraction":
         bottom_limit = min(1, max(0, bottom_limit))
         top_limit = min(1, max(0, top_limit))
-        limits_: tuple[float, float] = (np.quantile(scores, 0.25), np.quantile(scores, 0.75))  # type: ignore (seems ok)
+        limits_: tuple[float, float] = (
+            np.quantile(scores, 0.25),
+            np.quantile(scores, 0.75),
+        )  # type: ignore (seems ok)
         high = np.sort(scores[scores > limits_[1]])
         low = np.sort(scores[scores < limits_[0]])
         limits_ = (  # type: ignore
@@ -216,9 +220,9 @@ def sample(n, k, grid=False, compact=True, endpoints=True):
         step = int(n // k)
         if step < 1:
             step = 1
-        l = 1 + step * ((n - 1) // step)
-        l = min(l, n - 1)
-        rng = range(step, l, step)
+        L_ = 1 + step * ((n - 1) // step)
+        L_ = min(L_, n - 1)
+        rng = range(step, L_, step)
     elif compact:
         before = (n - k) // 2
         rng = range(before, min(n, before + k))

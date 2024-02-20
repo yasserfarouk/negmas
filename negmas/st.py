@@ -1,9 +1,8 @@
-from __future__ import annotations
-
 """
 Implements single text negotiation mechanisms.
 """
 
+from __future__ import annotations
 import math
 import random
 import time
@@ -232,12 +231,12 @@ class VetoSTMechanism(Mechanism):
 
             if has_history:
                 h = history.loc[:, ["step", "current_offer", "u0", "u1"]]
-                axu.scatter(h.u0, h.u1, color="green", label=f"Mediator's Offer")
+                axu.scatter(h.u0, h.u1, color="green", label="Mediator's Offer")
                 axu.scatter(
                     [frontier[0][0]],
                     [frontier[0][1]],
                     color="blue",
-                    label=f"Max Welfare",
+                    label="Max Welfare",
                 )
                 # axu.annotate(
                 #     "Max. Welfare",
@@ -287,10 +286,7 @@ class HillClimbingSTMechanism(VetoSTMechanism):
             if isinstance(issue.values, list):
                 values = issue.values
             if isinstance(issue.values, int):
-                values = [
-                    max(0, outcome[i] - 1),
-                    min(outcome[i] + 1, issue.values),
-                ]
+                values = [max(0, outcome[i] - 1), min(outcome[i] + 1, issue.values)]
             if isinstance(issue.values, tuple):
                 delta = random.random() * (issue.values[0] - issue.values[0])
                 values.append(max(issue.values[0], outcome[i] - delta))

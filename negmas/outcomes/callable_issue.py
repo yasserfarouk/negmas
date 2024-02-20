@@ -1,5 +1,4 @@
 from __future__ import annotations
-
 from typing import Any, Generator
 
 from negmas.outcomes.base_issue import Issue
@@ -16,10 +15,7 @@ class CallableIssue(Issue):
         super().__init__(values, name)
         self._value_type = object
 
-    def _to_xml_str(
-        self,
-        indx,
-    ):
+    def _to_xml_str(self, indx):
         raise NotImplementedError("CallableIssue cannot be saved to xml")
 
     @property
@@ -65,7 +61,7 @@ class CallableIssue(Issue):
         """Pick a random *invalid* value"""
 
         raise ValueError(
-            f"Cannot generate invalid outcomes because values is given as a callable"
+            "Cannot generate invalid outcomes because values is given as a callable"
         )
 
     def is_valid(self):

@@ -1,5 +1,4 @@
 from __future__ import annotations
-
 from abc import abstractmethod
 from typing import TYPE_CHECKING
 
@@ -106,11 +105,7 @@ class GBModularNegotiator(ModularNegotiator, GBNegotiator):
             c.on_partner_proposal(state=state, partner_id=partner_id, offer=offer)
 
     def on_partner_response(
-        self,
-        state: GBState,
-        partner_id: str,
-        outcome: Outcome,
-        response: ResponseType,
+        self, state: GBState, partner_id: str, outcome: Outcome, response: ResponseType
     ) -> None:
         """
         A callback called by the mechanism when a partner responds to some offer
@@ -126,8 +121,5 @@ class GBModularNegotiator(ModularNegotiator, GBNegotiator):
         """
         for c in self._components:
             c.on_partner_response(
-                state=state,
-                partner_id=partner_id,
-                outcome=outcome,
-                response=response,
+                state=state, partner_id=partner_id, outcome=outcome, response=response
             )

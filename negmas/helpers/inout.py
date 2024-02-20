@@ -4,6 +4,7 @@
 This set of utlities can be extended but must be backward compatible for
 at least two versions
 """
+
 from __future__ import annotations
 
 import base64
@@ -230,9 +231,7 @@ class ConfigReader:
 
         myconfig = {}  # parts of the config that can directly be parsed
         children = {}  # parts of the config that need further parsing
-        setters = (
-            []
-        )  # the setters are those configs that have a set_ function for them.
+        setters = []  # the setters are those configs that have a set_ function for them.
 
         def _is_simple(x):
             """Tests whether the input can directly be parsed."""
@@ -290,11 +289,11 @@ class ConfigReader:
         if len(children) > 0 and try_parsing_children:
             if scope is None:
                 ValueError(
-                    f"scope is None but that is not allowed. You must pass scope=globals() or scope=locals() to "
-                    f"from_config. If your classes are defined in the global scope pass globals() and if they "
-                    f"are defined in local scope then pass locals(). You can only pass scope=None if you are "
-                    f"sure that all of the constructor parameters of the class you are creating are simple "
-                    f"values like ints floats and strings."
+                    "scope is None but that is not allowed. You must pass scope=globals() or scope=locals() to "
+                    "from_config. If your classes are defined in the global scope pass globals() and if they "
+                    "are defined in local scope then pass locals(). You can only pass scope=None if you are "
+                    "sure that all of the constructor parameters of the class you are creating are simple "
+                    "values like ints floats and strings."
                 )
             parsed_conf, remaining_children, setters = cls._parse_children_config(
                 children=children, scope=scope
@@ -333,7 +332,7 @@ class NpEncoder(json.JSONEncoder):
             # it may be a type. Always convert types to full names when saving to json
             try:
                 obj = TYPE_START + get_full_type_name(obj)
-            except:
+            except Exception:
                 return obj
             return obj
         else:
@@ -359,10 +358,7 @@ class NpDecorder(json.JSONDecoder):
 
 
 def dump(
-    d: Any,
-    file_name: str | os.PathLike | pathlib.Path,
-    sort_keys=True,
-    compact=False,
+    d: Any, file_name: str | os.PathLike | pathlib.Path, sort_keys=True, compact=False
 ) -> None:
     """Saves an object depending on the extension of the file given. If the
     filename given has no extension, `DEFAULT_DUMP_EXTENSION` will be used.

@@ -1,5 +1,4 @@
 from __future__ import annotations
-
 import math
 import random
 from abc import ABC, abstractmethod
@@ -54,7 +53,7 @@ class TimeBasedOfferingStrategy(OfferingPolicy):
             return
         if self.sorter is not None:
             warnings.warn(
-                f"Sorter is already initialized. May be on_preferences_changed is called twice!!"
+                "Sorter is already initialized. May be on_preferences_changed is called twice!!"
             )
         self.sorter = PresortingInverseUtilityFunction(
             self.negotiator.ufun, rational_only=True, eps=-1, rel_eps=-1
@@ -171,7 +170,7 @@ class CABOfferingPolicy(OfferingPolicy):
         ):
             if self.sorter is not None:
                 warnings.warn(
-                    f"Sorter is already initialized. May be on_preferences_changed is called twice!!"
+                    "Sorter is already initialized. May be on_preferences_changed is called twice!!"
                 )
             self.sorter = PresortingInverseUtilityFunction(
                 self.negotiator.ufun, rational_only=True, eps=-1, rel_eps=-1
@@ -192,7 +191,7 @@ class CABOfferingPolicy(OfferingPolicy):
             return self._last_offer
         if not self.sorter:
             warnings.warn(
-                f"Sorter is not initialized. May be on_preferences_changed is never called before propose!!"
+                "Sorter is not initialized. May be on_preferences_changed is never called before propose!!"
             )
             self.sorter = PresortingInverseUtilityFunction(
                 self.negotiator.ufun, rational_only=True, eps=-1, rel_eps=-1
@@ -238,7 +237,7 @@ class WAROfferingPolicy(OfferingPolicy):
         ):
             if self.sorter is not None:
                 warnings.warn(
-                    f"Sorter is already initialized. May be on_preferences_changed is called twice!!"
+                    "Sorter is already initialized. May be on_preferences_changed is called twice!!"
                 )
             self.sorter = PresortingInverseUtilityFunction(
                 self.negotiator.ufun, rational_only=True, eps=-1, rel_eps=-1
@@ -262,7 +261,7 @@ class WAROfferingPolicy(OfferingPolicy):
             return self._last_offer
         if not self.sorter:
             warnings.warn(
-                f"Sorter is not initialized. May be on_preferences_changed is never called before propose!!"
+                "Sorter is not initialized. May be on_preferences_changed is never called before propose!!"
             )
             self.sorter = PresortingInverseUtilityFunction(
                 self.negotiator.ufun, rational_only=True, eps=-1, rel_eps=-1
@@ -573,7 +572,7 @@ class UtilBasedConcensusOfferingPolicy(ConcensusOfferingPolicy, ABC):
         self, indices: list[int], responses: list[Outcome | None]
     ) -> Outcome | None:
         if not self.negotiator.ufun:
-            raise ValueError(f"Cannot decide because I have no ufun")
+            raise ValueError("Cannot decide because I have no ufun")
         return responses[
             self.decide_util([self.negotiator.ufun(_) for _ in set(responses)])
         ]

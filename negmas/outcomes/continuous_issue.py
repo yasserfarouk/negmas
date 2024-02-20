@@ -1,5 +1,4 @@
 from __future__ import annotations
-
 import math
 import numbers
 import random
@@ -53,9 +52,7 @@ class ContinuousIssue(RangeIssue):
     def rand(self) -> float:
         """Picks a random valid value."""
 
-        return (
-            random.random() * (self._values[1] - self._values[0]) + self._values[0]
-        )  # type: ignore
+        return random.random() * (self._values[1] - self._values[0]) + self._values[0]  # type: ignore
 
     def ordered_value_generator(
         self,
@@ -73,10 +70,14 @@ class ContinuousIssue(RangeIssue):
             ).tolist()
             return
         if endpoints:
-            yield from [self._values[0]] + (
-                (self._values[1] - self._values[0]) * np.random.rand(n - 2)
-                + self._values[0]
-            ).tolist() + [self._values[1]]
+            yield from (
+                [self._values[0]]
+                + (
+                    (self._values[1] - self._values[0]) * np.random.rand(n - 2)
+                    + self._values[0]
+                ).tolist()
+                + [self._values[1]]
+            )
         yield from (
             (self._values[1] - self._values[0]) * np.random.rand(n) + self._values[0]
         ).tolist()
@@ -111,7 +112,7 @@ class ContinuousIssue(RangeIssue):
 
     @property
     def all(self):
-        raise ValueError(f"Cannot enumerate all values of a continuous issue")
+        raise ValueError("Cannot enumerate all values of a continuous issue")
 
     def value_at(self, index: int):
         v = self.min_value + self.delta * index

@@ -1,5 +1,4 @@
 from __future__ import annotations
-
 from negmas.common import MechanismState
 
 from ..common import GBResponse, ResponseType, ThreadState

@@ -1,5 +1,4 @@
 from __future__ import annotations
-
 import os
 from pathlib import Path
 
@@ -13,7 +12,7 @@ from negmas.genius.ginfo import get_anac_agents
 from negmas.genius.gnegotiators import AgentK, Caduceus
 from negmas.genius.negotiator import GeniusNegotiator
 from negmas.inout import Scenario
-from negmas.sao.mechanism import SAOMechanism
+from negmas.sao.mechanism import SAOMechanism, SAOState
 from negmas.sao.negotiators import AspirationNegotiator
 
 TIMELIMIT = 60
@@ -22,12 +21,8 @@ STEPLIMIT = 100
 SKIP_IF_NO_BRIDGE = not os.environ.get("NEGMAS_LONG_TEST", False)
 
 
-@given(
-    bilateral=st.booleans(),
-)
-def test_get_genius_agents_example(
-    bilateral,
-):
+@given(bilateral=st.booleans())
+def test_get_genius_agents_example(bilateral):
     winners = get_anac_agents(bilateral=bilateral, winners_only=True)
     everyone = get_anac_agents(bilateral=bilateral)
     finalists = get_anac_agents(bilateral=bilateral, finalists_only=True)
@@ -172,11 +167,7 @@ def test_old_agent2():
     agent_name2=st.sampled_from(GeniusNegotiator.robust_negotiators()),
     single_issue=st.booleans(),
 )
-def test_genius_agents_run_using_hypothesis(
-    agent_name1,
-    agent_name2,
-    single_issue,
-):
+def test_genius_agents_run_using_hypothesis(agent_name1, agent_name2, single_issue):
     src = pkg_resources.resource_filename("negmas", resource_name="tests/data/Laptop")
     base_folder = src
     domain = Scenario.from_genius_folder(Path(base_folder))
@@ -184,14 +175,8 @@ def test_genius_agents_run_using_hypothesis(
     if single_issue:
         domain = domain.to_single_issue()
         assert domain is not None
-    a1 = GeniusNegotiator(
-        java_class_name=agent_name1,
-        preferences=domain.ufuns[0],
-    )
-    a2 = GeniusNegotiator(
-        java_class_name=agent_name2,
-        preferences=domain.ufuns[1],
-    )
+    a1 = GeniusNegotiator(java_class_name=agent_name1, preferences=domain.ufuns[0])
+    a2 = GeniusNegotiator(java_class_name=agent_name2, preferences=domain.ufuns[1])
     neg = domain.make_session([a1, a2], n_steps=STEPLIMIT, time_limit=None)
     if neg is None:
         raise ValueError(f"Failed to lead domain from {base_folder}")
@@ -213,7 +198,7 @@ def test_genius_agent_gets_preferences():
     a1 = GeniusNegotiator(
         java_class_name="agents.anac.y2015.Atlas3.Atlas3",
         domain_file_name=base_folder + "/Laptop-C-domain.xml",
-        utility_file_name=base_folder + f"/Laptop-C-prof1.xml",
+        utility_file_name=base_folder + "/Laptop-C-prof1.xml",
     )
     assert a1.preferences is not None
     assert not a1._temp_preferences_file
@@ -286,9 +271,7 @@ def test_agentk_perceives_time():
     assert domain is not None
     gagent = AgentK()
     neg = domain.make_session(
-        [gagent, AspirationNegotiator()],
-        n_steps=n_steps,
-        time_limit=float("inf"),
+        [gagent, AspirationNegotiator()], n_steps=n_steps, time_limit=float("inf")
     )
     if neg is None:
         raise ValueError(f"Failed to load domain from {base_folder}")
@@ -302,7 +285,7 @@ def test_agentk_perceives_time():
         if neg.nmi.state.ended:
             break
         if _ == n_steps - 1:
-            assert gagent.relative_time is None, f"Got a time after the last step"
+            assert gagent.relative_time is None, "Got a time after the last step"
         else:
             assert (
                 gagent.relative_time > current_time
@@ -388,10 +371,10 @@ def test_2genius_together(a1, a2, n_steps, time_limit):
     if neg is None:
         raise ValueError(f"Failed to load domain from {base_folder}")
     neg.add(
-        GeniusNegotiator(java_class_name=a1, strict=True, preferences=domain.ufuns[0]),
+        GeniusNegotiator(java_class_name=a1, strict=True, preferences=domain.ufuns[0])
     )
     neg.add(
-        GeniusNegotiator(java_class_name=a2, strict=True, preferences=domain.ufuns[1]),
+        GeniusNegotiator(java_class_name=a2, strict=True, preferences=domain.ufuns[1])
     )
     neg.run()
 

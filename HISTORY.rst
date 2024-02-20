@@ -260,7 +260,7 @@ Release 0.9.0
 This is a major release and it is **not** backward compatible. Please reference
 the upgrade guide at the upgrdade guide_.
 
-.. _guide: http://yasserm.com/negmas/upgrade_guide.html
+.. _guide: https://negmas.readthedocs.io/en/latest/upgrade_guide.html
 
 Some of the most important changes are:
 

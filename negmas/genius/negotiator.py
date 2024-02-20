@@ -5,6 +5,7 @@ An agent used to connect to GENIUS agents (ver 8.0.4) and allow them to join neg
 """
 from __future__ import annotations
 
+
 import math
 import os
 import random
@@ -33,9 +34,7 @@ from .common import (
 )
 from .ginfo import AGENT_BASED_NEGOTIATORS, PARTY_BASED_NEGOTIATORS, TESTED_NEGOTIATORS
 
-__all__ = [
-    "GeniusNegotiator",
-]
+__all__ = ["GeniusNegotiator"]
 
 INTERNAL_SEP, ENTRY_SEP, FIELD_SEP = "<<s=s>>", "<<y,y>>", "<<sy>>"
 FAILED, OK, TIMEOUT = "__FAILED__", "__OK__", "__TIMEOUT__"
@@ -80,13 +79,7 @@ class GeniusNegotiator(SAONegotiator):
         strict: bool | None = None,
         id: str | None = None,
     ):
-        super().__init__(
-            name=name,
-            preferences=None,
-            parent=parent,
-            owner=owner,
-            id=id,
-        )
+        super().__init__(name=name, preferences=None, parent=parent, owner=owner, id=id)
         self.__frozen_relative_time = None
         self.__destroyed = False
         self.__started = False
@@ -123,9 +116,7 @@ class GeniusNegotiator(SAONegotiator):
             from ..inout import get_domain_issues
 
             # we keep original issues details so that we can create appropriate answers to Java
-            self.issues = get_domain_issues(
-                domain_file_name=domain_file_name,
-            )
+            self.issues = get_domain_issues(domain_file_name=domain_file_name)
             if not self.issues:
                 raise ValueError(f"Cannot read domain file {domain_file_name}")
             self.issue_names = [_.name for _ in self.issues]
@@ -133,8 +124,7 @@ class GeniusNegotiator(SAONegotiator):
         self.discount = None
         if utility_file_name is not None:
             self._preferences, self.discount = UtilityFunction.from_genius(
-                utility_file_name,
-                issues=self.issues,
+                utility_file_name, issues=self.issues
             )
         # if ufun is not None:
         #     self._preferences = ufun
@@ -194,11 +184,7 @@ class GeniusNegotiator(SAONegotiator):
         return r
 
     @classmethod
-    def random_negotiator_name(
-        cls,
-        agent_based=True,
-        party_based=True,
-    ):
+    def random_negotiator_name(cls, agent_based=True, party_based=True):
         agent_names = cls.negotiators(agent_based=agent_based, party_based=party_based)
         return random.choice(agent_names)
 
@@ -247,7 +233,7 @@ class GeniusNegotiator(SAONegotiator):
     def _create(self, indx: int):
         """Creates the corresponding java agent"""
         if self.java is None:
-            raise ValueError(f"Cannot create Genius Agent (no java instance)")
+            raise ValueError("Cannot create Genius Agent (no java instance)")
         aid = self.java.create_agent(self.java_class_name, indx)  # type: ignore
         if aid == FAILED:
             raise ValueError(f"Cannot initialized {self.java_class_name}")
@@ -259,16 +245,16 @@ class GeniusNegotiator(SAONegotiator):
         """
         try:
             gateway = GeniusBridge.gateway(port)
-        except:
+        except Exception:
             gateway = None
         if gateway is None:
             if auto_load_java:
                 GeniusBridge.start(port=port, path=path)
             try:
                 gateway = GeniusBridge.gateway(port)
-            except:
+            except Exception:
                 gateway = None
-            if gateway == None:
+            if gateway is None:
                 self.java = None
                 return False
             sleep(3)
@@ -316,7 +302,7 @@ class GeniusNegotiator(SAONegotiator):
                     auto_load_java=self.auto_load_java,
                 )
             if not self.is_connected:
-                raise ValueError(f"Cannot connect to the genius bridge")
+                raise ValueError("Cannot connect to the genius bridge")
 
         self.java_uuid = self._create(nmi.n_negotiators)
 
@@ -383,7 +369,7 @@ class GeniusNegotiator(SAONegotiator):
                     self.__frozen_relative_time = self.java.get_relative_time(  # type: ignore
                         self.java_uuid
                     )
-                except:
+                except Exception:
                     if state:
                         self.__frozen_relative_time = state.relative_time
                     else:
@@ -478,9 +464,7 @@ class GeniusNegotiator(SAONegotiator):
                 )
             self.set_preferences(
                 make_discounted_ufun(
-                    self.ufun,
-                    discount_per_round=self.discount,
-                    power_per_round=1.0,
+                    self.ufun, discount_per_round=self.discount, power_per_round=1.0
                 )
             )
         n_rounds = info.n_steps
@@ -562,7 +546,7 @@ class GeniusNegotiator(SAONegotiator):
         _ = reason
         try:
             self.java.cancel(self.java_uuid)  # type: ignore
-        except:
+        except Exception:
             pass
 
     @property
@@ -681,10 +665,7 @@ class GeniusNegotiator(SAONegotiator):
             s = int(s / self.nmi.n_negotiators)
         return s
 
-    def respond_sao(
-        self,
-        state: SAOState,
-    ) -> None:
+    def respond_sao(self, state: SAOState) -> None:
         offer = state.current_offer
         if offer is None and self.__my_last_offer is not None and self._strict:
             raise ValueError(f"{self._me()} got counter with a None offer.")
@@ -694,11 +675,7 @@ class GeniusNegotiator(SAONegotiator):
         proposer_id = self.nmi.genius_id(state.current_proposer)
         current_step = self._current_step(state)
         received = self.java.receive_message(  # type: ignore
-            self.java_uuid,
-            proposer_id,
-            "Offer",
-            self._outcome2str(offer),
-            current_step,
+            self.java_uuid, proposer_id, "Offer", self._outcome2str(offer), current_step
         )
         if self._strict and received.startswith(FAILED):
             raise ValueError(
@@ -742,14 +719,10 @@ class GeniusNegotiator(SAONegotiator):
 
     # compatibility with GAO
 
-    def respond(
-        self,
-        state: GBState,
-        source: str | None = None,
-    ) -> ResponseType:
+    def respond(self, state: GBState, source: str | None = None) -> ResponseType:
         if source is None:
             raise ValueError(
-                f"Respond is not supposed to be called directly for GeniusNegotiator"
+                "Respond is not supposed to be called directly for GeniusNegotiator"
             )
         offer = get_offer(state, source)
         current_step = self._current_step(state)
@@ -765,11 +738,7 @@ class GeniusNegotiator(SAONegotiator):
             state.last_thread if source is None else source
         )
         received = self.java.receive_message(  # type: ignore
-            self.java_uuid,
-            proposer_id,
-            "Offer",
-            self._outcome2str(offer),
-            current_step,
+            self.java_uuid, proposer_id, "Offer", self._outcome2str(offer), current_step
         )
         self.__my_last_received_offer = offer
         if self._strict and received.startswith(FAILED):

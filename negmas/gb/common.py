@@ -1,6 +1,7 @@
 """
 Common data-structures for supporting the Generalized Bargaining Protocol
 """
+
 from __future__ import annotations
 
 from enum import IntEnum
@@ -75,7 +76,7 @@ def all_negotiator_types() -> list[GBNegotiator]:
         try:
             type = get_class(f"negmas.gb.negotiators.{_}")
             type()
-        except:
+        except Exception:
             continue
         if issubclass(type, GBNegotiator):
             results.append(type)

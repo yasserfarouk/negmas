@@ -1,5 +1,4 @@
 from __future__ import annotations
-
 import copy
 import time
 from abc import abstractmethod
@@ -91,9 +90,7 @@ class BaseElicitor(SAONegotiator):
         self.opponent_model = None
         self._elicitation_time = None
         self.asking_time = 0.0
-        self.offerable_outcomes = (
-            []
-        )  # will contain outcomes with known or at least elicited utilities
+        self.offerable_outcomes = []  # will contain outcomes with known or at least elicited utilities
         self.indices = None
         self.initial_utility_priors = None
         self.user = user
@@ -128,7 +125,7 @@ class BaseElicitor(SAONegotiator):
         """
         nmi = self._nmi
         if nmi is None:
-            raise ValueError(f"Unkown NMI")
+            raise ValueError("Unkown NMI")
         self.elicitation_history = []
         outcomes = list(nmi.discrete_outcomes())
         self.indices = dict(zip(outcomes, range(len(outcomes))))

@@ -1,5 +1,4 @@
 from __future__ import annotations
-
 import itertools
 from typing import TYPE_CHECKING, Iterable
 
@@ -15,9 +14,7 @@ from .negotiator import Negotiator
 if TYPE_CHECKING:
     from negmas.preferences import BaseUtilityFunction, Preferences
 
-__all__ = [
-    "ModularNegotiator",
-]
+__all__ = ["ModularNegotiator"]
 
 
 class ModularNegotiator(Negotiator):

@@ -1,5 +1,4 @@
 from __future__ import annotations
-
 import copy
 import itertools
 import logging
@@ -681,7 +680,9 @@ class World(EventSink, EventSource, ConfigReader, NamedObject, CheckpointMixin, 
     def log_folder(self):
         return self._log_folder
 
-    def loginfo_agent(self, aid: str, s: str, event: Event | None = None) -> None:
+    def loginfo_agent(
+        self, aid: str, s: str | None, event: Event | None = None
+    ) -> None:
         """logs information to the agent individual log
 
         Args:
@@ -689,6 +690,8 @@ class World(EventSink, EventSource, ConfigReader, NamedObject, CheckpointMixin, 
             event (Event): The event to announce after logging
 
         """
+        if not s:
+            return
         if event:
             self.announce(event)
         if self._no_logs or not self.logger:
@@ -696,7 +699,9 @@ class World(EventSink, EventSource, ConfigReader, NamedObject, CheckpointMixin, 
         logger = self._agent_logger(aid)
         logger.info(f"{self._log_header()}: " + s.strip())
 
-    def logwarning_agent(self, aid: str, s: str, event: Event | None = None) -> None:
+    def logwarning_agent(
+        self, aid: str, s: str | None, event: Event | None = None
+    ) -> None:
         """logs warning to the agent individual log
 
         Args:
@@ -704,6 +709,8 @@ class World(EventSink, EventSource, ConfigReader, NamedObject, CheckpointMixin, 
             event (Event): The event to announce after logging
 
         """
+        if not s:
+            return
         if event:
             self.announce(event)
         if self._no_logs or not self.logger:
@@ -711,7 +718,9 @@ class World(EventSink, EventSource, ConfigReader, NamedObject, CheckpointMixin, 
         logger = self._agent_logger(aid)
         logger.warning(f"{self._log_header()}: " + s.strip())
 
-    def logerror_agent(self, aid: str, s: str, event: Event | None = None) -> None:
+    def logerror_agent(
+        self, aid: str, s: str | None, event: Event | None = None
+    ) -> None:
         """logs information to the agent individual log
 
         Args:
@@ -719,6 +728,10 @@ class World(EventSink, EventSource, ConfigReader, NamedObject, CheckpointMixin, 
             event (Event): The event to announce after logging
 
         """
+        if not s:
+            return
+        if not s:
+            return
         if event:
             self.announce(event)
         if self._no_logs or not self.logger:
@@ -726,7 +739,7 @@ class World(EventSink, EventSource, ConfigReader, NamedObject, CheckpointMixin, 
         logger = self._agent_logger(aid)
         logger.error(f"{self._log_header()}: " + s.strip())
 
-    def logdebug(self, s: str, event: Event | None = None) -> None:
+    def logdebug(self, s: str | None, event: Event | None = None) -> None:
         """logs debug-level information
 
         Args:
@@ -734,13 +747,15 @@ class World(EventSink, EventSource, ConfigReader, NamedObject, CheckpointMixin, 
             event (Event): The event to announce after logging
 
         """
+        if not s:
+            return
         if event:
             self.announce(event)
         if self._no_logs or not self.logger:
             return
         self.logger.debug(f"{self._log_header()}: " + s.strip())
 
-    def logwarning(self, s: str, event: Event | None = None) -> None:
+    def logwarning(self, s: str | None, event: Event | None = None) -> None:
         """logs warning-level information
 
         Args:
@@ -748,13 +763,15 @@ class World(EventSink, EventSource, ConfigReader, NamedObject, CheckpointMixin, 
             event (Event): The event to announce after logging
 
         """
+        if not s:
+            return
         if event:
             self.announce(event)
         if self._no_logs or not self.logger:
             return
         self.logger.warning(f"{self._log_header()}: " + s.strip())
 
-    def logerror(self, s: str, event: Event | None = None) -> None:
+    def logerror(self, s: str | None, event: Event | None = None) -> None:
         """logs error-level information
 
         Args:
@@ -762,6 +779,8 @@ class World(EventSink, EventSource, ConfigReader, NamedObject, CheckpointMixin, 
             event (Event): The event to announce after logging
 
         """
+        if not s:
+            return
         if event:
             self.announce(event)
         if self._no_logs or not self.logger:
@@ -1225,9 +1244,9 @@ class World(EventSink, EventSource, ConfigReader, NamedObject, CheckpointMixin, 
         dd["history"] = [_.asdict() for _ in mechanism.history]
         if hasattr(mechanism, "negotiator_offers"):
             dd["offers"] = {
-                n.owner.id
-                if n.owner
-                else n.name: [_ for _ in mechanism.negotiator_offers(n.id)]
+                n.owner.id if n.owner else n.name: [
+                    _ for _ in mechanism.negotiator_offers(n.id)
+                ]
                 for n in mechanism.negotiators
             }
         record.update(dd)
@@ -1712,9 +1731,7 @@ class World(EventSink, EventSource, ConfigReader, NamedObject, CheckpointMixin, 
             }
             passed = set(neg_actions.keys()) if neg_actions else set()
             missing = passed.difference(existing)
-            assert (
-                not missing
-            ), f"Mechanisms not found:\n{existing=} ({len(existing)})\n{passed=} ({len(passed)})\n{missing=} ({len(missing)})"
+            assert not missing, f"Mechanisms not found:\n{existing=} ({len(existing)})\n{passed=} ({len(passed)})\n{missing=} ({len(missing)})"
 
         #
         _n_registered_negotiations_before = len(self._negotiations)
@@ -2118,8 +2135,7 @@ class World(EventSink, EventSource, ConfigReader, NamedObject, CheckpointMixin, 
             self.delete_executed_contracts()  # note that all contracts even breached ones are to be deleted
             for c in dropped:
                 self.loginfo(
-                    f"Dropped {str(c)}",
-                    Event("dropped-contract", dict(contract=c)),
+                    f"Dropped {str(c)}", Event("dropped-contract", dict(contract=c))
                 )
                 self._saved_contracts[c.id]["dropped_at"] = self._current_step
                 for p in c.partners:
@@ -2750,15 +2766,7 @@ class World(EventSink, EventSource, ConfigReader, NamedObject, CheckpointMixin, 
             ),
         )
         negs = []
-        for (
-            issue,
-            partner,
-            role,
-            annotation,
-            mech_name,
-            mech_param,
-            negotiator_,
-        ) in zip(
+        for issue, partner, role, annotation, mech_name, mech_param, negotiator_ in zip(
             issues,
             partners,
             roles,
@@ -3485,7 +3493,7 @@ class World(EventSink, EventSource, ConfigReader, NamedObject, CheckpointMixin, 
             world_stats = [_ for _ in world.stats.keys() if _.startswith(stat)]
             if len(world_stats) == 0:
                 continue
-            type_world_stats = defaultdict(list)
+            defaultdict(list)
             for s in world_stats:
                 if not pertype or not any(s.endswith(_) for _ in world.agents.keys()):
                     # this is not an agent statistic or an agent statistic but we are not combining types
@@ -3569,7 +3577,7 @@ class World(EventSink, EventSource, ConfigReader, NamedObject, CheckpointMixin, 
         import matplotlib.pyplot as plt
 
         if makefig:
-            fig = plt.figure(figsize=figsize)
+            plt.figure(figsize=figsize)
         n_plots = 0
         if isinstance(stats, str):
             stats = (stats,)

@@ -1,7 +1,7 @@
 from __future__ import annotations
-
 from collections import defaultdict
-from typing import TYPE_CHECKING, Collection
+from typing import TYPE_CHECKING, Collection, Any
+
 
 if TYPE_CHECKING:
     from negmas.common import MechanismState, NegotiatorMechanismInterface

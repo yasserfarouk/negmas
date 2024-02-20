@@ -1,5 +1,4 @@
 from __future__ import annotations
-
 import random
 from typing import Callable, Iterable
 
@@ -39,35 +38,42 @@ class MappingUtilityFunction(StationaryMixin, UtilityFunction):
         Single issue outcome case:
 
         >>> from negmas.outcomes import make_issue
-        >>> issue =make_issue(values=['to be', 'not to be'], name='THE problem')
+        >>> issue = make_issue(values=["to be", "not to be"], name="THE problem")
         >>> print(str(issue))
         THE problem: ['to be', 'not to be']
-        >>> f = MappingUtilityFunction({'to be':10.0, 'not to be':0.0})
-        >>> print(list(map(f, ['to be', 'not to be'])))
+        >>> f = MappingUtilityFunction({"to be": 10.0, "not to be": 0.0})
+        >>> print(list(map(f, ["to be", "not to be"])))
         [10.0, 0.0]
-        >>> f = MappingUtilityFunction(mapping={'to be':-10.0, 'not to be':10.0})
-        >>> print(list(map(f, ['to be', 'not to be'])))
+        >>> f = MappingUtilityFunction(mapping={"to be": -10.0, "not to be": 10.0})
+        >>> print(list(map(f, ["to be", "not to be"])))
         [-10.0, 10.0]
         >>> f = MappingUtilityFunction(lambda x: float(len(x)))
-        >>> print(list(map(f, ['to be', 'not to be'])))
+        >>> print(list(map(f, ["to be", "not to be"])))
         [5.0, 9.0]
 
         Multi issue case:
 
-        >>> issues = [make_issue((10.0, 20.0), 'price'), make_issue(['delivered', 'not delivered'], 'delivery')
-        ...           , make_issue(5, 'quality')]
+        >>> issues = [
+        ...     make_issue((10.0, 20.0), "price"),
+        ...     make_issue(["delivered", "not delivered"], "delivery"),
+        ...     make_issue(5, "quality"),
+        ... ]
         >>> print(list(map(str, issues)))
         ['price: (10.0, 20.0)', "delivery: ['delivered', 'not delivered']", 'quality: (0, 4)']
-        >>> f = MappingUtilityFunction(lambda x: x['price'] if x['delivery'] == 'delivered' else -1.0)
-        >>> g = MappingUtilityFunction(lambda x: x['price'] if x['delivery'] == 'delivered' else -1.0
-        ...     , default=-1000 )
-        >>> f({'price': 16.0}) == float("-inf")
+        >>> f = MappingUtilityFunction(
+        ...     lambda x: x["price"] if x["delivery"] == "delivered" else -1.0
+        ... )
+        >>> g = MappingUtilityFunction(
+        ...     lambda x: x["price"] if x["delivery"] == "delivered" else -1.0,
+        ...     default=-1000,
+        ... )
+        >>> f({"price": 16.0}) == float("-inf")
         True
-        >>> g({'price': 16.0})
+        >>> g({"price": 16.0})
         -1000
-        >>> f({'price': 16.0, 'delivery':  'delivered'})
+        >>> f({"price": 16.0, "delivery": "delivered"})
         16.0
-        >>> f({'price': 16.0, 'delivery':  'not delivered'})
+        >>> f({"price": 16.0, "delivery": "not delivered"})
         -1.0
 
     Remarks:
@@ -94,11 +100,7 @@ class MappingUtilityFunction(StationaryMixin, UtilityFunction):
     def to_dict(self):
         d = {PYTHON_CLASS_IDENTIFIER: get_full_type_name(type(self))}
         d.update(super().to_dict())
-        return dict(
-            **d,
-            mapping=serialize(self.mapping),
-            default=self.default,
-        )
+        return dict(**d, mapping=serialize(self.mapping), default=self.default)
 
     @classmethod
     def from_dict(cls, d):
@@ -123,11 +125,11 @@ class MappingUtilityFunction(StationaryMixin, UtilityFunction):
         Examples:
 
             >>> from negmas.outcomes import make_issue
-            >>> issue =make_issue(values=['to be', 'not to be'], name='THE problem')
+            >>> issue = make_issue(values=["to be", "not to be"], name="THE problem")
             >>> print(str(issue))
             THE problem: ['to be', 'not to be']
-            >>> f = MappingUtilityFunction({'to be':10.0, 'not to be':0.0})
-            >>> print(list(map(f, ['to be', 'not to be'])))
+            >>> f = MappingUtilityFunction({"to be": 10.0, "not to be": 0.0})
+            >>> print(list(map(f, ["to be", "not to be"])))
             [10.0, 0.0]
             >>> print(f.xml([issue]))
             <issue index="1" etype="discrete" type="discrete" vtype="discrete" name="THE problem">
@@ -186,12 +188,7 @@ class MappingUtilityFunction(StationaryMixin, UtilityFunction):
             mn = 4 * random.random()
             rng = 4 * random.random()
         return cls(
-            dict(
-                zip(
-                    os.enumerate(),
-                    np.random.rand(os.cardinality) * rng + mn,
-                )
-            ),
+            dict(zip(os.enumerate(), np.random.rand(os.cardinality) * rng + mn)),
             reserved_value=reserved_value[0]  # type: ignore
             + random.random() * (reserved_value[1] - reserved_value[0]),  # type: ignore
             outcome_space=os,

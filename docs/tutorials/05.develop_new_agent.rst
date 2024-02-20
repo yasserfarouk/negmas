@@ -144,7 +144,6 @@ We can see a picture of contracting in this world as follows:
 
 
 
-
 .. image:: 05.develop_new_agent_files/05.develop_new_agent_11_0.png
 
 
@@ -155,7 +154,6 @@ We can also check the breaches that happened
     plt.plot(world.stats["breach_level"])
     plt.xlabel("Simulation Step")
     plt.ylabel("Total Breach Level");
-
 
 
 
@@ -172,7 +170,6 @@ We can actually check what happens to ALL agents
         utility.plot(np.asarray(world.stats[f"total_utility_{name}"]), label=name)
     utility.set(xlabel="Simulation Step", ylabel="Player Total Utility")
     utility.legend(loc="lower left");
-
 
 
 
@@ -214,7 +211,7 @@ attempt:
             *args,
             negotiator_type=AspirationNegotiator,
             negotiator_params=None,
-            **kwargs
+            **kwargs,
         ):
             super().__init__(*args, **kwargs)
             self.negotiator_type = negotiator_type
@@ -299,7 +296,6 @@ Let’s check how did our agent do
         utility.plot(utils[name], label=name)
     utility.set(xlabel="Simulation Step", ylabel="Player Total Utility")
     utility.legend(loc="lower left");
-
 
 
 

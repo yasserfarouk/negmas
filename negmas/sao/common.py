@@ -1,6 +1,8 @@
 """
 Common data-structures for supporting the Stacked Alternating Offers Protocol
 """
+
+
 from __future__ import annotations
 
 from functools import lru_cache
@@ -15,13 +17,7 @@ if TYPE_CHECKING:
     from negmas.outcomes import Outcome
     from negmas.sao.negotiators.base import SAONegotiator
 
-__all__ = [
-    "ResponseType",
-    "SAOResponse",
-    "SAOState",
-    "SAONMI",
-    "all_negotiator_types",
-]
+__all__ = ["ResponseType", "SAOResponse", "SAOState", "SAONMI", "all_negotiator_types"]
 
 
 @define
@@ -63,7 +59,7 @@ def all_negotiator_types() -> list[SAONegotiator]:
         try:
             type = get_class(f"negmas.sao.negotiators.{_}")
             type()
-        except:
+        except Exception:
             continue
         if issubclass(type, SAONegotiator):
             results.append(type)

@@ -1,7 +1,7 @@
 """
 Base protocol for all entities that can be stepped/run.
 """
-from __future__ import annotations
+
 
 from typing import Any
 

@@ -1,9 +1,7 @@
 from __future__ import annotations
-
 from negmas.helpers.prob import ScipyDistribution
 from negmas.outcomes import Outcome
 
-from ...helpers.prob import ScipyDistribution
 from ..crisp_ufun import UtilityFunction
 from ..mixins import StationaryMixin
 from ..prob_ufun import ProbUtilityFunction

@@ -1,5 +1,4 @@
 from __future__ import annotations
-
 from typing import TYPE_CHECKING, Any, Iterable
 
 from negmas.events import Event
@@ -84,7 +83,7 @@ class MechanismFactory:
                             record[f"u{i}"] = None
                         else:
                             record[f"u{i}"] = _negotiator.ufun(record["outcome"])
-                    except:
+                    except Exception:
                         record[f"u{i}"] = None
             _negotiator.owner = partner_
             mechanism.add(negotiator=_negotiator, role=_role)
@@ -224,7 +223,9 @@ class MechanismFactory:
                 group=self.group,
             )
         mechanism = self._create_negotiation_session(
-            mechanism=mechanism, responses=zip(responses, roles), partners=partners  # type: ignore
+            mechanism=mechanism,
+            responses=zip(responses, roles),
+            partners=partners,  # type: ignore
         )
         neg_info = NegotiationInfo(
             mechanism=mechanism,

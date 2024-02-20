@@ -1,12 +1,8 @@
 from __future__ import annotations
-
 from ..components import AcceptAbove, AcceptBest, AcceptTop, OfferBest, OfferTop
 from .modular import MAPNegotiator
 
-__all__ = [
-    "ToughNegotiator",
-    "TopFractionNegotiator",
-]
+__all__ = ["ToughNegotiator", "TopFractionNegotiator"]
 
 
 class ToughNegotiator(MAPNegotiator):
@@ -26,11 +22,7 @@ class ToughNegotiator(MAPNegotiator):
 
     """
 
-    def __init__(
-        self,
-        can_propose=True,
-        **kwargs,
-    ):
+    def __init__(self, can_propose=True, **kwargs):
         acceptance = AcceptBest()
         offering = None if not can_propose else OfferBest()
         super().__init__(acceptance=acceptance, offering=offering, **kwargs)

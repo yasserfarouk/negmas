@@ -1,3 +1,4 @@
+from __future__ import annotations
 import pytest
 
 from negmas.gb.negotiators.timebased import AspirationNegotiator
@@ -16,15 +17,11 @@ def test_mechanism_plot():
     )
     for i, u in enumerate(ufuns):
         u.outcome_space = os
-        m.add(
-            AspirationNegotiator(
-                id=f"a{i}",
-                name=f"n{i}",
-                ufun=u,
-            )
-        )
+        m.add(AspirationNegotiator(id=f"a{i}", name=f"n{i}", ufun=u))
     m.run()
     m.plot()
+    import matplotlib.pyplot as plt
+
     plt.show()
 
 
@@ -37,17 +34,23 @@ def test_offline_plot():
     )
     for i, u in enumerate(ufuns):
         u.outcome_space = os
-        m.add(
-            AspirationNegotiator(
-                id=f"a{i}",
-                name=f"n{i}",
-                ufun=u,
-            )
-        )
+        m.add(AspirationNegotiator(id=f"a{i}", name=f"n{i}", ufun=u))
     m.run()
     trace = m.full_trace
     ids = m.negotiator_ids
     names = m.negotiator_names
     state = m.state
-    plot_offline_run(trace, ids, ufuns, state, names)
+
+    plot_offline_run(
+        trace,
+        ids,
+        ufuns,
+        state.agreement,
+        state.timedout,
+        state.broken,
+        state.has_error,
+        names=names,
+    )
+    import matplotlib.pyplot as plt
+
     plt.show()

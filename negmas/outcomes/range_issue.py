@@ -1,5 +1,4 @@
 from __future__ import annotations
-
 from negmas.outcomes.cardinal_issue import CardinalIssue
 
 __all__ = ["RangeIssue"]

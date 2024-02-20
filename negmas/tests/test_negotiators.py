@@ -1,5 +1,4 @@
 from __future__ import annotations
-
 import random
 
 import matplotlib.pyplot as plt
@@ -196,8 +195,7 @@ def test_tft_propose():
     u1 = [50.0] * 3 + (22 - np.linspace(10.0, 22.0, len(outcomes) - 3)).tolist()
     neg = SAOMechanism(outcomes=outcomes, n_steps=10)
     neg.add(
-        a1,
-        preferences=MappingUtilityFunction(lambda x: u1[x[0]], outcomes=outcomes),
+        a1, preferences=MappingUtilityFunction(lambda x: u1[x[0]], outcomes=outcomes)
     )
     neg.add(
         a2,
@@ -364,19 +362,11 @@ def test_outcome_space_setting_resetting():
 
     # define ufuns
     seller_utility = LinearAdditiveUtilityFunction(
-        values=(
-            IdentityFun(),
-            LinearFun(0.2),
-            AffineFun(-1, bias=9),
-        ),
+        values=(IdentityFun(), LinearFun(0.2), AffineFun(-1, bias=9)),
         weights=(1.0, 1.0, 10.0),
     )
     buyer_utility = LinearAdditiveUtilityFunction(
-        values=(
-            AffineFun(-1, bias=9.0),
-            LinearFun(0.2),
-            IdentityFun(),
-        ),
+        values=(AffineFun(-1, bias=9.0), LinearFun(0.2), IdentityFun())
     )
     assert seller_utility.outcome_space is None
     assert buyer_utility.outcome_space is None

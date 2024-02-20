@@ -2,7 +2,7 @@
 """
 Implements Stacked Alternating Offers (SAO) mechanism and basic negotiators.
 """
-from __future__ import annotations
+
 
 from .common import *
 from .components import *

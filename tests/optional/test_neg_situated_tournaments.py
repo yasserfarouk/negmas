@@ -1,5 +1,4 @@
 from __future__ import annotations
-
 import pytest
 
 from negmas.genius import genius_bridge_is_running
@@ -25,10 +24,7 @@ from tests.switches import NEGMAS_FASTRUN
 SKIP_CONDITION = NEGMAS_FASTRUN
 
 
-@pytest.mark.skipif(
-    condition=SKIP_CONDITION,
-    reason="skipped for fast runs",
-)
+@pytest.mark.skipif(condition=SKIP_CONDITION, reason="skipped for fast runs")
 def test_can_run_cartesian_tournament_n_reps():
     n = 2
     issues = (
@@ -63,10 +59,7 @@ def test_can_run_cartesian_tournament_n_reps():
     print(results)
 
 
-@pytest.mark.skipif(
-    condition=SKIP_CONDITION,
-    reason="skipped for fast runs",
-)
+@pytest.mark.skipif(condition=SKIP_CONDITION, reason="skipped for fast runs")
 def test_can_run_cartesian_tournament():
     n = 2
     issues = (
@@ -101,10 +94,7 @@ def test_can_run_cartesian_tournament():
     print(results)
 
 
-@pytest.mark.skipif(
-    condition=SKIP_CONDITION,
-    reason="skipped for fast runs",
-)
+@pytest.mark.skipif(condition=SKIP_CONDITION, reason="skipped for fast runs")
 def test_can_run_world_repeated_runs():
     issues = (make_issue(10, "quantity"), make_issue(5, "price"))
     competitors = [AspirationNegotiator, NaiveTitForTatNegotiator]

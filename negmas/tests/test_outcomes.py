@@ -4,18 +4,6 @@ import pytest
 
 from negmas import enumerate_issues, issues_from_outcomes, make_issue, outcome_is_valid
 
-from .fixtures import (
-    cissue,
-    dissue,
-    int_issues,
-    invalid_outcome_dict,
-    invalid_outcome_list,
-    issues,
-    sissue,
-    valid_outcome_dict,
-    valid_outcome_list,
-)
-
 
 def test_dict_outcomes(issues, valid_outcome_dict, invalid_outcome_dict):
     assert outcome_is_valid(valid_outcome_dict, issues)
@@ -28,7 +16,6 @@ def test_list_outcomes(int_issues, valid_outcome_list, invalid_outcome_list):
 
 
 def test_from_outcomes():
-
     issues = [
         make_issue([2, 3], "price"),
         make_issue([1, 2, 3], "cost"),

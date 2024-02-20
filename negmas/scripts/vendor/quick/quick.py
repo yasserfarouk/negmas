@@ -1,5 +1,4 @@
 from __future__ import annotations
-
 import math
 import sys
 from functools import partial
@@ -8,7 +7,7 @@ import click
 
 try:
     from PyQt5 import QtCore, QtGui, QtWidgets
-except:
+except Exception:
     pass
 else:
     MAX_ROWS = 21
@@ -797,10 +796,7 @@ else:
             self.setWindowTitle(self.title)
             # self.setGeometry(self.left, self.top, self.width, self.height)
             self.setGeometry(geometry)
-            self.opt_set = self.initCommandUI(
-                self.func,
-                run_exit,
-            )
+            self.opt_set = self.initCommandUI(self.func, run_exit)
             self.setLayout(self.opt_set)
             self.show()
 

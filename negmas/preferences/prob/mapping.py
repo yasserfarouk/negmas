@@ -1,5 +1,4 @@
 from __future__ import annotations
-
 import random
 from typing import Iterable
 
@@ -41,11 +40,7 @@ class ProbMappingUtilityFunction(StationaryMixin, ProbUtilityFunction):
     """
 
     def __init__(
-        self,
-        mapping: OutcomeUtilityMapping,
-        default=None,
-        *args,
-        **kwargs,
+        self, mapping: OutcomeUtilityMapping, default=None, *args, **kwargs
     ) -> None:
         super().__init__(*args, **kwargs)
         self.mapping = mapping
@@ -54,11 +49,7 @@ class ProbMappingUtilityFunction(StationaryMixin, ProbUtilityFunction):
     def to_dict(self):
         d = {PYTHON_CLASS_IDENTIFIER: get_full_type_name(type(self))}
         d.update(super().to_dict())
-        return dict(
-            **d,
-            mapping=serialize(self.mapping),
-            default=self.default,
-        )
+        return dict(**d, mapping=serialize(self.mapping), default=self.default)
 
     @classmethod
     def from_dict(cls, d):
@@ -78,7 +69,7 @@ class ProbMappingUtilityFunction(StationaryMixin, ProbUtilityFunction):
         return m
 
     def xml(self, issues: list[Issue]) -> str:
-        raise NotImplementedError(f"Cannot save ProbMappingUtilityFunction to xml")
+        raise NotImplementedError("Cannot save ProbMappingUtilityFunction to xml")
 
     @classmethod
     def random(
@@ -106,8 +97,8 @@ class ProbMappingUtilityFunction(StationaryMixin, ProbUtilityFunction):
                 zip(
                     os.enumerate(),
                     (
-                        ScipyDistribution(type=type, loc=l, scale=s)
-                        for l, s in zip(locs, scales)
+                        ScipyDistribution(type=type, loc=k, scale=s)
+                        for k, s in zip(locs, scales)
                     ),
                 )
             ),

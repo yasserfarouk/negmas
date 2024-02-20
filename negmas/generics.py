@@ -1,5 +1,3 @@
-from __future__ import annotations
-
 r"""A set of generic classes and corresponding functions to iterate and index them.
 
 
@@ -8,7 +6,8 @@ collections (e.g. `list`, `tuple`, `generator`) or even `Callable`\ s without aw
 other modules of the library.
 
 """
-from typing import Any, Callable, Dict, Iterable, Mapping, Sequence, Union
+from __future__ import annotations
+from typing import Any, Callable, Iterable, Mapping, Sequence, Union
 
 __all__ = [
     "IterableMapping",  # A mapping combining dicts, lists, tuples, and generators
@@ -43,9 +42,9 @@ def gmap(group: GenericMapping, param: Any) -> Any:
 
         >>> gmap([1, 23, 44], 1)
         23
-        >>> gmap({'a': 3, 'b': 5, 'c': 4}, 'c')
+        >>> gmap({"a": 3, "b": 5, "c": 4}, "c")
         4
-        >>> gmap(lambda x: 3*x, 20)
+        >>> gmap(lambda x: 3 * x, 20)
         60
 
     Returns:
@@ -70,29 +69,29 @@ def iget(x: IterableMapping, _key: Any, default=None) -> Any:
 
         Example with a list
 
-        >>> [iget([10, 20, 30], _) for _ in (0, 2,1, -1, 4)]
+        >>> [iget([10, 20, 30], _) for _ in (0, 2, 1, -1, 4)]
         [10, 30, 20, 30, None]
 
         Example with a dictionary
 
-        >>> [iget({'a':10, 'b':20, 'c':30}, _) for _ in ('a', 'c','b', -1, 'd')]
+        >>> [iget({"a": 10, "b": 20, "c": 30}, _) for _ in ("a", "c", "b", -1, "d")]
         [10, 30, 20, None, None]
 
         Example with a tuple
 
-        >>> [iget((10, 20, 30), _) for _ in (0, 2,1, -1, 4)]
+        >>> [iget((10, 20, 30), _) for _ in (0, 2, 1, -1, 4)]
         [10, 30, 20, 30, None]
 
         Example with a generator
 
-        >>> [iget(range(10, 40, 10), _) for _ in (0, 2,1, -1, 4)]
+        >>> [iget(range(10, 40, 10), _) for _ in (0, 2, 1, -1, 4)]
         [10, 30, 20, 30, None]
 
     Returns:
 
     """
 
-    if isinstance(x, Dict):
+    if isinstance(x, dict):
         return x.get(_key, default)
 
     try:
@@ -113,22 +112,22 @@ def gget(x: GenericMapping, _key: Any, default=None) -> Any:
 
         Example with a list
 
-        >>> [gget([10, 20, 30], _) for _ in (0, 2,1, -1, 4)]
+        >>> [gget([10, 20, 30], _) for _ in (0, 2, 1, -1, 4)]
         [10, 30, 20, 30, None]
 
         Example with a dictionary
 
-        >>> [gget({'a':10, 'b':20, 'c':30}, _) for _ in ('a', 'c','b', -1, 'd')]
+        >>> [gget({"a": 10, "b": 20, "c": 30}, _) for _ in ("a", "c", "b", -1, "d")]
         [10, 30, 20, None, None]
 
         Example with a tuple
 
-        >>> [gget((10, 20, 30), _) for _ in (0, 2,1, -1, 4)]
+        >>> [gget((10, 20, 30), _) for _ in (0, 2, 1, -1, 4)]
         [10, 30, 20, 30, None]
 
         Example with a generator
 
-        >>> [gget(range(10, 40, 10), _) for _ in (0, 2,1, -1, 4)]
+        >>> [gget(range(10, 40, 10), _) for _ in (0, 2, 1, -1, 4)]
         [10, 30, 20, 30, None]
 
     Returns:
@@ -157,22 +156,26 @@ def ienumerate(x: IterableMapping) -> Iterable[tuple[Any, Any]]:
 
         Example with a list
 
-        >>> for k, cutoff_utility in ienumerate([10, 20, 30]): print(k, cutoff_utility, end='-')
+        >>> for k, cutoff_utility in ienumerate([10, 20, 30]):
+        ...     print(k, cutoff_utility, end="-")
         0 10-1 20-2 30-
 
         Example with a dictionary
 
-        >>> for k, cutoff_utility in ienumerate({'a': 10, 'b': 20, 'c': 30}): print(k, cutoff_utility, end='-')
+        >>> for k, cutoff_utility in ienumerate({"a": 10, "b": 20, "c": 30}):
+        ...     print(k, cutoff_utility, end="-")
         a 10-b 20-c 30-
 
         Example with a tuple
 
-        >>> for k, cutoff_utility in ienumerate((10, 20, 30)): print(k, cutoff_utility, end='-')
+        >>> for k, cutoff_utility in ienumerate((10, 20, 30)):
+        ...     print(k, cutoff_utility, end="-")
         0 10-1 20-2 30-
 
         Example with a generator
 
-        >>> for k, cutoff_utility in ienumerate(range(10, 40, 10)): print(k, cutoff_utility, end='-')
+        >>> for k, cutoff_utility in ienumerate(range(10, 40, 10)):
+        ...     print(k, cutoff_utility, end="-")
         0 10-1 20-2 30-
 
     Returns:
@@ -180,7 +183,7 @@ def ienumerate(x: IterableMapping) -> Iterable[tuple[Any, Any]]:
 
     """
 
-    if isinstance(x, Dict):
+    if isinstance(x, dict):
         return x.items()
 
     else:
@@ -200,22 +203,26 @@ def ivalues(x: IterableMapping) -> Iterable[Any]:
 
         Example with a list
 
-        >>> for k in ivalues([10, 20, 30]): print(k, end='-')
+        >>> for k in ivalues([10, 20, 30]):
+        ...     print(k, end="-")
         10-20-30-
 
         Example with a dictionary
 
-        >>> for k in ivalues({'a': 10, 'b': 20, 'c': 30}): print(k, end='-')
+        >>> for k in ivalues({"a": 10, "b": 20, "c": 30}):
+        ...     print(k, end="-")
         10-20-30-
 
         Example with a tuple
 
-        >>> for k in ivalues((10, 20, 30)): print(k, end='-')
+        >>> for k in ivalues((10, 20, 30)):
+        ...     print(k, end="-")
         10-20-30-
 
         Example with a generator
 
-        >>> for k in ivalues(range(10, 40, 10)): print(k, end='-')
+        >>> for k in ivalues(range(10, 40, 10)):
+        ...     print(k, end="-")
         10-20-30-
 
     Returns:
@@ -223,7 +230,7 @@ def ivalues(x: IterableMapping) -> Iterable[Any]:
 
     """
 
-    if isinstance(x, Dict):
+    if isinstance(x, dict):
         return list(x.values())
 
     else:
@@ -240,22 +247,26 @@ def ikeys(x: IterableMapping) -> Iterable[Any]:
 
         Example with a list
 
-        >>> for k in ikeys([10, 20, 30]): print(k, end='-')
+        >>> for k in ikeys([10, 20, 30]):
+        ...     print(k, end="-")
         0-1-2-
 
         Example with a dictionary
 
-        >>> for k in ikeys({'a': 10, 'b': 20, 'c': 30}): print(k, end='-')
+        >>> for k in ikeys({"a": 10, "b": 20, "c": 30}):
+        ...     print(k, end="-")
         a-b-c-
 
         Example with a tuple
 
-        >>> for k in ikeys((10, 20, 30)): print(k, end='-')
+        >>> for k in ikeys((10, 20, 30)):
+        ...     print(k, end="-")
         0-1-2-
 
         Example with a generator
 
-        >>> for k in ikeys(range(10, 40, 10)): print(k, end='-')
+        >>> for k in ikeys(range(10, 40, 10)):
+        ...     print(k, end="-")
         0-1-2-
 
     Returns:
@@ -263,7 +274,7 @@ def ikeys(x: IterableMapping) -> Iterable[Any]:
 
     """
 
-    if isinstance(x, Dict):
+    if isinstance(x, dict):
         return list(x.keys())
     else:
         return range(len(x))  # type: ignore

@@ -1,5 +1,4 @@
 from __future__ import annotations
-
 from abc import abstractmethod
 from typing import Callable
 
@@ -11,9 +10,7 @@ from negmas.preferences import BaseUtilityFunction, InverseUFun
 
 from ..common import ResponseType
 
-__all__ = [
-    "UtilBasedNegotiator",
-]
+__all__ = ["UtilBasedNegotiator"]
 
 
 class UtilBasedNegotiator(GBNegotiator):

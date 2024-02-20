@@ -1,13 +1,10 @@
 from __future__ import annotations
-
 import functools
 from typing import Callable
 
 from .negotiator import Negotiator
 
-__all__ = [
-    "ControlledNegotiator",
-]
+__all__ = ["ControlledNegotiator"]
 
 
 class ControlledNegotiator(Negotiator):

@@ -1,5 +1,4 @@
 from __future__ import annotations
-
 from random import choice
 from typing import TYPE_CHECKING, Callable, Literal, Sequence
 
@@ -11,12 +10,8 @@ from negmas.preferences import (
     PresortingInverseUtilityFunction,
     RankOnlyUtilityFunction,
 )
-from negmas.warnings import NegmasUnexpectedValueWarning, warn
 
-__all__ = [
-    "UtilityInverter",
-    "UtilityBasedOutcomeSetRecommender",
-]
+__all__ = ["UtilityInverter", "UtilityBasedOutcomeSetRecommender"]
 
 if TYPE_CHECKING:
     from negmas.gb import GBNegotiator, GBState

@@ -3,12 +3,12 @@ Base Constraints on offering constaints
 """
 from __future__ import annotations
 
+
 from abc import ABC, abstractmethod
 
 from attrs import define
 
 from negmas.gb.common import GBState, ThreadState
-from negmas.outcomes.common import Outcome
 
 __all__ = [
     "OfferingConstraint",
@@ -21,11 +21,7 @@ __all__ = [
 @define
 class OfferingConstraint(ABC):
     @abstractmethod
-    def __call__(
-        self,
-        state: GBState,
-        history: list[GBState],
-    ) -> bool:
+    def __call__(self, state: GBState, history: list[GBState]) -> bool:
         """
         Base class for all offering constaints
 
@@ -51,11 +47,7 @@ class OfferingConstraint(ABC):
 @define
 class LocalOfferingConstraint(OfferingConstraint, ABC):
     @abstractmethod
-    def __call__(
-        self,
-        state: ThreadState,
-        history: list[ThreadState],
-    ) -> bool:
+    def __call__(self, state: ThreadState, history: list[ThreadState]) -> bool:
         ...
 
     def eval_globally(self, source: str, state: GBState, history: list[GBState]):

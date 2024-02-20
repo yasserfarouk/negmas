@@ -1,5 +1,4 @@
 from __future__ import annotations
-
 import random
 import time
 
@@ -11,12 +10,7 @@ from negmas.helpers import unique_name
 
 random.seed(time.perf_counter())
 
-good_attribs = [
-    "current_step",
-    "_current_step",
-    "_Entity__current_step",
-    "_step",
-]
+good_attribs = ["current_step", "_current_step", "_Entity__current_step", "_step"]
 
 bad_attribs = ["sdfds", "ewre"]
 

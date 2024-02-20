@@ -1,5 +1,4 @@
 from __future__ import annotations
-
 import math
 import numbers
 import random
@@ -19,11 +18,7 @@ class ContiguousIssue(RangeIssue, DiscreteIssue):
     A `RangeIssue` (also a `DiscreteIssue`) representing a contiguous range of integers.
     """
 
-    def __init__(
-        self,
-        values: int | tuple[int, int],
-        name: str | None = None,
-    ) -> None:
+    def __init__(self, values: int | tuple[int, int], name: str | None = None) -> None:
         vt: tuple[int, int]
         vt = values  # type: ignore
         if isinstance(vt, numbers.Integral):

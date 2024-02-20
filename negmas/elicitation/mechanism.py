@@ -1,9 +1,8 @@
 from __future__ import annotations
-
 import logging
 import math
 import random
-from typing import Any, Optional
+from typing import Any
 
 import pandas as pd
 
@@ -76,9 +75,7 @@ def create_negotiator(
                 **kwargs,
             )
     elif negotiator_type == "random":
-        negotiator = RandomNegotiator(
-            can_propose=can_propose,
-        )
+        negotiator = RandomNegotiator(can_propose=can_propose)
     elif negotiator_type == "tough":
         negotiator = ToughNegotiator(can_propose=can_propose)
     elif negotiator_type in ("only_best", "best_only", "best"):
@@ -94,7 +91,7 @@ def create_negotiator(
             asp_kind = asp_kind[1:]
         try:
             asp_kind = float(asp_kind)
-        except:
+        except Exception:
             pass
         if asp_kind == "":
             if toughness < 0.5:
@@ -107,9 +104,7 @@ def create_negotiator(
                 toughness = 1 - 0.9 * toughness
             asp_kind = toughness
         negotiator = AspirationNegotiator(
-            aspiration_type=asp_kind,
-            can_propose=can_propose,
-            **kwargs,
+            aspiration_type=asp_kind, can_propose=can_propose, **kwargs
         )
     elif negotiator_type.startswith("genius"):
         class_name = negotiator_type[len("genius") :]
@@ -119,8 +114,7 @@ def create_negotiator(
             negotiator = GeniusNegotiator.random_negotiator(can_propose=can_propose)
         else:
             negotiator = GeniusNegotiator(
-                java_class_name=class_name,
-                can_propose=can_propose,
+                java_class_name=class_name, can_propose=can_propose
             )
         negotiator.preferences = preferences
     else:
@@ -553,11 +547,7 @@ class SAOElicitingMechanism(SAOMechanism):
         self.elicitation_state["n_queries"] = 0
         return True
 
-    def plot(
-        self,
-        visible_negotiators=(0, 1),
-        consider_costs=False,
-    ):
+    def plot(self, visible_negotiators=(0, 1), consider_costs=False):
         try:
             import matplotlib.gridspec as gridspec
             import matplotlib.pyplot as plt
@@ -690,7 +680,7 @@ class SAOElicitingMechanism(SAOMechanism):
                         if len(offrs) == 2:
                             aoffers[0].append(offrs[0])
                             aoffers[1].append(offrs[1])
-                    axo.scatter(aoffers[0], aoffers[1], color=clrs[0], label=f"offers")
+                    axo.scatter(aoffers[0], aoffers[1], color=clrs[0], label="offers")
 
                     if self.state.agreement is not None:
                         axu.scatter(
@@ -744,7 +734,7 @@ class SAOElicitingMechanism(SAOMechanism):
 
                 fig_util.show()
                 fig_outcome.show()
-        except:
+        except Exception:
             pass
 
     def on_negotiation_end(self):
@@ -814,13 +804,13 @@ class SAOElicitingMechanism(SAOMechanism):
             self.elicitation_state["queries"] = [
                 str(_) for _ in self.negotiators[1].user.elicited_queries()
             ]
-        except:
+        except Exception:
             self.elicitation_state["queries"] = None
         try:
             self.elicitation_state["n_queries"] = len(
                 self.negotiators[1].user.elicited_queries()
             )
-        except:
+        except Exception:
             self.elicitation_state["n_queries"] = None
         if hasattr(self.negotiators[1], "total_voi"):
             self.elicitation_state["total_voi"] = self.negotiators[1].total_voi

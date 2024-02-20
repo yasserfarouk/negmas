@@ -1,13 +1,9 @@
 from __future__ import annotations
-
 from ..components.acceptance import AcceptAround, RandomAcceptancePolicy
 from ..components.offering import RandomOfferingPolicy
 from .modular import MAPNegotiator
 
-__all__ = [
-    "RandomNegotiator",
-    "RandomAlwaysAcceptingNegotiator",
-]
+__all__ = ["RandomNegotiator", "RandomAlwaysAcceptingNegotiator"]
 
 
 class RandomNegotiator(MAPNegotiator):

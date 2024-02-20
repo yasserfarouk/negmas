@@ -1,5 +1,4 @@
 from __future__ import annotations
-
 import math
 import pathlib
 import uuid
@@ -7,7 +6,6 @@ from typing import TYPE_CHECKING, Callable, Protocol
 
 from negmas.common import MechanismState, NegotiatorMechanismInterface, TraceElement
 from negmas.gb import ResponseType
-from negmas.gb.negotiators.timebased import AspirationNegotiator
 from negmas.helpers.misc import make_callable
 from negmas.helpers.strings import humanize_time
 from negmas.negotiators import Negotiator
@@ -93,13 +91,7 @@ def plot_with_trancparency(
     if alpha_global is not None:
         alpha = [alpha_global * _ for _ in alpha]
     scatter_with_transparency(
-        x,
-        y,
-        label=label,
-        color=color,
-        alpha_arr=alpha,
-        ax=ax,
-        marker=marker,
+        x, y, label=label, color=color, alpha_arr=alpha, ax=ax, marker=marker
     )
     if with_lines:
         ax.plot(
@@ -300,7 +292,7 @@ def plot_offer_utilities(
             marker=markers[i % len(markers)]
             if len(trace_info) < ignore_markers_limit and neg == negotiator
             else "",
-            label=f"Utility" if simple_offers_view else name,
+            label="Utility" if simple_offers_view else name,
             ax=a,
             with_lines=True,
             linestyle="solid" if neg == negotiator else ":",
@@ -496,8 +488,8 @@ def plot_2dutils(
             alpha=PARETO_ALPHA,
             label="Pareto",
         )
-    ax.set_xlabel(agent_names[0] + f"(0) utility")
-    ax.set_ylabel(agent_names[1] + f"(1) utility")
+    ax.set_xlabel(agent_names[0] + "(0) utility")
+    ax.set_ylabel(agent_names[1] + "(1) utility")
     cu = agreement_utility
     if not unknown_agreement_utility and not fast:
         for nash, _ in nash_pts:
@@ -672,7 +664,7 @@ def plot_2dutils(
                 [kalai[0] for kalai, _ in kalai_pts],
                 [kalai[1] for kalai, _ in kalai_pts],
                 color="green",
-                label=f"Kalai Point",
+                label="Kalai Point",
                 marker="P",
                 alpha=KALAI_ALPHA,
                 s=int(default_marker_size * KALAI_SCALE),
@@ -717,7 +709,7 @@ def plot_2dutils(
                 [nash[0] for nash, _ in nash_pts],
                 [nash[1] for nash, _ in nash_pts],
                 color="brown",
-                label=f"Nash Point",
+                label="Nash Point",
                 marker="^",
                 alpha=NASH_ALPHA,
                 s=int(default_marker_size * NASH_SCALE),
@@ -740,7 +732,7 @@ def plot_2dutils(
                 [mwelfare[0] for mwelfare, _ in mwelfare_pts],
                 [mwelfare[1] for mwelfare, _ in mwelfare_pts],
                 color="blue",
-                label=f"Max Welfare Points",
+                label="Max Welfare Points",
                 marker="p",
                 alpha=NASH_ALPHA,
                 s=int(default_marker_size * NASH_SCALE),
@@ -769,7 +761,7 @@ def plot_2dutils(
 def plot_offline_run(
     trace: list[TraceElement],
     ids: list[str],
-    ufuns: list[BaseUtilityFunction] | tuple[BaseUtilityFunction],
+    ufuns: list[BaseUtilityFunction] | tuple[BaseUtilityFunction, ...],
     agreement: Outcome | None,
     timedout: bool,
     broken: bool,
@@ -819,13 +811,13 @@ def plot_offline_run(
     if names is None:
         names = [_ for _ in ids]
 
-    assert not (no2d and only2d), f"Cannot specify no2d and only2d together"
+    assert not (no2d and only2d), "Cannot specify no2d and only2d together"
 
     if negotiators is None:
         negotiators = (0, 1)
     if len(negotiators) != 2:
         raise ValueError(
-            f"Cannot plot the 2D plot for the mechanism run without knowing two plotting negotiators"
+            "Cannot plot the 2D plot for the mechanism run without knowing two plotting negotiators"
         )
     plotting_negotiators = []
     plotting_ufuns = []
@@ -940,7 +932,12 @@ def plot_offline_run(
         else:
             path_ = pathlib.Path(path)
         path_.mkdir(parents=True, exist_ok=True)
-        fig.savefig(str(path_ / fig_name), bbox_inches="tight", transparent=False, pad_inches=0.05)  # type: ignore
+        plt.savefig(
+            str(path_ / fig_name),
+            bbox_inches="tight",
+            transparent=False,
+            pad_inches=0.05,
+        )  # type: ignore
     return fig
 
 
@@ -987,13 +984,13 @@ def plot_mechanism_run(
     import matplotlib.gridspec as gridspec
     import matplotlib.pyplot as plt
 
-    assert not (no2d and only2d), f"Cannot specify no2d and only2d together"
+    assert not (no2d and only2d), "Cannot specify no2d and only2d together"
 
     if negotiators is None:
         negotiators = (0, 1)
     if len(negotiators) != 2:
         raise ValueError(
-            f"Cannot plot the 2D plot for the mechanism run without knowing two plotting negotiators"
+            "Cannot plot the 2D plot for the mechanism run without knowing two plotting negotiators"
         )
     plotting_negotiators = []
     plotting_ufuns = []
@@ -1111,5 +1108,10 @@ def plot_mechanism_run(
         else:
             path_ = pathlib.Path(path)
         path_.mkdir(parents=True, exist_ok=True)
-        fig.savefig(str(path_ / fig_name), bbox_inches="tight", transparent=False, pad_inches=0.05)  # type: ignore
+        plt.savefig(
+            str(path_ / fig_name),
+            bbox_inches="tight",
+            transparent=False,
+            pad_inches=0.05,
+        )  # type: ignore
     return fig

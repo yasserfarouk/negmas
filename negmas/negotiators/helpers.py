@@ -1,15 +1,9 @@
 from __future__ import annotations
-
 import math
 from abc import abstractmethod
 from typing import Literal, Protocol, runtime_checkable
 
-__all__ = [
-    "TimeCurve",
-    "Aspiration",
-    "PolyAspiration",
-    "ExpAspiration",
-]
+__all__ = ["TimeCurve", "Aspiration", "PolyAspiration", "ExpAspiration"]
 
 
 @runtime_checkable
@@ -83,7 +77,7 @@ class ExpAspiration(Aspiration):
         """
         if t is None:
             raise ValueError(
-                f"Aspiration negotiators cannot be used in negotiations with no time or #steps limit!!"
+                "Aspiration negotiators cannot be used in negotiations with no time or #steps limit!!"
             )
         return (
             self.max_aspiration
@@ -140,6 +134,6 @@ class PolyAspiration(Aspiration):
         """
         if t is None:
             raise ValueError(
-                f"Aspiration negotiators cannot be used in negotiations with no time or #steps limit!!"
+                "Aspiration negotiators cannot be used in negotiations with no time or #steps limit!!"
             )
         return self.max_aspiration * (1.0 - math.pow(t, self.exponent))

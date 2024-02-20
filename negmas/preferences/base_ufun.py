@@ -1,5 +1,4 @@
 from __future__ import annotations
-
 import json
 import math
 import xml.etree.ElementTree as ET
@@ -10,7 +9,6 @@ from typing import TYPE_CHECKING, Any, Iterable, Sequence, TypeVar
 
 from negmas import warnings
 from negmas.common import Value
-from negmas.helpers import PathLike
 from negmas.helpers.prob import Distribution, Real, ScipyDistribution
 from negmas.helpers.types import get_full_type_name
 from negmas.outcomes import Issue, Outcome, dict2outcome
@@ -34,9 +32,7 @@ if TYPE_CHECKING:
         WeightedUtilityFunction,
     )
 
-__all__ = [
-    "BaseUtilityFunction",
-]
+__all__ = ["BaseUtilityFunction"]
 
 
 MAX_CARDINALITY = 10_000_000_000
@@ -89,7 +85,7 @@ class BaseUtilityFunction(Preferences, ABC):
             raise ValueError("Cannot find outcomes to use for finding extremes")
         mn, mx = float("inf"), float("-inf")
         worst, best = None, None
-        warn_if_slow(len(list(outcomes)), f"Extreme Outcomes too Slow")
+        warn_if_slow(len(list(outcomes)), "Extreme Outcomes too Slow")
         for o in outcomes:
             u = self(o)
             if u < mn:
@@ -236,10 +232,7 @@ class BaseUtilityFunction(Preferences, ABC):
 
         r = (scale * self.reserved_value) if scale_reserved else self.reserved_value
         return WeightedUtilityFunction(
-            ufuns=[self],
-            weights=[scale],
-            name=self.name,
-            reserved_value=r,
+            ufuns=[self], weights=[scale], name=self.name, reserved_value=r
         )
 
     def scale_min_for(
@@ -310,15 +303,13 @@ class BaseUtilityFunction(Preferences, ABC):
         return u.shift_by(to[0] - scale * mn, shift_reserved=True)
 
     def normalize(
-        self: T,
-        to: tuple[float, float] = (0.0, 1.0),
-        normalize_weights: bool = False,
+        self: T, to: tuple[float, float] = (0.0, 1.0), normalize_weights: bool = False
     ) -> T | ConstUtilityFunction:
         _ = normalize_weights
         from negmas.preferences import ConstUtilityFunction
 
         if not self.outcome_space:
-            raise ValueError(f"Cannot normalize a ufun without an outcome-space")
+            raise ValueError("Cannot normalize a ufun without an outcome-space")
         mn, mx = self.minmax(self.outcome_space, max_cardinality=MAX_CARDINALITY)
 
         d = float(mx - mn)
@@ -554,18 +545,27 @@ class BaseUtilityFunction(Preferences, ABC):
             >>> from negmas.preferences import UtilityFunction
             >>> import pkg_resources
             >>> from negmas.inout import load_genius_domain
-            >>> domain = load_genius_domain(pkg_resources.resource_filename('negmas'
-            ...                             , resource_name='tests/data/Laptop/Laptop-C-domain.xml'))
-            >>> with open(pkg_resources.resource_filename('negmas'
-            ...                                      , resource_name='tests/data/Laptop/Laptop-C-prof1.xml')
-            ...                                      , 'r') as ff:
+            >>> domain = load_genius_domain(
+            ...     pkg_resources.resource_filename(
+            ...         "negmas", resource_name="tests/data/Laptop/Laptop-C-domain.xml"
+            ...     )
+            ... )
+            >>> with open(
+            ...     pkg_resources.resource_filename(
+            ...         "negmas", resource_name="tests/data/Laptop/Laptop-C-prof1.xml"
+            ...     ),
+            ...     "r",
+            ... ) as ff:
             ...     u, _ = UtilityFunction.from_xml_str(ff.read(), issues=domain.issues)
-            >>> with open(pkg_resources.resource_filename('negmas'
-            ...                                      , resource_name='tests/data/Laptop/Laptop-C-prof1.xml')
-            ...                                      , 'r') as ff:
+            >>> with open(
+            ...     pkg_resources.resource_filename(
+            ...         "negmas", resource_name="tests/data/Laptop/Laptop-C-prof1.xml"
+            ...     ),
+            ...     "r",
+            ... ) as ff:
             ...     u, _ = UtilityFunction.from_xml_str(ff.read(), issues=domain.issues)
-            >>> assert abs(u(("Dell", "60 Gb", "19'' LCD",)) - 21.987727736172488) < 0.000001
-            >>> assert abs(u(("HP", "80 Gb", "20'' LCD",)) - 22.68559475583014) < 0.000001
+            >>> assert abs(u(("Dell", "60 Gb", "19'' LCD")) - 21.987727736172488) < 0.000001
+            >>> assert abs(u(("HP", "80 Gb", "20'' LCD")) - 22.68559475583014) < 0.000001
 
 
         """
@@ -658,7 +658,7 @@ class BaseUtilityFunction(Preferences, ABC):
                         rect_utils += _u
                 if not ufun_found:
                     raise ValueError(
-                        f"Cannot find ufun tag inside a utility_function tag"
+                        "Cannot find ufun tag inside a utility_function tag"
                     )
             elif child.tag == "issue":
                 indx = int(child.attrib["index"]) - 1
@@ -679,7 +679,7 @@ class BaseUtilityFunction(Preferences, ABC):
                 mytype = info["type"]
                 # vtype = info["vtype"]
                 if domain_issues_dict is None:
-                    raise ValueError(f"unknown domain-issue-dict!!!")
+                    raise ValueError("unknown domain-issue-dict!!!")
 
                 current_issue = domain_issues_dict[issue_key]
 
@@ -710,7 +710,10 @@ class BaseUtilityFunction(Preferences, ABC):
                         lower, upper = int(lower), int(upper)  # type: ignore
                     else:
                         lower, upper = float(lower), float(upper)  # type: ignore
-                    if lower < current_issue.min_value or upper > current_issue.max_value:  # type: ignore
+                    if (
+                        lower < current_issue.min_value
+                        or upper > current_issue.max_value
+                    ):  # type: ignore
                         raise ValueError(
                             f"Bounds ({lower}, {upper}) are invalid for issue {issue_key} with bounds: "
                             f"{current_issue.values}"
@@ -846,11 +849,17 @@ class BaseUtilityFunction(Preferences, ABC):
             >>> from negmas.preferences import UtilityFunction
             >>> import pkg_resources
             >>> from negmas.inout import load_genius_domain
-            >>> domain = load_genius_domain(pkg_resources.resource_filename('negmas'
-            ...                             , resource_name='tests/data/Laptop/Laptop-C-domain.xml'))
-            >>> u, d = UtilityFunction.from_genius(file_name = pkg_resources.resource_filename('negmas'
-            ...                                      , resource_name='tests/data/Laptop/Laptop-C-prof1.xml')
-            ...                                      , issues=domain.issues)
+            >>> domain = load_genius_domain(
+            ...     pkg_resources.resource_filename(
+            ...         "negmas", resource_name="tests/data/Laptop/Laptop-C-domain.xml"
+            ...     )
+            ... )
+            >>> u, d = UtilityFunction.from_genius(
+            ...     file_name=pkg_resources.resource_filename(
+            ...         "negmas", resource_name="tests/data/Laptop/Laptop-C-prof1.xml"
+            ...     ),
+            ...     issues=domain.issues,
+            ... )
             >>> u.__class__.__name__
             'LinearAdditiveUtilityFunction'
             >>> u.reserved_value
@@ -978,7 +987,7 @@ class BaseUtilityFunction(Preferences, ABC):
         if issues is None:
             if not isinstance(self.outcome_space, IndependentIssuesOS):
                 raise ValueError(
-                    f"Cannot convert to xml because the outcome-space of the ufun is not a cartesian outcome space"
+                    "Cannot convert to xml because the outcome-space of the ufun is not a cartesian outcome space"
                 )
             issues = self.outcome_space.issues
             n_issues = 0
@@ -1027,15 +1036,24 @@ class BaseUtilityFunction(Preferences, ABC):
             >>> from negmas.preferences import UtilityFunction
             >>> from negmas.inout import load_genius_domain
             >>> import pkg_resources
-            >>> domain = load_genius_domain(domain_file_name=pkg_resources.resource_filename('negmas'
-            ...                                             , resource_name='tests/data/Laptop/Laptop-C-domain.xml'))
-            >>> u, d = UtilityFunction.from_genius(file_name=pkg_resources.resource_filename('negmas'
-            ...                                             , resource_name='tests/data/Laptop/Laptop-C-prof1.xml')
-            ...                                             , issues=domain.issues)
-            >>> u.to_genius(discount_factor=d
-            ...     , file_name = pkg_resources.resource_filename('negmas'
-            ...                   , resource_name='tests/data/LaptopConv/Laptop-C-prof1.xml')
-            ...     , issues=domain.issues)
+            >>> domain = load_genius_domain(
+            ...     domain_file_name=pkg_resources.resource_filename(
+            ...         "negmas", resource_name="tests/data/Laptop/Laptop-C-domain.xml"
+            ...     )
+            ... )
+            >>> u, d = UtilityFunction.from_genius(
+            ...     file_name=pkg_resources.resource_filename(
+            ...         "negmas", resource_name="tests/data/Laptop/Laptop-C-prof1.xml"
+            ...     ),
+            ...     issues=domain.issues,
+            ... )
+            >>> u.to_genius(
+            ...     discount_factor=d,
+            ...     file_name=pkg_resources.resource_filename(
+            ...         "negmas", resource_name="tests/data/LaptopConv/Laptop-C-prof1.xml"
+            ...     ),
+            ...     issues=domain.issues,
+            ... )
 
         Remarks:
             See ``to_xml_str`` for all the parameters

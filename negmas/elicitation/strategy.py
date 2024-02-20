@@ -1,5 +1,4 @@
 from __future__ import annotations
-
 from ..common import NegotiatorMechanismInterface, Value
 from ..helpers.prob import ScipyDistribution
 from ..preferences import IPUtilityFunction
@@ -55,7 +54,7 @@ class EStrategy:
         ]
 
     def next_query(self, outcome: Outcome) -> Query | None:
-        lower, upper, outcomes = self.lower, self.upper, self.outcomes
+        lower, upper, _outcomes = self.lower, self.upper, self.outcomes
         index = self.indices[outcome]
         lower, upper = lower[index], upper[index]
 
@@ -73,7 +72,7 @@ class EStrategy:
                 query = Query(
                     answers=[
                         Answer([outcome], RangeConstraint((lower, middle)), name="yes"),
-                        Answer([outcome], RangeConstraint((middle, upper)), name=f"no"),
+                        Answer([outcome], RangeConstraint((middle, upper)), name="no"),
                     ],
                     probs=[0.5, 0.5],
                     name=f"{outcome}<{middle}",
@@ -88,7 +87,7 @@ class EStrategy:
                 if self.strategy.startswith("dpingpong") and (upper - lower) < step:
                     step = min(step, self.resolution)
                 if step == 0.0:
-                    raise ValueError(f"Cannot do pingpong with a zero step")
+                    raise ValueError("Cannot do pingpong with a zero step")
                 if abs(step) >= (upper - lower):
                     return None
                 if not hasattr(self, "_pingpong_up"):
@@ -143,7 +142,7 @@ class EStrategy:
                             if len(self.strategy) > nstrt
                             else self.resolution
                         )
-                    except:
+                    except Exception:
                         step = self.resolution
 
                     if "down" in self.strategy:
@@ -156,7 +155,7 @@ class EStrategy:
                     ):
                         step = min(self.resolution, step)
                     if step == 0.0:
-                        raise ValueError(f"Cannot do titration with a zero step")
+                        raise ValueError("Cannot do titration with a zero step")
                     if abs(step) >= (upper - lower):
                         return None
                     up = step > 0.0
@@ -262,12 +261,7 @@ class EStrategy:
             return self.lower[indx]
         return ScipyDistribution(type="uniform", loc=self.lower[indx], scale=scale)
 
-    def until(
-        self,
-        outcome: Outcome,
-        user: User,
-        dist: list[Value] | Value,
-    ) -> Value:
+    def until(self, outcome: Outcome, user: User, dist: list[Value] | Value) -> Value:
         if isinstance(dist, list):
             targets = [
                 (_ - self.resolution, _ + self.resolution)

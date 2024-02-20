@@ -1,5 +1,4 @@
 from __future__ import annotations
-
 import pprint
 from typing import TYPE_CHECKING, Iterable
 
@@ -9,12 +8,7 @@ from negmas.generics import iget, ikeys, ivalues
 from negmas.helpers.prob import ScipyDistribution
 from negmas.outcomes import Issue, Outcome
 
-from ...helpers.prob import (
-    Distribution,
-    ScipyDistribution,
-    make_distribution,
-    uniform_around,
-)
+from ...helpers.prob import Distribution, make_distribution, uniform_around
 from ..crisp.mapping import MappingUtilityFunction
 from ..mixins import StationaryMixin
 from ..prob_ufun import ProbUtilityFunction
@@ -38,11 +32,15 @@ class IPUtilityFunction(StationaryMixin, ProbUtilityFunction):
 
     Examples:
 
-        >>> outcomes = [('o1',), ('o2',)]
-        >>> f = IPUtilityFunction(outcomes=outcomes
-        ...         , distributions=[ScipyDistribution(type='uniform', loc=0.0, scale=0.5)
-        ...         , ScipyDistribution(type='uniform', loc=0.1, scale=0.5)])
-        >>> str(f(('o1',)))
+        >>> outcomes = [("o1",), ("o2",)]
+        >>> f = IPUtilityFunction(
+        ...     outcomes=outcomes,
+        ...     distributions=[
+        ...         ScipyDistribution(type="uniform", loc=0.0, scale=0.5),
+        ...         ScipyDistribution(type="uniform", loc=0.1, scale=0.5),
+        ...     ],
+        ... )
+        >>> str(f(("o1",)))
         'U(0.0, 0.5)'
 
     """
@@ -143,19 +141,19 @@ class IPUtilityFunction(StationaryMixin, ProbUtilityFunction):
         Examples:
 
             - No uncertainty
-            >>> mapping = dict(zip([('o1',), ('o2',)], [0.3, 0.7]))
+            >>> mapping = dict(zip([("o1",), ("o2",)], [0.3, 0.7]))
             >>> p = IPUtilityFunction.from_mapping(mapping, uncertainty=0.0)
             >>> print(p)
             {('o1',): 0.3, ('o2',): 0.7}
 
             - Full uncertainty
-            >>> mapping=dict(zip([('o1',), ('o2',)], [0.3, 0.7]))
+            >>> mapping = dict(zip([("o1",), ("o2",)], [0.3, 0.7]))
             >>> p = IPUtilityFunction.from_mapping(mapping, uncertainty=1.0)
             >>> print(p)
             {('o1',): U(0.0, 1.0), ('o2',): U(0.0, 1.0)}
 
             - some uncertainty
-            >>> mapping=dict(zip([('o1',), ('o2',)], [0.3, 0.7]))
+            >>> mapping = dict(zip([("o1",), ("o2",)], [0.3, 0.7]))
             >>> p = IPUtilityFunction.from_mapping(mapping, uncertainty=0.1)
             >>> print([_.scale for _ in p.distributions.values()])
             [0.1, 0.1]
@@ -203,19 +201,25 @@ class IPUtilityFunction(StationaryMixin, ProbUtilityFunction):
         Examples:
 
             - No uncertainty
-            >>> u = MappingUtilityFunction(mapping=dict(zip([('o1',), ('o2',)], [0.3, 0.7])))
+            >>> u = MappingUtilityFunction(
+            ...     mapping=dict(zip([("o1",), ("o2",)], [0.3, 0.7]))
+            ... )
             >>> p = IPUtilityFunction.from_preferences(u, uncertainty=0.0)
             >>> print(p)
             {('o1',): 0.3, ('o2',): 0.7}
 
             - Full uncertainty
-            >>> u = MappingUtilityFunction(mapping=dict(zip([('o1',), ('o2',)], [0.3, 0.7])))
+            >>> u = MappingUtilityFunction(
+            ...     mapping=dict(zip([("o1",), ("o2",)], [0.3, 0.7]))
+            ... )
             >>> p = IPUtilityFunction.from_preferences(u, uncertainty=1.0)
             >>> print(p)
             {('o1',): U(0.0, 1.0), ('o2',): U(0.0, 1.0)}
 
             - some uncertainty
-            >>> u = MappingUtilityFunction(mapping=dict(zip([('o1',), ('o2',)], [0.3, 0.7])))
+            >>> u = MappingUtilityFunction(
+            ...     mapping=dict(zip([("o1",), ("o2",)], [0.3, 0.7]))
+            ... )
             >>> p = IPUtilityFunction.from_preferences(u, uncertainty=0.1)
             >>> print([_.scale for _ in p.distributions.values()])
             [0.1, 0.1]
@@ -260,12 +264,16 @@ class IPUtilityFunction(StationaryMixin, ProbUtilityFunction):
 
         Examples:
             >>> import random
-            >>> f = IPUtilityFunction(outcomes=[('o1',), ('o2',)]
-            ...         , distributions=[ScipyDistribution(type='uniform', loc=0.0, scale=0.2)
-            ...         , ScipyDistribution(type='uniform', loc=0.4, scale=0.5)])
+            >>> f = IPUtilityFunction(
+            ...     outcomes=[("o1",), ("o2",)],
+            ...     distributions=[
+            ...         ScipyDistribution(type="uniform", loc=0.0, scale=0.2),
+            ...         ScipyDistribution(type="uniform", loc=0.4, scale=0.5),
+            ...     ],
+            ... )
             >>> u = f.sample()
-            >>> assert u(('o1',)) <= 0.2
-            >>> assert 0.4 <= u(('o2',)) <= 0.9
+            >>> assert u(("o1",)) <= 0.2
+            >>> assert 0.4 <= u(("o2",)) <= 0.9
 
         Returns:
 

@@ -1,6 +1,4 @@
 from __future__ import annotations
-
-from collections import defaultdict
 from random import shuffle
 from time import perf_counter
 from typing import TYPE_CHECKING, Any, Callable
@@ -59,8 +57,7 @@ class GBThread:
         # assert offer is None or isinstance(offer, Outcome)
         self.state.new_offer = offer
         if self.constraint and not self.constraint(
-            mechanism_state.threads[source],
-            [_.threads[source] for _ in history],
+            mechanism_state.threads[source], [_.threads[source] for _ in history]
         ):
             self.state.new_offer = offer = None
 

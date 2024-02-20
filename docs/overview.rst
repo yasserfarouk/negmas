@@ -301,10 +301,10 @@ NegMAS supports a variety of ``Issue`` types.
 .. code:: ipython3
 
     # an issue with randomly assigned name
-    issue1 = make_issue(values=['to be', 'not to be'])
+    issue1 = make_issue(values=["to be", "not to be"])
     print(issue1)
     # an issue with given name:
-    issue2 = make_issue(values=['to be', 'not to be'], name='The Problem')
+    issue2 = make_issue(values=["to be", "not to be"], name="The Problem")
     print(issue2)
 
 
@@ -329,7 +329,7 @@ NegMAS supports a variety of ``Issue`` types.
 
 .. code:: ipython3
 
-    issue3 = make_issue(values=10, name='number of items')
+    issue3 = make_issue(values=10, name="number of items")
     print(issue3)
 
 
@@ -347,7 +347,7 @@ NegMAS supports a variety of ``Issue`` types.
 
 .. code:: ipython3
 
-    issue4 = make_issue(values=(0.0, 1.0), name='cost')
+    issue4 = make_issue(values=(0.0, 1.0), name="cost")
     print(issue4)
 
 
@@ -395,8 +395,10 @@ It is possible to check the total cardinality for a set of issues:
 
 .. code:: ipython3
 
-    [num_outcomes([issue1, issue2, issue3, issue4]), # expected inf
-     num_outcomes([issue1, issue2, issue3])] # expected 40 = 2 * 2 * 10
+    [
+        num_outcomes([issue1, issue2, issue3, issue4]),  # expected inf
+        num_outcomes([issue1, issue2, issue3]),
+    ]  # expected 40 = 2 * 2 * 10
 
 
 
@@ -488,8 +490,8 @@ above:
 
 .. code:: ipython3
 
-    valid_outcome = {'The Problem': 'to be', 'number of items': 5, 'cost': 0.15}
-    invalid_outcome = {'The Problem': 'to be', 'number of items': 10, 'cost': 0.15}
+    valid_outcome = {"The Problem": "to be", "number of items": 5, "cost": 0.15}
+    invalid_outcome = {"The Problem": "to be", "number of items": 10, "cost": 0.15}
 
 Notice that the ``invalid_outcome`` is assigning a value of ``10`` to
 the ``number of items`` issue which is not an acceptable value (``cost``
@@ -506,8 +508,8 @@ examples:
 .. code:: ipython3
 
     [
-        outcome_is_valid(valid_outcome, [issue2, issue3, issue4]),      # valid giving True
-        outcome_is_valid(invalid_outcome, [issue2, issue3, issue4])     # invalid giving False
+        outcome_is_valid(valid_outcome, [issue2, issue3, issue4]),  # valid giving True
+        outcome_is_valid(invalid_outcome, [issue2, issue3, issue4]),  # invalid giving False
     ]
 
 
@@ -526,8 +528,10 @@ for the last three issues given above:
 .. code:: ipython3
 
     [
-        outcome_is_valid({'The Problem': 'to be'}, [issue2, issue3, issue4]),
-        outcome_is_valid({'The Problem': 'to be', 'number of items': 5}, [issue2, issue3, issue4])
+        outcome_is_valid({"The Problem": "to be"}, [issue2, issue3, issue4]),
+        outcome_is_valid(
+            {"The Problem": "to be", "number of items": 5}, [issue2, issue3, issue4]
+        ),
     ]
 
 
@@ -545,8 +549,8 @@ same way.
 .. code:: ipython3
 
     [
-        outcome_is_valid(['to be', 4, 0.5], [issue2, issue3, issue4]),
-        outcome_is_valid(('to be', 4, 1.5), [issue2, issue3, issue4])
+        outcome_is_valid(["to be", 4, 0.5], [issue2, issue3, issue4]),
+        outcome_is_valid(("to be", 4, 1.5), [issue2, issue3, issue4]),
     ]
 
 
@@ -566,9 +570,13 @@ in the given set of issues. This can be done using the
 .. code:: ipython3
 
     [
-        outcome_is_complete(valid_outcome, [issue2, issue3, issue4]),            # complete -> True
-        outcome_is_complete(invalid_outcome, [issue2, issue3, issue4]),          # invalid -> incomplete -> False
-        outcome_is_complete({'The Problem': 'to be'}, [issue2, issue3, issue4])  # incomplete -> False
+        outcome_is_complete(valid_outcome, [issue2, issue3, issue4]),  # complete -> True
+        outcome_is_complete(
+            invalid_outcome, [issue2, issue3, issue4]
+        ),  # invalid -> incomplete -> False
+        outcome_is_complete(
+            {"The Problem": "to be"}, [issue2, issue3, issue4]
+        ),  # incomplete -> False
     ]
 
 
@@ -593,7 +601,11 @@ representing a range or a ``list`` of values. This is easier shown:
 
 .. code:: ipython3
 
-    range1 = {'The Problem': ['to be', 'not to be'], 'number of items': 5, 'cost': (0.1, 0.2)}
+    range1 = {
+        "The Problem": ["to be", "not to be"],
+        "number of items": 5,
+        "cost": (0.1, 0.2),
+    }
 
 ``range1`` represents the following range of outcomes:
 
@@ -608,11 +620,11 @@ It is easy to check whether a specific outcome is within a given range:
 
 .. code:: ipython3
 
-    outcome1 = {'The Problem': 'to be', 'number of items': 5, 'cost': 0.15}
-    outcome2 = {'The Problem': 'to be', 'number of items': 10, 'cost': 0.15}
+    outcome1 = {"The Problem": "to be", "number of items": 5, "cost": 0.15}
+    outcome2 = {"The Problem": "to be", "number of items": 10, "cost": 0.15}
     [
-        outcome_in_range(outcome1, range1),       # True
-        outcome_in_range(outcome2, range1)        # False
+        outcome_in_range(outcome1, range1),  # True
+        outcome_in_range(outcome2, range1),  # False
     ]
 
 
@@ -741,7 +753,7 @@ This means that both of the following are valid utility values
 .. code:: ipython3
 
     u1 = Real(1.0)
-    u2 = UniformDistribution()   # standard normal distribution
+    u2 = UniformDistribution()  # standard normal distribution
     print(u1)
     print(u2)
 
@@ -847,15 +859,18 @@ a simple example:
 .. code:: ipython3
 
     COST = 0
+
+
     class ConstUtilityFunction(UtilityFunction):
-       def eval(self, offer):
+        def eval(self, offer):
             try:
                 return 3.0 * offer[COST]
             except KeyError:  # No value was given to the cost
                 return None
 
-       def xml(self):
-            return '<ufun const=True value=3.0></ufun>'
+        def xml(self):
+            return "<ufun const=True value=3.0></ufun>"
+
 
     f = ConstUtilityFunction()
     f((10,))
@@ -882,7 +897,7 @@ change or evolution of them during negotiations. For example this
 .. code:: ipython3
 
     class MoodyUtilityFunction(UtilityFunction):
-        def __init__(self, mood='good', stationary=False):
+        def __init__(self, mood="good", stationary=False):
             super().__init__()
             self.mood = mood
             self._stationary = stationary
@@ -891,9 +906,10 @@ change or evolution of them during negotiations. For example this
             return MoodyUtilityFunction(mood=self.mood, stationary=True)
 
         def eval(self, offer):
-            if self.mood not in ('good', 'bad'):
+            if self.mood not in ("good", "bad"):
                 raise ValueError(f"Cannot calculate utility for {offer}")
-            return float(offer[COST]) if self.mood == 'good' else 0.1 * offer[COST]
+            return float(offer[COST]) if self.mood == "good" else 0.1 * offer[COST]
+
         def set_mood(self, mood):
             if self._stationary:
                 return
@@ -902,18 +918,19 @@ change or evolution of them during negotiations. For example this
         def xml(self):
             pass
 
+
     offer = (10,)
 
     f = MoodyUtilityFunction()
     # I am in a good mode now
-    print(f'Utility in good mood of {offer} is {f(offer)}')
-    f.set_mood('bad')
-    print(f'Utility in bad mood of {offer} is {f(offer)}')
-    f.set_mood('undecided')
+    print(f"Utility in good mood of {offer} is {f(offer)}")
+    f.set_mood("bad")
+    print(f"Utility in bad mood of {offer} is {f(offer)}")
+    f.set_mood("undecided")
     try:
         y = f(offer)
     except ValueError as e:
-        print(f'Utility in good mood of {offer} is undecidable: {e}')
+        print(f"Utility in good mood of {offer} is undecidable: {e}")
 
 
 
@@ -1041,16 +1058,22 @@ The following three ufuns are exactly equivalent:
 .. code:: ipython3
 
     issues = [make_issue(2, "i1"), make_issue(2, "i2")]
-    u1 = LinearAdditiveUtilityFunction(issues=issues, values=[lambda x: x, lambda x: x, lambda x: x])
+    u1 = LinearAdditiveUtilityFunction(
+        issues=issues, values=[lambda x: x, lambda x: x, lambda x: x]
+    )
 
 .. code:: ipython3
 
-    u2 = LinearAdditiveUtilityFunction(outcome_space=make_os(issues=issues), values=[lambda x: x, lambda x: x, lambda x: x])
+    u2 = LinearAdditiveUtilityFunction(
+        outcome_space=make_os(issues=issues), values=[lambda x: x, lambda x: x, lambda x: x]
+    )
 
 .. code:: ipython3
 
-    u3 = LinearAdditiveUtilityFunction(outcomes=[(0, 0), (0, 1), (1, 0), (1, 1)],
-                                       values=[lambda x: x, lambda x: x, lambda x: x])
+    u3 = LinearAdditiveUtilityFunction(
+        outcomes=[(0, 0), (0, 1), (1, 0), (1, 1)],
+        values=[lambda x: x, lambda x: x, lambda x: x],
+    )
 
 For example, the following utility function represents the utility of
 ``buyer`` who wants low cost, many items, and prefers delivery:
@@ -1060,19 +1083,23 @@ For example, the following utility function represents the utility of
     issues = [
         make_issue((0, 10), "price"),
         make_issue((1, 10), "number of items"),
-        make_issue(["delivered", "not delivered"], "delivery")
+        make_issue(["delivered", "not delivered"], "delivery"),
     ]
-    buyer_utility = LinearAdditiveUtilityFunction({
-        'price': lambda x: - x , 'number of items': lambda x: 0.5 * x,
-        'delivery': {'delivered': 1.0, 'not delivered': 0.0}},
-        issues=issues)
+    buyer_utility = LinearAdditiveUtilityFunction(
+        {
+            "price": lambda x: -x,
+            "number of items": lambda x: 0.5 * x,
+            "delivery": {"delivered": 1.0, "not delivered": 0.0},
+        },
+        issues=issues,
+    )
 
 Given this definition of utility, we can easily calculate the utility of
 different options:
 
 .. code:: ipython3
 
-    print(buyer_utility((1.0, 3, 'not delivered')))
+    print(buyer_utility((1.0, 3, "not delivered")))
 
 
 
@@ -1087,7 +1114,7 @@ Now what happens if we offer to deliver the items:
 
 .. code:: ipython3
 
-    print(buyer_utility((1.0, 3, 'delivered')))
+    print(buyer_utility((1.0, 3, "delivered")))
 
 
 
@@ -1102,7 +1129,7 @@ And if delivery was accompanied with an increase in price
 
 .. code:: ipython3
 
-    print(buyer_utility((1.8, 3, 'delivered')))
+    print(buyer_utility((1.8, 3, "delivered")))
 
 
 
@@ -1123,9 +1150,10 @@ more readable:
 .. code:: ipython3
 
     buyer_utility(
-        dict2outcome({"price": 1.8, "number of items": 3, "delivery": "delivered"},
-                     issues=buyer_utility.issues
-                    )
+        dict2outcome(
+            {"price": 1.8, "number of items": 3, "delivery": "delivered"},
+            issues=buyer_utility.issues,
+        )
     )
 
 
@@ -1153,11 +1181,10 @@ For example, a seller’s utility can be defined as:
 
 .. code:: ipython3
 
-    seller_utility =NonLinearAggregationUtilityFunction((
-                                 lambda x: x
-                               , lambda x: 0.5 * x
-                               , {'delivered': 1.0, 'not delivered': 0.0})
-                       , f=lambda x: x[0]/x[1] - 0.5 * x[2])
+    seller_utility = NonLinearAggregationUtilityFunction(
+        (lambda x: x, lambda x: 0.5 * x, {"delivered": 1.0, "not delivered": 0.0}),
+        f=lambda x: x[0] / x[1] - 0.5 * x[2],
+    )
 
 This utility will go up with the ``price`` and down with the
 ``number of items`` as expected but not linearly.
@@ -1166,7 +1193,7 @@ We can now evaluate different options similar to the case for the buyer:
 
 .. code:: ipython3
 
-    print(seller_utility((1.0, 3, 'not delivered')))
+    print(seller_utility((1.0, 3, "not delivered")))
 
 
 
@@ -1179,7 +1206,7 @@ We can now evaluate different options similar to the case for the buyer:
 
 .. code:: ipython3
 
-    print(seller_utility((1.0, 3, 'delivered')))
+    print(seller_utility((1.0, 3, "delivered")))
 
 
 
@@ -1192,7 +1219,7 @@ We can now evaluate different options similar to the case for the buyer:
 
 .. code:: ipython3
 
-    print(seller_utility((1.8, 3, 'delivered')))
+    print(seller_utility((1.8, 3, "delivered")))
 
 
 
@@ -1222,15 +1249,15 @@ can be represented as follows:
 .. code:: ipython3
 
     seller_utility = HyperRectangleUtilityFunction(
-        outcome_ranges= [None],
-        utilities= [
-            lambda x: 2.0*x['price']/x['number of items']
-            - 0.5 * int(x['delivery'] == 'delivered')
-        ]
+        outcome_ranges=[None],
+        utilities=[
+            lambda x: 2.0 * x["price"] / x["number of items"]
+            - 0.5 * int(x["delivery"] == "delivered")
+        ],
     )
-    print(seller_utility({'price': 1.0, 'number of items': 3, 'delivery': 'not delivered'}))
-    print(seller_utility({'price': 1.0, 'number of items': 3, 'delivery': 'delivered'}))
-    print(seller_utility({'price': 1.8, 'number of items': 3, 'delivery': 'delivered'}))
+    print(seller_utility({"price": 1.0, "number of items": 3, "delivery": "not delivered"}))
+    print(seller_utility({"price": 1.0, "number of items": 3, "delivery": "delivered"}))
+    print(seller_utility({"price": 1.8, "number of items": 3, "delivery": "delivered"}))
 
 
 
@@ -1276,12 +1303,10 @@ two different local ones:
         outcome_ranges=[
             None,
             {0: (1.0, 2.0), 1: (1.0, 2.0)},
-            {0: (1.4, 2.0), 2: (2.0, 3.0)}
+            {0: (1.4, 2.0), 2: (2.0, 3.0)},
         ],
-        utilities=[
-            5.0, 2.0, lambda x: 2 * x[2] + x[0]
-        ],
-        weights=[1,0.5,2.5]
+        utilities=[5.0, 2.0, lambda x: 2 * x[2] + x[0]],
+        weights=[1, 0.5, 2.5],
     )
 
 There are three nonlinear functions in this example:
@@ -1357,11 +1382,11 @@ or not. To allow such cases, the initializer of
         outcome_ranges=[
             None,
             {0: (1.0, 2.0), 1: (1.0, 2.0)},
-            {0: (1.4, 2.0), 2: (2.0, 3.0)}
+            {0: (1.4, 2.0), 2: (2.0, 3.0)},
         ],
         utilities=[5.0, 2.0, lambda x: 2 * x[2] + x[0]],
         ignore_failing_range_utilities=True,
-        ignore_issues_not_in_input=True
+        ignore_issues_not_in_input=True,
     )
     print(g([1.5, 1.5]))
 
@@ -1640,9 +1665,9 @@ provided protocols. This is an example of a full negotiation session:
 
 .. code:: ipython3
 
-    p = SAOMechanism(outcomes = 6, n_steps = 10)
-    p.add(LimitedOutcomesNegotiator(name='seller', acceptable_outcomes=[(2,), (3,), (5,)]))
-    p.add(LimitedOutcomesNegotiator(name='buyer', acceptable_outcomes=[(1,), (4,), (3,)]))
+    p = SAOMechanism(outcomes=6, n_steps=10)
+    p.add(LimitedOutcomesNegotiator(name="seller", acceptable_outcomes=[(2,), (3,), (5,)]))
+    p.add(LimitedOutcomesNegotiator(name="buyer", acceptable_outcomes=[(1,), (4,), (3,)]))
     state = p.run()
     p.state.agreement
 
@@ -1667,11 +1692,14 @@ respond to every offer in parallel.
     from concurrent.futures import ThreadPoolExecutor
     from attr import define
 
+
     class ParallelResponseMechanism(Mechanism):
         def __init__(self, *args, initial_state=None, **kwargs):
-            super().__init__(*args,
-                             initial_state=SAOState() if not initial_state else initial_state,
-                             **kwargs)
+            super().__init__(
+                *args,
+                initial_state=SAOState() if not initial_state else initial_state,
+                **kwargs,
+            )
             self.state.current_offer = None
             self.current_offerer = -1
 
@@ -1680,23 +1708,23 @@ respond to every offer in parallel.
             nxt = (self.current_offerer + 1) % n_agents
             current = self.negotiators[nxt]
             offer = None
-            self.state.current_offer = current.propose(self.state) if offer is None else offer
+            self.state.current_offer = (
+                current.propose(self.state) if offer is None else offer
+            )
 
             def get_response(negotiator, state=self.state):
                 return negotiator.respond(state, self.current_offerer)
 
             with ThreadPoolExecutor(4) as executor:
                 responses = executor.map(
-                    get_response,
-                    [_ for _ in self.negotiators if _.id != current.id]
+                    get_response, [_ for _ in self.negotiators if _.id != current.id]
                 )
             self.current_offerer = nxt
-            if all(_== ResponseType.ACCEPT_OFFER for _ in responses):
+            if all(_ == ResponseType.ACCEPT_OFFER for _ in responses):
                 state.agreement = self.state.current_offer
-            if any(_== ResponseType.END_NEGOTIATION for _ in responses):
+            if any(_ == ResponseType.END_NEGOTIATION for _ in responses):
                 state.broken = True
             return MechanismStepResult(state=state)
-
 
 We needed only to override the ``__call__`` method which defines one
 round of the negotiation. The protocol goes as follows:
@@ -1724,9 +1752,9 @@ any built-in protocol:
 
 .. code:: ipython3
 
-    p = ParallelResponseMechanism(outcomes = 6, n_steps = 10)
-    p.add(LimitedOutcomesNegotiator(name='seller', acceptable_outcomes=[(2,), (3,), (5,)]))
-    p.add(LimitedOutcomesNegotiator(name='buyer', acceptable_outcomes=[(1,), (4,), (3,)]))
+    p = ParallelResponseMechanism(outcomes=6, n_steps=10)
+    p.add(LimitedOutcomesNegotiator(name="seller", acceptable_outcomes=[(2,), (3,), (5,)]))
+    p.add(LimitedOutcomesNegotiator(name="buyer", acceptable_outcomes=[(1,), (4,), (3,)]))
     state = p.run()
     p.state.agreement
 
@@ -1747,6 +1775,7 @@ Our mechanism keeps a history in the form of a list of
 .. code:: ipython3
 
     import pandas as pd
+
     pd.DataFrame([_.asdict() for _ in p.history])
 
 
@@ -1839,13 +1868,14 @@ filling it in the mechanism:
 
     from attrs import define
 
+
     @define
     class MyState(MechanismState):
         current_offer: Outcome | None = None
         current_offerer: str = "none"
 
-    class NewParallelResponseMechanism(ParallelResponseMechanism):
 
+    class NewParallelResponseMechanism(ParallelResponseMechanism):
         def __init__(self, *args, **kwargs):
             kwargs["initial_state"] = MyState()
             super().__init__(*args, **kwargs)
@@ -1857,9 +1887,9 @@ did previously
 
 .. code:: ipython3
 
-    p = NewParallelResponseMechanism(outcomes = 6, n_steps = 10)
-    p.add(LimitedOutcomesNegotiator(name='seller', acceptable_outcomes=[(2,), (3,), (5,)]))
-    p.add(LimitedOutcomesNegotiator(name='buyer', acceptable_outcomes=[(1,), (4,), (3,)]))
+    p = NewParallelResponseMechanism(outcomes=6, n_steps=10)
+    p.add(LimitedOutcomesNegotiator(name="seller", acceptable_outcomes=[(2,), (3,), (5,)]))
+    p.add(LimitedOutcomesNegotiator(name="buyer", acceptable_outcomes=[(1,), (4,), (3,)]))
     p.run()
     print(f"Agreement: {p.state.agreement}")
 
@@ -1879,17 +1909,22 @@ to confirm that the current offer and its source are stored.
 
     def show_history(p):
         """Returns a Pandas Dataframe with the negotiation history"""
-        return pd.DataFrame([
-            dict(
-                step=_.step,
-                agreement=_.agreement,
-                relative_time=_.relative_time,
-                timedout=_.timedout,
-                broken=_.broken,
-                current_offer=_.current_offer,
-                current_offerer=_.current_offerer
-            )
-            for _ in p.history])
+        return pd.DataFrame(
+            [
+                dict(
+                    step=_.step,
+                    agreement=_.agreement,
+                    relative_time=_.relative_time,
+                    timedout=_.timedout,
+                    broken=_.broken,
+                    current_offer=_.current_offer,
+                    current_offerer=_.current_offerer,
+                )
+                for _ in p.history
+            ]
+        )
+
+
     show_history(p)
 
 
@@ -1946,9 +1981,9 @@ acceptable outcomes in our case):
 
 .. code:: ipython3
 
-    p = NewParallelResponseMechanism(outcomes = 6, n_steps = 6)
-    p.add(LimitedOutcomesNegotiator(name='seller', acceptable_outcomes=[(2,), (0,), (5,)]))
-    p.add(LimitedOutcomesNegotiator(name='buyer', acceptable_outcomes=[(1,), (4,), (3,)]))
+    p = NewParallelResponseMechanism(outcomes=6, n_steps=6)
+    p.add(LimitedOutcomesNegotiator(name="seller", acceptable_outcomes=[(2,), (0,), (5,)]))
+    p.add(LimitedOutcomesNegotiator(name="buyer", acceptable_outcomes=[(1,), (4,), (3,)]))
     p.run()
     print(f"Agreement: {p.state.agreement}")
     show_history(p)
@@ -2066,9 +2101,9 @@ agree upon:
 
 .. code:: ipython3
 
-    p = NewParallelResponseMechanism(outcomes = 6, n_steps = 6)
-    p.add(LimitedOutcomesNegotiator(name='seller', acceptable_outcomes=[(3,), (0,), (5,)]))
-    p.add(LimitedOutcomesNegotiator(name='buyer', acceptable_outcomes=[(1,), (4,), (3,)]))
+    p = NewParallelResponseMechanism(outcomes=6, n_steps=6)
+    p.add(LimitedOutcomesNegotiator(name="seller", acceptable_outcomes=[(3,), (0,), (5,)]))
+    p.add(LimitedOutcomesNegotiator(name="buyer", acceptable_outcomes=[(1,), (4,), (3,)]))
     p.run()
     print(f"Agreement: {p.state.agreement}")
     show_history(p)

@@ -2,10 +2,11 @@
 Implements serialization to and from strings and secondary storage.
 
 """
+
 from __future__ import annotations
 
 from pathlib import Path
-from typing import Any, Iterable, Type
+from typing import Any, Iterable
 
 import cloudpickle
 import numpy as np
@@ -134,7 +135,7 @@ def serialize(
     if isinstance(value, Iterable) and not deep:
         # add_to_mem(value)
         return value
-    if isinstance(value, Type):
+    if isinstance(value, type):
         return TYPE_START + get_full_type_name(value)
     if isinstance(value, Path):
         return PATH_START + str(value)
@@ -227,7 +228,7 @@ def serialize(
     try:
         vv = CLOUDPICKLE_START + cloudpickle.dumps(value)
         return vv
-    except:
+    except Exception:
         pass
     warnings.warn(
         f"{value} of type {type(value)} is not serializable",

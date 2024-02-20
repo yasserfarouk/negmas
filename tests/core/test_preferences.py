@@ -1,5 +1,4 @@
 from __future__ import annotations
-
 import math
 import random
 from math import isnan
@@ -73,7 +72,7 @@ def test_preferences_range_general(n_issues):
     issues = tuple(make_issue(values=(0.0, 1.0), name=f"i{i}") for i in range(n_issues))
     rs = [(i + 1.0) * random.random() for i in range(n_issues)]
     ufun = MappingUtilityFunction(
-        mapping=lambda x: sum(r * v for r, v in zip(rs, x)),
+        mapping=lambda x: sum(r * v for r, v in zip(rs, x)) if x else float("nan")
     )
     assert ufun([0.0] * n_issues) == 0.0
     assert ufun([1.0] * n_issues) == sum(rs)
@@ -92,12 +91,7 @@ def test_preferences_range_general(n_issues):
 )
 @settings(deadline=60_000)
 @example(
-    n_outcomes=2,
-    n_negotiators=2,
-    normalized=False,
-    sort=False,
-    r0=0.0,
-    r1=0.5888671875,
+    n_outcomes=2, n_negotiators=2, normalized=False, sort=False, r0=0.0, r1=0.5888671875
 )
 @example(n_outcomes=2, n_negotiators=2, normalized=False, sort=False, r0=0.0, r1=0.0)
 def test_calc_outcome_stats(n_outcomes, n_negotiators, normalized, sort, r0, r1):
@@ -143,8 +137,8 @@ def test_calc_outcome_stats(n_outcomes, n_negotiators, normalized, sort, r0, r1)
         )
         for i, _ in enumerate(utils)
     ]
-    stats = calc_scenario_stats(ufuns)
-    allutils = [tuple(u(_) for u in ufuns) for _ in outcomes]
+    stats = calc_scenario_stats(tuple(ufuns))
+    [tuple(u(_) for u in ufuns) for _ in outcomes]
     mxoverall = estimate_max_dist(ufuns)
     mxpareto = estimate_max_dist_using_outcomes(ufuns, stats.pareto_utils)
     assert mxoverall >= mxpareto
@@ -212,11 +206,7 @@ def test_calc_outcome_stats(n_outcomes, n_negotiators, normalized, sort, r0, r1)
                 )
 
 
-@given(
-    n_outcomes=st.integers(2, 1000),
-    r0=st.floats(-1.0, 1.0),
-    f=st.floats(0.0, 1.0),
-)
+@given(n_outcomes=st.integers(2, 1000), r0=st.floats(-1.0, 1.0), f=st.floats(0.0, 1.0))
 @settings(deadline=60_000)
 @example(n_outcomes=2, r0=0.0, f=0.5)
 def test_calc_reserved(n_outcomes, r0, f):
@@ -230,8 +220,8 @@ def test_calc_reserved(n_outcomes, r0, f):
     r = calc_reserved_value(ufun, f)
     ufun.reserved_value = r
     nrational = sum(is_rational([ufun], _) for _ in outcomes)
-    assert nrational == math.ceil(
-        f * n_outcomes
+    assert (
+        nrational == math.ceil(f * n_outcomes)
     ), f"Got {nrational} outcomes for reserved value {r} of {n_outcomes} outcomes when using fraction {f}"
 
 
@@ -250,8 +240,8 @@ def test_calc_reserved_fifty_fifty():
         r = calc_reserved_value(ufun, f)
         ufun.reserved_value = r
         nrational = sum(is_rational([ufun], _) for _ in outcomes)
-        assert nrational == math.ceil(
-            f * n_outcomes
+        assert (
+            nrational == math.ceil(f * n_outcomes)
         ), f"Got {nrational} outcomes for reserved value {r} of {n_outcomes} outcomes when using fraction {f}"
         assert r <= 0.0, f"{r=}"
 
@@ -311,14 +301,11 @@ def test_calc_stats_with_ranks(n_outcomes, n_negotiators, sort, r0, r1):
         )
         for i, _ in enumerate(utils)
     ]
-    stats = calc_scenario_stats(ufuns)
+    stats = calc_scenario_stats(tuple(ufuns))
     rank_ufuns = [make_rank_ufun(_) for _ in ufuns]
     rank_stats = calc_scenario_stats(rank_ufuns)
     # applying ranking may change the relative order of pareto outcomes (by changing welfare) but not the set
-    _test(
-        sorted(stats.pareto_outcomes),
-        sorted(rank_stats.pareto_outcomes),
-    )
+    _test(sorted(stats.pareto_outcomes), sorted(rank_stats.pareto_outcomes))
 
 
 @given(
@@ -349,7 +336,7 @@ def test_calc_stats(n_outcomes, n_negotiators, sort, r0, r1):
         )
         for i, _ in enumerate(utils)
     ]
-    stats = calc_scenario_stats(ufuns)
+    stats = calc_scenario_stats(tuple(ufuns))
     bf, bfoutcomes = stats.pareto_utils, stats.pareto_outcomes
     x, xindices = pareto_frontier(ufuns, outcomes, sort_by_welfare=sort)
     xoutcomes = [outcomes[_] for _ in xindices]
@@ -386,6 +373,7 @@ def test_mechanism_pareto_frontier_matches_global(
     bf, bfoutcomes = m.pareto_frontier(sort_by_welfare=sort)
     # bf = [_[0] for _ in results]
     # bfoutcomes = [_[1] for _ in results]
+    outcomes = list(outcomes)
     x, xindices = pareto_frontier(ufuns, outcomes, sort_by_welfare=sort)
     xoutcomes = [outcomes[_] for _ in xindices]
     assert len(x) == len(bf), f"mech:{bf}\nglobal:{x}"
@@ -414,9 +402,7 @@ def test_mechanism_pareto_frontier_matches_global(
 
 
 @given(
-    n_outcomes=st.integers(2, 1000),
-    n_negotiators=st.integers(2, 5),
-    sort=st.booleans(),
+    n_outcomes=st.integers(2, 1000), n_negotiators=st.integers(2, 5), sort=st.booleans()
 )
 @settings(deadline=60_000)
 def test_pareto_frontier_numpy_matches_bf2(n_outcomes, n_negotiators, sort):
@@ -434,9 +420,7 @@ def test_pareto_frontier_numpy_matches_bf2(n_outcomes, n_negotiators, sort):
 
 
 @given(
-    n_outcomes=st.integers(2, 1000),
-    n_negotiators=st.integers(2, 5),
-    sort=st.booleans(),
+    n_outcomes=st.integers(2, 1000), n_negotiators=st.integers(2, 5), sort=st.booleans()
 )
 @settings(deadline=60_000)
 def test_pareto_frontier_numpy_matches_bf(n_outcomes, n_negotiators, sort):
@@ -470,19 +454,15 @@ def test_pareto_frontier_does_not_depend_on_order():
     welfare = [_1 + _2 for _1, _2 in zip(u1, u2)]
     assert welfare.index(max(welfare)) == 3
 
-    f1 = MappingUtilityFunction(lambda o: u1[o[0]])
-    f2 = MappingUtilityFunction(lambda o: u2[o[0]])
+    f1 = MappingUtilityFunction(lambda o: u1[o[0]] if o else float("nan"))
+    f2 = MappingUtilityFunction(lambda o: u2[o[0]] if o else float("nan"))
     assert all(f1((i,)) == u1[i] for i in range(10))
     assert all(f2((i,)) == u2[i] for i in range(10))
     p1, l1 = pareto_frontier(
-        [f1, f2],
-        sort_by_welfare=True,
-        outcomes=[(_,) for _ in range(10)],
+        [f1, f2], sort_by_welfare=True, outcomes=[(_,) for _ in range(10)]
     )
     p2, l2 = pareto_frontier(
-        [f2, f1],
-        sort_by_welfare=True,
-        outcomes=[(_,) for _ in range(10)],
+        [f2, f1], sort_by_welfare=True, outcomes=[(_,) for _ in range(10)]
     )
 
     assert len(p1) == len(p2)
@@ -500,7 +480,7 @@ def test_pareto_frontier_does_not_depend_on_order():
 
 def test_linear_utility():
     buyer_utility = LinearAdditiveUtilityFunction(
-        {
+        {  # type: ignore
             "cost": lambda x: -x,
             "number of items": lambda x: 0.5 * x,
             "delivery": {"delivered": 10.0, "not delivered": -2.0},
@@ -516,7 +496,7 @@ def test_linear_utility():
 
 def test_linear_utility_construction():
     buyer_utility = LinearAdditiveUtilityFunction(
-        {
+        {  # type: ignore
             "cost": lambda x: -x,
             "number of items": lambda x: 0.5 * x,
             "delivery": {"delivered": 10.0, "not delivered": -2.0},
@@ -530,11 +510,11 @@ def test_linear_utility_construction():
     assert isinstance(buyer_utility, LinearAdditiveUtilityFunction)
     with pytest.raises(ValueError):
         LinearAdditiveUtilityFunction(
-            {
+            {  # type: ignore
                 "cost": lambda x: -x,
                 "number of items": lambda x: 0.5 * x,
                 "delivery": {"delivered": 10.0, "not delivered": -2.0},
-            },
+            }
         )
 
 
@@ -545,7 +525,11 @@ def test_hypervolume_utility():
             {0: (1.0, 2.0), 1: (1.0, 2.0)},
             {0: (1.4, 2.0), 2: (2.0, 3.0)},
         ],
-        utilities=[5.0, 2.0, lambda x: 2 * x[2] + x[0]],
+        utilities=[
+            5.0,
+            2.0,
+            lambda x: 2 * x[2] + x[0] if x is not None else float("nan"),
+        ],
     )
     f_ignore_input = HyperRectangleUtilityFunction(
         outcome_ranges=[
@@ -628,7 +612,7 @@ def test_hypervolume_utility():
         utilities = [f(outcome) for f in funs]
         for i, (u, e) in enumerate(zip(utilities, expectation)):
             # print(i, utilities, outcome)
-            assert u == e
+            assert e is None and np.isnan(u) or u == e
 
 
 @mark.parametrize("utype", (LinearUtilityFunction, LinearAdditiveUtilityFunction))
@@ -647,18 +631,15 @@ def test_inverse_genius_domain():
     with open(
         pkg_resources.resource_filename(
             "negmas", resource_name="tests/data/Laptop/Laptop-C-domain.xml"
-        ),
+        )
     ) as ff:
         issues, _ = issues_from_xml_str(ff.read())
     with open(
         pkg_resources.resource_filename(
             "negmas", resource_name="tests/data/Laptop/Laptop-C-prof1.xml"
-        ),
-    ) as ff:
-        u, _ = UtilityFunction.from_xml_str(
-            ff.read(),
-            issues=issues,
         )
+    ) as ff:
+        u, _ = UtilityFunction.from_xml_str(ff.read(), issues=issues)
     assert u is not None
     inv = PresortingInverseUtilityFunction(u)
     inv.init()
@@ -743,7 +724,7 @@ def test_can_normalize_affine_and_linear_ufun(weights, bias, rng):
         isinstance(ufun, AffineUtilityFunction)
         or isinstance(ufun, LinearUtilityFunction)
         or isinstance(ufun, ConstUtilityFunction)
-    ), f"Normalization of ufun of type "
+    ), "Normalization of ufun of type "
     f"LinearUtilityFunction should generate an IndependentIssuesUFun but we got {type(nfun).__name__}"
     u2 = [nfun(w) for w in outcomes]
 
@@ -783,7 +764,7 @@ def test_normalization():
     with open(
         pkg_resources.resource_filename(
             "negmas", resource_name="tests/data/Laptop/Laptop-C-domain.xml"
-        ),
+        )
     ) as ff:
         os = CartesianOutcomeSpace.from_xml_str(ff.read())
     issues = os.issues
@@ -791,12 +772,13 @@ def test_normalization():
     with open(
         pkg_resources.resource_filename(
             "negmas", resource_name="tests/data/Laptop/Laptop-C-prof1.xml"
-        ),
+        )
     ) as ff:
         u, _ = UtilityFunction.from_xml_str(ff.read(), issues=issues)
-    assert abs(u(("Dell", "60 Gb", "19'' LCD")) - 21.987727736172488) < 0.000001
-    assert abs(u(("HP", "80 Gb", "20'' LCD")) - 22.68559475583014) < 0.000001
-    utils = [u(_) for _ in outcomes]
+    assert u is not None
+    assert abs(float(u(("Dell", "60 Gb", "19'' LCD")) - 21.987727736172488)) < 0.000001
+    assert abs(float(u(("HP", "80 Gb", "20'' LCD")) - 22.68559475583014)) < 0.000001
+    utils = [float(u(_)) for _ in outcomes]
     max_util, min_util = max(utils), min(utils)
     gt_range = dict(
         zip(outcomes, [(_ - min_util) / (max_util - min_util) for _ in utils])
@@ -806,24 +788,26 @@ def test_normalization():
     with open(
         pkg_resources.resource_filename(
             "negmas", resource_name="tests/data/Laptop/Laptop-C-prof1.xml"
-        ),
+        )
     ) as ff:
         u, _ = UtilityFunction.from_xml_str(ff.read(), issues=issues)
+    assert u is not None
     u = normalize(u, to=(0.0, 1.0))
-    utils = [u(_) for _ in outcomes]
+    utils = [float(u(_)) for _ in outcomes]
     max_util, min_util = max(utils), min(utils)
     assert abs(max_util - 1.0) < 0.001
     assert abs(min_util) < 0.001
 
     for k, v in gt_range.items():
-        assert abs(v - u(k)) < 1e-3, f"Failed for {k} got {(u(k))} expected {v}"
+        assert abs(float(u(k)) - v) < 1e-3, f"Failed for {k} got {(u(k))} expected {v}"
 
     with open(
         pkg_resources.resource_filename(
             "negmas", resource_name="tests/data/Laptop/Laptop-C-prof1.xml"
-        ),
+        )
     ) as ff:
         u, _ = UtilityFunction.from_xml_str(ff.read(), issues=issues)
+    assert u is not None
     u = scale_max(u, 1.0)
     utils = [u(_) for _ in outcomes]
     max_util, min_util = max(utils), min(utils)

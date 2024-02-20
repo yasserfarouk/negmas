@@ -1,5 +1,4 @@
 from __future__ import annotations
-
 import functools
 
 DISABLE_NUMBA = False
@@ -7,7 +6,7 @@ try:
     from numba import jit  # type: ignore
 
     NUMBA_OK = not DISABLE_NUMBA
-except:
+except Exception:
     NUMBA_OK = False
 
     def jit(nopython=True):

@@ -1,5 +1,4 @@
 from __future__ import annotations
-
 import random
 from random import choice
 
@@ -214,7 +213,7 @@ def test_pend_works():
         if agreement is not None:
             break
     else:
-        raise AssertionError(f"agreement failed in all runs")
+        raise AssertionError("agreement failed in all runs")
 
 
 def test_pend_per_second_works():
@@ -476,4 +475,4 @@ def test_hidden_time_works_and_no_call_repetitions():
 
 
 def test_smart_asipration():
-    state = try_negotiator(SmartAspirationNegotiator)
+    try_negotiator(SmartAspirationNegotiator)

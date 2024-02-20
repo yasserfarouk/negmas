@@ -1,14 +1,9 @@
 from __future__ import annotations
-
-import matplotlib.pyplot as plt
-import pytest
-
 from negmas import NaiveTitForTatNegotiator, SAOMechanism, make_issue
 from negmas.gb.negotiators.micro import MiCRONegotiator
 from negmas.preferences import LinearAdditiveUtilityFunction as LUFun
 from negmas.preferences.value_fun import AffineFun, IdentityFun, LinearFun, TableFun
 from negmas.sao.negotiators.timebased import BoulwareTBNegotiator
-from tests.switches import NEGMAS_RUN_TEMP_FAILING
 
 SHOW_PLOTS = False
 

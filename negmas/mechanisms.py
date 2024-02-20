@@ -1,7 +1,6 @@
-from __future__ import annotations
-
 """Provides interfaces for defining negotiation mechanisms."""
 
+from __future__ import annotations
 import copy
 import math
 import pprint
@@ -12,7 +11,15 @@ from abc import ABC, abstractmethod
 from collections import defaultdict
 from datetime import datetime
 from os import PathLike
-from typing import TYPE_CHECKING, Any, Callable, Iterable, Sequence
+from typing import (
+    TYPE_CHECKING,
+    Any,
+    Callable,
+    Iterable,
+    Sequence,
+    runtime_checkable,
+    Protocol,
+)
 
 from attrs import define
 from rich.progress import Progress
@@ -26,6 +33,7 @@ from negmas.common import (
     NegotiatorInfo,
     NegotiatorMechanismInterface,
     ReactiveStrategy,
+    TraceElement,
 )
 from negmas.events import Event, EventSource
 from negmas.helpers import snake_case
@@ -235,9 +243,7 @@ class Mechanism(NamedObject, EventSource, CheckpointMixin, ABC):
         self.genius_port = genius_port if genius_port > 0 else get_free_tcp_port()
 
         self.params: dict[str, Any] = dict(
-            dynamic_entry=dynamic_entry,
-            genius_port=genius_port,
-            annotation=annotation,
+            dynamic_entry=dynamic_entry, genius_port=genius_port, annotation=annotation
         )
 
     def log(self, nid: str, data: dict[str, Any], level: str) -> None:
@@ -824,7 +830,12 @@ class Mechanism(NamedObject, EventSource, CheckpointMixin, ABC):
         negotiator = self._negotiator_map.get(id, None)
         if not negotiator:
             return id
-        return negotiator.java_uuid if hasattr(negotiator, "java_uuid") else negotiator.id  # type: ignore
+        from negmas.genius.negotiator import GeniusNegotiator
+
+        assert isinstance(negotiator, GeniusNegotiator)
+        return (
+            negotiator.java_uuid if hasattr(negotiator, "java_uuid") else negotiator.id
+        )
 
     @property
     def agent_ids(self) -> list[str]:
@@ -1001,10 +1012,7 @@ class Mechanism(NamedObject, EventSource, CheckpointMixin, ABC):
                 if remaining is not None:
                     _eta = (
                         humanize_time(
-                            min(
-                                (_elapsed * remaining) / self.current_step,
-                                etatime,
-                            )
+                            min((_elapsed * remaining) / self.current_step, etatime)
                         )
                         + f" {remaining} steps"
                     )
@@ -1138,11 +1146,7 @@ class Mechanism(NamedObject, EventSource, CheckpointMixin, ABC):
             self._current_state.has_error,
             self._current_state.error_details,
             self._current_state.waiting,
-        ) = (
-            result.state.has_error,
-            result.state.error_details,
-            result.state.waiting,
-        )
+        ) = (result.state.has_error, result.state.error_details, result.state.waiting)
         if self._current_state.has_error:
             self.on_mechanism_error()
         if (
@@ -1159,11 +1163,7 @@ class Mechanism(NamedObject, EventSource, CheckpointMixin, ABC):
                 self._current_state.broken,
                 self._current_state.timedout,
                 self._current_state.agreement,
-            ) = (
-                result.state.broken,
-                result.state.timedout,
-                result.state.agreement,
-            )
+            ) = (result.state.broken, result.state.timedout, result.state.agreement)
         if (
             (self._current_state.agreement is not None)
             or self._current_state.broken
@@ -1203,11 +1203,7 @@ class Mechanism(NamedObject, EventSource, CheckpointMixin, ABC):
             self._current_state.has_error,
             self._current_state.error_details,
             self._current_state.waiting,
-        ) = (
-            True,
-            "Uncaught Exception",
-            False,
-        )
+        ) = (True, "Uncaught Exception", False)
         self.on_mechanism_error()
         (
             self._current_state.broken,
@@ -1380,12 +1376,7 @@ class Mechanism(NamedObject, EventSource, CheckpointMixin, ABC):
             i for i, _ in enumerate(points) if all(a >= b for a, b in zip(_, reservs))
         ]
         points = [points[_] for _ in rational_indices]
-        indices = list(
-            method(
-                points,
-                sort_by_welfare=sort_by_welfare,
-            )
-        )
+        indices = list(method(points, sort_by_welfare=sort_by_welfare))
         frontier = [points[_] for _ in indices]
         if frontier is None:
             raise ValueError("Could not find the pareto-frontier")
@@ -1400,7 +1391,7 @@ class Mechanism(NamedObject, EventSource, CheckpointMixin, ABC):
 
     def pareto_frontier(
         self, max_cardinality: float = float("inf"), sort_by_welfare=True
-    ) -> tuple[tuple[tuple[float, ...]], list[Outcome]]:
+    ) -> tuple[tuple[tuple[float, ...], ...], list[Outcome]]:
         ufuns = tuple(self._get_preferences())
         if any(_ is None for _ in ufuns):
             raise ValueError(
@@ -1419,9 +1410,9 @@ class Mechanism(NamedObject, EventSource, CheckpointMixin, ABC):
     def max_welfare_points(
         self,
         max_cardinality: float = float("inf"),
-        frontier: tuple[tuple[float, ...]] | None = None,
+        frontier: tuple[tuple[float, ...], ...] | None = None,
         frontier_outcomes: list[Outcome] | None = None,
-    ) -> tuple[tuple[tuple[float, ...], Outcome]]:
+    ) -> tuple[tuple[tuple[float, ...], Outcome], ...]:
         ufuns = self._get_preferences()
         if not frontier:
             frontier, frontier_outcomes = self.pareto_frontier(max_cardinality)
@@ -1437,9 +1428,9 @@ class Mechanism(NamedObject, EventSource, CheckpointMixin, ABC):
     def max_relative_welfare_points(
         self,
         max_cardinality: float = float("inf"),
-        frontier: tuple[tuple[float, ...]] | None = None,
+        frontier: tuple[tuple[float, ...], ...] | None = None,
         frontier_outcomes: list[Outcome] | None = None,
-    ) -> tuple[tuple[tuple[float, ...], Outcome]]:
+    ) -> tuple[tuple[tuple[float, ...], Outcome], ...]:
         ufuns = self._get_preferences()
         if not frontier:
             frontier, frontier_outcomes = self.pareto_frontier(max_cardinality)
@@ -1455,9 +1446,9 @@ class Mechanism(NamedObject, EventSource, CheckpointMixin, ABC):
     def modified_kalai_points(
         self,
         max_cardinality: float = float("inf"),
-        frontier: tuple[tuple[float, ...]] | None = None,
+        frontier: tuple[tuple[float, ...], ...] | None = None,
         frontier_outcomes: list[Outcome] | None = None,
-    ) -> tuple[tuple[tuple[float, ...], Outcome]]:
+    ) -> tuple[tuple[tuple[float, ...], Outcome], ...]:
         ufuns = self._get_preferences()
         if not frontier:
             frontier, frontier_outcomes = self.pareto_frontier(max_cardinality)
@@ -1476,9 +1467,9 @@ class Mechanism(NamedObject, EventSource, CheckpointMixin, ABC):
     def kalai_points(
         self,
         max_cardinality: float = float("inf"),
-        frontier: tuple[tuple[float, ...]] | None = None,
+        frontier: tuple[tuple[float, ...], ...] | None = None,
         frontier_outcomes: list[Outcome] | None = None,
-    ) -> tuple[tuple[tuple[float, ...], Outcome]]:
+    ) -> tuple[tuple[tuple[float, ...], Outcome], ...]:
         ufuns = self._get_preferences()
         if not frontier:
             frontier, frontier_outcomes = self.pareto_frontier(max_cardinality)
@@ -1497,9 +1488,9 @@ class Mechanism(NamedObject, EventSource, CheckpointMixin, ABC):
     def nash_points(
         self,
         max_cardinality: float = float("inf"),
-        frontier: tuple[tuple[float, ...]] | None = None,
+        frontier: tuple[tuple[float, ...], ...] | None = None,
         frontier_outcomes: list[Outcome] | None = None,
-    ) -> tuple[tuple[tuple[float, ...], Outcome]]:
+    ) -> tuple[tuple[tuple[float, ...], Outcome], ...]:
         ufuns = self._get_preferences()
         if not frontier:
             frontier, frontier_outcomes = self.pareto_frontier(max_cardinality)
@@ -1516,7 +1507,7 @@ class Mechanism(NamedObject, EventSource, CheckpointMixin, ABC):
 
     def _get_ami(self, negotiator: ReactiveStrategy) -> NegotiatorMechanismInterface:  # type: ignore
         _ = negotiator
-        warnings.deprecated(f"_get_ami is depricated. Use `get_nmi` instead of it")
+        warnings.deprecated("_get_ami is depricated. Use `get_nmi` instead of it")
         return self.nmi
 
     def __iter__(self):
@@ -1527,3 +1518,19 @@ class Mechanism(NamedObject, EventSource, CheckpointMixin, ABC):
         return pprint.pformat(d)
 
     __repr__ = __str__
+
+
+@runtime_checkable
+class Traceable(Protocol):
+    """A mechanism that can generate a trace"""
+
+    @property
+    def full_trace(self) -> list[TraceElement]:
+        """Returns the negotiation history as a list of relative_time/step/negotiator/offer tuples"""
+        ...
+
+    def negotiator_full_trace(
+        self, negotiator_id: str
+    ) -> list[tuple[float, float, int, Outcome, str]]:
+        """Returns the (time/relative-time/step/outcome/response) given by a negotiator (in order)"""
+        ...

@@ -1,5 +1,4 @@
 from __future__ import annotations
-
 import os
 from os import walk
 from pathlib import Path
@@ -21,7 +20,7 @@ try:
     import resource
 
     resource.setrlimit(resource.RLIMIT_NOFILE, (50000, -1))
-except:
+except Exception:
     pass
 
 GENIUSWEB_FOLDERS = Path(
@@ -99,9 +98,7 @@ def test_reading_writing_linear_preferences(tmp_path):
     base_folder = pkg_resources.resource_filename(
         "negmas", resource_name="tests/data/Laptop"
     )
-    domain = load_genius_domain_from_folder(
-        base_folder,
-    )
+    domain = load_genius_domain_from_folder(base_folder)
     ufuns, issues = domain.ufuns, domain.issues
     for ufun in ufuns:
         assert isinstance(ufun, LinearAdditiveUtilityFunction)
@@ -111,7 +108,7 @@ def test_reading_writing_linear_preferences(tmp_path):
         ufun2, _ = UtilityFunction.from_genius(dst, issues=issues)
         try:
             os.unlink(dst)
-        except:
+        except Exception:
             pass
         assert isinstance(ufun2, LinearAdditiveUtilityFunction)
         for outcome in enumerate_issues(issues):
@@ -171,7 +168,8 @@ def test_enumerate_discrete_rational(r0, r1, n_above):
         len(
             list(
                 domain.outcome_space.enumerate_or_sample_rational(
-                    preferences=domain.ufuns, aggregator=lambda x: True  # type: ignore
+                    preferences=domain.ufuns,
+                    aggregator=lambda x: True,  # type: ignore
                 )
             )
         )
@@ -181,7 +179,8 @@ def test_enumerate_discrete_rational(r0, r1, n_above):
         len(
             list(
                 domain.outcome_space.enumerate_or_sample_rational(
-                    preferences=domain.ufuns, aggregator=lambda x: False  # type: ignore
+                    preferences=domain.ufuns,
+                    aggregator=lambda x: False,  # type: ignore
                 )
             )
         )

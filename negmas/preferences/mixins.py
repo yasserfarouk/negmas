@@ -1,7 +1,8 @@
 from __future__ import annotations
-
 from abc import abstractmethod
 from typing import TYPE_CHECKING
+
+from negmas.common import Distribution
 
 if TYPE_CHECKING:
     from negmas.common import MechanismState, NegotiatorMechanismInterface
@@ -34,10 +35,10 @@ class SessionDependentUFunMixin:
     @abstractmethod
     def eval_on_session(
         self, offer: Outcome, nmi: NegotiatorMechanismInterface | None = None
-    ):
+    ) -> Distribution:
         """Evaluates the offer given a session"""
 
-    def eval(self, offer: Outcome):
+    def eval(self, offer: Outcome) -> Distribution:
         if not self.owner or not self.owner.nmi:
             return self.eval_on_session(offer, None)
         self.owner: Negotiator
@@ -67,10 +68,10 @@ class StateDependentUFunMixin:
         offer: Outcome,
         nmi: NegotiatorMechanismInterface | None = None,
         state: MechanismState | None = None,
-    ):
+    ) -> Distribution:
         """Evaluates the offer given a session and state"""
 
-    def eval(self, offer: Outcome):
+    def eval(self, offer: Outcome) -> Distribution:
         if not self.owner or not self.owner.nmi:
             return self.eval_on_state(offer, None, None)
         self.owner: Negotiator

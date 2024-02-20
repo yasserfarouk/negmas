@@ -2,6 +2,7 @@
 Negotiation tournaments module.
 """
 
+from __future__ import annotations
 
 import copy
 from concurrent.futures import ProcessPoolExecutor, as_completed
@@ -18,14 +19,14 @@ import pandas as pd
 from attr import asdict, define
 from rich import print
 from rich.progress import track
+from negmas.common import TraceElement
 
-from negmas.gb.mechanisms.base import GBMechanism
 from negmas.helpers import unique_name
 from negmas.helpers.inout import dump
 from negmas.helpers.strings import shortest_unique_names
 from negmas.helpers.types import get_class, get_full_type_name
 from negmas.inout import Scenario
-from negmas.mechanisms import Mechanism
+from negmas.mechanisms import Mechanism, Traceable
 from negmas.negotiators import Negotiator
 from negmas.plots.util import plot_offline_run
 from negmas.preferences.ops import (
@@ -73,8 +74,8 @@ def oneinint(x: int | tuple[int, int] | None, log_uniform=None) -> int | None:
         if x[0] == x[-1]:
             return x[0]
         if log_uniform:
-            l = [log(_) for _ in x]
-            return min(x[1], max(x[0], int(exp(random() * (l[1] - l[0]) + l[0]))))
+            L = [log(_) for _ in x]
+            return min(x[1], max(x[0], int(exp(random() * (L[1] - L[0]) + L[0]))))
         return randint(*x)
     return x
 
@@ -193,13 +194,15 @@ def run_negotiation(
             name += str(hash(str(p)))
     if not partner_names:
         partner_names = tuple(complete_names)  # type: ignore
-    for l, (negotiator, name, u) in enumerate(zip(negotiators, partner_names, s.ufuns)):  # type: ignore
+    for L_, (negotiator, name, u) in enumerate(
+        zip(negotiators, partner_names, s.ufuns)
+    ):
         if id_reveals_type:
-            negotiator.id = f"{name}@{l}"
+            negotiator.id = f"{name}@{L_}"
         else:
             negotiator.id = unique_name("n", add_time=False, sep="")
         if name_reveals_type:
-            negotiator.name = f"{name}@{l}"
+            negotiator.name = f"{name}@{L_}"
         else:
             negotiator.name = unique_name("n", add_time=False, sep="")
         complete_names.append(name)
@@ -254,7 +257,7 @@ def run_negotiation(
     file_name = f"{real_scenario_name}_{'_'.join(partner_names)}_{rep}_{run_id}"  # type: ignore
     if path:
 
-        def save_as_df(data: list[tuple], names, file_name):
+        def save_as_df(data: list[TraceElement] | list[tuple], names, file_name):
             pd.DataFrame(data=data, columns=names).to_csv(file_name, index=False)
 
         for k, v in m._negotiator_logs.items():
@@ -271,10 +274,21 @@ def run_negotiation(
 
         full_name = path / "negotiations" / f"{file_name}.csv"
         assert not full_name.exists(), f"{full_name} already found"
-        if issubclass(mechanism_type, SAOMechanism) or issubclass(
-            mechanism_type, GBMechanism
-        ):
-            save_as_df(m.full_trace, ("time", "relative_time", "step", "negotiator", "offer", "responses", "state"), full_name)  # type: ignore
+        if isinstance(m, Traceable):
+            assert hasattr(m, "full_trace")
+            save_as_df(
+                m.full_trace,
+                (
+                    "time",
+                    "relative_time",
+                    "step",
+                    "negotiator",
+                    "offer",
+                    "responses",
+                    "state",
+                ),
+                full_name,
+            )  # type: ignore
             for i, negotiator in enumerate(m.negotiators):
                 neg_name = (
                     path
@@ -284,7 +298,12 @@ def run_negotiation(
                 )
                 assert not neg_name.exists(), f"{neg_name} already found"
                 neg_name.parent.mkdir(parents=True, exist_ok=True)
-                save_as_df(m.negotiator_full_trace(negotiator.id), ("time", "relative_time", "step", "offer", "response"), neg_name)  # type: ignore
+                if isinstance(m, TraceElement):
+                    save_as_df(
+                        m.negotiator_full_trace(negotiator.id),
+                        ("time", "relative_time", "step", "offer", "response"),
+                        neg_name,
+                    )  # type: ignore
         else:
             pd.DataFrame.from_records(serialize(m.history)).to_csv(
                 full_name, index=False
@@ -300,7 +319,7 @@ def run_negotiation(
             m.plot(path=path, fig_name=full_name, **plot_params)
             try:
                 plt.close(plt.gcf())
-            except:
+            except Exception:
                 pass
     return run_record
 
@@ -394,8 +413,9 @@ def cartesian_tournament(
     def make_scores(record: dict[str, Any]) -> list[dict[str, float]]:
         utils, partners = record["utilities"], record["partners"]
         reserved_values = record["reserved_values"]
-        max_utils, times = record["max_utils"], record.get(
-            "negotiator_times", [None] * len(utils)
+        max_utils, times = (
+            record["max_utils"],
+            record.get("negotiator_times", [None] * len(utils)),
         )
         scores = []
         for i, (u, r, a, m, t) in enumerate(
@@ -671,11 +691,7 @@ if __name__ == "__main__":
             n_pareto = randint(min(5, n // 2), n // 2)
         if r < 0.05:
             vals = generate_utility_values(
-                n_pareto,
-                n,
-                n_ufuns=2,
-                pareto_first=False,
-                pareto_generator="zero_sum",
+                n_pareto, n, n_ufuns=2, pareto_first=False, pareto_generator="zero_sum"
             )
             name = "DivideThePie"
         else:

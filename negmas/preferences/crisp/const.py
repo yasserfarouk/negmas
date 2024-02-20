@@ -1,5 +1,4 @@
 from __future__ import annotations
-
 import random
 
 from negmas.helpers import get_full_type_name
@@ -23,11 +22,7 @@ class ConstUtilityFunction(StationaryMixin, UtilityFunction):
     """
 
     def __init__(
-        self,
-        value: Value,
-        *,
-        reserved_value: float = float("-inf"),
-        **kwargs,
+        self, value: Value, *, reserved_value: float = float("-inf"), **kwargs
     ):
         super().__init__(**kwargs)
         self.reserved_value = reserved_value
@@ -36,10 +31,7 @@ class ConstUtilityFunction(StationaryMixin, UtilityFunction):
     def to_dict(self):
         d = {PYTHON_CLASS_IDENTIFIER: get_full_type_name(type(self))}
         d.update(super().to_dict())
-        return dict(
-            value=self.value,
-            **d,
-        )
+        return dict(value=self.value, **d)
 
     @classmethod
     def from_dict(cls, d):

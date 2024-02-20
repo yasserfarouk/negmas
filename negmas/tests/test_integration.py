@@ -1,5 +1,4 @@
 from __future__ import annotations
-
 import time
 
 import pytest
@@ -21,7 +20,9 @@ def test_a_session():
         p.add(
             LimitedOutcomesNegotiator(p_ending=0.01, name=f"agent {_}"),
             preferences=HyperRectangleUtilityFunction(
-                [None], [lambda x: x[0]], outcomes=((_,) for _ in range(n))
+                [None],
+                [lambda x: x[0] if x else float("nan")],
+                outcomes=((_,) for _ in range(n)),
             ),
         )
     p.run()
@@ -67,7 +68,9 @@ def test_buy_sell_session():
     state = session.run()
     import matplotlib.pyplot as plt
 
-    assert state.agreement is not None, f"{neg.plot()}{plt.show()}{neg.extended_trace}"
+    assert (
+        state.agreement is not None
+    ), f"{session.plot()}{plt.show()}{session.extended_trace}"
 
 
 if __name__ == "__main__":

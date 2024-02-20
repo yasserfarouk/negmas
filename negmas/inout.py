@@ -1,14 +1,13 @@
-from __future__ import annotations
-
 """
 Defines import/export functionality
 """
 
+from __future__ import annotations
 import xml.etree.ElementTree as ET
 from os import PathLike, listdir
 from pathlib import Path
 from random import shuffle
-from typing import Any, Callable, Iterable, Sequence, Union
+from typing import Any, Callable, Iterable, Sequence
 
 from attrs import define, field
 
@@ -251,10 +250,7 @@ class Scenario:
 
         return m
 
-    def scale_min(
-        self,
-        to: float = 1.0,
-    ) -> Scenario:
+    def scale_min(self, to: float = 1.0) -> Scenario:
         """Normalizes a utility function to the given range
 
         Args:
@@ -267,10 +263,7 @@ class Scenario:
         self.ufuns = tuple(_.scale_min(to) for _ in self.ufuns)  # type: ignore The type is correct
         return self
 
-    def scale_max(
-        self,
-        to: float = 1.0,
-    ) -> Scenario:
+    def scale_max(self, to: float = 1.0) -> Scenario:
         """Normalizes a utility function to the given range
 
         Args:
@@ -283,10 +276,7 @@ class Scenario:
         self.ufuns = tuple(_.scale_max(to) for _ in self.ufuns)  # type: ignore The type is correct
         return self
 
-    def normalize(
-        self,
-        to: tuple[float, float] = (0.0, 1.0),
-    ) -> Scenario:
+    def normalize(self, to: tuple[float, float] = (0.0, 1.0)) -> Scenario:
         """Normalizes a utility function to the given range
 
         Args:
@@ -386,9 +376,10 @@ class Scenario:
                     us, outcomes=outcomes, sort_by_welfare=True
                 )
                 foutcomes_ = [outcomes[i] for i in findx]
-                fu[(u1.name, u2.name)], fo[(u1.name, u2.name)] = fu_, [
-                    outcomes[_] for _ in findx
-                ]
+                fu[(u1.name, u2.name)], fo[(u1.name, u2.name)] = (
+                    fu_,
+                    [outcomes[_] for _ in findx],
+                )
                 pts = nash_points((u1, u2), fu_, outcomes=outcomes)
                 nu[(u1.name, u2.name)], nindx = pts[0] if pts else (None, None)
                 no[(u1.name, u2.name)] = foutcomes_[nindx] if nindx else None
@@ -735,10 +726,7 @@ def load_genius_domain(
 
     issues = None
     if domain_file_name is not None:
-        issues, _ = issues_from_genius(
-            domain_file_name,
-            safe_parsing=safe_parsing,
-        )
+        issues, _ = issues_from_genius(domain_file_name, safe_parsing=safe_parsing)
 
     agent_info = []
     if utility_file_names is None:
@@ -818,12 +806,14 @@ def load_genius_domain_from_folder(
 
         Try loading and running a domain with predetermined agents:
         >>> domain = load_genius_domain_from_folder(
-        ...     pkg_resources.resource_filename('negmas', resource_name='tests/data/Laptop'))
+        ...     pkg_resources.resource_filename("negmas", resource_name="tests/data/Laptop")
+        ... )
 
 
         Try loading a domain and check the resulting ufuns
         >>> domain = load_genius_domain_from_folder(
-        ...     pkg_resources.resource_filename('negmas', resource_name='tests/data/Laptop'))
+        ...     pkg_resources.resource_filename("negmas", resource_name="tests/data/Laptop")
+        ... )
 
         >>> domain.n_issues, domain.n_negotiators
         (3, 2)
@@ -833,7 +823,7 @@ def load_genius_domain_from_folder(
 
         Try loading a domain forcing a single issue space
         >>> domain = load_genius_domain_from_folder(
-        ...     pkg_resources.resource_filename('negmas', resource_name='tests/data/Laptop')
+        ...     pkg_resources.resource_filename("negmas", resource_name="tests/data/Laptop")
         ... ).to_single_issue()
         >>> domain.n_issues, domain.n_negotiators
         (1, 2)
@@ -842,7 +832,9 @@ def load_genius_domain_from_folder(
 
 
         Try loading a domain with nonlinear ufuns:
-        >>> folder_name = pkg_resources.resource_filename('negmas', resource_name='tests/data/10issues')
+        >>> folder_name = pkg_resources.resource_filename(
+        ...     "negmas", resource_name="tests/data/10issues"
+        ... )
         >>> domain = load_genius_domain_from_folder(folder_name)
         >>> print(domain.n_issues)
         10
@@ -1058,10 +1050,7 @@ def load_geniusweb_domain(
     issues = None
     name = load(domain_file_name).get("name", domain_file_name)
     if domain_file_name is not None:
-        issues, _ = issues_from_geniusweb(
-            domain_file_name,
-            safe_parsing=safe_parsing,
-        )
+        issues, _ = issues_from_geniusweb(domain_file_name, safe_parsing=safe_parsing)
 
     agent_info = []
     if utility_file_names is None:

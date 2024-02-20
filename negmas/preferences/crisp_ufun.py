@@ -1,5 +1,4 @@
 from __future__ import annotations
-
 import math
 import random
 from abc import abstractmethod
@@ -14,9 +13,7 @@ from negmas.outcomes.protocols import OutcomeSpace
 
 from .base_ufun import BaseUtilityFunction, _ExtremelyDynamic
 
-__all__ = [
-    "UtilityFunction",
-]
+__all__ = ["UtilityFunction"]
 
 T = TypeVar("T", bound="UtilityFunction")
 
@@ -50,18 +47,21 @@ class UtilityFunction(_ExtremelyDynamic, BaseUtilityFunction):
         Examples:
 
             >>> from negmas.preferences import conflict_level
-            >>> u1, u2 = UtilityFunction.generate_bilateral(outcomes=10, conflict_level=0.0
-            ...                                             , conflict_delta=0.0)
+            >>> u1, u2 = UtilityFunction.generate_bilateral(
+            ...     outcomes=10, conflict_level=0.0, conflict_delta=0.0
+            ... )
             >>> print(conflict_level(u1, u2, outcomes=10))
             0.0
 
-            >>> u1, u2 = UtilityFunction.generate_bilateral(outcomes=10, conflict_level=1.0
-            ...                                             , conflict_delta=0.0)
+            >>> u1, u2 = UtilityFunction.generate_bilateral(
+            ...     outcomes=10, conflict_level=1.0, conflict_delta=0.0
+            ... )
             >>> print(conflict_level(u1, u2, outcomes=10))
             1.0
 
-            >>> u1, u2 = UtilityFunction.generate_bilateral(outcomes=10, conflict_level=0.5
-            ...                                             , conflict_delta=0.0)
+            >>> u1, u2 = UtilityFunction.generate_bilateral(
+            ...     outcomes=10, conflict_level=0.5, conflict_delta=0.0
+            ... )
             >>> 0.0 < conflict_level(u1, u2, outcomes=10) < 1.0
             True
 
@@ -163,10 +163,12 @@ class UtilityFunction(_ExtremelyDynamic, BaseUtilityFunction):
             )
         return ufuns
 
-    def is_not_worse(self, first: Outcome, second: Outcome) -> bool:
+    def is_not_worse(self, first: Outcome | None, second: Outcome | None) -> bool:
         return self.difference(first, second) >= 0
 
-    def difference_prob(self, first: Outcome, second: Outcome) -> Distribution:
+    def difference_prob(
+        self, first: Outcome | None, second: Outcome | None
+    ) -> Distribution:
         """
         Returns a numeric difference between the utility of the two given outcomes
         """

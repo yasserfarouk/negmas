@@ -1,5 +1,4 @@
 from __future__ import annotations
-
 from typing import (
     TYPE_CHECKING,
     Collection,
@@ -74,10 +73,7 @@ class OutcomeSpace(Container, Protocol):
         ...
 
     def sample(
-        self,
-        n_outcomes: int,
-        with_replacement: bool = False,
-        fail_if_not_enough=False,
+        self, n_outcomes: int, with_replacement: bool = False, fail_if_not_enough=False
     ) -> Iterable[Outcome]:
         """Samples up to n_outcomes with or without replacement"""
         ...
@@ -92,9 +88,7 @@ class OutcomeSpace(Container, Protocol):
         ...
 
     def cardinality_if_discretized(
-        self,
-        levels: int,
-        max_cardinality: int | float = float("inf"),
+        self, levels: int, max_cardinality: int | float = float("inf")
     ) -> int:
         """
         Returns the cardinality if discretized the given way.
@@ -162,10 +156,7 @@ class DiscreteOutcomeSpace(OutcomeSpace, Collection, Protocol):
         ...
 
     def sample(
-        self,
-        n_outcomes: int,
-        with_replacement: bool = False,
-        fail_if_not_enough=True,
+        self, n_outcomes: int, with_replacement: bool = False, fail_if_not_enough=True
     ) -> Iterable[Outcome]:
         ...
 

@@ -1,5 +1,4 @@
 from __future__ import annotations
-
 import itertools
 import random
 import time
@@ -355,9 +354,7 @@ def test_neg_run_sync(n_negotiators):
     mechanisms, edge_names = [], []
     for _ in range(n_negotiators):
         mechanism = SAOMechanism(
-            outcomes=n_outcomes,
-            n_steps=n_steps,
-            ignore_negotiator_exceptions=True,
+            outcomes=n_outcomes, n_steps=n_steps, ignore_negotiator_exceptions=True
         )
         ufuns = MappingUtilityFunction.generate_random(
             2, outcomes=mechanism.discrete_outcomes()
@@ -593,11 +590,7 @@ def test_pickling_mechanism(tmp_path):
 
     file = tmp_path / "mechanism.pck"
     n_outcomes, n_negotiators = 5, 3
-    mechanism = SAOMechanism(
-        outcomes=n_outcomes,
-        n_steps=3,
-        offering_is_accepting=True,
-    )
+    mechanism = SAOMechanism(outcomes=n_outcomes, n_steps=3, offering_is_accepting=True)
     ufuns = MappingUtilityFunction.generate_random(n_negotiators, outcomes=n_outcomes)
     for i in range(n_negotiators):
         mechanism.add(AspirationNegotiator(name=f"agent{i}"), preferences=ufuns[i])
@@ -623,11 +616,7 @@ def test_pickling_mechanism(tmp_path):
 def test_checkpointing_mechanism(tmp_path):
     file = tmp_path
     n_outcomes, n_negotiators = 5, 3
-    mechanism = SAOMechanism(
-        outcomes=n_outcomes,
-        n_steps=3,
-        offering_is_accepting=True,
-    )
+    mechanism = SAOMechanism(outcomes=n_outcomes, n_steps=3, offering_is_accepting=True)
     ufuns = MappingUtilityFunction.generate_random(n_negotiators, outcomes=n_outcomes)
     for i in range(n_negotiators):
         mechanism.add(AspirationNegotiator(name=f"agent{i}"), preferences=ufuns[i])
@@ -709,11 +698,7 @@ def test_single_agreement_gets_one_agreement(n_negs, strict):
     c = SAOSingleAgreementRandomController(strict=strict)
 
     negs = tuple(
-        SAOMechanism(
-            outcome_space=os,
-            n_steps=50,
-            end_on_no_response=False,
-        )
+        SAOMechanism(outcome_space=os, n_steps=50, end_on_no_response=False)
         for _ in range(n_negs)
     )
     for i, neg in enumerate(negs):
@@ -767,22 +752,9 @@ def test_loops_are_broken(keep_order):
         ),
     )
 
-    n1 = SAOMechanism(
-        name="ab",
-        issues=issues,
-        n_steps=50,
-    )
-    n2 = SAOMechanism(
-        name="ac",
-        issues=issues,
-        n_steps=50,
-    )
-    n3 = SAOMechanism(
-        name="bc",
-        issues=issues,
-        n_steps=50,
-        end_on_no_response=False,
-    )
+    n1 = SAOMechanism(name="ab", issues=issues, n_steps=50)
+    n2 = SAOMechanism(name="ac", issues=issues, n_steps=50)
+    n3 = SAOMechanism(name="bc", issues=issues, n_steps=50, end_on_no_response=False)
 
     n1.add(a.create_negotiator(name="a>b"))
     n1.add(b.create_negotiator(name="b>a"))
@@ -798,9 +770,7 @@ def test_loops_are_broken(keep_order):
     # TODO check why sometimes we get no agreements when order is not kept
 
 
-@given(
-    typ=st.sampled_from(NEGTYPES),
-)
+@given(typ=st.sampled_from(NEGTYPES))
 def test_can_create_all_negotiator_types(typ):
     issues = [make_issue((0.0, 1.0), name="price"), make_issue(10, name="quantity")]
     params = dict(
@@ -939,17 +909,13 @@ def test_no_limits_raise_warning():
 
 
 @given(
-    n_steps=st.integers(10, 11),
-    n_waits=st.integers(0, 4),
-    n_waits2=st.integers(0, 4),
+    n_steps=st.integers(10, 11), n_waits=st.integers(0, 4), n_waits2=st.integers(0, 4)
 )
 @settings(deadline=20000, max_examples=100)
 def test_single_mechanism_history_with_waiting(n_steps, n_waits, n_waits2):
     n_outcomes, waste = 5, (0.0, 0.3)
     mechanism = SAOMechanism(
-        outcomes=n_outcomes,
-        n_steps=n_steps,
-        ignore_negotiator_exceptions=False,
+        outcomes=n_outcomes, n_steps=n_steps, ignore_negotiator_exceptions=False
     )
     assert mechanism.outcomes
     ufuns = MappingUtilityFunction.generate_random(2, outcomes=mechanism.outcomes)
@@ -1192,10 +1158,7 @@ def test_times_are_calculated(n_outcomes, n_negotiators, n_steps):
 def test_aspiration_continuous_issues(n_negotiators, n_issues, presort, stochastic):
     issues = [make_issue(values=(0.0, 1.0), name=f"i{i}") for i in range(n_issues)]
     for _ in range(5):
-        mechanism = SAOMechanism(
-            issues=issues,
-            n_steps=10,
-        )
+        mechanism = SAOMechanism(issues=issues, n_steps=10)
         ufuns = [
             LinearUtilityFunction(
                 issues=issues,
@@ -1216,9 +1179,7 @@ def test_aspiration_continuous_issues(n_negotiators, n_issues, presort, stochast
         for i in range(1, n_negotiators):
             assert mechanism.add(
                 AspirationNegotiator(
-                    name=f"agent{i}",
-                    presort=presort,
-                    stochastic=stochastic,
+                    name=f"agent{i}", presort=presort, stochastic=stochastic
                 ),
                 preferences=ufuns[i],
             ), "Cannot add negotiator"
@@ -1275,10 +1236,7 @@ def test_auto_checkpoint(tmp_path, single_checkpoint, checkpoint_every, exist_ok
     ufuns = MappingUtilityFunction.generate_random(n_negotiators, outcomes=n_outcomes)
     for i in range(n_negotiators):
         mechanism.add(
-            AspirationNegotiator(
-                name=f"agent{i}",
-                aspiration_type="conceder",
-            ),
+            AspirationNegotiator(name=f"agent{i}", aspiration_type="conceder"),
             preferences=ufuns[i],
         )
 
@@ -1396,7 +1354,7 @@ def _run_neg(agents, utils, outcome_space):
         ), f"Did not start with its best offer {best} (u = {u(best)}) but used {offers[0]} (u = {u(offers[0])})"
         if isinstance(a, AspirationNegotiator):
             for i, offer in enumerate(_ for _ in offers):
-                assert i == 0 or u(offer) <= u(offers[i - 1]), f"Not always conceding"
+                assert i == 0 or u(offer) <= u(offers[i - 1]), "Not always conceding"
                 # if not(i == 0 or u(offer) <= u(offers[i - 1])):
                 #     import matplotlib.pyplot as plt
                 #     neg.plot()

@@ -1,3 +1,4 @@
+# ruff: noqa: F403
 import negmas.gb.negotiators.war as _n
 from negmas.gb.negotiators.war import *
 

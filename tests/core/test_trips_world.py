@@ -1,16 +1,13 @@
 from __future__ import annotations
-
 from abc import ABC, abstractmethod
 from collections import defaultdict
 from random import randint, random, sample, shuffle
-from typing import Any, Callable, Collection, Dict, List, Optional, Set
+from typing import Any, Callable, Collection
 
 import numpy as np
 
 from negmas import MechanismState, Negotiator, NegotiatorMechanismInterface
-from negmas.gb.negotiators.base import GBNegotiator
 from negmas.outcomes import Issue, dict2outcome, make_issue
-from negmas.outcomes.common import Outcome
 from negmas.preferences import LinearUtilityFunction, UtilityFunction
 from negmas.sao.negotiators import RandomNegotiator, SAONegotiator
 from negmas.serialization import to_flat_dict

@@ -1,5 +1,4 @@
 from __future__ import annotations
-
 from random import choice, random
 from typing import TYPE_CHECKING
 
@@ -26,10 +25,7 @@ class ProbRandomUtilityFunction(StationaryMixin, ProbUtilityFunction):
         *args,
         **kwargs,
     ):
-        super().__init__(
-            *args,
-            **kwargs,
-        )
+        super().__init__(*args, **kwargs)
         self._cache: dict[Outcome | None, tuple[float, float, str]] = dict()
         self._types = [types] if isinstance(types, str) else types
         self._loc_scale = locs[1] - locs[0]

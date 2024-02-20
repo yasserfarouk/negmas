@@ -1,5 +1,4 @@
 from __future__ import annotations
-
 import itertools
 import math
 from random import sample
@@ -10,7 +9,6 @@ import numpy as np
 from negmas.negotiators import Negotiator
 
 from ..outcomes.issue_ops import sample_issues
-from .negotiator import Negotiator
 
 if TYPE_CHECKING:
     from ..common import Value
@@ -75,7 +73,7 @@ class RealComparatorNegotiator(Negotiator):
             or a probability distribution over the same range.
         """
         if not self.preferences:
-            raise ValueError(f"Cannot compare outcomes. I have no preferences")
+            raise ValueError("Cannot compare outcomes. I have no preferences")
         return self.preferences.difference(first, second)  # type: ignore
 
     def is_better(self, first: Outcome, second: Outcome) -> bool | None:
@@ -170,9 +168,7 @@ class NLevelsComparatorNegotiator(Negotiator):
         """
         if isinstance(scale, str):
             scale = dict(  # type: ignore
-                linear=lambda x: x,
-                log=math.log,
-                exp=math.exp,
+                linear=lambda x: x, log=math.log, exp=math.exp
             ).get(scale, None)
         if scale is None:
             raise ValueError(f"Unknown scale function {scale}")
@@ -321,7 +317,7 @@ class RankerWithWeightsNegotiator(Negotiator):
 
         """
         if not self.preferences:
-            raise ValueError(f"Has no preferences. Cannot rank")
+            raise ValueError("Has no preferences. Cannot rank")
         return self.preferences.rank_with_weights(outcomes, descending)  # type: ignore
 
     def is_better(
@@ -370,7 +366,7 @@ class RankerNegotiator(Negotiator):
 
         """
         if not self.preferences:
-            raise ValueError(f"Unknown preferences. Cannot rank")
+            raise ValueError("Unknown preferences. Cannot rank")
         return self.preferences.rank(outcomes, descending)  # type: ignore
 
     def is_better(
@@ -421,12 +417,12 @@ class SorterNegotiator(Negotiator):
 
         """
         if not self.has_preferences:
-            raise ValueError(f"Cannot sort outcomes. Unknown preferences")
+            raise ValueError("Cannot sort outcomes. Unknown preferences")
         ranks = self._preferences.argrank(outcomes, descending)  # type: ignore
         ranks = list(itertools.chain(*tuple(ranks)))
         original = [_ for _ in outcomes]
         for i in range(len(outcomes)):
-            if ranks[i] == None:
+            if ranks[i] is None:
                 outcomes[i] = None
                 continue
             outcomes[i] = original[ranks[i]]  # type: ignore

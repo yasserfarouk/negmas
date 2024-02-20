@@ -1,7 +1,7 @@
+from __future__ import annotations
 import hypothesis.strategies as st
 import pytest
 from hypothesis import example, given
-from rich import print
 
 from negmas.outcomes import make_issue, make_os
 from negmas.preferences.crisp.mapping import MappingUtilityFunction
@@ -108,8 +108,10 @@ def test_inv_matches_bruteforce_outcome_at(rational_only, nissues, nvalues, r):
         assert fo == fb or (
             ufun(fo) < ufun.reserved_value and ufun(fb) < ufun.reserved_value
         )
-        fu, bu = fast.utility_at(indx), brute.utility_at(indx) or (
-            ufun(fo) < ufun.reserved_value and ufun(fb) < ufun.reserved_value
+        fu, bu = (
+            fast.utility_at(indx),
+            brute.utility_at(indx)
+            or (ufun(fo) < ufun.reserved_value and ufun(fb) < ufun.reserved_value),
         )
         assert (
             abs(fu - bu) < 1e-6

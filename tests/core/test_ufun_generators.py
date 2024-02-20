@@ -1,3 +1,4 @@
+from __future__ import annotations
 import random
 
 from hypothesis import example, given
@@ -32,11 +33,7 @@ def dominates(x, y):
     n_segments_min=st.integers(1, 10),
     n_segments_range=st.integers(0, 10),
 )
-@example(
-    n_pareto=2,
-    n_segments_min=2,
-    n_segments_range=1,
-)
+@example(n_pareto=2, n_segments_min=2, n_segments_range=1)
 def test_make_piecewise_pareto2(n_pareto, n_segments_min, n_segments_range):
     make_piecewise_linear_pareto(
         n_pareto,
@@ -92,10 +89,7 @@ def test_make_endpoints(n_segments):
         prev = point
 
 
-@given(
-    n_segments=st.integers(0, 100),
-    n_outcomes=st.integers(0, 100),
-)
+@given(n_segments=st.integers(0, 100), n_outcomes=st.integers(0, 100))
 @example(n_segments=3, n_outcomes=2)
 def test_make_pareto(n_segments, n_outcomes):
     points = make_pareto(make_endpoints(n_segments), n_outcomes)
@@ -127,9 +121,7 @@ def test_make_non_pareto(n_segments, n_pareto, n_non):
         assert any(dominates(x, non_pareto) for x in pareto_points)
 
 
-@given(
-    n_pareto=st.integers(1, 100),
-)
+@given(n_pareto=st.integers(1, 100))
 def test_make_zero_sum_pareto(n_pareto):
     points = make_zero_sum_pareto(n_pareto)
     assert len(points) == n_pareto
@@ -142,10 +134,7 @@ def test_make_zero_sum_pareto(n_pareto):
             )
 
 
-@given(
-    n_segments=st.integers(0, 100),
-    n_pareto=st.integers(1, 100),
-)
+@given(n_segments=st.integers(0, 100), n_pareto=st.integers(1, 100))
 def test_make_piecewise_pareto(n_pareto, n_segments):
     points = make_piecewise_linear_pareto(n_pareto, n_segments=n_segments)
     assert len(points) == n_pareto
@@ -158,10 +147,7 @@ def test_make_piecewise_pareto(n_pareto, n_segments):
             )
 
 
-@given(
-    shape=st.floats(1e-3, 5.0),
-    n_pareto=st.integers(1, 100),
-)
+@given(shape=st.floats(1e-3, 5.0), n_pareto=st.integers(1, 100))
 def test_make_curve_pareto(n_pareto, shape):
     pareto = make_curve_pareto(n_pareto, shape=shape)
     assert len(pareto) == n_pareto
@@ -240,7 +226,7 @@ def test_generate_singleissue_utility_values_example(
         (MappingUtilityFunction, str, False, False),
     ],
 )
-def test_generate_multiissue_utility_values_example(
+def test_generate_multiissue_utility_values_example2(
     ufun_type, val_type, numeric, linear
 ):
     ufuns = generate_multi_issue_ufuns(

@@ -1,5 +1,4 @@
 from __future__ import annotations
-
 from ..components.acceptance import (
     AcceptAnyRational,
     AcceptBetterRational,
@@ -8,11 +7,7 @@ from ..components.acceptance import (
 from ..components.offering import WAROfferingPolicy
 from .modular.mapneg import MAPNegotiator
 
-__all__ = [
-    "WABNegotiator",
-    "WARNegotiator",
-    "WANNegotiator",
-]
+__all__ = ["WABNegotiator", "WARNegotiator", "WANNegotiator"]
 
 
 class WABNegotiator(MAPNegotiator):

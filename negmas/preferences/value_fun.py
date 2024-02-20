@@ -61,10 +61,10 @@ class BaseFun(ABC):
         if isinstance(d, cls):
             return d
         _ = d.pop(PYTHON_CLASS_IDENTIFIER, None)
-        return cls(**deserialize(d))  # type: ignore Concrete classes will have constructor params
+        return cls(**deserialize(d))
 
     def to_dict(self) -> dict[str, Any]:
-        return serialize(asdict(self))  # type: ignore
+        return serialize(asdict(self))
 
     def min(self, input: Issue) -> float:
         mn, _ = self.minmax(input)
@@ -79,8 +79,11 @@ class BaseFun(ABC):
 class TableFun(BaseFun):
     mapping: dict
 
-    @lru_cache
     def minmax(self, input: Issue) -> tuple[float, float]:
+        return self._minmax(input)
+
+    @lru_cache
+    def _minmax(self, input: Issue) -> tuple[float, float]:
         return nonmonotonic_minmax(input, self)
 
     def shift_by(self, offset: float) -> TableFun:
@@ -106,7 +109,7 @@ class TableFun(BaseFun):
             else "discrete"
         )
         output = f'<issue index="{indx+1}" etype="{dtype}" type="{dtype}" vtype="{vtype}" name="{issue_name}">\n'
-        vals = issue.all  # type: ignore
+        vals = issue.all
         for i, issue_value in enumerate(vals):
             uu = self(issue_value) + bias
             output += (
@@ -124,8 +127,11 @@ class AffineFun(BaseFun):
     slope: float
     bias: float = 0
 
-    @lru_cache
     def minmax(self, input: Issue) -> tuple[float, float]:
+        return self._minmax(input)
+
+    @lru_cache
+    def _minmax(self, input: Issue) -> tuple[float, float]:
         return monotonic_minmax(input, self)
 
     def shift_by(self, offset: float) -> AffineFun:
@@ -158,8 +164,12 @@ class AffineFun(BaseFun):
 class ConstFun(BaseFun):
     bias: float
 
-    @lru_cache
     def minmax(self, input: Issue) -> tuple[float, float]:
+        _ = input
+        return self._minmax(input)
+
+    @lru_cache
+    def _minmax(self, input: Issue) -> tuple[float, float]:
         _ = input
         return (self.bias, self.bias)
 
@@ -185,8 +195,11 @@ class LinearFun(BaseFun):
     def bias(sef):
         return 0.0
 
-    @lru_cache
     def minmax(self, input: Issue) -> tuple[float, float]:
+        return self._minmax(input)
+
+    @lru_cache
+    def _minmax(self, input: Issue) -> tuple[float, float]:
         return monotonic_minmax(input, self)
 
     def shift_by(self, offset: float) -> AffineFun:
@@ -232,7 +245,7 @@ class LambdaFun(BaseFun):
         # correctly be serialized
         if not is_lambda_function(self.f):
             f = self.f
-            self.f = lambda x: f(x)
+            object.__setattr__(self, "f", lambda x: f(x))
 
     def minmax(self, input) -> tuple[float, float]:
         if self.min_value is not None and self.max_value is not None:
@@ -266,13 +279,11 @@ class LambdaFun(BaseFun):
 
     def xml(self, indx: int, issue: Issue, bias=0.0) -> str:
         if issue.is_discrete():
-            values = list(issue.all)  # type: ignore (I know it is discrete)
+            values = list(issue.all)
             return TableFun(dict(zip(values, [self(_) for _ in values]))).xml(
                 indx, issue, bias
             )
-        raise ValueError(
-            f"LambdaFun with a continuous issue cannot be converted to XML"
-        )
+        raise ValueError("LambdaFun with a continuous issue cannot be converted to XML")
 
     def __call__(self, x: Any) -> float:
         return self.f(x) + self.bias
@@ -284,8 +295,11 @@ class QuadraticFun(BaseFun):
     a1: float
     bias: float = 0
 
-    @lru_cache
     def minmax(self, input) -> tuple[float, float]:
+        return self._minmax(input)
+
+    @lru_cache
+    def _minmax(self, input) -> tuple[float, float]:
         mn, mx = input.min_value, input.max_value
         middle = -self.a1 / (2 * self.a2)
         fmn, fmx = self(mn), self(mx)
@@ -295,7 +309,7 @@ class QuadraticFun(BaseFun):
             return fmx, fmn
         if fmn > fmx:
             fmn = fmx
-        fmiddle = self(middle)  # type: ignore
+        fmiddle = self(middle)
         if fmn < fmiddle:
             return fmn, fmiddle
         return fmiddle, fmn
@@ -317,7 +331,7 @@ class QuadraticFun(BaseFun):
             output = f'<issue index="{indx + 1}" etype="integer" type="integer" vtype="integer" name="{issue_name}">\n'
             output += f'    <evaluator ftype="quadratic" parameter0="{bias+self.bias}" parameter1="{self.a1} parameter2={self.a2}"></evaluator>\n'
         else:
-            vals = list(issue.all)  # type: ignore
+            vals = list(issue.all)
             return TableFun(dict(zip(vals, [self(_) for _ in vals]))).xml(
                 indx, issue, bias
             )
@@ -330,11 +344,15 @@ class QuadraticFun(BaseFun):
 
 @define(frozen=True)
 class PolynomialFun(BaseFun):
-    coefficients: tuple[float]
+    coefficients: tuple[float, ...]
     bias: float = 0
 
-    @lru_cache
     def minmax(self, input) -> tuple[float, float]:
+        # todo: implement this exactly without sampling
+        return self._minmax(input)
+
+    @lru_cache
+    def _minmax(self, input) -> tuple[float, float]:
         # todo: implement this exactly without sampling
         return nonmonotonic_minmax(input, self)
 
@@ -364,7 +382,7 @@ class PolynomialFun(BaseFun):
 
             output += "></evaluator>\n"
         else:
-            vals = list(issue.all)  # type: ignore
+            vals = list(issue.all)
             return TableFun(dict(zip(vals, [self(_) for _ in vals]))).xml(
                 indx, issue, bias
             )
@@ -397,8 +415,12 @@ class TriangularFun(BaseFun):
             end=self.end * scale,
         )
 
-    @lru_cache
     def minmax(self, input) -> tuple[float, float]:
+        # todo: implement this exactly without sampling
+        return self._minmax(input)
+
+    @lru_cache
+    def _minmax(self, input) -> tuple[float, float]:
         # todo: implement this exactly without sampling
         return nonmonotonic_minmax(input, self)
 
@@ -413,7 +435,7 @@ class TriangularFun(BaseFun):
             output = f'<issue index="{indx + 1}" etype="integer" type="integer" vtype="integer" name="{issue_name}">\n'
             output += f'    <evaluator ftype="triangular" parameter0="{self.start}" parameter1="{self.end} parameter2={self.middle}"></evaluator>\n'
         else:
-            vals = list(issue.all)  # type: ignore
+            vals = list(issue.all)
             return TableFun(dict(zip(vals, [self(_) for _ in vals]))).xml(
                 indx, issue, bias
             )
@@ -434,8 +456,11 @@ class ExponentialFun(BaseFun):
     bias: float = 0
     base: float = e
 
-    @lru_cache
     def minmax(self, input) -> tuple[float, float]:
+        return self._minmax(input)
+
+    @lru_cache
+    def _minmax(self, input) -> tuple[float, float]:
         return monotonic_minmax(input, self)
 
     def shift_by(self, offset: float) -> ExponentialFun:
@@ -455,7 +480,7 @@ class ExponentialFun(BaseFun):
             output = f'<issue index="{indx + 1}" etype="integer" type="integer" vtype="integer" name="{issue_name}">\n'
             output += f'    <evaluator ftype="exponential" parameter0="{bias+self.bias}" parameter1="{self.tau} parameter2={self.base}"></evaluator>\n'
         else:
-            vals = list(issue.all)  # type: ignore
+            vals = list(issue.all)
             return TableFun(dict(zip(vals, [self(_) for _ in vals]))).xml(
                 indx, issue, bias
             )
@@ -473,8 +498,12 @@ class CosFun(BaseFun):
     phase: float = 0.0
     amplitude: float = 1.0
 
-    @lru_cache
     def minmax(self, input) -> tuple[float, float]:
+        # todo: implement this exactly without sampling
+        return self._minmax(input)
+
+    @lru_cache
+    def _minmax(self, input) -> tuple[float, float]:
         # todo: implement this exactly without sampling
         return nonmonotonic_minmax(input, self)
 
@@ -503,7 +532,7 @@ class CosFun(BaseFun):
             output = f'<issue index="{indx + 1}" etype="integer" type="integer" vtype="integer" name="{issue_name}">\n'
             output += f'    <evaluator ftype="cos" parameter0="{bias+self.bias}" parameter1="{self.amplitude} parameter2={self.multiplier} parameter3={self.phase}"></evaluator>\n'
         else:
-            vals = list(issue.all)  # type: ignore
+            vals = list(issue.all)
             return TableFun(dict(zip(vals, [self(_) for _ in vals]))).xml(
                 indx, issue, bias
             )
@@ -521,8 +550,12 @@ class SinFun(BaseFun):
     phase: float = 0.0
     amplitude: float = 1.0
 
-    @lru_cache
     def minmax(self, input) -> tuple[float, float]:
+        # todo: implement this exactly without sampling
+        return self._minmax(input)
+
+    @lru_cache
+    def _minmax(self, input) -> tuple[float, float]:
         # todo: implement this exactly without sampling
         return nonmonotonic_minmax(input, self)
 
@@ -551,7 +584,7 @@ class SinFun(BaseFun):
             output = f'<issue index="{indx + 1}" etype="integer" type="integer" vtype="integer" name="{issue_name}">\n'
             output += f'    <evaluator ftype="sin" parameter0="{bias+self.bias}" parameter1="{self.amplitude} parameter2={self.multiplier} parameter3={self.phase}"></evaluator>\n'
         else:
-            vals = list(issue.all)  # type: ignore
+            vals = list(issue.all)
             return TableFun(dict(zip(vals, [self(_) for _ in vals]))).xml(
                 indx, issue, bias
             )
@@ -569,8 +602,11 @@ class LogFun(BaseFun):
     base: float = e
     scale: float = 1.0
 
-    @lru_cache
     def minmax(self, input) -> tuple[float, float]:
+        return self._minmax(input)
+
+    @lru_cache
+    def _minmax(self, input) -> tuple[float, float]:
         return monotonic_minmax(input, self)
 
     def shift_by(self, offset: float) -> LogFun:
@@ -595,7 +631,7 @@ class LogFun(BaseFun):
             output = f'<issue index="{indx + 1}" etype="integer" type="integer" vtype="integer" name="{issue_name}">\n'
             output += f'    <evaluator ftype="log" parameter0="{bias+self.bias}" parameter1="{self.tau} parameter2={self.base} parameter3={self.scale}"></evaluator>\n'
         else:
-            vals = list(issue.all)  # type: ignore
+            vals = list(issue.all)
             return TableFun(dict(zip(vals, [self(_) for _ in vals]))).xml(
                 indx, issue, bias
             )
@@ -610,8 +646,11 @@ class LogFun(BaseFun):
 class TableMultiFun(MultiIssueFun):
     mapping: dict[tuple, Any]
 
-    @lru_cache
     def minmax(self, input: Iterable[Issue]) -> tuple[float, float]:
+        return self._minmax(input)
+
+    @lru_cache
+    def _minmax(self, input: Iterable[Issue]) -> tuple[float, float]:
         return nonmonotonic_multi_minmax(input, self)
 
     def shift_by(self, offset: float) -> TableMultiFun:
@@ -626,6 +665,7 @@ class TableMultiFun(MultiIssueFun):
             d[k] = self.mapping[k] * scale
         return TableMultiFun(d)
 
+    @property
     def dim(self) -> int:
         if not len(self.mapping):
             raise ValueError("Unkonwn dictionary in TableMultiFun")
@@ -730,12 +770,10 @@ class LambdaMultiFun(MultiIssueFun):
 def make_fun_from_xml(item) -> tuple[BaseFun, str]:
     if item.attrib["ftype"] == "linear":
         offset = item.attrib.get(
-            "offset",
-            item.attrib.get("parameter0", item.attrib.get("offset", 0.0)),
+            "offset", item.attrib.get("parameter0", item.attrib.get("offset", 0.0))
         )
         slope = item.attrib.get(
-            "slope",
-            item.attrib.get("parameter1", item.attrib.get("slope", 1.0)),
+            "slope", item.attrib.get("parameter1", item.attrib.get("slope", 1.0))
         )
         offset, slope = float(offset), float(slope)
         if offset != 0:

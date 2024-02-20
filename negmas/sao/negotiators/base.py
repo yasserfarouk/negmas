@@ -1,14 +1,10 @@
 from __future__ import annotations
-
-from abc import abstractmethod
-from multiprocessing.process import current_process
 from typing import TYPE_CHECKING
 
-from negmas import Value
 from negmas.gb.negotiators.base import GBNegotiator
 from negmas.preferences.base_ufun import BaseUtilityFunction
 from negmas.preferences.preferences import Preferences
-from negmas.warnings import NegmasUnexpectedValueWarning, warn
+from negmas.warnings import warn
 
 from ...events import Notification
 from ...negotiators import Controller
@@ -19,9 +15,7 @@ if TYPE_CHECKING:
     from negmas.sao import SAOState
     from negmas.situated import Agent
 
-__all__ = [
-    "SAONegotiator",
-]
+__all__ = ["SAONegotiator"]
 
 
 class SAONegotiator(GBNegotiator):
@@ -187,7 +181,6 @@ class SAONegotiator(GBNegotiator):
               at least as good as the offer that it would have proposed (and above the reserved value).
 
         """
-        offer = state.current_offer
         if not state.running:
             warn(
                 f"{self.name} asked to respond to a negotiation that is not running:\n{state}"
@@ -230,9 +223,7 @@ class SAONegotiator(GBNegotiator):
                 source=state.current_proposer if state.current_proposer else "",
             )
         except TypeError:
-            response = self.respond_(
-                state=state,
-            )
+            response = self.respond_(state=state)
         if response != ResponseType.REJECT_OFFER:
             return SAOResponse(response, offer)
         return SAOResponse(response, self.propose_(state=state))

@@ -2,6 +2,7 @@
 """
 Extra helpers
 """
+
 from __future__ import annotations
 
 import itertools
@@ -113,8 +114,8 @@ def floatin(
         if x[0] == x[-1]:
             return x[0]
         if log_uniform:
-            l = [log(_) for _ in x]
-            return min(x[1], max(x[0], exp(random.random() * (l[1] - l[0]) + l[0])))
+            L = [log(_) for _ in x]
+            return min(x[1], max(x[0], exp(random.random() * (L[1] - L[0]) + L[0])))
 
         return random.random() * (x[1] - x[0]) + x[0]
     if isinstance(x, Sequence):
@@ -129,9 +130,9 @@ def intin(x: int | tuple[int, int] | Sequence[int], log_uniform: bool = False) -
         if x[0] == x[-1]:
             return int(x[0])
         if log_uniform:
-            l = [log(_) for _ in x]
+            L = [log(_) for _ in x]
             return min(
-                x[1], max(x[0], int(0.5 + exp(random.random() * (l[1] - l[0]) + l[0])))
+                x[1], max(x[0], int(0.5 + exp(random.random() * (L[1] - L[0]) + L[0])))
             )
 
         if x[0] == x[1]:
@@ -198,7 +199,7 @@ def make_callable(x: dict | Sequence | Callable | None) -> Callable:
 
     Examples:
 
-        >>> make_callable(lambda  x: 2 * x) (4)
+        >>> make_callable(lambda x: 2 * x)(4)
         8
 
         >>> make_callable(dict(a=1, b=3))("a")

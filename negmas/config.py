@@ -1,6 +1,6 @@
+"""Defines basic config for NEGMAS"""
 from __future__ import annotations
 
-"""Defines basic config for NEGMAS"""
 import json
 from os import environ
 from pathlib import Path
@@ -42,7 +42,7 @@ if __conf_path.exists():
     try:
         with open(__conf_path) as f:
             NEGMAS_CONFIG.update(json.load(f))
-    except:
+    except Exception:
         pass
 
 local_path = Path.cwd() / LOCAL_NEGMAS_CONFIG_FILENAME
@@ -50,7 +50,7 @@ if local_path.exists():
     try:
         with open(local_path) as f:
             NEGMAS_CONFIG.update(json.load(f))
-    except:
+    except Exception:
         pass
 
 

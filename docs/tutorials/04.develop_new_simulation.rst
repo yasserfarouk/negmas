@@ -689,7 +689,6 @@ unnecessary details from developers of agents targeting our
         ) -> None:
             pass
 
-
 The first thing, our abstract-base-class (ABC) does is defining the
 abstract methods that must be implemented by any agent that is
 compatible with the ``TripsWorld``.

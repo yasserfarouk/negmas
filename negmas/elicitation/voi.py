@@ -1,9 +1,7 @@
-from __future__ import annotations
-
 """
 Implements all Value-of-Information based elicitation methods.
-
 """
+from __future__ import annotations
 import copy
 import time
 from abc import abstractmethod
@@ -100,11 +98,7 @@ class BaseVOIElicitor(BaseElicitor):
         update_related_queries=True,
         **kwargs,
     ) -> None:
-        super().__init__(
-            strategy=strategy,
-            user=user,
-            **kwargs,
-        )
+        super().__init__(strategy=strategy, user=user, **kwargs)
         self.eeu_query = None
         self.query_index_of_outcome = None
         self.dynamic_query_set = dynamic_query_set
@@ -451,7 +445,7 @@ class VOIElicitor(BaseVOIElicitor):
                 for i in range(1, len(eup)):
                     try:
                         result += eup[0] * p[i]
-                    except:
+                    except Exception:
                         break
             except FloatingPointError:
                 result = 0.0
@@ -554,7 +548,7 @@ class VOIFastElicitor(BaseVOIElicitor):
             for i in range(1, len(eup)):
                 try:
                     s[i] = s[i - 1] + eup[0] * p[i]
-                except:
+                except Exception:
                     s[i:] = s[i - 1]
                     break
         self.current_eeu = round(s[-1], 6)
@@ -647,7 +641,7 @@ class VOINoUncertaintyElicitor(BaseVOIElicitor):
                 for i in range(1, len(eup)):
                     try:
                         result += eup[0] * p[i]
-                    except:
+                    except Exception:
                         break
             except FloatingPointError:
                 result[0] = 0.0
@@ -764,7 +758,7 @@ class VOIOptimalElicitor(BaseElicitor):
             return
         sk1, sk, pk = s[k - 1] if k > 0 else 0.0, s[k], p[k]
         for jp in range(k + 1):
-            sjp1, sjp = s[jp - 1] if jp > 0 else 0.0, s[jp]
+            sjp1, _sjp = s[jp - 1] if jp > 0 else 0.0, s[jp]
             if (
                 beta < eus[jp]
             ):  # ignore cases where it is impossible to go to this low j
@@ -783,7 +777,7 @@ class VOIOptimalElicitor(BaseElicitor):
                     else:
                         y = 0.0
                     z = sk1 - sk + m * (sjp1 - sk1)
-                    pjm1, pjp, pjm = p[jm + 1], p[jp], p[jm]
+                    pjm1, pjp, _pjm = p[jm + 1], p[jp], p[jm]
                     if jp < k < jm:  # Problem 1
                         a = (m2 * pjm1 - m * pjp) / (2 * delta)
                         b = (y - z) / delta
@@ -887,7 +881,7 @@ class VOIOptimalElicitor(BaseElicitor):
             for i in range(1, len(eup)):
                 try:
                     s[i] = s[i - 1] + eup[0] * p[i]
-                except:
+                except Exception:
                     s[i:] = s[i - 1]
                     break
         self.current_eeu = round(s[-1], 6)
@@ -905,7 +899,7 @@ class VOIOptimalElicitor(BaseElicitor):
         super().init_elicitation(preferences=preferences)
         if queries is not None:
             raise ValueError(
-                f"self.__class__.__name__ does not allow the user to specify queries"
+                "self.__class__.__name__ does not allow the user to specify queries"
             )
         strt_time = time.perf_counter()
         nmi = self._nmi

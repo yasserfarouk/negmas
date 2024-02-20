@@ -1,3 +1,4 @@
+# ruff: noqa: F403
 import negmas.gb.negotiators.titfortat as _n
 from negmas.gb.negotiators.titfortat import *
 

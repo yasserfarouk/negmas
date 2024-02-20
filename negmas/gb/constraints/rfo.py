@@ -1,5 +1,4 @@
 from __future__ import annotations
-
 import sys
 
 from attrs import define
@@ -14,11 +13,7 @@ __all__ = ["RepeatFinalOfferOnly"]
 class RepeatFinalOfferOnly(LocalOfferingConstraint):
     n: int = sys.maxsize
 
-    def __call__(
-        self,
-        state: ThreadState,
-        history: list[ThreadState],
-    ) -> bool:
+    def __call__(self, state: ThreadState, history: list[ThreadState]) -> bool:
         offer = state.new_offer
         if not offer:
             return False

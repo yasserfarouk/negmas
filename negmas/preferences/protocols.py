@@ -1,7 +1,7 @@
 from __future__ import annotations
-
 from abc import abstractmethod
 from os import PathLike
+from pathlib import Path
 from typing import TYPE_CHECKING, Any, Callable, Protocol, TypeVar, runtime_checkable
 
 from negmas.common import Distribution, Value
@@ -42,8 +42,48 @@ X = TypeVar("X", bound="XmlSerializable")
 
 
 @runtime_checkable
-class XmlSerializableUFun(XmlSerializable, Protocol):
+class XmlSerializableUFun(Protocol):
     """Can be serialized to XML format (compatible with GENIUS)"""
+
+    @classmethod
+    @abstractmethod
+    def from_xml_str(cls: type[X], xml_str: str, **kwargs) -> X:
+        """Imports a utility function from a GENIUS XML string.
+
+        Args:
+
+            xml_str (str): The string containing GENIUS style XML utility function definition
+
+        Returns:
+
+            A utility function object (depending on the input file)
+        """
+
+    @abstractmethod
+    def to_xml_str(self, **kwargs) -> str:
+        """Exports a utility function to a well formatted string"""
+
+    def to_genius(self, file_name: PathLike, **kwargs) -> None:
+        """
+        Exports a utility function to a GENIUS XML file.
+
+        Args:
+
+            file_name (str): File name to export to
+
+        Returns:
+
+            None
+
+        Remarks:
+            See ``to_xml_str`` for all the parameters
+
+        """
+        file_name = Path(file_name).absolute()
+        if file_name.suffix == "":
+            file_name = file_name.parent / f"{file_name.stem}.xml"
+        with open(file_name, "w") as f:
+            f.write(self.to_xml_str(**kwargs))
 
     @classmethod
     def from_genius(
@@ -629,8 +669,7 @@ class Fun(Protocol):
     def dim(self) -> int:
         ...
 
-    def minmax(self, input: Issue) -> tuple[float, float]:
-        # def minmax(self, input) -> Any:
+    def minmax(self, input) -> tuple[float, float]:
         ...
 
     @abstractmethod
@@ -667,10 +706,10 @@ class MultiIssueFun(Fun, Protocol):
     def dim(self) -> int:
         ...
 
-    def minmax(self, input: tuple[Issue]) -> tuple[float, float]:
+    def minmax(self, input: tuple[Issue, ...]) -> tuple[float, float]:
         ...
 
-    def shift_by(self, offset: float, change_bias: bool = False) -> MultiIssueFun:
+    def shift_by(self, offset: float) -> MultiIssueFun:
         ...
 
     def scale_by(self, scale: float) -> MultiIssueFun:
@@ -779,10 +818,7 @@ class Normalizable(Shiftable, Scalable, Protocol):
     """Can be normalized to a given range of values (default is 0-1)"""
 
     @abstractmethod
-    def normalize(
-        self: N,
-        to: tuple[float, float] = (0.0, 1.0),
-    ) -> N:
+    def normalize(self: N, to: tuple[float, float] = (0.0, 1.0)) -> N:
         ...
 
 

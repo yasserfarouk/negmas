@@ -1,6 +1,7 @@
 """
 Defines a world for running negotiations directly
 """
+
 from __future__ import annotations
 
 import logging
@@ -26,11 +27,7 @@ from negmas.situated import (
     World,
 )
 
-__all__ = [
-    "NegWorld",
-    "NegAgent",
-    "Condition",
-]
+__all__ = ["NegWorld", "NegAgent", "Condition"]
 
 
 class NegAgent(Agent):
@@ -331,7 +328,8 @@ class NegWorld(NoContractExecutionMixin, World):
         #     raise ValueError(f"Not all ufuns has a range!!!")
         if self._normalize_scores:
             self._preferences_ranges = [
-                u.minmax() for u in scenario.ufuns  # type: ignore We already check just above
+                u.minmax()
+                for u in scenario.ufuns  # type: ignore We already check just above
             ]
         partner_types = scenario.partner_types
         partner_params = scenario.partner_params

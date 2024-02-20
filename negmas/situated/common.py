@@ -1,5 +1,4 @@
 from __future__ import annotations
-
 from collections import namedtuple
 from enum import Enum
 from typing import TYPE_CHECKING, Any

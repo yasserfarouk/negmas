@@ -1,5 +1,4 @@
 from __future__ import annotations
-
 import time
 
 from ..common import MechanismState, Value
@@ -24,9 +23,7 @@ class DummyElicitor(BaseElicitor):
         return False
 
     def init_elicitation(
-        self,
-        preferences: IPUtilityFunction | Distribution | None,
-        **kwargs,
+        self, preferences: IPUtilityFunction | Distribution | None, **kwargs
     ):
         super().init_elicitation(preferences=preferences, **kwargs)
         strt_time = time.perf_counter()
@@ -50,9 +47,7 @@ class FullKnowledgeElicitor(BaseElicitor):
         return False
 
     def init_elicitation(
-        self,
-        preferences: IPUtilityFunction | Distribution | None,
-        **kwargs,
+        self, preferences: IPUtilityFunction | Distribution | None, **kwargs
     ):
         super().init_elicitation(preferences=self.user.ufun)
         strt_time = time.perf_counter()

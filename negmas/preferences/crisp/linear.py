@@ -1,8 +1,7 @@
 from __future__ import annotations
-
 import random
 from functools import lru_cache, partial
-from typing import Any, Callable, Iterable, Mapping
+from typing import Any, Callable, Iterable, Mapping, TYPE_CHECKING
 
 from negmas import warnings
 from negmas.helpers import get_full_type_name
@@ -19,6 +18,9 @@ from negmas.serialization import PYTHON_CLASS_IDENTIFIER, deserialize, serialize
 from ..crisp_ufun import UtilityFunction
 from ..mixins import StationaryMixin
 from ..value_fun import IdentityFun, LambdaFun, TableFun
+
+if TYPE_CHECKING:
+    from negmas.preferences.crisp.const import ConstUtilityFunction
 
 __all__ = [
     "LinearUtilityAggregationFunction",
@@ -65,10 +67,7 @@ def _random_mapping(issue: Issue, normalized=False):
     )
 
 
-class AffineUtilityFunction(
-    StationaryMixin,
-    UtilityFunction,
-):
+class AffineUtilityFunction(StationaryMixin, UtilityFunction):
     r"""
     An affine utility function for multi-issue negotiations.
 
@@ -94,11 +93,11 @@ class AffineUtilityFunction(
     Examples:
 
         >>> from negmas.outcomes import make_issue
-        >>> issues = [make_issue((10.0, 20.0), 'price'), make_issue(5, 'quality')]
+        >>> issues = [make_issue((10.0, 20.0), "price"), make_issue(5, "quality")]
         >>> print(list(map(str, issues)))
         ['price: (10.0, 20.0)', 'quality: (0, 4)']
-        >>> f = AffineUtilityFunction({'price': 1.0, 'quality': 4.0}, issues=issues)
-        >>> f((2, 14.0)) -  (2 * 1.0 + 14.0 * 4)
+        >>> f = AffineUtilityFunction({"price": 1.0, "quality": 4.0}, issues=issues)
+        >>> f((2, 14.0)) - (2 * 1.0 + 14.0 * 4)
         0.0
         >>> f = LinearUtilityFunction([1.0, 2.0])
         >>> f((2, 14)) - (2 * 1.0 + 14 * 2.0)
@@ -170,7 +169,7 @@ class AffineUtilityFunction(
     def values(self):
         return self._values
 
-    def eval(self, offer: Outcome | None) -> float | None:
+    def eval(self, offer: Outcome | None) -> float:
         if offer is None:
             return self.reserved_value
         return self._bias + sum(w * v for w, v in zip(self._weights, offer))
@@ -184,7 +183,7 @@ class AffineUtilityFunction(
         Examples:
 
             >>> from negmas.outcomes import make_issue
-            >>> issues = [make_issue(values=10, name='i1'), make_issue(values=4, name='i2')]
+            >>> issues = [make_issue(values=10, name="i1"), make_issue(values=4, name="i2")]
             >>> f = LinearUtilityFunction(weights=[1.0, 4.0], issues=issues)
             >>> print(f.xml(issues))
             <issue index="1" etype="discrete" type="discrete" vtype="integer" name="i1">
@@ -280,11 +279,7 @@ class AffineUtilityFunction(
     def to_dict(self):
         d = {PYTHON_CLASS_IDENTIFIER: get_full_type_name(type(self))}
         d.update(super().to_dict())
-        return dict(
-            **d,
-            weights=self._weights,
-            bias=self._bias,
-        )
+        return dict(**d, weights=self._weights, bias=self._bias)
 
     @classmethod
     def from_dict(cls, d: dict):
@@ -328,7 +323,7 @@ class AffineUtilityFunction(
         self,
         to: tuple[float, float] = (0.0, 1.0),
         outcome_space: OutcomeSpace | None = None,
-    ) -> ConstUtilityFunction | AffineUtilityFunction:  # type: ignore
+    ) -> ConstUtilityFunction | AffineUtilityFunction:
         """
         Creates a new utility function that is normalized based on input conditions.
 
@@ -346,7 +341,7 @@ class AffineUtilityFunction(
 
         if sum(self._weights) < epsilon:
             raise ValueError(
-                f"Cannot normalize a ufun with zero weights to have a non-zero range"
+                "Cannot normalize a ufun with zero weights to have a non-zero range"
             )
 
         if abs(mx - to[1]) < epsilon and abs(mn - to[0]) < epsilon:
@@ -359,9 +354,7 @@ class AffineUtilityFunction(
                 from negmas.preferences.crisp.const import ConstUtilityFunction
 
                 return ConstUtilityFunction(
-                    to[1],
-                    outcome_space=outcome_space,
-                    name=self.name,
+                    to[1], outcome_space=outcome_space, name=self.name
                 )
         else:
             scale = (to[1] - to[0]) / (mx - mn)
@@ -380,13 +373,21 @@ class AffineUtilityFunction(
         )
 
     def normalize(
-        self,
-        to: tuple[float, float] = (0.0, 1.0),
-    ) -> ConstUtilityFunction | AffineUtilityFunction | LinearUtilityFunction:  # type: ignore
+        self, to: tuple[float, float] = (0.0, 1.0), normalize_weights: bool = False
+    ) -> ConstUtilityFunction | AffineUtilityFunction | LinearUtilityFunction:
         return self.normalize_for(to, self.outcome_space)
 
-    @lru_cache
     def extreme_outcomes(
+        self,
+        outcome_space: OutcomeSpace | None = None,
+        issues: Iterable[Issue] | None = None,
+        outcomes: Iterable[Outcome] | None = None,
+        max_cardinality=1000,
+    ) -> tuple[Outcome, Outcome]:
+        return self._extreme_outcomes(outcome_space, issues, outcomes, max_cardinality)
+
+    @lru_cache
+    def _extreme_outcomes(
         self,
         outcome_space: OutcomeSpace | None = None,
         issues: list[Issue] | None = None,
@@ -420,7 +421,7 @@ class AffineUtilityFunction(
                 )
             if outcomes is not None:
                 warnings.warn(
-                    f"Passing outcomes and issues (or having known issues) to linear ufuns is redundant. The outcomes passed will be used which is much slower than if you do not pass them",
+                    "Passing outcomes and issues (or having known issues) to linear ufuns is redundant. The outcomes passed will be used which is much slower than if you do not pass them",
                     warnings.NegmasSpeedWarning,
                 )
                 return super().extreme_outcomes(
@@ -492,8 +493,7 @@ class LinearUtilityFunction(AffineUtilityFunction):
 
 
 class LinearAdditiveUtilityFunction(  # type: ignore
-    StationaryMixin,
-    UtilityFunction,
+    StationaryMixin, UtilityFunction
 ):
     r"""A linear aggregation utility function for multi-issue negotiations.
 
@@ -516,38 +516,54 @@ class LinearAdditiveUtilityFunction(  # type: ignore
     Examples:
 
         >>> from negmas.outcomes import dict2outcome, make_issue
-        >>> issues = [make_issue((10.0, 20.0), 'price'), make_issue(['delivered', 'not delivered'], 'delivery')
-        ...           , make_issue(5, 'quality')]
+        >>> issues = [
+        ...     make_issue((10.0, 20.0), "price"),
+        ...     make_issue(["delivered", "not delivered"], "delivery"),
+        ...     make_issue(5, "quality"),
+        ... ]
         >>> print(list(map(str, issues)))
         ['price: (10.0, 20.0)', "delivery: ['delivered', 'not delivered']", 'quality: (0, 4)']
         >>> f = LinearAdditiveUtilityFunction(
-        ...          {'price': lambda x: 2.0*x
-        ...            , 'delivery': {'delivered': 10, 'not delivered': -10}
-        ...            , 'quality': lambda x: x-3}
-        ...         , weights={'price': 1.0, 'delivery': 2.0, 'quality': 4.0}
-        ...         , issues=issues)
-        >>> float(f((2, 'delivered', 14.0)))
+        ...     {
+        ...         "price": lambda x: 2.0 * x,
+        ...         "delivery": {"delivered": 10, "not delivered": -10},
+        ...         "quality": lambda x: x - 3,
+        ...     },
+        ...     weights={"price": 1.0, "delivery": 2.0, "quality": 4.0},
+        ...     issues=issues,
+        ... )
+        >>> float(f((2, "delivered", 14.0)))
         68.0
 
         You can confirm this yourself by calculating the ufun manually:
 
-        >>> 68.0 ==  (1.0 * 2.0 * 2 + 2.0 * 10 + 4.0 * (14.0 - 3))
+        >>> 68.0 == (1.0 * 2.0 * 2 + 2.0 * 10 + 4.0 * (14.0 - 3))
         True
 
         Yout can use a dictionary to represent the outcome for more readability:
 
-        >>> float(f(dict2outcome(dict(price=2, quality=14, delivery='delivered'), issues=issues)))
+        >>> float(
+        ...     f(
+        ...         dict2outcome(
+        ...             dict(price=2, quality=14, delivery="delivered"), issues=issues
+        ...         )
+        ...     )
+        ... )
         68.0
 
         You can use lists instead of dictionaries for defining outcomes, weights
         but that is less readable. The advantage here is that you do not need to pass the issues
 
-        >>> f = LinearAdditiveUtilityFunction([
-        ...         lambda x: 2.0*x
-        ...          , {'delivered': 10, 'not delivered': -10}
-        ...          , LambdaFun(lambda x: x-3)]
-        ...         , weights=[1.0, 2.0, 4.0], issues=issues)
-        >>> float(f((14.0, 'delivered', 2)))
+        >>> f = LinearAdditiveUtilityFunction(
+        ...     [
+        ...         lambda x: 2.0 * x,
+        ...         {"delivered": 10, "not delivered": -10},
+        ...         LambdaFun(lambda x: x - 3),
+        ...     ],
+        ...     weights=[1.0, 2.0, 4.0],
+        ...     issues=issues,
+        ... )
+        >>> float(f((14.0, "delivered", 2)))
         44.0
 
     Remarks:
@@ -616,8 +632,8 @@ class LinearAdditiveUtilityFunction(  # type: ignore
                     or not self.issues[i].is_discrete()
                 ):
                     raise TypeError(
-                        f"When passing an iterable as the value function for an issue, "
-                        f"the issue MUST be discrete"
+                        "When passing an iterable as the value function for an issue, "
+                        "the issue MUST be discrete"
                     )
                 d = dict(zip(self.issues[i].enumerate(), v))  # type: ignore We know the issue is discrete
                 self.values.append(TableFun(d))
@@ -632,14 +648,14 @@ class LinearAdditiveUtilityFunction(  # type: ignore
     def weights(self):
         return self._weights
 
-    def eval(self, offer: Outcome | None) -> float | None:
+    def eval(self, offer: Outcome | None) -> float:
         if offer is None:
             return self.reserved_value
         u = self._bias
         for v, w, iu in zip(offer, self.weights, self.values):
             current_utility = iu(v)
             if current_utility is None:
-                return None
+                return float("nan")
 
             try:
                 u += w * current_utility
@@ -656,12 +672,20 @@ class LinearAdditiveUtilityFunction(  # type: ignore
         Examples:
 
             >>> from negmas.outcomes import make_issue
-            >>> issues = [make_issue(values=10, name='i1'), make_issue(values=['delivered', 'not delivered'], name='i2')
-            ...     , make_issue(values=4, name='i3')]
-            >>> f = LinearAdditiveUtilityFunction([lambda x: 2.0*x
-            ...                          , {'delivered': 10, 'not delivered': -10}
-            ...                          , LambdaFun(lambda x: x-3)]
-            ...         , weights=[1.0, 2.0, 4.0], issues=issues)
+            >>> issues = [
+            ...     make_issue(values=10, name="i1"),
+            ...     make_issue(values=["delivered", "not delivered"], name="i2"),
+            ...     make_issue(values=4, name="i3"),
+            ... ]
+            >>> f = LinearAdditiveUtilityFunction(
+            ...     [
+            ...         lambda x: 2.0 * x,
+            ...         {"delivered": 10, "not delivered": -10},
+            ...         LambdaFun(lambda x: x - 3),
+            ...     ],
+            ...     weights=[1.0, 2.0, 4.0],
+            ...     issues=issues,
+            ... )
             >>> print(f.xml(issues))
             <issue index="1" etype="discrete" type="discrete" vtype="integer" name="i1">
                 <item index="1" value="0" evaluation="0.0" />
@@ -718,11 +742,7 @@ class LinearAdditiveUtilityFunction(  # type: ignore
     def to_dict(self):
         d = {PYTHON_CLASS_IDENTIFIER: get_full_type_name(type(self))}
         d.update(super().to_dict())
-        return dict(
-            **d,
-            weights=self.weights,
-            values=serialize(self.values),
-        )
+        return dict(**d, weights=self.weights, values=serialize(self.values))
 
     @classmethod
     def from_dict(cls, d: dict):
@@ -733,8 +753,17 @@ class LinearAdditiveUtilityFunction(  # type: ignore
         d = deserialize(d, deep=True, remove_type_field=True)  # type: ignore
         return cls(**d)  # type: ignore I konw that d will be a dict with string keys
 
-    @lru_cache
     def extreme_outcomes(
+        self,
+        outcome_space: OutcomeSpace | None = None,
+        issues: Iterable[Issue] | None = None,
+        outcomes: Iterable[Outcome] | None = None,
+        max_cardinality=1000,
+    ) -> tuple[Outcome, Outcome]:
+        return self._extreme_outcomes(outcome_space, issues, outcomes, max_cardinality)
+
+    @lru_cache
+    def _extreme_outcomes(
         self,
         outcome_space: OutcomeSpace | None = None,
         issues: list[Issue] | None = None,
@@ -768,7 +797,7 @@ class LinearAdditiveUtilityFunction(  # type: ignore
             )
         if outcomes is not None:
             warnings.warn(
-                f"Passing outcomes and issues (or having known issues) to linear ufuns is redundant. The outcomes passed will be used which is much slower than if you do not pass them",
+                "Passing outcomes and issues (or having known issues) to linear ufuns is redundant. The outcomes passed will be used which is much slower than if you do not pass them",
                 warnings.NegmasSpeedWarning,
             )
             return super().extreme_outcomes(
@@ -821,7 +850,7 @@ class LinearAdditiveUtilityFunction(  # type: ignore
         if not issues and outcome_space:
             issues = outcome_space.issues
         if not issues:
-            raise ValueError(f"Cannot generate a random ufun withot knowing the issues")
+            raise ValueError("Cannot generate a random ufun withot knowing the issues")
 
         reserved_value = make_range(reserved_value)
 
@@ -883,7 +912,7 @@ class LinearAdditiveUtilityFunction(  # type: ignore
             raise ValueError(f"Cannot have a negative scale: {scale}")
         if change_weights_only and normalize_weights:
             raise ValueError(
-                f"Cannot normalize weights only and in the same time change weights only"
+                "Cannot normalize weights only and in the same time change weights only"
             )
 
         wscale = 1.0

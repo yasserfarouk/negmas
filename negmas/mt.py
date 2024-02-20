@@ -1,9 +1,8 @@
-from __future__ import annotations
-
 """
 Implements single text negotiation mechanisms
 """
 
+from __future__ import annotations
 import time
 from copy import deepcopy
 
@@ -14,9 +13,7 @@ from negmas.common import Action
 from .mechanisms import Mechanism, MechanismState, MechanismStepResult
 from .outcomes import Outcome
 
-__all__ = [
-    "VetoMTMechanism",
-]
+__all__ = ["VetoMTMechanism"]
 
 
 @define

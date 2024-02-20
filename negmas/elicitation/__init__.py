@@ -3,6 +3,7 @@
 The interface to all negotiators capable of eliciting user preferences before
 , and during negotiations.
 """
+
 from __future__ import annotations
 
 from .base import *

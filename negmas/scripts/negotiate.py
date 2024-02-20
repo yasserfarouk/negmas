@@ -96,7 +96,7 @@ def get_negotiator(class_name: str) -> type[Negotiator] | Callable[[str], Negoti
             class_name = titlecase(camel_case(class_name))
         try:
             return get_class(f"negmas.{class_name}")
-        except:
+        except Exception:
             if not class_name.endswith("Negotiator"):
                 class_name = f"{class_name}Negotiator"
             class_name = f"negmas.{class_name}"
@@ -254,7 +254,8 @@ def run(
 
     negotiator_names = shortest_unique_names(negotiators, guarantee_unique=True)
     agents = [
-        get_negotiator(_)(name=name) for _, name in zip(negotiators, negotiator_names, strict=True)  # type: ignore
+        get_negotiator(_)(name=name)
+        for _, name in zip(negotiators, negotiator_names, strict=True)  # type: ignore
     ]
     if len(agents) < 2:
         print(

@@ -1,12 +1,8 @@
-from __future__ import annotations
-
 from ...outcomes import Outcome
 from ..common import ResponseType, SAOState
 from .base import SAONegotiator
 
-__all__ = [
-    "ControlledSAONegotiator",
-]
+__all__ = ["ControlledSAONegotiator"]
 
 
 class ControlledSAONegotiator(SAONegotiator):
@@ -45,14 +41,7 @@ class ControlledSAONegotiator(SAONegotiator):
         if self._Negotiator__parent:  # type: ignore
             return self._Negotiator__parent.on_negotiation_end(self.id, state)  # type: ignore
 
-    def join(
-        self,
-        nmi,
-        state,
-        *,
-        preferences=None,
-        role="negotiator",
-    ) -> bool:
+    def join(self, nmi, state, *, preferences=None, role="negotiator") -> bool:
         """
         Joins a negotiation.
 

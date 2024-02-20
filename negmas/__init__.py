@@ -1,6 +1,6 @@
 # -*- coding: utf-8 -*-
 """A framework for conducting multi-strand multilateral asynchronous negotiations on multiple issues."""
-from __future__ import annotations
+
 
 __author__ = """Yasser Mohammad"""
 __email__ = "yasserfarouk@gmail.com"

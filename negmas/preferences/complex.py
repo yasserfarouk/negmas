@@ -1,5 +1,4 @@
 from __future__ import annotations
-
 import random
 from typing import Any, Callable, Iterable
 
@@ -118,9 +117,7 @@ class WeightedUtilityFunction(_DependenceMixin, BaseUtilityFunction):
         d = {PYTHON_CLASS_IDENTIFIER: get_full_type_name(type(self))}
         d.update(super().to_dict())
         return dict(
-            **d,
-            ufuns=[serialize(_) for _ in self.values],
-            weights=self.weights,
+            **d, ufuns=[serialize(_) for _ in self.values], weights=self.weights
         )
 
     @classmethod

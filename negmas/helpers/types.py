@@ -2,6 +2,7 @@
 """
 Datatypes that do not directly relate to negotiation.
 """
+
 from __future__ import annotations
 
 import functools
@@ -10,7 +11,7 @@ import json
 from enum import Enum
 from os import PathLike
 from types import FunctionType, LambdaType
-from typing import Any, Callable, Type
+from typing import Any, Callable
 
 import stringcase
 
@@ -88,19 +89,19 @@ def get_class(
     #     for module_name in ("__main__", "__mp_main__"):
     #         try:
     #             module = importlib.import_module(module_name)
-    #         except:
+    #         except Exception:
     #             module = None
     #         if module:
     #             try:
     #                 t = getattr(module, class_name)
     #                 if t:
     #                     return t
-    #             except:
+    #             except Exception:
     #                 pass
     #     else:
     #         try:
     #             return eval(class_name)
-    #         except:
+    #         except Exception:
     #             raise ValueError(f"Cannot get the class {class_name} in main module")
 
     # remove explicit type annotation in the string. Used when serializing
@@ -154,7 +155,7 @@ def is_lambda_or_partial_function(obj):
 
 def is_type(obj):
     """Checks if the given object is a type converted to string"""
-    return isinstance(obj, Type)
+    return isinstance(obj, type)
 
 
 def is_not_type(obj):
@@ -173,7 +174,7 @@ def is_jsonable(x):
     try:
         json.dumps(x)
         return True
-    except:
+    except Exception:
         return False
 
 
