@@ -5,7 +5,7 @@ from typing import TYPE_CHECKING, Any, Callable
 
 from attrs import define
 
-from negmas.common import TraceElement
+from negmas.common import NegotiatorMechanismInterface, TraceElement
 from negmas.helpers import humanize_time
 from negmas.helpers.types import get_full_type_name, instantiate
 from negmas.mechanisms import Mechanism, MechanismStepResult
@@ -16,9 +16,9 @@ from negmas.preferences import BaseUtilityFunction, Preferences
 from ..common import GBAction, GBResponse, GBState, ResponseType, ThreadState
 from ..constraints.base import LocalOfferingConstraint, OfferingConstraint
 from ..evaluators.base import EvaluationStrategy, LocalEvaluationStrategy, all_accept
+from negmas.gb.negotiators.base import GBNegotiator
 
 if TYPE_CHECKING:
-    from negmas.gb.negotiators.base import GBNegotiator
     from negmas.plots.util import Colorizer
 
 __all__ = ["GBMechanism", "ParallelGBMechanism", "SerialGBMechanism"]
@@ -41,10 +41,10 @@ class GBThread:
         return self.state.accepted_offers
 
     def run(
-        self, action: dict[str, Outcome | None] | None = None
+        self, action: dict[str, GBAction] | None = None
     ) -> tuple[ThreadState, GBResponse | None]:
-        mechanism_state: GBState = self.mechanism.state  # type: ignore
-        history: list[GBState] = self.mechanism.history  # type: ignore
+        mechanism_state: GBState = self.mechanism.state  #
+        history: list[GBState] = self.mechanism.history  #
         source = self.negotiator.id
         if action is None:
             strt = perf_counter()
@@ -54,6 +54,8 @@ class GBThread:
             )
         else:
             offer = action.get(source, None)
+            if not offer:
+                offer = None
         # assert offer is None or isinstance(offer, Outcome)
         self.state.new_offer = offer
         if self.constraint and not self.constraint(
@@ -113,7 +115,9 @@ class GBThread:
         )
 
 
-class BaseGBMechanism(Mechanism):
+class BaseGBMechanism(
+    Mechanism[NegotiatorMechanismInterface, GBState, GBAction, GBNegotiator]
+):
     def __init__(
         self,
         *args,
@@ -170,7 +174,7 @@ class BaseGBMechanism(Mechanism):
         self._sync_call = v
 
     def run_threads(
-        self, action: dict[str, Outcome | None] | None = None
+        self, action: dict[str, GBAction] | None = None
     ) -> dict[str, tuple[ThreadState, GBResponse | None]]:
         def _do_run(idd, thread: GBThread):
             if self.verbosity > 2:
@@ -179,7 +183,7 @@ class BaseGBMechanism(Mechanism):
                     flush=True,
                 )
             r = thread.run(action)
-            state: GBState = self.state  # type: ignore
+            state: GBState = self.state  #
             state.last_thread = idd
             return r
 
@@ -212,7 +216,7 @@ class BaseGBMechanism(Mechanism):
             return "continuing"
 
         offers = []
-        self._history: list[GBState]  # type: ignore
+        self._history: list[GBState]  #
         for state in self._history:
             state: GBState
             offers += [
@@ -235,7 +239,7 @@ class BaseGBMechanism(Mechanism):
         """Returns the negotiation history as a list of step/negotiator/offer
         tuples."""
         offers = []
-        self._history: list[GBState]  # type: ignore
+        self._history: list[GBState]  #
         for state in self._history:
             offers += [
                 (state.step, source, t.new_offer) for source, t in state.threads.items()
@@ -345,7 +349,7 @@ class BaseGBMechanism(Mechanism):
             **kwargs,
         )
 
-    def add(  # type: ignore
+    def add(  #
         self,
         negotiator: GBNegotiator,
         *,
@@ -359,7 +363,7 @@ class BaseGBMechanism(Mechanism):
                 thread.responders.append(negotiator)
 
             thread = GBThread(
-                self,  # type: ignore
+                self,  #
                 negotiator,
                 responders=(
                     responders := [
@@ -461,13 +465,17 @@ class GBMechanism(BaseGBMechanism):
         self.params["enable_callbacks"] = extra_callbacks
         self.params["parallel"] = parallel
         self.params["sync_calls"] = sync_calls
-        self.params["evaluator_type"] = get_full_type_name(evaluator_type)  # type: ignore
+        self.params["evaluator_type"] = get_full_type_name(evaluator_type)  #
         self.params["evaluator_params"] = evaluator_params
-        self.params["constraint_type"] = get_full_type_name(constraint_type)  # type: ignore
+        self.params["constraint_type"] = get_full_type_name(constraint_type)  #
         self.params["constraint_params"] = constraint_params
-        self.params["local_evaluator_type"] = get_full_type_name(local_evaluator_type)  # type: ignore
+        self.params["local_evaluator_type"] = get_full_type_name(
+            local_evaluator_type
+        )  #
         self.params["local_evaluator_params"] = local_evaluator_params
-        self.params["local_constraint_type"] = get_full_type_name(local_constraint_type)  # type: ignore
+        self.params["local_constraint_type"] = get_full_type_name(
+            local_constraint_type
+        )  #
         self.params["local_constraint_params"] = local_constraint_params
 
     def add(
@@ -517,8 +525,8 @@ class GBMechanism(BaseGBMechanism):
     def set_sync_call(self, v: bool):
         self._sync_call = v
 
-    def __call__(  # type: ignore
-        self, state: GBState, action: GBAction | None = None
+    def __call__(  #
+        self, state: GBState, action: dict[str, GBAction] | None = None
     ) -> MechanismStepResult:
         # print(f"Round {self._current_state.step}")
         results = self.run_threads(action)
@@ -575,7 +583,7 @@ class GBMechanism(BaseGBMechanism):
             return "continuing"
 
         offers = []
-        self._history: list[GBState]  # type: ignore
+        self._history: list[GBState]  #
         for state in self._history:
             state: GBState
             offers += [
@@ -598,7 +606,7 @@ class GBMechanism(BaseGBMechanism):
         """Returns the negotiation history as a list of step/negotiator/offer
         tuples."""
         offers = []
-        self._history: list[GBState]  # type: ignore
+        self._history: list[GBState]  #
         for state in self._history:
             offers += [
                 (state.step, source, t.new_offer) for source, t in state.threads.items()
@@ -675,7 +683,7 @@ class GBMechanism(BaseGBMechanism):
         from negmas.plots.util import plot_mechanism_run
 
         return plot_mechanism_run(
-            mechanism=self,  # type: ignore
+            mechanism=self,  #
             negotiators=plotting_negotiators,
             save_fig=save_fig,
             path=path,

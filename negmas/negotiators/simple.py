@@ -76,7 +76,7 @@ class RealComparatorNegotiator(Negotiator):
             raise ValueError("Cannot compare outcomes. I have no preferences")
         return self.preferences.difference(first, second)  # type: ignore
 
-    def is_better(self, first: Outcome, second: Outcome) -> bool | None:
+    def is_better(self, first: Outcome | None, second: Outcome | None) -> bool | None:
         """
         Compares two offers using the `ufun` returning whether the first is better than the second
 
@@ -108,7 +108,7 @@ class BinaryComparatorNegotiator(Negotiator):
         self.capabilities["compare-binary"] = True
 
     def is_better(
-        self, first: Outcome, second: Outcome, epsilon: float = 1e-10
+        self, first: Outcome | None, second: Outcome | None, epsilon: float = 1e-10
     ) -> bool | None:
         """
         Compares two offers using the `ufun` returning whether the first is better than the second
@@ -266,7 +266,7 @@ class NLevelsComparatorNegotiator(Negotiator):
         return sign * n
 
     def is_better(
-        self, first: Outcome, second: Outcome, epsilon: float = 1e-10
+        self, first: Outcome | None, second: Outcome | None, epsilon: float = 1e-10
     ) -> bool | None:
         """
         Compares two offers using the `ufun` returning whether the first is better than the second
@@ -321,7 +321,7 @@ class RankerWithWeightsNegotiator(Negotiator):
         return self.preferences.rank_with_weights(outcomes, descending)  # type: ignore
 
     def is_better(
-        self, first: Outcome, second: Outcome, epsilon: float = 1e-10
+        self, first: Outcome | None, second: Outcome | None, epsilon: float = 1e-10
     ) -> bool | None:
         """
         Compares two offers using the `ufun` returning whether the first is better than the second
@@ -370,7 +370,7 @@ class RankerNegotiator(Negotiator):
         return self.preferences.rank(outcomes, descending)  # type: ignore
 
     def is_better(
-        self, first: Outcome, second: Outcome, epsilon: float = 1e-10
+        self, first: Outcome | None, second: Outcome | None, epsilon: float = 1e-10
     ) -> bool | None:
         """
         Compares two offers using the `ufun` returning whether the first is better than the second

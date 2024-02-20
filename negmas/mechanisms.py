@@ -19,6 +19,8 @@ from typing import (
     Sequence,
     runtime_checkable,
     Protocol,
+    TypeVar,
+    Generic,
 )
 
 from attrs import define
@@ -28,7 +30,7 @@ from negmas import warnings
 from negmas.checkpoints import CheckpointMixin
 from negmas.common import (
     DEFAULT_JAVA_PORT,
-    Action,
+    MechanismAction,
     MechanismState,
     NegotiatorInfo,
     NegotiatorMechanismInterface,
@@ -49,6 +51,7 @@ from negmas.preferences import (
     pareto_frontier,
     pareto_frontier_bf,
 )
+from negmas.preferences.crisp_ufun import UtilityFunction
 from negmas.preferences.ops import max_relative_welfare_points, max_welfare_points
 from negmas.types import NamedObject
 
@@ -58,18 +61,23 @@ if TYPE_CHECKING:
     from negmas.preferences import Preferences
     from negmas.preferences.base_ufun import BaseUtilityFunction
 
-__all__ = ["Mechanism", "MechanismStepResult"]
+__all__ = ["Mechanism", "MechanismStepResult", "Traceable"]
+
+TState = TypeVar("TState", bound=MechanismState)
+TAction = TypeVar("TAction", bound=MechanismAction)
+TNMI = TypeVar("TNMI", bound=NegotiatorMechanismInterface)
+TNegotiator = TypeVar("TNegotiator", bound=Negotiator)
 
 
 @define(frozen=True)
-class MechanismStepResult:
+class MechanismStepResult(Generic[TState]):
     """
     Represents the results of a negotiation step.
 
     This is what `round()` should return.
     """
 
-    state: MechanismState
+    state: TState
     """The returned state."""
     completed: bool = True
     """Whether the current round is completed or not."""
@@ -93,8 +101,13 @@ class MechanismStepResult:
     """A mapping from negotiator ID to the time it consumed during this round."""
 
 
-# noinspection PyAttributeOutsideInit
-class Mechanism(NamedObject, EventSource, CheckpointMixin, ABC):
+class Mechanism(
+    NamedObject,
+    EventSource,
+    CheckpointMixin,
+    Generic[TNMI, TState, TAction, TNegotiator],
+    ABC,
+):
     """Base class for all negotiation Mechanisms.
 
     Override the `round` function of this class to implement a round of your mechanism
@@ -130,7 +143,7 @@ class Mechanism(NamedObject, EventSource, CheckpointMixin, ABC):
 
     def __init__(
         self,
-        initial_state: MechanismState | None = None,
+        initial_state: TState | None = None,
         outcome_space: OutcomeSpace | None = None,
         issues: Sequence[Issue] | None = None,
         outcomes: Sequence[Outcome] | int | None = None,
@@ -144,7 +157,7 @@ class Mechanism(NamedObject, EventSource, CheckpointMixin, ABC):
         max_n_agents: int | None = None,
         dynamic_entry=False,
         annotation: dict[str, Any] | None = None,
-        nmi_factory=NegotiatorMechanismInterface,
+        nmi_factory: type[TNMI] = NegotiatorMechanismInterface,
         extra_callbacks=False,
         checkpoint_every: int = 1,
         checkpoint_folder: PathLike | None = None,
@@ -209,12 +222,13 @@ class Mechanism(NamedObject, EventSource, CheckpointMixin, ABC):
             dynamic_entry=dynamic_entry,
             max_n_agents=max_n_agents,
             annotation=annotation if annotation is not None else dict(),
-            mechanism=self,
+            _mechanism=self,
         )
 
-        self._current_state = initial_state if initial_state else MechanismState()
+        self._current_state = initial_state if initial_state else MechanismState()  # type: ignore This is a shortcut to allow users to create mechanisms without passing any initial_state
+        self._current_state: TState
 
-        self._history: list[MechanismState] = []
+        self._history: list[TState] = []
         self._stats: dict[str, Any] = dict()
         self._stats["round_times"] = list()
         self._stats["times"] = defaultdict(float)
@@ -225,8 +239,8 @@ class Mechanism(NamedObject, EventSource, CheckpointMixin, ABC):
         #     self.nmi.outcomes = tuple(self.nmi.outcomes)
 
         self._requirements = {}
-        self._negotiators = []
-        self._negotiator_map: dict[str, Negotiator] = dict()
+        self._negotiators: list[TNegotiator] = []
+        self._negotiator_map: dict[str, TNegotiator] = dict()
         self._negotiator_index: dict[str, int] = dict()
         self._roles = []
         self._start_time = None
@@ -285,7 +299,7 @@ class Mechanism(NamedObject, EventSource, CheckpointMixin, ABC):
         return self._negotiator_times
 
     @property
-    def negotiators(self):
+    def negotiators(self) -> list[TNegotiator]:
         return self._negotiators
 
     @property
@@ -611,7 +625,7 @@ class Mechanism(NamedObject, EventSource, CheckpointMixin, ABC):
 
         return True
 
-    def can_participate(self, agent: Negotiator) -> bool:
+    def can_participate(self, agent: TNegotiator) -> bool:
         """Checks if the agent can participate in this type of negotiation in
         general.
 
@@ -645,7 +659,7 @@ class Mechanism(NamedObject, EventSource, CheckpointMixin, ABC):
             else len(self._negotiators) < self.nmi.max_n_agents
         )
 
-    def can_enter(self, agent: Negotiator) -> bool:
+    def can_enter(self, agent: TNegotiator) -> bool:
         """Whether the agent can enter the negotiation now."""
         return self.can_accept_more_agents() and self.can_participate(agent)
 
@@ -654,20 +668,20 @@ class Mechanism(NamedObject, EventSource, CheckpointMixin, ABC):
     #     return dict()
 
     @property
-    def state(self) -> MechanismState:
+    def state(self) -> TState:
         """Returns the current state.
 
         Override `extra_state` if you want to keep extra state
         """
         return self._current_state
 
-    def _get_nmi(self, negotiator: Negotiator) -> NegotiatorMechanismInterface:  # type: ignore
+    def _get_nmi(self, negotiator: TNegotiator) -> TNMI:
         _ = negotiator
         return self.nmi
 
     def add(
         self,
-        negotiator: Negotiator,
+        negotiator: TNegotiator,
         *,
         preferences: Preferences | None = None,
         role: str | None = None,
@@ -752,6 +766,11 @@ class Mechanism(NamedObject, EventSource, CheckpointMixin, ABC):
         negotiation."""
         return self._negotiator_map.get(source, None)
 
+    def get_negotiator_raise(self, source: str) -> Negotiator:
+        """Returns the negotiator with the given ID if present in the
+        negotiation otherwise it raises an exception."""
+        return self._negotiator_map[source]
+
     def can_leave(self, agent: Negotiator) -> bool:
         """Can the agent leave now?"""
         return (
@@ -776,9 +795,10 @@ class Mechanism(NamedObject, EventSource, CheckpointMixin, ABC):
         n = self._negotiator_map.get(negotiator.id, None)
         if n is None:
             return False
-        self._negotiators.remove(negotiator)
+        indx = self._negotiator_index.pop(negotiator.id, None)
+        if indx is not None:
+            self._negotiators = self._negotiators[:indx] + self._negotiators[indx + 1 :]
         self._negotiator_map.pop(negotiator.id)
-        self._negotiator_index.pop(negotiator.id)
         if self._extra_callbacks:
             strt = time.perf_counter()
             negotiator.on_leave(self.nmi.state)
@@ -820,7 +840,8 @@ class Mechanism(NamedObject, EventSource, CheckpointMixin, ABC):
     @property
     def genius_negotiator_ids(self) -> list[str]:
         return [
-            _.java_uuid if hasattr(_, "java_uuid") else _.id for _ in self._negotiators
+            getattr(_, "java_uuid") if hasattr(_, "java_uuid") else _.id
+            for _ in self._negotiators
         ]
 
     def genius_id(self, id: str | None) -> str | None:
@@ -832,7 +853,9 @@ class Mechanism(NamedObject, EventSource, CheckpointMixin, ABC):
             return id
 
         return (
-            negotiator.java_uuid if hasattr(negotiator, "java_uuid") else negotiator.id  # type: ignore
+            getattr(negotiator, "java_uuid")
+            if hasattr(negotiator, "java_uuid")
+            else negotiator.id
         )
 
     @property
@@ -857,12 +880,12 @@ class Mechanism(NamedObject, EventSource, CheckpointMixin, ABC):
 
     @property
     def issues(self) -> list[Issue]:
-        """Returns the issues of the outcomespace.
+        """Returns the issues of the outcome space (if defined).
 
         Will raise an exception if the outcome space has no defined
         issues
         """
-        return self.nmi.outcome_space.issues  # type: ignore
+        return getattr(self.nmi.outcome_space, "issues")
 
     @property
     def completed(self):
@@ -963,8 +986,8 @@ class Mechanism(NamedObject, EventSource, CheckpointMixin, ABC):
 
     @abstractmethod
     def __call__(
-        self, state: MechanismState, action: dict[str, Action | None] | None = None
-    ) -> MechanismStepResult:
+        self, state: TState, action: dict[str, TAction] | None = None
+    ) -> MechanismStepResult[TState]:
         """
         Implements a single step of the mechanism. Override this!
 
@@ -979,7 +1002,7 @@ class Mechanism(NamedObject, EventSource, CheckpointMixin, ABC):
         """
         ...
 
-    def step(self, action: dict[str, Action | None] | None = None) -> MechanismState:
+    def step(self, action: dict[str, TAction] | None = None) -> TState:
         """Runs a single step of the mechanism.
 
         Returns:
@@ -1188,14 +1211,14 @@ class Mechanism(NamedObject, EventSource, CheckpointMixin, ABC):
             self.on_negotiation_end()
         return self.state
 
-    def __next__(self) -> MechanismState:
+    def __next__(self) -> TState:
         result = self.step()
         if not self._current_state.running:
             raise StopIteration
 
         return result
 
-    def abort(self) -> MechanismState:
+    def abort(self) -> TState:
         """Aborts the negotiation."""
         (
             self._current_state.has_error,
@@ -1227,7 +1250,7 @@ class Mechanism(NamedObject, EventSource, CheckpointMixin, ABC):
         mechanisms: list[Mechanism] | tuple[Mechanism, ...],
         keep_order=True,
         method="serial",
-    ) -> list[MechanismState | None]:
+    ) -> list[TState | None]:
         """Runs all mechanisms.
 
         Args:
@@ -1241,7 +1264,7 @@ class Mechanism(NamedObject, EventSource, CheckpointMixin, ABC):
             - None for any such states indicates disagreements
         """
         completed = [_ is None for _ in mechanisms]
-        states: list[MechanismState | None] = [None] * len(mechanisms)
+        states: list[TState | None] = [None] * len(mechanisms)
         indices = list(range(len(list(mechanisms))))
         if method == "serial":
             while not all(completed):
@@ -1271,7 +1294,7 @@ class Mechanism(NamedObject, EventSource, CheckpointMixin, ABC):
     @classmethod
     def stepall(
         cls, mechanisms: list[Mechanism] | tuple[Mechanism, ...], keep_order=True
-    ) -> list[MechanismState]:
+    ) -> list[TState]:
         """Step all mechanisms.
 
         Args:
@@ -1297,7 +1320,7 @@ class Mechanism(NamedObject, EventSource, CheckpointMixin, ABC):
             completed[i] = True
         return [_.state for _ in mechanisms]
 
-    def run_with_progress(self, timeout=None) -> MechanismState:
+    def run_with_progress(self, timeout=None) -> TState:
         if timeout is None:
             with Progress() as progress:
                 task = progress.add_task("Negotiating ...", total=100)
@@ -1319,7 +1342,7 @@ class Mechanism(NamedObject, EventSource, CheckpointMixin, ABC):
                         break
         return self.state
 
-    def run(self, timeout=None) -> MechanismState:
+    def run(self, timeout=None) -> TState:
         if timeout is None:
             for _ in self:
                 pass
@@ -1348,7 +1371,7 @@ class Mechanism(NamedObject, EventSource, CheckpointMixin, ABC):
     def current_step(self):
         return self._current_state.step
 
-    def _get_preferences(self):
+    def _get_preferences(self) -> list[UtilityFunction]:
         preferences = []
         for a in self.negotiators:
             preferences.append(a.preferences)
@@ -1503,7 +1526,7 @@ class Mechanism(NamedObject, EventSource, CheckpointMixin, ABC):
         """A method for plotting a negotiation session."""
         _ = kwargs
 
-    def _get_ami(self, negotiator: ReactiveStrategy) -> NegotiatorMechanismInterface:  # type: ignore
+    def _get_ami(self, negotiator: ReactiveStrategy) -> TNMI:
         _ = negotiator
         warnings.deprecated("_get_ami is depricated. Use `get_nmi` instead of it")
         return self.nmi
@@ -1527,8 +1550,6 @@ class Traceable(Protocol):
         """Returns the negotiation history as a list of relative_time/step/negotiator/offer tuples"""
         ...
 
-    def negotiator_full_trace(
-        self, negotiator_id: str
-    ) -> list[tuple[float, float, int, Outcome, str]]:
+    def negotiator_full_trace(self, negotiator_id: str) -> list[TraceElement]:
         """Returns the (time/relative-time/step/outcome/response) given by a negotiator (in order)"""
         ...

@@ -59,7 +59,7 @@ class SmartAspirationNegotiator(SAONegotiator):
         # MUST call parent to avoid being called again for no reason
         super().on_preferences_changed(changes)
 
-    def respond(self, state, source: str):
+    def respond(self, state, source: str | None = None):
         offer = state.current_offer
         if offer is None:
             return ResponseType.REJECT_OFFER

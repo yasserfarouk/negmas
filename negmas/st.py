@@ -10,6 +10,9 @@ from copy import deepcopy
 
 from attrs import define
 
+from negmas.common import NegotiatorMechanismInterface, MechanismAction
+from negmas.negotiators.simple import BinaryComparatorNegotiator
+
 from .mechanisms import Mechanism, MechanismState, MechanismStepResult
 from .outcomes import Outcome
 
@@ -24,7 +27,14 @@ class STState(MechanismState):
     new_offer: Outcome | None = None
 
 
-class VetoSTMechanism(Mechanism):
+class VetoSTMechanism(
+    Mechanism[
+        NegotiatorMechanismInterface,
+        STState,
+        MechanismAction,
+        BinaryComparatorNegotiator,
+    ]
+):
     """Base class for all single text mechanisms
 
     Args:
@@ -91,7 +101,7 @@ class VetoSTMechanism(Mechanism):
 
         for neg in self.negotiators:
             strt = time.perf_counter()
-            responses.append(neg.is_better(new_offer, state.current_offer) is not False)
+            responses.append(neg.is_better(new_offer, state.current_offer))
             if time.perf_counter() - strt > self.nmi.step_time_limit:
                 state.timedout = True
                 return MechanismStepResult(state)
@@ -131,17 +141,11 @@ class VetoSTMechanism(Mechanism):
         if len(visible_negotiators) > 2:
             print("Cannot visualize more than 2 agents")
             return
-        if isinstance(visible_negotiators[0], str):
-            tmp = []
-            for _ in visible_negotiators:
-                for n in self.negotiators:
-                    if n.id == _:
-                        tmp.append(n)
-        else:
-            visible_negotiators = [
-                self.negotiators[visible_negotiators[0]],
-                self.negotiators[visible_negotiators[1]],
-            ]
+        vnegs = [
+            self.negotiators[_] if isinstance(_, int) else self.get_negotiator_raise(_)
+            for _ in visible_negotiators
+        ]
+        assert all(_ is not None and _.ufun is not None for _ in vnegs)
         # indx = dict(zip([_.id for _ in self.negotiators], range(len(self.negotiators))))
         history = []
         for state in self.history:  # type: ignore
@@ -152,19 +156,20 @@ class VetoSTMechanism(Mechanism):
                     "current_offer": offer,
                     "relative_time": state.relative_time,
                     "step": state.step,
-                    "u0": visible_negotiators[0].ufun(offer),
-                    "u1": visible_negotiators[1].ufun(offer),
+                    "u0": vnegs[0].ufun(offer) if vnegs[0].ufun is not None else 1 / 0,
+                    "u1": vnegs[1].ufun(offer) if vnegs[1].ufun is not None else 1 / 0,
                 }
             )
         history = pd.DataFrame(data=history)
         has_history = len(history) > 0
         has_front = 1
         # n_negotiators = len(self.negotiators)
-        n_agents = len(visible_negotiators)
+        n_agents = len(vnegs)
         ufuns = self._get_preferences()
         outcomes = self.outcomes
+        assert outcomes is not None
         utils = [tuple(f(o) for f in ufuns) for o in outcomes]
-        agent_names = [a.name for a in visible_negotiators]
+        agent_names = [a.name for a in vnegs]
         frontier, frontier_outcome = self.pareto_frontier(sort_by_welfare=True)
         frontier_indices = [
             i
@@ -259,7 +264,7 @@ class VetoSTMechanism(Mechanism):
                     label="Agreement",
                 )
 
-        fig_util.show()
+        plt.show()
 
     @property
     def current_offer(self):
@@ -342,7 +347,7 @@ class HillClimbingSTMechanism(VetoSTMechanism):
         responses = []
         for neg in self.negotiators:
             strt = time.perf_counter()
-            responses.append(neg.is_better(new_offer, state.current_offer) is not False)
+            responses.append(neg.is_better(new_offer, state.current_offer))
             if time.perf_counter() - strt > self.nmi.step_time_limit:
                 return MechanismStepResult(state)
 

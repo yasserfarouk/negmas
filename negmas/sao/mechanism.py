@@ -24,18 +24,20 @@ from ..mechanisms import Mechanism, MechanismStepResult
 from ..outcomes.common import Outcome
 from ..outcomes.outcome_ops import cast_value_types, outcome_types_are_ok
 from .common import SAONMI, ResponseType, SAOResponse, SAOState
+from .negotiators import SAONegotiator
 
 if TYPE_CHECKING:
     from negmas.preferences import Preferences
 
-    from .negotiators import SAONegotiator
 
 __all__ = ["SAOMechanism", "SAOProtocol", "TraceElement"]
 
 DEFAULT_COLORMAP = "jet"
 
 
-class SAOMechanism(Mechanism):
+class SAOMechanism(
+    Mechanism[SAONMI, SAOState, SAOResponse, SAONegotiator | GBNegotiator]
+):
     """
     Implements Several variants of the Stacked Alternating Offers Protocol
 
@@ -182,7 +184,7 @@ class SAOMechanism(Mechanism):
         """
         return self._current_state
 
-    def add(  # type: ignore
+    def add(  #
         self,
         negotiator: SAONegotiator | GBNegotiator,
         *,
@@ -252,9 +254,7 @@ class SAOMechanism(Mechanism):
         self._n_waits = 0
         self._frozen_neg_list = None
 
-    def __call__(  # type: ignore
-        self, state: SAOState, action: dict[str, SAOResponse] | None = None
-    ) -> MechanismStepResult:
+    def __call__(self, state, action=None) -> MechanismStepResult:
         """
         implements a round or a single step of the Stacked Alternating Offers Protocol.
 
@@ -266,7 +266,7 @@ class SAOMechanism(Mechanism):
         state = self._current_state
         if self._frozen_neg_list is None:
             state.new_offers = []
-        negotiators: list[SAONegotiator] = self.negotiators
+        negotiators: list[SAONegotiator | GBNegotiator] = self.negotiators
         n_negotiators = len(negotiators)
         # times = dict(zip([_.id for _ in negotiators], itertools.repeat(0.0)))
         times = defaultdict(float, self._waiting_time)
@@ -378,8 +378,7 @@ class SAOMechanism(Mechanism):
                 # todo: do not use .issues here as they are not guaranteed to exist (if it is not a cartesial outcome space)
                 if self._enforce_issue_types and hasattr(self.outcome_space, "issues"):
                     if outcome_types_are_ok(
-                        response.outcome,
-                        self.outcome_space.issues,  # type: ignore
+                        response.outcome, getattr(self.outcome_space, "issues")
                     ):
                         return response, False
                     elif self._cast_offers:
@@ -388,7 +387,7 @@ class SAOMechanism(Mechanism):
                                 response.response,
                                 cast_value_types(
                                     response.outcome,
-                                    self.outcome_space.issues,  # type: ignore
+                                    getattr(self.outcome_space, "issues"),
                                 ),
                             ),
                             False,
@@ -557,15 +556,6 @@ class SAOMechanism(Mechanism):
                 return "error"
             return "continuing"
 
-        def asint(state: SAOState):
-            if state.ended:
-                return int(ResponseType.END_NEGOTIATION)
-            if state.timedout or state.has_error:
-                return int(ResponseType.NO_RESPONSE)
-            if state.agreement:
-                return int(ResponseType.ACCEPT_OFFER)
-            return int(ResponseType.REJECT_OFFER)
-
         offers = []
 
         def get_acceptances(state: SAOState):
@@ -639,7 +629,7 @@ class SAOMechanism(Mechanism):
         def not_equal(a, b):
             return any(x != y for x, y in zip(a, b))
 
-        self._history: list[SAOState]  # type: ignore
+        self._history: list[SAOState]  #
         # if the agreement does not appear as the last offer in the trace, add it.
         # this should not happen though!!
         if (

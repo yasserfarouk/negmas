@@ -18,7 +18,7 @@ from negmas.gb.common import get_offer
 from negmas.outcomes.base_issue import Issue
 from negmas.outcomes.outcome_space import DiscreteCartesianOutcomeSpace
 
-from ..common import MechanismState, NegotiatorMechanismInterface
+from ..common import MechanismState
 from ..config import CONFIG_KEY_GENIUS_BRIDGE_JAR, negmas_config
 from ..gb.common import GBState
 from ..negotiators import Controller
@@ -268,13 +268,7 @@ class GeniusNegotiator(SAONegotiator):
         return self.java.get_name(self.java_uuid)  # type: ignore
 
     def join(
-        self,
-        nmi: NegotiatorMechanismInterface,
-        state: MechanismState,
-        *,
-        preferences: UtilityFunction | None = None,
-        ufun: UtilityFunction | None = None,
-        role: str = "negotiator",
+        self, nmi, state, *, preferences=None, ufun=None, role="negotiator"
     ) -> bool:
         if ufun:
             preferences = ufun
@@ -340,7 +334,7 @@ class GeniusNegotiator(SAONegotiator):
                 utility_file = open(self.utility_file_name, "w")
             utility_file.write(
                 UtilityFunction.to_xml_str(
-                    preferences,
+                    preferences,  # type: ignore
                     issues=nmi.cartesian_outcome_space.issues,
                     discount_factor=self.discount,
                 )
@@ -488,8 +482,8 @@ class GeniusNegotiator(SAONegotiator):
         if timeout is None or math.isinf(timeout) or timeout < 0:
             timeout = DEFAULT_GENIUS_NEGOTIATOR_TIMEOUT
 
-        if info.mechanism:
-            timeout = min(timeout, info.mechanism._hidden_time_limit)
+        if info._mechanism:
+            timeout = min(timeout, info._mechanism._hidden_time_limit)
 
         if n_steps * n_seconds > 0:
             if n_steps < 0:

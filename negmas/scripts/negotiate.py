@@ -254,7 +254,7 @@ def run(
 
     negotiator_names = shortest_unique_names(negotiators, guarantee_unique=True)
     agents = [
-        get_negotiator(_)(name=name)
+        get_negotiator(_)(name=name)  # type: ignore
         for _, name in zip(negotiators, negotiator_names, strict=True)  # type: ignore
     ]
     if len(agents) < 2:
@@ -323,7 +323,7 @@ def run(
     if stats or rank_stats:
         pareto, pareto_outcomes = session.pareto_frontier()
     else:
-        pareto, pareto_outcomes = [], []
+        pareto, pareto_outcomes = tuple(), list()
     if stats:
         utils = tuple(u(state.agreement) for u in scenario.ufuns)
         print(f"Agreement Utilities: {utils}")

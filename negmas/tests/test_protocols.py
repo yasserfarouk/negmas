@@ -192,8 +192,10 @@ def test_dynamic_entry(static_mechanism: Mechanism):
     assert static_mechanism.can_enter(a)
     assert not static_mechanism.can_leave(a)
 
-    static_mechanism.add(a, preferences=lambda x: 5.0)
-    static_mechanism.add(RandomNegotiator(), preferences=lambda x: 5.0)
+    static_mechanism.add(a, preferences=MappingUtilityFunction(lambda x: 5.0))
+    static_mechanism.add(
+        RandomNegotiator(), preferences=MappingUtilityFunction(lambda x: 5.0)
+    )
 
 
 def test_mechanism_fails_on_less_than_two_agents(static_mechanism):
@@ -220,8 +222,8 @@ def test_mechanisms_get_some_rounds():
     lengths = []
     for _ in range(10):
         p = MyMechanism(dynamic_entry=False)
-        p.add(RandomNegotiator(), preferences=lambda x: 5.0)
-        p.add(RandomNegotiator(), preferences=lambda x: 5.0)
+        p.add(RandomNegotiator(), preferences=MappingUtilityFunction(lambda x: 5.0))
+        p.add(RandomNegotiator(), preferences=MappingUtilityFunction(lambda x: 5.0))
         p.run()
         lengths.append(len(p.history))
 
@@ -251,8 +253,14 @@ def test_alternating_offers_mechanism_fails_on_no_offerer():
     to_be_accepted = [(2,)]
     a1 = LimitedOutcomesAcceptor(acceptable_outcomes=to_be_offered)
     a2 = LimitedOutcomesAcceptor(acceptable_outcomes=to_be_accepted)
-    p.add(a1, preferences=MappingUtilityFunction(lambda x: x[0] + 1.0))
-    p.add(a2, preferences=MappingUtilityFunction(lambda x: x[0] + 1.0))
+    p.add(
+        a1,
+        preferences=MappingUtilityFunction(lambda x: x[0] + 1.0 if x else float("nan")),
+    )
+    p.add(
+        a2,
+        preferences=MappingUtilityFunction(lambda x: x[0] + 1.0 if x else float("nan")),
+    )
     try:
         p.run()
     except RuntimeError:

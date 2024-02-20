@@ -8,7 +8,8 @@ from copy import deepcopy
 
 from attrs import define, field
 
-from negmas.common import Action
+from negmas.common import MechanismAction, NegotiatorMechanismInterface
+from negmas.negotiators.simple import BinaryComparatorNegotiator
 
 from .mechanisms import Mechanism, MechanismState, MechanismStepResult
 from .outcomes import Outcome
@@ -23,7 +24,14 @@ class MTState(MechanismState):
     current_offers: list[Outcome | None] = field(factory=list)
 
 
-class VetoMTMechanism(Mechanism):
+class VetoMTMechanism(
+    Mechanism[
+        NegotiatorMechanismInterface,
+        MTState,
+        MechanismAction,
+        BinaryComparatorNegotiator,
+    ]
+):
     """Base class for all muti-text mechanisms
 
     Args:
@@ -88,9 +96,7 @@ class VetoMTMechanism(Mechanism):
         _ = outcome
         return self.random_outcomes(1)[0]
 
-    def __call__(
-        self, state: MTState, action: Action | None = None
-    ) -> MechanismStepResult:
+    def __call__(self, state: MTState, action=None) -> MechanismStepResult:
         """Single round of the protocol"""
         for i, current_offer in enumerate(state.current_offers):
             new_offer = self.next_outcome(current_offer)
@@ -102,7 +108,7 @@ class VetoMTMechanism(Mechanism):
                     neg.is_better(new_offer, current_offer, epsilon=self.epsilon)
                     if action is None
                     else action.get(
-                        neg,
+                        neg.id,
                         neg.is_better(new_offer, current_offer, epsilon=self.epsilon),
                     )
                 )

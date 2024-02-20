@@ -10,7 +10,7 @@ from typing import TYPE_CHECKING
 
 from attrs import define, field
 
-from negmas.common import NegotiatorMechanismInterface
+from negmas.common import NegotiatorMechanismInterface, MechanismAction
 from negmas.gb.common import GBState, ResponseType
 
 if TYPE_CHECKING:
@@ -21,7 +21,7 @@ __all__ = ["ResponseType", "SAOResponse", "SAOState", "SAONMI", "all_negotiator_
 
 
 @define
-class SAOResponse:
+class SAOResponse(MechanismAction):
     """A response to an offer given by an agent in the alternating offers protocol"""
 
     response: ResponseType = ResponseType.NO_RESPONSE
@@ -30,6 +30,8 @@ class SAOResponse:
 
 @define
 class SAOState(GBState):
+    """The `MechanismState` of SAO"""
+
     current_offer: Outcome | None = None
     current_proposer: str | None = None
     current_proposer_agent: str | None = None
@@ -41,8 +43,13 @@ class SAOState(GBState):
 
 @define(frozen=True)
 class SAONMI(NegotiatorMechanismInterface):
+    """The `NegotiatorMechanismInterface` of SAO"""
+
     end_on_no_response: bool = True
-    # one_offer_per_step: bool = False
+    """End the negotiation if any agent responded with None"""
+
+    one_offer_per_step: bool = False
+    """If true, a step should be atomic with only one action from one negotiator"""
 
 
 @lru_cache(1)

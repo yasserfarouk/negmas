@@ -1500,7 +1500,7 @@ def minmax(
 
 def opposition_level(
     ufuns: Sequence[UtilityFunction],
-    max_utils: float | tuple[float, float] = 1.0,  # type: ignore
+    max_utils: float | tuple[float | int, ...] | list[float | int] = 1.0,
     outcomes: int | Sequence[Outcome] | None = None,
     issues: Sequence[Issue] | None = None,
     max_tests: int = 10000,
@@ -1543,7 +1543,7 @@ def opposition_level(
     if isinstance(outcomes, int):
         outcomes = [(_,) for _ in range(outcomes)]
     if not isinstance(max_utils, Iterable):
-        max_utils: Iterable[float] = [max_utils] * len(ufuns)
+        max_utils = [max_utils] * len(ufuns)
     if len(ufuns) != len(max_utils):
         raise ValueError(
             f"Cannot use {len(ufuns)} ufuns with only {len(max_utils)} max. utility values"

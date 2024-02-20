@@ -11,7 +11,7 @@ import traceback
 from abc import ABC, abstractmethod
 from collections import defaultdict
 from pathlib import Path
-from typing import TYPE_CHECKING, Any, Callable, Collection, Iterable
+from typing import TYPE_CHECKING, Any, Callable, Collection, Iterable, Generic, TypeVar
 
 import numpy as np
 import pandas as pd
@@ -19,7 +19,7 @@ import scipy
 import yaml
 
 from negmas.checkpoints import CheckpointMixin
-from negmas.common import Action, NegotiatorMechanismInterface
+from negmas.common import MechanismAction, NegotiatorMechanismInterface
 from negmas.config import negmas_config
 from negmas.events import Event, EventLogger, EventSink, EventSource
 from negmas.genius import ANY_JAVA_PORT, DEFAULT_JAVA_PORT, get_free_tcp_port
@@ -56,6 +56,7 @@ from .helpers import deflistdict
 from .mechanismfactory import MechanismFactory
 from .monitors import StatsMonitor, WorldMonitor
 from .save import save_stats
+from .awi import AgentWorldInterface
 
 if TYPE_CHECKING:
     from matplotlib.axes import Axes
@@ -78,7 +79,19 @@ def _path(path) -> Path:
     return Path(path).absolute()
 
 
-class World(EventSink, EventSource, ConfigReader, NamedObject, CheckpointMixin, ABC):
+TAWI = TypeVar("TAWI", bound=AgentWorldInterface)
+TAgent = TypeVar("TAgent", bound=Agent)
+
+
+class World(
+    EventSink,
+    EventSource,
+    ConfigReader,
+    NamedObject,
+    CheckpointMixin,
+    Generic[TAWI, TAgent],
+    ABC,
+):
     """Base world class encapsulating a world that runs a simulation with several agents interacting within some
     dynamically changing environment.
 
@@ -183,14 +196,14 @@ class World(EventSink, EventSource, ConfigReader, NamedObject, CheckpointMixin, 
         neg_time_limit: int | float | None = None,
         neg_step_time_limit: int | float | None = 60,
         shuffle_negotiations=True,
-        negotiation_quota_per_step: int | float = sys.maxsize,
-        negotiation_quota_per_simulation: int | float = sys.maxsize,
+        negotiation_quota_per_step: int = sys.maxsize,
+        negotiation_quota_per_simulation: int = sys.maxsize,
         default_signing_delay=1,
         force_signing=False,
         batch_signing=True,
         breach_processing=BreachProcessing.NONE,
         mechanisms: dict[str, dict[str, Any]] | None = None,
-        awi_type: str = "negmas.situated.AgentWorldInterface",
+        awi_type: str | type[TAWI] = "negmas.situated.AgentWorldInterface",
         start_negotiations_immediately: bool = False,
         log_folder=None,
         log_to_file=True,
@@ -384,48 +397,48 @@ class World(EventSink, EventSource, ConfigReader, NamedObject, CheckpointMixin, 
         self._saved_breaches: dict[str, dict[str, Any]] = {}
         self._started = False
         self.batch_signing = batch_signing
-        self.agents: dict[str, Agent] = {}
+        self.agents: dict[str, TAgent] = {}
         self.immediate_negotiations = start_negotiations_immediately
         self.stats_monitors: set[StatsMonitor] = set()
         self.world_monitors: set[WorldMonitor] = set()
         self._edges_negotiation_requests_accepted: dict[
-            int, dict[tuple[Agent, Agent], list[dict[str, Any]]]
+            int, dict[tuple[TAgent, TAgent], list[dict[str, Any]]]
         ] = defaultdict(deflistdict)
         self._edges_negotiation_requests_rejected: dict[
-            int, dict[tuple[Agent, Agent], list[dict[str, Any]]]
+            int, dict[tuple[TAgent, TAgent], list[dict[str, Any]]]
         ] = defaultdict(deflistdict)
         self._edges_negotiations_started: dict[
-            int, dict[tuple[Agent, Agent], list[dict[str, Any]]]
+            int, dict[tuple[TAgent, TAgent], list[dict[str, Any]]]
         ] = defaultdict(deflistdict)
         self._edges_negotiations_rejected: dict[
-            int, dict[tuple[Agent, Agent], list[dict[str, Any]]]
+            int, dict[tuple[TAgent, TAgent], list[dict[str, Any]]]
         ] = defaultdict(deflistdict)
         self._edges_negotiations_succeeded: dict[
-            int, dict[tuple[Agent, Agent], list[dict[str, Any]]]
+            int, dict[tuple[TAgent, TAgent], list[dict[str, Any]]]
         ] = defaultdict(deflistdict)
         self._edges_negotiations_failed: dict[
-            int, dict[tuple[Agent, Agent], list[dict[str, Any]]]
+            int, dict[tuple[TAgent, TAgent], list[dict[str, Any]]]
         ] = defaultdict(deflistdict)
         self._edges_contracts_concluded: dict[
-            int, dict[tuple[Agent, Agent], list[dict[str, Any]]]
+            int, dict[tuple[TAgent, TAgent], list[dict[str, Any]]]
         ] = defaultdict(deflistdict)
         self._edges_contracts_signed: dict[
-            int, dict[tuple[Agent, Agent], list[dict[str, Any]]]
+            int, dict[tuple[TAgent, TAgent], list[dict[str, Any]]]
         ] = defaultdict(deflistdict)
         self._edges_contracts_cancelled: dict[
-            int, dict[tuple[Agent, Agent], list[dict[str, Any]]]
+            int, dict[tuple[TAgent, TAgent], list[dict[str, Any]]]
         ] = defaultdict(deflistdict)
         self._edges_contracts_nullified: dict[
-            int, dict[tuple[Agent, Agent], list[dict[str, Any]]]
+            int, dict[tuple[TAgent, TAgent], list[dict[str, Any]]]
         ] = defaultdict(deflistdict)
         self._edges_contracts_erred: dict[
-            int, dict[tuple[Agent, Agent], list[dict[str, Any]]]
+            int, dict[tuple[TAgent, TAgent], list[dict[str, Any]]]
         ] = defaultdict(deflistdict)
         self._edges_contracts_executed: dict[
-            int, dict[tuple[Agent, Agent], list[dict[str, Any]]]
+            int, dict[tuple[TAgent, TAgent], list[dict[str, Any]]]
         ] = defaultdict(deflistdict)
         self._edges_contracts_breached: dict[
-            int, dict[tuple[Agent, Agent], list[dict[str, Any]]]
+            int, dict[tuple[TAgent, TAgent], list[dict[str, Any]]]
         ] = defaultdict(deflistdict)
         self.neg_requests_sent: dict[str, int] = defaultdict(int)
         self.neg_requests_received: dict[str, int] = defaultdict(int)
@@ -860,7 +873,7 @@ class World(EventSink, EventSource, ConfigReader, NamedObject, CheckpointMixin, 
             e: The exception
         """
 
-    def call(self, agent: Agent, method: Callable, *args, **kwargs) -> Any:
+    def call(self, agent: TAgent, method: Callable, *args, **kwargs) -> Any:
         """
         Calls a method on an agent updating exeption count
 
@@ -904,9 +917,9 @@ class World(EventSink, EventSource, ConfigReader, NamedObject, CheckpointMixin, 
 
     def _add_edges(
         self,
-        src: Agent | str,
-        dst: list[Agent | str],
-        target: dict[int, dict[tuple[Agent, Agent], list[dict[str, Any]]]],
+        src: TAgent | str,
+        dst: list[TAgent | str],
+        target: dict[int, dict[tuple[TAgent, TAgent], list[dict[str, Any]]]],
         bi=False,
         issues: list[Issue] | None = None,
         agreement: dict[str, Any] | None = None,
@@ -1521,7 +1534,7 @@ class World(EventSink, EventSource, ConfigReader, NamedObject, CheckpointMixin, 
         self,
         mechanism,
         force_immediate_signing,
-        action: dict[str, Action | None] | None = None,
+        action: dict[str, MechanismAction | None] | None = None,
     ) -> tuple[Contract | None, bool]:
         """Steps a mechanism one step.
 
@@ -1582,8 +1595,8 @@ class World(EventSink, EventSource, ConfigReader, NamedObject, CheckpointMixin, 
         mechanisms: list[Mechanism],
         n_steps: int | float | None,
         force_immediate_signing: bool,
-        partners: list[list[Agent]],
-        action: dict[str, dict[str, Action | None]] | None = None,
+        partners: list[list[TAgent]],
+        action: dict[str, dict[str, MechanismAction | None]] | None = None,
     ) -> tuple[list[Contract | None], list[bool], int, int, int, int]:
         """
         Runs all bending negotiations.
@@ -1675,7 +1688,7 @@ class World(EventSink, EventSource, ConfigReader, NamedObject, CheckpointMixin, 
         n_neg_steps: int | None = None,
         n_mechanisms: int | None = None,
         actions: dict[str, Any] | None = None,
-        neg_actions: dict[str, dict[str, Action | None]] | None = None,
+        neg_actions: dict[str, dict[str, MechanismAction | None]] | None = None,
     ) -> bool:
         """
         A single simulation step.
@@ -2298,7 +2311,7 @@ class World(EventSink, EventSource, ConfigReader, NamedObject, CheckpointMixin, 
     def unregister_world_monitor(self, m: WorldMonitor):
         self.world_monitors.remove(m)
 
-    def join(self, x: Agent, simulation_priority: int = 0, **kwargs):
+    def join(self, x: TAgent, simulation_priority: int = 0, **kwargs):
         """Add an agent to the world.
 
         Args:
@@ -2322,7 +2335,7 @@ class World(EventSink, EventSource, ConfigReader, NamedObject, CheckpointMixin, 
         self,
         beg: int,
         end: int,
-        target: dict[int, dict[tuple[Agent, Agent], list[dict[str, Any]]]],
+        target: dict[int, dict[tuple[TAgent, TAgent], list[dict[str, Any]]]],
     ):
         """Combines edges for the given steps [beg, end)"""
         result = deflistdict()
@@ -2342,9 +2355,9 @@ class World(EventSink, EventSource, ConfigReader, NamedObject, CheckpointMixin, 
 
     def _get_edges(
         self,
-        target: dict[int, dict[tuple[Agent, Agent], list[dict[str, Any]]]],
+        target: dict[int, dict[tuple[TAgent, TAgent], list[dict[str, Any]]]],
         step: int,
-    ) -> list[tuple[Agent, Agent, int]]:
+    ) -> list[tuple[TAgent, TAgent, int]]:
         """Get the edges for the given step"""
         return [(*k, {"weight": len(v)}) for k, v in target[step].items() if len(v) > 0]
 
@@ -2464,9 +2477,9 @@ class World(EventSink, EventSource, ConfigReader, NamedObject, CheckpointMixin, 
     def request_negotiation_about(
         self,
         req_id: str,
-        caller: Agent,
+        caller: TAgent,
         issues: list[Issue],
-        partners: list[Agent | str],
+        partners: list[TAgent | str],
         roles: list[str] | None = None,
         annotation: dict[str, Any] | None = None,
         mechanism_name: str | None = None,
@@ -2568,9 +2581,9 @@ class World(EventSink, EventSource, ConfigReader, NamedObject, CheckpointMixin, 
 
     def run_negotiation(
         self,
-        caller: Agent,
+        caller: TAgent,
         issues: list[Issue],
-        partners: list[str | Agent],
+        partners: list[str | TAgent],
         negotiator: Negotiator,
         preferences: Preferences | None = None,
         caller_role: str | None = None,
@@ -2680,9 +2693,9 @@ class World(EventSink, EventSource, ConfigReader, NamedObject, CheckpointMixin, 
 
     def run_negotiations(
         self,
-        caller: Agent,
+        caller: TAgent,
         issues: list[Issue] | list[list[Issue]],
-        partners: list[list[str | Agent]],
+        partners: list[list[str | TAgent]],
         negotiators: list[Negotiator],
         preferences: list[Preferences] | None = None,
         caller_roles: list[str] | None = None,
@@ -3007,7 +3020,7 @@ class World(EventSink, EventSource, ConfigReader, NamedObject, CheckpointMixin, 
             self,
             steps: tuple[int, int] | int | None = None,
             what: Collection[str] = EDGE_TYPES,
-            who: Callable[[Agent], bool] | None = None,
+            who: Callable[[TAgent], bool] | None = None,
             together: bool = True,
         ) -> nx.Graph | list[nx.Graph]:
             """
@@ -3059,8 +3072,8 @@ class World(EventSink, EventSource, ConfigReader, NamedObject, CheckpointMixin, 
             self,
             steps: tuple[int, int] | int | None = None,
             what: Collection[str] = DEFAULT_EDGE_TYPES,
-            who: Callable[[Agent], bool] | None = None,
-            where: Callable[[Agent], int | tuple[float, float]] | None = None,
+            who: Callable[[TAgent], bool] | None = None,
+            where: Callable[[TAgent], int | tuple[float, float]] | None = None,
             together: bool = True,
             axs: Collection[Axes] | None = None,
             ncols: int = 4,
@@ -3207,7 +3220,7 @@ class World(EventSink, EventSource, ConfigReader, NamedObject, CheckpointMixin, 
         self,
         path: str | Path | None = None,
         what: Collection[str] = EDGE_TYPES,
-        who: Callable[[Agent], bool] | None = None,
+        who: Callable[[TAgent], bool] | None = None,
         together: bool = True,
         draw_every: int = 1,
         fps: int = 5,
@@ -3410,12 +3423,12 @@ class World(EventSink, EventSource, ConfigReader, NamedObject, CheckpointMixin, 
 
     @abstractmethod
     def execute_action(
-        self, action: Action, agent: Agent, callback: Callable | None = None
+        self, action: Action, agent: TAgent, callback: Callable | None = None
     ) -> bool:
         """Executes the given action by the given agent"""
 
     @abstractmethod
-    def get_private_state(self, agent: Agent) -> dict:
+    def get_private_state(self, agent: TAgent) -> dict:
         """Reads the private state of the given agent"""
 
     @abstractmethod

@@ -6,8 +6,8 @@ from abc import ABC, abstractmethod
 from collections import defaultdict, namedtuple
 from dataclasses import dataclass
 
-from ..common import NegotiatorMechanismInterface
-from ..mechanisms import Mechanism, MechanismState, MechanismStepResult
+from ..common import NegotiatorMechanismInterface, MechanismAction, MechanismState
+from ..mechanisms import Mechanism, MechanismStepResult
 from ..negotiators import Negotiator
 from ..outcomes import Outcome
 from ..preferences import Preferences
@@ -35,7 +35,7 @@ Agreement = namedtuple("Agreement", ["outcome", "negotiators", "level"])
 """Defines an agreement for a multi-channel mechanism"""
 
 
-class ChainAMI(NegotiatorMechanismInterface):
+class ChainNMI(NegotiatorMechanismInterface):
     def __init__(
         self,
         *args,
@@ -58,7 +58,7 @@ class ChainNegotiator(Negotiator, ABC):
 
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
-        self._nmi: ChainAMI
+        self._nmi: ChainNMI
         self.__level = -1
 
     def join(
@@ -159,7 +159,7 @@ class MultiChainNegotiator(Negotiator, ABC):
         Returns:
 
         """
-        return self.nmi.confirm(left)  # type: ignore
+        return self.nmi.confirm(left)  #
 
     @abstractmethod
     def on_acceptance(self, state: MechanismState, offer: Offer) -> Offer:
@@ -210,9 +210,13 @@ class MultiChainNegotiator(Negotiator, ABC):
         """
 
 
-class ChainNegotiationsMechanism(Mechanism):
-    def __init__(self, *args, **kwargs):
-        super().__init__(*args, **kwargs)
+class ChainNegotiationsMechanism(
+    Mechanism[MechanismState, MechanismAction, ChainNMI, ChainNegotiator]
+):
+    def __init__(self, initial_state: MechanismState | None = None, *args, **kwargs):
+        super().__init__(
+            initial_state if initial_state else MechanismState() * args, **kwargs
+        )
         self.__chain: list[ChainNegotiator | None] = []
         self.__next_agent = 0
         self.__last_proposal: Offer | None = None
@@ -233,7 +237,7 @@ class ChainNegotiationsMechanism(Mechanism):
         Returns:
 
         """
-        return ChainAMI(
+        return ChainNMI(
             id=self.id,
             n_outcomes=self.nmi.n_outcomes,
             issues=self.nmi.outcome_space,
@@ -245,7 +249,7 @@ class ChainNegotiationsMechanism(Mechanism):
             max_n_agents=self.nmi.max_n_agents,
             annotation=self.nmi.annotation,
             parent=self,
-            negotiator=negotiator,  # type: ignore
+            negotiator=negotiator,  #
             level=int(role) + 1,
         )
 
@@ -386,7 +390,9 @@ class ChainNegotiationsMechanism(Mechanism):
         return True
 
 
-class MultiChainNegotiationsMechanism(Mechanism):
+class MultiChainNegotiationsMechanism(
+    Mechanism[ChainNMI, MechanismState, MechanismAction, MultiChainNegotiator]
+):
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
         self.__chain: list[list[MultiChainNegotiator]] = []
@@ -413,7 +419,7 @@ class MultiChainNegotiationsMechanism(Mechanism):
         Returns:
 
         """
-        return ChainAMI(
+        return ChainNMI(
             id=self.id,
             n_outcomes=self.nmi.n_outcomes,
             issues=self.nmi.outcome_space,

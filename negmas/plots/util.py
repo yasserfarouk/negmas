@@ -2,7 +2,7 @@ from __future__ import annotations
 import math
 import pathlib
 import uuid
-from typing import TYPE_CHECKING, Callable, Protocol
+from typing import TYPE_CHECKING, Callable, Protocol, TypeVar, Generic
 
 from negmas.common import MechanismState, NegotiatorMechanismInterface, TraceElement
 from negmas.gb import ResponseType
@@ -119,14 +119,17 @@ WELFARE_SCALE = 2
 OUTCOMES_SCALE = 0.5
 PARETO_SCALE = 1.0
 
+TNegotiator = TypeVar("TNegotiator", bound=Negotiator)
+TNMI = TypeVar("TNMI", bound=NegotiatorMechanismInterface, covariant=True)
 
-class PlottableMechanism(Protocol):
+
+class PlottableMechanism(Protocol, Generic[TNMI, TNegotiator]):
     @property
     def outcome_space(self) -> OutcomeSpace:
         ...
 
     @property
-    def negotiators(self) -> list[Negotiator]:
+    def negotiators(self) -> list[TNegotiator]:
         ...
 
     @property
@@ -138,7 +141,7 @@ class PlottableMechanism(Protocol):
         ...
 
     @property
-    def nmi(self) -> NegotiatorMechanismInterface:
+    def nmi(self) -> TNMI:
         ...
 
     @property
@@ -356,13 +359,13 @@ def plot_offer_utilities(
 
 def plot_2dutils(
     trace: list[TraceElement],
-    plotting_ufuns: list[UtilityFunction] | tuple[UtilityFunction],
-    plotting_negotiators: list[str],
-    offering_negotiators: list[str] | None = None,
+    plotting_ufuns: list[UtilityFunction] | tuple[UtilityFunction, ...],
+    plotting_negotiators: list[str] | tuple[str, ...],
+    offering_negotiators: list[str] | tuple[str, ...] | None = None,
     agreement: Outcome | None = None,
     outcome_space: OutcomeSpace | None = None,
-    issues: list[Issue] | None = None,
-    outcomes: list[Outcome] | None = None,
+    issues: list[Issue] | tuple[Issue, ...] | None = None,
+    outcomes: list[Outcome] | tuple[Outcome, ...] | None = None,
     with_lines: bool = True,
     show_annotations: bool = True,
     show_agreement: bool = False,

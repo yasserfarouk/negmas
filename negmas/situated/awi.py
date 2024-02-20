@@ -183,7 +183,7 @@ class AgentWorldInterface:
 
     def request_negotiation_about(
         self,
-        issues: list[Issue],
+        issues: list[Issue] | tuple[Issue, ...],
         partners: list[str],
         req_id: str,
         roles: list[str] | None = None,

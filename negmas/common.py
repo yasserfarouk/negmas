@@ -41,6 +41,7 @@ __all__ = [
     "AgentMechanismInterface",
     "TraceElement",
     "DEFAULT_JAVA_PORT",
+    "MechanismAction",
 ]
 
 DEFAULT_JAVA_PORT = 25337
@@ -304,12 +305,10 @@ class NegotiatorMechanismInterface:
     """Whether it is allowed for agents to enter/leave the negotiation after it starts"""
     max_n_agents: int | None
     """Maximum allowed number of agents in the session. None indicates no limit"""
-    mechanism: Mechanism
+    _mechanism: Mechanism = field(alias="_mechanism")
     """A reference to the mechanism. MUST NEVER BE USED BY NEGOTIATORS. **must be treated as a private member**"""
     annotation: dict[str, Any] = field(default=dict)
     """An arbitrary annotation as a `dict[str, Any]` that is always available for all agents"""
-    one_offer_per_step: bool = False
-    """If true, a step should be atomic with only one action from one negotiator"""
 
     #     def __copy__(self):
     #         return NegotiatorMechanismInterface(**vars(self))
@@ -344,16 +343,16 @@ class NegotiatorMechanismInterface:
         """
         Returns a stable discrete version of the given outcome-space
         """
-        return self.mechanism.discrete_outcome_space(levels, max_cardinality)
+        return self._mechanism.discrete_outcome_space(levels, max_cardinality)
 
     @property
     def params(self):
         """Returns the parameters used to initialize the mechanism."""
-        return self.mechanism.params
+        return self._mechanism.params
 
     def random_outcome(self) -> Outcome:
         """A single random outcome."""
-        return self.mechanism.random_outcome()
+        return self._mechanism.random_outcome()
 
     def random_outcomes(self, n: int = 1) -> list[Outcome]:
         """
@@ -367,7 +366,7 @@ class NegotiatorMechanismInterface:
             list[Outcome]: list of `n` or less outcomes
 
         """
-        return self.mechanism.random_outcomes(n=n)
+        return self._mechanism.random_outcomes(n=n)
 
     def discrete_outcomes(
         self, max_cardinality: int | float = float("inf")
@@ -383,11 +382,11 @@ class NegotiatorMechanismInterface:
             list[Outcome]: list of `n` or less outcomes
 
         """
-        return self.mechanism.discrete_outcomes(max_cardinality=max_cardinality)
+        return self._mechanism.discrete_outcomes(max_cardinality=max_cardinality)
 
     @property
     def issues(self) -> tuple[Issue, ...]:
-        os = self.mechanism.outcome_space
+        os = self._mechanism.outcome_space
         if hasattr(os, "issues"):
             return os.issues  # type: ignore I am just checking that the attribute issues exists
         raise ValueError(
@@ -400,14 +399,14 @@ class NegotiatorMechanismInterface:
         from negmas.outcomes.protocols import DiscreteOutcomeSpace
 
         return (
-            self.mechanism.outcome_space.enumerate()
-            if isinstance(self.mechanism.outcome_space, DiscreteOutcomeSpace)
+            self._mechanism.outcome_space.enumerate()
+            if isinstance(self._mechanism.outcome_space, DiscreteOutcomeSpace)
             else None
         )
 
     @property
     def participants(self) -> list[NegotiatorInfo]:
-        return self.mechanism.participants
+        return self._mechanism.participants
 
     @property
     def state(self) -> MechanismState:
@@ -420,7 +419,7 @@ class NegotiatorMechanismInterface:
               protocol by accessing this property.
 
         """
-        return self.mechanism.state
+        return self._mechanism.state
 
     @property
     def requirements(self) -> dict:
@@ -430,7 +429,7 @@ class NegotiatorMechanismInterface:
         Returns:
             - A dict of str/Any pairs giving the requirements
         """
-        return self.mechanism.requirements
+        return self._mechanism.requirements
 
     @property
     def n_negotiators(self) -> int:
@@ -440,20 +439,25 @@ class NegotiatorMechanismInterface:
     @property
     def genius_negotiator_ids(self) -> list[str]:
         """Gets the Java IDs of all negotiators (if the negotiator is not a GeniusNegotiator, its normal ID is returned)"""
-        return self.mechanism.genius_negotiator_ids
+        return self._mechanism.genius_negotiator_ids
 
     def genius_id(self, id: str | None) -> str | None:
         """Gets the Genius ID corresponding to the given negotiator if known otherwise its normal ID"""
-        return self.mechanism.genius_id(id)
+        return self._mechanism.genius_id(id)
+
+    @property
+    def mechanism_id(self) -> str:
+        """Gets the ID of the mechanism"""
+        return self._mechanism.id
 
     @property
     def negotiator_ids(self) -> list[str]:
         """Gets the IDs of all negotiators"""
-        return self.mechanism.negotiator_ids
+        return self._mechanism.negotiator_ids
 
     def negotiator_index(self, source: str) -> int:
         """Returns the negotiator index for the given negotiator. Raises an exception if not found"""
-        indx = self.mechanism.negotiator_index(source)
+        indx = self._mechanism.negotiator_index(source)
         if indx is None:
             raise ValueError(f"No known index for negotiator {source}")
         return indx
@@ -466,7 +470,7 @@ class NegotiatorMechanismInterface:
     @property
     def agent_ids(self) -> list[str]:
         """Gets the IDs of all agents owning all negotiators"""
-        return self.mechanism.agent_ids
+        return self._mechanism.agent_ids
 
     # @property
     # def agent_names(self) -> list[str]:
@@ -489,23 +493,23 @@ class NegotiatorMechanismInterface:
 
     def log_info(self, nid: str, data: dict[str, Any]) -> None:
         """Logs at info level"""
-        self.mechanism.log(nid, level="info", data=data)
+        self._mechanism.log(nid, level="info", data=data)
 
     def log_debug(self, nid: str, data: dict[str, Any]) -> None:
         """Logs at debug level"""
-        self.mechanism.log(nid, level="debug", data=data)
+        self._mechanism.log(nid, level="debug", data=data)
 
     def log_warning(self, nid: str, data: dict[str, Any]) -> None:
         """Logs at warning level"""
-        self.mechanism.log(nid, level="warning", data=data)
+        self._mechanism.log(nid, level="warning", data=data)
 
     def log_error(self, nid: str, data: dict[str, Any]) -> None:
         """Logs at error level"""
-        self.mechanism.log(nid, level="error", data=data)
+        self._mechanism.log(nid, level="error", data=data)
 
     def log_critical(self, nid: str, data: dict[str, Any]) -> None:
         """Logs at critical level"""
-        self.mechanism.log(nid, level="critical", data=data)
+        self._mechanism.log(nid, level="critical", data=data)
 
 
 TraceElement = namedtuple(
@@ -518,8 +522,12 @@ AgentMechanismInterface = NegotiatorMechanismInterface
 """A **depricated** alias for `NegotiatorMechanismInterface`"""
 
 
-Action = Any
-"""Defines a negotiation action"""
+class MechanismAction:
+    """Defines a negotiation action"""
 
-ReactiveStrategy = Mapping[MechanismState, Action] | Callable[[MechanismState], Action]
+
+ReactiveStrategy = (
+    Mapping[MechanismState, MechanismAction]
+    | Callable[[MechanismState], MechanismAction]
+)
 """Defines a negotiation strategy as a mapping from a mechanism state to an action"""

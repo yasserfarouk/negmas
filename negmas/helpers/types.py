@@ -11,7 +11,7 @@ import json
 from enum import Enum
 from os import PathLike
 from types import FunctionType, LambdaType
-from typing import Any, Callable
+from typing import Any, Callable, overload
 
 import stringcase
 
@@ -40,7 +40,22 @@ class ReturnCause(Enum):
     FAILURE = 2
 
 
-def get_full_type_name(t: type[Any] | Callable | str) -> str:
+@overload
+def get_full_type_name(t: None) -> None:
+    ...
+
+
+@overload
+def get_full_type_name(t: str) -> str:
+    ...
+
+
+@overload
+def get_full_type_name(t: type[Any] | Callable) -> str:
+    ...
+
+
+def get_full_type_name(t: type[Any] | Callable | str | None) -> str | None:
     """
     Gets the ful typename of a type. You *should not* pass an instance to this function but it may just work.
 

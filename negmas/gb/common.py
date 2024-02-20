@@ -10,7 +10,7 @@ from typing import TYPE_CHECKING, Literal, Union
 
 from attrs import asdict, define, field
 
-from negmas.common import MechanismState, NegotiatorMechanismInterface
+from negmas.common import MechanismState, NegotiatorMechanismInterface, MechanismAction
 from negmas.outcomes import Outcome
 
 if TYPE_CHECKING:
@@ -119,7 +119,7 @@ def get_offer(state: GBState, source: str | None) -> Outcome | None:
     return None
 
 
-GBAction = dict[str, Outcome | None]
-"""
-An action for a GB mechanism is a mapping from one or more thread IDs to outcomes to offer.
-"""
+class GBAction(Outcome, MechanismAction):
+    """
+    An action for a GB mechanism is a mapping from one or more thread IDs to outcomes to offer.
+    """

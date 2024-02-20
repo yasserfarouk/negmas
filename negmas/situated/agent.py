@@ -1,7 +1,7 @@
 from __future__ import annotations
 import uuid
 from abc import ABC, abstractmethod
-from typing import Any
+from typing import Any, Generic, TypeVar
 
 from negmas.common import MechanismState, NegotiatorMechanismInterface
 from negmas.events import Event, EventSink, EventSource, Notifier
@@ -12,16 +12,18 @@ from negmas.outcomes import Issue
 from negmas.preferences import Preferences, UtilityFunction
 from negmas.types import Rational
 
-from .awi import AgentWorldInterface
 from .breaches import Breach
 from .common import NegotiationRequestInfo, RenegotiationRequest, RunningNegotiationInfo
 from .contract import Contract
 from .entity import Entity
+from .awi import AgentWorldInterface
 
 __all__ = ["Agent"]
 
+TAWI = TypeVar("TAWI", bound=AgentWorldInterface)
 
-class Agent(Entity, EventSink, ConfigReader, Notifier, Rational, ABC):
+
+class Agent(Entity, EventSink, ConfigReader, Notifier, Rational, Generic[TAWI], ABC):
     """Base class for all agents that can run within a `World` and engage in situated negotiations"""
 
     # def __getstate__(self):
@@ -46,7 +48,7 @@ class Agent(Entity, EventSink, ConfigReader, Notifier, Rational, ABC):
         self._accepted_requests: dict[str, NegotiationRequestInfo] = {}
         self.contracts: list[Contract] = []
         self._unsigned_contracts: set[Contract] = set()
-        self._awi: AgentWorldInterface = None  # type: ignore
+        self._awi: TAWI | None = None
 
     # def to_dict(self) -> Dict[str, Any]:
     #     """Converts the agent into  dict for storage purposes.
@@ -115,18 +117,18 @@ class Agent(Entity, EventSink, ConfigReader, Notifier, Rational, ABC):
         return list(self._running_negotiations.values())
 
     @property
-    def awi(self) -> AgentWorldInterface:
+    def awi(self) -> TAWI:
         """Gets the Agent-world interface."""
-        return self._awi
+        return self._awi  # type: ignore
 
     @awi.setter
-    def awi(self, awi: AgentWorldInterface):
+    def awi(self, awi: TAWI):
         """Sets the Agent-world interface. Should only be called by the world."""
         self._awi = awi
 
     def create_negotiation_request(
         self,
-        issues: list[Issue],
+        issues: list[Issue] | tuple[Issue, ...],
         partners: list[str],
         annotation: dict[str, Any] | None,
         negotiator: Negotiator | None,

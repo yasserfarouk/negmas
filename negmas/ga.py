@@ -5,7 +5,8 @@ import random
 
 from attrs import define, field
 
-from negmas.common import Action
+from negmas.common import MechanismAction, NegotiatorMechanismInterface
+from negmas.negotiators.simple import SorterNegotiator
 
 from .mechanisms import Mechanism, MechanismState, MechanismStepResult
 from .outcomes import Outcome
@@ -18,7 +19,9 @@ class GAState(MechanismState):
     dominant_outcomes: list[Outcome] = field(default=list)
 
 
-class GAMechanism(Mechanism):
+class GAMechanism(
+    Mechanism[NegotiatorMechanismInterface, GAState, MechanismAction, SorterNegotiator]
+):
     """Naive GA-based mechanism that assume multi-issue discrete domains.
 
     Args:
@@ -32,11 +35,14 @@ class GAMechanism(Mechanism):
         return self.random_outcomes(n)
 
     def __init__(
-        self, *args, n_population: int = 100, mutate_rate: float = 0.1, **kwargs
+        self,
+        initial_state: GAState | None = None,
+        *args,
+        n_population: int = 100,
+        mutate_rate: float = 0.1,
+        **kwargs,
     ):
-        kwargs["initial_state"] = GAState()
-        super().__init__(*args, **kwargs)
-        self._current_state: GAState
+        super().__init__(initial_state if initial_state else GAState(), *args, **kwargs)
 
         self.n_population = n_population
 
@@ -117,7 +123,7 @@ class GAMechanism(Mechanism):
         self._current_state.dominant_outcomes = self.dominant_outcomes  # type: ignore
 
     def __call__(  # type: ignore
-        self, state: GAState, action: Action | None = None
+        self, state: GAState, action: MechanismAction | None = None
     ) -> MechanismStepResult:
         self.update_ranks()
         self.update_dominant_outcomes()

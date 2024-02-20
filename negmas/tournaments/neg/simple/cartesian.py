@@ -298,7 +298,7 @@ def run_negotiation(
                 )
                 assert not neg_name.exists(), f"{neg_name} already found"
                 neg_name.parent.mkdir(parents=True, exist_ok=True)
-                if isinstance(m, TraceElement):
+                if isinstance(m, Traceable):
                     save_as_df(
                         m.negotiator_full_trace(negotiator.id),
                         ("time", "relative_time", "step", "offer", "response"),

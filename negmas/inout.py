@@ -74,10 +74,10 @@ class Scenario:
 
         return plot_2dutils(
             [],
-            self.ufuns,  # type: ignore
-            tuple(_.name for _ in self.ufuns),  # type: ignore
-            offering_negotiators=tuple(_.name for _ in self.ufuns),  # type: ignore
-            issues=self.outcome_space.issues,  # type: ignore
+            self.ufuns,  #
+            tuple(_.name for _ in self.ufuns),  #
+            offering_negotiators=tuple(_.name for _ in self.ufuns),  #
+            issues=self.outcome_space.issues,  #
             **kwargs,
         )
 
@@ -172,7 +172,9 @@ class Scenario:
                 while isinstance(v, DiscountedUtilityFunction):
                     u, v = v, v.ufun
                 u.ufun = LinearAdditiveUtilityFunction(
-                    values=(TableFun(dict(zip(souts, [v(_) for _ in outcomes]))),),  # type: ignore (The error comes from having LRU cach for table ufun's minmax which should be OK)
+                    values=(
+                        TableFun(dict(zip(souts, [v(_) for _ in outcomes]))),
+                    ),  #  (The error comes from having LRU cach for table ufun's minmax which should be OK)
                     bias=0.0,
                     reserved_value=v.reserved_value,
                     name=v.name,
@@ -182,7 +184,9 @@ class Scenario:
                 continue
             ufuns.append(
                 LinearAdditiveUtilityFunction(
-                    values=(TableFun(dict(zip(souts, [u(_) for _ in outcomes]))),),  # type: ignore (The error comes from having LRU cach for table ufun's minmax which should be OK)
+                    values=(
+                        TableFun(dict(zip(souts, [u(_) for _ in outcomes]))),
+                    ),  #  (The error comes from having LRU cach for table ufun's minmax which should be OK)
                     bias=0.0,
                     reserved_value=u.reserved_value,
                     name=u.name,
@@ -196,8 +200,9 @@ class Scenario:
     def make_session(
         self,
         negotiators: Callable[[], Negotiator]
+        | type[Negotiator]
         | list[Negotiator]
-        | tuple[Negotiator]
+        | tuple[Negotiator, ...]
         | None = None,
         n_steps: int | float | None = None,
         time_limit: float | None = None,
@@ -227,7 +232,7 @@ class Scenario:
         if not isinstance(negotiators, Iterable):
             negs = [
                 negotiators(
-                    name=ufun.name.split("/")[-1]  # type: ignore
+                    name=ufun.name.split("/")[-1]  # type: ignore We trust that the class given is a negotiator and has a name
                     .replace(".xml", "")
                     .replace(".yml", "")
                 )
@@ -260,7 +265,7 @@ class Scenario:
             levels: Number of levels to use for discretizing continuous issues (if any)
             max_cardinality: Maximum allowed number of outcomes resulting after all discretization is done
         """
-        self.ufuns = tuple(_.scale_min(to) for _ in self.ufuns)  # type: ignore The type is correct
+        self.ufuns = tuple(_.scale_min(to) for _ in self.ufuns)  #  The type is correct
         return self
 
     def scale_max(self, to: float = 1.0) -> Scenario:
@@ -273,7 +278,7 @@ class Scenario:
             levels: Number of levels to use for discretizing continuous issues (if any)
             max_cardinality: Maximum allowed number of outcomes resulting after all discretization is done
         """
-        self.ufuns = tuple(_.scale_max(to) for _ in self.ufuns)  # type: ignore The type is correct
+        self.ufuns = tuple(_.scale_max(to) for _ in self.ufuns)  #  The type is correct
         return self
 
     def normalize(self, to: tuple[float, float] = (0.0, 1.0)) -> Scenario:
@@ -282,7 +287,7 @@ class Scenario:
         Args:
             rng: range to normalize to. Default is [0, 1]
         """
-        self.ufuns = tuple(_.normalize(to) for _ in self.ufuns)  # type: ignore The type is correct
+        self.ufuns = tuple(_.normalize(to) for _ in self.ufuns)  #  The type is correct
         return self
 
     def is_normalized(
@@ -361,7 +366,7 @@ class Scenario:
         )
         opposition = opposition_level(
             ufuns,
-            max_utils=tuple(_[1] for _ in minmax),  # type: ignore
+            max_utils=tuple(_[1] for _ in minmax),  #
             outcomes=outcomes,
             max_tests=max_cardinality,
         )
@@ -665,6 +670,7 @@ class Scenario:
         #     ), f"Unknown type or no type for ufun file: {domain=}\n{d=}"
         #     type_ = f"negmas.preferences.{type_}"
         #     utils.append(instantiate(type_, **d))
+        assert isinstance(os, CartesianOutcomeSpace)
         s = Scenario(outcome_space=os, ufuns=tuple(utils))  # type: ignore
         if s and ignore_discount:
             s = s.remove_discounting()
@@ -774,8 +780,8 @@ def load_genius_domain(
         raise ValueError(f"Could not load domain {domain_file_name}")
 
     return Scenario(
-        outcome_space=make_os(issues, name=str(domain_file_name)),  # type: ignore
-        ufuns=tuple(_["ufun"] for _ in agent_info),  # type: ignore
+        outcome_space=make_os(issues, name=str(domain_file_name)),  #
+        ufuns=tuple(_["ufun"] for _ in agent_info),  #
     )
 
 
@@ -938,7 +944,7 @@ def find_domain_and_utility_files_xml(
             domain_file_name = full_name
         elif root.tag == "utility_space":
             utility_file_names.append(full_name)
-    return domain_file_name, utility_file_names  # type: ignore
+    return domain_file_name, utility_file_names  #
 
 
 def load_geniusweb_domain_from_folder(
@@ -1019,7 +1025,7 @@ def find_genius_domain_and_utility_files(
             domain_file_name = full_name
         elif root.tag == "utility_space":
             utility_file_names.append(full_name)
-    return domain_file_name, utility_file_names  # type: ignore
+    return domain_file_name, utility_file_names  #
 
 
 def load_geniusweb_domain(
@@ -1094,5 +1100,5 @@ def load_geniusweb_domain(
 
     return Scenario(
         outcome_space=make_os(issues, name=name),
-        ufuns=[_["ufun"] for _ in agent_info],  # type: ignore
+        ufuns=[_["ufun"] for _ in agent_info],  # type: ignore We trust that the ufun will be loaded
     )

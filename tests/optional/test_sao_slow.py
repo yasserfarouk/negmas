@@ -190,10 +190,10 @@ class InfiniteLoopNegotiator(RandomNegotiator):
         super().__init__(*args, **kwargs)
         self.__stop = False
 
-    def __call__(self, state):
-        _ = state
+    def __call__(self, state: SAOState) -> SAOResponse:
         while not self.__stop:
-            pass
+            _ = state
+        return SAOResponse(ResponseType.END_NEGOTIATION, None)
 
     def stop(self):
         self.__stop = True
@@ -223,10 +223,10 @@ class TimeWaster(RandomNegotiator):
             self.n_waits = random.randint(0, n_waits)
         self.waited = 0
 
-    def __call__(self, state):
+    def __call__(self, state) -> SAOResponse:
         offer = state.current_offer
         if not self.nmi:
-            return None
+            return SAOResponse(ResponseType.END_NEGOTIATION, None)
         if self.waited < self.n_waits and state.step > 0:
             self.waited += 1
             return SAOResponse(ResponseType.WAIT, None)
@@ -277,6 +277,7 @@ def test_hidden_time_limit_words():
     assert time.perf_counter() - mechanism._start_time >= tlimit
     assert not mechanism.state.waiting
     for negotiator in mechanism.negotiators:
+        assert isinstance(negotiator, InfiniteLoopNegotiator)
         negotiator.stop()
 
 
@@ -739,15 +740,21 @@ def test_loops_are_broken(keep_order):
 
     a, b, c = (
         SAOSingleAgreementAspirationController(
-            preferences=MappingUtilityFunction(lambda x: x[0], issues=issues),
+            preferences=MappingUtilityFunction(
+                lambda x: x[0] if x else float("nan"), issues=issues
+            ),
             strict=False,
         ),
         SAOSingleAgreementAspirationController(
-            preferences=MappingUtilityFunction(lambda x: x[0], issues=issues),
+            preferences=MappingUtilityFunction(
+                lambda x: x[0] if x else float("nan"), issues=issues
+            ),
             strict=False,
         ),
         SAOSingleAgreementAspirationController(
-            preferences=MappingUtilityFunction(lambda x: x[0], issues=issues),
+            preferences=MappingUtilityFunction(
+                lambda x: x[0] if x is not None else float("nan"), issues=issues
+            ),
             strict=False,
         ),
     )
@@ -958,6 +965,7 @@ def test_single_mechanism_history_with_waiting(n_steps, n_waits, n_waits2):
     h = [defaultdict(int), defaultdict(int)]
     first_offers = []
     for i, n in enumerate(mechanism.negotiators):
+        assert isinstance(n, TimeWaster)
         first_offers.append(n.received_offers[0] is None)
 
         # sent and received match
@@ -1188,7 +1196,9 @@ def test_aspiration_continuous_issues(n_negotiators, n_issues, presort, stochast
         mechanism.run()
         for neg, neg_id in zip(mechanism.negotiators, mechanism.negotiator_ids):
             assert neg_id in agents.keys()
+            assert neg.ufun is not None
             utils = [neg.ufun(_) for _ in mechanism.negotiator_offers(neg_id)]
+            assert isinstance(neg, AspirationNegotiator)
             if presort:
                 if stochastic:
                     assert all(

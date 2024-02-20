@@ -1,5 +1,4 @@
 from __future__ import annotations
-from abc import ABC
 from typing import TYPE_CHECKING, Any
 
 import negmas.warnings as warnings
@@ -21,7 +20,7 @@ if TYPE_CHECKING:
 __all__ = ["Negotiator"]
 
 
-class Negotiator(Rational, Notifiable, ABC):
+class Negotiator(Rational, Notifiable):
     """
     Abstract negotiation agent. Base class for all negotiators
 
@@ -437,3 +436,4 @@ class Negotiator(Rational, Notifiable, ABC):
     #     raise NotImplementedError(
     #         f"__call__ is not implemented. The MRO is\n {type(self).__mro__}"
     #     )
+    #
