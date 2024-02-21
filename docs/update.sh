@@ -2,11 +2,11 @@
 rm ./tutorials.rst
 cp ./tutorials_template ./tutorials.rst
 echo "    " >> ./tutorials.rst
-jupyter nbconvert --TagRemovePreprocessor.remove_cell_tags='{"remove_cell"}' --to rst ../notebooks/overview.ipynb
+jupyter nbconvert --TagRemovePreprocessor.remove_cell_tags "remove_cell" --to rst ../notebooks/overview.ipynb
 for notebook in `ls ../notebooks/tutorials/*.ipynb | sort -g` ; do
-    jupyter nbconvert --TagRemovePreprocessor.remove_cell_tags='{"remove_cell"}' --to rst $notebook
-    jupyter nbconvert --TagRemovePreprocessor.remove_cell_tags='{"remove_cell"}' --to rst $notebook
-    jupyter nbconvert --TagRemovePreprocessor.remove_cell_tags='{"remove_cell"}' --to rst $notebook
+    jupyter nbconvert --TagRemovePreprocessor.remove_cell_tags "remove_cell" --to rst "$notebook"
+    jupyter nbconvert --TagRemovePreprocessor.remove_cell_tags "remove_cell" --to rst "$notebook"
+    jupyter nbconvert --TagRemovePreprocessor.remove_cell_tags "remove_cell" --to rst "$notebook"
     filename1=${notebook##*/}
     filename=${filename1%??????}
     echo "    tutorials/$filename" >> ./tutorials.rst
@@ -20,25 +20,24 @@ done
 mv ../notebooks/overview.rst .
 mkdir ./figs
 for ext in png jpg pdf; do
-	cp ../notebooks/figs/*.$ext ./figs
+    cp ../notebooks/figs/*.$ext ./figs
 
-mkdir ./tutorials/notebooks
-for f in ../notebooks/tutorials/*.ipynb ; do
-    cp $f ./tutorials/notebooks
-done
+    mkdir ./tutorials/notebooks
+    for f in ../notebooks/tutorials/*.ipynb ; do
+        cp $f ./tutorials/notebooks
+    done
 
-for f in ../notebooks/tutorials/*.gif ; do
-    cp $f ./tutorials/notebooks
-done
-for rstfile in ./tutorials/*.rst; do
-    filename1=${rstfile##*/}
-    filename=${filename1%????}
-    echo "" >> $rstfile
-    # echo ".. only:: builder_html">> $rstfile
-    echo "" >> $rstfile
-    echo "Download :download:\`Notebook<notebooks/$filename.ipynb>\`." >> $rstfile
-    echo "" >> $rstfile
-    echo "" >> $rstfile
+    for f in ../notebooks/tutorials/*.gif ; do
+        cp $f ./tutorials/notebooks
+    done
+    for rstfile in ./tutorials/*.rst; do
+        filename1=${rstfile##*/}
+        filename=${filename1%????}
+        echo "" >> $rstfile
+        # echo ".. only:: builder_html">> $rstfile
+        echo "" >> $rstfile
+        echo "Download :download:\`Notebook<notebooks/$filename.ipynb>\`." >> $rstfile
+    done
 done
 echo "------------------------------------------------"
 make clean

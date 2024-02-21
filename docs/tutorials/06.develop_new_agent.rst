@@ -88,7 +88,7 @@ expect :math:`40` negotiations at every step.
 
 
 
-.. image:: 05.develop_new_agent_files/05.develop_new_agent_5_0.png
+.. image:: 06.develop_new_agent_files/06.develop_new_agent_5_0.png
 
 
 Let’s start by seeing how long did each step take (note that stats
@@ -113,7 +113,7 @@ as a pandas dataframe.
 
 
 
-.. image:: 05.develop_new_agent_files/05.develop_new_agent_7_1.png
+.. image:: 06.develop_new_agent_files/06.develop_new_agent_7_1.png
 
 
 We can for example check the welfare (activity level) of this world
@@ -129,7 +129,7 @@ correspond to the total welfare)
 
 
 
-.. image:: 05.develop_new_agent_files/05.develop_new_agent_9_0.png
+.. image:: 06.develop_new_agent_files/06.develop_new_agent_9_0.png
 
 
 We can see a picture of contracting in this world as follows:
@@ -144,7 +144,7 @@ We can see a picture of contracting in this world as follows:
 
 
 
-.. image:: 05.develop_new_agent_files/05.develop_new_agent_11_0.png
+.. image:: 06.develop_new_agent_files/06.develop_new_agent_11_0.png
 
 
 We can also check the breaches that happened
@@ -157,7 +157,7 @@ We can also check the breaches that happened
 
 
 
-.. image:: 05.develop_new_agent_files/05.develop_new_agent_13_0.png
+.. image:: 06.develop_new_agent_files/06.develop_new_agent_13_0.png
 
 
 We can actually check what happens to ALL agents
@@ -173,7 +173,7 @@ We can actually check what happens to ALL agents
 
 
 
-.. image:: 05.develop_new_agent_files/05.develop_new_agent_15_0.png
+.. image:: 06.develop_new_agent_files/06.develop_new_agent_15_0.png
 
 
 As you can see, the total utility is not monotonically increasing. This
@@ -191,7 +191,7 @@ simulation:
 
 
 
-.. image:: 05.develop_new_agent_files/05.develop_new_agent_17_0.png
+.. image:: 06.develop_new_agent_files/06.develop_new_agent_17_0.png
 
 
 Making a Better Agent for the Trips World
@@ -299,7 +299,7 @@ Let’s check how did our agent do
 
 
 
-.. image:: 05.develop_new_agent_files/05.develop_new_agent_23_0.png
+.. image:: 06.develop_new_agent_files/06.develop_new_agent_23_0.png
 
 
 Better.

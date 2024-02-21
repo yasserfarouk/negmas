@@ -180,7 +180,7 @@ Now let’s try our brand new mechanism and negotiator
 
 .. parsed-literal::
 
-    Agreement: (0.5000000026839123, 0.4999999975541203)
+    Agreement: (0.49999999380800164, 0.4999999972481267)
 
 
 As expected, the two negotiators agreed on the expected nash point (0.5,
@@ -225,11 +225,11 @@ example, how does the reservation value affect the outcome:
 
 
 
-.. image:: 03.develop_new_mechanism_files/03.develop_new_mechanism_9_0.png
+.. image:: 04.develop_new_mechanism_files/04.develop_new_mechanism_9_0.png
 
 
 
-.. image:: 03.develop_new_mechanism_files/03.develop_new_mechanism_9_1.png
+.. image:: 04.develop_new_mechanism_files/04.develop_new_mechanism_9_1.png
 
 
 We can see that increasing the reservation value of a negotiator
@@ -276,11 +276,11 @@ What happens if the utility value of a negotiator had a different slope:
 
 
 
-.. image:: 03.develop_new_mechanism_files/03.develop_new_mechanism_11_0.png
+.. image:: 04.develop_new_mechanism_files/04.develop_new_mechanism_11_0.png
 
 
 
-.. image:: 03.develop_new_mechanism_files/03.develop_new_mechanism_11_1.png
+.. image:: 04.develop_new_mechanism_files/04.develop_new_mechanism_11_1.png
 
 
 Notice that in this case, the both negotiators always get their maximum
@@ -491,11 +491,11 @@ Now we can run negotiations using our new protocol and negotiator:
 
 .. parsed-literal::
 
-    Agreed to: (0.24123026556398708, 0.7587697344360129) after 566 steps
+    Agreed to: (0.8493891745606217, 0.15061082543937837) after 74 steps
 
 
 
-.. image:: 03.develop_new_mechanism_files/03.develop_new_mechanism_23_1.png
+.. image:: 04.develop_new_mechanism_files/04.develop_new_mechanism_23_1.png
 
 
 Rubinstein showed in 1982 that there is a single perfect game
@@ -526,7 +526,7 @@ We can implement the optimal negotiator for this mechanism as follows:
 
 
 
-.. image:: 03.develop_new_mechanism_files/03.develop_new_mechanism_25_1.png
+.. image:: 04.develop_new_mechanism_files/04.develop_new_mechanism_25_1.png
 
 
 We can see that even though both negotiators had the same time-pressure
@@ -564,7 +564,7 @@ other agent’s
 
 
 
-.. image:: 03.develop_new_mechanism_files/03.develop_new_mechanism_27_1.png
+.. image:: 04.develop_new_mechanism_files/04.develop_new_mechanism_27_1.png
 
 
 Now we can see when the first negotiator is a ``conceder`` :
@@ -584,7 +584,7 @@ Now we can see when the first negotiator is a ``conceder`` :
 
 
 
-.. image:: 03.develop_new_mechanism_files/03.develop_new_mechanism_29_1.png
+.. image:: 04.develop_new_mechanism_files/04.develop_new_mechanism_29_1.png
 
 
 As expected, the agreement shifted toward the second agent.
@@ -607,7 +607,7 @@ concedes slowly in the beginning then fast near the end):
 
 
 
-.. image:: 03.develop_new_mechanism_files/03.develop_new_mechanism_31_1.png
+.. image:: 04.develop_new_mechanism_files/04.develop_new_mechanism_31_1.png
 
 
 As expected, the agreement shifted toward the second agent.
@@ -634,7 +634,7 @@ something like this:
 
 
 
-.. image:: 03.develop_new_mechanism_files/03.develop_new_mechanism_33_1.png
+.. image:: 04.develop_new_mechanism_files/04.develop_new_mechanism_33_1.png
 
 
 Now we are back to the equilibirum achieved by the optimal negotiator in
@@ -658,7 +658,7 @@ it:
 
 
 
-.. image:: 03.develop_new_mechanism_files/03.develop_new_mechanism_35_1.png
+.. image:: 04.develop_new_mechanism_files/04.develop_new_mechanism_35_1.png
 
 
 A lower discount value indicates higher time pressure. This means that
@@ -683,7 +683,7 @@ What if we tried our boulware here:
 
 
 
-.. image:: 03.develop_new_mechanism_files/03.develop_new_mechanism_37_1.png
+.. image:: 04.develop_new_mechanism_files/04.develop_new_mechanism_37_1.png
 
 
 The behavior did not change from the case with equal time pressure.
