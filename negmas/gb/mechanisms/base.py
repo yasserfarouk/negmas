@@ -5,7 +5,7 @@ from typing import TYPE_CHECKING, Any, Callable
 
 from attrs import define
 
-from negmas.common import NegotiatorMechanismInterface, TraceElement
+from negmas.common import TraceElement
 from negmas.helpers import humanize_time
 from negmas.helpers.types import get_full_type_name, instantiate
 from negmas.mechanisms import Mechanism, MechanismStepResult
@@ -13,7 +13,7 @@ from negmas.outcomes import Outcome
 from negmas.plots.util import default_colorizer
 from negmas.preferences import BaseUtilityFunction, Preferences
 
-from ..common import GBAction, GBResponse, GBState, ResponseType, ThreadState
+from ..common import GBAction, GBResponse, GBState, ResponseType, ThreadState, GBNMI
 from ..constraints.base import LocalOfferingConstraint, OfferingConstraint
 from ..evaluators.base import EvaluationStrategy, LocalEvaluationStrategy, all_accept
 from negmas.gb.negotiators.base import GBNegotiator
@@ -115,9 +115,7 @@ class GBThread:
         )
 
 
-class BaseGBMechanism(
-    Mechanism[NegotiatorMechanismInterface, GBState, GBAction, GBNegotiator]
-):
+class BaseGBMechanism(Mechanism[GBNMI, GBState, GBAction, GBNegotiator]):
     def __init__(
         self,
         *args,

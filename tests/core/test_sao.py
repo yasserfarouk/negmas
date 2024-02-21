@@ -2,6 +2,7 @@ from __future__ import annotations
 import random
 from random import choice
 
+from negmas.sao.negotiators import AspirationNegotiator
 import hypothesis.strategies as st
 from hypothesis import example, given, settings
 from pytest import mark
@@ -14,7 +15,6 @@ from negmas import (
 )
 from negmas.common import PreferencesChangeType
 from negmas.gb.common import ResponseType
-from negmas.gb.negotiators.timebased import AspirationNegotiator
 from negmas.outcomes import Issue, make_issue
 from negmas.outcomes.outcome_space import make_os
 from negmas.preferences import LinearAdditiveUtilityFunction

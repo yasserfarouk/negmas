@@ -1,5 +1,5 @@
 from __future__ import annotations
-from typing import TYPE_CHECKING, Any
+from typing import TYPE_CHECKING, Any, TypeVar, Generic
 
 import negmas.warnings as warnings
 from negmas.common import (
@@ -20,7 +20,11 @@ if TYPE_CHECKING:
 __all__ = ["Negotiator"]
 
 
-class Negotiator(Rational, Notifiable):
+TNMI = TypeVar("TNMI", bound=NegotiatorMechanismInterface)
+TState = TypeVar("TState", bound=MechanismState)
+
+
+class Negotiator(Rational, Notifiable, Generic[TNMI, TState]):
     """
     Abstract negotiation agent. Base class for all negotiators
 
@@ -56,7 +60,7 @@ class Negotiator(Rational, Notifiable):
             preferences = ufun
         self.__parent = parent
         self._capabilities = {"enter": True, "leave": True, "ultimatum": True}
-        self._nmi: NegotiatorMechanismInterface | None = None
+        self._nmi: TNMI | None = None
         self._initial_state = None
         self._role = None
         self.__owner = owner
@@ -69,7 +73,7 @@ class Negotiator(Rational, Notifiable):
         self.__saved_prefs = None
 
     @property
-    def ami(self) -> NegotiatorMechanismInterface:
+    def ami(self) -> TNMI:
         warnings.deprecated(
             "`ami` is depricated and will not be a member of `Negotiator` in the future. Use `nmi` instead."
         )
@@ -80,7 +84,7 @@ class Negotiator(Rational, Notifiable):
         return self.private_info.get("opponent_ufun", None)
 
     @property
-    def nmi(self) -> NegotiatorMechanismInterface:
+    def nmi(self) -> TNMI:
         return self._nmi  # type: ignore
 
     @property
@@ -222,12 +226,10 @@ class Negotiator(Rational, Notifiable):
         else:
             self._capabilities = capabilities
 
-            # CALL BACKS
-
     def join(
         self,
-        nmi: NegotiatorMechanismInterface,
-        state: MechanismState,
+        nmi: TNMI,
+        state: TState,
         *,
         preferences: Preferences | None = None,
         ufun: BaseUtilityFunction | None = None,
@@ -237,11 +239,11 @@ class Negotiator(Rational, Notifiable):
         Called by the mechanism when the agent is about to enter a negotiation. It can prevent the agent from entering
 
         Args:
-            nmi  (AgentMechanismInterface): The negotiation.
-            state (MechanismState): The current state of the negotiation
-            preferences (Preferences): The preferences used by the negotiator (see `ufun` )
-            ufun (UtilityFunction): The ufun function to use (overrides `preferences` )
-            role (str): role of the negotiator.
+            nmi: The negotiation.
+            state: The current state of the negotiation
+            preferences: The preferences used by the negotiator (see `ufun` )
+            ufun: The ufun function to use (overrides `preferences` )
+            role: role of the negotiator.
 
         Returns:
             bool indicating whether or not the agent accepts to enter.
@@ -273,7 +275,7 @@ class Negotiator(Rational, Notifiable):
             self._preferences = preferences
         return True
 
-    def on_negotiation_start(self, state: MechanismState) -> None:
+    def on_negotiation_start(self, state: TState) -> None:
         """
         A call back called at each negotiation start
 
@@ -289,7 +291,7 @@ class Negotiator(Rational, Notifiable):
 
         """
 
-    def _on_negotiation_start(self, state: MechanismState) -> None:
+    def _on_negotiation_start(self, state: TState) -> None:
         """
         Internally called by the mechanism when the negotiation is about to start
         """
@@ -298,7 +300,7 @@ class Negotiator(Rational, Notifiable):
             super().set_preferences(self._preferences, force=True)
         self.on_negotiation_start(state)
 
-    def on_round_start(self, state: MechanismState) -> None:
+    def on_round_start(self, state: TState) -> None:
         """
         A call back called at each negotiation round start
 
@@ -311,7 +313,7 @@ class Negotiator(Rational, Notifiable):
 
         """
 
-    def on_mechanism_error(self, state: MechanismState) -> None:
+    def on_mechanism_error(self, state: TState) -> None:
         """
         A call back called whenever an error happens in the mechanism. The error and its explanation are accessible in
         `state`
@@ -325,7 +327,7 @@ class Negotiator(Rational, Notifiable):
 
         """
 
-    def on_round_end(self, state: MechanismState) -> None:
+    def on_round_end(self, state: TState) -> None:
         """
         A call back called at each negotiation round end
 
@@ -338,7 +340,7 @@ class Negotiator(Rational, Notifiable):
 
         """
 
-    def on_leave(self, state: MechanismState) -> None:
+    def on_leave(self, state: TState) -> None:
         """
         A call back called after leaving a negotiation.
 
@@ -353,7 +355,7 @@ class Negotiator(Rational, Notifiable):
         """
         self._dissociate()
 
-    def on_negotiation_end(self, state: MechanismState) -> None:
+    def on_negotiation_end(self, state: TState) -> None:
         """
         A call back called at each negotiation end
 
@@ -367,7 +369,7 @@ class Negotiator(Rational, Notifiable):
 
         """
 
-    def _on_negotiation_end(self, state: MechanismState) -> None:
+    def _on_negotiation_end(self, state: TState) -> None:
         """
         A call back called at each negotiation end
 

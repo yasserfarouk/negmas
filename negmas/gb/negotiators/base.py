@@ -1,14 +1,15 @@
 from __future__ import annotations
 from abc import abstractmethod
 from collections import defaultdict
-from typing import TYPE_CHECKING
+from typing import TYPE_CHECKING, Generic, TypeVar
 
 from negmas.preferences.base_ufun import BaseUtilityFunction
 from negmas.preferences.preferences import Preferences
 
 from ...negotiators import Controller, Negotiator
 from ...outcomes import Outcome
-from ..common import GBState, ResponseType, ThreadState
+from ..common import GBNMI, GBState, ResponseType, ThreadState
+from ...common import NegotiatorMechanismInterface, MechanismState
 
 if TYPE_CHECKING:
     from negmas.sao.common import SAOResponse, SAOState
@@ -16,8 +17,11 @@ if TYPE_CHECKING:
 
 __all__ = ["GBNegotiator"]
 
+TNMI = TypeVar("TNMI", bound=NegotiatorMechanismInterface)
+TState = TypeVar("TState", bound=MechanismState)
 
-class GBNegotiator(Negotiator):
+
+class GBNegotiator(Negotiator[GBNMI, GBState], Generic[TNMI, TState]):
     """
     Base class for all GB negotiators.
 
@@ -63,7 +67,7 @@ class GBNegotiator(Negotiator):
         )
 
     @abstractmethod
-    def propose(self, state: GBState) -> Outcome | None:
+    def propose(self, state) -> Outcome | None:
         """Propose an offer or None to refuse.
 
         Args:
@@ -169,50 +173,11 @@ class GBNegotiator(Negotiator):
         return SAOResponse(response, self.propose_(state=state))
 
     def propose_(self, state: SAOState) -> Outcome | None:
-        """
-        The method directly called by the mechanism (through `counter` ) to ask for a proposal
-
-        Args:
-            state: The mechanism state
-
-        Returns:
-            An outcome to offer or None to refuse to offer
-
-        Remarks:
-            - Depending on the `SAOMechanism` settings, refusing to offer may be interpreted as ending the negotiation
-            - The negotiator will only receive this call if it has the 'propose' capability.
-
-        """
         if not self._capabilities["propose"] or self.__end_negotiation:
             return None
         return self.propose(state=self._gb_state_from_sao_state(state))
 
     def respond_(self, state: SAOState) -> ResponseType:
-        """The method to be called directly by the mechanism (through `counter` ) to respond to an offer.
-
-        Args:
-            state: a `SAOState` giving current state of the negotiation.
-
-        Returns:
-            ResponseType: The response to the offer. Possible values are:
-
-                - NO_RESPONSE: refuse to offer. Depending on the mechanism settings this may be interpreted as ending
-                               the negotiation.
-                - ACCEPT_OFFER: Accepting the offer.
-                - REJECT_OFFER: Rejecting the offer. The negotiator will be given the chance to counter this
-                                offer through a call of `propose_` later if this was not the last offer to be evaluated
-                                by the mechanism.
-                - END_NEGOTIATION: End the negotiation
-                - WAIT: Instructs the mechanism to wait for this negotiator more. It may lead to cycles so use with care.
-
-        Remarks:
-            - The default implementation never ends the negotiation except if an earler end_negotiation notification is
-              sent to the negotiator
-            - The default implementation asks the negotiator to `propose`() and accepts the `offer` if its utility was
-              at least as good as the offer that it would have proposed (and above the reserved value).
-            - Current offer is accessible through state.threads[source].current_offer as long as source != None otherwise it is None
-
-        """
         offer = state.current_offer
         if self.__end_negotiation:
             return ResponseType.END_NEGOTIATION
@@ -250,4 +215,58 @@ class GBNegotiator(Negotiator):
             has_error=state.has_error,
             error_details=state.error_details,
             threads=threads,
+        )
+
+    def _sao_state_from_gb_state(self, state: GBState) -> SAOState:
+        if isinstance(state, SAOState):
+            return state
+        if not self.nmi:
+            raise ValueError("No NMI. Cannot convert SAOState to GBState")
+        # TODO: correct all of this nonsense
+        if state.last_thread:
+            offerer = state.last_thread
+            owner = self.nmi._mechanism._negotiator_map[offerer].owner
+            aid = owner.id if owner else None
+            current_offer = state.threads[state.last_thread].new_offer
+            current_proposer = None
+            current_proposer_agent = None
+            n_acceptances = len(
+                [
+                    (offerer, _)
+                    for _ in state.threads[state.last_thread].new_responses.values()
+                    if _ == ResponseType.ACCEPT_OFFER
+                ]
+            )
+            new_offers = [(offerer, state.threads[state.last_thread].new_offer)]
+            new_offerer_agents = [aid]
+            last_negotiator = None
+        else:
+            current_offer = None
+            current_proposer = None
+            current_proposer_agent = None
+            n_acceptances = 0
+            new_offers = []
+            new_offerer_agents = []
+            last_negotiator = None
+        return SAOState(
+            running=state.running,
+            waiting=state.waiting,
+            started=state.started,
+            step=state.step,
+            time=state.time,
+            relative_time=state.relative_time,
+            broken=state.broken,
+            timedout=state.timedout,
+            agreement=state.agreement,
+            results=state.results,
+            n_negotiators=state.n_negotiators,
+            has_error=state.has_error,
+            error_details=state.error_details,
+            current_offer=current_offer,
+            current_proposer=current_proposer,
+            current_proposer_agent=current_proposer_agent,
+            n_acceptances=n_acceptances,
+            new_offers=new_offers,
+            new_offerer_agents=new_offerer_agents,
+            last_negotiator=last_negotiator,
         )

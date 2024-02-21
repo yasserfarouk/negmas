@@ -20,12 +20,17 @@ __all__ = [
     "ResponseType",
     "GBResponse",
     "GBState",
+    "GBNMI",
     "ThreadState",
     "NegotiatorMechanismInterface",
     "all_negotiator_types",
 ]
 
 GBResponse = Union[Outcome, None, Literal["continue"]]
+
+
+class GBNMI(NegotiatorMechanismInterface):
+    pass
 
 
 class ResponseType(IntEnum):

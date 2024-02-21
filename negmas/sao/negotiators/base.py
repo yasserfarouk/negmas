@@ -9,16 +9,15 @@ from negmas.warnings import warn
 from ...events import Notification
 from ...negotiators import Controller
 from ...outcomes import Outcome
-from ..common import ResponseType, SAOResponse
+from ..common import SAONMI, ResponseType, SAOResponse, SAOState
 
 if TYPE_CHECKING:
-    from negmas.sao import SAOState
     from negmas.situated import Agent
 
 __all__ = ["SAONegotiator"]
 
 
-class SAONegotiator(GBNegotiator):
+class SAONegotiator(GBNegotiator[SAONMI, SAOState]):
     """
     Base class for all SAO negotiators.
 
@@ -110,10 +109,10 @@ class SAONegotiator(GBNegotiator):
         self.__my_last_proposal_time = state.step
         return self.__my_last_proposal
 
-    def propose(self, state: SAOState) -> Outcome | None:
+    def propose(self, state) -> Outcome | None:
         return None
 
-    def respond(self, state: SAOState, source: str | None = None) -> ResponseType:
+    def respond(self, state, source: str | None = None) -> ResponseType:
         """
         Called to respond to an offer. This is the method that should be overriden to provide an acceptance strategy.
 
@@ -131,6 +130,9 @@ class SAONegotiator(GBNegotiator):
             - The current offer to respond to can be accessed through `state.current_offer`
 
         """
+        if not isinstance(state, SAOState):
+            state = self._sao_state_from_gb_state(state)
+
         offer = state.current_offer
         # Always reject offers that we do not know or if we have no kknown preferences
         if offer is None or self.preferences is None:
