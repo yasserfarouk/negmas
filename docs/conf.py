@@ -61,6 +61,7 @@ extensions = [
     "sphinx_autodoc_annotation",
     # "sphinxcontrib.fulltoc",
     "nbsphinx",
+    "sphinx_tabs",
 ]
 
 intersphinx_mapping = {
