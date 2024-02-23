@@ -689,3 +689,13 @@ What if we tried our boulware here:
 The behavior did not change from the case with equal time pressure.
 There is no mystry here. The boulware agent does not take its own
 time-pressure (discount) into accout. Can you fix that?
+
+
+
+Download :download:`Notebook<notebooks/04.develop_new_mechanism.ipynb>`.
+
+
+Download :download:`Notebook<notebooks/04.develop_new_mechanism.ipynb>`.
+
+
+Download :download:`Notebook<notebooks/04.develop_new_mechanism.ipynb>`.

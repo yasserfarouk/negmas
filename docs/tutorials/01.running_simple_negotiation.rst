@@ -464,3 +464,14 @@ Try to give an intuition for what happened:
    previous (in which it was also using a linear concession strategy)?
 -  If the seller knew that the buyer will be using this strategy, what
    is its best response?
+
+
+
+
+Download :download:`Notebook<notebooks/01.running_simple_negotiation.ipynb>`.
+
+
+Download :download:`Notebook<notebooks/01.running_simple_negotiation.ipynb>`.
+
+
+Download :download:`Notebook<notebooks/01.running_simple_negotiation.ipynb>`.

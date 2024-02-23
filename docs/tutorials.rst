@@ -9,9 +9,7 @@ applicability to a variety of problems.
     :maxdepth: 2
 
     tutorials/01.running_simple_negotiation
-    tutorials/02.Integ
-    tutorials/with
-    tutorials/Genius
+    tutorials/02.integrating_with_genius
     tutorials/03.develop_new_negotiator
     tutorials/04.develop_new_mechanism
     tutorials/05.develop_new_simulation
