@@ -1,6 +1,21 @@
 History
 =======
 
+Release 0.10.14
+---------------
+* Running bridge in slow actions
+* Adding a tutorial about using the genius bridge
+* Getting "negmas genius" to work as expected and adding more arguments to it
+* Making negotiators generics
+    * Adding conversion from GBState to SAOState even though it is not really needed. Not tested yet.
+* Making mechanisms and worlds generics
+* Link corrections in docs
+* Getting genius_id to work for all negotiators now
+* Migrating from black to ruff for formatting
+* Skipping stat combination tests
+* Adding plot_combined_stats and combine_stats in World
+* Fixing logo path
+
 Release 0.10.13
 ---------------
 * Minor coloring in tournaments

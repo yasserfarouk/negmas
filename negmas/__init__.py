@@ -4,7 +4,7 @@
 
 __author__ = """Yasser Mohammad"""
 __email__ = "yasserfarouk@gmail.com"
-__version__ = "0.10.13"
+__version__ = "0.10.14"
 
 
 from .config import *
