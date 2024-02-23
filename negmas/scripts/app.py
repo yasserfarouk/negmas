@@ -820,9 +820,35 @@ def combine_results(path, dest, metric, significance, compile, verbose):
     help="Port to run the NegLoader on. Pass 0 for the default value",
 )
 @click.option(
-    "--debug/--silent",
+    "--debug/--no-debug",
     default=False,
     help="Run the bridge in debug mode if --debug else silently",
+)
+@click.option("--verbose/--silent", default=True, help="Verbose output")
+@click.option("--save-logs/--no-logs", default=False, help="Save logs")
+@click.option(
+    "--die-on-exit/--no-die-on-exit",
+    type=bool,
+    default=False,
+    help="Whether to kill the bridge on exit. For future use. Currently it does nothing.",
+)
+# @click.option(
+#     "--capture-output/--no-capture-output",
+#     type=bool,
+#     default=False,
+#     help="Whether to capture the output of the bridge or not",
+# )
+@click.option(
+    "--use-shell/--no-shell",
+    type=bool,
+    default=False,
+    help="Whether to start the new process in a shell",
+)
+@click.option(
+    "--force-timeout/--no-forced-timeout",
+    type=bool,
+    default=True,
+    help="Whether to force a timeout on the bridge",
 )
 @click.option(
     "--timeout",
@@ -830,13 +856,53 @@ def combine_results(path, dest, metric, significance, compile, verbose):
     type=float,
     help="The timeout to pass. Zero or negative numbers to disable and use the bridge's global timeout.",
 )
-def genius(path, port, debug, timeout):
+@click.option(
+    "--log-path",
+    default=None,
+    type=click.Path(file_okay=False),
+    help="Directory to save logs within. Only used if --save-logs. If not given, ~/negmas/logs will be used",
+)
+def genius(
+    path,
+    port,
+    debug,
+    timeout,
+    force_timeout: bool = True,
+    save_logs: bool = False,
+    log_path: os.PathLike | None = None,
+    die_on_exit: bool = False,
+    use_shell: bool = False,
+    verbose: bool = False,
+    allow_agent_print: bool = False,
+    # capture_output: bool = False,
+):
     if port and negmas.genius_bridge_is_running(port):
         print(f"Genius Bridge is already running on port {port} ... exiting")
         sys.exit()
-    negmas.init_genius_bridge(
-        path=path if path != "auto" else None, port=port, debug=debug, timeout=timeout
+    port = negmas.init_genius_bridge(
+        path=path if path != "auto" else None,
+        port=port,
+        debug=debug,
+        timeout=timeout,
+        force_timeout=force_timeout,
+        save_logs=save_logs,
+        log_path=log_path,
+        die_on_exit=die_on_exit,
+        use_shell=use_shell,
+        verbose=verbose,
+        allow_agent_print=allow_agent_print,
+        # capture_output=capture_output,
     )
+    if port > 0:
+        print(f"Started on port {port}")
+    elif port == 0:
+        print(
+            "Failed to start. Try running 'java -jar $HOME/negmas/files/geniusbridge.jar' directly."
+        )
+        exit(-1)
+    else:
+        print(f"A bridge is already running on {port}")
+        exit(0)
     while True:
         pass
 

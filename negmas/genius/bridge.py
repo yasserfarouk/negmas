@@ -134,7 +134,15 @@ def init_genius_bridge(
     port: int = DEFAULT_JAVA_PORT,
     debug: bool = False,
     timeout: float = 0,
-) -> bool:
+    force_timeout: bool = True,
+    save_logs: bool = False,
+    log_path: os.PathLike | None = None,
+    die_on_exit: bool = False,
+    use_shell: bool = False,
+    verbose: bool = False,
+    allow_agent_print: bool = False,
+    # capture_output: bool = False,
+) -> int:
     """Initializes a genius connection
 
     Args:
@@ -146,59 +154,74 @@ def init_genius_bridge(
                  truncated.
 
     Returns:
-        True if successful
+        Port if started. -1 if a bridge is already running on this port. 0 if failed
 
     """
     if port <= 0:
         port = get_free_tcp_port()
     if genius_bridge_is_running(port):
-        return True
-    # if not force and common_gateway is not None and common_port == port:
-    #     print("Java already initialized")
-    #     return True
-
-    if not path:
-        path = negmas_config(  # type: ignore
-            CONFIG_KEY_GENIUS_BRIDGE_JAR,
-            pathlib.Path.home() / "negmas" / "files" / "geniusbridge.jar",
-        )
-    if path is None:
-        warnings.warn(
-            "Cannot find the path to genius bridge jar. Download the jar somewhere in your machine and add its path"
-            'to ~/negmas/config.json under the key "genius_bridge_jar".\n\nFor example, if you downloaded the jar'
-            " to /path/to/your/jar then edit ~/negmas/config.json to read something like\n\n"
-            '{\n\t"genius_bridge_jar": "/path/to/your/jar",\n\t.... rest of the config\n}\n\n'
-            "You can find the jar at https://yasserfarouk.github.io/files/geniusbridge.jar",
-            warnings.NegmasBridgePathWarning,
-        )
-        return False
-    path = Path(path).expanduser().absolute()
-    if debug:
-        params = " --debug"
-    else:
-        params = " --silent --no-logs"
-    if timeout >= 0:
-        params += f" --timeout={int(timeout)}"
-
-    try:
-        subprocess.Popen(  # ['java', '-jar',  path, '--die-on-exit', f'{port}']
-            f"java -jar {path} --die-on-exit {params} {port}", shell=True
-        )
-    except (OSError, TimeoutError, RuntimeError, ValueError):
-        return False
-    time.sleep(0.5)
-    gateway = JavaGateway(
-        gateway_parameters=GatewayParameters(port=port, auto_close=True),
-        callback_server_parameters=CallbackServerParameters(
-            port=0, daemonize=True, daemonize_connections=True
-        ),
+        return -1
+    port = GeniusBridge.start(
+        port=port,
+        debug=debug,
+        timeout=timeout,
+        path=str(path) if path else path,
+        force_timeout=force_timeout,
+        save_logs=save_logs,
+        log_path=log_path,
+        die_on_exit=die_on_exit,
+        use_shell=use_shell,
+        verbose=verbose,
+        allow_agent_print=allow_agent_print,
+        # capture_output=capture_output,
     )
-    python_port = gateway.get_callback_server().get_listening_port()  # type: ignore
-    gateway.java_gateway_server.resetCallbackClient(  # type: ignore
-        gateway.java_gateway_server.getCallbackClient().getAddress(),
-        python_port,  # type: ignore
-    )
-    return True
+    return port
+    # # if not force and common_gateway is not None and common_port == port:
+    # #     print("Java already initialized")
+    # #     return True
+    #
+    # if not path:
+    #     path = negmas_config(  # type: ignore
+    #         CONFIG_KEY_GENIUS_BRIDGE_JAR,
+    #         pathlib.Path.home() / "negmas" / "files" / "geniusbridge.jar",
+    #     )
+    # if path is None:
+    #     warnings.warn(
+    #         "Cannot find the path to genius bridge jar. Download the jar somewhere in your machine and add its path"
+    #         'to ~/negmas/config.json under the key "genius_bridge_jar".\n\nFor example, if you downloaded the jar'
+    #         " to /path/to/your/jar then edit ~/negmas/config.json to read something like\n\n"
+    #         '{\n\t"genius_bridge_jar": "/path/to/your/jar",\n\t.... rest of the config\n}\n\n'
+    #         "You can find the jar at https://yasserfarouk.github.io/files/geniusbridge.jar",
+    #         warnings.NegmasBridgePathWarning,
+    #     )
+    #     return False
+    # path = Path(path).expanduser().absolute()
+    # if debug:
+    #     params = " --debug"
+    # else:
+    #     params = " --silent --no-logs"
+    # if timeout >= 0:
+    #     params += f" --timeout={int(timeout)}"
+    #
+    # try:
+    #     subprocess.Popen(  # ['java', '-jar',  path, '--die-on-exit', f'{port}']
+    #         f"java -jar {path} --die-on-exit {params} {port}", shell=True
+    #     )
+    # except (OSError, TimeoutError, RuntimeError, ValueError):
+    #     return False
+    # time.sleep(0.5)
+    # gateway = JavaGateway(
+    #     gateway_parameters=GatewayParameters(port=port, auto_close=True),
+    #     callback_server_parameters=CallbackServerParameters(
+    #         port=0, daemonize=True, daemonize_connections=True
+    #     ),
+    # )
+    # python_port = gateway.get_callback_server().get_listening_port()  # type: ignore
+    # gateway.java_gateway_server.resetCallbackClient(  # type: ignore
+    #     gateway.java_gateway_server.getCallbackClient().getAddress(),  # type: ignore
+    #     python_port,  # type: ignore
+    # )
+    # return True
 
 
 def genius_bridge_is_installed() -> bool:
@@ -304,6 +327,9 @@ class GeniusBridge:
         log_path: os.PathLike | None = None,
         die_on_exit: bool = False,
         use_shell: bool = False,
+        verbose: bool = False,
+        allow_agent_print: bool = False,
+        # capture_output: bool = False,
     ) -> int:
         """Initializes a genius connection
 
@@ -380,7 +406,11 @@ class GeniusBridge:
         if debug:
             params = ["--debug"]
         else:
-            params = ["--silent", "--no-logs"]
+            params = []
+        params.append("--verbose" if verbose else "--silent")
+        if allow_agent_print:
+            params.append("--allow-agent-print")
+
         if die_on_exit:
             params.append("--die-on-exit")
         if force_timeout:
@@ -404,6 +434,7 @@ class GeniusBridge:
             cls.java_processes[port] = subprocess.Popen(
                 ["java", "-jar", str(path)] + params + [f"{port}"],
                 shell=use_shell,
+                # capture_output=capture_output,
                 cwd=path.parent,  # type: ignore
             )
         except (OSError, TimeoutError, RuntimeError, ValueError) as e:
