@@ -472,10 +472,10 @@ class NegotiatorMechanismInterface:
         """Gets the IDs of all agents owning all negotiators"""
         return self._mechanism.agent_ids
 
-    # @property
-    # def agent_names(self) -> list[str]:
-    #     """Gets the names of all agents owning all negotiators"""
-    #     return self.mechanism.agent_names
+    @property
+    def agent_names(self) -> list[str]:
+        """Gets the names of all agents owning all negotiators"""
+        return self._mechanism.agent_names
 
     def keys(self):
         return self.__dict__.keys()
