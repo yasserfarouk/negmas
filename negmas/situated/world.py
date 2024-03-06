@@ -531,7 +531,17 @@ class World(
 
     @property
     def stats(self) -> dict[str, Any]:
-        return self._stats
+        if len(self._stats) == 0:
+            return dict()
+        L = max(len(_) for _ in self._stats.values())
+
+        def extend(x, L):
+            n = len(x)
+            if n >= L:
+                return x
+            return x + [float("nan")] * (L - n)
+
+        return {k: extend(v, L) for k, v in self._stats.items()}
 
     @property
     def breach_fraction(self) -> float:

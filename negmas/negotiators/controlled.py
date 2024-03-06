@@ -27,7 +27,16 @@ class ControlledNegotiator(Negotiator):
             "on_preferences_changed",
             "has_preferences",
             "preferences",
+            "ufun",
+            "opponent_ufun",
             "reserved_value",
+            "nmi",
+            "ami",
+            "owner",
+            "annotation",
+            "private_info",
+            "parent",
+            "capabilities",
         ) or item.startswith("_"):
             return super().__getattribute__(item)
         parent = super().__getattribute__("__dict__").get("_Negotiator__parent", None)

@@ -942,7 +942,7 @@ class Mechanism(
         if self._extra_callbacks:
             for a in self.negotiators:
                 strt = time.perf_counter()
-                a.on_mechanism_error(state)
+                a.on_mechanism_error(state=state)
                 self._negotiator_times[a.id] += time.perf_counter() - strt
 
     def on_negotiation_end(self) -> None:
@@ -954,7 +954,7 @@ class Mechanism(
         state = self.state
         for a in self.negotiators:
             strt = time.perf_counter()
-            a._on_negotiation_end(state)
+            a._on_negotiation_end(state=state)
             self._negotiator_times[a.id] += time.perf_counter() - strt
         self.announce(
             Event(
@@ -1134,7 +1134,7 @@ class Mechanism(
         if not self._current_state.waiting and self._extra_callbacks:
             for agent in self._negotiators:
                 strt = time.perf_counter()
-                agent.on_round_start(state)
+                agent.on_round_start(state=state)
                 self._negotiator_times[agent.id] += time.perf_counter() - strt
 
         # run a round of the mechanism and get the new state
@@ -1199,7 +1199,7 @@ class Mechanism(
             if self._extra_callbacks:
                 for agent in self._negotiators:
                     strt = time.perf_counter()
-                    agent.on_round_end(state)
+                    agent.on_round_end(state=state)
                     self._negotiator_times[agent.id] += time.perf_counter() - strt
             self._add_to_history(state4history)
             # we only indicate a new step if no one is waiting
@@ -1237,7 +1237,7 @@ class Mechanism(
         if self._extra_callbacks:
             for agent in self._negotiators:
                 strt = time.perf_counter()
-                agent.on_round_end(state)
+                agent.on_round_end(state=state)
                 self._negotiator_times[agent.id] += time.perf_counter() - strt
         self._add_to_history(state4history)
         self._current_state.step += 1

@@ -51,6 +51,10 @@ class SAONMI(NegotiatorMechanismInterface):
     one_offer_per_step: bool = False
     """If true, a step should be atomic with only one action from one negotiator"""
 
+    @property
+    def state(self) -> SAOState:
+        return self._mechanism.state  # type: ignore
+
 
 @lru_cache(1)
 def all_negotiator_types() -> list[SAONegotiator]:

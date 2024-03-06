@@ -298,7 +298,7 @@ class Negotiator(Rational, Notifiable, Generic[TNMI, TState]):
         if self._preferences:
             self._set_pref_os()
             super().set_preferences(self._preferences, force=True)
-        self.on_negotiation_start(state)
+        self.on_negotiation_start(state=state)
 
     def on_round_start(self, state: TState) -> None:
         """
@@ -382,7 +382,7 @@ class Negotiator(Rational, Notifiable, Generic[TNMI, TState]):
             - `on_negotiation_start` and `on_negotiation_end` will always be called once for every agent.
 
         """
-        self.on_negotiation_end(state)
+        self.on_negotiation_end(state=state)
         self._reset_pref_os()
 
     def on_notification(self, notification: Notification, notifier: str):

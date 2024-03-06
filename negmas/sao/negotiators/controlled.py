@@ -1,11 +1,13 @@
+from __future__ import annotations
 from ...outcomes import Outcome
 from ..common import ResponseType, SAOState
 from .base import SAONegotiator
+from negmas.negotiators.controlled import ControlledNegotiator
 
 __all__ = ["ControlledSAONegotiator"]
 
 
-class ControlledSAONegotiator(SAONegotiator):
+class ControlledSAONegotiator(SAONegotiator, ControlledNegotiator):
     """
     A negotiator that acts as an end point to a parent Controller.
 
@@ -17,7 +19,7 @@ class ControlledSAONegotiator(SAONegotiator):
         if self._Negotiator__parent:  # type: ignore
             return self._Negotiator__parent.propose(self.id, state)  # type: ignore
 
-    def respond(self, state: SAOState, source: str | None = None) -> ResponseType:
+    def respond(self, state, source: str | None = None) -> ResponseType:
         """Calls parent controller"""
         if self._Negotiator__parent:  # type: ignore
             try:
@@ -41,7 +43,9 @@ class ControlledSAONegotiator(SAONegotiator):
         if self._Negotiator__parent:  # type: ignore
             return self._Negotiator__parent.on_negotiation_end(self.id, state)  # type: ignore
 
-    def join(self, nmi, state, *, preferences=None, role="negotiator") -> bool:
+    def join(
+        self, nmi, state, *, preferences=None, ufun=None, role: str = "negotiator"
+    ) -> bool:
         """
         Joins a negotiation.
 
@@ -53,6 +57,8 @@ class ControlledSAONegotiator(SAONegotiator):
             controller to inform it that joining is completed if joining was
             successful.
         """
+        if ufun is not None:
+            preferences = ufun
         permission = (
             self._Negotiator__parent is None  # type: ignore
             or self._Negotiator__parent.before_join(  # type: ignore
