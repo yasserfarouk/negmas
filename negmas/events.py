@@ -239,5 +239,5 @@ class Notifiable:
                     break
             return True
         except (IndexError, ValueError, AttributeError):
-            self.on_notification(notification, notifier)
+            self.on_notification(notification=notification, notifier=notifier)
             return False

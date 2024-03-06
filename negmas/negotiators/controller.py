@@ -408,7 +408,7 @@ class Controller(Rational, Generic[TNMI, TState, TControlledNegotiator]):
         """
         negotiator, cntxt = self._negotiators.get(negotiator_id, (None, None))
         if negotiator is None:
-            raise ValueError(f"Unknown negotiator {negotiator_id}")
+            return
         return self.call(negotiator, "on_negotiation_start", state=state)
 
     def on_round_start(self, negotiator_id: str, state: TState) -> None:
@@ -422,7 +422,7 @@ class Controller(Rational, Generic[TNMI, TState, TControlledNegotiator]):
         """
         negotiator, cntxt = self._negotiators.get(negotiator_id, (None, None))
         if negotiator is None:
-            raise ValueError(f"Unknown negotiator {negotiator_id}")
+            return
         return self.call(negotiator, "on_round_start", state=state)
 
     def on_round_end(self, negotiator_id: str, state: TState) -> None:
@@ -436,7 +436,7 @@ class Controller(Rational, Generic[TNMI, TState, TControlledNegotiator]):
         """
         negotiator, cntxt = self._negotiators.get(negotiator_id, (None, None))
         if negotiator is None:
-            raise ValueError(f"Unknown negotiator {negotiator_id}")
+            return
         return self.call(negotiator, "on_round_end", state=state)
 
     def on_leave(self, negotiator_id: str, state: TState) -> None:
@@ -449,7 +449,7 @@ class Controller(Rational, Generic[TNMI, TState, TControlledNegotiator]):
         """
         negotiator, cntxt = self._negotiators.get(negotiator_id, (None, None))
         if negotiator is None:
-            raise ValueError(f"Unknown negotiator {negotiator_id}")
+            return
         return self.call(negotiator, "on_leave", state=state)
 
     def on_negotiation_end(self, negotiator_id: str, state: TState) -> None:
@@ -462,7 +462,7 @@ class Controller(Rational, Generic[TNMI, TState, TControlledNegotiator]):
         """
         negotiator, cntxt = self._negotiators.get(negotiator_id, (None, None))
         if negotiator is None:
-            raise ValueError(f"Unknown negotiator {negotiator_id}")
+            return None
         result = self.call(negotiator, "on_negotiation_end", state=state)
         if self._auto_kill:
             self.kill_negotiator(negotiator_id=negotiator_id, force=True)
@@ -471,7 +471,7 @@ class Controller(Rational, Generic[TNMI, TState, TControlledNegotiator]):
     def on_mechanism_error(self, negotiator_id: str, state: TState) -> None:
         negotiator, cntxt = self._negotiators.get(negotiator_id, (None, None))
         if negotiator is None:
-            raise ValueError(f"Unknown negotiator {negotiator_id}")
+            return
         return self.call(negotiator, "on_mechanism_error", state=state)
 
     def on_notification(
@@ -479,7 +479,7 @@ class Controller(Rational, Generic[TNMI, TState, TControlledNegotiator]):
     ):
         negotiator, cntxt = self._negotiators.get(negotiator_id, (None, None))
         if negotiator is None:
-            raise ValueError(f"Unknown negotiator {negotiator_id}")
+            return
         return self.call(
             negotiator, "on_notification", notification=notification, notifier=notifier
         )
