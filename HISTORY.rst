@@ -1,6 +1,11 @@
 History
 =======
 
+Release 0.10.16
+---------------
+
+* Avoid controller failure if a wrong ID is passed
+
 Release 0.10.15
 ---------------
 
