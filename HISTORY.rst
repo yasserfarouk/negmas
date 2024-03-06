@@ -1,6 +1,12 @@
 History
 =======
 
+Release 0.10.15
+---------------
+
+* Making controllers generics for typing stability
+* Adding agent_names back to the NMI
+
 Release 0.10.14
 ---------------
 * Running bridge in slow actions
