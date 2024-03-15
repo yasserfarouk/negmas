@@ -1,6 +1,11 @@
 History
 =======
 
+Release 0.10.17
+---------------
+
+* correcting the way some stats are saved. Avoids both double saving of stats in some cases and not saving them at all in others
+
 Release 0.10.16
 ---------------
 
