@@ -671,7 +671,7 @@ class TableMultiFun(MultiIssueFun):
             raise ValueError("Unkonwn dictionary in TableMultiFun")
         return len(list(self.mapping.keys())[0])
 
-    def xml(self, indx: int, issues: list[Issue], bias=0) -> str:
+    def xml(self, indx, issues, bias: float = 0) -> str:
         raise NotImplementedError()
 
     def __call__(self, x):
@@ -683,8 +683,11 @@ class AffineMultiFun(MultiIssueFun):
     slope: tuple[float, ...]
     bias: float = 0
 
-    @lru_cache
     def minmax(self, input: Iterable[Issue]) -> tuple[float, float]:
+        return self._minmax(input)
+
+    @lru_cache
+    def _minmax(self, input: Iterable[Issue]) -> tuple[float, float]:
         return monotonic_multi_minmax(input, self)
 
     def shift_by(self, offset: float) -> AffineMultiFun:
@@ -695,10 +698,11 @@ class AffineMultiFun(MultiIssueFun):
             slope=tuple(scale * _ for _ in self.slope), bias=self.bias * scale
         )
 
+    @property
     def dim(self) -> int:
         raise NotImplementedError()
 
-    def xml(self, indx: int, issues: list[Issue], bias=0) -> str:
+    def xml(self, indx, issues, bias: float = 0) -> str:
         raise NotImplementedError()
 
     def __call__(self, x: tuple):
@@ -713,8 +717,11 @@ class LinearMultiFun(MultiIssueFun):
     def bias(self):
         return 0
 
-    @lru_cache
     def minmax(self, input: Iterable[Issue]) -> tuple[float, float]:
+        return self._minmax(input)
+
+    @lru_cache
+    def _minmax(self, input: Iterable[Issue]) -> tuple[float, float]:
         return monotonic_multi_minmax(input, self)
 
     def shift_by(self, offset: float) -> AffineMultiFun:
@@ -723,10 +730,11 @@ class LinearMultiFun(MultiIssueFun):
     def scale_by(self, scale: float) -> LinearMultiFun:
         return LinearMultiFun(slope=tuple(scale * _ for _ in self.slope))
 
+    @property
     def dim(self) -> int:
         raise NotImplementedError()
 
-    def xml(self, indx: int, issues: list[Issue], bias=0) -> str:
+    def xml(self, indx, issues, bias: float = 0) -> str:
         raise NotImplementedError()
 
     def __call__(self, x: tuple):
@@ -740,8 +748,11 @@ class LambdaMultiFun(MultiIssueFun):
     min_value: float | None = None
     max_value: float | None = None
 
+    def minmax(self, input: Iterable[Issue]) -> tuple[float, float]:
+        return self._minmax(input)
+
     @lru_cache
-    def minmax(self, input) -> tuple[float, float]:
+    def _minmax(self, input: Iterable[Issue]) -> tuple[float, float]:
         if self.min_value is not None and self.max_value is not None:
             return self.min_value, self.max_value
         mn, mx = nonmonotonic_multi_minmax(input, self.f)
@@ -757,10 +768,11 @@ class LambdaMultiFun(MultiIssueFun):
     def scale_by(self, scale: float) -> LinearMultiFun:
         raise NotImplementedError()
 
+    @property
     def dim(self) -> int:
         raise NotImplementedError()
 
-    def xml(self, indx: int, issues: list[Issue], bias=0) -> str:
+    def xml(self, indx, issues, bias: float = 0) -> str:
         raise NotImplementedError()
 
     def __call__(self, x: Any) -> float:

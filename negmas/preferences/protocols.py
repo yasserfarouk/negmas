@@ -715,7 +715,7 @@ class MultiIssueFun(Fun, Protocol):
     def scale_by(self, scale: float) -> MultiIssueFun:
         ...
 
-    def xml(self, indx: int, issues: list[Issue], bias=0.0) -> str:
+    def xml(self, indx: int, issues: list[Issue] | tuple[Issue, ...], bias=0.0) -> str:
         ...
 
     def __call__(self, x: tuple) -> float:
