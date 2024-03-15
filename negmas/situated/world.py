@@ -1758,8 +1758,12 @@ class World(
 
         #
         _n_registered_negotiations_before = len(self._negotiations)
-        n_steps_broken, n_steps_success = 0, 0
-        n_broken, n_success = 0, 0
+        stats_ = dict(n_steps_broken=0, n_steps_success=0, n_broken=0, n_success=0)
+
+        n_steps_broken = stats_["n_steps_broken"]
+        n_steps_success = stats_["n_steps_success"]
+        n_broken = stats_["n_broken"]
+        n_success = stats_["n_success"]
 
         def _negotiate(n_steps_to_run: int | None = n_neg_steps) -> bool:
             """Runs all bending negotiations. Returns True if all negotiations are done"""
@@ -1793,10 +1797,10 @@ class World(
             (
                 _,
                 _,
-                n_steps_broken_,
-                n_steps_success_,
-                n_broken_,
-                n_success_,
+                stats_["n_steps_broken"],
+                stats_["n_steps_success"],
+                stats_["n_broken"],
+                stats_["n_success"],
             ) = self._step_negotiations(
                 [_[0] for _ in mechanisms],
                 n_steps_to_run,
@@ -1815,16 +1819,6 @@ class World(
                 and not _.mechanism.state.ended
             ]
 
-            # self._stats["n_registered_negotiations_before"].append(
-            #     _n_registered_negotiations_before
-            # )
-            # self._stats["n_negotiation_rounds_successful"].append(n_steps_success)
-            # self._stats["n_negotiation_rounds_failed"].append(n_steps_broken)
-            # self._stats["n_negotiation_successful"].append(n_success)
-            # self._stats["n_negotiation_failed"].append(n_broken)
-            # self._stats["n_registered_negotiations_after"].append(
-            #     len(self._negotiations)
-            # )
             return not running
 
         if cross_step_boundary:
@@ -1841,6 +1835,11 @@ class World(
                 n_steps_success_ = 0
                 n_broken_ = 0
                 n_success_ = 0
+
+                n_steps_broken = stats_["n_steps_broken"]
+                n_steps_success = stats_["n_steps_success"]
+                n_broken = stats_["n_broken"]
+                n_success = stats_["n_success"]
                 if self.time < self.time_limit:
                     n_total_broken = n_broken + n_broken_
                     if n_total_broken > 0:
@@ -1854,16 +1853,11 @@ class World(
                             n_steps_success * n_success + n_steps_success_ * n_success_
                         ) / n_total_success
                         n_success = n_total_success
-                self._stats["n_registered_negotiations_before"].append(
-                    _n_registered_negotiations_before
-                )
-                self._stats["n_negotiation_rounds_successful"].append(n_steps_success)
-                self._stats["n_negotiation_rounds_failed"].append(n_steps_broken)
-                self._stats["n_negotiation_successful"].append(n_success)
-                self._stats["n_negotiation_failed"].append(n_broken)
-                self._stats["n_registered_negotiations_after"].append(
-                    len(self._negotiations)
-                )
+
+                stats_["n_steps_broken"] = n_steps_broken
+                stats_["n_steps_success"] = n_steps_success
+                stats_["n_broken"] = n_broken
+                stats_["n_success"] = n_success
                 if self.__next_operation_index >= len(self.operations):
                     self.__next_operation_index = 0
                 if not self._step_to_negotiations(cross_step_boundary):
@@ -1871,7 +1865,23 @@ class World(
             return True
         if self._debug:
             assert self.__next_operation_index == 0
+
+        def update_stats():
+            self._stats["n_registered_negotiations_before"].append(
+                _n_registered_negotiations_before
+            )
+            self._stats["n_negotiation_rounds_successful"].append(
+                stats_["n_steps_success"]
+            )
+            self._stats["n_negotiation_rounds_failed"].append(stats_["n_steps_broken"])
+            self._stats["n_negotiation_successful"].append(stats_["n_success"])
+            self._stats["n_negotiation_failed"].append(stats_["n_broken"])
+            self._stats["n_registered_negotiations_after"].append(
+                len(self._negotiations)
+            )
+
         if not self._step_to_negotiations(cross_step_boundary):
+            update_stats()
             return False
         self.__stepped_mechanisms = set()
         if self._debug:
@@ -1886,7 +1896,9 @@ class World(
             if self.__next_operation_index >= len(self.operations):
                 self.__next_operation_index = 0
             if not self._step_to_negotiations(cross_step_boundary):
+                update_stats()
                 return False
+        update_stats()
         return True
 
     def _pre_step(self) -> bool:
@@ -3282,7 +3294,7 @@ class World(
         n_negs = sum(self.stats["n_contracts_concluded"])
         if n_negs == 0:
             return np.nan
-        return sum(self.stats["n_negotiation_rounds_successful"]) / n_negs
+        return sum(self.stats.get("n_negotiation_rounds_successful", 0)) / n_negs
 
     @property
     def n_negotiation_rounds_failed(self) -> float:
