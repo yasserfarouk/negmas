@@ -1,8 +1,10 @@
-Command Line Scripts
-====================
+NegMAS CLI
+==========
 
-When installing NegMAS through the pip command, you get one command line tool that can be used to
-aid your development and testing. This tool provides a unified interface to all negmas commands.
+When installing NegMAS through the pip command, you get two command line tool that can be used to
+aid your development and testing.
+
+This section describes the `negmas` CLI which provides a unified interface to all negmas commands.
 
 The set of supported commands are:
 
@@ -262,3 +264,19 @@ To report the winners of a tournament, you can use tournament `winners` . The pa
                                 var, sum  [default: median]
   --config FILE                 Read configuration from FILE.
 ============================== =======================================================
+
+Negotiate CLI
+=============
+
+When installing NegMAS through the pip command, you get two command line tool that can be used to
+aid your development and testing.
+
+This section describes the `negotiate` CLI which provides a simple way for running negotiations,
+plotting them, saving their statistics, etc.
+
+
+You can find out about all the available options by running
+
+.. code-block:: console
+
+    $ negotiate --help
