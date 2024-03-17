@@ -392,6 +392,10 @@ class World(
         self.__n_new_contract_nullifications = 0
         self.__activity_level = 0
         self.__blevel = 0.0
+        self.__n_steps_broken = 0
+        self.__n_steps_success = 0
+        self.__n_broken = 0
+        self.__n_success = 0
         self._saved_contracts: dict[str, dict[str, Any]] = {}
         self._saved_negotiations: dict[str, dict[str, Any]] = {}
         self._saved_breaches: dict[str, dict[str, Any]] = {}
@@ -1758,12 +1762,11 @@ class World(
 
         #
         _n_registered_negotiations_before = len(self._negotiations)
-        stats_ = dict(n_steps_broken=0, n_steps_success=0, n_broken=0, n_success=0)
 
-        n_steps_broken = stats_["n_steps_broken"]
-        n_steps_success = stats_["n_steps_success"]
-        n_broken = stats_["n_broken"]
-        n_success = stats_["n_success"]
+        n_steps_broken = self.__n_steps_broken
+        n_steps_success = self.__n_steps_success
+        n_broken = self.__n_broken
+        n_success = self.__n_success
 
         def _negotiate(n_steps_to_run: int | None = n_neg_steps) -> bool:
             """Runs all bending negotiations. Returns True if all negotiations are done"""
@@ -1797,10 +1800,10 @@ class World(
             (
                 _,
                 _,
-                stats_["n_steps_broken"],
-                stats_["n_steps_success"],
-                stats_["n_broken"],
-                stats_["n_success"],
+                self.__n_steps_broken,
+                self.__n_steps_success,
+                self.__n_broken,
+                self.__n_success,
             ) = self._step_negotiations(
                 [_[0] for _ in mechanisms],
                 n_steps_to_run,
@@ -1836,10 +1839,10 @@ class World(
                 n_broken_ = 0
                 n_success_ = 0
 
-                n_steps_broken = stats_["n_steps_broken"]
-                n_steps_success = stats_["n_steps_success"]
-                n_broken = stats_["n_broken"]
-                n_success = stats_["n_success"]
+                n_steps_broken = self.__n_steps_broken
+                n_steps_success = self.__n_steps_success
+                n_broken = self.__n_broken
+                n_success = self.__n_success
                 if self.time < self.time_limit:
                     n_total_broken = n_broken + n_broken_
                     if n_total_broken > 0:
@@ -1854,10 +1857,10 @@ class World(
                         ) / n_total_success
                         n_success = n_total_success
 
-                stats_["n_steps_broken"] = n_steps_broken
-                stats_["n_steps_success"] = n_steps_success
-                stats_["n_broken"] = n_broken
-                stats_["n_success"] = n_success
+                self.__n_steps_broken = n_steps_broken
+                self.__n_steps_success = n_steps_success
+                self.__n_broken = n_broken
+                self.__n_success = n_success
                 if self.__next_operation_index >= len(self.operations):
                     self.__next_operation_index = 0
                 if not self._step_to_negotiations(cross_step_boundary):
@@ -1866,22 +1869,7 @@ class World(
         if self._debug:
             assert self.__next_operation_index == 0
 
-        def update_stats():
-            self._stats["n_registered_negotiations_before"].append(
-                _n_registered_negotiations_before
-            )
-            self._stats["n_negotiation_rounds_successful"].append(
-                stats_["n_steps_success"]
-            )
-            self._stats["n_negotiation_rounds_failed"].append(stats_["n_steps_broken"])
-            self._stats["n_negotiation_successful"].append(stats_["n_success"])
-            self._stats["n_negotiation_failed"].append(stats_["n_broken"])
-            self._stats["n_registered_negotiations_after"].append(
-                len(self._negotiations)
-            )
-
         if not self._step_to_negotiations(cross_step_boundary):
-            update_stats()
             return False
         self.__stepped_mechanisms = set()
         if self._debug:
@@ -1896,9 +1884,7 @@ class World(
             if self.__next_operation_index >= len(self.operations):
                 self.__next_operation_index = 0
             if not self._step_to_negotiations(cross_step_boundary):
-                update_stats()
                 return False
-        update_stats()
         return True
 
     def _pre_step(self) -> bool:
@@ -1918,6 +1904,12 @@ class World(
         self.__n_new_contract_nullifications = 0
         self.__activity_level = 0
         self.__blevel = 0.0
+        self.__n_steps_broken = 0
+        self.__n_steps_success = 0
+        self.__n_broken = 0
+        self.__n_success = 0
+        self.__n_registered_negotiations_before = 0
+
         self._n_negs_per_agent_per_step = defaultdict(int)
         self._started = True
         if self.current_step == 0:
@@ -2227,6 +2219,20 @@ class World(
             self._stats["n_contracts_concluded"].append(self.__n_contracts_concluded)
             self._stats["n_negotiations"].append(self.__n_negotiations)
             self._stats["activity_level"].append(self.__activity_level)
+
+            self._stats["n_registered_negotiations_before"].append(
+                self.__n_registered_negotiations_before
+            )
+            self._stats["n_negotiation_rounds_successful"].append(
+                self.__n_steps_success
+            )
+            self._stats["n_negotiation_rounds_failed"].append(self.__n_steps_broken)
+            self._stats["n_negotiation_successful"].append(self.__n_success)
+            self._stats["n_negotiation_failed"].append(self.__n_broken)
+            self._stats["n_registered_negotiations_after"].append(
+                len(self._negotiations)
+            )
+
             current_time = time.perf_counter() - self._step_start
             self._stats["step_time"].append(current_time)
             total = self._stats.get("total_time", [0.0])[-1]
@@ -2243,6 +2249,10 @@ class World(
             self.__n_new_contract_nullifications = 0
             self.__activity_level = 0
             self.__blevel = 0.0
+            self.__n_steps_broken = 0
+            self.__n_steps_success = 0
+            self.__n_broken = 0
+            self.__n_success = 0
 
             self.append_stats()
             for agent in self.agents.values():
@@ -3286,68 +3296,88 @@ class World(
     @property
     def business_size(self) -> float:
         """The total business size defined as the total money transferred within the system"""
+        if "activity_level" not in self.stats:
+            return np.nan
         return sum(self.stats["activity_level"])
 
     @property
     def n_negotiation_rounds_successful(self) -> float:
         """Average number of rounds in a successful negotiation"""
+        if "n_contracts_concluded" not in self.stats:
+            return np.nan
         n_negs = sum(self.stats["n_contracts_concluded"])
         if n_negs == 0:
             return np.nan
-        return sum(self.stats.get("n_negotiation_rounds_successful", 0)) / n_negs
+        if "n_negotiation_rounds_successful" not in self.stats:
+            return np.nan
+        return sum(self.stats["n_negotiation_rounds_successful"]) / n_negs
 
     @property
     def n_negotiation_rounds_failed(self) -> float:
         """Average number of rounds in a successful negotiation"""
+        if "n_negotiations" not in self.stats:
+            return np.nan
         n_negs = sum(self.stats["n_negotiations"]) - self.n_saved_contracts(True)
         if n_negs == 0:
+            return np.nan
+        if "n_negotiation_rounds_failed" not in self.stats:
             return np.nan
         return sum(self.stats["n_negotiation_rounds_failed"]) / n_negs
 
     @property
     def contract_execution_fraction(self) -> float:
         """Fraction of signed contracts successfully executed with no breaches, or errors"""
+        if "n_contracts_executed" not in self.stats:
+            return np.nan
         n_executed = sum(self.stats["n_contracts_executed"])
         n_signed_contracts = len(
             [_ for _ in self._saved_contracts.values() if _["signed_at"] >= 0]
         )
-        return n_executed / n_signed_contracts if n_signed_contracts > 0 else 0.0
+        return n_executed / n_signed_contracts if n_signed_contracts > 0 else np.nan
 
     @property
     def contract_dropping_fraction(self) -> float:
         """Fraction of signed contracts that were never executed because they were signed to late to be executable"""
+        if "n_contracts_dropped" not in self.stats:
+            return np.nan
         n_dropped = sum(self.stats["n_contracts_dropped"])
         n_signed_contracts = len(
             [_ for _ in self._saved_contracts.values() if _["signed_at"] >= 0]
         )
-        return n_dropped / n_signed_contracts if n_signed_contracts > 0 else 0.0
+        return n_dropped / n_signed_contracts if n_signed_contracts > 0 else np.nan
 
     @property
     def contract_err_fraction(self) -> float:
         """Fraction of signed contracts that caused exception during their execution"""
+        if "n_contracts_erred" not in self.stats:
+            return np.nan
         n_erred = sum(self.stats["n_contracts_erred"])
         n_signed_contracts = len(
             [_ for _ in self._saved_contracts.values() if _["signed_at"] >= 0]
         )
-        return n_erred / n_signed_contracts if n_signed_contracts > 0 else 0.0
+        return n_erred / n_signed_contracts if n_signed_contracts > 0 else np.nan
 
     @property
     def contract_nullification_fraction(self) -> float:
         """Fraction of signed contracts were nullified by the system (e.g. due to bankruptcy)"""
+        if "n_contracts_nullified" not in self.stats:
+            return np.nan
         n_nullified = sum(self.stats["n_contracts_nullified"])
         n_signed_contracts = len(
             [_ for _ in self._saved_contracts.values() if _["signed_at"] >= 0]
         )
-        return n_nullified / n_signed_contracts if n_signed_contracts > 0 else 0.0
+        return n_nullified / n_signed_contracts if n_signed_contracts > 0 else np.nan
 
     @property
     def breach_level(self) -> float:
         """The average breach level per contract"""
+        if "breach_level" not in self.stats:
+            return np.nan
         blevel = np.nansum(self.stats["breach_level"])
         n_contracts = sum(self.stats["n_contracts_executed"]) + sum(
             self.stats["n_breaches"]
         )
-        return blevel / n_contracts if n_contracts > 0 else 0.0
+        return blevel / n_contracts if n_contracts > 0 else np.nan
 
     @abstractmethod
     def delete_executed_contracts(self) -> None:
@@ -3811,11 +3841,11 @@ class World(
                     y = y / int(n)
                     s = np.asarray([list(_) for _ in s])
                     yerr = np.std(s, axis=0) / np.sqrt(n)
-                    assert len(yerr) == len(y), f"{yerr=}\n{y=}\n{s=}"  # type: ignore
+                    assert len(yerr) == len(y), f"{yerr=}\n{y=}\n{s=}"
                 n_plots += 1
                 linestyle = styles[n_plots // n_per_style][1]
                 plt.errorbar(
-                    range(len(y)),  # type: ignore
+                    range(len(y)),
                     y,
                     yerr,
                     linestyle=linestyle,
