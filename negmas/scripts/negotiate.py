@@ -290,7 +290,10 @@ def run(
         False, help="Numeric Issues", rich_help_panel="Generated Scenario"
     ),
     linear: bool = typer.Option(
-        True, help="Linear Ufuns", rich_help_panel="Generated Scenario"
+        True,
+        "--linear/--non-linear",
+        help="Linear Ufuns",
+        rich_help_panel="Generated Scenario",
     ),
     pareto_generator: Optional[list[str]] = typer.Option(
         None,
