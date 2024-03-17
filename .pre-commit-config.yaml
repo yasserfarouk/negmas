@@ -15,12 +15,12 @@ repos:
       - id: check-added-large-files
         args: ["--maxkb=2000"]
         #   id: fix-encoding-pragma
-  - repo: https://github.com/asottile/pyupgrade
-    rev: v2.31.0
-    hooks:
-      - id: pyupgrade
-        args: [--py310-plus]
-        exclude: __init__.py
+  # - repo: https://github.com/asottile/pyupgrade
+  #   rev: v2.31.0
+  #   hooks:
+  #     - id: pyupgrade
+  #       args: [--py310-plus]
+  #       exclude: __init__.py, negotiate.py
   - repo: https://github.com/astral-sh/ruff-pre-commit
     #   repo: https://github.com/bwhmather/ssort
     #   rev: v0.10.2

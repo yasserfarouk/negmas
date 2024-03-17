@@ -4,7 +4,7 @@ from datetime import datetime
 import pandas as pd
 import sys
 import random
-from typing import Any
+from typing import Any, Optional
 from pathlib import Path
 from time import perf_counter
 from negmas.inout import serialize
@@ -143,7 +143,7 @@ def diff(x: tuple[float, ...], lst: list[tuple[float, ...]]):
 
 @app.command()
 def run(
-    scenario: Path | None = typer.Argument(
+    scenario: Optional[Path] = typer.Argument(
         default=None,
         show_default="Generate A new Scenario",
         help="The scenario to negotiate about",
@@ -187,14 +187,14 @@ def run(
         rich_help_panel="Basic Options",
     ),
     # Deadline
-    steps: int | None = typer.Option(  # type: ignore
+    steps: Optional[int] = typer.Option(  # type: ignore
         None,
         "--steps",
         "-s",
         help="Number of Steps allowed in the negotiation",
         rich_help_panel="Deadline",
     ),
-    timelimit: float | None = typer.Option(
+    timelimit: Optional[float] = typer.Option(
         None,
         "--time",
         "--timelimit",
@@ -232,7 +232,7 @@ def run(
         rich_help_panel="Scenario Overrides",
     ),
     # used in case no domain is given only
-    issues: int | None = typer.Option(
+    issues: Optional[int] = typer.Option(
         None, "--issues", "-i", help="N. Issues", rich_help_panel="Generated Scenario"
     ),
     values_min: int = typer.Option(
@@ -245,7 +245,7 @@ def run(
         help="Maximum allowed n. values per issue",
         rich_help_panel="Generated Scenario",
     ),
-    size: list[int] | None = typer.Option(
+    size: Optional[list[int]] = typer.Option(
         None,
         "--size",
         "-z",
@@ -265,7 +265,7 @@ def run(
         help="Gurantee Some Rational Outcomes",
         rich_help_panel="Generated Scenario",
     ),
-    rational_fraction: list[float] | None = typer.Option(
+    rational_fraction: Optional[list[float]] = typer.Option(
         None,
         "--rational-fraction",
         "-F",
@@ -277,13 +277,13 @@ def run(
         help="Reservation value selector if both reserved-values and rational-fraction are given: min|max|first|last",
         rich_help_panel="Generated Scenario",
     ),
-    issue_name: list[str] | None = typer.Option(
+    issue_name: Optional[list[str]] = typer.Option(
         None, help="Issue Names", rich_help_panel="Generated Scenario"
     ),
-    os_name: str | None = typer.Option(
+    os_name: Optional[str] = typer.Option(
         None, help="Outcome Space Name", rich_help_panel="Generated Scenario"
     ),
-    ufun_names: list[str] | None = typer.Option(
+    ufun_names: Optional[list[str]] = typer.Option(
         None, help="Names of Ufuns", rich_help_panel="Generated Scenario"
     ),
     numeric: bool = typer.Option(
@@ -292,7 +292,7 @@ def run(
     linear: bool = typer.Option(
         True, help="Linear Ufuns", rich_help_panel="Generated Scenario"
     ),
-    pareto_generator: list[str] | None = typer.Option(
+    pareto_generator: Optional[list[str]] = typer.Option(
         None,
         help="One or more Pareto Generator methods. See negmas.preferences.generator for possible values",
         rich_help_panel="Generated Scenario",
@@ -315,7 +315,7 @@ def run(
     stats: bool = typer.Option(
         True, help="Generate Statistics", rich_help_panel="Output Control"
     ),
-    rank_stats: bool | None = typer.Option(
+    rank_stats: Optional[bool] = typer.Option(
         None, help="Generate Rank Statistics", rich_help_panel="Output Control"
     ),
     compact_stats: bool = typer.Option(
@@ -345,7 +345,7 @@ def run(
     plot_show: bool = typer.Option(
         True, help="Show the plot", rich_help_panel="Plotting"
     ),
-    simple_offers_view: bool | None = typer.Option(
+    simple_offers_view: Optional[bool] = typer.Option(
         None, help="Simple Offers View", rich_help_panel="Plotting"
     ),
     annotations: bool = typer.Option(
@@ -385,7 +385,7 @@ def run(
         True, help="Show N. Steps", rich_help_panel="Plotting"
     ),
     # Saving to Disk
-    save_path: Path | None = typer.Option(
+    save_path: Optional[Path] = typer.Option(
         None,
         help="Path to save results to",
         show_default="Do not Save",  # type: ignore
@@ -403,11 +403,11 @@ def run(
     save_compact: bool = typer.Option(
         True, help="Compact file", rich_help_panel="Saving to Disk"
     ),
-    plot_path: Path | None = typer.Option(
+    plot_path: Optional[Path] = typer.Option(
         None, help="Path to save the plot to.", rich_help_panel="Plotting"
     ),
     # Advanced
-    fast: bool | None = typer.Option(
+    fast: Optional[bool] = typer.Option(
         None, help="Avoid slow operations", rich_help_panel="Advanced"
     ),
     path: list[Path] = typer.Option(
