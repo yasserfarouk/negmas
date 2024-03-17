@@ -1,6 +1,19 @@
 History
 =======
 
+Release 0.10.18
+---------------
+
+* Improving the way some stats are saved in situated
+* CLI improvements
+
+  Now the "negotiate" CLI has a much better help. Try:
+
+  >> negotiate --help
+
+  Moreover, we added the ability to generate scenarios and save them as
+  well as more control over statistics
+
 Release 0.10.17
 ---------------
 
