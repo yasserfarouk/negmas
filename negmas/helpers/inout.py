@@ -404,7 +404,7 @@ def dump(
                 d = pd.DataFrame(d)
             except Exception as e:
                 raise ValueError(f"Failed to convert to a dataframe: {str(e)}")
-        d.to_csv(file_name)
+        d.to_csv(file_name, index_label="index")
     else:
         raise ValueError(f"Unknown extension {file_name.suffix} for {file_name}")
 

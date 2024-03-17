@@ -200,7 +200,7 @@ class Mechanism(
 
         # parameters fixed for all runs
 
-        self.id = str(uuid.uuid4())
+        self.set_id(str(uuid.uuid4()))
         if n_steps == float("inf"):
             n_steps = None
         if isinstance(n_steps, float):

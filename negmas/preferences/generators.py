@@ -15,7 +15,9 @@ from negmas.negotiators.helpers import PolyAspiration, TimeCurve
 from negmas.outcomes import make_issue, make_os
 from negmas.preferences.crisp.linear import LinearAdditiveUtilityFunction
 from negmas.preferences.crisp.mapping import MappingUtilityFunction
+from negmas.preferences.ops import nash_points, pareto_frontier
 from negmas.preferences.value_fun import TableFun
+from negmas.preferences import UtilityFunction
 
 __all__ = [
     "sample_between",
@@ -31,6 +33,47 @@ __all__ = [
     "make_piecewise_linear_pareto",
     "make_zero_sum_pareto",
 ]
+
+ReservedRanges = tuple[tuple[float, ...], ...]
+
+
+def sample_reserved_values(
+    ufuns: tuple[UtilityFunction, ...],
+    reserved_ranges: ReservedRanges = ((0.0, 1.0), (0.0, 1.0)),
+    eps: float = 1e-3,
+) -> tuple[float, ...]:
+    """
+    Samples reserved values that are guaranteed to allow some rational outcomes for the given ufuns and sets the reserved values.
+
+    Args:
+        ufuns: tuple of utility functions to sample reserved values for
+        pareto: The pareto frontier. If not given, it will be calculated
+        reserved_ranges: the range to sample reserved values from. Notice that the upper limit of this range will be updated
+                         to ensure some rational outcoms
+        eps: A small number indicating the absolute guaranteed margin of the sampled reserved value from the Nash point.
+
+    """
+    n_funs = len(ufuns)
+    pareto = pareto_frontier(ufuns)[0]
+    assert pareto is not None, "Cannot find the pareto frontier."
+    nash = nash_points(ufuns, frontier=pareto, ranges=[(0, 1) for _ in range(n_funs)])
+    if not nash:
+        raise ValueError(
+            "Cannot find the Nash point so we cannot find the appropriate reserved ranges"
+        )
+    nash_utils = nash[0][0]
+    if not reserved_ranges:
+        reserved_ranges = tuple((0, 1) for _ in range(n_funs))
+    reserved_ranges = tuple(
+        tuple(min(r[_], n) for _ in range(n_funs))
+        for n, r in zip(nash_utils, reserved_ranges)
+    )
+    reserved = tuple(
+        r[0] + (r[1] - eps - r[0]) * random.random() for r in reserved_ranges
+    )
+    for u, r in zip(ufuns, reserved):
+        u.reserved_value = float(r)
+    return reserved
 
 
 def make_curve(
@@ -360,9 +403,17 @@ def _adjust_ufuns(
     linear,
     rational_fractions,
     selector: Callable[[float, float], float] = max,
+    guarantee_rational: bool = False,
 ):
     outcomes = None
-    if rational_fractions:
+    if guarantee_rational:
+        for u in ufuns:
+            u.reserved_value = 0.0
+        reserved = sample_reserved_values(ufuns)
+        for u, r in zip(ufuns, reserved):
+            u.reserved_value = float(r) if r is not None else r
+
+    elif rational_fractions:
         for u, f in zip_cycle_longest(ufuns, rational_fractions):
             outcomes = os.enumerate_or_sample()
             vals = sorted(u(_) for _ in outcomes)
@@ -489,6 +540,7 @@ def generate_multi_issue_ufuns(
     ufun_names: tuple[str, ...] | None = None,
     numeric: bool = False,
     linear: bool = True,
+    guarantee_rational: bool = False,
 ) -> tuple[LinearAdditiveUtilityFunction | MappingUtilityFunction, ...]:
     ...
 
@@ -509,6 +561,7 @@ def generate_multi_issue_ufuns(
     ufun_names: tuple[str, ...] | None = None,
     numeric: bool = False,
     linear: bool = True,
+    guarantee_rational: bool = False,
 ) -> tuple[LinearAdditiveUtilityFunction | MappingUtilityFunction, ...]:
     ...
 
@@ -516,7 +569,7 @@ def generate_multi_issue_ufuns(
 def generate_multi_issue_ufuns(
     n_issues: int,
     n_values: int | tuple[int, int] | None = None,
-    sizes: None | tuple[int, ...] | list[int] = None,
+    sizes: tuple[int, ...] | list[int] | None = None,
     n_ufuns: int = 2,
     pareto_generators: tuple[ParetoGenerator | str, ...] = tuple(GENERATOR_MAP.keys()),
     generator_params: tuple[dict[str, Any], ...] | None = None,
@@ -528,6 +581,7 @@ def generate_multi_issue_ufuns(
     ufun_names: tuple[str, ...] | None = None,
     numeric: bool = False,
     linear: bool = True,
+    guarantee_rational: bool = False,
 ) -> tuple[LinearAdditiveUtilityFunction | MappingUtilityFunction, ...]:
     """Generates a set of ufuns with an outcome space of the given number of issues.
 
@@ -573,7 +627,7 @@ def generate_multi_issue_ufuns(
     if not issue_names:
         issue_names = tuple(f"i{k+1}" for k in range(n_issues))
     gp = list(zip(pareto_generators, generator_params))  # type: ignore
-    if sizes is None:
+    if sizes is None or len(sizes) == 0:
         assert n_values is not None
         sizes = tuple(intin(n_values) for _ in range(n_issues))  # type: ignore
     assert sizes is not None
@@ -617,7 +671,14 @@ def generate_multi_issue_ufuns(
         )
         for j, (name, r) in enumerate(zip_cycle_longest(ufun_names, reserved_values))
     )
-    return _adjust_ufuns(ufuns, os, linear, rational_fractions, reservation_selector)
+    return _adjust_ufuns(
+        ufuns,
+        os,
+        linear,
+        rational_fractions,
+        reservation_selector,
+        guarantee_rational=guarantee_rational,
+    )
 
 
 if __name__ == "__main__":

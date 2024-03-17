@@ -148,6 +148,10 @@ class NamedObject:
         """The unique ID of this entity"""
         return self.__uuid
 
+    def set_id(self, id: str):
+        """Sets the unique ID of this entity"""
+        self.__uuid = id
+
     @id.setter
     def id(self, id):
         self.__uuid = id

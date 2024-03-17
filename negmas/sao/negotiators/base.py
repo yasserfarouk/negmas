@@ -75,6 +75,7 @@ class SAONegotiator(GBNegotiator[SAONMI, SAOState]):
         Remarks:
             - The default implementation only responds to end_negotiation by ending the negotiation
         """
+        _ = notifier
         if notification.type == "end_negotiation":
             self.__end_negotiation = True
 
@@ -110,6 +111,7 @@ class SAONegotiator(GBNegotiator[SAONMI, SAOState]):
         return self.__my_last_proposal
 
     def propose(self, state) -> Outcome | None:
+        _ = state
         return None
 
     def respond(self, state, source: str | None = None) -> ResponseType:
@@ -130,6 +132,7 @@ class SAONegotiator(GBNegotiator[SAONMI, SAOState]):
             - The current offer to respond to can be accessed through `state.current_offer`
 
         """
+        _ = source
         if not isinstance(state, SAOState):
             state = self._sao_state_from_gb_state(state)
 

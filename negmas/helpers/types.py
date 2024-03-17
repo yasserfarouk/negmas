@@ -57,7 +57,7 @@ def get_full_type_name(t: type[Any] | Callable) -> str:
 
 def get_full_type_name(t: type[Any] | Callable | str | None) -> str | None:
     """
-    Gets the ful typename of a type. You *should not* pass an instance to this function but it may just work.
+    Gets the full type name of a type. You *should not* pass an instance to this function but it may just work.
 
     An exception is that if the input is of type `str` or if it is None, it will be returned as it is
     """

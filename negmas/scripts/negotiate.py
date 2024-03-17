@@ -1,8 +1,13 @@
 from __future__ import annotations
 
+from datetime import datetime
+import pandas as pd
 import sys
+import random
+from typing import Any
 from pathlib import Path
 from time import perf_counter
+from negmas.inout import serialize
 
 import matplotlib
 import typer
@@ -15,11 +20,13 @@ from stringcase import titlecase
 from negmas.genius.ginfo import get_java_class
 from negmas.genius.negotiator import GeniusNegotiator
 from negmas.helpers import get_class
+from negmas.helpers.inout import dump
 from negmas.helpers.strings import camel_case, humanize_time, shortest_unique_names
 from negmas.helpers.types import get_full_type_name
 from negmas.inout import Scenario
 from negmas.mechanisms import Mechanism
 from negmas.negotiators.negotiator import Negotiator
+from negmas.outcomes.outcome_space import CartesianOutcomeSpace
 from negmas.preferences.ops import (
     calc_reserved_value,
     kalai_points,
@@ -28,6 +35,7 @@ from negmas.preferences.ops import (
     nash_points,
     pareto_frontier,
 )
+from negmas.preferences.generators import generate_multi_issue_ufuns
 
 app = typer.Typer()
 
@@ -135,7 +143,11 @@ def diff(x: tuple[float, ...], lst: list[tuple[float, ...]]):
 
 @app.command()
 def run(
-    domain: Path,
+    scenario: Path | None = typer.Argument(
+        default=None,
+        show_default="Generate A new Scenario",
+        help="The scenario to negotiate about",
+    ),
     protocol: str = typer.Option(
         "SAO",
         "--protocol",
@@ -143,51 +155,269 @@ def run(
         "-p",
         "-m",
         help="The protocol (Mechanism to use)",
+        rich_help_panel="Basic Options",
     ),
     negotiators: list[str] = typer.Option(
-        ["aspiration", "aspiration"],
+        ["AspirationNegotiator", "NaiveTitForTatNegotiator"],
         "--agent",
         "--negotiator",
         "-n",
         "-a",
         help="Negotiator (agent) type. To use an adapter type, put the adapter name first separated from the negotiator name by a slash (e.g. TAUAdapter/AspirationNegotiator)",
+        rich_help_panel="Basic Options",
     ),
-    path: list[Path] = list(),
-    reserved: list[float] = typer.Option(None, "--reserved", "-r"),
-    fraction: list[float] = typer.Option(None, "--fraction", "-f"),
-    normalize: bool = True,
-    steps: int = typer.Option(None, "--steps", "-s"),  # type: ignore
-    timelimit: int = typer.Option(None, "--time", "--timelimit", "-t"),  # type: ignore
-    plot: bool = True,
-    fast: bool = None,  # type: ignore
-    plot_path: Path = None,  # type: ignore
-    verbose: bool = typer.Option(False, "--verbose", "-v"),
-    verbosity: int = 0,
-    progress: bool = True,
-    plot_backend: str = "",
-    plot_interactive: bool = True,
-    history: bool = False,
-    stats: bool = True,
-    rank_stats: bool = None,  # type: ignore
-    discount: bool = True,
-    extend_negotiators: bool = False,
-    truncate_ufuns: bool = False,
-    only2d: bool = False,
-    show_agreement: bool = False,
-    show_pareto_distance: bool = True,
-    show_nash_distance: bool = True,
-    show_kalai_distance: bool = True,
-    show_max_welfare_distance: bool = True,
-    show_max_relative_welfare_distance: bool = False,
-    show_end_reason: bool = True,
-    show_annotations: bool = False,
-    show_reserved: bool = True,
-    show_total_time: bool = True,
-    show_relative_time: bool = True,
-    show_n_steps: bool = True,
-    simple_offers_view: bool = None,  # type: ignore
-    raise_exceptions: bool = False,
-    extra_params: str = "",
+    extend_negotiators: bool = typer.Option(
+        False,
+        "--extend-negotiators",
+        "-E",
+        help="Extend the negotiator list to cover all ufuns",
+        rich_help_panel="Basic Options",
+    ),
+    truncate_ufuns: bool = typer.Option(
+        False,
+        "--truncate-ufuns",
+        "-T",
+        help="Use the first n. negotiator ufuns only",
+        rich_help_panel="Basic Options",
+    ),
+    extra_params: str = typer.Option(
+        "",
+        "--params",
+        help="Mechanism initialization parameters as comma-separated `key=value` pairs.",
+        rich_help_panel="Basic Options",
+    ),
+    # Deadline
+    steps: int | None = typer.Option(  # type: ignore
+        None,
+        "--steps",
+        "-s",
+        help="Number of Steps allowed in the negotiation",
+        rich_help_panel="Deadline",
+    ),
+    timelimit: float | None = typer.Option(
+        None,
+        "--time",
+        "--timelimit",
+        "-t",
+        help="Number of Seconds allowed in the negotiation",
+        rich_help_panel="Deadline",
+    ),
+    # Given Scenario
+    reserved: list[float] = typer.Option(
+        None,
+        "--reserved",
+        "-r",
+        help="Reserved values to override the ones in the scenario. Must be the same length as the ufuns.",
+        rich_help_panel="Scenario Overrides",
+    ),
+    fraction: list[float] = typer.Option(
+        None,
+        "--fraction",
+        "-f",
+        help="Rational factions to use for generating reserved values to override the ones in the scenario. Must be the same length as the ufuns.",
+        rich_help_panel="Scenario Overrides",
+    ),
+    discount: bool = typer.Option(
+        True,
+        "--discount/--no-discount",
+        "-d/-D",
+        help="Load Discount Factor",
+        rich_help_panel="Scenario Overrides",
+    ),
+    normalize: bool = typer.Option(
+        True,
+        "--normalize",
+        "/-N",
+        help="Normalize ufuns to the range (0-1)",
+        rich_help_panel="Scenario Overrides",
+    ),
+    # used in case no domain is given only
+    issues: int | None = typer.Option(
+        None, "--issues", "-i", help="N. Issues", rich_help_panel="Generated Scenario"
+    ),
+    values_min: int = typer.Option(
+        2,
+        help="Minimum allowed n. values per issue",
+        rich_help_panel="Generated Scenario",
+    ),
+    values_max: int = typer.Option(
+        50,
+        help="Maximum allowed n. values per issue",
+        rich_help_panel="Generated Scenario",
+    ),
+    size: list[int] | None = typer.Option(
+        None,
+        "--size",
+        "-z",
+        help="Sizes of issues in order (overrides values-min, values-max)",
+        rich_help_panel="Generated Scenario",
+    ),
+    reserved_values_min: float = typer.Option(
+        0.0, help="Min Allowed Reserved value", rich_help_panel="Generated Scenario"
+    ),
+    reserved_values_max: float = typer.Option(
+        1.0, help="Max allowed reserved value", rich_help_panel="Generated Scenario"
+    ),
+    rational: bool = typer.Option(
+        True,
+        "--rational/--irrational-ok",
+        "-R/-I",
+        help="Gurantee Some Rational Outcomes",
+        rich_help_panel="Generated Scenario",
+    ),
+    rational_fraction: list[float] | None = typer.Option(
+        None,
+        "--rational-fraction",
+        "-F",
+        help="Reservation fractions",
+        rich_help_panel="Generated Scenario",
+    ),
+    reservation_selector: str = typer.Option(
+        "min",
+        help="Reservation value selector if both reserved-values and rational-fraction are given: min|max|first|last",
+        rich_help_panel="Generated Scenario",
+    ),
+    issue_name: list[str] | None = typer.Option(
+        None, help="Issue Names", rich_help_panel="Generated Scenario"
+    ),
+    os_name: str | None = typer.Option(
+        None, help="Outcome Space Name", rich_help_panel="Generated Scenario"
+    ),
+    ufun_names: list[str] | None = typer.Option(
+        None, help="Names of Ufuns", rich_help_panel="Generated Scenario"
+    ),
+    numeric: bool = typer.Option(
+        False, help="Numeric Issues", rich_help_panel="Generated Scenario"
+    ),
+    linear: bool = typer.Option(
+        True, help="Linear Ufuns", rich_help_panel="Generated Scenario"
+    ),
+    pareto_generator: list[str] | None = typer.Option(
+        None,
+        help="One or more Pareto Generator methods. See negmas.preferences.generator for possible values",
+        rich_help_panel="Generated Scenario",
+    ),
+    # Output Control
+    verbose: bool = typer.Option(
+        False, "--verbose", "-v", help="Make verbose", rich_help_panel="Output Control"
+    ),
+    verbosity: int = typer.Option(
+        0,
+        help="Verbosity level (higher=more verbose)",
+        rich_help_panel="Output Control",
+    ),
+    progress: bool = typer.Option(
+        True, help="Show Progress Bar", rich_help_panel="Output Control"
+    ),
+    history: bool = typer.Option(
+        False, help="Print History", rich_help_panel="Output Control"
+    ),
+    stats: bool = typer.Option(
+        True, help="Generate Statistics", rich_help_panel="Output Control"
+    ),
+    rank_stats: bool | None = typer.Option(
+        None, help="Generate Rank Statistics", rich_help_panel="Output Control"
+    ),
+    compact_stats: bool = typer.Option(
+        True,
+        "--compact-stats/--detailed-stats",
+        "-c/-C",
+        help="Show distances",
+        rich_help_panel="Output Control",
+    ),
+    # Plotting
+    plot: bool = typer.Option(True, help="Generate Plot", rich_help_panel="Plotting"),
+    only2d: bool = typer.Option(
+        False,
+        "--only2d/--with-offers",
+        "-2/-0",
+        help="Only 2D Plot",
+        rich_help_panel="Plotting",
+    ),
+    plot_backend: str = typer.Option(
+        "",
+        help="Backend used for plotting. See matplotlib backends.",
+        rich_help_panel="Plotting",
+    ),
+    plot_interactive: bool = typer.Option(
+        True, help="Make the plot interactive", rich_help_panel="Plotting"
+    ),
+    plot_show: bool = typer.Option(
+        True, help="Show the plot", rich_help_panel="Plotting"
+    ),
+    simple_offers_view: bool | None = typer.Option(
+        None, help="Simple Offers View", rich_help_panel="Plotting"
+    ),
+    annotations: bool = typer.Option(
+        False, help="Show Annotations", rich_help_panel="Plotting"
+    ),
+    agreement: bool = typer.Option(
+        False, help="Show Agreement", rich_help_panel="Plotting"
+    ),
+    pareto_dist: bool = typer.Option(
+        True, help="Show Pareto Distance", rich_help_panel="Plotting"
+    ),
+    nash_dist: bool = typer.Option(
+        True, help="Show Nash Distance", rich_help_panel="Plotting"
+    ),
+    kalai_dist: bool = typer.Option(
+        True, help="Show Kalai Distance", rich_help_panel="Plotting"
+    ),
+    max_welfare_dist: bool = typer.Option(
+        True, help="Show Max Welfare Distance", rich_help_panel="Plotting"
+    ),
+    max_rel_welfare_dist: bool = typer.Option(
+        False, help="Show Max Relative Welfare Distance", rich_help_panel="Plotting"
+    ),
+    end_reason: bool = typer.Option(
+        True, help="Show End Reason", rich_help_panel="Plotting"
+    ),
+    show_reserved: bool = typer.Option(
+        True, help="Show Reserved Value Lines", rich_help_panel="Plotting"
+    ),
+    total_time: bool = typer.Option(
+        True, help="Show Time Limit", rich_help_panel="Plotting"
+    ),
+    relative_time: bool = typer.Option(
+        True, help="Show Relative Time", rich_help_panel="Plotting"
+    ),
+    show_n_steps: bool = typer.Option(
+        True, help="Show N. Steps", rich_help_panel="Plotting"
+    ),
+    # Saving to Disk
+    save_path: Path | None = typer.Option(
+        None,
+        help="Path to save results to",
+        show_default="Do not Save",  # type: ignore
+        rich_help_panel="Saving to Disk",
+    ),
+    save_history: bool = typer.Option(
+        True, help="Save Negotiation Histroy", rich_help_panel="Saving to Disk"
+    ),
+    save_stats: bool = typer.Option(
+        True, help="Save Statistics", rich_help_panel="Saving to Disk"
+    ),
+    save_type: str = typer.Option(
+        "yml", help="Scenario Format:yml|xml", rich_help_panel="Saving to Disk"
+    ),
+    save_compact: bool = typer.Option(
+        True, help="Compact file", rich_help_panel="Saving to Disk"
+    ),
+    plot_path: Path | None = typer.Option(
+        None, help="Path to save the plot to.", rich_help_panel="Plotting"
+    ),
+    # Advanced
+    fast: bool | None = typer.Option(
+        None, help="Avoid slow operations", rich_help_panel="Advanced"
+    ),
+    path: list[Path] = typer.Option(
+        list(),
+        help="One or more extra paths to look for negotiator and mechanism classes.",
+        rich_help_panel="Advanced",
+    ),
+    raise_exceptions: bool = typer.Option(
+        False, help="Raise Exceptions on Failure", rich_help_panel="Advanced"
+    ),
 ):
     kwargs = dict()
     if extra_params:
@@ -202,55 +432,90 @@ def run(
         [_.split("/")[0] if "/" in _ else "" for _ in negotiators]
     )
     steps: int | float
-    timelimit: int | float
+    # timelimit: int | float
     if steps is None:
         steps = float("inf")
     if timelimit is None:
         timelimit = float("inf")
-    scenario = Scenario.from_genius_folder(
-        domain, ignore_reserved=False, ignore_discount=not discount
-    )
-    if not scenario:
-        print(f"Failed to load scenario from {domain}")
+    if scenario is None:
+        n_ufuns = len(negotiators)
+        if not n_ufuns:
+            print("[red]You must either specify a domain or negotiators[/red]")
+            exit(1)
+        if not issues:
+            issues = random.randint(1, 3)
+        gparams: dict[str, Any] = dict(
+            n_issues=issues,
+            n_values=(values_min, values_max) if not size else None,
+            sizes=size,
+            n_ufuns=n_ufuns,
+            reserved_values=(reserved_values_min, reserved_values_max),
+            rational_fractions=tuple(rational_fraction) if rational_fraction else None,
+            issue_names=tuple(issue_name) if issue_name else None,
+            os_name=os_name,
+            numeric=numeric,
+            linear=linear,
+            ufun_names=tuple(ufun_names) if ufun_names else None,
+            reservation_selector=dict(
+                min=min, max=max, first=lambda a, _: a, last=lambda _, b: b
+            )[reservation_selector],
+            guarantee_rational=rational,
+        )
+        if pareto_generator:
+            gparams["pareto_generators"] = pareto_generator
+        ufuns = generate_multi_issue_ufuns(**gparams)
+        os = ufuns[0].outcome_space
+        assert isinstance(os, CartesianOutcomeSpace)
+        if verbosity > 0:
+            print(
+                f"[purple]Generated a domain with {len(os.issues)} issues and {os.cardinality} outcomes[/purple]"
+            )
+        current_scenario = Scenario(os, ufuns, mechanism_type=get_protocol(protocol))
+    else:
+        current_scenario = Scenario.from_genius_folder(
+            scenario, ignore_reserved=False, ignore_discount=not discount
+        )
+    if not current_scenario:
+        print(f"Failed to load scenario from {scenario}")
         return
     if normalize:
-        scenario.normalize()
+        current_scenario.normalize()
 
-    assert scenario is not None
-    scenario.mechanism_type = get_protocol(protocol)
+    assert current_scenario is not None
+    current_scenario.mechanism_type = get_protocol(protocol)
     if verbosity > 0:
-        print(f"Scenario: {domain}")
+        print(f"Scenario: {scenario}")
         print(
-            f"Mechanism: {shorten_protocol_name(get_full_type_name(scenario.mechanism_type))}"
+            f"Mechanism: {shorten_protocol_name(get_full_type_name(current_scenario.mechanism_type))}"
         )
         print(f"steps: {steps}\ntimelimit: {timelimit}")
     if (
         truncate_ufuns
-        and len(scenario.ufuns) > len(negotiators)
+        and len(current_scenario.ufuns) > len(negotiators)
         and len(negotiators) > 1
     ):
-        scenario.ufuns = scenario.ufuns[: len(negotiators)]
+        current_scenario.ufuns = current_scenario.ufuns[: len(negotiators)]
 
     if (
         extend_negotiators
         and len(negotiators) > 0
-        and len(negotiators) != len(scenario.ufuns)
+        and len(negotiators) != len(current_scenario.ufuns)
     ):
-        if len(negotiators) < len(scenario.ufuns):
+        if len(negotiators) < len(current_scenario.ufuns):
             if verbosity > 0:
                 print(
-                    f"Found {len(scenario.ufuns)} ufuns and {len(negotiators)} negotiators. Will add negotiators of the last type to match the n. ufuns"
+                    f"Found {len(current_scenario.ufuns)} ufuns and {len(negotiators)} negotiators. Will add negotiators of the last type to match the n. ufuns"
                 )
             negotiators = negotiators + (
-                [negotiators[-1]] * (len(scenario.ufuns) - len(negotiators))
+                [negotiators[-1]] * (len(current_scenario.ufuns) - len(negotiators))
             )
 
-        if len(negotiators) > len(scenario.ufuns):
+        if len(negotiators) > len(current_scenario.ufuns):
             if verbosity > 0:
                 print(
-                    f"Found {len(scenario.ufuns)} ufuns and {len(negotiators)} negotiators. Will ignore the last n. negotiators"
+                    f"Found {len(current_scenario.ufuns)} ufuns and {len(negotiators)} negotiators. Will ignore the last n. negotiators"
                 )
-            negotiators = negotiators[: len(scenario.ufuns)]
+            negotiators = negotiators[: len(current_scenario.ufuns)]
 
     negotiator_names = shortest_unique_names(negotiators, guarantee_unique=True)
     agents = [
@@ -265,23 +530,26 @@ def run(
     if reserved and not extend_negotiators:
         assert len(reserved) == len(negotiators), f"{reserved=} but {negotiators=}"
     if reserved:
-        for u, r in zip(scenario.ufuns, reserved):
+        for u, r in zip(current_scenario.ufuns, reserved):
             u.reserved_value = r
     if fraction:
         if len(fraction) < len(negotiators):
             fraction += [1.0] * (len(negotiators) - len(fraction))
-        for u, f in zip(scenario.ufuns, fraction):
+        for u, f in zip(current_scenario.ufuns, fraction):
             u.reserved_value = calc_reserved_value(u, f)
     if (
         not extend_negotiators
         and len(agents) > 0
-        and len(agents) != len(scenario.ufuns)
+        and len(agents) != len(current_scenario.ufuns)
     ):
         print(
-            f"You passed {len(agents)} agents for a negotiation with {len(scenario.ufuns)} ufuns. pass --extend-negotiators to adjust the agent number"
+            f"You passed {len(agents)} agents for a negotiation with {len(current_scenario.ufuns)} ufuns. pass --extend-negotiators to adjust the agent number"
         )
         exit(1)
-    session = scenario.make_session(
+    if save_path:
+        current_scenario.dumpas(save_path, save_type, save_compact)
+
+    session = current_scenario.make_session(
         agents,
         n_steps=steps,
         time_limit=timelimit,
@@ -298,6 +566,7 @@ def run(
         print(f"Adapters: {', '.join(adapter_names)}")
     if verbosity > 1:
         print(f"Negotiators: {', '.join(negotiator_names)}")
+    results = dict()
     runner = session.run_with_progress if progress else session.run
     _start = perf_counter()
     state = runner()
@@ -307,52 +576,72 @@ def run(
         print(f"Steps: {session.current_step}")
         print(state)
     print(f"Agreement: {state.agreement}")
-    print(f"Utilities: {[u(state.agreement) for u in scenario.ufuns]}")
-    print(
-        f"Advantages: {[u(state.agreement) - (u.reserved_value if u.reserved_value is not None else float('inf')) for u in scenario.ufuns]}"
-    )
-    fast = fast or fast is None and scenario.outcome_space.cardinality > 10_000
+    advantages = [
+        u(state.agreement)
+        - (u.reserved_value if u.reserved_value is not None else float("inf"))
+        for u in current_scenario.ufuns
+    ]
+    utilities_final = [u(state.agreement) for u in current_scenario.ufuns]
+    print(f"Utilities: {utilities_final}")
+    print(f"Advantages: {advantages}")
+    fast = fast or fast is None and current_scenario.outcome_space.cardinality > 10_000
     if fast:
-        # rank_stats = stats = False
         if simple_offers_view is None:
             simple_offers_view = True
+    stats = (
+        stats or stats is None and current_scenario.outcome_space.cardinality <= 10_000
+    )
     rank_stats = (
-        rank_stats or rank_stats is None and scenario.outcome_space.cardinality < 10_000
+        rank_stats
+        or rank_stats is None
+        and current_scenario.outcome_space.cardinality <= 1000
     )
 
     if stats or rank_stats:
         pareto, pareto_outcomes = session.pareto_frontier()
     else:
         pareto, pareto_outcomes = tuple(), list()
+    results["negotiators"] = [get_full_type_name(type(x)) for x in session.negotiators]
+    results["agreement"] = state.agreement
+    results["utilities"] = utilities_final
+    results["advantages"] = advantages
+    results["negotiator_names"] = [x.name for x in session.negotiators]
+    results["negotiator_ids"] = [x.id for x in session.negotiators]
+    results["final_state"] = serialize(session.state)
+    results["step"] = session.current_step
+    results["relative_time"] = session.relative_time
+    results["n_steps"] = session.n_steps
+    results["time_limit"] = session.time_limit
+    results["negotiator_times"] = session.negotiator_times
+    results["time"] = str(datetime.now())
+    stats_dict = dict()
+    if not compact_stats:
+        stats_dict["pareto"] = pareto
+        stats_dict["pareto_outcomes"] = pareto_outcomes
+
     if stats:
-        utils = tuple(u(state.agreement) for u in scenario.ufuns)
-        print(f"Agreement Utilities: {utils}")
-        pts = session.nash_points(frontier=pareto, frontier_outcomes=pareto_outcomes)
-        print(
-            f"Nash Points: {pts} -- Distance = {dist(utils, list(a for a, _ in pts))}"
-        )
-        pts = session.kalai_points(frontier=pareto, frontier_outcomes=pareto_outcomes)
-        print(
-            f"Kalai Points: {pts} -- Distance = {dist(utils, list(a for a, _ in pts))}"
-        )
-        pts = session.modified_kalai_points(
-            frontier=pareto, frontier_outcomes=pareto_outcomes
-        )
-        print(
-            f"Modified Kalai Points: {pts} -- Distance = {dist(utils, list(a for a, _ in pts))}"
-        )
-        pts = session.max_welfare_points(
-            frontier=pareto, frontier_outcomes=pareto_outcomes
-        )
-        print(
-            f"Max. Welfare Points: {pts} -- Diff = {diff(utils, list(a for a, _ in pts))}"
-        )
-        # pts = session.max_relative_welfare_points(frontier=pareto, frontier_outcomes=pareto_outcomes)
-        # print(
-        #     f"Max. Relative Points: {pts} -- Distance = {dist(utils, list(a for a, _ in pts))}"
-        # )
+        utils = tuple(u(state.agreement) for u in current_scenario.ufuns)
+
+        def find_stats(name, f, utils=utils):
+            pts = f(frontier=pareto, frontier_outcomes=pareto_outcomes)
+            val = dist(utils, list(a for a, _ in pts))
+            if not compact_stats:
+                stats_dict[f"{name} Points"] = pts
+            stats_dict[f"{name} Distance"] = val
+            if verbosity > 0:
+                print(f"{name} Points: {pts}")
+            print(f"{name} Distance: {val}")
+
+        for name, f in (
+            ("Nash", session.nash_points),
+            ("Kalai", session.kalai_points),
+            ("Modified Kalai", session.modified_kalai_points),
+            ("Max Welfare", session.max_welfare_points),
+            # ("Max Relative Welfare", session.max_relative_welfare_points),
+        ):
+            find_stats(name, f)
     if rank_stats:
-        ranks_ufuns = tuple(make_rank_ufun(_) for _ in scenario.ufuns)
+        ranks_ufuns = tuple(make_rank_ufun(_) for _ in current_scenario.ufuns)
         ranks = tuple(_(state.agreement) for _ in ranks_ufuns)
         print(f"Agreement Relative Ranks: {ranks}")
         pareto_save = pareto_outcomes
@@ -368,51 +657,54 @@ def run(
             print(
                 f"[bold red]Ordinal pareto outcomes do not match cardinal pareto outcomes[/bold red]\nOrdinal: {pareto_outcomes}\nCardinal: {pareto_save}"
             )
-        utils_indices = nash_points(
-            frontier=pareto, ufuns=ranks_ufuns, outcome_space=scenario.outcome_space
-        )
-        pts = tuple((a, pareto_outcomes[b]) for a, b in utils_indices)
-        nutils = list(a for a, _ in utils_indices)
-        print(f"Ordinal Nash Points: {pts} -- Distance = {dist(ranks, nutils)}")
-        pts = kalai_points(
-            frontier=pareto,
-            ufuns=ranks_ufuns,
-            outcome_space=scenario.outcome_space,
-            subtract_reserved_value=True,
-        )
-        pts = tuple((a, pareto_outcomes[b]) for a, b in utils_indices)
-        nutils = list(a for a, _ in utils_indices)
-        print(f"Ordinal Kalai Points: {pts} -- Distance = {dist(ranks, nutils)}")
-        pts = kalai_points(
-            frontier=pareto,
-            ufuns=ranks_ufuns,
-            outcome_space=scenario.outcome_space,
-            subtract_reserved_value=False,
-        )
-        pts = tuple((a, pareto_outcomes[b]) for a, b in utils_indices)
-        nutils = list(a for a, _ in utils_indices)
-        print(
-            f"Ordinal Modified Kalai Points: {pts} -- Distance = {dist(ranks, nutils)}"
-        )
-        pts = max_welfare_points(
-            frontier=pareto, ufuns=ranks_ufuns, outcome_space=scenario.outcome_space
-        )
-        pts = tuple((a, pareto_outcomes[b]) for a, b in utils_indices)
-        nutils = list(a for a, _ in utils_indices)
-        print(f"Ordinal Max. Welfare Points: {pts} -- Diff = {diff(ranks, nutils)}")
-        # pts = max_relative_welfare_points(
-        #     frontier=pareto, ufuns=ranks_ufuns, outcome_space=scenario.outcome_space
-        # )
-        # pts = tuple((a, pareto_outcomes[b]) for a, b in utils_indices)
-        # nutils = list(a for a, _ in utils_indices)
-        # print(f"Ordinal Max. Relative Points: {pts} -- Distance = {dist(ranks, nutils)}")
+
+        def find_rank_stats(name, f, ranks=ranks, **kwargs):
+            utils_indices = f(
+                frontier=pareto,
+                ufuns=ranks_ufuns,
+                outcome_space=current_scenario.outcome_space,
+                **kwargs,
+            )
+            pts = tuple((a, pareto_outcomes[b]) for a, b in utils_indices)
+            nutils = list(a for a, _ in utils_indices)
+            val = dist(ranks, nutils)
+            if not compact_stats:
+                stats_dict[f"{name} Points"] = pts
+            stats_dict[f"{name} Distance"] = val
+            if verbosity > 0:
+                print(f"{name} Points: {pts}")
+            print(f"{name} Distance: {val}")
+
+        for name, f, kwargs in (
+            ("Ordinal Nash", nash_points, dict()),
+            ("Ordinal Kalai", kalai_points, dict(subtract_reserved_value=True)),
+            (
+                "Ordinal Modified Kalai",
+                kalai_points,
+                dict(subtract_reserved_value=False),
+            ),
+            ("Ordinal Max Welfare", max_welfare_points, dict()),
+            # ("Ordinal Max Relative Welfare", max_relative_welfare_points),
+        ):
+            find_rank_stats(name, f, **kwargs)
+    if save_path:
+        save_path.mkdir(exist_ok=True, parents=True)
+        dump(results, save_path / "session.json")
+    if save_path and save_stats and (stats or rank_stats):
+        save_path.mkdir(exist_ok=True, parents=True)
+        dump(stats_dict, save_path / "stats.json")
+
     if history:
         if hasattr(session, "full_trace"):
-            print(session.full_trace)  # type: ignore full_trace is defined for SAO and GBM
+            hist = session.full_trace  # type: ignore full_trace is defined for SAO and GBM
         else:
-            print(session.history)
+            hist = session.history
+        print(hist)
     if plot_path:
         plot_path = Path(plot_path).absolute()
+        plot_path.parent.mkdir(parents=True, exist_ok=True)
+    elif save_path:
+        plot_path = save_path / "session.png"
         plot_path.parent.mkdir(parents=True, exist_ok=True)
     if plot:
         if plot_backend:
@@ -423,25 +715,43 @@ def run(
             path=plot_path.parent if plot_path else None,
             fig_name=plot_path.name if plot_path else None,
             only2d=only2d,
-            show_agreement=show_agreement,
-            show_pareto_distance=show_pareto_distance,
-            show_nash_distance=show_nash_distance,
-            show_kalai_distance=show_kalai_distance,
-            show_max_welfare_distance=show_max_welfare_distance,
-            show_max_relative_welfare_distance=show_max_relative_welfare_distance,
-            show_end_reason=show_end_reason,
-            show_annotations=show_annotations,
+            show_agreement=agreement,
+            show_pareto_distance=pareto_dist,
+            show_nash_distance=nash_dist,
+            show_kalai_distance=kalai_dist,
+            show_max_welfare_distance=max_welfare_dist,
+            show_max_relative_welfare_distance=max_rel_welfare_dist,
+            show_end_reason=end_reason,
+            show_annotations=annotations,
             show_reserved=show_reserved,
-            show_total_time=show_total_time,
-            show_relative_time=show_relative_time,
+            show_total_time=total_time,
+            show_relative_time=relative_time,
             show_n_steps=show_n_steps,
             fast=fast,
             simple_offers_view=simple_offers_view,
         )
-        mng = plt.get_current_fig_manager()
-        mng.resize(1024, 860)
-        mng.full_screen_toggle()
-        plt.show()
+        if plot_show:
+            mng = plt.get_current_fig_manager()
+            mng.resize(1024, 860)
+            mng.full_screen_toggle()
+            plt.show()
+    if save_path and save_history:
+        if hasattr(session, "full_trace"):
+            hist = pd.DataFrame(
+                session.full_trace,  # type: ignore
+                columns=[
+                    "time",
+                    "relative_time",
+                    "step",
+                    "negotiator",
+                    "offer",
+                    "responses",
+                    "state",
+                ],
+            )
+        else:
+            hist = pd.DataFrame.from_records([serialize(_) for _ in session.history])
+        dump(hist, save_path / "history.csv", compact=True, sort_keys=False)
 
 
 if __name__ == "__main__":
