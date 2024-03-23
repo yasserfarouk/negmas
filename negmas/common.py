@@ -234,6 +234,10 @@ class MechanismState:
     """Does the mechanism have any errors"""
     error_details: str = ""
     """Details of the error if any"""
+    erred_negotiator: str = ""
+    """ID of the negotiator that raised the last error"""
+    erred_agent: str = ""
+    """ID of the agent owning the negotiator that raised the last error"""
 
     def __hash__(self):
         return hash(self.asdict())

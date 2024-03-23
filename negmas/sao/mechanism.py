@@ -431,6 +431,8 @@ class SAOMechanism(
                 state.broken = True
                 state.has_error = True
                 state.error_details = str(exceptions[neg.id])
+                state.erred_negotiator = neg.id
+                state.erred_agent = "" if neg.owner is None else neg.owner.id
                 return MechanismStepResult(state, times=times, exceptions=exceptions)
             if resp is None:
                 state.timedout = True

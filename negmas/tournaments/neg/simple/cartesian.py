@@ -243,6 +243,20 @@ def run_negotiation(
     run_record["mechanism_name"] = m.name
     run_record["mechanism_type"] = m.type_name
     run_record["effective_scenario_name"] = s.outcome_space.name
+    run_record["running"] = state.running
+    run_record["waiting"] = state.waiting
+    run_record["started"] = state.started
+    run_record["last_step"] = state.step
+    run_record["last_time"] = state.time
+    run_record["relative_time"] = state.relative_time
+    run_record["broken"] = state.broken
+    run_record["timedout"] = state.timedout
+    run_record["agreement"] = state.agreement
+    run_record["results"] = state.results
+    run_record["n_negotiators"] = state.n_negotiators
+    run_record["has_error"] = state.has_error
+    run_record["erred_negotiator"] = state.erred_negotiator
+    run_record["error_details"] = state.error_details
 
     if m.nmi.annotation:
         run_record.update(m.nmi.annotation)
@@ -356,6 +370,7 @@ def cartesian_tournament(
     name_reveals_type: bool = True,
     shorten_names: bool = True,
     raise_exceptions: bool = True,
+    self_exceptions_only: bool = False,
     mask_scenario_names: bool = True,
 ) -> SimpleTournamentResults:
     """A simplified version of Cartesian tournaments not using the internal machinay of NegMAS  tournaments
@@ -395,6 +410,7 @@ def cartesian_tournament(
         name_reveals_type: Each negotiator name will reveal its type.
         shorten_names: If True, shorter versions of names will be used for results
         raise_exceptions: When given, negotiators and mechanisms are allowed to raise exceptions stopping the tournament
+        self_exceptions_only: If true, agent specific scores will record exceptions raised by the agent itself only not all negotiation exceptions
         mask_scenario_names: If given, scenario names will be masked so that the negotiators do not know the original scenario name
 
     Returns:
@@ -417,25 +433,36 @@ def cartesian_tournament(
             record["max_utils"],
             record.get("negotiator_times", [None] * len(utils)),
         )
+        has_error = record["has_error"]
+        erred_negotiator = record["erred_negotiator"]
+        error_details = record["error_details"]
         scores = []
         for i, (u, r, a, m, t) in enumerate(
             zip(utils, reserved_values, partners, max_utils, times)
         ):
             n_p = len(partners)
             bilateral = n_p == 2
-            basic = dict(
-                strategy=a,
-                utility=u,
-                reserved_value=r,
-                advantage=(u - r) / (m - r),
-                partner_welfare=sum(_ for j, _ in enumerate(utils) if j != i)
-                / (n_p - 1),
-                welfare=sum(_ for _ in utils) / n_p,
-                scenario=record["scenario"],
-                partners=(partners[_] for _ in range(len(partners)) if _ != i)
-                if not bilateral
-                else partners[1 - i],
-                time=t,
+            errdict = (
+                dict(has_error=has_error, error_details=error_details)
+                if (not self_exceptions_only) or erred_negotiator == a
+                else dict(has_error=has_error, error_details="")
+            )
+            basic = (
+                dict(
+                    strategy=a,
+                    utility=u,
+                    reserved_value=r,
+                    advantage=(u - r) / (m - r),
+                    partner_welfare=sum(_ for j, _ in enumerate(utils) if j != i)
+                    / (n_p - 1),
+                    welfare=sum(_ for _ in utils) / n_p,
+                    scenario=record["scenario"],
+                    partners=(partners[_] for _ in range(len(partners)) if _ != i)
+                    if not bilateral
+                    else partners[1 - i],
+                    time=t,
+                )
+                | errdict
             )
             for c in (
                 "nash_optimality",

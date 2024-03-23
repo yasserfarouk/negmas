@@ -1,4 +1,5 @@
 """Implements a concurrent set of negotiations creating a chain of bilateral negotiations."""
+
 from __future__ import annotations
 
 
@@ -519,12 +520,20 @@ class MultiChainNegotiationsMechanism(
             ResponseType.END_NEGOTIATION,
         ):
             state.has_error = True
+            state.erred_negotiator = negotiator.id
+            state.erred_agent = (
+                negotiator.owner.id if negotiator.owner is not None else ""
+            )
             return MechanismStepResult(state)
 
         # If the response is to end the negotiation, end it but only if there are not partial negotiations
         if response == ResponseType.END_NEGOTIATION:
             if len(self.__agreements) > 0:
                 state.has_error = True
+                state.erred_negotiator = negotiator.id
+                state.erred_agent = (
+                    negotiator.owner.id if negotiator.owner is not None else ""
+                )
                 stae.error_details = (
                     "Cannot end a negotiation chain with some agreements",
                 )
