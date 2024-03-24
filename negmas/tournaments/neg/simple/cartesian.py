@@ -23,7 +23,7 @@ from negmas.common import TraceElement
 
 from negmas.helpers import unique_name
 from negmas.helpers.inout import dump
-from negmas.helpers.strings import shortest_unique_names
+from negmas.helpers.strings import humanize_time, shortest_unique_names
 from negmas.helpers.types import get_class, get_full_type_name
 from negmas.inout import Scenario
 from negmas.mechanisms import Mechanism, Traceable
@@ -208,6 +208,8 @@ def run_negotiation(
         complete_names.append(name)
         m.add(negotiator, ufun=u)
 
+    if verbosity > 0:
+        print(f" {partner_names} on {real_scenario_name} [purple]started[/purple]")
     strt = perf_counter()
     state = m.run()
     execution_time = perf_counter() - strt
@@ -218,7 +220,10 @@ def run_negotiation(
     reservations = tuple(u.reserved_value for u in s.ufuns)
     if verbosity > 0:
         print(
-            f" {partner_names} on {real_scenario_name}: {state.agreement} in {state.relative_time:4.2%} of the time with advantages: {tuple(a - b for a, b in zip(agreement_utils, reservations))}, "
+            f" {partner_names} on {real_scenario_name} (rep: {rep}): {state.agreement} in "
+            f"{state.relative_time:4.2%} of allowed time with advantages: "
+            f"{tuple(a - b for a, b in zip(agreement_utils, reservations))} "
+            f"[green]done[/green] in {humanize_time(execution_time)}"
         )
     run_record = asdict(state)
     run_record["utilities"] = agreement_utils
