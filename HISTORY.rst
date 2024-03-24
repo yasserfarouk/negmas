@@ -1,6 +1,12 @@
 History
 =======
 
+Release 0.10.19
+---------------
+
+* Saving erred-negotiator and erred-agent in MechanismState in case of errors in SAO  and related mechanisms
+* Saving details about errors (including traceback) in cartesian products (in all_scores.csv).
+
 Release 0.10.18
 ---------------
 
