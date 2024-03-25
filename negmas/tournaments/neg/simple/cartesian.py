@@ -209,7 +209,9 @@ def run_negotiation(
         m.add(negotiator, ufun=u)
 
     if verbosity > 0:
-        print(f" {partner_names} on {real_scenario_name} [purple]started[/purple]")
+        print(
+            f" {partner_names} on {real_scenario_name} ({m.outcome_space.cardinality} outcomes) for {m.n_steps} steps within {m.time_limit} seconds [purple]started[/purple]"
+        )
     strt = perf_counter()
     state = m.run()
     execution_time = perf_counter() - strt
