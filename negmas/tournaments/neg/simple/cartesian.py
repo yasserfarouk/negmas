@@ -219,10 +219,11 @@ def run_negotiation(
     agreement_utils = tuple(u(state.agreement) for u in s.ufuns)
     reservations = tuple(u.reserved_value for u in s.ufuns)
     if verbosity > 0:
+        advs = tuple(round(a - b, 3) for a, b in zip(agreement_utils, reservations))
         print(
             f" {partner_names} on {real_scenario_name} (rep: {rep}): {state.agreement} in "
             f"{state.relative_time:4.2%} of allowed time with advantages: "
-            f"{tuple(a - b for a, b in zip(agreement_utils, reservations))} "
+            f"{advs} "
             f"[green]done[/green] in {humanize_time(execution_time)}"
         )
     run_record = asdict(state)
