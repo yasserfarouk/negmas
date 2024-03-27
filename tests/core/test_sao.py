@@ -476,3 +476,52 @@ def test_hidden_time_works_and_no_call_repetitions():
 
 def test_smart_asipration():
     try_negotiator(SmartAspirationNegotiator)
+
+
+class RTRecorder(SAONegotiator):
+    def __init__(self, *args, **kwargs):
+        self.records = []
+        super().__init__(*args, **kwargs)
+
+    def __call__(self, state: SAOState) -> SAOResponse:
+        self.records.append(
+            (
+                state.step,
+                state.relative_time,
+                state.time,
+                # ((state.step + 1) / (self.nmi.n_steps + 1) if state.step > 0 else 0.0)
+                (state.step + 1) / (self.nmi.n_steps + 1) if self.nmi.n_steps else -1,
+            )
+        )
+        return SAOResponse(ResponseType.REJECT_OFFER, self.nmi.random_outcome())
+
+
+def test_relative_time():
+    time, hidden = float("inf"), float("inf")
+    issues: list[Issue] = [
+        make_issue(10, "price"),
+        make_issue(5, "quantity"),
+        make_issue(["red", "green", "blue"], "color"),
+    ]
+    os = make_os(issues)
+    ufuns = [
+        LinearAdditiveUtilityFunction.random(outcome_space=os, reserved_value=0.0),
+        LinearAdditiveUtilityFunction.random(outcome_space=os, reserved_value=0.0),
+    ]
+    session = SAOMechanism(
+        time_limit=time,
+        n_steps=10,
+        hidden_time_limit=hidden,
+        outcome_space=os,
+        one_offer_per_step=False,
+        ignore_negotiator_exceptions=False,
+    )
+    agents = [RTRecorder() for _ in range(len(ufuns))]
+    for u, a in zip(ufuns, agents):
+        assert session.add(a, ufun=u)  # type: ignore
+    session.run()
+    for agent in agents:
+        for step, relative_time, time, expected_rt in agent.records:
+            assert (
+                abs(relative_time - expected_rt) < 1e-5
+            ), f"{(step, relative_time, time, expected_rt)}"

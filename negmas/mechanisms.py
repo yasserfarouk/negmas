@@ -1098,6 +1098,7 @@ class Mechanism(
             # if we did not start, just start
             self._current_state.running = True
             self._current_state.step = 0
+            self._current_state.relative_time = self.relative_time
             self._start_time = time.perf_counter()
             self._current_state.started = True
             state = self.state
