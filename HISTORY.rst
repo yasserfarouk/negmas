@@ -1,6 +1,29 @@
 History
 =======
 
+Release 0.10.20
+---------------
+
+* Matching the behavior of Genius in relative_time.
+  Originally, NegMAS used the following rule for relative_time R:
+
+  i = 0 => R = 0
+
+  i > 0 => R = min(1, max(t/T, (i+1)/(N+1)))
+
+  where i is the current step, t is current time, T is time_limit, N is
+  n_steps.
+
+  After this change the special case at i=0 is removed:
+
+  R = min(1, max(t/T, (i+1)/(N+1)))
+
+  This matches Genius behavior exactly if we have either T=\infty or
+  N=\infty.
+* More info in printing in cartesian verbose
+* Rounding output in cartesian verbose mode
+* Printing execution time in cartesian verbose
+
 Release 0.10.19
 ---------------
 
