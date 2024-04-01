@@ -185,60 +185,75 @@ def run_negotiation(
     mechanism_params["annotation"] = annotation
 
     m = mechanism_type(outcome_space=s.outcome_space, **mechanism_params)
-    complete_names, negotiators = [], []
+    complete_names, negotiators, failures = [], [], []
     for type_, p, pinfo in zip(partners, partner_params, private_infos):  # type: ignore
-        negotiator = type_(**p, private_info=pinfo)
-        name = _name(negotiator)
-        complete_names.append(name)
-        negotiators.append(negotiator)
-        if p:
-            name += str(hash(str(p)))
-    if not partner_names:
-        partner_names = tuple(complete_names)  # type: ignore
-    for L_, (negotiator, name, u) in enumerate(
-        zip(negotiators, partner_names, s.ufuns)
-    ):
-        if id_reveals_type:
-            negotiator.id = f"{name}@{L_}"
-        else:
-            negotiator.id = unique_name("n", add_time=False, sep="")
-        if name_reveals_type:
-            negotiator.name = f"{name}@{L_}"
-        else:
-            negotiator.name = unique_name("n", add_time=False, sep="")
-        complete_names.append(name)
-        m.add(negotiator, ufun=u)
-
-    if verbosity > 0:
-        print(
-            f"{partner_names} on {real_scenario_name} ({m.outcome_space.cardinality}"
-            f" outcomes) for {m.n_steps} steps within {m.time_limit} seconds "
-            f"[purple]started[/purple]"
-        )
-    strt = perf_counter()
-    try:
-        state = m.run()
-    except Exception as e:
-        if not ignore_exceptions:
-            raise e
-        else:
-            state = m.state
-            state.has_error = True
-            state.error_details = str(e)
-    execution_time = perf_counter() - strt
-    param_dump = tuple(str(to_flat_dict(_)) if _ else None for _ in partner_params)  # type: ignore
-    if all(_ is None for _ in param_dump):
-        param_dump = None
-    agreement_utils = tuple(u(state.agreement) for u in s.ufuns)
+        try:
+            negotiator = type_(**p, private_info=pinfo)
+            name = _name(negotiator)
+            complete_names.append(name)
+            negotiators.append(negotiator)
+            if p:
+                name += str(hash(str(p)))
+        except Exception as e:
+            failures.append(
+                dict(
+                    erred_negotiator=get_full_type_name(type_),
+                    error_details=str(e),
+                    has_error=True,
+                )
+            )
     reservations = tuple(u.reserved_value for u in s.ufuns)
-    if verbosity > 0:
-        advs = tuple(round(a - b, 3) for a, b in zip(agreement_utils, reservations))
-        print(
-            f" {partner_names} on {real_scenario_name} (rep: {rep}): {state.agreement} in "
-            f"{state.relative_time:4.2%} of allowed time with advantages: "
-            f"{advs} "
-            f"[green]done[/green] in {humanize_time(execution_time)}"
-        )
+    param_dump = tuple(str(to_flat_dict(_)) if _ else None for _ in partner_params)  # type: ignore
+    if not failures:
+        if not partner_names:
+            partner_names = tuple(complete_names)  # type: ignore
+        for L_, (negotiator, name, u) in enumerate(
+            zip(negotiators, partner_names, s.ufuns)
+        ):
+            if id_reveals_type:
+                negotiator.id = f"{name}@{L_}"
+            else:
+                negotiator.id = unique_name("n", add_time=False, sep="")
+            if name_reveals_type:
+                negotiator.name = f"{name}@{L_}"
+            else:
+                negotiator.name = unique_name("n", add_time=False, sep="")
+            complete_names.append(name)
+            m.add(negotiator, ufun=u)
+
+        if verbosity > 0:
+            print(
+                f"{partner_names} on {real_scenario_name} ({m.outcome_space.cardinality}"
+                f" outcomes) for {m.n_steps} steps within {m.time_limit} seconds "
+                f"[purple]started[/purple]"
+            )
+        strt = perf_counter()
+        try:
+            state = m.run()
+        except Exception as e:
+            if not ignore_exceptions:
+                raise e
+            else:
+                state = m.state
+                state.has_error = True
+                state.error_details = str(e)
+        execution_time = perf_counter() - strt
+        if all(_ is None for _ in param_dump):
+            param_dump = None
+        agreement_utils = tuple(u(state.agreement) for u in s.ufuns)
+        if verbosity > 0:
+            advs = tuple(round(a - b, 3) for a, b in zip(agreement_utils, reservations))
+            print(
+                f" {partner_names} on {real_scenario_name} (rep: {rep}): {state.agreement} in "
+                f"{state.relative_time:4.2%} of allowed time with advantages: "
+                f"{advs} "
+                f"[green]done[/green] in {humanize_time(execution_time)}"
+            )
+    else:
+        agreement_utils = reservations
+        execution_time = 0.0
+        state = m.state
+
     run_record = asdict(state)
     run_record["utilities"] = agreement_utils
     run_record["max_utils"] = max_utils
@@ -688,7 +703,6 @@ def cartesian_tournament(
         scores_df[[_ for _ in scores_df.columns if _ not in ("scenario", "partners")]]
         .groupby("strategy")
         .describe()
-        # .agg(["min", "mean", "std", "median", "max"])
         .sort_values(final_score, ascending=False)
     )
     final = pd.DataFrame()
