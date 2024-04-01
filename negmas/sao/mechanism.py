@@ -96,7 +96,6 @@ class SAOMechanism(
         check_offers=False,
         enforce_issue_types=False,
         cast_offers=False,
-        ignore_negotiator_exceptions=False,
         offering_is_accepting=True,
         allow_offering_just_rejected_outcome=True,
         name: str | None = None,
@@ -159,7 +158,6 @@ class SAOMechanism(
         ] = allow_offering_just_rejected_outcome
         self._n_max_waits = max_wait if max_wait is not None else float("inf")
         self.params["max_wait"] = self._n_max_waits
-        self.ignore_negotiator_exceptions = ignore_negotiator_exceptions
         self.allow_offering_just_rejected_outcome = allow_offering_just_rejected_outcome
         self.end_negotiation_on_refusal_to_propose = end_on_no_response
         self.check_offers = check_offers

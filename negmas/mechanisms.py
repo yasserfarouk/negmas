@@ -82,7 +82,7 @@ class MechanismStepResult(Generic[TState]):
     completed: bool = True
     """Whether the current round is completed or not."""
     broken: bool = False
-    """True only if END_NEGOTIATION was selected by one agent."""
+    """True only if END_NEGOTIATION was selected by one negotiator."""
     timedout: bool = False
     """True if a timeout occurred."""
     agreement: Outcome | None = None
@@ -120,8 +120,8 @@ class Mechanism(
         pend: Probability of ending the negotiation at any step
         pend_per_second: Probability of ending the negotiation every second
         hidden_time_limit: Number of real seconds allowed but not visilbe to the negotiators
-        max_n_agents:  Maximum allowed number of agents
-        dynamic_entry: Allow agents to enter/leave negotiations between rounds
+        max_n_negotiators:  Maximum allowed number of negotiators.
+        dynamic_entry: Allow negotiators to enter/leave negotiations between rounds
         cache_outcomes: If true, a list of all possible outcomes will be cached
         max_cardinality: The maximum allowed number of outcomes in the cached set
         annotation: Arbitrary annotation
@@ -154,7 +154,7 @@ class Mechanism(
         step_time_limit: float | None = None,
         negotiator_time_limit: float | None = None,
         hidden_time_limit: float = float("inf"),
-        max_n_agents: int | None = None,
+        max_n_negotiators: int | None = None,
         dynamic_entry=False,
         annotation: dict[str, Any] | None = None,
         nmi_factory: type[TNMI] = NegotiatorMechanismInterface,
@@ -170,6 +170,7 @@ class Mechanism(
         id: str | None = None,
         type_name: str | None = None,
         verbosity: int = 0,
+        ignore_negotiator_exceptions=False,
     ):
         check_one_and_only(outcome_space, issues, outcomes)
         outcome_space = ensure_os(outcome_space, issues, outcomes)
@@ -177,6 +178,7 @@ class Mechanism(
         self._negotiator_logs: dict[str, list[dict[str, Any]]] = defaultdict(list)
         super().__init__(name, id=id, type_name=type_name)
 
+        self.ignore_negotiator_exceptions = ignore_negotiator_exceptions
         self._negotiator_times = defaultdict(float)
         CheckpointMixin.checkpoint_init(
             self,
@@ -220,7 +222,7 @@ class Mechanism(
             step_time_limit=step_time_limit,
             negotiator_time_limit=negotiator_time_limit,
             dynamic_entry=dynamic_entry,
-            max_n_agents=max_n_agents,
+            max_n_negotiators=max_n_negotiators,
             annotation=annotation if annotation is not None else dict(),
             _mechanism=self,
         )
@@ -248,8 +250,8 @@ class Mechanism(
         self.__discrete_outcomes = None
         self._extra_callbacks = extra_callbacks
 
-        self.agents_of_role = defaultdict(list)
-        self.role_of_agent = {}
+        self.negotiators_of_role = defaultdict(list)
+        self.role_of_negotiator = {}
         # mechanisms do not differentiate between RANDOM_JAVA_PORT and ANY_JAVA_PORT.
         # if either is given as the genius_port, it will fix a port and all negotiators
         # that are not explicitly assigned to a port (by passing port>0 to them) will just
@@ -534,7 +536,7 @@ class Mechanism(
     @property
     def requirements(self):
         """A dictionary specifying the requirements that must be in the
-        capabilities of any agent to join the mechanism."""
+        capabilities of any negotiator to join the mechanism."""
         return self._requirements
 
     @requirements.setter
@@ -625,43 +627,40 @@ class Mechanism(
 
         return True
 
-    def can_participate(self, agent: TNegotiator) -> bool:
-        """Checks if the agent can participate in this type of negotiation in
+    def can_participate(self, negotiator: TNegotiator) -> bool:
+        """Checks if the negotiator can participate in this type of negotiation in
         general.
 
-        Args:
-            agent:
-
         Returns:
-            bool: True if it  can
+            bool: True if the negotiator  can participate
 
         Remarks:
             The only reason this may return `False` is if the mechanism requires some requirements
-            that are not within the capabilities of the agent.
+            that are not within the capabilities of the negotiator.
 
-            When evaluating compatibility, the agent is considered incapable of participation if any
+            When evaluating compatibility, the negotiator is considered incapable of participation if any
             of the following conditions hold:
-            * A mechanism requirement is not in the capabilities of the agent
-            * A mechanism requirement is in the capabilities of the agent by the values required for it
-              is not in the values announced by the agent.
+            * A mechanism requirement is not in the capabilities of the negotiator
+            * A mechanism requirement is in the capabilities of the negotiator by the values required for it
+              is not in the values announced by the negotiator.
 
-            An agent that lists a `None` value for a capability is announcing that it can work with all its
+            An negotiator that lists a `None` value for a capability is announcing that it can work with all its
             values. On the other hand, a mechanism that lists a requirement as None announces that it accepts
-            any value for this requirement as long as it exist in the agent
+            any value for this requirement as long as it exist in the negotiator
         """
-        return self.is_satisfying(agent.capabilities)
+        return self.is_satisfying(negotiator.capabilities)
 
-    def can_accept_more_agents(self) -> bool:
+    def can_accept_more_negotiators(self) -> bool:
         """Whether the mechanism can **currently** accept more negotiators."""
         return (
             True
-            if self.nmi.max_n_agents is None or self._negotiators is None
-            else len(self._negotiators) < self.nmi.max_n_agents
+            if self.nmi.max_n_negotiators is None or self._negotiators is None
+            else len(self._negotiators) < self.nmi.max_n_negotiators
         )
 
-    def can_enter(self, agent: TNegotiator) -> bool:
-        """Whether the agent can enter the negotiation now."""
-        return self.can_accept_more_agents() and self.can_participate(agent)
+    def can_enter(self, negotiator: TNegotiator) -> bool:
+        """Whether the negotiator can enter the negotiation now."""
+        return self.can_accept_more_negotiators() and self.can_participate(negotiator)
 
     # def extra_state(self) -> dict[str, Any] | None:
     #     """Returns any extra state information to be kept in the `state` and `history` properties"""
@@ -687,15 +686,15 @@ class Mechanism(
         role: str | None = None,
         ufun: BaseUtilityFunction | None = None,
     ) -> bool | None:
-        """Add an agent to the negotiation.
+        """Add an negotiator to the negotiation.
 
         Args:
 
-            negotiator: The agent to be added.
-            preferences: The utility function to use. If None, then the agent must already have a stored
+            negotiator: The negotiator to be added.
+            preferences: The utility function to use. If None, then the negotiator must already have a stored
                   utility function otherwise it will fail to enter the negotiation.
             ufun: [depricated] same as preferences but must be a `UFun` object.
-            role: The role the agent plays in the negotiation mechanism. It is expected that mechanisms inheriting from
+            role: The role the negotiator plays in the negotiation mechanism. It is expected that mechanisms inheriting from
                   this class will check this parameter to ensure that the role is a valid role and is still possible for
                   negotiators to join on that role. Roles may include things like moderator, representative etc based
                   on the mechanism
@@ -703,9 +702,9 @@ class Mechanism(
 
         Returns:
 
-            * True if the agent was added.
-            * False if the agent was already in the negotiation.
-            * None if the agent cannot be added. This can happen in the following cases:
+            * True if the negotiator was added.
+            * False if the negotiator was already in the negotiation.
+            * None if the negotiator cannot be added. This can happen in the following cases:
 
               1. The capabilities of the negotiator do not match the requirements of the negotiation
               2. The outcome-space of the negotiator's preferences do not contain the outcome-space of the negotiation
@@ -756,8 +755,8 @@ class Mechanism(
             self._negotiator_map[negotiator.id] = negotiator
             self._negotiator_index[negotiator.id] = len(self._negotiators) - 1
             self._roles.append(role)
-            self.role_of_agent[negotiator.uuid] = role
-            self.agents_of_role[role].append(negotiator)
+            self.role_of_negotiator[negotiator.uuid] = role
+            self.negotiators_of_role[role].append(negotiator)
             return True
         return None
 
@@ -771,24 +770,37 @@ class Mechanism(
         negotiation otherwise it raises an exception."""
         return self._negotiator_map[source]
 
-    def can_leave(self, agent: Negotiator) -> bool:
-        """Can the agent leave now?"""
+    def can_leave(self, negotiator: Negotiator) -> bool:
+        """Can the negotiator leave now?"""
         return (
             True
             if self.nmi.dynamic_entry
-            else not self.nmi.state.running and agent in self._negotiators
+            else not self.nmi.state.running and negotiator in self._negotiators
         )
 
-    def remove(self, negotiator: Negotiator) -> bool | None:
-        """Remove the agent from the negotiation.
+    def _call(self, negotiator: TNegotiator, callback: Callable, *args, **kwargs):
+        result = None
+        try:
+            result = callback(*args, **kwargs)
+        except Exception as e:
+            if self.ignore_negotiator_exceptions:
+                pass
+            else:
+                self.state.has_error = True
+                self.state.error_details = str(e)
+                self.state.erred_negotiator = negotiator.id if negotiator else ""
+                a = negotiator.owner if negotiator else None
+                self.state.erred_agent = a.id if a else ""
+        finally:
+            return result
 
-        Args:
-            agent:
+    def remove(self, negotiator: TNegotiator) -> bool | None:
+        """Remove the negotiator from the negotiation.
 
         Returns:
-            * True if the agent was removed.
-            * False if the agent was not in the negotiation already.
-            * None if the agent cannot be removed.
+            * True if the negotiator was removed.
+            * False if the negotiator was not in the negotiation already.
+            * None if the negotiator cannot be removed.
         """
         if not self.can_leave(negotiator):
             return False
@@ -801,7 +813,7 @@ class Mechanism(
         self._negotiator_map.pop(negotiator.id)
         if self._extra_callbacks:
             strt = time.perf_counter()
-            negotiator.on_leave(self.nmi.state)
+            self._call(negotiator, negotiator.on_leave, self.nmi.state)
             self._negotiator_times[negotiator.id] += time.perf_counter() - strt
         return True
 
@@ -914,8 +926,8 @@ class Mechanism(
         return self.nmi.dynamic_entry
 
     @property
-    def max_n_agents(self):
-        return self.nmi.max_n_agents
+    def max_n_negotiators(self):
+        return self.nmi.max_n_negotiators
 
     @property
     def state4history(self) -> Any:
@@ -942,7 +954,7 @@ class Mechanism(
         if self._extra_callbacks:
             for a in self.negotiators:
                 strt = time.perf_counter()
-                a.on_mechanism_error(state=state)
+                self._call(a, a.on_mechanism_error, state=state)
                 self._negotiator_times[a.id] += time.perf_counter() - strt
 
     def on_negotiation_end(self) -> None:
@@ -954,7 +966,7 @@ class Mechanism(
         state = self.state
         for a in self.negotiators:
             strt = time.perf_counter()
-            a._on_negotiation_end(state=state)
+            self._call(a, a._on_negotiation_end, state=state)
             self._negotiator_times[a.id] += time.perf_counter() - strt
         self.announce(
             Event(
@@ -1112,7 +1124,7 @@ class Mechanism(
                 return self.state
             for a in self.negotiators:
                 strt = time.perf_counter()
-                a._on_negotiation_start(state=state)
+                self._call(a, a._on_negotiation_start, state=state)
                 self._negotiator_times[a.id] += time.perf_counter() - strt
             self.announce(Event(type="negotiation_start", data=None))
         else:
@@ -1133,10 +1145,10 @@ class Mechanism(
         # send round start only if the mechanism is not waiting for anyone
         # TODO check this.
         if not self._current_state.waiting and self._extra_callbacks:
-            for agent in self._negotiators:
+            for negotiator in self._negotiators:
                 strt = time.perf_counter()
-                agent.on_round_start(state=state)
-                self._negotiator_times[agent.id] += time.perf_counter() - strt
+                self._call(negotiator, negotiator.on_round_start, state=state)
+                self._negotiator_times[negotiator.id] += time.perf_counter() - strt
 
         # run a round of the mechanism and get the new state
         step_start = (
@@ -1198,10 +1210,10 @@ class Mechanism(
         if not self._current_state.waiting and result.completed:
             state4history = self.state4history
             if self._extra_callbacks:
-                for agent in self._negotiators:
+                for negotiator in self._negotiators:
                     strt = time.perf_counter()
-                    agent.on_round_end(state=state)
-                    self._negotiator_times[agent.id] += time.perf_counter() - strt
+                    self._call(negotiator, negotiator.on_round_end, state=state)
+                    self._negotiator_times[negotiator.id] += time.perf_counter() - strt
             self._add_to_history(state4history)
             # we only indicate a new step if no one is waiting
             self._current_state.step += 1
@@ -1236,10 +1248,10 @@ class Mechanism(
         state4history = self.state4history
         self._current_state.running = False
         if self._extra_callbacks:
-            for agent in self._negotiators:
+            for negotiator in self._negotiators:
                 strt = time.perf_counter()
-                agent.on_round_end(state=state)
-                self._negotiator_times[agent.id] += time.perf_counter() - strt
+                self._call(negotiator, negotiator.on_round_end, state=state)
+                self._negotiator_times[negotiator.id] += time.perf_counter() - strt
         self._add_to_history(state4history)
         self._current_state.step += 1
         self.on_negotiation_end()

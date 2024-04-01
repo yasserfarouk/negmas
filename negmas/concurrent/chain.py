@@ -429,7 +429,7 @@ class MultiChainNegotiationsMechanism(
             step_time_limit=self.nmi.step_time_limit,
             n_steps=self.nmi.n_steps,
             dynamic_entry=self.nmi.dynamic_entry,
-            max_n_agents=self.nmi.max_n_agents,
+            max_n_agents=self.nmi.max_n_negotiators,
             annotation=self.nmi.annotation,
             parent=self,
             negotiator=negotiator,

@@ -109,6 +109,7 @@ def run_negotiation(
     id_reveals_type: bool = False,
     name_reveals_type: bool = True,
     mask_scenario_name: bool = True,
+    ignore_exceptions: bool = False,
 ) -> dict[str, Any]:
     """
     Run a single negotiation with fully specified parameters
@@ -210,10 +211,20 @@ def run_negotiation(
 
     if verbosity > 0:
         print(
-            f" {partner_names} on {real_scenario_name} ({m.outcome_space.cardinality} outcomes) for {m.n_steps} steps within {m.time_limit} seconds [purple]started[/purple]"
+            f"{partner_names} on {real_scenario_name} ({m.outcome_space.cardinality}"
+            f" outcomes) for {m.n_steps} steps within {m.time_limit} seconds "
+            f"[purple]started[/purple]"
         )
     strt = perf_counter()
-    state = m.run()
+    try:
+        state = m.run()
+    except Exception as e:
+        if not ignore_exceptions:
+            raise e
+        else:
+            state = m.state
+            state.has_error = True
+            state.error_details = str(e)
     execution_time = perf_counter() - strt
     param_dump = tuple(str(to_flat_dict(_)) if _ else None for _ in partner_params)  # type: ignore
     if all(_ is None for _ in param_dump):
@@ -379,6 +390,7 @@ def cartesian_tournament(
     shorten_names: bool = True,
     raise_exceptions: bool = True,
     mask_scenario_names: bool = True,
+    only_failures_on_self_play: bool = False,
 ) -> SimpleTournamentResults:
     """A simplified version of Cartesian tournaments not using the internal machinay of NegMAS  tournaments
 
@@ -405,6 +417,8 @@ def cartesian_tournament(
         plot_params: Parameters to pass to the plotting function
         verbosity: Verbosity level (minimum is 0)
         self_play: Allow negotiations in which all partners are of the same type
+        only_failures_on_self_play: If given, self-play runs will only be recorded if they fail to reach agreement. This is useful if you want to keep self-play but still penalize strategies for
+                                    failing to reach agreements in self-play
         randomize_runs: If `True` negotiations will be run in random order, otherwise each scenario/partner combination will be finished before starting on the next
         save_every: Number of negotiations after which we dump details and scores
         save_stats: Whether to calculate and save extra statistics like pareto_optimality, nash_optimality, kalai_optimality, etc
@@ -627,6 +641,10 @@ def cartesian_tournament(
     scores_path = path if not path else path / "all_scores.csv"
 
     def process_record(record, results=results, scores=scores):
+        if self_play and only_failures_on_self_play:
+            is_self_play = len(set(record["partners"])) == 1
+            if is_self_play and record["agreement"] is not None:
+                return results, scores
         results.append(record)
         scores += make_scores(record)
         if results_path and save_every and i % save_every == 0:

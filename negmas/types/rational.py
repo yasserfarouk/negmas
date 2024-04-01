@@ -3,6 +3,7 @@ Base class for all rational agents in NegMAS.
 
 A rational agent is one that has some preferences.
 """
+
 from __future__ import annotations
 
 from typing import TYPE_CHECKING
@@ -78,10 +79,10 @@ class Rational(NamedObject):
         _ = changes
 
     def set_preferences(
-        self, value: Preferences | None, force=False
+        self, value: Preferences | None, force=False, ignore_exceptions: bool = False
     ) -> Preferences | None:
         """
-        Sets tha utility function/Preferences.
+        Sets the utility function/Preferences.
 
         Args:
 
@@ -91,14 +92,22 @@ class Rational(NamedObject):
         """
         if value == self._preferences:
             if force:
-                self.on_preferences_changed([PreferencesChange()])
+                try:
+                    self.on_preferences_changed([PreferencesChange()])
+                except Exception as e:
+                    if not ignore_exceptions:
+                        raise e
             return self._preferences
         old = self._preferences
         self._preferences = value
         if value and value.owner != self:
             self._set_pref_owner()
         if id(value) != id(old):
-            self.on_preferences_changed([PreferencesChange()])
+            try:
+                self.on_preferences_changed([PreferencesChange()])
+            except Exception as e:
+                if not ignore_exceptions:
+                    raise e
         return self._preferences
 
     def __init__(

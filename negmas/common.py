@@ -306,13 +306,13 @@ class NegotiatorMechanismInterface:
     n_steps: int | None
     """The allowed number of steps for this negotiation. None indicates infinity"""
     dynamic_entry: bool
-    """Whether it is allowed for agents to enter/leave the negotiation after it starts"""
-    max_n_agents: int | None
-    """Maximum allowed number of agents in the session. None indicates no limit"""
+    """Whether it is allowed for negotiators to enter/leave the negotiation after it starts"""
+    max_n_negotiators: int | None
+    """Maximum allowed number of negotiators in the session. None indicates no limit"""
     _mechanism: Mechanism = field(alias="_mechanism")
     """A reference to the mechanism. MUST NEVER BE USED BY NEGOTIATORS. **must be treated as a private member**"""
     annotation: dict[str, Any] = field(default=dict)
-    """An arbitrary annotation as a `dict[str, Any]` that is always available for all agents"""
+    """An arbitrary annotation as a `dict[str, Any]` that is always available for all negotiators"""
 
     #     def __copy__(self):
     #         return NegotiatorMechanismInterface(**vars(self))
