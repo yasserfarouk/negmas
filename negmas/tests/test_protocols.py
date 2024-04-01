@@ -179,7 +179,7 @@ def test_different_capability_types(mechanism):
 
 
 def test_can_accept_more_agents():
-    mechanism = MyMechanism(max_n_agents=2)
+    mechanism = MyMechanism(max_n_negotiators=2)
     assert mechanism.can_accept_more_negotiators() is True
     mechanism.add(RandomNegotiator(), ufun=MappingUtilityFunction(lambda x: 5.0))
     assert mechanism.can_accept_more_negotiators() is True
