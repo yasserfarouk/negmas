@@ -17,3 +17,4 @@ nbsphinx
 # nb2plots
 pillow>=10.0.0 # not directly required, pinned by Snyk to avoid a vulnerability
 ruff
+tornado>=6.3.3 # not directly required, pinned by Snyk to avoid a vulnerability
