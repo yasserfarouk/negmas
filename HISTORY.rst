@@ -1,6 +1,13 @@
 History
 =======
 
+Release 0.10.21
+---------------
+
+* More exception resistance in cartesian_tournament
+* Base Mechanism class now can ignore exceptions in initialization of agents
+* More consistent naming of methods involving negotiators
+
 Release 0.10.20
 ---------------
 
