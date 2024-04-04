@@ -1,6 +1,18 @@
 History
 =======
 
+Release 0.10.22
+---------------
+
+* Saving repeated runs in cartesian tournaments.
+* Adding sort_runs to cartesian tournaments. Passing sort_runs overrides randomize_runs and causes smaller scenarios to be negotiated first. Scenario's size is the product of the outcome-space cardinality, number of steps, and time-limits.
+* Improving parallelism in cartesian tournaments:
+
+  * Adding max-tasks-per-process
+  * Adding external_timeout to cartesian tournaments. This parameter is only effective for parallel runs and enforces and external timeout on all tasks. This will avoid waiting for slow negotiators but it has the disadvantage of causing the main thread to never end. Tournaments may now need C-c to end.
+* Adding _InfiniteWaiter negotiator for testing
+* Accepting None for hidden_time_limit in Mechanism.
+
 Release 0.10.21
 ---------------
 
