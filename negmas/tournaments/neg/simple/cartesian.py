@@ -27,7 +27,7 @@ from negmas.helpers import unique_name
 from negmas.helpers.inout import dump
 from negmas.helpers.strings import humanize_time, shortest_unique_names
 from negmas.helpers.types import get_class, get_full_type_name
-from negmas.inout import Scenario
+from negmas.inout import Scenario, scenario_size
 from negmas.mechanisms import Mechanism, Traceable
 from negmas.negotiators import Negotiator
 from negmas.plots.util import plot_offline_run
@@ -691,6 +691,7 @@ def cartesian_tournament(
     verbosity: int = 1,
     self_play: bool = True,
     randomize_runs: bool = True,
+    sort_runs: bool = False,
     save_every: int = 0,
     save_stats: bool = True,
     save_scenario_figs: bool = True,
@@ -944,6 +945,8 @@ def cartesian_tournament(
                 ]
     if randomize_runs:
         shuffle(runs)
+    if sort_runs:
+        runs = sorted(runs, key=lambda x: scenario_size(x["s"]))
     if verbosity > 0:
         print(
             f"Will run {len(runs)} negotiations on {len(scenarios)} scenarios between {len(competitors)} competitors",

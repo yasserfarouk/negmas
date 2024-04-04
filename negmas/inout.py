@@ -3,6 +3,7 @@ Defines import/export functionality
 """
 
 from __future__ import annotations
+import math
 import xml.etree.ElementTree as ET
 from os import PathLike, listdir
 from pathlib import Path
@@ -41,6 +42,7 @@ from .preferences.value_fun import TableFun
 
 __all__ = [
     "Scenario",
+    "scenario_size",
     "load_genius_domain",
     "load_genius_domain_from_folder",
     "find_genius_domain_and_utility_files",
@@ -54,6 +56,17 @@ STATS_MAX_CARDINALITY = 10_000_000_000
 GENIUSWEB_UFUN_TYPES = ("LinearAdditiveUtilitySpace",)
 
 
+def scenario_size(self: Scenario):
+    size = self.outcome_space.cardinality
+    if math.isinf(size):
+        size = self.outcome_space.cardinality_if_discretized(10)
+    for key in ("n_steps", "time_limit", "hiddent_time_limit"):
+        n = self.mechanism_params.get(key, float("inf"))
+        if n is not None and not math.isinf(n):
+            size = size * n
+    return size
+
+
 @define
 class Scenario:
     """
@@ -64,6 +77,9 @@ class Scenario:
     ufuns: tuple[UtilityFunction, ...]
     mechanism_type: type[Mechanism] | None = SAOMechanism
     mechanism_params: dict = field(factory=dict)
+
+    def __lt__(self, other: Scenario):
+        return scenario_size(self) < scenario_size(other)
 
     @property
     def issues(self) -> tuple[Issue, ...]:
