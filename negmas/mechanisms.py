@@ -191,7 +191,9 @@ class Mechanism(
             single=single_checkpoint,
         )
         self.__last_second_tried = 0
-        self._hidden_time_limit = hidden_time_limit
+        self._hidden_time_limit = (
+            hidden_time_limit if hidden_time_limit is not None else float("inf")
+        )
         time_limit = time_limit if time_limit is not None else float("inf")
         step_time_limit = (
             step_time_limit if step_time_limit is not None else float("inf")
