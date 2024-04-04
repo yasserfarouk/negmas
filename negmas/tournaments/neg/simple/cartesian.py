@@ -46,6 +46,9 @@ import os
 import time
 
 __all__ = ["run_negotiation", "cartesian_tournament", "SimpleTournamentResults"]
+MAX_TASKS_PER_CHILD = 10
+LOG_UNIFORM_LIMIT = 10
+TERMINATION_WAIT_TIME = 10.0
 
 
 @define
@@ -61,9 +64,6 @@ class SimpleTournamentResults:
     path: Path | None = None
     """Location at which the logs are stored"""
 
-
-LOG_UNIFORM_LIMIT = 10
-TERMINATION_WAIT_TIME = 10.0
 
 
 def oneinint(x: int | tuple[int, int] | None, log_uniform=None) -> int | None:
@@ -1014,7 +1014,7 @@ def cartesian_tournament(
         if n_cores is None:
             n_cores = 4
         cpus = min(n_cores, njobs) if njobs else cpu_count()
-        with ProcessPoolExecutor(max_workers=cpus) as pool:
+        with ProcessPoolExecutor(max_workers=cpus, max_tasks_per_child=MAX_TASKS_PER_CHILD) as pool:
             for info in runs:
                 futures[
                     pool.submit(run_negotiation, **info, run_id=get_run_id(info))
