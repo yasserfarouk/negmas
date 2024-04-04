@@ -61,6 +61,7 @@ __all__ = [
     "tournament",
 ]
 
+MAX_TASKS_PER_CHILD = 10
 
 def to_file(x, f):
     dump(x, f)
@@ -1214,7 +1215,12 @@ def _get_executor(
         fraction = float(parallelism[-1])
     parallelism = parallelism[0]
     max_workers = fraction if fraction is None else max(1, int(fraction * cpu_count()))
-    executor = futures.ProcessPoolExecutor(max_workers=max_workers)
+
+    kwargs_  =dict(max_workers=max_workers)
+    version = sys.version_info
+    if version.major > 3 or version.minor >10:
+        kwargs_.update(max_tasks_per_child=MAX_TASKS_PER_CHILD)
+    executor = futures.ProcessPoolExecutor(**kwargs_)
 
     return executor, futures.as_completed
 
