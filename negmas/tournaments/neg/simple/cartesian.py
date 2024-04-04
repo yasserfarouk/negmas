@@ -65,7 +65,6 @@ class SimpleTournamentResults:
     """Location at which the logs are stored"""
 
 
-
 def oneinint(x: int | tuple[int, int] | None, log_uniform=None) -> int | None:
     """Returns x or a random sample within its values.
 
@@ -386,12 +385,22 @@ def _save_record(
         if k in m.negotiator_ids:
             k = m._negotiator_map[k].name
         neg_name = path / "logs" / file_name / f"{k}.csv"
-        assert not neg_name.exists(), f"{neg_name} already found"
+        if neg_name.exists():
+            print(f"[yellow]{neg_name} already found[/yellow]")
+            neg_name = (
+                path
+                / "logs"
+                / file_name
+                / unique_name("{k}.csv", sep="", add_time=True)
+            )
         neg_name.parent.mkdir(parents=True, exist_ok=True)
         pd.DataFrame.from_records(v).to_csv(neg_name, index=True, index_label="index")
 
     full_name = path / "negotiations" / f"{file_name}.csv"
-    assert not full_name.exists(), f"{full_name} already found"
+    if full_name.exists():
+        print(f"[yellow]{full_name} already found[/yellow]")
+        full_name = path / unique_name("negotiations", sep="") / f"{file_name}.csv"
+
     if isinstance(m, Traceable):
         assert hasattr(m, "full_trace")
         save_as_df(
@@ -414,7 +423,14 @@ def _save_record(
                 / file_name
                 / f"{negotiator.name}_at{i}.csv"
             )
-            assert not neg_name.exists(), f"{neg_name} already found"
+            if neg_name.exists():
+                print(f"[yellow]{neg_name} already found[/yellow]")
+                neg_name = (
+                    path
+                    / "negotiator_behavior"
+                    / file_name
+                    / unique_name(f"{negotiator.name}_at{i}.csv", sep="")
+                )
             neg_name.parent.mkdir(parents=True, exist_ok=True)
             if isinstance(m, Traceable):
                 save_as_df(
@@ -425,7 +441,9 @@ def _save_record(
     else:
         pd.DataFrame.from_records(serialize(m.history)).to_csv(full_name, index=False)
     full_name = path / "results" / f"{file_name}.json"
-    assert not full_name.exists(), f"{full_name} already found"
+    if full_name.exists():
+        print(f"[yellow]{full_name} already found[/yellow]")
+        full_name = path / "results" / unique_name(f"{file_name}.json", sep="")
     dump(run_record, full_name)
 
 
@@ -1014,7 +1032,9 @@ def cartesian_tournament(
         if n_cores is None:
             n_cores = 4
         cpus = min(n_cores, njobs) if njobs else cpu_count()
-        with ProcessPoolExecutor(max_workers=cpus, max_tasks_per_child=MAX_TASKS_PER_CHILD) as pool:
+        with ProcessPoolExecutor(
+            max_workers=cpus, max_tasks_per_child=MAX_TASKS_PER_CHILD
+        ) as pool:
             for info in runs:
                 futures[
                     pool.submit(run_negotiation, **info, run_id=get_run_id(info))
@@ -1045,16 +1065,18 @@ def cartesian_tournament(
                             pool._processes[f._process_ident].terminate()
                         else:
                             os.kill(
-                                f._process_ident, signal.SIGTERM
+                                f._process_ident,  # type: ignore
+                                signal.SIGTERM,
                             )  # Default to SIGTERM
                             time.sleep(
                                 TERMINATION_WAIT_TIME
                             )  # Allow brief time for termination
-                            if not pool._processes[f._process_ident].is_alive():
+                            if not pool._processes[f._process_ident].is_alive():  # type: ignore
                                 os.kill(
-                                    f._process_ident, signal.SIGKILL
+                                    f._process_ident,  # type: ignore
+                                    signal.SIGKILL,
                                 )  # Forceful if needed
-                        print("[yellow]SUCCEEDED[/SUCCEEDED]")
+                        print("[yellow]SUCCEEDED[/yellow]")
                     except Exception as e:
                         print(f"[red]FAILED[/red] with exception {e}")
 
