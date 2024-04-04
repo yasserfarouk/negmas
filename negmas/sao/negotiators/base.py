@@ -232,3 +232,13 @@ class SAONegotiator(GBNegotiator[SAONMI, SAOState]):
         if response != ResponseType.REJECT_OFFER:
             return SAOResponse(response, offer)
         return SAOResponse(response, self.propose_(state=state))
+
+
+class _InfiniteWaiter(SAONegotiator):
+    """Used only for testing: waits forever and never agrees to anything"""
+
+    def __call__(self, state) -> SAOResponse:
+        from time import sleep
+
+        sleep(10000 * 60 * 60)
+        return SAOResponse(ResponseType.REJECT_OFFER, self.nmi.random_outcome())
