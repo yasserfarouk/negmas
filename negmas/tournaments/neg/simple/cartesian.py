@@ -6,6 +6,7 @@ from __future__ import annotations
 
 import copy
 from concurrent.futures import ProcessPoolExecutor, as_completed
+import multiprocessing as mp
 from itertools import product
 from math import exp, log
 from os import cpu_count
@@ -40,7 +41,7 @@ from negmas.sao.mechanism import SAOMechanism
 from negmas.serialization import serialize, to_flat_dict
 
 __all__ = ["run_negotiation", "cartesian_tournament", "SimpleTournamentResults"]
-
+MAX_TASKS_PER_CHILD = 10
 
 @define
 class SimpleTournamentResults:
@@ -682,7 +683,8 @@ def cartesian_tournament(
         if n_cores is None:
             n_cores = 4
         cpus = min(n_cores, njobs) if njobs else cpu_count()
-        with ProcessPoolExecutor(max_workers=cpus) as pool:
+        # mp.set_start_method("spawn")
+        with ProcessPoolExecutor(max_workers=cpus, max_tasks_per_child=MAX_TASKS_PER_CHILD) as pool:
             for info in runs:
                 futures.append(
                     pool.submit(run_negotiation, **info, run_id=get_run_id(info))
