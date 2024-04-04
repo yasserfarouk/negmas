@@ -65,6 +65,72 @@ class SimpleTournamentResults:
     path: Path | None = None
     """Location at which the logs are stored"""
 
+    @classmethod
+    def from_records(
+        cls,
+        results: list[dict[str, Any]] | pd.DataFrame,
+        scores: list[dict[str, Any]] | pd.DataFrame | None,
+        final_score: tuple[str, str] = ("advantage", "mean"),
+        path: Path | None = None,
+    ) -> "SimpleTournamentResults":
+        if not isinstance(scores, pd.DataFrame):
+            scores_df = pd.DataFrame.from_records(scores)
+        else:
+            scores_df = scores
+        if len(scores_df) > 0:
+            type_scores = (  # type: ignore
+                scores_df[
+                    [_ for _ in scores_df.columns if _ not in ("scenario", "partners")]
+                ]
+                .groupby("strategy")
+                .describe()
+                .sort_values(final_score, ascending=False)
+            )
+            final = pd.DataFrame()
+            if type_scores is not None:
+                final = type_scores[final_score]
+                final.name = "score"
+                final = final.reset_index()
+            if not isinstance(results, pd.DataFrame):
+                details_df = pd.DataFrame.from_records(results)
+            else:
+                details_df = results
+        else:
+            details_df = type_scores = final = pd.DataFrame()
+        return SimpleTournamentResults(
+            scores=scores_df,
+            details=details_df,
+            scores_summary=type_scores,
+            final_scores=final,
+            path=path,
+        )
+
+    @classmethod
+    def load(cls, path: Path) -> "SimpleTournamentResults":
+        """Loads results from the given path"""
+        ...
+
+    def save(self, path: Path) -> None:
+        """Save all results to the given path"""
+        results_path = path if not path else path / "details.csv"
+        scores_path = path if not path else path / "all_scores.csv"
+        scores_df = self.scores
+        details_df = self.details
+        type_scores = self.scores_summary
+        final = self.final_scores
+        if scores_path is not None:
+            scores_df.to_csv(scores_path, index_label="index")
+        if len(scores_df) > 0:
+            if type_scores is not None:
+                if scores_path:
+                    type_scores.to_csv(scores_path.parent / "type_scores.csv")
+                if scores_path:
+                    final.to_csv(scores_path.parent / "scores.csv", index_label="index")
+            if results_path:
+                details_df.to_csv(results_path, index_label="index")
+        else:
+            details_df = type_scores = final = pd.DataFrame()
+
 
 def oneinint(x: int | tuple[int, int] | None, log_uniform=None) -> int | None:
     """Returns x or a random sample within its values.
@@ -548,7 +614,8 @@ def run_negotiation(
     else:
         if verbosity > 0:
             print(
-                f"{datetime.datetime.now()} {partner_names} on {real_scenario_name} (rep: {rep}): [magenta]started[/magenta]", flush=True
+                f"{datetime.datetime.now()} {partner_names} on {real_scenario_name} (rep: {rep}): [magenta]started[/magenta]",
+                flush=True,
             )
         strt = perf_counter()
         try:
@@ -569,7 +636,7 @@ def run_negotiation(
                 f"{state.relative_time:4.2%} of allowed steps/time with advantages: "
                 f"{advs} "
                 f"[green]done[/green] in {humanize_time(execution_time)}",
-                flush=True
+                flush=True,
             )
 
     run_record = _make_record(
@@ -689,6 +756,55 @@ def _stop_process_pool(executor):
         pass
 
 
+def make_scores(record: dict[str, Any]) -> list[dict[str, float]]:
+    utils, partners = record["utilities"], record["partners"]
+    reserved_values = record["reserved_values"]
+    negids = record["negotiator_ids"]
+    max_utils, times = (
+        record["max_utils"],
+        record.get("negotiator_times", [None] * len(utils)),
+    )
+    has_error = record["has_error"]
+    erred_negotiator = record["erred_negotiator"]
+    error_details = record["error_details"]
+    mech_error = has_error and not erred_negotiator
+    scores = []
+    for i, (u, r, a, m, t, nid) in enumerate(
+        zip(utils, reserved_values, partners, max_utils, times, negids)
+    ):
+        n_p = len(partners)
+        bilateral = n_p == 2
+        basic = dict(
+            strategy=a,
+            utility=u,
+            reserved_value=r,
+            advantage=(u - r) / (m - r),
+            partner_welfare=sum(_ for j, _ in enumerate(utils) if j != i) / (n_p - 1),
+            welfare=sum(_ for _ in utils) / n_p,
+            scenario=record["scenario"],
+            partners=(partners[_] for _ in range(len(partners)) if _ != i)
+            if not bilateral
+            else partners[1 - i],
+            time=t,
+            negotiator_id=nid,
+            has_error=has_error,
+            self_error=has_error and not mech_error and (erred_negotiator == nid),
+            mechanism_error=mech_error,
+            error_details=error_details,
+            mechanism_name=record.get("mechanism_name", ""),
+        )
+        for c in (
+            "nash_optimality",
+            "kalai_optimality",
+            "max_welfare_optimality",
+            "pareto_optimality",
+        ):
+            if c in record:
+                basic[c] = record[c]
+        scores.append(basic)
+    return scores
+
+
 def cartesian_tournament(
     competitors: list[type[Negotiator] | str] | tuple[type[Negotiator] | str, ...],
     scenarios: list[Scenario] | tuple[Scenario, ...],
@@ -782,55 +898,6 @@ def cartesian_tournament(
         competitor_params = [dict() for _ in competitors]
     if private_infos is None:
         private_infos = [tuple(dict() for _ in s.ufuns) for s in scenarios]
-
-    def make_scores(record: dict[str, Any]) -> list[dict[str, float]]:
-        utils, partners = record["utilities"], record["partners"]
-        reserved_values = record["reserved_values"]
-        negids = record["negotiator_ids"]
-        max_utils, times = (
-            record["max_utils"],
-            record.get("negotiator_times", [None] * len(utils)),
-        )
-        has_error = record["has_error"]
-        erred_negotiator = record["erred_negotiator"]
-        error_details = record["error_details"]
-        mech_error = has_error and not erred_negotiator
-        scores = []
-        for i, (u, r, a, m, t, nid) in enumerate(
-            zip(utils, reserved_values, partners, max_utils, times, negids)
-        ):
-            n_p = len(partners)
-            bilateral = n_p == 2
-            basic = dict(
-                strategy=a,
-                utility=u,
-                reserved_value=r,
-                advantage=(u - r) / (m - r),
-                partner_welfare=sum(_ for j, _ in enumerate(utils) if j != i)
-                / (n_p - 1),
-                welfare=sum(_ for _ in utils) / n_p,
-                scenario=record["scenario"],
-                partners=(partners[_] for _ in range(len(partners)) if _ != i)
-                if not bilateral
-                else partners[1 - i],
-                time=t,
-                negotiator_id=nid,
-                has_error=has_error,
-                self_error=has_error and not mech_error and (erred_negotiator == nid),
-                mechanism_error=mech_error,
-                error_details=error_details,
-                mechanism_name=record.get("mechanism_name", ""),
-            )
-            for c in (
-                "nash_optimality",
-                "kalai_optimality",
-                "max_welfare_optimality",
-                "pareto_optimality",
-            ):
-                if c in record:
-                    basic[c] = record[c]
-            scores.append(basic)
-        return scores
 
     runs = []
     scenarios_path = path if path is None else Path(path) / "scenarios"
@@ -1038,12 +1105,12 @@ def cartesian_tournament(
         if n_cores is None:
             n_cores = 4
         cpus = min(n_cores, njobs) if njobs else cpu_count()
-        kwargs_  =dict(max_workers=cpus)
+        kwargs_ = dict(max_workers=cpus)
         version = sys.version_info
-        if version.major > 3 or version.minor >10:
+        if version.major > 3 or version.minor > 10:
             kwargs_.update(max_tasks_per_child=MAX_TASKS_PER_CHILD)
 
-        with ProcessPoolExecutor(**kwargs_) as pool:
+        with ProcessPoolExecutor(**kwargs_) as pool:  # type: ignore
             for info in runs:
                 futures[
                     pool.submit(run_negotiation, **info, run_id=get_run_id(info))
@@ -1103,41 +1170,12 @@ def cartesian_tournament(
             pool.shutdown(wait=False)
             # _stop_process_pool(pool)
 
-    scores_df = pd.DataFrame.from_records(scores)
-    if scores_path is not None:
-        scores_df.to_csv(scores_path, index_label="index")
-    if len(scores_df) > 0:
-        type_scores = (  # type: ignore
-            scores_df[
-                [_ for _ in scores_df.columns if _ not in ("scenario", "partners")]
-            ]
-            .groupby("strategy")
-            .describe()
-            .sort_values(final_score, ascending=False)
-        )
-        final = pd.DataFrame()
-        if type_scores is not None:
-            if scores_path:
-                type_scores.to_csv(scores_path.parent / "type_scores.csv")
-            final = type_scores[final_score]
-            final.name = "score"
-            final = final.reset_index()
-            if scores_path:
-                final.to_csv(scores_path.parent / "scores.csv", index_label="index")
-            if verbosity > 0:
-                print(final)
-        details_df = pd.DataFrame.from_records(results)
-        if results_path:
-            details_df.to_csv(results_path, index_label="index")
-    else:
-        details_df = type_scores = final = pd.DataFrame()
-    return SimpleTournamentResults(
-        scores=scores_df,
-        details=details_df,
-        scores_summary=type_scores,
-        final_scores=final,
-        path=path,
-    )
+    tresults = SimpleTournamentResults.from_records(results, scores, final_score, path)
+    if verbosity > 0:
+        print(tresults.final_scores)
+    if path:
+        tresults.save(path)
+    return tresults
 
 
 if __name__ == "__main__":
