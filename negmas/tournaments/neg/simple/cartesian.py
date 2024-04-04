@@ -5,7 +5,9 @@ Negotiation tournaments module.
 from __future__ import annotations
 
 import copy
-from concurrent.futures import ProcessPoolExecutor, as_completed
+from concurrent.futures import ProcessPoolExecutor, as_completed, TimeoutError
+import traceback
+from concurrent.futures.process import BrokenProcessPool
 from itertools import product
 from math import exp, log
 from os import cpu_count
@@ -15,6 +17,7 @@ from time import perf_counter
 from typing import Any, Sequence
 
 import matplotlib.pyplot as plt
+from numpy.lib import math
 import pandas as pd
 from attr import asdict, define
 from rich import print
@@ -390,6 +393,8 @@ def cartesian_tournament(
     pend_per_second: float | tuple[float, float] = 0.0,
     step_time_limit: float | tuple[float, float] | None = None,
     negotiator_time_limit: float | tuple[float, float] | None = None,
+    hidden_time_limit: float | tuple[float, float] | None = None,
+    external_timeout: int | None = None,
     # full_names: bool = True,
     plot_fraction: float = 0.0,
     plot_params: dict[str, Any] | None = None,
@@ -426,6 +431,8 @@ def cartesian_tournament(
         pend_per_second: Probability of ending the negotiation every second (None for no-limit and a 2-valued tuple for sampling from a range)
         step_time_limit: Time limit for every negotiation step (None for no-limit and a 2-valued tuple for sampling from a range)
         negotiator_time_limit: Time limit for all actions of every negotiator (None for no-limit and a 2-valued tuple for sampling from a range)
+        hidden_time_limit: Time limit for negotiations that is not known to the negotiators
+        external_timeout: A timeout applied directly to reception of results from negotiations in parallel runs only.
         mechanism_params: Parameters of the mechanism (protocol). Usually you need to pass one or more of the following:
                           time_limit (in seconds), n_steps (in rounds), p_ending (probability of ending the negotiation every step).
         plot_fraction: fraction of negotiations for which plots are to be saved (only if `path` is not `None`)
@@ -618,6 +625,7 @@ def cartesian_tournament(
                     pend_per_second=oneinfloat(pend_per_second),
                     negotiator_time_limit=oneinfloat(negotiator_time_limit),
                     step_time_limit=oneinfloat(step_time_limit),
+                    hidden_time_limit=oneinfloat(hidden_time_limit),
                 )
             )
             for partners in partners_list:
@@ -677,6 +685,43 @@ def cartesian_tournament(
             process_record(run_negotiation(**info, run_id=get_run_id(info)))
 
     else:
+        timeout = external_timeout if external_timeout else float("inf")
+
+        def _safe_max(x) -> float:
+            if x is None:
+                return float("inf")
+            if isinstance(x, tuple):
+                return x[-1]
+            return x
+
+        def _safe_min(x) -> float:
+            if x is None:
+                return float("-inf")
+            if isinstance(x, tuple):
+                return x[0]
+            return x
+
+        tparams = dict(
+            time_limit=mechanism_params.get("time_limit", float("inf")),
+            negotiator_time_limit=mechanism_params.get(
+                "negotiator_time_limit", float("inf")
+            ),
+            step_time_limit=mechanism_params.get("step_time_limit", float("inf")),
+            hidden_time_limit=mechanism_params.get("hidden_time_limit", float("inf")),
+        ) | dict(
+            time_limit=_safe_max(time_limit),
+            negotiator_time_limit=_safe_max(negotiator_time_limit),
+            step_time_limit=_safe_max(step_time_limit),
+            hidden_time_limit=_safe_max(hidden_time_limit),
+        )
+        touts = [_ for _ in tparams.values() if _ is not None and not math.isinf(_)]
+        timeout = min(max(touts) if touts else float("inf"), timeout)
+        print(
+            f"[magenta]Will use {timeout} as a timeout when receiving results[/magenta]"
+        )
+        if math.isinf(timeout):
+            timeout = None
+
         futures = []
         n_cores = cpu_count()
         if n_cores is None:
@@ -694,7 +739,17 @@ def cartesian_tournament(
                     description="Negotiations",
                 )
             ):
-                process_record(f.result())
+                try:
+                    process_record(f.result(timeout=timeout))
+                except TimeoutError:
+                    print("Tournament timed-out")
+                except BrokenProcessPool as e:
+                    print("[red]Broken Pool[/red]")
+                    print(e)
+                except Exception as e:
+                    print("[red]Exception[/red]")
+                    print(traceback.format_exc())
+                    print(e)
 
     scores_df = pd.DataFrame.from_records(scores)
     if scores_path is not None:
