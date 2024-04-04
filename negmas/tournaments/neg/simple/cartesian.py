@@ -3,7 +3,8 @@ Negotiation tournaments module.
 """
 
 from __future__ import annotations
-
+import sys
+import datetime
 import copy
 from concurrent.futures import ProcessPoolExecutor, as_completed, TimeoutError
 import traceback
@@ -545,6 +546,10 @@ def run_negotiation(
             erred_negotiator=failures["erred_negotiator"],
         )
     else:
+        if verbosity > 0:
+            print(
+                f"{datetime.datetime.now()} {partner_names} on {real_scenario_name} (rep: {rep}): [magenta]started[/magenta]", flush=True
+            )
         strt = perf_counter()
         try:
             state = m.run()
@@ -560,10 +565,11 @@ def run_negotiation(
             agreement_utils = tuple(u(state.agreement) for u in s.ufuns)
             advs = tuple(round(a - b, 3) for a, b in zip(agreement_utils, reservations))
             print(
-                f" {partner_names} on {real_scenario_name} (rep: {rep}): {state.agreement} in "
-                f"{state.relative_time:4.2%} of allowed time with advantages: "
+                f"{datetime.datetime.now()} {partner_names} on {real_scenario_name} (rep: {rep}): {state.agreement} in "
+                f"{state.relative_time:4.2%} of allowed steps/time with advantages: "
                 f"{advs} "
-                f"[green]done[/green] in {humanize_time(execution_time)}"
+                f"[green]done[/green] in {humanize_time(execution_time)}",
+                flush=True
             )
 
     run_record = _make_record(
@@ -1032,9 +1038,12 @@ def cartesian_tournament(
         if n_cores is None:
             n_cores = 4
         cpus = min(n_cores, njobs) if njobs else cpu_count()
-        with ProcessPoolExecutor(
-            max_workers=cpus, max_tasks_per_child=MAX_TASKS_PER_CHILD
-        ) as pool:
+        kwargs_  =dict(max_workers=cpus)
+        version = sys.version_info
+        if version.major > 3 or version.minor >10:
+            kwargs_.update(max_tasks_per_child=MAX_TASKS_PER_CHILD)
+
+        with ProcessPoolExecutor(**kwargs_) as pool:
             for info in runs:
                 futures[
                     pool.submit(run_negotiation, **info, run_id=get_run_id(info))
