@@ -5,10 +5,11 @@ Negotiation tournaments module.
 from __future__ import annotations
 
 import copy
-from concurrent.futures import ProcessPoolExecutor, as_completed
-import multiprocessing as mp
+from concurrent.futures import ProcessPoolExecutor, as_completed, TimeoutError
+import traceback
+from concurrent.futures.process import BrokenProcessPool
 from itertools import product
-from math import exp, log
+from math import exp, log, isinf
 from os import cpu_count
 from pathlib import Path
 from random import randint, random, shuffle
@@ -37,11 +38,18 @@ from negmas.preferences.ops import (
     calc_scenario_stats,
     estimate_max_dist,
 )
+from negmas.sao.common import SAOState
 from negmas.sao.mechanism import SAOMechanism
 from negmas.serialization import serialize, to_flat_dict
+import signal
+import os
+import time
 
 __all__ = ["run_negotiation", "cartesian_tournament", "SimpleTournamentResults"]
 MAX_TASKS_PER_CHILD = 10
+LOG_UNIFORM_LIMIT = 10
+TERMINATION_WAIT_TIME = 10.0
+
 
 @define
 class SimpleTournamentResults:
@@ -56,8 +64,6 @@ class SimpleTournamentResults:
     path: Path | None = None
     """Location at which the logs are stored"""
 
-
-LOG_UNIFORM_LIMIT = 10
 
 
 def oneinint(x: int | tuple[int, int] | None, log_uniform=None) -> int | None:
@@ -90,7 +96,7 @@ def oneinfloat(x: float | tuple[float, float] | None) -> float | None:
     return x
 
 
-def run_negotiation(
+def _make_mechanism(
     s: Scenario,
     partners: tuple[type[Negotiator]],
     partner_names: tuple[str] | None = None,
@@ -101,17 +107,14 @@ def run_negotiation(
     mechanism_params: dict[str, Any] | None = None,
     full_names: bool = True,
     verbosity: int = 0,
-    plot=False,
-    plot_params: dict[str, Any] | None = None,
     run_id: int | str | None = None,
-    stats: ScenarioStats | None = None,
     annotation: dict[str, Any] | None = None,
     private_infos: tuple[dict[str, Any] | None] | None = None,
     id_reveals_type: bool = False,
     name_reveals_type: bool = True,
     mask_scenario_name: bool = True,
     ignore_exceptions: bool = False,
-) -> dict[str, Any]:
+) -> tuple[Mechanism, dict, Scenario, str | None]:
     """
     Run a single negotiation with fully specified parameters
 
@@ -179,14 +182,12 @@ def run_negotiation(
             name = get_full_type_name(type(a))
         return name
 
-    max_utils = [_.max() for _ in s.ufuns]
-
     mechanism_params["name"] = effective_scenario_name
     mechanism_params["verbosity"] = verbosity - 1
     mechanism_params["annotation"] = annotation
 
     m = mechanism_type(outcome_space=s.outcome_space, **mechanism_params)
-    complete_names, negotiators, failures = [], [], []
+    complete_names, negotiators, failures = [], [], dict()
     for type_, p, pinfo in zip(partners, partner_params, private_infos):  # type: ignore
         try:
             negotiator = type_(**p, private_info=pinfo)
@@ -196,65 +197,128 @@ def run_negotiation(
             if p:
                 name += str(hash(str(p)))
         except Exception as e:
-            failures.append(
-                dict(
+            if ignore_exceptions:
+                failures = dict(
                     erred_negotiator=get_full_type_name(type_),
                     error_details=str(e),
                     has_error=True,
                 )
-            )
+                break
+            else:
+                raise (e)
+    if failures:
+        return m, failures, s, real_scenario_name
+
+    if not partner_names:
+        partner_names = tuple(complete_names)  # type: ignore
+    for L_, (negotiator, name, u) in enumerate(
+        zip(negotiators, partner_names, s.ufuns)
+    ):
+        if id_reveals_type:
+            negotiator.id = f"{name}@{L_}"
+        else:
+            negotiator.id = unique_name("n", add_time=False, sep="")
+        if name_reveals_type:
+            negotiator.name = f"{name}@{L_}"
+        else:
+            negotiator.name = unique_name("n", add_time=False, sep="")
+        complete_names.append(name)
+        m.add(negotiator, ufun=u)
+
+    return (m, failures, s, real_scenario_name)
+
+
+def _make_failure_record(
+    state: SAOState,
+    s: Scenario,
+    param_dump,
+    partner_names,
+    run_id,
+    execution_time,
+    real_scenario_name,
+    stats,
+    mechanism_type,
+    mechanism_params,
+    partners,
+):
+    if not partner_names:
+        partner_names = [get_full_type_name(_) for _ in partners]
+    if all(_ is None for _ in param_dump):
+        param_dump = None
+    agreement_utils = tuple(u(state.agreement) for u in s.ufuns)
     reservations = tuple(u.reserved_value for u in s.ufuns)
-    param_dump = tuple(str(to_flat_dict(_)) if _ else None for _ in partner_params)  # type: ignore
-    if not failures:
-        if not partner_names:
-            partner_names = tuple(complete_names)  # type: ignore
-        for L_, (negotiator, name, u) in enumerate(
-            zip(negotiators, partner_names, s.ufuns)
-        ):
-            if id_reveals_type:
-                negotiator.id = f"{name}@{L_}"
-            else:
-                negotiator.id = unique_name("n", add_time=False, sep="")
-            if name_reveals_type:
-                negotiator.name = f"{name}@{L_}"
-            else:
-                negotiator.name = unique_name("n", add_time=False, sep="")
-            complete_names.append(name)
-            m.add(negotiator, ufun=u)
+    max_utils = [_.max() for _ in s.ufuns]
+    run_record = asdict(state)
+    run_record["utilities"] = agreement_utils
+    run_record["max_utils"] = max_utils
+    run_record["reserved_values"] = reservations
+    run_record["partners"] = partner_names
+    run_record["params"] = param_dump
+    run_record["run_id"] = run_id
+    run_record["execution_time"] = execution_time
+    run_record["negotiator_names"] = partner_names
+    run_record["negotiator_ids"] = partner_names
+    run_record["negotiator_types"] = partner_names
+    run_record["negotiator_times"] = [float("nan") for _ in partners]
+    run_record["n_steps"] = mechanism_params.get("n_steps", float("inf"))
+    run_record["time_limit"] = mechanism_params.get("time_limit", float("inf"))
+    run_record["pend"] = mechanism_params.get("pend", float("inf"))
+    run_record["pend_per_second"] = mechanism_params.get(
+        "pend_per_second", float("inf")
+    )
+    run_record["step_time_limit"] = mechanism_params.get(
+        "step_time_limit", float("inf")
+    )
+    run_record["negotiator_time_limit"] = mechanism_params.get(
+        "negotiator_time_limit", float("inf")
+    )
+    run_record["annotation"] = mechanism_params.get("annotation", dict())
+    run_record["scenario"] = real_scenario_name
+    run_record["mechanism_name"] = "Unknown"
+    run_record["mechanism_type"] = get_full_type_name(mechanism_type)
+    run_record["effective_scenario_name"] = s.outcome_space.name
+    run_record["running"] = state.running
+    run_record["waiting"] = state.waiting
+    run_record["started"] = state.started
+    run_record["last_step"] = state.step
+    run_record["last_time"] = state.time
+    run_record["relative_time"] = state.relative_time
+    run_record["broken"] = state.broken
+    run_record["timedout"] = state.timedout
+    run_record["agreement"] = state.agreement
+    run_record["results"] = state.results
+    run_record["n_negotiators"] = state.n_negotiators
+    run_record["has_error"] = state.has_error
+    run_record["erred_negotiator"] = state.erred_negotiator
+    run_record["error_details"] = state.error_details
 
-        if verbosity > 0:
-            print(
-                f"{partner_names} on {real_scenario_name} ({m.outcome_space.cardinality}"
-                f" outcomes) for {m.n_steps} steps within {m.time_limit} seconds "
-                f"[purple]started[/purple]"
+    if stats is not None:
+        dists = calc_outcome_distances(agreement_utils, stats)
+        run_record.update(
+            to_flat_dict(
+                calc_outcome_optimality(dists, stats, estimate_max_dist(s.ufuns))
             )
-        strt = perf_counter()
-        try:
-            state = m.run()
-        except Exception as e:
-            if not ignore_exceptions:
-                raise e
-            else:
-                state = m.state
-                state.has_error = True
-                state.error_details = str(e)
-        execution_time = perf_counter() - strt
-        if all(_ is None for _ in param_dump):
-            param_dump = None
-        agreement_utils = tuple(u(state.agreement) for u in s.ufuns)
-        if verbosity > 0:
-            advs = tuple(round(a - b, 3) for a, b in zip(agreement_utils, reservations))
-            print(
-                f" {partner_names} on {real_scenario_name} (rep: {rep}): {state.agreement} in "
-                f"{state.relative_time:4.2%} of allowed time with advantages: "
-                f"{advs} "
-                f"[green]done[/green] in {humanize_time(execution_time)}"
-            )
-    else:
-        agreement_utils = reservations
-        execution_time = 0.0
-        state = m.state
+        )
 
+    return run_record
+
+
+def _make_record(
+    m: Mechanism,
+    s: Scenario,
+    param_dump,
+    partner_names,
+    run_id,
+    execution_time,
+    real_scenario_name,
+    stats,
+):
+    state = m.state
+    if all(_ is None for _ in param_dump):
+        param_dump = None
+    agreement_utils = tuple(u(state.agreement) for u in s.ufuns)
+    reservations = tuple(u.reserved_value for u in s.ufuns)
+    max_utils = [_.max() for _ in s.ufuns]
     run_record = asdict(state)
     run_record["utilities"] = agreement_utils
     run_record["max_utils"] = max_utils
@@ -303,74 +367,302 @@ def run_negotiation(
             )
         )
 
-    file_name = f"{real_scenario_name}_{'_'.join(partner_names)}_{rep}_{run_id}"  # type: ignore
-    if path:
+    return run_record
 
-        def save_as_df(data: list[TraceElement] | list[tuple], names, file_name):
-            pd.DataFrame(data=data, columns=names).to_csv(file_name, index=False)
 
-        for k, v in m._negotiator_logs.items():
-            if not v:
-                continue
-            if k in m.negotiator_ids:
-                k = m._negotiator_map[k].name
-            neg_name = path / "logs" / file_name / f"{k}.csv"
+def _save_record(
+    run_record, m: Mechanism, partner_names, real_scenario_name, rep, run_id, path
+):
+    file_name = f"{real_scenario_name}_{'_'.join(partner_names)}_{rep}_{run_id}"
+    if not path:
+        return
+
+    def save_as_df(data: list[TraceElement] | list[tuple], names, file_name):
+        pd.DataFrame(data=data, columns=names).to_csv(file_name, index=False)
+
+    for k, v in m._negotiator_logs.items():
+        if not v:
+            continue
+        if k in m.negotiator_ids:
+            k = m._negotiator_map[k].name
+        neg_name = path / "logs" / file_name / f"{k}.csv"
+        assert not neg_name.exists(), f"{neg_name} already found"
+        neg_name.parent.mkdir(parents=True, exist_ok=True)
+        pd.DataFrame.from_records(v).to_csv(neg_name, index=True, index_label="index")
+
+    full_name = path / "negotiations" / f"{file_name}.csv"
+    assert not full_name.exists(), f"{full_name} already found"
+    if isinstance(m, Traceable):
+        assert hasattr(m, "full_trace")
+        save_as_df(
+            m.full_trace,
+            (
+                "time",
+                "relative_time",
+                "step",
+                "negotiator",
+                "offer",
+                "responses",
+                "state",
+            ),
+            full_name,
+        )  # type: ignore
+        for i, negotiator in enumerate(m.negotiators):
+            neg_name = (
+                path
+                / "negotiator_behavior"
+                / file_name
+                / f"{negotiator.name}_at{i}.csv"
+            )
             assert not neg_name.exists(), f"{neg_name} already found"
             neg_name.parent.mkdir(parents=True, exist_ok=True)
-            pd.DataFrame.from_records(v).to_csv(
-                neg_name, index=True, index_label="index"
+            if isinstance(m, Traceable):
+                save_as_df(
+                    m.negotiator_full_trace(negotiator.id),
+                    ("time", "relative_time", "step", "offer", "response"),
+                    neg_name,
+                )  # type: ignore
+    else:
+        pd.DataFrame.from_records(serialize(m.history)).to_csv(full_name, index=False)
+    full_name = path / "results" / f"{file_name}.json"
+    assert not full_name.exists(), f"{full_name} already found"
+    dump(run_record, full_name)
+
+
+def _plot_run(
+    m, partner_names, real_scenario_name, rep, run_id, path, plot, plot_params
+):
+    file_name = f"{real_scenario_name}_{'_'.join(partner_names)}_{rep}_{run_id}"
+    if not path or not plot:
+        return
+    if plot_params is None:
+        plot_params = dict()
+    plot_params["save_fig"] = (True,)
+    full_name = path / "plots" / f"{file_name}.png"
+    m.plot(path=path, fig_name=full_name, **plot_params)
+    try:
+        plt.close(plt.gcf())
+    except Exception:
+        pass
+
+
+def run_negotiation(
+    s: Scenario,
+    partners: tuple[type[Negotiator]],
+    partner_names: tuple[str] | None = None,
+    partner_params: tuple[dict[str, Any]] | None = None,
+    rep: int = 0,
+    path: Path | None = None,
+    mechanism_type: type[Mechanism] = SAOMechanism,
+    mechanism_params: dict[str, Any] | None = None,
+    full_names: bool = True,
+    verbosity: int = 0,
+    plot=False,
+    plot_params: dict[str, Any] | None = None,
+    run_id: int | str | None = None,
+    stats: ScenarioStats | None = None,
+    annotation: dict[str, Any] | None = None,
+    private_infos: tuple[dict[str, Any] | None] | None = None,
+    id_reveals_type: bool = False,
+    name_reveals_type: bool = True,
+    mask_scenario_name: bool = True,
+    ignore_exceptions: bool = False,
+) -> dict[str, Any]:
+    """
+    Run a single negotiation with fully specified parameters
+
+    Args:
+        s: The `Scenario` representing the negotiation (outcome space and preferences).
+        partners: The partners running the negotiation in order of addition to the mechanism.
+        real_scenario_name: The real name of the scenario (used when saving logs).
+        partner_names: Names of partners. Either `None` for defaults or a tuple of the same length as `partners`
+        partner_params: Parameters used to create the partners. Either `None` for defaults or a tuple of the same length as `partners`
+        rep: The repetition number for this run of the negotiation
+        path: A folder to save the logs into. If not given, no logs will be saved.
+        mechanism_type: the type of the `Mechanism` to use for this negotiation
+        mechanism_params: The parameters used to create the `Mechanism` or `None` for defaults
+        full_names: Use full names for partner names (only used if `partner_names` is None)
+        verbosity: Verbosity level as an integer
+        plot: If true, save a plot of the negotiation (only if `path` is given)
+        plot_params: Parameters to pass to the plotting function
+        run_id: A unique ID for this run. If not given one is generated based on date and time
+        stats: statistics of the scenario. If not given or `path` is `None`, statistics are not saved
+        annotation: Common information saved in the mechanism's annotation (accessible by negotiators using `self.nmi.annotation`). `None` for nothing
+        private_infos: Private information saved in the negotiator's `private_info` attribute (accessible by negotiators as `self.private_info`). `None` for nothing
+        id_reveals_type: Each negotiator ID will reveal its type.
+        name_reveals_type: Each negotiator name will reveal its type.
+
+
+    Returns:
+        A dictionary of negotiation results that contains the final state of the negotiation alongside other information
+    """
+    m, failures, s, real_scenario_name = _make_mechanism(
+        s=s,
+        partners=partners,
+        partner_names=partner_names,
+        partner_params=partner_params,
+        rep=rep,
+        path=path,
+        mechanism_type=mechanism_type,
+        mechanism_params=mechanism_params,
+        full_names=full_names,
+        run_id=run_id,
+        annotation=annotation,
+        private_infos=private_infos,
+        id_reveals_type=id_reveals_type,
+        name_reveals_type=name_reveals_type,
+        mask_scenario_name=mask_scenario_name,
+        ignore_exceptions=ignore_exceptions,
+    )
+    reservations = tuple(u.reserved_value for u in s.ufuns)
+    if partner_params is None:
+        partner_params = tuple(dict() for _ in partners)  # type: ignore
+    param_dump = tuple(str(to_flat_dict(_)) if _ else None for _ in partner_params)  # type: ignore
+    if failures:
+        agreement_utils = reservations
+        execution_time = 0.0
+        state = SAOState(
+            has_error=True,
+            error_details=failures["error_details"],
+            erred_negotiator=failures["erred_negotiator"],
+        )
+    else:
+        strt = perf_counter()
+        try:
+            state = m.run()
+        except Exception as e:
+            if not ignore_exceptions:
+                raise e
+            else:
+                state = m.state
+                state.has_error = True
+                state.error_details = str(e)
+        execution_time = perf_counter() - strt
+        if verbosity > 0:
+            agreement_utils = tuple(u(state.agreement) for u in s.ufuns)
+            advs = tuple(round(a - b, 3) for a, b in zip(agreement_utils, reservations))
+            print(
+                f" {partner_names} on {real_scenario_name} (rep: {rep}): {state.agreement} in "
+                f"{state.relative_time:4.2%} of allowed time with advantages: "
+                f"{advs} "
+                f"[green]done[/green] in {humanize_time(execution_time)}"
             )
 
-        full_name = path / "negotiations" / f"{file_name}.csv"
-        assert not full_name.exists(), f"{full_name} already found"
-        if isinstance(m, Traceable):
-            assert hasattr(m, "full_trace")
-            save_as_df(
-                m.full_trace,
-                (
-                    "time",
-                    "relative_time",
-                    "step",
-                    "negotiator",
-                    "offer",
-                    "responses",
-                    "state",
-                ),
-                full_name,
-            )  # type: ignore
-            for i, negotiator in enumerate(m.negotiators):
-                neg_name = (
-                    path
-                    / "negotiator_behavior"
-                    / file_name
-                    / f"{negotiator.name}_at{i}.csv"
-                )
-                assert not neg_name.exists(), f"{neg_name} already found"
-                neg_name.parent.mkdir(parents=True, exist_ok=True)
-                if isinstance(m, Traceable):
-                    save_as_df(
-                        m.negotiator_full_trace(negotiator.id),
-                        ("time", "relative_time", "step", "offer", "response"),
-                        neg_name,
-                    )  # type: ignore
-        else:
-            pd.DataFrame.from_records(serialize(m.history)).to_csv(
-                full_name, index=False
-            )
-        full_name = path / "results" / f"{file_name}.json"
-        assert not full_name.exists(), f"{full_name} already found"
-        dump(run_record, full_name)
-        if plot:
-            if plot_params is None:
-                plot_params = dict()
-            plot_params["save_fig"] = (True,)
-            full_name = path / "plots" / f"{file_name}.png"
-            m.plot(path=path, fig_name=full_name, **plot_params)
-            try:
-                plt.close(plt.gcf())
-            except Exception:
-                pass
+    run_record = _make_record(
+        m=m,
+        s=s,
+        param_dump=param_dump,
+        partner_names=partner_names,
+        run_id=run_id,
+        execution_time=execution_time,
+        real_scenario_name=real_scenario_name,
+        stats=stats,
+    )
+    _save_record(run_record, m, partner_names, real_scenario_name, rep, run_id, path)
+    _plot_run(
+        m, partner_names, real_scenario_name, rep, run_id, path, plot, plot_params
+    )
     return run_record
+
+
+def failed_run_record(
+    s: Scenario,
+    partners: tuple[type[Negotiator]],
+    timeout: float,
+    partner_names: tuple[str] | None = None,
+    partner_params: tuple[dict[str, Any]] | None = None,
+    error: str | None = None,
+    rep: int = 0,
+    path: Path | None = None,
+    mechanism_type: type[Mechanism] = SAOMechanism,
+    mechanism_params: dict[str, Any] | None = None,
+    full_names: bool = True,
+    run_id: int | str | None = None,
+    annotation: dict[str, Any] | None = None,
+    private_infos: tuple[dict[str, Any] | None] | None = None,
+    id_reveals_type: bool = False,
+    name_reveals_type: bool = True,
+    mask_scenario_name: bool = True,
+    ignore_exceptions: bool = False,
+    stats: ScenarioStats | None = None,
+):
+    if partner_params is None:
+        partner_params = tuple(dict() for _ in partners)  # type: ignore
+    param_dump = tuple(str(to_flat_dict(_)) if _ else None for _ in partner_params)  # type: ignore
+    execution_time = timeout
+    try:
+        m, _, s, real_scenario_name = _make_mechanism(
+            s=s,
+            partners=partners,
+            partner_names=partner_names,
+            partner_params=partner_params,
+            rep=rep,
+            path=path,
+            mechanism_type=mechanism_type,
+            mechanism_params=mechanism_params,
+            full_names=full_names,
+            run_id=run_id,
+            annotation=annotation,
+            private_infos=private_infos,
+            id_reveals_type=id_reveals_type,
+            name_reveals_type=name_reveals_type,
+            mask_scenario_name=mask_scenario_name,
+            ignore_exceptions=ignore_exceptions,
+        )
+        state = m.state
+        state.has_error = True
+        state.timedout = True
+        state.started = True
+        state.error_details = f"Timedout after {timeout} with error {error}"
+
+        run_record = _make_record(
+            m=m,
+            s=s,
+            param_dump=param_dump,
+            partner_names=partner_names,
+            run_id=run_id,
+            execution_time=execution_time,
+            real_scenario_name=real_scenario_name,
+            stats=stats,
+        )
+    except Exception as e:
+        real_scenario_name = s.outcome_space.name
+        m = SAOMechanism()
+        state = SAOState()
+        state.has_error = True
+        state.timedout = True
+        state.started = True
+        state.error_details = (
+            f"Timedout after {timeout} with exception {error} then Raised {e}"
+        )
+        run_record = _make_failure_record(
+            state=state,
+            s=s,
+            param_dump=param_dump,
+            partner_names=partner_names,
+            run_id=run_id,
+            execution_time=execution_time,
+            real_scenario_name=real_scenario_name,
+            stats=stats,
+            mechanism_type=mechanism_type,
+            mechanism_params=mechanism_params,
+            partners=partners,
+        )
+    _save_record(run_record, m, partner_names, real_scenario_name, rep, run_id, path)
+    return run_record
+
+
+def _stop_process_pool(executor):
+    try:
+        if executor and executor._processes:
+            for _, process in executor._processes.items():
+                process.terminate()
+        if executor:
+            executor.shutdown(wait=False)
+            executor.cancel_pending_futures()
+            executor.shutdown(wait=False)
+    except Exception:
+        pass
 
 
 def cartesian_tournament(
@@ -391,6 +683,8 @@ def cartesian_tournament(
     pend_per_second: float | tuple[float, float] = 0.0,
     step_time_limit: float | tuple[float, float] | None = None,
     negotiator_time_limit: float | tuple[float, float] | None = None,
+    hidden_time_limit: float | tuple[float, float] | None = None,
+    external_timeout: int | None = None,
     # full_names: bool = True,
     plot_fraction: float = 0.0,
     plot_params: dict[str, Any] | None = None,
@@ -427,6 +721,8 @@ def cartesian_tournament(
         pend_per_second: Probability of ending the negotiation every second (None for no-limit and a 2-valued tuple for sampling from a range)
         step_time_limit: Time limit for every negotiation step (None for no-limit and a 2-valued tuple for sampling from a range)
         negotiator_time_limit: Time limit for all actions of every negotiator (None for no-limit and a 2-valued tuple for sampling from a range)
+        hidden_time_limit: Time limit for negotiations that is not known to the negotiators
+        external_timeout: A timeout applied directly to reception of results from negotiations in parallel runs only.
         mechanism_params: Parameters of the mechanism (protocol). Usually you need to pass one or more of the following:
                           time_limit (in seconds), n_steps (in rounds), p_ending (probability of ending the negotiation every step).
         plot_fraction: fraction of negotiations for which plots are to be saved (only if `path` is not `None`)
@@ -619,6 +915,7 @@ def cartesian_tournament(
                     pend_per_second=oneinfloat(pend_per_second),
                     negotiator_time_limit=oneinfloat(negotiator_time_limit),
                     step_time_limit=oneinfloat(step_time_limit),
+                    hidden_time_limit=oneinfloat(hidden_time_limit),
                 )
             )
             for partners in partners_list:
@@ -678,17 +975,47 @@ def cartesian_tournament(
             process_record(run_negotiation(**info, run_id=get_run_id(info)))
 
     else:
-        futures = []
+        timeout = external_timeout if external_timeout else float("inf")
+
+        def _safe_max(x) -> float:
+            if x is None:
+                return float("inf")
+            if isinstance(x, tuple):
+                return x[-1]
+            return x
+
+        tparams = dict(
+            time_limit=mechanism_params.get("time_limit", float("inf")),
+            negotiator_time_limit=mechanism_params.get(
+                "negotiator_time_limit", float("inf")
+            ),
+            step_time_limit=mechanism_params.get("step_time_limit", float("inf")),
+            hidden_time_limit=mechanism_params.get("hidden_time_limit", float("inf")),
+        ) | dict(
+            time_limit=_safe_max(time_limit),
+            negotiator_time_limit=_safe_max(negotiator_time_limit),
+            step_time_limit=_safe_max(step_time_limit),
+            hidden_time_limit=_safe_max(hidden_time_limit),
+        )
+        touts = [_ * 1.05 for _ in tparams.values() if _ is not None and not isinf(_)]
+        timeout = min(max(touts) if touts else float("inf"), timeout)
+        if isinf(timeout):
+            timeout = None
+        if timeout is not None and verbosity > 0:
+            print(
+                f"[magenta]Will use {timeout} as a timeout when receiving results[/magenta]"
+            )
+
+        futures = dict()
         n_cores = cpu_count()
         if n_cores is None:
             n_cores = 4
         cpus = min(n_cores, njobs) if njobs else cpu_count()
-        # mp.set_start_method("spawn")
         with ProcessPoolExecutor(max_workers=cpus, max_tasks_per_child=MAX_TASKS_PER_CHILD) as pool:
             for info in runs:
-                futures.append(
+                futures[
                     pool.submit(run_negotiation, **info, run_id=get_run_id(info))
-                )
+                ] = info
             for i, f in enumerate(
                 track(
                     as_completed(futures),
@@ -696,31 +1023,80 @@ def cartesian_tournament(
                     description="Negotiations",
                 )
             ):
-                process_record(f.result())
+                try:
+                    result = f.result(timeout=timeout)
+                    process_record(result)
+                except TimeoutError:
+                    info = futures.get(f, dict(partners=["Unknown", "Unknown"]))
+                    print(
+                        f"[red]Negotiation between {info['partners']} [bold]timedout[/bold] [red] after {timeout} seconds ...\n\tKilling the process",
+                        end="",
+                    )
+                    if len(info) > 1:
+                        result = failed_run_record(**info)
+                        process_record(result)
+
+                    f.cancel()
+                    try:
+                        if os.name == "nt":  # Check if running on Windows
+                            pool._processes[f._process_ident].terminate()
+                        else:
+                            os.kill(
+                                f._process_ident, signal.SIGTERM
+                            )  # Default to SIGTERM
+                            time.sleep(
+                                TERMINATION_WAIT_TIME
+                            )  # Allow brief time for termination
+                            if not pool._processes[f._process_ident].is_alive():
+                                os.kill(
+                                    f._process_ident, signal.SIGKILL
+                                )  # Forceful if needed
+                        print("[yellow]SUCCEEDED[/SUCCEEDED]")
+                    except Exception as e:
+                        print(f"[red]FAILED[/red] with exception {e}")
+
+                except BrokenProcessPool as e:
+                    if verbosity > 1:
+                        print("[red]Broken Pool[/red]")
+                        print(e)
+                    break
+                except Exception as e:
+                    if verbosity > 1:
+                        print("[red]Exception[/red]")
+                        if verbosity > 2:
+                            print(traceback.format_exc())
+                        print(e)
+            pool.shutdown(wait=False)
+            # _stop_process_pool(pool)
 
     scores_df = pd.DataFrame.from_records(scores)
     if scores_path is not None:
         scores_df.to_csv(scores_path, index_label="index")
-    type_scores = (
-        scores_df[[_ for _ in scores_df.columns if _ not in ("scenario", "partners")]]
-        .groupby("strategy")
-        .describe()
-        .sort_values(final_score, ascending=False)
-    )
-    final = pd.DataFrame()
-    if type_scores is not None:
-        if scores_path:
-            type_scores.to_csv(scores_path.parent / "type_scores.csv")
-        final = type_scores[final_score]
-        final.name = "score"
-        final = final.reset_index()
-        if scores_path:
-            final.to_csv(scores_path.parent / "scores.csv", index_label="index")
-        if verbosity > 0:
-            print(final)
-    details_df = pd.DataFrame.from_records(results)
-    if results_path:
-        details_df.to_csv(results_path, index_label="index")
+    if len(scores_df) > 0:
+        type_scores = (  # type: ignore
+            scores_df[
+                [_ for _ in scores_df.columns if _ not in ("scenario", "partners")]
+            ]
+            .groupby("strategy")
+            .describe()
+            .sort_values(final_score, ascending=False)
+        )
+        final = pd.DataFrame()
+        if type_scores is not None:
+            if scores_path:
+                type_scores.to_csv(scores_path.parent / "type_scores.csv")
+            final = type_scores[final_score]
+            final.name = "score"
+            final = final.reset_index()
+            if scores_path:
+                final.to_csv(scores_path.parent / "scores.csv", index_label="index")
+            if verbosity > 0:
+                print(final)
+        details_df = pd.DataFrame.from_records(results)
+        if results_path:
+            details_df.to_csv(results_path, index_label="index")
+    else:
+        details_df = type_scores = final = pd.DataFrame()
     return SimpleTournamentResults(
         scores=scores_df,
         details=details_df,
