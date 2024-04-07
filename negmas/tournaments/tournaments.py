@@ -1246,9 +1246,10 @@ def _submit_all(
     timeout = float("-inf")
     for worlds_params in assigned:
         for w in worlds_params:
-            timeout = max(
-                timeout, w.get("world_params", dict()).get("time_limit", float("-inf"))
-            )
+            t = w.get("world_params", dict()).get("time_limit", None)
+            if t is None:
+                continue
+            timeout = max(timeout, t)
     if np.isinf(timeout):
         timeout = None
     else:
@@ -1384,7 +1385,9 @@ def _run_parallel(
     )
     n_world_configs = len(future_results)
     if verbose:
-        print(f"World timeout is {timeout} and total-timeout is {total_timeout}")
+        print(
+            f"World timeout is {humanize_time(timeout, show_ms=True)} and total-timeout is {humanize_time(total_timeout, show_ms=True)}"
+        )
     _strt = time.perf_counter()
     for i, future in track(
         enumerate(as_completed(future_results)),
@@ -1420,8 +1423,10 @@ def _run_parallel(
         except futures.TimeoutError:
             if tournament_progress_callback is not None:
                 tournament_progress_callback(None, i, n_world_configs)
-            if verbose:
-                print("[yellow]Future timed-out[/yellow]")
+            # if verbose:
+            print(
+                "[yellow]World timed-out in {humanize_time(timeout, show_us=True)}[/yellow]"
+            )
         except futures.process.BrokenProcessPool as e:
             if tournament_progress_callback is not None:
                 tournament_progress_callback(None, i, n_world_configs)

@@ -311,13 +311,13 @@ def exception2str(limit=None, chain=True) -> str:
 
 
 def humanize_time(
-    secs,
+    secs: int | float | None,
     align=False,
     always_show_all_units=False,
     show_us=False,
     show_ms=False,
     always_show_from="",
-):
+) -> str | None:
     """
     Prints time that is given as seconds in human readable form. Useful only for times >=1sec.
 
@@ -331,6 +331,8 @@ def humanize_time(
     :param show_ms: bool, if given milliseconds will be shown
     :return: str: formated string with the humanized form
     """
+    if secs is None:
+        return None
     if show_us:
         secs *= 1_000_000
         units = [
