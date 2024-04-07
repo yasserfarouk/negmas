@@ -1,6 +1,5 @@
 """
 Tournament generation and management.
-
 """
 
 from __future__ import annotations
@@ -62,6 +61,7 @@ __all__ = [
 ]
 
 MAX_TASKS_PER_CHILD = 10
+
 
 def to_file(x, f):
     dump(x, f)
@@ -1216,11 +1216,11 @@ def _get_executor(
     parallelism = parallelism[0]
     max_workers = fraction if fraction is None else max(1, int(fraction * cpu_count()))
 
-    kwargs_  =dict(max_workers=max_workers)
+    kwargs_ = dict(max_workers=max_workers)
     version = sys.version_info
-    if version.major > 3 or version.minor >10:
+    if version.major > 3 or version.minor > 10:
         kwargs_.update(max_tasks_per_child=MAX_TASKS_PER_CHILD)
-    executor = futures.ProcessPoolExecutor(**kwargs_)
+    executor = futures.ProcessPoolExecutor(**kwargs_)  # type: ignore
 
     return executor, futures.as_completed
 
@@ -1236,7 +1236,7 @@ def _submit_all(
     attempts_path,
     verbose,
     max_attempts,
-):
+) -> list[futures.Future]:
     """Submits all processes to be executed by the executor"""
     future_results = []
     for i, worlds_params in enumerate(assigned):
@@ -1374,14 +1374,9 @@ def _run_parallel(
         if total_timeout is not None and time.perf_counter() - strt > total_timeout:
             break
         try:
-            (
-                run_id,
-                world_paths,
-                score_,
-                world_stats_,
-                type_stats_,
-                agent_stats_,
-            ) = future.result()  # type: ignore
+            (run_id, world_paths, score_, world_stats_, type_stats_, agent_stats_) = (
+                future.result()  # type: ignore
+            )
             save_run_results(
                 run_id,
                 score_,
@@ -1401,8 +1396,7 @@ def _run_parallel(
             if tournament_progress_callback is not None:
                 tournament_progress_callback(None, i, n_world_configs)
             if verbose:
-                print("Tournament timed-out")
-            break
+                print("Future timed-out")
         except futures.process.BrokenProcessPool as e:
             if tournament_progress_callback is not None:
                 tournament_progress_callback(None, i, n_world_configs)
