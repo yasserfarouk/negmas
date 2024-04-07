@@ -1,6 +1,19 @@
 History
 =======
 
+Release 0.10.23
+---------------
+
+* Tournament combination in Cartesian tournaments
+
+    * Cartesian tournaments were structured to allow for saving and loading
+    * Added load/save/combine to SimpleTournamentResults
+    * Added combine_tournament for combining on disk tournament results with control on copying and scenario renaming
+
+* Adding max-tasks-per-child to all tournaments
+* Supporting world-timeout in tournaments
+* Do not end tournaments if a single future timesout
+
 Release 0.10.22
 ---------------
 
