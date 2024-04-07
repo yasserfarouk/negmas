@@ -3,7 +3,9 @@ Negotiation tournaments module.
 """
 
 from __future__ import annotations
+from rich import print
 import sys
+import shutil
 import datetime
 import copy
 from concurrent.futures import ProcessPoolExecutor, as_completed, TimeoutError
@@ -15,17 +17,16 @@ from os import cpu_count
 from pathlib import Path
 from random import randint, random, shuffle
 from time import perf_counter
-from typing import Any, Sequence
+from typing import Any, Iterable, Sequence
 
 import matplotlib.pyplot as plt
 import pandas as pd
 from attr import asdict, define
-from rich import print
 from rich.progress import track
 from negmas.common import TraceElement
 
 from negmas.helpers import unique_name
-from negmas.helpers.inout import dump
+from negmas.helpers.inout import dump, has_needed_files, load
 from negmas.helpers.strings import humanize_time, shortest_unique_names
 from negmas.helpers.types import get_class, get_full_type_name
 from negmas.inout import Scenario, scenario_size
@@ -46,10 +47,48 @@ import signal
 import os
 import time
 
-__all__ = ["run_negotiation", "cartesian_tournament", "SimpleTournamentResults"]
+__all__ = [
+    "run_negotiation",
+    "cartesian_tournament",
+    "SimpleTournamentResults",
+    "combine_tournaments",
+]
 MAX_TASKS_PER_CHILD = 10
 LOG_UNIFORM_LIMIT = 10
 TERMINATION_WAIT_TIME = 10.0
+
+EXTENSION = ".csv"
+ALL_SCORES_FILE_NAME = f"all_scores{EXTENSION}"
+ALL_RESULTS_FILE_NAME = f"details{EXTENSION}"
+TYPE_SCORES_FILE_NAME = f"type_scores{EXTENSION}"
+FINAL_SCORES_FILE_NAME = f"scores{EXTENSION}"
+NEGOTIATOR_BEHAVIOR_DIR_NAME = "negotiator_behavior"
+SCENARIOS_DIR_NAME = "scenarios"
+PLOTS_DIR_NAME = "plots"
+NEGOTIATIONS_DIR_NAME = "negotiations"
+RESULTS_DIR_NAME = "results"
+TOURNAMENT_COL_NAME = "tournament"
+OPTIONAL_COLS = (TOURNAMENT_COL_NAME,)
+OPTIMALITY_COLS = (
+    "nash_optimality",
+    "kalai_optimality",
+    "max_welfare_optimality",
+    "pareto_optimality",
+)
+
+TOURNAMENT_DIRS = [
+    SCENARIOS_DIR_NAME,
+    NEGOTIATOR_BEHAVIOR_DIR_NAME,
+    PLOTS_DIR_NAME,
+    NEGOTIATIONS_DIR_NAME,
+    RESULTS_DIR_NAME,
+]
+TOURNAMENT_FILES = [
+    ALL_SCORES_FILE_NAME,
+    ALL_RESULTS_FILE_NAME,
+    TYPE_SCORES_FILE_NAME,
+    FINAL_SCORES_FILE_NAME,
+]
 
 
 @define
@@ -68,29 +107,71 @@ class SimpleTournamentResults:
     @classmethod
     def from_records(
         cls,
-        results: list[dict[str, Any]] | pd.DataFrame,
-        scores: list[dict[str, Any]] | pd.DataFrame | None,
-        final_score: tuple[str, str] = ("advantage", "mean"),
+        scores: list[dict[str, Any]] | pd.DataFrame | None = None,
+        results: list[dict[str, Any]] | pd.DataFrame | None = None,
+        type_scores: pd.DataFrame | None = None,
+        final_scores: pd.DataFrame | None = None,
+        final_score_stat: tuple[str, str] = ("advantage", "mean"),
         path: Path | None = None,
     ) -> "SimpleTournamentResults":
+        """Creates SimpleTournamentResults from records of results
+
+        Args:
+            scores: The scores of negotiators in all negotiations (If not given, `results` can be used to calculate it).
+            results: Results of all negotiations (If not given, the resulting SimpleTournamentResults object will lack details)
+            type_scores: Optionally, type-scores. If not given, it will be calculated from scores
+            final_scores: Optionally, final scores. If not given, `final_scoer_stat` will be used to calculate them
+            final_score_stat: A tuple of the measure used and the statistic applied to it for calculating final score. See `cartesian_tournament` for more details
+            path: The path in which the data for this tournament is stored.
+
+        Raises:
+            ValueError: If no scores or results are given
+
+        Returns:
+            A new SimpleTournamentResults with the given data
+        """
+        if scores is None and results is None:
+            raise ValueError("Cannot pass both scoers and results as None")
+        if scores is None or (
+            len(scores) == 0 and results is not None and len(results) > 0
+        ):
+            rd = (
+                results.to_dict("records")
+                if isinstance(results, pd.DataFrame)
+                else results
+            )
+            assert rd is not None
+            scores = pd.DataFrame.from_records([make_scores(_) for _ in (rd)])
+        if results is None:
+            results = pd.DataFrame()
+
         if not isinstance(scores, pd.DataFrame):
             scores_df = pd.DataFrame.from_records(scores)
         else:
             scores_df = scores
         if len(scores_df) > 0:
-            type_scores = (  # type: ignore
-                scores_df[
-                    [_ for _ in scores_df.columns if _ not in ("scenario", "partners")]
-                ]
-                .groupby("strategy")
-                .describe()
-                .sort_values(final_score, ascending=False)
-            )
-            final = pd.DataFrame()
-            if type_scores is not None:
-                final = type_scores[final_score]
-                final.name = "score"
-                final = final.reset_index()
+            if type_scores is None:
+                type_scores = pd.DataFrame()
+                if scores_df is not None and len(scores_df) > 0:
+                    cols = [
+                        _
+                        for _ in scores_df.columns
+                        if _ not in ("scenario", "partners")
+                    ]
+                    type_scores = (
+                        scores_df.loc[:, cols]
+                        .groupby("strategy")
+                        .describe()
+                        .sort_values(final_score_stat, ascending=False)
+                    )
+            if final_scores is None:
+                final = pd.DataFrame()
+                if type_scores is not None and len(type_scores) > 0:
+                    final = type_scores[final_score_stat]
+                    final.name = "score"
+                    final = final.reset_index()
+            else:
+                final = final_scores
             if not isinstance(results, pd.DataFrame):
                 details_df = pd.DataFrame.from_records(results)
             else:
@@ -100,36 +181,269 @@ class SimpleTournamentResults:
         return SimpleTournamentResults(
             scores=scores_df,
             details=details_df,
-            scores_summary=type_scores,
+            scores_summary=type_scores,  # type: ignore
             final_scores=final,
             path=path,
         )
 
     @classmethod
-    def load(cls, path: Path) -> "SimpleTournamentResults":
-        """Loads results from the given path"""
-        ...
+    def from_result_records(
+        cls,
+        path: Path,
+        verbosity: int = 1,
+        final_score_stat: tuple[str, str] = ("advantage", "mean"),
+    ) -> "SimpleTournamentResults":
+        return cls.combine(
+            [Path(path)],
+            recursive=False,
+            recalc_details=True,
+            recalc_scores=True,
+            must_have_details=True,
+            verbosity=verbosity,
+            final_score_stat=final_score_stat,
+        )[0]
 
-    def save(self, path: Path) -> None:
-        """Save all results to the given path"""
-        results_path = path if not path else path / "details.csv"
-        scores_path = path if not path else path / "all_scores.csv"
-        scores_df = self.scores
-        details_df = self.details
-        type_scores = self.scores_summary
-        final = self.final_scores
-        if scores_path is not None:
-            scores_df.to_csv(scores_path, index_label="index")
-        if len(scores_df) > 0:
-            if type_scores is not None:
-                if scores_path:
-                    type_scores.to_csv(scores_path.parent / "type_scores.csv")
-                if scores_path:
-                    final.to_csv(scores_path.parent / "scores.csv", index_label="index")
-            if results_path:
-                details_df.to_csv(results_path, index_label="index")
+    @classmethod
+    def combine(
+        cls,
+        paths: Path | Iterable[Path],
+        recursive: bool = True,
+        recalc_details: bool = True,
+        recalc_scores: bool = False,
+        must_have_details: bool = False,
+        verbosity: int = 1,
+        final_score_stat: tuple[str, str] = ("advantage", "mean"),
+        add_tournament_column: bool = True,
+    ) -> tuple["SimpleTournamentResults", list[Path]]:
+        """Combines the results of multiple tournaments stored on disk
+
+        Args:
+            paths: Paths to look for results within
+            recursive: Check children of given paths recursively
+            recalc_details: Recalculate detailed results from the `negotiations` folder
+            recalc_scores: Recalculate scores from detailed negotiation results
+            must_have_details: Raise an exception if detailed negotiation results cannot be found
+            verbosity: Verbosity level
+            final_score_stat: Used to calculate the final scores. See `cartesian_tournament` for details.
+            add_tournament_column: Add a column called tournament with tournament name in detailed and scores.
+
+        Raises:
+            FileNotFoundError: If a needed file is not found
+
+        Returns:
+            A newly constructed SimpleTournamentResults with the combined results of all tournaments
+        """
+        """Loads results from the given paths (recursively if given)"""
+        if isinstance(paths, Path):
+            paths = [paths]
+        assert isinstance(paths, Iterable)
+
+        needed_files: list[tuple[str, str] | str] = []
+        if recalc_details:
+            needed_files.append(RESULTS_DIR_NAME)
+        elif must_have_details:
+            needed_files.append((ALL_RESULTS_FILE_NAME, RESULTS_DIR_NAME))
+        if recalc_scores:
+            needed_files.append((ALL_RESULTS_FILE_NAME, RESULTS_DIR_NAME))
+
+        if recursive:
+            known_dirs = set(TOURNAMENT_DIRS)
+            found_dirs = set()
+            for path in track(paths, "Walking Tree") if verbosity else paths:
+                for base, dirs, _ in os.walk(path):
+                    p = Path(base).absolute()
+                    if has_needed_files(p, needed_files):
+                        found_dirs.add(p)
+                    remaining_dirs = []
+                    for d in dirs:
+                        if d in known_dirs:
+                            continue
+                        p = (Path(base) / d).absolute()
+                        if has_needed_files(p, needed_files):
+                            found_dirs.add(p)
+                        else:
+                            remaining_dirs.append(d)
+                    dirs = remaining_dirs
+            paths = list(found_dirs)
         else:
-            details_df = type_scores = final = pd.DataFrame()
+            paths = [_.absolute() for _ in paths if has_needed_files(_, needed_files)]
+        if not paths:
+            raise FileNotFoundError(
+                "None of the given paths has the needed files to reconstruct the results of a tournament"
+            )
+        results, scores = [], []
+        loaded_paths = set()
+        path_names = shortest_unique_names([str(_) for _ in paths], sep=os.sep)
+        for path, pname in (
+            track(zip(paths, path_names), "Reading ... ", total=len(paths))
+            if verbosity
+            else zip(paths, path_names)
+        ):
+            if verbosity > 1:
+                print(f"Reading {path}")
+            if recalc_details or not (path / ALL_RESULTS_FILE_NAME).exists():
+                src = path / RESULTS_DIR_NAME
+                d = pd.DataFrame.from_records([load(_) for _ in src.glob("*.json")])
+            else:
+                d = pd.read_csv(path / ALL_RESULTS_FILE_NAME)
+            if add_tournament_column:
+                d[TOURNAMENT_COL_NAME] = pname
+            if must_have_details and len(d) < 1:
+                print(
+                    f"Cannot find detailed results in {path / ALL_SCORES_FILE_NAME} and you specified `must_have_details` ... Will ignore it"
+                )
+                continue
+            if recalc_scores or not (path / ALL_SCORES_FILE_NAME).exists():
+                if len(d) <= 0:
+                    if verbosity:
+                        print(
+                            f"Failed to calculate scores for {path / ALL_SCORES_FILE_NAME} ... Will ignore it"
+                        )
+                    continue
+                s = pd.DataFrame.from_records(
+                    [make_scores(_) for _ in d.to_dict("records")]
+                )
+            else:
+                s = pd.read_csv(path / ALL_SCORES_FILE_NAME)
+            if add_tournament_column:
+                s[TOURNAMENT_COL_NAME] = pname
+            if len(d) > 0:
+                loaded_paths.add(path)
+                results.append(d)
+            if len(s) > 0:
+                loaded_paths.add(path)
+                scores.append(s)
+        if len(scores) < 1:
+            raise FileNotFoundError("Cannot find any records or details to use")
+        return cls.from_records(
+            scores=pd.concat(scores, ignore_index=True),
+            results=pd.concat(results, ignore_index=True),
+            final_score_stat=final_score_stat,
+        ), list(loaded_paths)
+
+    @classmethod
+    def load(
+        cls, path: Path, must_have_details: bool = False
+    ) -> "SimpleTournamentResults":
+        """Loads results from the given path"""
+        kwargs = dict()
+        for k, name, required in (
+            ("scores", ALL_SCORES_FILE_NAME, must_have_details),
+            ("details", ALL_RESULTS_FILE_NAME, must_have_details),
+            ("scores_summary", TYPE_SCORES_FILE_NAME, must_have_details),
+            ("final_scores", FINAL_SCORES_FILE_NAME, True),
+        ):
+            p = path / name
+            if p.exists():
+                kwargs[k] = pd.read_csv(p)
+            elif required:
+                raise FileNotFoundError(f"{name} not found in {path}")
+        return SimpleTournamentResults(**kwargs)
+
+    def save(self, path: Path | None, exist_ok: bool = True) -> None:
+        """Save all results to the given path"""
+        if path is None:
+            path = self.path
+        if path is None:
+            raise FileNotFoundError(
+                "You must pass path to save or have a path in the tournament to save it"
+            )
+        path = Path(path).absolute()
+        path.mkdir(exist_ok=exist_ok, parents=True)
+        for df, fname in (
+            (self.scores, ALL_SCORES_FILE_NAME),
+            (self.details, ALL_RESULTS_FILE_NAME),
+            (self.scores_summary, TYPE_SCORES_FILE_NAME),
+            (self.final_scores, FINAL_SCORES_FILE_NAME),
+        ):
+            if df is not None and len(df) > 0:
+                df.to_csv(path / fname, index_label="index")
+
+
+def combine_tournaments(
+    srcs: Path | Iterable[Path],
+    dst: Path | None = None,
+    *,
+    recursive: bool = True,
+    recalc_details: bool = True,
+    recalc_scores: bool = False,
+    must_have_details: bool = False,
+    verbosity: int = 1,
+    final_score_stat: tuple[str, str] = ("advantage", "mean"),
+    copy: bool = False,
+    rename_scenarios: bool = True,
+    add_tournament_folders: bool = True,
+    override_existing: bool = False,
+    add_tournament_column: bool = True,
+) -> SimpleTournamentResults:
+    results, paths = SimpleTournamentResults.combine(
+        srcs,
+        recursive,
+        recalc_details,
+        recalc_scores,
+        must_have_details,
+        verbosity,
+        final_score_stat,
+        add_tournament_column,
+    )
+    if results and dst is not None:
+        results.save(dst)
+    if verbosity:
+        print("[green]Done Combining Results[/green]")
+    if copy and dst is not None:
+        dst = Path(dst).absolute()
+        if paths:
+            for current in TOURNAMENT_DIRS:
+                (dst / current).mkdir(exist_ok=True, parents=True)
+        for path in track(paths, "Copying ... ") if verbosity else paths:
+            path = Path(path).absolute()
+            tname = path.name
+            for current in TOURNAMENT_DIRS:
+                if not (path / current).exists():
+                    if verbosity:
+                        print(f"[yellow]{current}[/yellow] not found in {path}")
+                        continue
+                if add_tournament_folders:
+                    this_dst = dst / current / tname
+                    this_dst.mkdir(exist_ok=True, parents=True)
+                else:
+                    this_dst = dst / current
+                if verbosity > 1:
+                    print(f"Copying {this_dst.relative_to(dst)} from {path} ")
+                for x in (path / current).glob("*"):
+                    try:
+                        if x.is_dir():
+                            shutil.copytree(
+                                x, this_dst / x.name, dirs_exist_ok=override_existing
+                            )
+                        else:
+                            shutil.copy(x, this_dst / x.name)
+                    except Exception as e:
+                        if verbosity:
+                            print(
+                                f"[red]Copy Error:[/red] {x} -> {this_dst} Failed ({e})"
+                            )
+
+                if rename_scenarios:
+                    for p in this_dst.glob("*"):
+                        p = p.absolute()
+                        pnew = p.parent / f"{tname}_{p.name}"
+                        try:
+                            os.rename(p, pnew)
+                        except Exception:
+                            if verbosity:
+                                print(
+                                    f"[red]Rename Failed:[/red]{p.parent}: {p.name} -> {pnew.name}"
+                                )
+                        # shutil.move(p, p.parent / f"{tname}{p.name}")
+                    for df in (results.scores, results.details):
+                        for col in df.columns:
+                            if "scenario" not in col:
+                                continue
+                            df[col] = tname + df[col].astype(str)
+                    results.save(dst)
+
+    return results
 
 
 def oneinint(x: int | tuple[int, int] | None, log_uniform=None) -> int | None:
@@ -211,7 +525,7 @@ def _make_mechanism(
     """
     if path:
         path = Path(path)
-        for name in ("negotiations", "plots", "results"):
+        for name in (NEGOTIATIONS_DIR_NAME, PLOTS_DIR_NAME, RESULTS_DIR_NAME):
             (path / name).mkdir(exist_ok=True, parents=True)
     s = copy.deepcopy(s)
     assert s.outcome_space is not None
@@ -352,7 +666,7 @@ def _make_failure_record(
     run_record["broken"] = state.broken
     run_record["timedout"] = state.timedout
     run_record["agreement"] = state.agreement
-    run_record["results"] = state.results
+    run_record[RESULTS_DIR_NAME] = state.results
     run_record["n_negotiators"] = state.n_negotiators
     run_record["has_error"] = state.has_error
     run_record["erred_negotiator"] = state.erred_negotiator
@@ -417,7 +731,7 @@ def _make_record(
     run_record["broken"] = state.broken
     run_record["timedout"] = state.timedout
     run_record["agreement"] = state.agreement
-    run_record["results"] = state.results
+    run_record[RESULTS_DIR_NAME] = state.results
     run_record["n_negotiators"] = state.n_negotiators
     run_record["has_error"] = state.has_error
     run_record["erred_negotiator"] = state.erred_negotiator
@@ -463,10 +777,12 @@ def _save_record(
         neg_name.parent.mkdir(parents=True, exist_ok=True)
         pd.DataFrame.from_records(v).to_csv(neg_name, index=True, index_label="index")
 
-    full_name = path / "negotiations" / f"{file_name}.csv"
+    full_name = path / NEGOTIATIONS_DIR_NAME / f"{file_name}.csv"
     if full_name.exists():
         print(f"[yellow]{full_name} already found[/yellow]")
-        full_name = path / unique_name("negotiations", sep="") / f"{file_name}.csv"
+        full_name = (
+            path / unique_name(NEGOTIATIONS_DIR_NAME, sep="") / f"{file_name}.csv"
+        )
 
     if isinstance(m, Traceable):
         assert hasattr(m, "full_trace")
@@ -486,7 +802,7 @@ def _save_record(
         for i, negotiator in enumerate(m.negotiators):
             neg_name = (
                 path
-                / "negotiator_behavior"
+                / NEGOTIATOR_BEHAVIOR_DIR_NAME
                 / file_name
                 / f"{negotiator.name}_at{i}.csv"
             )
@@ -494,7 +810,7 @@ def _save_record(
                 print(f"[yellow]{neg_name} already found[/yellow]")
                 neg_name = (
                     path
-                    / "negotiator_behavior"
+                    / NEGOTIATOR_BEHAVIOR_DIR_NAME
                     / file_name
                     / unique_name(f"{negotiator.name}_at{i}.csv", sep="")
                 )
@@ -507,10 +823,10 @@ def _save_record(
                 )  # type: ignore
     else:
         pd.DataFrame.from_records(serialize(m.history)).to_csv(full_name, index=False)
-    full_name = path / "results" / f"{file_name}.json"
+    full_name = path / RESULTS_DIR_NAME / f"{file_name}.json"
     if full_name.exists():
         print(f"[yellow]{full_name} already found[/yellow]")
-        full_name = path / "results" / unique_name(f"{file_name}.json", sep="")
+        full_name = path / RESULTS_DIR_NAME / unique_name(f"{file_name}.json", sep="")
     dump(run_record, full_name)
 
 
@@ -523,7 +839,7 @@ def _plot_run(
     if plot_params is None:
         plot_params = dict()
     plot_params["save_fig"] = (True,)
-    full_name = path / "plots" / f"{file_name}.png"
+    full_name = path / PLOTS_DIR_NAME / f"{file_name}.png"
     m.plot(path=path, fig_name=full_name, **plot_params)
     try:
         plt.close(plt.gcf())
@@ -743,17 +1059,17 @@ def failed_run_record(
     return run_record
 
 
-def _stop_process_pool(executor):
-    try:
-        if executor and executor._processes:
-            for _, process in executor._processes.items():
-                process.terminate()
-        if executor:
-            executor.shutdown(wait=False)
-            executor.cancel_pending_futures()
-            executor.shutdown(wait=False)
-    except Exception:
-        pass
+# def _stop_process_pool(executor):
+#     try:
+#         if executor and executor._processes:
+#             for _, process in executor._processes.items():
+#                 process.terminate()
+#         if executor:
+#             executor.shutdown(wait=False)
+#             executor.cancel_pending_futures()
+#             executor.shutdown(wait=False)
+#     except Exception:
+#         pass
 
 
 def make_scores(record: dict[str, Any]) -> list[dict[str, float]]:
@@ -793,12 +1109,10 @@ def make_scores(record: dict[str, Any]) -> list[dict[str, float]]:
             error_details=error_details,
             mechanism_name=record.get("mechanism_name", ""),
         )
-        for c in (
-            "nash_optimality",
-            "kalai_optimality",
-            "max_welfare_optimality",
-            "pareto_optimality",
-        ):
+        for col in OPTIONAL_COLS:
+            if col in record:
+                basic[col] = record[col]
+        for c in OPTIMALITY_COLS:
             if c in record:
                 basic[c] = record[c]
         scores.append(basic)
@@ -900,7 +1214,7 @@ def cartesian_tournament(
         private_infos = [tuple(dict() for _ in s.ufuns) for s in scenarios]
 
     runs = []
-    scenarios_path = path if path is None else Path(path) / "scenarios"
+    scenarios_path = path if path is None else Path(path) / SCENARIOS_DIR_NAME
     if scenarios_path is not None:
         scenarios_path.mkdir(exist_ok=True, parents=True)
     stats = None
@@ -1044,8 +1358,8 @@ def cartesian_tournament(
             flush=True,
         )
     results, scores = [], []
-    results_path = path if not path else path / "details.csv"
-    scores_path = path if not path else path / "all_scores.csv"
+    results_path = path if not path else path / ALL_RESULTS_FILE_NAME
+    scores_path = path if not path else path / ALL_SCORES_FILE_NAME
 
     def process_record(record, results=results, scores=scores):
         if self_play and only_failures_on_self_play:
@@ -1064,7 +1378,7 @@ def cartesian_tournament(
 
     if njobs < 0:
         for i, info in enumerate(
-            track(runs, total=len(runs), description="Negotiations")
+            track(runs, total=len(runs), description=NEGOTIATIONS_DIR_NAME)
         ):
             process_record(run_negotiation(**info, run_id=get_run_id(info)))
 
@@ -1119,7 +1433,7 @@ def cartesian_tournament(
                 track(
                     as_completed(futures),
                     total=len(futures),
-                    description="Negotiations",
+                    description=NEGOTIATIONS_DIR_NAME,
                 )
             ):
                 try:
@@ -1170,7 +1484,9 @@ def cartesian_tournament(
             pool.shutdown(wait=False)
             # _stop_process_pool(pool)
 
-    tresults = SimpleTournamentResults.from_records(results, scores, final_score, path)
+    tresults = SimpleTournamentResults.from_records(
+        scores, results, final_score_stat=final_score, path=path
+    )
     if verbosity > 0:
         print(tresults.final_scores)
     if path:

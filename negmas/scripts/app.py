@@ -2,6 +2,7 @@
 """The NegMAS universal command line tool"""
 
 from __future__ import annotations
+from datetime import datetime
 import http.server
 import json
 import os
@@ -24,7 +25,7 @@ import negmas
 from negmas.config import negmas_config
 from negmas.genius.common import DEFAULT_JAVA_PORT
 from negmas.helpers import humanize_time, unique_name
-from negmas.helpers.inout import load
+from negmas.helpers.inout import load as load_file
 from negmas.tournaments import (
     combine_tournament_results,
     combine_tournament_stats,
@@ -76,7 +77,7 @@ def print_progress(_, i, n) -> None:
     n_completed = i + 1
     n_total = n
     print(
-        f"{n_completed:04} of {n:04} worlds completed ({n_completed / n:0.2%})",
+        f"{datetime.now()} {n_completed:04} of {n:04} worlds completed ({n_completed / n:0.2%})",
         flush=True,
     )
 
@@ -85,7 +86,7 @@ def print_world_progress(world) -> None:
     """Prints the progress of a world"""
     step = world.current_step + 1
     s = (
-        f"World# {n_completed:04}: {step:04}  of {world.n_steps:04} "
+        f"{datetime.now()} World# {n_completed:04}: {step:04}  of {world.n_steps:04} "
         f"steps completed ({step / world.n_steps:0.2f}) "
     )
 
@@ -316,7 +317,7 @@ def create(
 
     if world_config is not None and len(world_config) > 0:
         for wc in world_config:
-            kwargs.update(load(wc))
+            kwargs.update(load_file(wc))
     warning_n_runs = 2000
 
     if timeout <= 0:

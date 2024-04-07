@@ -2,6 +2,7 @@ from __future__ import annotations
 from enum import Enum
 
 import pytest
+from pathlib import Path
 
 from negmas.helpers import (
     create_loggers,
@@ -9,7 +10,7 @@ from negmas.helpers import (
     shortest_unique_names,
     unique_name,
 )
-from negmas.helpers.inout import ConfigReader, is_nonzero_file
+from negmas.helpers.inout import ConfigReader, is_nonzero_file, has_needed_files
 
 
 def test_shortest_names():
@@ -203,6 +204,16 @@ def test_config_reader_with_subobjects():
     assert isinstance(test.c.others[0], Other)
     assert len(test.c.others) == 4
     assert test.c.others[2] is None
+
+
+def test_needed_files(tmp_path):
+    tmp_path = Path(tmp_path)
+    for x in ("a", "b", "c", "d", "e", "h"):
+        (tmp_path / x).mkdir(parents=True, exist_ok=True)
+    found = has_needed_files(tmp_path, ["a", ("c", "d"), ("e", "f"), ("g", "h")])
+    assert found
+    assert tuple(_.name for _ in found) == ("a", "c", "e", "h")
+    assert not has_needed_files(tmp_path, ["x", ("c", "d"), ("e", "f"), ("g", "h")])
 
 
 if __name__ == "__main__":

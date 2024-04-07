@@ -8,6 +8,7 @@ at least two versions
 from __future__ import annotations
 
 import base64
+import itertools
 import json
 import os
 import pathlib
@@ -35,6 +36,7 @@ __all__ = [
     "load",
     "add_records",
     "TYPE_START",
+    "has_needed_files",
 ]
 # conveniently named classes
 BYTES_START = "__BYTES__:"
@@ -508,3 +510,57 @@ def add_records(
             new_file = True
 
     data.to_csv(str(file_name), index=False, index_label="", mode=mode, header=new_file)
+
+
+StrOrTwo = tuple[str, str] | str
+
+
+def has_needed_files(
+    path: Path,
+    needed_files: Iterable[StrOrTwo] = tuple(),
+    needed_nonzero_files: Iterable[StrOrTwo] = tuple(),
+    verbose: bool = False,
+) -> list[Path]:
+    """Checks if the given path is a folder that has the given needed files.
+
+    Args:
+        path: The Path to check
+        needed_files: The files/folders needed to be inside the given folder.
+        needed_nonzero_files: The files needed to be inside the given folder and of nonzero size.
+
+    Returns:
+        An empty list if any condition is not matched or a list giving the corresponding matching file/folder
+        for each condition (specified by needed_files then needed_nonzero_files)
+
+    Remarks:
+        - `needed_files` and `Needed_nonzero_files` is an `Iterable` where each element is either
+
+          - A string giving the name of of a file/folder that MUST exist (AND)
+          - A tuple of strings that gives names of files/folders one of which needs to exist (OR)
+    """
+    if not path.exists() or not path.is_dir():
+        if verbose:
+            print(f"Cannot find {path} or is not a directory")
+        return []
+    found = []
+    needed_nonzero_files = list(needed_nonzero_files)
+    for x in itertools.chain(needed_files, needed_nonzero_files):
+        if isinstance(x, str):
+            if not (path / x).exists():
+                if verbose:
+                    print(f"Cannot find {path / x}")
+                return []
+            found.append(path / x)
+        else:
+            for p in x:
+                if (path / p).exists():
+                    found.append(path / p)
+                    break
+            else:
+                if verbose:
+                    print(f"Cannot find any of {x} under {path}")
+                return []
+    if needed_nonzero_files:
+        found = [_ for _ in found if is_nonzero_file(path / _)]
+
+    return found
