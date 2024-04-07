@@ -89,6 +89,7 @@ TOURNAMENT_FILES = [
     TYPE_SCORES_FILE_NAME,
     FINAL_SCORES_FILE_NAME,
 ]
+MECHANISM_FILE_NAME = "mechanism.json"
 
 
 @define
@@ -1324,6 +1325,14 @@ def cartesian_tournament(
                     hidden_time_limit=oneinfloat(hidden_time_limit),
                 )
             )
+            if scenarios_path:
+                params_path = (
+                    scenarios_path
+                    / str(scenario.outcome_space.name)
+                    / MECHANISM_FILE_NAME
+                )
+                pdict = dict(type=get_full_type_name(mechanism_type)) | mparams
+                dump(pdict, params_path)
             for partners in partners_list:
                 runs += [
                     dict(
