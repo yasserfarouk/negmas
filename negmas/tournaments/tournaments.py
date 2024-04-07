@@ -25,6 +25,7 @@ from socket import gethostname
 from typing import Any, Callable, Iterable, Sequence
 
 from rich import print
+from rich.progress import track
 import numpy as np
 import pandas as pd
 import yaml
@@ -63,6 +64,7 @@ __all__ = [
 ]
 
 MAX_TASKS_PER_CHILD = 10
+TIMEOUT_EXTRA = 1.05
 
 
 def to_file(x, f):
@@ -1238,10 +1240,20 @@ def _submit_all(
     attempts_path,
     verbose,
     max_attempts,
-) -> list[futures.Future]:
+) -> tuple[list[futures.Future], float | None]:
     """Submits all processes to be executed by the executor"""
     future_results = []
-    for i, worlds_params in enumerate(assigned):
+    timeout = float("-inf")
+    for worlds_params in assigned:
+        for w in worlds_params:
+            timeout = max(
+                timeout, w.get("world_params", dict()).get("time_limit", float("-inf"))
+            )
+    if np.isinf(timeout):
+        timeout = None
+    else:
+        timeout = timeout * TIMEOUT_EXTRA
+    for worlds_params in assigned:
         run_id = _hash(worlds_params)
         if run_id in run_ids:
             continue
@@ -1267,7 +1279,7 @@ def _submit_all(
             print(f"{len(future_results)/len(assigned):5.2%}")
         else:
             print("")
-    return future_results
+    return future_results, timeout
 
 
 def save_run_results(
@@ -1358,7 +1370,7 @@ def _run_parallel(
         scheduler_ip=scheduler_ip,
         scheduler_port=scheduler_port,
     )
-    future_results = _submit_all(
+    future_results, timeout = _submit_all(
         executor,
         assigned,
         run_ids,
@@ -1371,14 +1383,25 @@ def _run_parallel(
         max_attempts,
     )
     n_world_configs = len(future_results)
+    if verbose:
+        print(f"World timeout is {timeout} and total-timeout is {total_timeout}")
     _strt = time.perf_counter()
-    for i, future in enumerate(as_completed(future_results)):
+    for i, future in track(
+        enumerate(as_completed(future_results)),
+        total=n_world_configs,
+        description="Simulating ...",
+    ):
         if total_timeout is not None and time.perf_counter() - strt > total_timeout:
             break
         try:
-            (run_id, world_paths, score_, world_stats_, type_stats_, agent_stats_) = (
-                future.result()  # type: ignore
-            )
+            (
+                run_id,
+                world_paths,
+                score_,
+                world_stats_,
+                type_stats_,
+                agent_stats_,
+            ) = future.result(timeout=timeout)
             save_run_results(
                 run_id,
                 score_,
