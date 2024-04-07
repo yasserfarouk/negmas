@@ -6,6 +6,7 @@ from __future__ import annotations
 
 import concurrent.futures as futures
 import copy
+from datetime import datetime
 import hashlib
 import itertools
 import math
@@ -23,6 +24,7 @@ from pathlib import Path
 from socket import gethostname
 from typing import Any, Callable, Iterable, Sequence
 
+from rich import print
 import numpy as np
 import pandas as pd
 import yaml
@@ -1309,7 +1311,7 @@ def save_run_results(
     if verbose:
         _duration = time.perf_counter() - _strt
         print(
-            f"{i + 1:003} of {n_world_configs:003} [{100 * (i + 1) / n_world_configs:0.3}%] "
+            f'{datetime.now().strftime("%Y-%m-%d %H:%M:%S")} {i + 1:003} of {n_world_configs:003} [{100 * (i + 1) / n_world_configs:0.3}%] '
             f'{"completed"} in '
             f"{humanize_time(_duration)}"
             f" [ETA {humanize_time(_duration * n_world_configs / (i + 1))}]"
@@ -1396,7 +1398,7 @@ def _run_parallel(
             if tournament_progress_callback is not None:
                 tournament_progress_callback(None, i, n_world_configs)
             if verbose:
-                print("Future timed-out")
+                print("[yellow]Future timed-out[/yellow]")
         except futures.process.BrokenProcessPool as e:
             if tournament_progress_callback is not None:
                 tournament_progress_callback(None, i, n_world_configs)
