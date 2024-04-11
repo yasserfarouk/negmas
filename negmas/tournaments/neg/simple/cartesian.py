@@ -72,6 +72,7 @@ OPTIONAL_COLS = (TOURNAMENT_COL_NAME,)
 OPTIMALITY_COLS = (
     "nash_optimality",
     "kalai_optimality",
+    "ks_optimality",
     "max_welfare_optimality",
     "pareto_optimality",
 )
@@ -1189,7 +1190,7 @@ def cartesian_tournament(
                                     failing to reach agreements in self-play
         randomize_runs: If `True` negotiations will be run in random order, otherwise each scenario/partner combination will be finished before starting on the next
         save_every: Number of negotiations after which we dump details and scores
-        save_stats: Whether to calculate and save extra statistics like pareto_optimality, nash_optimality, kalai_optimality, etc
+        save_stats: Whether to calculate and save extra statistics like pareto_optimality, nash_optimality, kalai-smorodinsky optimality (ks_optimality), kalai_optimality, etc
         save_scenario_figs: Whether to save a png of the scenario represented in the utility domain for every scenario.
         final_score: A tuple of two strings giving the metric used for ordering the negotiators for the final score:
                      First string can be one of the following (advantage, utility,
@@ -1299,6 +1300,7 @@ def cartesian_tournament(
                         show_pareto_distance=False,
                         show_nash_distance=False,
                         show_kalai_distance=False,
+                        show_ks_distance=False,
                         show_max_welfare_distance=False,
                         show_max_relative_welfare_distance=False,
                         show_end_reason=False,

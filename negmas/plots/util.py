@@ -4,6 +4,8 @@ import pathlib
 import uuid
 from typing import TYPE_CHECKING, Callable, Protocol, TypeVar, Generic
 
+from matplotlib.markers import CARETDOWN, CARETLEFT, CARETRIGHT, CARETUP
+
 from negmas.common import MechanismState, NegotiatorMechanismInterface, TraceElement
 from negmas.gb import ResponseType
 from negmas.helpers.misc import make_callable
@@ -17,6 +19,7 @@ from negmas.preferences import BaseUtilityFunction
 from negmas.preferences.crisp_ufun import UtilityFunction
 from negmas.preferences.ops import (
     kalai_points,
+    ks_points,
     max_relative_welfare_points,
     max_welfare_points,
     nash_points,
@@ -105,17 +108,30 @@ def plot_with_trancparency(
 
 
 ALL_MARKERS = ["s", "o", "v", "^", "<", ">", "p", "P", "h", "H", "1", "2", "3", "4"]
-PROPOSALS_ALPHA = 0.9
+PROPOSALS_ALPHA = 0.7
 AGREEMENT_ALPHA = 0.9
-PARETO_ALPHA = 0.6
-NASH_ALPHA = 0.6
-KALAI_ALPHA = 0.6
+PARETO_ALPHA = 0.4
+NASH_ALPHA = 0.4
+KALAI_ALPHA = 0.4
+KS_ALPHA = 0.4
+KALAI_MARKER = CARETDOWN
+KS_MARKER = CARETUP
+WELFARE_MARKER = CARETRIGHT
+NASH_MARKER = CARETLEFT
+KALAI_COLOR = "green"
+KS_COLOR = "cyan"
+WELFARE_COLOR = "blue"
+NASH_COLOR = "brown"
 RESERVED_ALPHA = 0.08
 WELFARE_ALPHA = 0.6
-AGREEMENT_SCALE = 10
-NASH_SCALE = 4
-KALAI_SCALE = 4
-WELFARE_SCALE = 2
+NASH_ALPHA = 0.6
+KALAI_ALPHA = 0.6
+KS_ALPHA = 0.6
+AGREEMENT_SCALE = 7
+NASH_SCALE = 3
+KALAI_SCALE = 3
+KS_SCALE = 3
+WELFARE_SCALE = 3
 OUTCOMES_SCALE = 0.5
 PARETO_SCALE = 1.0
 
@@ -316,9 +332,9 @@ def plot_offer_utilities(
                 elements = list(set(elements))
                 a.scatter(
                     [_[0] for _ in elements],
-                    [_[1] for _ in elements],
+                    [float(_[1]) for _ in elements],
                     color=plotinfo.get("color", thecolor),
-                    marker=plotinfo["marker"],
+                    marker=plotinfo["marker"],  # type: ignore
                     s=plotinfo["s"],
                 )
         if reserved:
@@ -372,11 +388,13 @@ def plot_2dutils(
     show_pareto_distance: bool = True,
     show_nash_distance: bool = True,
     show_kalai_distance: bool = True,
+    show_ks_distance: bool = True,
     show_max_welfare_distance: bool = True,
     mark_pareto_points: bool = True,
     mark_all_outcomes: bool = True,
     mark_nash_points: bool = True,
     mark_kalai_points: bool = True,
+    mark_ks_points: bool = True,
     mark_max_welfare_points: bool = True,
     show_max_relative_welfare_distance: bool = True,
     show_reserved: bool = True,
@@ -440,6 +458,7 @@ def plot_2dutils(
         frontier_outcome = [frontier_outcome[i] for i in frontier_indices]
         nash_pts = []
         kalai_pts = []
+        ks_pts = []
         mwelfare_pts = []
         mrwelfare_pts = []
     else:
@@ -462,6 +481,7 @@ def plot_2dutils(
 
         nash_pts = nash_points(plotting_ufuns, frontier, outcome_space=outcome_space)
         kalai_pts = kalai_points(plotting_ufuns, frontier, outcome_space=outcome_space)
+        ks_pts = ks_points(plotting_ufuns, frontier, outcome_space=outcome_space)
         mwelfare_pts = max_welfare_points(
             plotting_ufuns, frontier, outcome_space=outcome_space
         )
@@ -473,12 +493,15 @@ def plot_2dutils(
         show_nash_distance = False
     if not kalai_pts:
         show_kalai_distance = False
+    if not ks_pts:
+        show_ks_distance = False
     if not mwelfare_pts:
         show_max_welfare_distance = False
     if not mrwelfare_pts:
         show_max_relative_welfare_distance = False
     pareto_distance = float("inf")
     nash_distance, kalai_distance = float("inf"), float("inf")
+    ks_distance = float("inf")
     max_welfare_distance, max_relative_welfare_distance = float("inf"), float("inf")
     f1, f2 = [_[0] for _ in frontier], [_[1] for _ in frontier]
     if mark_pareto_points:
@@ -504,6 +527,10 @@ def plot_2dutils(
             kalai_distance = min(
                 kalai_distance,
                 math.sqrt((kalai[0] - cu[0]) ** 2 + (kalai[1] - cu[1]) ** 2),
+            )
+        for ks, _ in ks_pts:
+            ks_distance = min(
+                ks_distance, math.sqrt((ks[0] - cu[0]) ** 2 + (ks[1] - cu[1]) ** 2)
             )
         for pt, _ in mwelfare_pts:
             max_welfare_distance = min(
@@ -534,6 +561,8 @@ def plot_2dutils(
         txt += f"Nash-distance={nash_distance:5.2}\n"
     if not fast and show_kalai_distance and agreement is not None:
         txt += f"Kalai-distance={kalai_distance:5.2}\n"
+    if not fast and show_ks_distance and agreement is not None:
+        txt += f"KS-distance={ks_distance:5.2}\n"
     if not fast and show_max_welfare_distance and agreement is not None:
         txt += f"MaxWelfare-distance={max_welfare_distance:5.2}\n"
     if not fast and show_max_relative_welfare_distance and agreement is not None:
@@ -631,7 +660,7 @@ def plot_2dutils(
     #         for f in welfare:
     #             ax.annotate(
     #                 "Max. Welfare",
-    #                 xy=f,  # theta, radius
+    #                 xy=f,  # type: ignore (theta, radius)
     #                 xytext=(
     #                     f[0] + 0.02,
     #                     f[1] + 0.02 * yrange,
@@ -640,6 +669,97 @@ def plot_2dutils(
     #                 verticalalignment="bottom",
     #             )
     #
+    if not fast:
+        if mwelfare_pts and mark_max_welfare_points:
+            ax.scatter(
+                [mwelfare[0] for mwelfare, _ in mwelfare_pts],
+                [mwelfare[1] for mwelfare, _ in mwelfare_pts],
+                color=WELFARE_COLOR,
+                label="Max Welfare Points",
+                marker=WELFARE_MARKER,
+                alpha=NASH_ALPHA,
+                s=int(default_marker_size * WELFARE_SCALE),
+            )
+            if show_annotations:
+                for mwelfare, _ in mwelfare_pts:
+                    ax.annotate(
+                        "Max Welfare Point",
+                        xy=mwelfare,  # type: ignore (theta, radius)
+                        xytext=(
+                            mwelfare[0] + 0.02,
+                            mwelfare[1] - 0.02 * yrange,
+                        ),  # fraction, fraction
+                        horizontalalignment="left",
+                        verticalalignment="bottom",
+                    )
+        if kalai_pts and mark_kalai_points:
+            ax.scatter(
+                [kalai[0] for kalai, _ in kalai_pts],
+                [kalai[1] for kalai, _ in kalai_pts],
+                color=KALAI_COLOR,
+                label="Kalai Point",
+                marker=KALAI_MARKER,
+                alpha=KALAI_ALPHA,
+                s=int(default_marker_size * KALAI_SCALE),
+            )
+            if show_annotations:
+                for kalai, _ in kalai_pts:
+                    ax.annotate(
+                        "Kalai Point",
+                        xy=kalai,  # type: ignore (theta, radius)
+                        xytext=(
+                            kalai[0] + 0.02,
+                            kalai[1] - 0.02 * yrange,
+                        ),  # fraction, fraction
+                        horizontalalignment="left",
+                        verticalalignment="bottom",
+                    )
+
+        if ks_pts and mark_ks_points:
+            ax.scatter(
+                [ks[0] for ks, _ in ks_pts],
+                [ks[1] for ks, _ in ks_pts],
+                color=KS_COLOR,
+                label="KS Point",
+                marker=KS_MARKER,
+                alpha=KS_ALPHA,
+                s=int(default_marker_size * KS_SCALE),
+            )
+            if show_annotations:
+                for ks, _ in ks_pts:
+                    ax.annotate(
+                        "KS Point",
+                        xy=ks,  # type: ignore (theta, radius)
+                        xytext=(
+                            ks[0] + 0.02,
+                            ks[1] - 0.02 * yrange,
+                        ),  # fraction, fraction
+                        horizontalalignment="left",
+                        verticalalignment="bottom",
+                    )
+        if nash_pts and mark_nash_points:
+            ax.scatter(
+                [nash[0] for nash, _ in nash_pts],
+                [nash[1] for nash, _ in nash_pts],
+                color=NASH_COLOR,
+                label="Nash Point",
+                marker=NASH_MARKER,
+                alpha=NASH_ALPHA,
+                s=int(default_marker_size * NASH_SCALE),
+            )
+            if show_annotations:
+                for nash, _ in nash_pts:
+                    ax.annotate(
+                        "Nash Point",
+                        xy=nash,  # type: ignore (theta, radius)
+                        xytext=(
+                            nash[0] + 0.02,
+                            nash[1] - 0.02 * yrange,
+                        ),  # fraction, fraction
+                        horizontalalignment="left",
+                        verticalalignment="bottom",
+                    )
+
     if agreement is not None:
         ax.scatter(
             [plotting_ufuns[0](agreement)],
@@ -653,7 +773,7 @@ def plot_2dutils(
         if show_annotations:
             ax.annotate(
                 "Agreement",
-                xy=agreement_utility,  # theta, radius
+                xy=agreement_utility,  # type: ignore
                 xytext=(
                     agreement_utility[0] + 0.02,
                     agreement_utility[1] + 0.02,
@@ -661,97 +781,8 @@ def plot_2dutils(
                 horizontalalignment="left",
                 verticalalignment="bottom",
             )
+
     if not fast:
-        if kalai_pts and mark_kalai_points:
-            ax.scatter(
-                [kalai[0] for kalai, _ in kalai_pts],
-                [kalai[1] for kalai, _ in kalai_pts],
-                color="green",
-                label="Kalai Point",
-                marker="P",
-                alpha=KALAI_ALPHA,
-                s=int(default_marker_size * KALAI_SCALE),
-            )
-            if show_annotations:
-                for kalai, _ in kalai_pts:
-                    ax.annotate(
-                        "Kalai Point",
-                        xy=kalai,  # theta, radius
-                        xytext=(
-                            kalai[0] + 0.02,
-                            kalai[1] - 0.02 * yrange,
-                        ),  # fraction, fraction
-                        horizontalalignment="left",
-                        verticalalignment="bottom",
-                    )
-        # if mrwelfare_pts:
-        #     ax.scatter(
-        #         [mrwelfare[0] for mrwelfare, _ in mrwelfare_pts],
-        #         [mrwelfare[1] for mrwelfare, _ in mrwelfare_pts],
-        #         color="cyan",
-        #         label=f"Max Relative Welfare Points",
-        #         marker="X",
-        #         alpha=NASH_ALPHA,
-        #         s=int(default_marker_size * NASH_SCALE),
-        #     )
-        #     if show_annotations:
-        #         for mrwelfare, _ in mrwelfare_pts:
-        #             ax.annotate(
-        #                 "Max Relative Welfare Point",
-        #                 xy=mrwelfare,  # theta, radius
-        #                 xytext=(
-        #                     mrwelfare[0] + 0.02,
-        #                     mrwelfare[1] - 0.02 * yrange,
-        #                 ),  # fraction, fraction
-        #                 horizontalalignment="left",
-        #                 verticalalignment="bottom",
-        #             )
-
-        if nash_pts and mark_nash_points:
-            ax.scatter(
-                [nash[0] for nash, _ in nash_pts],
-                [nash[1] for nash, _ in nash_pts],
-                color="brown",
-                label="Nash Point",
-                marker="^",
-                alpha=NASH_ALPHA,
-                s=int(default_marker_size * NASH_SCALE),
-            )
-            if show_annotations:
-                for nash, _ in nash_pts:
-                    ax.annotate(
-                        "Nash Point",
-                        xy=nash,  # theta, radius
-                        xytext=(
-                            nash[0] + 0.02,
-                            nash[1] - 0.02 * yrange,
-                        ),  # fraction, fraction
-                        horizontalalignment="left",
-                        verticalalignment="bottom",
-                    )
-
-        if mwelfare_pts and mark_max_welfare_points:
-            ax.scatter(
-                [mwelfare[0] for mwelfare, _ in mwelfare_pts],
-                [mwelfare[1] for mwelfare, _ in mwelfare_pts],
-                color="blue",
-                label="Max Welfare Points",
-                marker="p",
-                alpha=NASH_ALPHA,
-                s=int(default_marker_size * NASH_SCALE),
-            )
-            if show_annotations:
-                for mwelfare, _ in mwelfare_pts:
-                    ax.annotate(
-                        "Max Welfare Point",
-                        xy=mwelfare,  # theta, radius
-                        xytext=(
-                            mwelfare[0] + 0.02,
-                            mwelfare[1] - 0.02 * yrange,
-                        ),  # fraction, fraction
-                        horizontalalignment="left",
-                        verticalalignment="bottom",
-                    )
         ax.legend(
             bbox_to_anchor=(0.0, 1.02, 1.0, 0.102),
             loc="lower left",
@@ -781,6 +812,7 @@ def plot_offline_run(
     show_pareto_distance: bool = True,
     show_nash_distance: bool = True,
     show_kalai_distance: bool = True,
+    show_ks_distance: bool = True,
     show_max_welfare_distance: bool = True,
     show_max_relative_welfare_distance: bool = False,
     show_end_reason: bool = True,
@@ -806,6 +838,7 @@ def plot_offline_run(
     mark_all_outcomes: bool = True,
     mark_nash_points: bool = True,
     mark_kalai_points: bool = True,
+    mark_ks_points: bool = True,
     mark_max_welfare_points: bool = True,
 ):
     import matplotlib.gridspec as gridspec
@@ -907,6 +940,7 @@ def plot_offline_run(
             show_pareto_distance=show_pareto_distance,
             show_nash_distance=show_nash_distance,
             show_kalai_distance=show_kalai_distance,
+            show_ks_distance=show_ks_distance,
             show_max_welfare_distance=show_max_welfare_distance,
             show_max_relative_welfare_distance=show_max_relative_welfare_distance,
             show_annotations=show_annotations,
@@ -925,6 +959,7 @@ def plot_offline_run(
             mark_all_outcomes=mark_all_outcomes,
             mark_nash_points=mark_nash_points,
             mark_kalai_points=mark_kalai_points,
+            mark_ks_points=mark_ks_points,
             mark_max_welfare_points=mark_max_welfare_points,
         )
     if save_fig:
@@ -957,6 +992,7 @@ def plot_mechanism_run(
     show_pareto_distance: bool = True,
     show_nash_distance: bool = True,
     show_kalai_distance: bool = True,
+    show_ks_distance: bool = True,
     show_max_welfare_distance: bool = True,
     show_max_relative_welfare_distance: bool = False,
     show_end_reason: bool = True,
@@ -982,6 +1018,7 @@ def plot_mechanism_run(
     mark_all_outcomes: bool = True,
     mark_nash_points: bool = True,
     mark_kalai_points: bool = True,
+    mark_ks_points: bool = True,
     mark_max_welfare_points: bool = True,
 ):
     import matplotlib.gridspec as gridspec
@@ -1083,6 +1120,7 @@ def plot_mechanism_run(
             show_pareto_distance=show_pareto_distance,
             show_nash_distance=show_nash_distance,
             show_kalai_distance=show_kalai_distance,
+            show_ks_distance=show_ks_distance,
             show_max_welfare_distance=show_max_welfare_distance,
             show_max_relative_welfare_distance=show_max_relative_welfare_distance,
             show_annotations=show_annotations,
@@ -1101,6 +1139,7 @@ def plot_mechanism_run(
             mark_all_outcomes=mark_all_outcomes,
             mark_nash_points=mark_nash_points,
             mark_kalai_points=mark_kalai_points,
+            mark_ks_points=mark_ks_points,
             mark_max_welfare_points=mark_max_welfare_points,
         )
     if save_fig:

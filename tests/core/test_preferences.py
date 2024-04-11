@@ -159,18 +159,21 @@ def test_calc_outcome_stats(n_outcomes, n_negotiators, normalized, sort, r0, r1)
                     dists.pareto_dist,
                     dists.nash_dist,
                     dists.kalai_dist,
+                    dists.ks_dist,
                     # dists.max_relative_welfare,
                 ),
                 (
                     optim_overall.pareto_optimality,
                     optim_overall.nash_optimality,
                     optim_overall.kalai_optimality,
+                    optim_overall.ks_optimality,
                     # optim_overall.max_relative_welfare_optimality,
                 ),
                 (
                     stats.pareto_outcomes,
                     stats.nash_outcomes,
                     stats.kalai_outcomes,
+                    stats.ks_outcomes,
                     # stats.max_relative_welfare_outcomes,
                 ),
                 strict=True,
@@ -182,6 +185,7 @@ def test_calc_outcome_stats(n_outcomes, n_negotiators, normalized, sort, r0, r1)
                 stats.pareto_outcomes,
                 stats.nash_outcomes,
                 stats.kalai_outcomes,
+                stats.ks_outcomes,
                 # stats.max_relative_welfare_outcomes,
             ):
                 assert outcome not in lst
@@ -189,6 +193,7 @@ def test_calc_outcome_stats(n_outcomes, n_negotiators, normalized, sort, r0, r1)
                     dists.pareto_dist,
                     dists.nash_dist,
                     dists.kalai_dist,
+                    dists.ks_dist,
                     # dists.max_relative_welfare,
                 ):
                     _test_dist(d, outcome, lst)
@@ -196,6 +201,7 @@ def test_calc_outcome_stats(n_outcomes, n_negotiators, normalized, sort, r0, r1)
                     optim_overall.pareto_optimality,
                     optim_overall.nash_optimality,
                     optim_overall.kalai_optimality,
+                    optim_overall.ks_optimality,
                     # optim_overall.max_relative_welfare_optimality,
                 ):
                     _test_optim(o1, outcome, lst)
@@ -969,18 +975,21 @@ def test_rank_only_ufun_no_randomize():
 #                     dists.pareto_dist,
 #                     dists.nash_dist,
 #                     dists.kalai_dist,
+#                     dists.ks_dist,
 #                     # dists.max_relative_welfare,
 #                 ),
 #                 (
 #                     optim_overall.pareto_optimality,
 #                     optim_overall.nash_optimality,
 #                     optim_overall.kalai_optimality,
+#                     optim_overall.ks_optimality,
 #                     # optim_overall.max_relative_welfare_optimality,
 #                 ),
 #                 (
 #                     stats.pareto_outcomes,
 #                     stats.nash_outcomes,
 #                     stats.kalai_outcomes,
+#                     stats.ks_outcomes,
 #                     # stats.max_relative_welfare_outcomes,
 #                 ),
 #                 strict=True,
@@ -992,6 +1001,7 @@ def test_rank_only_ufun_no_randomize():
 #                 stats.pareto_outcomes,
 #                 stats.nash_outcomes,
 #                 stats.kalai_outcomes,
+#                 stats.ks_outcomes,
 #                 # stats.max_relative_welfare_outcomes,
 #             ):
 #                 assert outcome not in lst
@@ -999,6 +1009,7 @@ def test_rank_only_ufun_no_randomize():
 #                     dists.pareto_dist,
 #                     dists.nash_dist,
 #                     dists.kalai_dist,
+#                     dists.ks_dist,
 #                     # dists.max_relative_welfare,
 #                 ):
 #                     _test_dist(d, outcome, lst)
@@ -1006,6 +1017,7 @@ def test_rank_only_ufun_no_randomize():
 #                     optim_overall.pareto_optimality,
 #                     optim_overall.nash_optimality,
 #                     optim_overall.kalai_optimality,
+#                     optim_overall.ks_optimality,
 #                     # optim_overall.max_relative_welfare_optimality,
 #                 ):
 #                     _test_optim(o1, outcome, lst)

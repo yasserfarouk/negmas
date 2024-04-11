@@ -708,6 +708,7 @@ class SAOMechanism(
         show_pareto_distance: bool = True,
         show_nash_distance: bool = True,
         show_kalai_distance: bool = True,
+        show_ks_distance: bool = True,
         show_max_welfare_distance: bool = True,
         show_max_relative_welfare_distance: bool = False,
         show_end_reason: bool = True,
@@ -732,6 +733,7 @@ class SAOMechanism(
         mark_all_outcomes: bool = True,
         mark_nash_points: bool = True,
         mark_kalai_points: bool = True,
+        mark_ks_points: bool = True,
         mark_max_welfare_points: bool = True,
         **kwargs,
     ):
@@ -755,6 +757,7 @@ class SAOMechanism(
             show_pareto_distance=show_pareto_distance,
             show_nash_distance=show_nash_distance,
             show_kalai_distance=show_kalai_distance,
+            show_ks_distance=show_ks_distance,
             show_max_welfare_distance=show_max_welfare_distance,
             show_max_relative_welfare_distance=show_max_relative_welfare_distance,
             show_end_reason=show_end_reason,
@@ -779,6 +782,7 @@ class SAOMechanism(
             mark_all_outcomes=mark_all_outcomes,
             mark_nash_points=mark_nash_points,
             mark_kalai_points=mark_kalai_points,
+            mark_ks_points=mark_ks_points,
             mark_max_welfare_points=mark_max_welfare_points,
             **kwargs,
         )

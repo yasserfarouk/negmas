@@ -1423,6 +1423,29 @@ class World(
         )
         self.unsigned_contracts[to_be_signed_at].add(contract)
 
+    def on_negotiation_start(self, info: NegotiationInfo):
+        """Called whenever a negotiation is registered before it starts"""
+        pass
+
+    def on_negotiation_stepped(self, info: NegotiationInfo):
+        """Called whenever a negotiation is stepped"""
+        pass
+
+    def on_negotiation_end(self, info: NegotiationInfo):
+        """Called whenever a negotiation is ended **before** calling on_negotiation_failure_/on_negotiation_success_"""
+        pass
+
+    def on_negotiation_processed(
+        self, info: NegotiationInfo, contract: Contract | None
+    ):
+        """
+        Called whenever a negotiation is ended **after** calling on_negotiation_failure_/on_negotiation_success_
+
+        Remarks:
+            If contract is `None`, the negotiation ended in failure otherwise it ended in success.
+        """
+        pass
+
     def _register_contract(
         self, mechanism, negotiation, to_be_signed_at
     ) -> Contract | None:
@@ -1586,20 +1609,27 @@ class World(
                     )
 
         agreement, is_running = result.agreement, not result.ended
+        negotiation = self._negotiations.get(mechanism.id, None)
+        if negotiation is not None:
+            self.on_negotiation_stepped(negotiation)
         if agreement is not None or not is_running:
-            negotiation = self._negotiations.get(mechanism.id, None)
+            if negotiation is not None:
+                self.on_negotiation_end(negotiation)
             if self._debug:
                 assert (
                     negotiation is not None
                 ), f"{mechanism.id} just finished but it is not in the set of running negotiations!!"
             if agreement is None:
                 self._register_failed_negotiation(mechanism.nmi, negotiation)
+                contract = None
             else:
                 contract = self._register_contract(
                     mechanism.nmi,
                     negotiation,
                     self._tobe_signed_at(agreement, force_immediate_signing),
                 )
+            if negotiation is not None:
+                self.on_negotiation_processed(negotiation, contract)
             self._log_negotiation(negotiation)
             self._negotiations.pop(mechanism.id, None)
         return contract, is_running
@@ -2465,6 +2495,7 @@ class World(
         self.negs_initiated[caller.id] += 1
         for partner in partners:
             self.negs_registered[partner.id] += 1
+        self.on_negotiation_start(neg)
         if run_to_completion:
             running, contract = True, None
             while running:

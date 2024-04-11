@@ -6,7 +6,7 @@ from math import sqrt
 from typing import TYPE_CHECKING, Any, Iterable, Literal, Sequence, TypeVar, overload
 
 import numpy as np
-from attrs import define
+from attrs import define, field
 from numpy.typing import NDArray
 from scipy import spatial
 from scipy.stats import rankdata
@@ -18,7 +18,7 @@ from negmas.outcomes.common import os_or_none
 from negmas.outcomes.issue_ops import enumerate_issues
 from negmas.outcomes.protocols import OutcomeSpace
 from negmas.preferences.crisp.mapping import MappingUtilityFunction
-from negmas.warnings import warn_if_slow
+from negmas.warnings import NegmasUnexpectedValueWarning, warn_if_slow
 
 if TYPE_CHECKING:
     from negmas.preferences.prob_ufun import ProbUtilityFunction
@@ -36,6 +36,7 @@ __all__ = [
     "pareto_frontier_active",
     "nash_points",
     "kalai_points",
+    "ks_points",
     "max_welfare_points",
     "max_relative_welfare_points",
     "make_discounted_ufun",
@@ -152,9 +153,13 @@ class ScenarioStats:
     max_welfare_outcomes: list[Outcome]
     max_relative_welfare_utils: list[tuple[float, ...]]
     max_relative_welfare_outcomes: list[Outcome]
+    ks_utils: list[tuple[float, ...]] = field(factory=list)
+    ks_outcomes: list[Outcome] = field(factory=list)
+    modified_ks_utils: list[tuple[float, ...]] = field(factory=list)
+    modified_ks_outcomes: list[Outcome] = field(factory=list)
     # TODO: Add more stats here. See the negobench overleaf for examples.
     # Add advantage_range_ratio (ratio of rational ufun ranges), utility_range_ratio.
-    # Add distances between major points like kalai, nash and max-welfare
+    # Add distances between major points like kalai, kalai-smorodinsky, nash and max-welfare
     # Add max and min advantage-range and utility-range
     # Add Spread = area of the convexhull of all points divided by are of the rectangle constructed by ranges
     # Add Optimality = fraction of outcomes on the Pareto-frontier
@@ -198,6 +203,19 @@ class ScenarioStats:
             [_[1] for _ in modified_kalai],
         )
         modified_kalai_outcomes = [pareto_outcomes[_] for _ in modified_kalai_indices]
+        ks = ks_points(
+            ufuns, ranges=ranges, frontier=pareto_utils, subtract_reserved_value=True
+        )
+        ks_utils, ks_indices = [_[0] for _ in ks], [_[1] for _ in ks]
+        ks_outcomes = [pareto_outcomes[_] for _ in ks_indices]
+        modified_ks = ks_points(
+            ufuns, ranges=ranges, frontier=pareto_utils, subtract_reserved_value=False
+        )
+        modified_ks_utils, modified_ks_indices = (
+            [_[0] for _ in modified_ks],
+            [_[1] for _ in modified_ks],
+        )
+        modified_ks_outcomes = [pareto_outcomes[_] for _ in modified_ks_indices]
         welfare = max_welfare_points(ufuns, ranges=ranges, frontier=pareto_utils)
         welfare_utils, welfare_indices = (
             [_[0] for _ in welfare],
@@ -225,6 +243,10 @@ class ScenarioStats:
             kalai_outcomes=kalai_outcomes,
             modified_kalai_utils=modified_kalai_utils,
             modified_kalai_outcomes=modified_kalai_outcomes,
+            ks_utils=ks_utils,
+            ks_outcomes=ks_outcomes,
+            modified_ks_utils=modified_ks_utils,
+            modified_ks_outcomes=modified_ks_outcomes,
             max_welfare_utils=welfare_utils,
             max_welfare_outcomes=welfare_outcomes,
             max_relative_welfare_utils=relative_welfare_utils,
@@ -239,6 +261,8 @@ class OutcomeOptimality:
     kalai_optimality: float
     modified_kalai_optimality: float
     max_welfare_optimality: float
+    ks_optimality: float = float("nan")
+    modified_ks_optimality: float = float("nan")
     # max_relative_welfare_optimality: float
 
 
@@ -249,6 +273,8 @@ class OutcomeDistances:
     kalai_dist: float
     modified_kalai_dist: float
     max_welfare: float
+    ks_dist: float = float("nan")
+    modified_ks_dist: float = float("nan")
     # max_relative_welfare: float
 
 
@@ -781,6 +807,103 @@ def _pareto_frontier_bf(
     return indices
 
 
+def ks_points(
+    ufuns: Sequence[UtilityFunction],
+    frontier: Sequence[tuple[float, ...]],
+    ranges: Sequence[tuple[float, ...]] | None = None,
+    outcome_space: OutcomeSpace | None = None,
+    issues: Sequence[Issue] | None = None,
+    outcomes: Sequence[Outcome] | None = None,
+    eps: float = 1e-12,
+    subtract_reserved_value: bool = True,
+    exponent: float = float("inf"),
+) -> tuple[tuple[tuple[float, ...], int], ...]:
+    """
+    Calculates the all Kalai-Somordinsky bargaining solutions on the Pareto frontier of a negotiation which is the bargaining solution that maximizes minimum advantage ratio
+    ref:  Kalai, Ehud, and Meir Smorodinsky. "Other solutions to Nash's bargaining problem." Econometrica: Journal of the Econometric Society (1975): 513-518.
+
+    Args:
+        ufuns: A list of ufuns to use
+        frontier: a list of tuples each giving the utility values at some outcome on the frontier (usually found by `pareto_frontier`) to search within
+        outcome_space: The outcome-space to consider
+        issues: The issues on which the ufun is defined (outcomes may be passed instead)
+        outcomes: The outcomes on which the ufun is defined (outcomes may be passed instead)
+        exponent: The exponent used for evaluating distance to the optimal KS solution as the degree of the L-norm used.
+                  The default is infinity which indicates the maximum difference. Currently not used
+
+    Returns:
+
+        A tuple of three values (all will be None if reserved values are unknown)
+
+        - A tuple of utility values at the nash point
+        - The index of the given frontier corresponding to the nash point
+
+    Remarks:
+
+        - The function searches within the given frontier only.
+
+    """
+    if not math.isinf(exponent):
+        warnings.warn(
+            "kalai-smorodinsky solution currently only supports the extreme case of exponent=float('inf')",
+            NegmasUnexpectedValueWarning,
+        )
+    if not frontier:
+        return tuple()
+    # calculate the minimum and maximum value for each ufun
+    if not ranges:
+        ranges = [
+            _.minmax(outcome_space, above_reserve=False)
+            if outcome_space
+            else _.minmax(issues=issues, above_reserve=False)
+            if issues
+            else _.minmax(outcomes=outcomes, above_reserve=False)
+            for _ in ufuns
+        ]
+    # find reserved values
+    rs = tuple(_.reserved_value for _ in ufuns)
+    rs = tuple(float(_) if _ is not None else float("-inf") for _ in rs)
+    # find all reserved values
+    ranges = list(ranges)
+    for i, (r, rng) in enumerate(zip(rs, ranges)):
+        if any(_ is None or not math.isfinite(_) for _ in rng):
+            raise ValueError(f"Cannot find the range for ufun {i}: {rng}")
+        if r is None or r < rng[0]:
+            continue
+        ranges[i] = (r, rng[1])
+    # if all ranges are very tiny, return everything as optimal
+    if any([(_[1] - _[0]) <= eps for _ in ranges]):
+        return tuple(zip(frontier, range(len(frontier))))
+    # find difference between reserved value and maximum
+    vals, results = [], []
+    optim_val, optim_indx = float("inf"), None
+    for indx, outcome in enumerate(frontier):
+        if any(u < r for u, r in zip(outcome, rs)):
+            vals.append(float("inf"))
+            continue
+        if subtract_reserved_value:
+            advantages = [
+                ((float(u) - r) / (x - r)) if (x - r) else (float(u) - r)
+                for u, (r, x) in zip(outcome, ranges)
+            ]
+        else:
+            advantages = [
+                (float(u) / x) if x else float(u) for u, (_, x) in zip(outcome, ranges)
+            ]
+        val = max(advantages) - min(advantages)
+        vals.append(val)
+        if val < optim_val:
+            optim_val = val
+            optim_indx = indx
+    if optim_indx is None:
+        return tuple()
+
+    for indx, (val, outcome) in enumerate(zip(vals, frontier)):
+        if val <= optim_val + eps:
+            results.append((outcome, indx))
+    return tuple(results)
+
+
 def kalai_points(
     ufuns: Sequence[UtilityFunction],
     frontier: Sequence[tuple[float, ...]],
@@ -1057,8 +1180,10 @@ def calc_outcome_distances(
     ndist = distance_to(utils, stats.nash_utils)
     kdist = distance_to(utils, stats.kalai_utils)
     mkdist = distance_to(utils, stats.modified_kalai_utils)
+    ksdist = distance_to(utils, stats.ks_utils)
+    mksdist = distance_to(utils, stats.modified_ks_utils)
     welfare = sum(utils)
-    return OutcomeDistances(pdist, ndist, kdist, mkdist, welfare)
+    return OutcomeDistances(pdist, ndist, kdist, mkdist, welfare, ksdist, mksdist)
 
 
 def estimate_max_dist(ufuns: Sequence[UtilityFunction]) -> float:
@@ -1102,6 +1227,8 @@ def calc_outcome_optimality(
             stats.modified_kalai_utils,
             dists.modified_kalai_dist,
         ),
+        ("ks_optimality", stats.ks_utils, dists.ks_dist),
+        ("modified_ks_optimality", stats.modified_ks_utils, dists.modified_ks_dist),
     ):
         if not lst:
             optim[name] = float("nan")
@@ -1171,6 +1298,19 @@ def calc_scenario_stats(
         [_[1] for _ in modified_kalai],
     )
     modified_kalai_outcomes = [pareto_outcomes[_] for _ in modified_kalai_indices]
+    ks = ks_points(
+        ufuns, ranges=ranges, frontier=pareto_utils, subtract_reserved_value=True
+    )
+    ks_utils, ks_indices = [_[0] for _ in ks], [_[1] for _ in ks]
+    ks_outcomes = [pareto_outcomes[_] for _ in ks_indices]
+    modified_ks = ks_points(
+        ufuns, ranges=ranges, frontier=pareto_utils, subtract_reserved_value=False
+    )
+    modified_ks_utils, modified_ks_indices = (
+        [_[0] for _ in modified_ks],
+        [_[1] for _ in modified_ks],
+    )
+    modified_ks_outcomes = [pareto_outcomes[_] for _ in modified_ks_indices]
     welfare = max_welfare_points(ufuns, ranges=ranges, frontier=pareto_utils)
     welfare_utils, welfare_indices = [_[0] for _ in welfare], [_[1] for _ in welfare]
     welfare_outcomes = [pareto_outcomes[_] for _ in welfare_indices]
@@ -1199,6 +1339,10 @@ def calc_scenario_stats(
         kalai_outcomes=kalai_outcomes,
         modified_kalai_utils=modified_kalai_utils,
         modified_kalai_outcomes=modified_kalai_outcomes,
+        ks_utils=ks_utils,
+        ks_outcomes=ks_outcomes,
+        modified_ks_utils=modified_ks_utils,
+        modified_ks_outcomes=modified_ks_outcomes,
         max_welfare_utils=welfare_utils,
         max_welfare_outcomes=welfare_outcomes,
         max_relative_welfare_utils=relative_welfare_utils,
