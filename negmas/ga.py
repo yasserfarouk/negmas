@@ -1,4 +1,5 @@
 """Implements GA-based negotiation mechanisms"""
+
 from __future__ import annotations
 import copy
 import random
@@ -16,7 +17,7 @@ from .outcomes import Outcome
 class GAState(MechanismState):
     """Defines extra values to keep in the mechanism state. This is accessible to all negotiators"""
 
-    dominant_outcomes: list[Outcome] = field(default=list)
+    dominant_outcomes: list[Outcome] = field(factory=list)
 
 
 class GAMechanism(
