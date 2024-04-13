@@ -1,9 +1,11 @@
 """Defines basic config for NEGMAS"""
+
 from __future__ import annotations
 
 import json
 from os import environ
 from pathlib import Path
+from typing import TypeVar
 
 __all__ = [
     "NEGMAS_CONFIG",
@@ -62,7 +64,10 @@ def _from_env(key: str, default):
     return v
 
 
-def negmas_config(key: str, default):
+T = TypeVar("T")
+
+
+def negmas_config(key: str, default: T) -> T:
     """
     Returns the config value associated with the given key.
 

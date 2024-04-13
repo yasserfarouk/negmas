@@ -20,7 +20,7 @@ class CheckpointMixin:
         self,
         step_attrib: str = "current_step",
         every: int = 1,
-        folder: PathLike | None = None,
+        folder: PathLike | Path | str | None = None,
         filename: str | None = None,
         info: dict[str, Any] | None = None,
         exist_ok: bool = True,
