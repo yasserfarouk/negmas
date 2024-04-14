@@ -873,12 +873,12 @@ class Mechanism(
         )
 
     @property
-    def agent_ids(self) -> list[str]:
-        return [_.owner.id for _ in self._negotiators if _.owner]
+    def agent_ids(self) -> list[str | None]:
+        return [_.owner.id if _.owner else None for _ in self._negotiators]
 
     @property
-    def agent_names(self) -> list[str]:
-        return [_.owner.name for _ in self._negotiators if _.owner]
+    def agent_names(self) -> list[str | None]:
+        return [_.owner.name if _.owner else None for _ in self._negotiators]
 
     @property
     def negotiator_names(self) -> list[str]:
