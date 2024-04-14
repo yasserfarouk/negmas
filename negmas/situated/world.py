@@ -20,6 +20,8 @@ import yaml
 
 from negmas.checkpoints import CheckpointMixin
 from negmas.common import MechanismAction, NegotiatorMechanismInterface
+from negmas.sao.common import SAOState
+from negmas.sao.mechanism import SAOMechanism
 from negmas.config import negmas_config
 from negmas.events import Event, EventLogger, EventSink, EventSource
 from negmas.genius import ANY_JAVA_PORT, DEFAULT_JAVA_PORT, get_free_tcp_port
@@ -163,6 +165,7 @@ class World(
         save_negotiations: Save all negotiation records
         save_resolved_breaches: Save all resolved breaches
         save_unresolved_breaches: Save all unresolved breaches
+        saved_details_level: The level of details to save agent info (>=1), simulation info (>=1), negotiation info (>=2), negotiator action info (>=3)
 
         * Exception Handling *
 
@@ -222,6 +225,7 @@ class World(
         save_negotiations: bool = True,
         save_resolved_breaches: bool = True,
         save_unresolved_breaches: bool = True,
+        saved_details_level: int = 4,
         ignore_agent_exceptions: bool = False,
         ignore_negotiation_exceptions: bool = False,
         ignore_contract_execution_exceptions: bool = False,
@@ -234,7 +238,7 @@ class World(
         extra_checkpoint_info: dict[str, Any] | None = None,
         single_checkpoint: bool = True,
         exist_ok: bool = True,
-        operations: Collection[Operations] = (
+        operations: list[Operations] | tuple[Operations, ...] = (
             Operations.StatsUpdate,
             Operations.Negotiations,
             Operations.ContractSigning,
@@ -464,13 +468,6 @@ class World(
         self.attribs: dict[str, dict[str, Any]] = {}
         self._sim_start: float = 0
         self._step_start: float = 0
-        if log_stats_every is None or log_stats_every < 1:
-            self._stats_file_name = None
-            self._stats_dir_name = None
-        else:
-            stats_file_name = _path(str(Path(self._log_folder) / "stats.csv"))
-            self._stats_file_name = stats_file_name.name
-            self._stats_dir_name = stats_file_name.parent
 
         self.bulletin_board: BulletinBoard
         self.set_bulletin_board(bulletin_board=bulletin_board)
@@ -517,6 +514,73 @@ class World(
             genius_port=self.genius_port,
         )
         self.loginfo(f"{self.name}: World Created")
+
+        if log_stats_every is None or log_stats_every < 1:
+            self._stats_file_name = None
+            self._stats_dir_name = None
+        else:
+            stats_file_name = _path(str(Path(self._log_folder) / "stats.csv"))
+            self._stats_file_name = stats_file_name.name
+            self._stats_dir_name = stats_file_name.parent
+        # extra log information
+        self._saved_details_level = saved_details_level
+        self._extra_folder = Path(self._log_folder) if self._log_folder else None
+        if self._extra_folder is None:
+            self._saved_details_level = 0
+        else:
+            self._extra_folder.mkdir(exist_ok=True, parents=True)
+        self._sim_info: list[dict[str, Any]] = []
+        self._neg_info: dict[str, dict[str, Any]] = defaultdict(dict)
+        self._offer_info: list[tuple] = []
+        self._state_cats = ["agreement", "timedout", "ended", "error"]
+        self._offer_info_cols: list[tuple[str, type | str]] = [
+            ("id", str),
+            ("neg_id", str),
+            ("step", int),
+            ("relative_time", float),
+            ("time", float),
+            ("sender", str),
+            ("receiver", str),
+            ("sender_agent_id", str),
+            ("receiver_agent_id", str),
+            ("state", "category"),
+        ] + list(self.action_info_cols())
+        self._agreement_info_cols = self.agreement_info_cols()
+        self._agent_info: dict[str | None, dict[str, Any]] = defaultdict(dict)
+        self._agent_info[None] = dict(
+            id=0, name="NoAgent", type="NoAgent"
+        ) | self.extra_agent_info(None)
+        for i, (aid, agent) in enumerate(self.agents.items()):
+            self._agent_info[aid] = dict(
+                id=i, name=aid, type=self.type_name_for_logs(agent)
+            ) | self.extra_agent_info(agent)
+        if self._extra_folder is not None:
+            df = pd.DataFrame.from_records(list(self._agent_info.values()))
+            df.to_csv(self._extra_folder / "agents.csv", index=False)
+
+    def action_info_cols(self) -> list[tuple[str, type]]:
+        return [("offer", str)]
+
+    def extract_action_info(self, action: Any) -> list[Any]:
+        return [str(action)]
+
+    def agreement_info_cols(self) -> list[tuple[str, type]]:
+        return [("agreement", str)]
+
+    def extract_agreement_info(self, agreement: Outcome | None) -> list[Any]:
+        return [str(agreement)] if agreement else [""]
+
+    def extra_agent_info(self, agent: Agent | None) -> dict[str, Any]:
+        return dict()
+
+    def extra_sim_step_info_pre(self) -> dict[str, Any]:
+        return dict()
+
+    def extra_sim_step_info_post(self) -> dict[str, Any]:
+        return dict()
+
+    def extra_neg_info(self, info: NegotiationInfo) -> dict[str, Any]:
+        return dict()
 
     @property
     def stat_names(self, peragent: bool = False):
@@ -1423,29 +1487,6 @@ class World(
         )
         self.unsigned_contracts[to_be_signed_at].add(contract)
 
-    def on_negotiation_start(self, info: NegotiationInfo):
-        """Called whenever a negotiation is registered before it starts"""
-        pass
-
-    def on_negotiation_stepped(self, info: NegotiationInfo):
-        """Called whenever a negotiation is stepped"""
-        pass
-
-    def on_negotiation_end(self, info: NegotiationInfo):
-        """Called whenever a negotiation is ended **before** calling on_negotiation_failure_/on_negotiation_success_"""
-        pass
-
-    def on_negotiation_processed(
-        self, info: NegotiationInfo, contract: Contract | None
-    ):
-        """
-        Called whenever a negotiation is ended **after** calling on_negotiation_failure_/on_negotiation_success_
-
-        Remarks:
-            If contract is `None`, the negotiation ended in failure otherwise it ended in success.
-        """
-        pass
-
     def _register_contract(
         self, mechanism, negotiation, to_be_signed_at
     ) -> Contract | None:
@@ -1775,16 +1816,29 @@ class World(
 
             - Never mix calls with `n_neg_steps` equaling `None` and an integer.
             - Never call this method again on a world if it ever returned `False` on that world.
-            - TODO Implement actions. Currently they are just ignored
         """
         if self.time >= self.time_limit:
             return False
         if self.current_step >= self.n_steps:
             return False
+
+        if self._saved_details_level > 0:
+            self._sim_info.append(
+                dict(
+                    id=len(self._sim_info) + 1,
+                    started=self.time,
+                    step=self.current_step,
+                    relative_time_start=self.relative_time,
+                    world=self.id,
+                )
+                | self.extra_sim_step_info_pre()
+            )
         cross_step_boundary = n_neg_steps is not None
         if self._debug:
             existing = {
-                _.mechanism.id for _ in self._negotiations.values() if _ is not None
+                _.mechanism.id
+                for _ in self._negotiations.values()
+                if _ is not None and _.mechanism is not None
             }
             passed = set(neg_actions.keys()) if neg_actions else set()
             missing = passed.difference(existing)
@@ -1854,6 +1908,25 @@ class World(
 
             return not running
 
+        def _finalize_sim_info():
+            if self._saved_details_level < 1:
+                return
+            self._sim_info[-1]["ended"] = self.time
+            self._sim_info[-1]["relative_time_end"] = self.relative_time
+            self._sim_info[-1]["duration"] = (
+                self._sim_info[-1]["ended"] - self._sim_info[-1]["started"]
+            )
+            # if self._stats:
+            #     self._sim_info[-1] = (
+            #         self._sim_info[-1]
+            #         | {k: v[-1] for k, v in self._stats.items()}
+            #         | self.extra_sim_step_info_pre()
+            #     )
+            df = pd.DataFrame.from_records(self._sim_info)
+            assert self._extra_folder is not None
+            df.to_csv(self._extra_folder / "simsteps.csv", index=False)
+            self._save_extra()
+
         if cross_step_boundary:
             if self.operations[self.__next_operation_index] != Operations.Negotiations:
                 self.__stepped_mechanisms = set()
@@ -1895,6 +1968,7 @@ class World(
                     self.__next_operation_index = 0
                 if not self._step_to_negotiations(cross_step_boundary):
                     return False
+            _finalize_sim_info()
             return True
         if self._debug:
             assert self.__next_operation_index == 0
@@ -1915,6 +1989,7 @@ class World(
                 self.__next_operation_index = 0
             if not self._step_to_negotiations(cross_step_boundary):
                 return False
+        _finalize_sim_info()
         return True
 
     def _pre_step(self) -> bool:
@@ -2000,6 +2075,7 @@ class World(
             self._process_unsigned()
 
         def _simulation_step():
+            # save simulation step information
             try:
                 self.simulation_step(self.__stage)
                 if self.time >= self.time_limit:
@@ -2385,6 +2461,7 @@ class World(
         Returns:
 
         """
+
         self.register(x, simulation_priority=simulation_priority)
         self.agents[x.id] = x
         self.attribs[x.id] = kwargs
@@ -2392,6 +2469,14 @@ class World(
         if self._started and not x.initialized:
             self.call(x, x.init_)
         self.loginfo(f"{x.name} joined", Event("agent-joined", dict(agent=x)))
+
+        aid = x.id
+        self._agent_info[aid] = dict(
+            id=len(self._agent_info) + 1, name=aid, type=self.type_name_for_logs(x)
+        ) | self.extra_agent_info(x)
+        if self._extra_folder is not None:
+            df = pd.DataFrame.from_records(list(self._agent_info.values()))
+            df.to_csv(self._extra_folder / "agents.csv", index=False)
 
     def _combine_edges(
         self,
@@ -2405,10 +2490,10 @@ class World(
         def add_dicts(d1, d2):
             d3 = deflistdict()
             for k, v in d1.items():
-                d3[k] = d1[k] + d2[k]
+                d3[k] = v + d2[k]
             for k, v in d2.items():
                 if k not in d3.keys():
-                    d3[k] = d2[k]
+                    d3[k] = v
             return d3
 
         for i in range(beg, end):
@@ -2514,6 +2599,7 @@ class World(
             return None, contract, neg.mechanism
         if may_run_immediately and self.immediate_negotiations:
             running = True
+            assert self.negotiation_speed is not None
             for _ in range(self.negotiation_speed):
                 contract, running = self._step_a_mechanism(neg.mechanism, False)
                 if not running:
@@ -3082,7 +3168,7 @@ class World(
         def graph(
             self,
             steps: tuple[int, int] | int | None = None,
-            what: Collection[str] = EDGE_TYPES,
+            what: list[str] | tuple[str, ...] = EDGE_TYPES,
             who: Callable[[TAgent], bool] | None = None,
             together: bool = True,
         ) -> nx.Graph | list[nx.Graph]:
@@ -3899,3 +3985,152 @@ class World(
                     fancybox=True,
                     shadow=True,
                 )
+
+    def on_negotiation_start(self, info: NegotiationInfo):
+        if self._saved_details_level < 2:
+            return
+        mech = info.mechanism
+        if mech is None:
+            return
+        myid = mech.id
+        self._neg_info[myid]["id"] = len(self._neg_info) + 1
+        self._neg_info[myid]["sim_step"] = self.current_step
+        self._neg_info[myid]["simstep_id"] = self._sim_info[-1]["id"]
+        self._neg_info[myid]["name"] = myid
+        self._neg_info[myid]["n_steps"] = mech.n_steps
+        self._neg_info[myid]["time_limit"] = mech.time_limit
+        self._neg_info[myid]["hidden_time_limit"] = mech._hidden_time_limit
+        self._neg_info[myid]["world"] = self.id
+
+    def type_name_for_logs(self, agent: Agent | None) -> str | None:
+        if not agent:
+            return None
+        return agent.type_name
+
+    def on_negotiation_stepped(self, info: NegotiationInfo):
+        try:
+            if self._saved_details_level < 3:
+                return
+            mech = info.mechanism
+            if mech is None:
+                return
+            if not isinstance(mech, SAOMechanism):
+                return
+            agent_map: dict[str | None, Agent | None] = dict(
+                zip(
+                    mech.negotiator_ids,
+                    [mech._negotiator_map[_].owner for _ in mech.negotiator_ids],
+                )
+            )
+            state = mech.state
+            assert isinstance(state, SAOState)
+
+            def response(state: SAOState):
+                if state.agreement:
+                    return "agreement"
+                if state.timedout:
+                    return "timedout"
+                if state.ended:
+                    return "ended"
+                if state.has_error:
+                    return "error"
+                return "continuing"
+
+            for neg, offer in state.new_offers:
+                agent = agent_map[neg]
+                partner_neg = [_ for _ in mech.negotiator_ids if _ != neg][0]
+                partner = agent_map[partner_neg]
+                d = [
+                    len(self._offer_info) + 1,
+                    self._neg_info[mech.id]["id"],
+                    state.step,
+                    state.relative_time,
+                    state.time,
+                    neg,
+                    partner_neg,
+                    self._agent_info[agent.id if agent else None]["id"],
+                    self._agent_info[partner.id if partner else None]["id"],
+                    response(state),
+                ] + list(self.extract_action_info(offer))
+                self._offer_info.append(tuple(d))
+
+        except Exception as e:
+            self.simulation_exceptions[self._current_step].append(exception2str())
+            if not self.ignore_simulation_exceptions:
+                raise (e)
+
+    def on_negotiation_end(self, info: NegotiationInfo):
+        try:
+            if self._saved_details_level < 2:
+                return
+            mech = info.mechanism
+            if mech is None:
+                return
+            myid = mech.id
+            self._neg_info[myid]["step"] = mech.current_step
+            self._neg_info[myid]["time"] = mech.time
+            self._neg_info[myid]["relative_time"] = mech.relative_time
+            self._neg_info[myid]["has_agreement"] = mech.agreement is not None
+            self._neg_info[myid]["timedout"] = mech.state.timedout
+            self._neg_info[myid]["ended"] = mech.state.ended
+            self._neg_info[myid]["erred"] = mech.state.has_error
+            self._neg_info[myid]["error"] = (
+                mech.state.error_details if mech.state.error_details else ""
+            )
+            self._neg_info[myid]["erred_agent_id"] = self._agent_info[
+                mech.state.erred_agent if mech.state.erred_agent else None
+            ]["id"]
+            for i, p in enumerate(mech.agent_ids):
+                self._neg_info[myid][f"agent{i}_id"] = self._agent_info[p]["id"]
+            for i, t in enumerate(mech.negotiator_times):
+                self._neg_info[myid][f"agent_time{i}"] = t
+            for (col, _), val in zip(
+                self._agreement_info_cols, self.extract_agreement_info(mech.agreement)
+            ):
+                self._neg_info[myid][col] = val
+            extra_info = self.extra_neg_info(info)
+            for k, v in extra_info.items():
+                self._neg_info[myid][k] = v
+        except Exception as e:
+            self.simulation_exceptions[self._current_step].append(exception2str())
+            if not self.ignore_simulation_exceptions:
+                raise (e)
+
+    def _save_extra(self):
+        try:
+            if self._saved_details_level < 2:
+                return
+            assert self._extra_folder is not None
+            df = pd.DataFrame.from_records(list(self._neg_info.values()))
+            df.to_csv(self._extra_folder / "negs.csv", index=False)
+            if self._saved_details_level < 3:
+                return
+            df = pd.DataFrame(
+                self._offer_info,
+                columns=[_[0] for _ in self._offer_info_cols],  # type: ignore
+            )
+
+            df.astype(
+                dict(
+                    zip(
+                        [_[0] for _ in self._offer_info_cols],
+                        [_[1] for _ in self._offer_info_cols],
+                    )
+                )
+            )
+            df.to_csv(self._extra_folder / "actions.csv", index=False)
+        except Exception as e:
+            self.simulation_exceptions[self._current_step].append(exception2str())
+            if not self.ignore_simulation_exceptions:
+                raise (e)
+
+    def on_negotiation_processed(
+        self, info: NegotiationInfo, contract: Contract | None
+    ):
+        """
+        Called whenever a negotiation is ended **after** calling on_negotiation_failure_/on_negotiation_success_
+
+        Remarks:
+            If contract is `None`, the negotiation ended in failure otherwise it ended in success.
+        """
+        _ = info, contract
