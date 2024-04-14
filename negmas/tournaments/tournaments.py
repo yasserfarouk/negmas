@@ -758,6 +758,7 @@ def _run_worlds(
         video_savers,
         video_saver_params_list,
     ):
+        world: World
         for _ in range(world.n_steps):
             if not world.step():
                 save_stats(world, world.log_folder, params=world_params_)
