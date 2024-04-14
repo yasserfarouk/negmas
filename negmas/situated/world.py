@@ -194,7 +194,7 @@ class World(
         negotiation_speed: int | None = None,
         neg_n_steps: int | None = 100,
         neg_time_limit: int | float | None = None,
-        neg_step_time_limit: int | float | None = 60,
+        neg_step_time_limit: int | float | None = float("inf"),
         shuffle_negotiations=True,
         negotiation_quota_per_step: int = sys.maxsize,
         negotiation_quota_per_simulation: int = sys.maxsize,
