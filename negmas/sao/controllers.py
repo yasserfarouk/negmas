@@ -309,9 +309,15 @@ class SAOSyncController(SAOController):
             self.__n_waits[negotiator_id] += 1
             return ResponseType.WAIT
 
+        # filter out ended negotiations
+        for nid, ninfo in self._negotiators.items():
+            s__ = ninfo.negotiator.nmi.state
+            if s__.ended:
+                self._reset_internal(nid)
         # we arrive here if we already have all the offers to counter. WE may though not have proposed yet
         if not self.__first_proposals_collected:
             self._set_first_proposals()
+
         responses = self.counter_all(offers=self.__offers, states=self.__offer_states)
         for neg in self.negotiators.keys():
             if neg not in responses:
@@ -333,17 +339,15 @@ class SAOSyncController(SAOController):
             return ResponseType.REJECT_OFFER
         return self.__responses.pop(negotiator_id, ResponseType.REJECT_OFFER)
 
+    def _reset_internal(self, negotiator_id: str):
+        self.__offers.pop(negotiator_id, None)
+        self.__offer_states.pop(negotiator_id, None)
+        self.__responses.pop(negotiator_id, None)
+        self.__proposals.pop(negotiator_id, None)
+        self.__n_waits.pop(negotiator_id, None)
+
     def on_negotiation_end(self, negotiator_id: str, state: SAOState) -> None:
-        if negotiator_id in self.__offers.keys():
-            del self.__offers[negotiator_id]
-        if negotiator_id in self.__offer_states.keys():
-            del self.__offer_states[negotiator_id]
-        if negotiator_id in self.__responses.keys():
-            del self.__responses[negotiator_id]
-        if negotiator_id in self.__proposals.keys():
-            del self.__proposals[negotiator_id]
-        if negotiator_id in self.__n_waits.keys():
-            del self.__n_waits[negotiator_id]
+        self._reset_internal(negotiator_id)
         results = super().on_negotiation_end(negotiator_id, state)
         if not self.negotiators:
             self.reset()
