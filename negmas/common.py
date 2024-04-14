@@ -255,6 +255,18 @@ class MechanismState:
             self.broken or self.timedout or (self.agreement is not None)
         )
 
+    @property
+    def completed(self):
+        return self.started and (
+            self.broken or self.timedout or (self.agreement is not None)
+        )
+
+    @property
+    def done(self):
+        return self.started and (
+            self.broken or self.timedout or (self.agreement is not None)
+        )
+
     def keys(self):
         return self.__dict__.keys()
 
