@@ -1,53 +1,50 @@
 name: GeniusBridge
-
 on:
-  push:
-    branches: ["*"]
-  pull_request:
-    branches: ["*"]
-
+    push:
+        branches: ["*"]
+    pull_request:
+        branches: ["*"]
 jobs:
-  tests:
-    name: "Python ${{ matrix.python-version }}"
-    runs-on: "ubuntu-latest"
-    env:
-      USING_COVERAGE: '3.12'
-
-    strategy:
-      matrix:
-        python-version: ['3.12']
-
-    steps:
-      - uses: "actions/checkout@v2"
-      - uses: "actions/setup-python@v2"
-        with:
-          python-version: "${{ matrix.python-version }}"
-      - uses: actions/setup-java@v2
-        with:
-          distribution: 'zulu' # See 'Supported distributions' for available options
-          java-version: '15'
-      - name: "Install dependencies"
-        run: |
-          set -xe
-          ulimit -n 50000
-          python -VV
-          python -m site
-          python -m pip install --upgrade pip setuptools wheel pytest
-          python -m pip install --upgrade  virtualenv
-      - name: "Install negmas and geinus-bridge"
-        run: |
-          python -m pip install -r requirements.txt
-          python -m pip install -r requirements-dev.txt
-          python -m pip install -e .
-          negmas genius-setup
-      - name: "running genius bridge"
-        run: "java -jar $HOME/negmas/files/geniusbridge.jar --silent --no-logs &"
-      - name: "Run pytest for ${{ matrix.python-version }}"
-        run: |
-          export NEGMAS_IGNORE_TEST_NOTEBOOKS=True
-          export NEGMAS_SLOW_TEST=True
-          export NEGMAS_BRIDGE_OPS
-          unset NEGMAS_BRIDGE_OPS
-          export NEGMAS_IGNORE_TEST_NOTEBOOKS=True
-          export NEGMAS_BRIDGE_OPS=True
-          python -W ignore -m pytest tests/genius  || python -W ignore -m pytest --last-failed .
+    tests:
+        name: "Python ${{ matrix.python-version }}"
+        runs-on: "ubuntu-latest"
+        timeout-minutes: 120
+        env:
+            USING_COVERAGE: "3.12"
+        strategy:
+            matrix:
+                python-version: ["3.12"]
+        steps:
+            - uses: "actions/checkout@v2"
+            - uses: "actions/setup-python@v2"
+              with:
+                  python-version: "${{ matrix.python-version }}"
+            - uses: actions/setup-java@v2
+              with:
+                  distribution: "zulu" # See 'Supported distributions' for available options
+                  java-version: "15"
+            - name: "Install dependencies"
+              run: |
+                  set -xe
+                  ulimit -n 50000
+                  python -VV
+                  python -m site
+                  python -m pip install --upgrade pip setuptools wheel pytest
+                  python -m pip install --upgrade  virtualenv
+            - name: "Install negmas and geinus-bridge"
+              run: |
+                  python -m pip install -r requirements.txt
+                  python -m pip install -r requirements-dev.txt
+                  python -m pip install -e .
+                  negmas genius-setup
+            - name: "running genius bridge"
+              run: "java -jar $HOME/negmas/files/geniusbridge.jar --silent --no-logs &"
+            - name: "Run pytest for ${{ matrix.python-version }}"
+              run: |
+                  export NEGMAS_IGNORE_TEST_NOTEBOOKS=True
+                  export NEGMAS_SLOW_TEST=True
+                  export NEGMAS_BRIDGE_OPS
+                  unset NEGMAS_BRIDGE_OPS
+                  export NEGMAS_IGNORE_TEST_NOTEBOOKS=True
+                  export NEGMAS_BRIDGE_OPS=True
+                  python -W ignore -m pytest tests/genius  || python -W ignore -m pytest --last-failed .

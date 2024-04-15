@@ -1,31 +1,27 @@
-
 name: Documentation
-
 on:
-  push:
-    branches: ["master"]
-  pull_request:
-    branches: ["master"]
-
+    push:
+        branches: ["master"]
+    pull_request:
+        branches: ["master"]
 jobs:
-  docs:
-    name: "Build Documentation"
-    runs-on: "ubuntu-latest"
-
-    steps:
-      - uses: "actions/checkout@v2"
-      - uses: r-lib/actions/setup-pandoc@v1
-      - uses: "actions/setup-python@v2"
-        with:
-          python-version: '3.12'
-
-      - name: "Install documentation requirements"
-        run: |
-          ulimit -n 50000
-          python -m pip install -r requirements.txt
-          python -m pip install -r requirements-dev.txt
-          python -m pip install -r docs/requirements.txt
-          python -m pip install -e .
-      - name: "Create documentation"
-        run: sh make_docs.sh
-        working-directory: ./docs
+    docs:
+        name: "Build Documentation"
+        runs-on: "ubuntu-latest"
+        timeout-minutes: 60
+        steps:
+            - uses: "actions/checkout@v2"
+            - uses: r-lib/actions/setup-pandoc@v1
+            - uses: "actions/setup-python@v2"
+              with:
+                  python-version: "3.12"
+            - name: "Install documentation requirements"
+              run: |
+                  ulimit -n 50000
+                  python -m pip install -r requirements.txt
+                  python -m pip install -r requirements-dev.txt
+                  python -m pip install -r docs/requirements.txt
+                  python -m pip install -e .
+            - name: "Create documentation"
+              run: sh make_docs.sh
+              working-directory: ./docs
