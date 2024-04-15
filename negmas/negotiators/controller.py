@@ -79,6 +79,10 @@ class Controller(Rational, Generic[TNMI, TState, TControlledNegotiator]):
         self.__parent = parent
         self._auto_kill = auto_kill
 
+    def is_clean(self) -> bool:
+        """Checks that the agent has no negotiators and that all its intermediate data-structures are reset"""
+        return len(self._negotiators) == 0
+
     def reset(self):
         """
         Resets the controller and kills any negotiators it may have

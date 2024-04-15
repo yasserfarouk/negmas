@@ -197,6 +197,25 @@ class SAOSyncController(SAOController):
         self.__first_proposals_collected = False
         super().reset()
 
+    def _reset_for(self, negotiator_id: str):
+        self.__offers.pop(negotiator_id, None)
+        self.__offer_states.pop(negotiator_id, None)
+        self.__responses.pop(negotiator_id, None)
+        self.__proposals.pop(negotiator_id, None)
+        self.__n_waits.pop(negotiator_id, None)
+
+    def is_clean(self) -> bool:
+        """Checks that the agent has no negotiators and that all its intermediate data-structures are reset"""
+        return (
+            super().is_clean()
+            and not self.__offers
+            and not self.__responses
+            and not self.__proposals
+            and not self.__offer_states
+            and not self.__n_waits
+            and not self.__first_proposals_collected
+        )
+
     def first_offer(self, negotiator_id: str) -> Outcome | None:
         """
         Finds the first offer for this given negotiator. By default it will be the best offer
@@ -313,7 +332,7 @@ class SAOSyncController(SAOController):
         for nid, ninfo in self._negotiators.items():
             s__ = ninfo.negotiator.nmi.state
             if s__.ended:
-                self._reset_internal(nid)
+                self._reset_for(nid)
         # we arrive here if we already have all the offers to counter. WE may though not have proposed yet
         if not self.__first_proposals_collected:
             self._set_first_proposals()
@@ -339,15 +358,8 @@ class SAOSyncController(SAOController):
             return ResponseType.REJECT_OFFER
         return self.__responses.pop(negotiator_id, ResponseType.REJECT_OFFER)
 
-    def _reset_internal(self, negotiator_id: str):
-        self.__offers.pop(negotiator_id, None)
-        self.__offer_states.pop(negotiator_id, None)
-        self.__responses.pop(negotiator_id, None)
-        self.__proposals.pop(negotiator_id, None)
-        self.__n_waits.pop(negotiator_id, None)
-
     def on_negotiation_end(self, negotiator_id: str, state: SAOState) -> None:
-        self._reset_internal(negotiator_id)
+        self._reset_for(negotiator_id)
         results = super().on_negotiation_end(negotiator_id, state)
         if not self.negotiators:
             self.reset()
