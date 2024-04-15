@@ -301,6 +301,29 @@ class SAOSyncController(SAOController):
 
         """
 
+    def _filter_unexpected_offers(
+        self, offers: dict[str, Outcome | None], states: dict[str, SAOState]
+    ) -> tuple[dict[str, Outcome | None], dict[str, SAOState]]:
+        """
+        Remove any offers without an existing negotiator or for ended negotiations
+        """
+        _o = dict()
+        removed = []
+        for k, v in offers.items():
+            if k not in states:
+                removed.append(k)
+                continue
+            if states[k].ended:
+                removed.append(k)
+                continue
+            if k not in self._negotiators:
+                removed.append(k)
+                continue
+            _o[k] = v
+        for k in removed:
+            self._reset_for(k)
+        return _o, {k: states[k] for k in _o.keys()}
+
     def respond(
         self, negotiator_id: str, state: SAOState, source: str | None = None
     ) -> ResponseType:
@@ -337,6 +360,9 @@ class SAOSyncController(SAOController):
         if not self.__first_proposals_collected:
             self._set_first_proposals()
 
+        self.__offers, self__offer_states = self._filter_unexpected_offers(
+            self.__offers, self.__offer_states
+        )
         responses = self.counter_all(offers=self.__offers, states=self.__offer_states)
         for neg in self.negotiators.keys():
             if neg not in responses:
