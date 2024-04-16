@@ -353,9 +353,11 @@ class SAOSyncController(SAOController):
 
         # filter out ended negotiations
         for nid, ninfo in self._negotiators.items():
-            s__ = ninfo.negotiator.nmi.state
-            if s__.ended:
-                self._reset_for(nid)
+            if ninfo and ninfo.negotiator and ninfo.negotiator.nmi:
+                s__ = ninfo.negotiator.nmi.state
+                if s__.ended:
+                    self._reset_for(nid)
+
         # we arrive here if we already have all the offers to counter. WE may though not have proposed yet
         if not self.__first_proposals_collected:
             self._set_first_proposals()
