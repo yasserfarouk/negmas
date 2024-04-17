@@ -287,7 +287,7 @@ class SimpleTournamentResults:
                 src = path / RESULTS_DIR_NAME
                 d = pd.DataFrame.from_records([load(_) for _ in src.glob("*.json")])
             else:
-                d = pd.read_csv(path / ALL_RESULTS_FILE_NAME)
+                d = pd.read_csv(path / ALL_RESULTS_FILE_NAME, index_col=0)
             if add_tournament_column:
                 d[TOURNAMENT_COL_NAME] = pname
             if must_have_details and len(d) < 1:
@@ -306,7 +306,7 @@ class SimpleTournamentResults:
                     [make_scores(_) for _ in d.to_dict("records")]
                 )
             else:
-                s = pd.read_csv(path / ALL_SCORES_FILE_NAME)
+                s = pd.read_csv(path / ALL_SCORES_FILE_NAME, index_col=0)
             if add_tournament_column:
                 s[TOURNAMENT_COL_NAME] = pname
             if len(d) > 0:
@@ -329,15 +329,20 @@ class SimpleTournamentResults:
     ) -> "SimpleTournamentResults":
         """Loads results from the given path"""
         kwargs = dict()
-        for k, name, required in (
-            ("scores", ALL_SCORES_FILE_NAME, must_have_details),
-            ("details", ALL_RESULTS_FILE_NAME, must_have_details),
-            ("scores_summary", TYPE_SCORES_FILE_NAME, must_have_details),
-            ("final_scores", FINAL_SCORES_FILE_NAME, True),
+        for k, name, required, header, index_col in (
+            ("scores", ALL_SCORES_FILE_NAME, must_have_details, 0, 0),
+            ("details", ALL_RESULTS_FILE_NAME, must_have_details, 0, 0),
+            ("scores_summary", TYPE_SCORES_FILE_NAME, must_have_details, [0, 1], 0),
+            ("final_scores", FINAL_SCORES_FILE_NAME, True, 0, 0),
         ):
             p = path / name
             if p.exists():
-                kwargs[k] = pd.read_csv(p)
+                df = pd.read_csv(p, header=header, index_col=index_col)
+                # if name == TYPE_SCORES_FILE_NAME:
+                #     df = df.reset_index()
+                #     df = df.rename(columns=(dict(index="agent_type")))
+                kwargs[k] = df
+
             elif required:
                 raise FileNotFoundError(f"{name} not found in {path}")
         return SimpleTournamentResults(**kwargs)
@@ -374,6 +379,7 @@ def combine_tournaments(
     final_score_stat: tuple[str, str] = ("advantage", "mean"),
     copy: bool = False,
     rename_scenarios: bool = True,
+    rename_short: bool = True,
     add_tournament_folders: bool = True,
     override_existing: bool = False,
     add_tournament_column: bool = True,
@@ -397,9 +403,12 @@ def combine_tournaments(
         if paths:
             for current in TOURNAMENT_DIRS:
                 (dst / current).mkdir(exist_ok=True, parents=True)
-        for path in track(paths, "Copying ... ") if verbosity else paths:
+        for i, path in (
+            enumerate(track(paths, "Copying ... ")) if verbosity else enumerate(paths)
+        ):
             path = Path(path).absolute()
             tname = path.name
+            prefix = f"{tname}_" if not rename_short else f"N{i}"
             for current in TOURNAMENT_DIRS:
                 if not (path / current).exists():
                     if verbosity:
@@ -427,9 +436,10 @@ def combine_tournaments(
                             )
 
                 if rename_scenarios:
-                    for p in this_dst.glob("*"):
+                    files = list(this_dst.glob("*"))
+                    for p in files:
                         p = p.absolute()
-                        pnew = p.parent / f"{tname}_{p.name}"
+                        pnew = p.parent / (f"{prefix}{p.name}")
                         try:
                             os.rename(p, pnew)
                         except Exception:
@@ -440,9 +450,9 @@ def combine_tournaments(
                         # shutil.move(p, p.parent / f"{tname}{p.name}")
                     for df in (results.scores, results.details):
                         for col in df.columns:
-                            if "scenario" not in col:
+                            if isinstance(col, int) or "scenario" not in col:
                                 continue
-                            df[col] = tname + df[col].astype(str)
+                            df[col] = prefix + df[col].astype(str)
                     results.save(dst)
 
     return results
