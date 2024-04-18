@@ -216,6 +216,7 @@ class SimpleTournamentResults:
         verbosity: int = 1,
         final_score_stat: tuple[str, str] = ("advantage", "mean"),
         add_tournament_column: bool = True,
+        complete_only: bool = True,
     ) -> tuple["SimpleTournamentResults", list[Path]]:
         """Combines the results of multiple tournaments stored on disk
 
@@ -228,6 +229,7 @@ class SimpleTournamentResults:
             verbosity: Verbosity level
             final_score_stat: Used to calculate the final scores. See `cartesian_tournament` for details.
             add_tournament_column: Add a column called tournament with tournament name in detailed and scores.
+            complete_only: If given, only a completed tournament will be used in the combination. The rest are ignored.
 
         Raises:
             FileNotFoundError: If a needed file is not found
@@ -239,14 +241,21 @@ class SimpleTournamentResults:
         if isinstance(paths, Path):
             paths = [paths]
         assert isinstance(paths, Iterable)
+        if complete_only:
+            recalc_details = False
+            recalc_scores = False
+            must_have_details = True
 
         needed_files: list[tuple[str, str] | str] = []
-        if recalc_details:
-            needed_files.append(RESULTS_DIR_NAME)
-        elif must_have_details:
-            needed_files.append((ALL_RESULTS_FILE_NAME, RESULTS_DIR_NAME))
-        if recalc_scores:
-            needed_files.append((ALL_RESULTS_FILE_NAME, RESULTS_DIR_NAME))
+        if complete_only:
+            needed_files += [ALL_RESULTS_FILE_NAME, ALL_SCORES_FILE_NAME]
+        else:
+            if recalc_details:
+                needed_files.append(RESULTS_DIR_NAME)
+            elif must_have_details:
+                needed_files.append((ALL_RESULTS_FILE_NAME, RESULTS_DIR_NAME))
+            if recalc_scores:
+                needed_files.append((ALL_RESULTS_FILE_NAME, RESULTS_DIR_NAME))
 
         if recursive:
             known_dirs = set(TOURNAMENT_DIRS)
@@ -292,7 +301,7 @@ class SimpleTournamentResults:
                 d[TOURNAMENT_COL_NAME] = pname
             if must_have_details and len(d) < 1:
                 print(
-                    f"Cannot find detailed results in {path / ALL_SCORES_FILE_NAME} and you specified `must_have_details` ... Will ignore it"
+                    f"Cannot find detailed results in {path / ALL_RESULTS_FILE_NAME} and you specified `must_have_details` ... Will ignore it"
                 )
                 continue
             if recalc_scores or not (path / ALL_SCORES_FILE_NAME).exists():
@@ -383,6 +392,7 @@ def combine_tournaments(
     add_tournament_folders: bool = True,
     override_existing: bool = False,
     add_tournament_column: bool = True,
+    complete_only: bool = False,
 ) -> SimpleTournamentResults:
     results, paths = SimpleTournamentResults.combine(
         srcs,
@@ -393,6 +403,7 @@ def combine_tournaments(
         verbosity,
         final_score_stat,
         add_tournament_column,
+        complete_only=complete_only,
     )
     if results and dst is not None:
         results.save(dst)
