@@ -248,7 +248,11 @@ class SimpleTournamentResults:
 
         needed_files: list[tuple[str, str] | str] = []
         if complete_only:
-            needed_files += [ALL_RESULTS_FILE_NAME, ALL_SCORES_FILE_NAME]
+            needed_files += [
+                ALL_RESULTS_FILE_NAME,
+                ALL_SCORES_FILE_NAME,
+                FINAL_SCORES_FILE_NAME,
+            ]
         else:
             if recalc_details:
                 needed_files.append(RESULTS_DIR_NAME)
