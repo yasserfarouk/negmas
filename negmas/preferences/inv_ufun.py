@@ -21,20 +21,44 @@ __all__ = ["PresortingInverseUtilityFunction", "SamplingInverseUtilityFunction"]
 EPS = 1e-6
 
 
+def _nearest_around(
+    x: float, a: NDArray, i: int, mn: float, mx: float, n: int = 1, eps: float = EPS
+) -> int | None:
+    """Finds the nearest value in a to x around i subject to being between mn and mx and no more than eps from x within n items from i."""
+    n = len(a) - 1
+    best, best_diff = i, abs(a[i] - x)
+    for j in range(i - n, i + n + 1):
+        if j < 0 or j > n:
+            continue
+        if not (mn <= a[j] <= mx):
+            continue
+        d = abs(a[j] - x)
+        if d < best_diff:
+            best, best_diff = j, d
+    if best is None:
+        return i
+    if abs(a[best] - x) > eps and best != i:
+        return None
+    return best
+
+
 def index_above_or_equal(a: NDArray, x: Any, lo: int = 0, hi: int | None = None) -> int:
     "Locate the smallest value greater than or equal to x"
     if hi is None:
-        hi = len(a)
-    i = np.searchsorted(a[lo : hi + 1], x, side="left")
-    return i
+        hi = len(a) - 1
+    i = np.searchsorted(a[lo : hi + 1], x, side="left") + lo
+    return max(0, min(len(a) - 1, i))
 
 
 def index_below_or_equal(a: NDArray, x: Any, lo: int = 0, hi: int | None = None) -> int:
     "Locate the greatest value less than or equal to x"
     if hi is None:
-        hi = len(a)
-    i = np.searchsorted(a[lo : hi + 1], x, side="right")
-    return i - 1
+        hi = len(a) - 1
+    i = np.searchsorted(a[lo : hi + 1], x, side="right") + lo
+    i = max(0, min(len(a) - 1, i))
+    if a[i] - EPS <= x:
+        return i
+    return max(0, i - 1)
 
 
 class SamplingInverseUtilityFunction(InverseUFun):
@@ -387,21 +411,36 @@ class PresortingInverseUtilityFunction(InverseUFun):
         return tuple(_ * d + mn for _ in rng)
 
     def _get_limiting_waypoints(self, mn: float, mx: float) -> tuple[int, int]:
-        """Returns indices of the smallest utility >= mx and largest utility <= mn in self._utils"""
-        if len(self._waypoints) <= 0:
+        """Returns indices of largest utility <= mn and the smallest utility >= mx in self._utils"""
+        nw = len(self._waypoints)
+        n = len(self.utils)
+        if nw <= 0:
             return (-1, -1)
         lo, hi = self._waypoints[0], self._waypoints[-1]
-        lo_val, hi_val = self._waypoint_values[0], self._waypoint_values[-1]
-        n = len(self.utils)
-        for i, u in zip(self._waypoints, self._waypoint_values):
-            if u == lo_val:
+        # lo_val, hi_val = self._waypoint_values[0], self._waypoint_values[-1]
+        for j in range(nw):
+            i, u = self._waypoints[j], self._waypoint_values[j]
+            if u == mn:
                 lo = i
-            elif u > lo_val:
-                lo = max(0, lo - 1)
-            if u == hi_val:
+                break
+            if u > mn:
+                lo = self._waypoints[max(0, j - 1)]
+                break
+        else:
+            assert mn > self._waypoint_values[-1]
+            lo = n - 1
+        for j in range(nw - 1, -1, -1):
+            i, u = self._waypoints[j], self._waypoint_values[j]
+            if u == mx:
                 hi = i
-            elif u < hi_val:
-                hi = min(n - 1, hi - 1)
+                break
+            if u < mx:
+                hi = self._waypoints[min(nw - 1, j + 1)]
+                break
+        else:
+            assert mx < self._waypoint_values[0]
+            hi = 0
+
         # adjust limits to known largest and smallest. This will be specially useful for
         # strategies that call worst_in or best_in repeatedly with descending/ascending values
         if self._smallest_val <= mn and self._smallest_indx > lo:
@@ -454,6 +493,8 @@ class PresortingInverseUtilityFunction(InverseUFun):
         rng = self._un_normalize_range(rng, normalized, True)
         mn, mx = rng
         lo, hi = self._get_limiting_waypoints(mn, mx)
+        if lo > hi:
+            return []
         results = []
         for util, w in zip(self.utils[lo : hi + 1], self.outcomes[lo : hi + 1]):
             if util > mx:
@@ -504,7 +545,11 @@ class PresortingInverseUtilityFunction(InverseUFun):
         return index_below_or_equal(self.utils, mx, lo, hi), mn, mx
 
     def worst_in(
-        self, rng: float | tuple[float, float], normalized: bool, cycle: bool = True
+        self,
+        rng: float | tuple[float, float],
+        normalized: bool,
+        cycle: bool = True,
+        eps: float = EPS,
     ) -> Outcome | None:
         """
         Finds an outcome with the lowest possible utility within the given range (if any)
@@ -518,13 +563,18 @@ class PresortingInverseUtilityFunction(InverseUFun):
             - Returns None if no such outcome exists, or the worst outcome in the given range is irrational
             - This is an O(log(n)) operation (where n is the number of outcomes)
         """
-        indx, mn, mx = self._indx_of_worst_in(rng, normalized)
-        if indx > self._last_rational:
+        indx_, mn, mx = self._indx_of_worst_in(rng, normalized)
+        if indx_ > self._last_rational:
             # fail if this worst is irrational
             return None
-        if self.utils[indx] > mx:
+        indx = _nearest_around(
+            mn, self.utils, indx_, mn - eps, mx + 2 * eps, eps=2 * eps
+        )
+        if indx is None or (mx > mn + EPS and self.utils[indx] > mx + 2 * eps):
             # fail if the found outcome is actually worse than the maximum allowed. Should never happen
-            return None
+            raise ValueError(
+                f"worst_in failed to find an appropriate outcome: {rng=} with initial find at {indx_} but we found an outcome with utility {self.utils[indx] if indx is not None else self.utils}"
+            )
         if mn < self._smallest_val:
             self._smallest_indx, self._smallest_val = indx, mn
         if cycle and indx:
@@ -532,7 +582,11 @@ class PresortingInverseUtilityFunction(InverseUFun):
         return self.outcomes[indx]
 
     def best_in(
-        self, rng: float | tuple[float, float], normalized: bool, cycle: bool = True
+        self,
+        rng: float | tuple[float, float],
+        normalized: bool,
+        cycle: bool = True,
+        eps: float = EPS,
     ) -> Outcome | None:
         """
         Finds an outcome with the highest possible utility within the given range (if any)
@@ -546,11 +600,16 @@ class PresortingInverseUtilityFunction(InverseUFun):
             - Returns None if no such outcome exists
             - This is an O(log(n)) operation (where n is the number of outcomes)
         """
-        indx, mn, mx = self._indx_of_best_in(rng, normalized)
-        if indx < 0:
-            return None
-        if self.utils[indx] < mn:
-            return None
+        indx_, mn, mx = self._indx_of_best_in(rng, normalized)
+        if indx_ < 0:
+            indx_ = 0
+        indx = _nearest_around(
+            mx, self.utils, indx_, mn - eps, mx + 2 * eps, eps=2 * eps
+        )
+        if indx is None or (mn < mx - eps and self.utils[indx] < mn - 2 * eps):
+            raise ValueError(
+                f"best_in failed to find an appropriate outcome: {rng=} with initial find at {indx_} but we found an outcome with utility {self.utils[indx] if indx is not None else self.utils}"
+            )
         if mx > self._largest_val:
             self._largest_indx, self._largest_val = indx, mx
         if cycle and indx:
