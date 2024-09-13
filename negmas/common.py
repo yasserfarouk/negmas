@@ -177,6 +177,8 @@ class PreferencesChangeType(Enum):
     ReservedOutcome = auto()
     UncertaintyReduced = auto()
     UncertaintyIncreased = auto()
+    OSRestricted = auto()
+    OSExpanded = auto()
 
 
 @define(frozen=True)

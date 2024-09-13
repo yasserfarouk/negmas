@@ -2,9 +2,11 @@ from __future__ import annotations
 from typing import TYPE_CHECKING
 
 from negmas.gb.negotiators.base import GBNegotiator
+from negmas.outcomes.common import ExtendedOutcome
 from negmas.preferences.base_ufun import BaseUtilityFunction
 from negmas.preferences.preferences import Preferences
 from negmas.warnings import warn
+from time import sleep
 
 from ...events import Notification
 from ...negotiators import Controller
@@ -58,7 +60,7 @@ class SAONegotiator(GBNegotiator[SAONMI, SAOState]):
             **kwargs,
         )
         self.__end_negotiation = False
-        self.__my_last_proposal: Outcome | None = None
+        self.__my_last_proposal: Outcome | ExtendedOutcome | None = None
         self.__my_last_proposal_time: int = -1
         self.add_capabilities(
             {"respond": True, "propose": can_propose, "max-proposals": 1}
@@ -79,7 +81,7 @@ class SAONegotiator(GBNegotiator[SAONMI, SAOState]):
         if notification.type == "end_negotiation":
             self.__end_negotiation = True
 
-    def propose_(self, state: SAOState) -> Outcome | None:
+    def propose_(self, state: SAOState) -> Outcome | ExtendedOutcome | None:
         """
         The method directly called by the mechanism (through `counter` ) to ask for a proposal
 
@@ -110,7 +112,7 @@ class SAONegotiator(GBNegotiator[SAONMI, SAOState]):
         self.__my_last_proposal_time = state.step
         return self.__my_last_proposal
 
-    def propose(self, state) -> Outcome | None:
+    def propose(self, state) -> Outcome | ExtendedOutcome | None:
         _ = state
         return None
 
@@ -156,7 +158,9 @@ class SAONegotiator(GBNegotiator[SAONMI, SAOState]):
             if myoffer is None:
                 return ResponseType.REJECT_OFFER
         # accept only if I know what I would have proposed at this state (or the previous one) and it was worse than what I am about to proposed
-        if self.preferences.is_not_worse(offer, myoffer):
+        if self.preferences.is_not_worse(
+            offer, myoffer.outcome if isinstance(myoffer, ExtendedOutcome) else myoffer
+        ):
             return ResponseType.ACCEPT_OFFER
         return ResponseType.REJECT_OFFER
 
@@ -221,7 +225,12 @@ class SAONegotiator(GBNegotiator[SAONMI, SAOState]):
             if changes:
                 self.on_preferences_changed(changes)
         if offer is None:
-            return SAOResponse(ResponseType.REJECT_OFFER, self.propose_(state=state))
+            proposal = self.propose_(state=state)
+            if isinstance(proposal, ExtendedOutcome):
+                return SAOResponse(
+                    ResponseType.REJECT_OFFER, proposal.outcome, proposal.data
+                )
+            return SAOResponse(ResponseType.REJECT_OFFER, proposal)
         try:
             response = self.respond_(
                 state=state,
@@ -231,14 +240,17 @@ class SAONegotiator(GBNegotiator[SAONMI, SAOState]):
             response = self.respond_(state=state)
         if response != ResponseType.REJECT_OFFER:
             return SAOResponse(response, offer)
-        return SAOResponse(response, self.propose_(state=state))
+        proposal = self.propose_(state=state)
+        if isinstance(proposal, ExtendedOutcome):
+            return SAOResponse(response, proposal.outcome, proposal.data)
+        return SAOResponse(response, proposal)
 
 
 class _InfiniteWaiter(SAONegotiator):
     """Used only for testing: waits forever and never agrees to anything"""
 
     def __call__(self, state) -> SAOResponse:
-        from time import sleep
+        _ = state
 
         sleep(10000 * 60 * 60)
         return SAOResponse(ResponseType.REJECT_OFFER, self.nmi.random_outcome())

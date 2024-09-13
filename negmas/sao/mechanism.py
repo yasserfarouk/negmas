@@ -21,7 +21,7 @@ from ..common import TraceElement
 from ..events import Event
 from ..helpers import TimeoutCaller, TimeoutError, exception2str
 from ..mechanisms import Mechanism, MechanismStepResult
-from ..outcomes.common import Outcome
+from ..outcomes.common import ExtendedOutcome, Outcome
 from ..outcomes.outcome_ops import cast_value_types, outcome_types_are_ok
 from .common import SAONMI, ResponseType, SAOResponse, SAOState
 from .negotiators import SAONegotiator
@@ -45,14 +45,14 @@ class SAOMechanism(
         outcome_space: The negotiation agenda
         issues: A list of issues defining the outcome-space of the negotiation
         outcomes: A list of outcomes defining the outcome-space of the negotiation
-        n_steps: The maximum number of negotiaion rounds (see `time_limit` )
+        n_steps: The maximum number of negotiation rounds (see `time_limit` )
         time_limit: The maximum wall-time allowed for the negotiation (see `n_steps`)
         step_time_limit: The maximum wall-time allowed for a single negotiation round.
         max_n_agents: The maximum number of negotiators allowed to join the negotiation.
         dynamic_entry: Whether it is allowed for negotiators to join the negotiation after it starts
-        cache_outcomes: If true, the mechnism will catch `outcomes` and a discrete version (`discrete_outcomes`) that
+        cache_outcomes: If true, the mechanism will catch `outcomes` and a discrete version (`discrete_outcomes`) that
                         can be accessed by any negotiator through their AMI.
-        max_cardinality: Maximum number or outcomes to use when disctetizing the outcome-space
+        max_cardinality: Maximum number or outcomes to use when discretizing the outcome-space
         annotation: A key-value mapping to keep around. Accessible through the AMI but not used by the mechanism.
         end_on_no_response: End the negotiation if any negotiator returns NO_RESPONSE from `respond`/`counter` or returns
                             REJECT_OFFER then refuses to give an offer (by returning `None` from `proposee/`counter`).
@@ -71,8 +71,8 @@ class SAOMechanism(
                     single calls which means that a negotiator in an infinite loop will hog the CPU. By default
                     calls are done using a different thread that is killed when the timeout passes. This may, but
                     is not guaranteed to, resolve this issue at the expense of slower negotiations and harder debugging
-        name: Name of the mecnanism
-        **kwargs: Extra paramters passed directly to the `Mechanism` constructor
+        name: Name of the mechanisms
+        **kwargs: Extra parameters passed directly to the `Mechanism` constructor
 
     Remarks:
 
@@ -246,11 +246,161 @@ class SAOMechanism(
         ids = self.negotiator_ids
         return [ids[_] for _ in ordered_indices]
 
+    def following_negotiators(self) -> list[str]:
+        """Returns a list of ids for all negotiators  in the order they are to be run in the next calls to step()"""
+        n_negotiators = len(self.negotiators)
+        if self._frozen_neg_list is not None:
+            ordered_indices = self._frozen_neg_list
+        else:
+            ordered_indices = [
+                (_ + self._last_checked_negotiator + 1) % n_negotiators
+                for _ in range(n_negotiators)
+            ]
+
+        ids = self.negotiator_ids
+        return [ids[_] for _ in ordered_indices]
+
     def _stop_waiting(self, negotiator_id):
         self._waiting_time[negotiator_id] = 0.0
         self._waiting_start[negotiator_id] = float("inf")
         self._n_waits = 0
         self._frozen_neg_list = None
+
+    @property
+    def atomic_steps(self) -> bool:
+        """Is every step corresponding to a single action by a single negotiator"""
+        return self._one_offer_per_step
+
+    def _safe_counter(
+        self,
+        negotiator: SAONegotiator | GBNegotiator,
+        state: SAOState,
+        times: dict[str, float],
+        action: dict[str, SAOResponse] | None,
+        exceptions: dict[str, list],
+        *,
+        args: tuple = tuple(),
+        kwargs: dict | None = None,
+    ) -> tuple[SAOResponse | None, bool]:
+        if kwargs is None:
+            kwargs = dict()
+        assert (
+            not state.waiting or negotiator.id == state.current_proposer
+        ), f"We are waiting with {state.current_proposer} as the last offerer but we are asking {negotiator.id} to offer\n{state}"
+        if self.verbosity > 2:
+            print(
+                f"{self.name}: {negotiator.name} called after {humanize_time(time.perf_counter() - self._start_time, show_ms=True) if self._start_time else 0}",
+                flush=True,
+            )
+        rem = self.remaining_time
+        if rem is None:
+            rem = float("inf")
+        timeout = min(
+            self.nmi.negotiator_time_limit - times[negotiator.id],
+            self.nmi.step_time_limit,
+            rem,
+            self._hidden_time_limit - self.time,
+        )
+        given_response = action.pop(negotiator.id, None) if action else None
+        if timeout is None or timeout == float("inf") or self._sync_calls:
+            __strt = time.perf_counter()
+            try:
+                if (
+                    negotiator == self._current_proposer
+                ) and self._offering_is_accepting:
+                    self._current_state.n_acceptances = 0
+                    response = (
+                        given_response
+                        if given_response
+                        else negotiator(*args, **kwargs)
+                    )
+                else:
+                    response = (
+                        given_response
+                        if given_response
+                        else negotiator(*args, **kwargs)
+                    )
+            except TimeoutError:
+                response = None
+                try:
+                    negotiator.cancel()
+                except Exception:
+                    pass
+            except Exception as ex:
+                exceptions[negotiator.id].append(exception2str())
+                if self.ignore_negotiator_exceptions:
+                    self.announce(
+                        Event(
+                            "negotiator_exception",
+                            {"negotiator": negotiator, "exception": ex},
+                        )
+                    )
+                    times[negotiator.id] += time.perf_counter() - __strt
+                    return SAOResponse(ResponseType.END_NEGOTIATION, None), True
+                else:
+                    raise ex
+            times[negotiator.id] += time.perf_counter() - __strt
+        else:
+            fun = functools.partial(negotiator, *args, **kwargs)
+            __strt = time.perf_counter()
+            try:
+                if (
+                    negotiator == self._current_proposer
+                ) and self._offering_is_accepting:
+                    state.n_acceptances = 0
+                    response = (
+                        given_response
+                        if given_response
+                        else TimeoutCaller.run(fun, timeout=timeout)
+                    )
+                else:
+                    response = (
+                        given_response
+                        if given_response
+                        else TimeoutCaller.run(fun, timeout=timeout)
+                    )
+            except TimeoutError:
+                response = None
+            except Exception as ex:
+                exceptions[negotiator.id].append(exception2str())
+                if self.ignore_negotiator_exceptions:
+                    self.announce(
+                        Event(
+                            "negotiator_exception",
+                            {"negotiator": negotiator, "exception": ex},
+                        )
+                    )
+                    times[negotiator.id] += time.perf_counter() - __strt
+                    return SAOResponse(ResponseType.END_NEGOTIATION, None), True
+                else:
+                    raise ex
+            times[negotiator.id] += time.perf_counter() - __strt
+        if response and isinstance(response.outcome, ExtendedOutcome):
+            response = SAOResponse(
+                response.response, response.outcome.outcome, response.outcome.data
+            )
+        if self.check_offers and response is not None and response.outcome is not None:
+            if not self.outcome_space.is_valid(response.outcome):
+                return SAOResponse(response.response, None, response.data), False
+            # todo: do not use .issues here as they are not guaranteed to exist (if it is not a cartesial outcome space)
+            if self._enforce_issue_types and hasattr(self.outcome_space, "issues"):
+                if outcome_types_are_ok(
+                    response.outcome, getattr(self.outcome_space, "issues")
+                ):
+                    return response, False
+                elif self._cast_offers:
+                    return (
+                        SAOResponse(
+                            response.response,
+                            cast_value_types(
+                                response.outcome, getattr(self.outcome_space, "issues")
+                            ),
+                            response.data,
+                        ),
+                        False,
+                    )
+                return SAOResponse(response.response, None, response.data), False
+        return response, False
 
     def __call__(self, state, action=None) -> MechanismStepResult:
         """
@@ -271,127 +421,6 @@ class SAOMechanism(
         exceptions = dict(
             zip([_.id for _ in negotiators], [list() for _ in negotiators])
         )
-
-        def _safe_counter(
-            negotiator, *args, **kwargs
-        ) -> tuple[SAOResponse | None, bool]:
-            assert (
-                not state.waiting or negotiator.id == state.current_proposer
-            ), f"We are waiting with {state.current_proposer} as the last offerer but we are asking {negotiator.id} to offer\n{state}"
-            if self.verbosity > 2:
-                print(
-                    f"{self.name}: {negotiator.name} called after {humanize_time(time.perf_counter() - self._start_time, show_ms=True) if self._start_time else 0}",
-                    flush=True,
-                )
-            rem = self.remaining_time
-            if rem is None:
-                rem = float("inf")
-            timeout = min(
-                self.nmi.negotiator_time_limit - times[negotiator.id],
-                self.nmi.step_time_limit,
-                rem,
-                self._hidden_time_limit - self.time,
-            )
-            given_response = action.pop(negotiator.id, None) if action else None
-            if timeout is None or timeout == float("inf") or self._sync_calls:
-                __strt = time.perf_counter()
-                try:
-                    if (
-                        negotiator == self._current_proposer
-                    ) and self._offering_is_accepting:
-                        self._current_state.n_acceptances = 0
-                        response = (
-                            given_response
-                            if given_response
-                            else negotiator(*args, **kwargs)
-                        )
-                    else:
-                        response = (
-                            given_response
-                            if given_response
-                            else negotiator(*args, **kwargs)
-                        )
-                except TimeoutError:
-                    response = None
-                    try:
-                        negotiator.cancel()
-                    except Exception:
-                        pass
-                except Exception as ex:
-                    exceptions[negotiator.id].append(exception2str())
-                    if self.ignore_negotiator_exceptions:
-                        self.announce(
-                            Event(
-                                "negotiator_exception",
-                                {"negotiator": negotiator, "exception": ex},
-                            )
-                        )
-                        times[negotiator.id] += time.perf_counter() - __strt
-                        return SAOResponse(ResponseType.END_NEGOTIATION, None), True
-                    else:
-                        raise ex
-                times[negotiator.id] += time.perf_counter() - __strt
-            else:
-                fun = functools.partial(negotiator, *args, **kwargs)
-                __strt = time.perf_counter()
-                try:
-                    if (
-                        negotiator == self._current_proposer
-                    ) and self._offering_is_accepting:
-                        state.n_acceptances = 0
-                        response = (
-                            given_response
-                            if given_response
-                            else TimeoutCaller.run(fun, timeout=timeout)
-                        )
-                    else:
-                        response = (
-                            given_response
-                            if given_response
-                            else TimeoutCaller.run(fun, timeout=timeout)
-                        )
-                except TimeoutError:
-                    response = None
-                except Exception as ex:
-                    exceptions[negotiator.id].append(exception2str())
-                    if self.ignore_negotiator_exceptions:
-                        self.announce(
-                            Event(
-                                "negotiator_exception",
-                                {"negotiator": negotiator, "exception": ex},
-                            )
-                        )
-                        times[negotiator.id] += time.perf_counter() - __strt
-                        return SAOResponse(ResponseType.END_NEGOTIATION, None), True
-                    else:
-                        raise ex
-                times[negotiator.id] += time.perf_counter() - __strt
-            if (
-                self.check_offers
-                and response is not None
-                and response.outcome is not None
-            ):
-                if not self.outcome_space.is_valid(response.outcome):
-                    return SAOResponse(response.response, None), False
-                # todo: do not use .issues here as they are not guaranteed to exist (if it is not a cartesial outcome space)
-                if self._enforce_issue_types and hasattr(self.outcome_space, "issues"):
-                    if outcome_types_are_ok(
-                        response.outcome, getattr(self.outcome_space, "issues")
-                    ):
-                        return response, False
-                    elif self._cast_offers:
-                        return (
-                            SAOResponse(
-                                response.response,
-                                cast_value_types(
-                                    response.outcome,
-                                    getattr(self.outcome_space, "issues"),
-                                ),
-                            ),
-                            False,
-                        )
-                    return SAOResponse(response.response, None), False
-            return response, False
 
         proposers, proposer_indices = [], []
         for i, neg in enumerate(negotiators):
@@ -423,7 +452,9 @@ class SAOMechanism(
             self._last_checked_negotiator = neg_indx
             neg = self.negotiators[neg_indx]
             strt = time.perf_counter()
-            resp, has_exceptions = _safe_counter(neg, state=self.state)
+            resp, has_exceptions = self._safe_counter(
+                neg, state, times, action, exceptions, kwargs=dict(state=self.state)
+            )
             self._negotiator_times[neg.id] += time.perf_counter() - strt
             if has_exceptions:
                 state.broken = True

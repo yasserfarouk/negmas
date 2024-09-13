@@ -5,7 +5,7 @@ Common data-structures for supporting the Stacked Alternating Offers Protocol
 from __future__ import annotations
 
 from functools import lru_cache
-from typing import TYPE_CHECKING
+from typing import TYPE_CHECKING, Any
 
 from attrs import define, field
 
@@ -21,10 +21,11 @@ __all__ = ["ResponseType", "SAOResponse", "SAOState", "SAONMI", "all_negotiator_
 
 @define
 class SAOResponse(MechanismAction):
-    """A response to an offer given by an agent in the alternating offers protocol"""
+    """A response to an offer given by a negotiator in the alternating offers protocol"""
 
     response: ResponseType = ResponseType.NO_RESPONSE
     outcome: Outcome | None = None
+    data: dict[str, Any] | None = None
 
 
 @define
@@ -38,6 +39,8 @@ class SAOState(GBState):
     new_offers: list[tuple[str, Outcome | None]] = field(factory=list)
     new_offerer_agents: list[str | None] = field(factory=list)
     last_negotiator: str | None = None
+    current_data: dict[str, Any] | None = None
+    new_data: list[tuple[str, dict[str, Any] | None]] = field(factory=list)
 
 
 @define(frozen=True)
@@ -53,6 +56,9 @@ class SAONMI(NegotiatorMechanismInterface):
     @property
     def state(self) -> SAOState:
         return self._mechanism.state  # type: ignore
+
+    def negotiator_offers(self, negotiator_id: str) -> list[Outcome]:
+        return self._mechanism.negotiator_offers(negotiator_id)  # type: ignore
 
 
 @lru_cache(1)

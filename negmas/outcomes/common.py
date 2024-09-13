@@ -5,11 +5,13 @@ Common datastructures used in the outcomes module.
 from __future__ import annotations
 
 from typing import TYPE_CHECKING, Any, Mapping
+from attr import define
 
 from negmas.outcomes.issue_ops import issues_from_outcomes
 
 __all__ = [
     "Outcome",
+    "ExtendedOutcome",
     "PartialOutcomeDict",
     "PartialOutcomeTuple",
     "OutcomeRange",
@@ -25,6 +27,13 @@ if TYPE_CHECKING:
 
 Outcome = tuple
 """An outcome is a tuple of issue values."""
+
+
+@define(frozen=True)
+class ExtendedOutcome:
+    outcome: Outcome
+    data: dict[str, Any] | None = None
+
 
 PartialOutcomeDict = Mapping[int, Any]
 """A partial outcome is a simple mapping between issue INDEX and its value. Both a `tuple` and a `dict[int, Any]` satisfy this definition."""

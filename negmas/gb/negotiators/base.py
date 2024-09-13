@@ -3,6 +3,7 @@ from abc import abstractmethod
 from collections import defaultdict
 from typing import TYPE_CHECKING, Generic, TypeVar
 
+from negmas.outcomes.common import ExtendedOutcome
 from negmas.preferences.base_ufun import BaseUtilityFunction
 from negmas.preferences.preferences import Preferences
 
@@ -67,7 +68,7 @@ class GBNegotiator(Negotiator[GBNMI, GBState], Generic[TNMI, TState]):
         )
 
     @abstractmethod
-    def propose(self, state) -> Outcome | None:
+    def propose(self, state) -> Outcome | ExtendedOutcome | None:
         """Propose an offer or None to refuse.
 
         Args:
@@ -164,15 +165,25 @@ class GBNegotiator(Negotiator[GBNMI, GBState], Generic[TNMI, TState]):
             if changes:
                 self.on_preferences_changed(changes)
         if offer is None:
-            return SAOResponse(ResponseType.REJECT_OFFER, self.propose_(state=state))
+            proposal = self.propose_(state=state)
+            if isinstance(proposal, ExtendedOutcome):
+                return SAOResponse(
+                    ResponseType.REJECT_OFFER, proposal.outcome, proposal.data
+                )
+            return SAOResponse(ResponseType.REJECT_OFFER, proposal)
         response = self.respond_(state=state)
         if response == ResponseType.ACCEPT_OFFER:
             return SAOResponse(response, offer)
         if response != ResponseType.REJECT_OFFER:
             return SAOResponse(response, None)
-        return SAOResponse(response, self.propose_(state=state))
+        proposal = self.propose_(state=state)
+        if isinstance(proposal, ExtendedOutcome):
+            return SAOResponse(
+                ResponseType.REJECT_OFFER, proposal.outcome, proposal.data
+            )
+        return SAOResponse(response, proposal)
 
-    def propose_(self, state: SAOState) -> Outcome | None:
+    def propose_(self, state: SAOState) -> Outcome | ExtendedOutcome | None:
         if not self._capabilities["propose"] or self.__end_negotiation:
             return None
         return self.propose(state=self._gb_state_from_sao_state(state))

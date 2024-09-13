@@ -369,7 +369,7 @@ class Mechanism(
     def random_outcomes(
         self, n: int = 1, with_replacement: bool = False
     ) -> list[Outcome]:
-        """Returns random offers.
+        """Returns random outcomes.
 
         Args:
               n: Number of outcomes to generate
@@ -996,6 +996,11 @@ class Mechanism(
 
         If it returns False then negotiation will end immediately
         """
+        return True
+
+    @property
+    def atomic_steps(self) -> bool:
+        """Is every step corresponding to a single action by a single negotiator"""
         return True
 
     @abstractmethod
