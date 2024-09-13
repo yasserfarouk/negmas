@@ -13,7 +13,7 @@ Summary
 ============================  ===================================  ===============================================
  from                          to                                   Notes
 ============================  ===================================  ===============================================
-Issue(...)                    make_issue(...)                      The same paramters are accepted
+Issue(...)                    make_issue(...)                      The same parameters are accepted
 outcome_as_dict(x, ...)       outcome2dict(x, ..., issues=issue)   Must pass the issues
 outcome_as_tuple(x, ...)      x                                    Just remove the call (all outcomes are tuples)
 negmas.java                   negmas.serialization
@@ -42,9 +42,9 @@ The following rules  must be followed:
   (i.e. a member starting with `_` ). If you do need that, it is a bug. Please
   raise an issue in github.
 - Do not pass `outcome_type` to any ufun constructor. It is now removed as all
-  outcomes are guarenteed to have the type `tuple` now.
+  outcomes are guaranteed to have the type `tuple` now.
 - Some I/O methods (and few others) had `force_single_issue`, `keep_issue_names` and `keep_issue_values`
-  paramters to do on-the-fly type conversions and change the type of the outcomes.
+  parameters to do on-the-fly type conversions and change the type of the outcomes.
   All of this is removed now. Conversion of issue spaces can be done explicitly
   using methods in the `OutcomeSpace` protocol like `to_single` and `to_numeric`.
 
@@ -59,7 +59,7 @@ load_genius_domain_from_folder     Scenario.from_genius_folder          Some of 
 LinearUtilityAggregationFunction   LinearAdditiveUtilityFunction        The old class name is still provided.
 Negotiator.ami                     Negotiator.nmi                       Member of all `Negotiator` objects
 Controller.get_ami                 Controller.get_nmi
-AgentMechanismInterface            NegotiatorMechanismInterface         The class was renamed to better reflect its role. The old name still works but is depricated
+AgentMechanismInterface            NegotiatorMechanismInterface         The class was renamed to better reflect its role. The old name still works but is deprecated
 LinearUtilityFunction(bias!=0)     AffineUtilityFunction                We are reserving the name `LinearUtilityFunction` to ufuns with zero offset and `AffineUtilityFunction` for those with potentially nonzero offset
 =================================  ===================================  ===================================================================
 
@@ -70,7 +70,7 @@ The following rules *should* be followed:
   scenarios (specially for affine and linear utility functions) but some
   operations may fail if the ufun does not know its outcome-space. For example,
   if you construct a utility function without passing an outcome space to it, you
-  will get an execption if you try to call `extreme_outcomes()` or `minmax()` on
+  will get an exception if you try to call `extreme_outcomes()` or `minmax()` on
   it later as the ufun has no way to know how to evaluate either. Because some
   builtin negotiators (e.g. `TimeBasedNegotiator` ) do use these methods internally,
   you will get these exceptions at the time of calling said methods which may be
@@ -80,7 +80,7 @@ Outcome Type
 ------------
 
 In NegMAS 0.8, you were able to use dicts, lists, tuples, or `OutcomeType` objects as
-outcomes. For examle if we have two issues (price and quantity), you coud represent an
+outcomes. For example if we have two issues (price and quantity), you could represent an
 outcome  as any of the following:
 
 .. code-block ::
@@ -146,7 +146,7 @@ feature but it is recommended that you start using outcome-spaces instead of
 lists of issues. We provide a convenient `make_os` factory function for
 constructing outcome spaces from lists of issues, or lists of outcomes.
 
-All mechnisms now receive their outcome-space either as an `oucome_space`, a
+All mechanisms now receive their outcome-space either as an `oucome_space`, a
 list of `Issue` objects, or a list of `Outcome` objects.
 
 
@@ -211,7 +211,7 @@ Most of these changes have no effect on well-behaving code using the library:
   whenever possible. For example, `on_ufun_changed` was renamed to
   `on_preferences_changed` to make it clear that general preferences can be
   used not only ufuns.
-- Some methods now receive both `preferences` and `ufun` aruments (instead of
+- Some methods now receive both `preferences` and `ufun` arguments (instead of
   only `ufun` ) with the `ufun` argument overriding the `preferences` argument
   when given.
   This was done (instead of just renaming the `ufun` argument to `preferences`
@@ -229,7 +229,7 @@ Most of these changes have no effect on well-behaving code using the library:
      `init()` method before the `awi` is set.
      By delaying the call to `on_preferences_changed()` we make sure that the
      `awi` is available in case it is needed.
-  2. In some cases, the negotitor may be constructed by never joins a
+  2. In some cases, the negotiator may be constructed by never joins a
      negotiation. It is a waste of resources to compute whatever
      `on_preferences_changed()` is computing in such cases as the preferences
      will never be really used.
@@ -244,7 +244,9 @@ you achieve this with minimal hassle.
 ================================  ===================================  =============================================================================================================
  from                              to                                   Notes
 ================================  ===================================  =============================================================================================================
-def respond(self,state, offer)     def respond(self, state)            SAO negotiator's respond() does not receive the offer anymore. You can get the offer as `state.current_offer`
+def respond(self,state, offer,...)     def respond(self, state, ...)            SAO negotiator's respond() does not receive the offer anymore. You can get the offer as `state.current_offer`
+PreferenceChangeType.Scaled         PreferenceChangeType.Scale
+PreferenceChangeType.Shifted         PreferenceChangeType.Shift
 ================================  ===================================  =============================================================================================================
 
 Other Changes
