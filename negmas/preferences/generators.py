@@ -18,6 +18,7 @@ from negmas.preferences.crisp.mapping import MappingUtilityFunction
 from negmas.preferences.ops import nash_points, pareto_frontier
 from negmas.preferences.value_fun import TableFun
 from negmas.preferences import UtilityFunction
+from negmas.warnings import warn
 
 __all__ = [
     "sample_between",
@@ -339,20 +340,31 @@ def generate_utility_values(
         A list of tuples each giving the utilities of one outcome
     """
     if n_ufuns != 2:
-        raise NotImplementedError(
-            f"We only support generation of two ufuns using this method. {n_ufuns} ufuns are requested."
+        warn(
+            f"{n_ufuns} ufuns are requested. The method used for this is not well tested."
         )
     if not generator_params:
         generator_params = dict()
     if isinstance(pareto_generator, str):
         pareto_generator = GENERATOR_MAP[pareto_generator]
-    pareto = pareto_generator(n_pareto, **generator_params)
-    extra = make_non_pareto(pareto, n_outcomes - n_pareto)
-    # print(len(xvals), len(extra), n_segments, n_pareto, n_outcomes)
-    points = list(pareto) + extra
+    n_rounds = n_ufuns // 2
+    one_more = n_rounds * 2 < n_ufuns
+    allpoints = None
+    for r in range(n_rounds + one_more):
+        pareto = pareto_generator(n_pareto, **generator_params)
+        extra = make_non_pareto(pareto, n_outcomes - n_pareto)
+        # print(len(xvals), len(extra), n_segments, n_pareto, n_outcomes)
+        points = list(pareto) + extra
+        if allpoints is None:
+            allpoints = points
+        else:
+            allpoints = [a + b for a, b in zip(allpoints, points)]
+    assert allpoints is not None
+    if one_more:
+        allpoints = [a[:-1] for a in allpoints]
     if not pareto_first:
-        random.shuffle(points)
-    return points
+        random.shuffle(allpoints)
+    return allpoints
 
 
 def zip_cycle(A, *args):
@@ -628,7 +640,7 @@ def generate_multi_issue_ufuns(
         issue_names = tuple(f"i{k+1}" for k in range(n_issues))
     gp = list(zip(pareto_generators, generator_params))  # type: ignore
     if sizes is None or len(sizes) == 0:
-        assert n_values is not None
+        assert n_values is not None and (isinstance(n_values, tuple) or n_values > 0)
         sizes = tuple(intin(n_values) for _ in range(n_issues))  # type: ignore
     assert sizes is not None
     for i, n in enumerate(sizes):
