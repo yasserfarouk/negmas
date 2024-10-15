@@ -440,6 +440,10 @@ class NegotiatorMechanismInterface:
         return self._mechanism.state
 
     @property
+    def history(self) -> list:
+        return self._mechanism.history
+
+    @property
     def requirements(self) -> dict:
         """
         The protocol requirements

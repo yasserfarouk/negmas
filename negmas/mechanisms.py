@@ -1380,7 +1380,7 @@ class Mechanism(
         return self.state
 
     @property
-    def history(self):
+    def history(self) -> list[TState]:
         return self._history
 
     @property
