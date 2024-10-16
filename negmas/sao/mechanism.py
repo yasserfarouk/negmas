@@ -131,7 +131,7 @@ class SAOMechanism(
             }
         )
         assert self.nmi.end_on_no_response == end_on_no_response
-        assert self.nmi.one_offer_per_step == one_offer_per_step
+        assert self.nmi.atomic_steps == one_offer_per_step
         self._one_offer_per_step = one_offer_per_step
         self._current_state: SAOState
 

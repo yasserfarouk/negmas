@@ -3,6 +3,7 @@ Genius Negotiator
 An agent used to connect to GENIUS agents (ver 8.0.4) and allow them to join negotiation mechanisms
 
 """
+
 from __future__ import annotations
 
 
@@ -655,7 +656,7 @@ class GeniusNegotiator(SAONegotiator):
 
     def _current_step(self, state):
         s = state.step
-        if s is not None and self.nmi.one_offer_per_step:  # type: ignore
+        if s is not None and self.nmi.atomic_steps:
             s = int(s / self.nmi.n_negotiators)
         return s
 

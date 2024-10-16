@@ -386,6 +386,10 @@ class NegotiatorMechanismInterface:
         """
         return self._mechanism.random_outcomes(n=n)
 
+    @property
+    def atomic_steps(self) -> bool:
+        return self._mechanism.atomic_steps
+
     def discrete_outcomes(
         self, max_cardinality: int | float = float("inf")
     ) -> Iterable[Outcome]:
