@@ -36,6 +36,7 @@ class Negotiator(Rational, Notifiable, Generic[TNMI, TState]):
            parent: The `Controller` that controls this neogtiator (if any)
            owner: The `Agent` that own this negotiator (if any)
            id: The unique ID of the negotiator
+           private_info: Arbitrary information passed to the negotiator. As a special case if a value for 'opponent_ufun' is given, it will be accessible as self.opponent_ufun
 
        Returns:
            bool: True if participating in the given negotiation (or any negotiation if it was None)
