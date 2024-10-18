@@ -339,6 +339,36 @@ class NegotiatorMechanismInterface:
     #
 
     @property
+    def estimated_n_steps(self) -> int:
+        """Return an estimate of the number of steps for this negotiation."""
+        estimates: list[int] = []
+        if self.n_steps is not None:
+            estimates.append(self.n_steps)
+        if self.pend is not None:
+            estimates.append(int(1 / self.pend + 0.5))
+        if self.pend_per_second is not None:
+            time_limit = 1 / self.pend
+            estimates.append(int(time_limit * self.state.step / self.state.time + 0.5))
+        if self.time_limit is not None:
+            estimates.append(int(self.state.step / self.state.relative_time + 0.5))
+        return min(estimates)
+
+    @property
+    def estimated_time_limit(self) -> float:
+        """Return an estimate of the number of seconds for this negotiation."""
+        estimates: list[float] = []
+        if self.time_limit is not None:
+            estimates.append(self.time_limit)
+        if self.n_steps is not None:
+            estimates.append(self.n_steps / self.state.relative_time)
+        if self.pend_per_second is not None:
+            estimates.append(int(1 / self.pend_per_second + 0.5))
+        if self.pend is not None:
+            n_steps = 1 / self.pend
+            estimates.append(int(n_steps * self.state.time / self.state.step + 0.5))
+        return min(estimates)
+
+    @property
     def cartesian_outcome_space(self) -> CartesianOutcomeSpace:
         """
         Returns the `outcome_space` as a `CartesianOutcomeSpace` or raises a `ValueError` if that was not possible.
