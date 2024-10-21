@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 from datetime import datetime
+from copy import deepcopy
 import pandas as pd
 import sys
 import random
@@ -11,7 +12,7 @@ from negmas.inout import serialize
 
 import matplotlib
 import typer
-from matplotlib import functools
+import functools
 from matplotlib import pyplot as plt
 from pandas.core.window.numba_ import Callable
 from rich import print
@@ -19,7 +20,7 @@ from stringcase import titlecase
 
 from negmas.genius.ginfo import get_java_class
 from negmas.genius.negotiator import GeniusNegotiator
-from negmas.helpers import get_class
+from negmas.helpers import get_class, instantiate
 from negmas.helpers.inout import dump
 from negmas.helpers.strings import camel_case, humanize_time, shortest_unique_names
 from negmas.helpers.types import get_full_type_name
@@ -40,6 +41,7 @@ from negmas.preferences.generators import generate_multi_issue_ufuns
 app = typer.Typer()
 
 GENIUSMARKER = "genius"
+ANLMARKER = "anl"
 
 
 def get_screen_resolution() -> tuple[int, int]:
@@ -68,9 +70,13 @@ def get_protocol(name: str) -> type[Mechanism]:
     return get_class(name)
 
 
-def get_genius_proper_class_name(s: str) -> str:
-    assert s.startswith(GENIUSMARKER)
-    return s.split(GENIUSMARKER)[-1]
+def get_proper_class_name(s: str) -> str:
+    # assert s.startswith(GENIUSMARKER)
+    if s.startswith(GENIUSMARKER):
+        return s.split(GENIUSMARKER)[-1]
+    if s.startswith(ANLMARKER):
+        return s.split(ANLMARKER)[-1]
+    raise RuntimeError(f"{s} does not start with a known marker")
 
 
 def create_adapter(adapter_type, negotiator_type, name):
@@ -79,6 +85,10 @@ def create_adapter(adapter_type, negotiator_type, name):
 
 def make_genius_negotiator(*args, java_class_name: str, **kwargs):
     return GeniusNegotiator(*args, **kwargs, java_class_name=java_class_name)
+
+
+def make_anl_negotiator(class_name: str, **kwargs):
+    return instantiate(class_name, module_name="anl_agents", **kwargs)
 
 
 def get_negotiator(class_name: str) -> type[Negotiator] | Callable[[str], Negotiator]:
@@ -94,6 +104,16 @@ def get_negotiator(class_name: str) -> type[Negotiator] | Callable[[str], Negoti
                 f"Cannot find java class name for genius negotiator of type {class_name}"
             )
         return functools.partial(make_genius_negotiator, java_class_name=java_class)
+
+    if class_name.startswith(f"{ANLMARKER}."):
+        for sp in (".", ":"):
+            x = sp.join(class_name.split(sp)[1:])
+            if x:
+                class_name = x
+                break
+        if class_name.startswith(f"{ANLMARKER}."):
+            class_name = class_name[len(ANLMARKER) + 1 :]
+        return functools.partial(make_anl_negotiator, class_name=class_name)
     if "/" in class_name:
         adapter_name, _, negotiator_name = class_name.partition("/")
         adapter_type = get_adapter(adapter_name)
@@ -184,6 +204,16 @@ def run(
         "",
         "--params",
         help="Mechanism initialization parameters as comma-separated `key=value` pairs.",
+        rich_help_panel="Basic Options",
+    ),
+    share_ufuns: bool = typer.Option(
+        False,
+        help="Share partner ufuns using private-data.",
+        rich_help_panel="Basic Options",
+    ),
+    share_reserved_values: bool = typer.Option(
+        False,
+        help="Share partner reserved-values using private-data.",
         rich_help_panel="Basic Options",
     ),
     # Deadline
@@ -478,6 +508,8 @@ def run(
         current_scenario = Scenario.from_genius_folder(
             scenario, ignore_reserved=False, ignore_discount=not discount
         )
+    assert current_scenario is not None
+    saved_scenario: Scenario = deepcopy(current_scenario)
     if not current_scenario:
         print(f"Failed to load scenario from {scenario}")
         return
@@ -521,9 +553,21 @@ def run(
             negotiators = negotiators[: len(current_scenario.ufuns)]
 
     negotiator_names = shortest_unique_names(negotiators, guarantee_unique=True)
+    if share_ufuns:
+        assert (
+            len(current_scenario.ufuns) == 2 and len(negotiators) == 2
+        ), "Sharing ufuns in multilateral negotiations is not yet supported"
+        opp_ufuns = list(reversed(deepcopy(current_scenario.ufuns)))
+        if not share_reserved_values:
+            for u in opp_ufuns:
+                u.reserved_value = float("nan")
+    else:
+        opp_ufuns = [None] * len(negotiators)
     agents = [
         get_negotiator(_)(name=name)  # type: ignore
-        for _, name in zip(negotiators, negotiator_names, strict=True)  # type: ignore
+        if ou is None
+        else get_negotiator(_)(name=name, private_info=dict(opponent_ufun=ou))  # type: ignore
+        for _, name, ou in zip(negotiators, negotiator_names, opp_ufuns, strict=True)  # type: ignore
     ]
     if len(agents) < 2:
         print(
@@ -557,6 +601,8 @@ def run(
         n_steps=steps,
         time_limit=timelimit,
         verbosity=verbosity - 1,
+        share_ufuns=share_ufuns,
+        share_reserved_values=share_reserved_values,
         **dict(ignore_negotiator_exceptions=not raise_exceptions),
         **kwargs,
     )
@@ -574,6 +620,7 @@ def run(
     _start = perf_counter()
     state = runner()
     duration = perf_counter() - _start
+    current_scenario = saved_scenario
     if verbosity > 1:
         print(f"Time: {humanize_time(duration, show_ms=True, show_us=True)}")
         print(f"Steps: {session.current_step}")
@@ -735,14 +782,14 @@ def run(
         )
         if plot_show:
             mng = plt.get_current_fig_manager()
-            mng.resize(1024, 860)
-            mng.full_screen_toggle()
+            mng.resize(1024, 860)  # type: ignore
+            mng.full_screen_toggle()  # type: ignore
             plt.show()
     if save_path and save_history:
         if hasattr(session, "full_trace"):
             hist = pd.DataFrame(
                 session.full_trace,  # type: ignore
-                columns=[
+                columns=[  # type: ignore
                     "time",
                     "relative_time",
                     "step",

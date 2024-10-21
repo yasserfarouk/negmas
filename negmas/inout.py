@@ -3,6 +3,7 @@ Defines import/export functionality
 """
 
 from __future__ import annotations
+from copy import deepcopy
 import math
 import xml.etree.ElementTree as ET
 from os import PathLike, listdir
@@ -224,6 +225,8 @@ class Scenario:
         time_limit: float | None = None,
         roles: list[str] | None = None,
         raise_on_failure_to_enter: bool = True,
+        share_ufuns: bool = False,
+        share_reserved_values: bool = False,
         **kwargs,
     ):
         """
@@ -245,21 +248,36 @@ class Scenario:
         if not negotiators:
             return m
         negs: list[Negotiator]
+        if share_ufuns:
+            assert (
+                len(self.ufuns) == 2
+            ), "Sharing ufuns in multilateral negotiations is not yet supported"
+            opp_ufuns = reversed(deepcopy(self.ufuns))
+            if not share_reserved_values:
+                for u in opp_ufuns:
+                    u.reserved_value = float("nan")
+        else:
+            opp_ufuns = [None] * len(self.ufuns)
         if not isinstance(negotiators, Iterable):
             negs = [
                 negotiators(
                     name=ufun.name.split("/")[-1]  # type: ignore We trust that the class given is a negotiator and has a name
                     .replace(".xml", "")
-                    .replace(".yml", "")
+                    .replace(".yml", ""),
+                    private_info=dict(opponent_ufun=opp_ufun) if opp_ufun else None,  # type: ignore We trust that the class given is a negotiator and has private_info
                 )
-                for ufun in self.ufuns
+                for ufun, opp_ufun in zip(self.ufuns, opp_ufuns)
             ]
         else:
             negs = list(negotiators)
+        for neg, ou in zip(negs, opp_ufuns):
+            if share_ufuns and neg.opponent_ufun is None and ou is not None:
+                neg._private_info["opponent_ufun"] = ou
         if len(self.ufuns) != len(negs) or len(negs) < 1:
             raise ValueError(
                 f"Invalid ufuns ({self.ufuns}) or negotiators ({negotiators})"
             )
+
         if not roles:
             roles = ["negotiator"] * len(negs)
         for n, r, u in zip(negs, roles, self.ufuns):
