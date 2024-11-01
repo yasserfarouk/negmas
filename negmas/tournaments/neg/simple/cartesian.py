@@ -597,7 +597,7 @@ def _make_mechanism(
     complete_names, negotiators, failures = [], [], dict()
     for type_, p, pinfo in zip(partners, partner_params, private_infos):  # type: ignore
         try:
-            negotiator = type_(**p, private_info=pinfo)
+            negotiator = type_(**p, private_info=copy.deepcopy(pinfo))
             name = _name(negotiator)
             complete_names.append(name)
             negotiators.append(negotiator)
@@ -630,7 +630,7 @@ def _make_mechanism(
         else:
             negotiator.name = unique_name("n", add_time=False, sep="")
         complete_names.append(name)
-        m.add(negotiator, ufun=u)
+        m.add(negotiator, ufun=copy.deepcopy(u))
 
     return (m, failures, s, real_scenario_name)
 
@@ -1273,7 +1273,7 @@ def cartesian_tournament(
                 _ for _ in partners_list if len({str(serialize(p)) for p in _}) > 1
             ]
 
-        ufun_sets = [list(s.ufuns)]
+        ufun_sets = [[copy.deepcopy(_) for _ in s.ufuns]]
         pinfo_sets = [pinfo]
         for i, u in enumerate(s.ufuns):
             u.name = f"{i}_{u.name}"
