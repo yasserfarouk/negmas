@@ -1,6 +1,7 @@
 """
 Base Constraints on offering constaints
 """
+
 from __future__ import annotations
 
 
@@ -21,7 +22,9 @@ __all__ = [
 @define
 class OfferingConstraint(ABC):
     @abstractmethod
-    def __call__(self, state: GBState, history: list[GBState]) -> bool:
+    def __call__(
+        self, state: GBState | ThreadState, history: list[GBState | ThreadState]
+    ) -> bool:
         """
         Base class for all offering constaints
 
@@ -48,7 +51,7 @@ class OfferingConstraint(ABC):
 class LocalOfferingConstraint(OfferingConstraint, ABC):
     @abstractmethod
     def __call__(self, state: ThreadState, history: list[ThreadState]) -> bool:
-        ...
+        ...  # type: ignore
 
     def eval_globally(self, source: str, state: GBState, history: list[GBState]):
         return self(state.threads[source], [_.threads[source] for _ in history])

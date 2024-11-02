@@ -1,6 +1,7 @@
 """
 Base Evaluation Strategies
 """
+
 from __future__ import annotations
 
 
@@ -61,7 +62,7 @@ class LocalEvaluationStrategy(EvaluationStrategy):
         negotiator_ids: list[str],
         state: GBState,
         history: list[GBState],
-        active_thread: int,
+        active_thread: int | None,
     ) -> GBResponse:
         """Base class for evaluation strategies
 
@@ -72,6 +73,7 @@ class LocalEvaluationStrategy(EvaluationStrategy):
             active_thread (int): the current thread.
 
         """
+        assert active_thread is not None
         source = negotiator_ids[active_thread]
         return self.eval(
             source,

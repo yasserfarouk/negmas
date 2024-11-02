@@ -18,7 +18,7 @@ from .protocols import InverseUFun
 
 __all__ = ["PresortingInverseUtilityFunction", "SamplingInverseUtilityFunction"]
 
-EPS = 1e-6
+EPS = 1e-12
 
 
 def _nearest_around(
@@ -880,6 +880,20 @@ class PresortingInverseUtilityFunctionBruteForce(InverseUFun):
         if irrational:
             self._ordered_outcomes += list(zip(uir, irrational, strict=True))
         self._initialized = True
+        self._last_returned_from_next: int = -1
+
+    def _un_normalize_range(
+        self, rng: float | tuple[float, float], normalized: bool, for_best: bool
+    ) -> tuple[float, float]:
+        if not isinstance(rng, Iterable):
+            rng = (rng - EPS, rng + EPS)
+        if not normalized:
+            return rng
+        mn, mx = self._min, self._max
+        d = mx - mn
+        if d < EPS:
+            return tuple(0.0 if not for_best else 1.0 for _ in rng)
+        return tuple(_ * d + mn for _ in rng)
 
     def _normalize_range(
         self, rng: float | tuple[float, float], normalized: bool, for_best: bool
@@ -893,6 +907,26 @@ class PresortingInverseUtilityFunctionBruteForce(InverseUFun):
         if d < EPS:
             return tuple(1.0 if for_best else 0.0 for _ in rng)
         return tuple(_ * d + mn for _ in rng)
+
+    def next_worse(self) -> Outcome | None:
+        """Returns the rational outcome with utility just below the last one returned from this function"""
+        if self._last_returned_from_next < 0:
+            self._last_returned_from_next = self._last_rational
+            return self.best()
+        if self._last_returned_from_next > 0:
+            self._last_returned_from_next -= 1
+            return self._ordered_outcomes[self._last_returned_from_next][1]
+        return None
+
+    def next_better(self) -> Outcome | None:
+        """Returns the rational outcome with utility just above the last one returned from this function"""
+        if self._last_returned_from_next < 0:
+            self._last_returned_from_next = 0
+            return self.worst()
+        if self._last_returned_from_next < self._last_rational:
+            self._last_returned_from_next += 1
+            return self._ordered_outcomes[self._last_returned_from_next][1]
+        return None
 
     def some(
         self,
@@ -977,7 +1011,7 @@ class PresortingInverseUtilityFunctionBruteForce(InverseUFun):
     ) -> Outcome | None:
         if not self._ufun.is_stationary():
             self.init()
-        rng = self._normalize_range(rng, normalized, False)
+        rng = self._un_normalize_range(rng, normalized, False)
         mn, mx = rng
         if not self._ordered_outcomes:
             return None
@@ -995,12 +1029,12 @@ class PresortingInverseUtilityFunctionBruteForce(InverseUFun):
     ) -> Outcome | None:
         if not self._ufun.is_stationary():
             self.init()
-        rng = self._normalize_range(rng, normalized, True)
+        rng = self._un_normalize_range(rng, normalized, True)
         mn, mx = rng
         for util, w in self._ordered_outcomes[: self._last_rational + 1]:
-            if util > mx:
+            if util > mx + EPS:
                 continue
-            if util < mn:
+            if util < mn - EPS:
                 return None
             return w
         return None

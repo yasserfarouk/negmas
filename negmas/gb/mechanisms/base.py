@@ -57,7 +57,7 @@ class GBThread:
             if not offer:
                 offer = None
         # assert offer is None or isinstance(offer, Outcome)
-        self.state.new_offer = offer
+        self.state.new_offer = offer  # type: ignore
         if self.constraint and not self.constraint(
             mechanism_state.threads[source], [_.threads[source] for _ in history]
         ):
@@ -84,7 +84,7 @@ class GBThread:
         if self.mechanism._extra_callbacks:
             for n in self.responders:
                 strt = perf_counter()
-                n.on_partner_proposal(mechanism_state, source, offer)
+                n.on_partner_proposal(mechanism_state, source, offer)  # type: ignore
                 self.mechanism._negotiator_times[n.id] += perf_counter() - strt
         responses = []
         for responder in self.responders:
@@ -94,10 +94,10 @@ class GBThread:
         if self.mechanism._extra_callbacks:
             for n, r in zip(self.responders, responses):
                 strt = perf_counter()
-                n.on_partner_response(mechanism_state, n.id, offer, r)
+                n.on_partner_response(mechanism_state, n.id, offer, r)  # type: ignore
                 self.mechanism._negotiator_times[n.id] += perf_counter() - strt
         if all(_ == ResponseType.ACCEPT_OFFER for _ in responses):
-            self.state.accepted_offers.append(offer)
+            self.state.accepted_offers.append(offer)  # type: ignore
         self.state.new_responses = dict(
             zip(tuple(_.id for _ in self.responders), responses)
         )
@@ -181,7 +181,7 @@ class BaseGBMechanism(Mechanism[GBNMI, GBState, GBAction, GBNegotiator]):
                     flush=True,
                 )
             r = thread.run(action)
-            state: GBState = self.state  #
+            state: GBState = self.state
             state.last_thread = idd
             return r
 
@@ -556,7 +556,7 @@ class GBMechanism(BaseGBMechanism):
                 flush=True,
             )
         if self._global_constraint:
-            responses.append(self._global_constraint(state, self._history))
+            responses.append(self._global_constraint(state, self._history))  # type: ignore
 
         e = self._combiner(responses)
 

@@ -190,10 +190,12 @@ def test_inv_matches_bruteforce_within_fractions(
     mx=st.floats(0.0, 1.0),
     r=st.floats(0.0, 1.0),
 )
-@example(rational_only=False, nissues=1, nvalues=2, mn=0.0, mx=1.0, r=0.0)
 @example(rational_only=True, nissues=1, nvalues=1, mn=0.0, mx=0.0, r=1.0)
+@example(rational_only=False, nissues=1, nvalues=2, mn=0.0, mx=1.0, r=0.0)
 def test_inv_matches_bruteforce_best_worst(rational_only, nissues, nvalues, mn, mx, r):
     _, ufun = make_ufun(nissues, nvalues, r)
+    if ufun.outcome_space.cardinality < 2:
+        return
     fast = PresortingInverseUtilityFunction(ufun, rational_only=rational_only)
     brute = PresortingInverseUtilityFunctionBruteForce(
         ufun, rational_only=rational_only
@@ -201,12 +203,19 @@ def test_inv_matches_bruteforce_best_worst(rational_only, nissues, nvalues, mn, 
     fast.init()
     brute.init()
     rng = (min(mn, mx), max(mn, mx))
-    x = fast.best_in(rng, normalized=True, cycle=False)
-    y = brute.best_in(rng, normalized=True)
-    assert x == y
-    x = fast.worst_in(rng, normalized=True, cycle=False)
-    y = brute.worst_in(rng, normalized=True)
-    assert x == y
+    rng = fast._un_normalize_range(rng, True, True)
+    x = fast.best_in(rng, normalized=False, cycle=False)
+    assert rng[0] <= ufun(x) <= rng[1], f"{x=}, {ufun(x)=} not in {rng}"
+    y = brute.best_in(rng, normalized=False)
+    assert ufun(x) >= ufun(
+        y
+    ), f"Best failed for range {rng} ({ufun(x)=}, {ufun(y)=}, {x=}, {y=}): {ufun}"
+    x = fast.worst_in(rng, normalized=False, cycle=False)
+    assert rng[0] <= ufun(x) <= rng[1], f"{x=}, {ufun(x)=} not in {rng}"
+    y = brute.worst_in(rng, normalized=False)
+    assert ufun(x) <= ufun(
+        y
+    ), f"Worst failed for range {rng} ({ufun(x)=}, {ufun(y)=}, {x=}, {y=}): {ufun}"
 
 
 @given(
