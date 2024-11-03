@@ -176,7 +176,7 @@ class Mechanism(
         outcome_space = ensure_os(outcome_space, issues, outcomes)
         self.__verbosity = verbosity
         self._negotiator_logs: dict[str, list[dict[str, Any]]] = defaultdict(list)
-        super().__init__(name, id=id, type_name=type_name)
+        super().__init__(name=name, id=id, type_name=type_name)
 
         self.ignore_negotiator_exceptions = ignore_negotiator_exceptions
         self._negotiator_times = defaultdict(float)
