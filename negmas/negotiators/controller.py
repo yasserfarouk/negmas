@@ -196,7 +196,7 @@ class Controller(Rational, Generic[TNMI, TState, TControlledNegotiator]):
 
         """
         new_negotiator = self.make_negotiator(negotiator_type, name, **kwargs)
-        self.add_negotiator(new_negotiator)
+        self.add_negotiator(new_negotiator, cntxt=cntxt)
         return new_negotiator
 
     def call(self, negotiator: ControlledNegotiator, method: str, *args, **kwargs):
