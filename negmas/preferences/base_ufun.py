@@ -51,11 +51,18 @@ class BaseUtilityFunction(Preferences, ABC):
     Base class for all utility functions in negmas
     """
 
-    def __init__(self, *args, reserved_value: float = float("-inf"), **kwargs):
+    def __init__(
+        self,
+        *args,
+        reserved_value: float = float("-inf"),
+        invalid_value: float | None = None,
+        **kwargs,
+    ):
         super().__init__(*args, **kwargs)
         self.reserved_value = reserved_value
         self._cached_inverse: InverseUFun | None = None
         self._cached_inverse_type: type[InverseUFun] | None = None
+        self.__invalid_value = invalid_value
 
     @abstractmethod
     def eval(self, offer: Outcome) -> Value:
@@ -1110,6 +1117,12 @@ class BaseUtilityFunction(Preferences, ABC):
         """
         if offer is None:
             return self.reserved_value  # type: ignore I know that concrete subclasses will be returning the correct type
+        if (
+            self.__invalid_value is not None
+            and self.outcome_space
+            and offer not in self.outcome_space
+        ):
+            return self.__invalid_value
         return self.eval(offer)
 
 
