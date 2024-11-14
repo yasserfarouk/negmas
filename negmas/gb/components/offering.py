@@ -9,6 +9,7 @@ from attrs import define, field
 from negmas import warnings
 from negmas.common import PreferencesChangeType, Value
 from negmas.negotiators.helpers import PolyAspiration
+from negmas.outcomes.common import ExtendedOutcome
 from negmas.preferences.inv_ufun import PresortingInverseUtilityFunction
 
 from .base import FilterResult, OfferingPolicy
@@ -304,14 +305,16 @@ class TFTOfferingPolicy(OfferingPolicy):
     stochastic: bool = False
     _partner_offer: Outcome | None = field(init=False, default=None)
 
-    def before_responding(self, state: GBState, offer: Outcome | None, source: str):
+    def before_responding(
+        self, state: GBState, offer: Outcome | None, source: str | None = None
+    ):
         self._partner_offer = offer
 
     def on_preferences_changed(self, changes: list[PreferencesChange]):
         super().on_preferences_changed(changes)
         self.partner_ufun.on_preferences_changed(changes)
 
-    def __call__(self, state):
+    def __call__(self, state: GBState):
         if not self.negotiator or not self.negotiator.ufun:
             return None
         partner_u = (
@@ -465,7 +468,10 @@ class NegotiatorOfferingPolicy(OfferingPolicy):
     proposer: GBNegotiator = field(kw_only=True)
 
     def __call__(self, state: GBState) -> Outcome | None:
-        return self.proposer.propose(state)
+        r = self.proposer.propose(state)
+        if isinstance(r, ExtendedOutcome):
+            return r.outcome
+        return r
 
 
 @define

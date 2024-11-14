@@ -284,7 +284,7 @@ What happens if the utility value of a negotiator had a different slope:
 
 
 Notice that in this case, the both negotiators always get their maximum
-possible utility which leads to a linear increas in welfare with slope.
+possible utility which leads to a linear increase in welfare with slope.
 There is a small exception though at slope zero. Try running the last
 simulation several times. Does the peculiar result at slope zero
 persist? Does it lead to the same welfare every time? Can you explain
@@ -379,7 +379,7 @@ We can then define the mechanism class itself:
                     #  getting what it offered itself. This is not a part of the
                     #  Rubinstein protocol (hence extended). It was added to avoid
                     #  very long negotiations as the original mechanism is supposed to
-                    #  allow an infinte time.
+                    #  allow an infinite time.
                     if (
                         outcomes[0][0] <= outcomes[1][0] + 1e-5
                         and outcomes[1][1] <= outcomes[0][1] + 1e-5
@@ -428,12 +428,12 @@ We can now develop the base negotiator type for this mechanism:
             self.my_index = indx
 
         @abstractmethod
-        def propose(self, state: RubinsteinMechanismState) -> Outcome:
+        def propose(self, state: RubinsteinMechanismState, dest: str | None = None) -> Outcome:
             """Proposes an outcome which is a tuple of two numbers between zero and one"""
 
 The base negotiator here implements ``set_index`` so that specific
 negotiators need not bother about it. It defines a single abstract
-method to be overriden by any compatible negotiator.
+method to be overridden by any compatible negotiator.
 
 We will first define a utility function to plot what happens in a
 negotiation
@@ -472,7 +472,7 @@ discounting) and otherwise returns a random apportionment of the pie.
 .. code:: ipython3
 
     class RandomRubinsteinNegotiator(RubinsteinNegotiator):
-        def propose(self, state: RubinsteinMechanismState) -> Outcome:
+        def propose(self, state: RubinsteinMechanismState, dest: str | None = None) -> Outcome:
             if self.ufun((1.0, 1.0)) < 0.0:
                 return None
             r = random()
@@ -508,7 +508,7 @@ We can implement the optimal negotiator for this mechanism as follows:
 .. code:: ipython3
 
     class OptimalRubinsteinNegotiator(RubinsteinNegotiator):
-        def propose(self, state: RubinsteinMechanismState) -> Outcome:
+        def propose(self, state: RubinsteinMechanismState, dest: str | None = None) -> Outcome:
             first = (1 - state.discounts[1]) / (1 - state.discounts[1] * state.discounts[0])
             return first, 1 - first
 
@@ -543,7 +543,7 @@ other agent’s
             super().__init__(*args, **kwargs)
             self._asp = PolyAspiration(max_aspiration, aspiration_type)
 
-        def propose(self, state: RubinsteinMechanismState) -> Outcome:
+        def propose(self, state: RubinsteinMechanismState, dest: str | None = None) -> Outcome:
             if self.ufun((1.0, 1.0)) < 0.0:
                 return None
             r = self._asp.utility_at(state.relative_time)
@@ -688,7 +688,7 @@ What if we tried our boulware here:
 
 The behavior did not change from the case with equal time pressure.
 There is no mystry here. The boulware agent does not take its own
-time-pressure (discount) into accout. Can you fix that?
+time-pressure (discount) into account. Can you fix that?
 
 
 

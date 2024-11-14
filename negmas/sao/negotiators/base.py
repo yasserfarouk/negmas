@@ -1,5 +1,7 @@
 from __future__ import annotations
+from abc import abstractmethod, ABC
 from typing import TYPE_CHECKING
+
 
 from negmas.gb.negotiators.base import GBNegotiator
 from negmas.outcomes.common import ExtendedOutcome
@@ -16,12 +18,12 @@ from ..common import SAONMI, ResponseType, SAOResponse, SAOState
 if TYPE_CHECKING:
     from negmas.situated import Agent
 
-__all__ = ["SAONegotiator"]
+__all__ = ["SAONegotiator", "SAOPRNegotiator", "SAOCallNegotiator"]
 
 
-class SAONegotiator(GBNegotiator[SAONMI, SAOState]):
+class SAOPRNegotiator(GBNegotiator[SAONMI, SAOState]):
     """
-    Base class for all SAO negotiators.
+    Base class for all SAO negotiators. Implemented by implementing propose() and respond() methods.
 
     Args:
          name: Negotiator name
@@ -34,6 +36,11 @@ class SAONegotiator(GBNegotiator[SAONMI, SAOState]):
         - The only method that **must** be implemented by any SAONegotiator is `propose`.
         - The default `respond` method, accepts offers with a utility value no less than whatever `propose` returns
           with the same mechanism state.
+        - A default implementation of respond() is provided which simply accepts any offer better than the last
+          offer I gave or the next one I would have given in the current state.
+
+    See Also:
+        `SAOCallNegotiator`
 
     """
 
@@ -81,7 +88,9 @@ class SAONegotiator(GBNegotiator[SAONMI, SAOState]):
         if notification.type == "end_negotiation":
             self.__end_negotiation = True
 
-    def propose_(self, state: SAOState) -> Outcome | ExtendedOutcome | None:
+    def propose_(
+        self, state: SAOState, dest: str | None = None
+    ) -> Outcome | ExtendedOutcome | None:
         """
         The method directly called by the mechanism (through `counter` ) to ask for a proposal
 
@@ -108,15 +117,20 @@ class SAONegotiator(GBNegotiator[SAONMI, SAOState]):
             and self.__my_last_proposal is not None
         ):
             return self.__my_last_proposal
-        self.__my_last_proposal = self.propose(state=state)
+        self.__my_last_proposal = self.propose(
+            state=state,
+            dest=dest if dest or self.nmi.n_negotiators > 2 else state.current_proposer,
+        )
         self.__my_last_proposal_time = state.step
         return self.__my_last_proposal
 
-    def propose(self, state) -> Outcome | ExtendedOutcome | None:
-        _ = state
-        return None
+    @abstractmethod
+    def propose(  # type: ignore
+        self, state: SAOState, dest: str | None = None
+    ) -> Outcome | ExtendedOutcome | None:
+        ...
 
-    def respond(self, state, source: str | None = None) -> ResponseType:
+    def respond(self, state: SAOState, source: str | None = None) -> ResponseType:  # type: ignore
         """
         Called to respond to an offer. This is the method that should be overriden to provide an acceptance strategy.
 
@@ -139,7 +153,7 @@ class SAONegotiator(GBNegotiator[SAONMI, SAOState]):
             state = self._sao_state_from_gb_state(state)
 
         offer = state.current_offer
-        # Always reject offers that we do not know or if we have no kknown preferences
+        # Always reject offers that we do not know or if we have no known preferences
         if offer is None or self.preferences is None:
             return ResponseType.REJECT_OFFER
         # if the offer is worse than the reserved value or its utility is less than that of the reserved outcome, reject it
@@ -154,7 +168,9 @@ class SAONegotiator(GBNegotiator[SAONMI, SAOState]):
         myoffer = self.__my_last_proposal
         # if I never proposed, find what would I have proposed at this state and its utility
         if myoffer is None:
-            myoffer = self.propose_(state=state)
+            myoffer = self.propose_(
+                state=state, dest=None if self.nmi.n_negotiators > 2 else source
+            )
             if myoffer is None:
                 return ResponseType.REJECT_OFFER
         # accept only if I know what I would have proposed at this state (or the previous one) and it was worse than what I am about to proposed
@@ -202,13 +218,14 @@ class SAONegotiator(GBNegotiator[SAONMI, SAOState]):
         except TypeError:
             return self.respond(state=state)
 
-    def __call__(self, state: SAOState) -> SAOResponse:
+    def __call__(self, state: SAOState, dest: str | None = None) -> SAOResponse:
         """
         Called by `Negotiator.__call__` (which is called by the mechanism) to counter the offer.
         It just calls `respond_` and `propose_` as needed.
 
         Args:
             state: `SAOState` giving current state of the negotiation.
+            dest: The ID of the destination of the response. Will be empty under `SAOMechanism`
 
         Returns:
             Tuple[ResponseType, Outcome]: The response to the given offer with a counter offer if the response is REJECT
@@ -225,17 +242,14 @@ class SAONegotiator(GBNegotiator[SAONMI, SAOState]):
             if changes:
                 self.on_preferences_changed(changes)
         if offer is None:
-            proposal = self.propose_(state=state)
+            proposal = self.propose_(state=state, dest=dest)
             if isinstance(proposal, ExtendedOutcome):
                 return SAOResponse(
                     ResponseType.REJECT_OFFER, proposal.outcome, proposal.data
                 )
             return SAOResponse(ResponseType.REJECT_OFFER, proposal)
         try:
-            response = self.respond_(
-                state=state,
-                source=state.current_proposer if state.current_proposer else "",
-            )
+            response = self.respond_(state=state, source=state.current_proposer)
         except TypeError:
             response = self.respond_(state=state)
         if response != ResponseType.REJECT_OFFER:
@@ -246,11 +260,71 @@ class SAONegotiator(GBNegotiator[SAONMI, SAOState]):
         return SAOResponse(response, proposal)
 
 
-class _InfiniteWaiter(SAONegotiator):
+class SAOCallNegotiator(SAOPRNegotiator, ABC):
+    """
+    An SAO negotiator implemented by overriding __call__ to return a counter offer.
+
+    Args:
+         name: Negotiator name
+         parent: Parent controller if any
+         preferences: The preferences of the negotiator
+         ufun: The utility function of the negotiator (overrides preferences if given)
+         owner: The `Agent` that owns the negotiator.
+
+    Remarks:
+        - The only method that **must** be implemented by any SAONegotiator is `propose`.
+        - The default `respond` method, accepts offers with a utility value no less than whatever `propose` returns
+          with the same mechanism state.
+
+    See Also:
+        `SAOPRNegotiator`
+    """
+
+    def __init__(self, *args, **kwargs):
+        super().__init__(*args, **kwargs)
+        self.__last_offer: dict[str | None, Outcome | ExtendedOutcome | None] = dict()
+        self.__last_response: dict[str | None, ResponseType] = dict()
+
+    @abstractmethod
+    def __call__(self, state: SAOState, dest: str | None = None) -> SAOResponse:
+        ...
+
+    def propose(
+        self, state: SAOState, dest: str | None = None
+    ) -> Outcome | ExtendedOutcome | None:
+        if dest not in self.__last_offer:
+            resp = self(state, dest)
+            self.__last_response[dest] = resp.response
+            self.__last_offer[dest] = resp.outcome
+        assert not isinstance(self.__last_offer, int)
+        return self.__last_offer.pop(dest, None)
+
+    def respond(self, state: SAOState, source: str | None = None) -> ResponseType:
+        _ = source
+        if source not in self.__last_response:
+            try:
+                negotiators = self.nmi.negotiator_ids
+                my_index = self.nmi.negotiator_index(self.id)
+                next_index = (my_index + 1) % self.nmi.n_negotiators
+                dest = negotiators[next_index]
+            except Exception as e:
+                warn(str(e))
+                dest = None
+            resp = self(state, dest)
+            self.__last_response[source] = resp.response
+            self.__last_offer[source] = resp.outcome
+        return self.__last_response.pop(source, ResponseType.REJECT_OFFER)
+
+
+class _InfiniteWaiter(SAOPRNegotiator):
     """Used only for testing: waits forever and never agrees to anything"""
 
-    def __call__(self, state) -> SAOResponse:
-        _ = state
+    def __call__(self, state, dest: str | None = None) -> SAOResponse:
+        _ = state, dest
 
         sleep(10000 * 60 * 60)
         return SAOResponse(ResponseType.REJECT_OFFER, self.nmi.random_outcome())
+
+
+SAONegotiator = SAOPRNegotiator
+"""Base of all SAO negotiators"""

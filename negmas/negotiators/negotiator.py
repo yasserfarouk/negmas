@@ -104,7 +104,9 @@ class Negotiator(Rational, Notifiable, Generic[TNMI, TState]):
             self.__saved_prefs = self._preferences
             self._preferences.outcome_space = self.nmi.outcome_space
 
-    def set_preferences(self, value: Preferences | None, force=False) -> None:
+    def set_preferences(
+        self, value: Preferences | None, force=False, ignore_exceptions: bool = False
+    ) -> Preferences | None:
         if self._nmi is None:
             self._preferences = value
             return
@@ -431,12 +433,3 @@ class Negotiator(Rational, Notifiable, Generic[TNMI, TState]):
 
     def __str__(self):
         return f"{self.name}"
-
-    # def __call__(self, state: MechanismState) -> Action:
-    #     """
-    #     Implements the negotiation strategy
-    #     """
-    #     raise NotImplementedError(
-    #         f"__call__ is not implemented. The MRO is\n {type(self).__mro__}"
-    #     )
-    #

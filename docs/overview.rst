@@ -52,7 +52,7 @@ specific modules, advanced and helper modules.
       finding the pareto-frontier, sampling outcomes with given
       utilities from the outcome space, etc.
    3. **negotiators** This module represents basic negotiation agent
-      implementation and provides basic interfaces to be overriden
+      implementation and provides basic interfaces to be overridden
       (implemented) by higher specialized modules
    4. **mechanisms** This module represents the most basic conceptual
       view of a negotiation protocol supporting both mediate and
@@ -114,7 +114,7 @@ specific modules, advanced and helper modules.
       the library including mixins for logging.
    -  **inout** Provides functions to load and store XML Genius domains
       and utility functions.
-   -  **java** [Depricated] Provides an interface to JNegMAS allowing
+   -  **java** [Deprecated] Provides an interface to JNegMAS allowing
       agents and negotiators to be developed in Java.
    -  **tournaments** Supports creating and running tournaments to
       compare agents and negotiators.
@@ -672,11 +672,11 @@ set of issues and can be created using ``make_os`` function:
 
 
 A special case of ``CartesianOutcomeSpace`` is a
-``DiscreteCartesianOutcomeSpace`` (see the examle above) which represent
+``DiscreteCartesianOutcomeSpace`` (see the example above) which represent
 a Cartesian outcome-space with discrete issues (i.e. no issues are
 continuous).
 
-``OutcomeSpace`` provide convenient methods for gettin information about
+``OutcomeSpace`` provide convenient methods for getting information about
 the outcome-space or manipulating it. Some of the most important
 examples are:
 
@@ -788,7 +788,7 @@ Ordinal and Cardinal Preferences
 
 The most general ``Preferences`` type in NegMAS is ``Ordinal``
 ``Preferences`` which can only represent partial ordering of outcomes in
-the outcome-space throgh the ``is_not_worse()`` method. An entity with
+the outcome-space through the ``is_not_worse()`` method. An entity with
 this kind of preferences can compare two outcomes but it gets one bit of
 information out of this comparison (which is better for the entity) and
 has no way to know *how much* is the difference
@@ -808,7 +808,7 @@ Crisp and Prob Preferences
 
 NegMAS usually implements two versions of each ``Preferences`` type
 (other than ``Ordinal``) that represent a probabilistic version (ending
-with ``Prob``) returing ``Distribution``\ s when queried, and a crisp
+with ``Prob``) returning ``Distribution``\ s when queried, and a crisp
 version (ending with ``Crisp``) returning a ``float``. This simplifies
 the development of agents and negotiators working with probability
 distributions.
@@ -822,7 +822,7 @@ allowed to change. The entity having non-stationary preferences usually
 faces a harder problem achieving its goals as it needs to take into
 account this possible change. Entities interacting with other entities
 with non-stationary ``Preferences`` are also in reatively harder
-situation comapred with those dealing with entities with stationary
+situation compared with those dealing with entities with stationary
 ``Preferences``.
 
 Stationary Preference type names start with ``Stationary``
@@ -961,7 +961,7 @@ Notice that (as the last example shows) utility functions can return
 ``None`` to indicate that the utility value cannot be inferred for this
 outcome/offer.
 
-Preferences Protcols
+Preferences Protocols
 ~~~~~~~~~~~~~~~~~~~~
 
 The ``preferences`` module provide a set of other python protocols that
@@ -1041,7 +1041,7 @@ real-valued number (utility of this issue).
 Notice that despite the name, this type of utiliy functions can
 represent nonlinear relation between issue values and utility values.
 The linearity is in how these possibly nonlinear mappings are being
-combind to generate a utility value for the outcome.
+combined to generate a utility value for the outcome.
 
 Note that a utility function needs to know the outcome-space over which
 is it defined. There are three ways to pass this to the
@@ -1049,7 +1049,7 @@ is it defined. There are three ways to pass this to the
 
 1. **issues=…** pass a list of issues (usually made using
    ``make_issue``)
-2. **outcome_space=…** pass an ``OutcomeSpace`` type (usualy made using
+2. **outcome_space=…** pass an ``OutcomeSpace`` type (usually made using
    ``make_os``)
 3. **outcomes=…** pass a list of outcomes.
 
@@ -1168,7 +1168,7 @@ more readable:
 Nonlinear Aggregation Utility Functions
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
-A direct generalization of the linear agggregation utility functions is
+A direct generalization of the linear aggregation utility functions is
 provided by the ``NonLinearAggregationUtilityFunction`` which represents
 the following function:
 
@@ -1620,7 +1620,7 @@ The most important points to notice about this figure are the following:
 
 -  Almost all entities are ``NamedObject``\ s which means they have a
    *user assigned* name used for debugging, printing, and logging, and a
-   *system assigned* id used when programatically accessing the object.
+   *system assigned* id used when programmatically accessing the object.
    For example, agents request negotiations with other agents from the
    world using the partner’s *id* not *name*.
 -  ``Controller`` objects can access neither worlds nor mechanisms
@@ -1630,7 +1630,7 @@ The most important points to notice about this figure are the following:
    mathematical function but it can have state, access the mechanism
    state or settings (through its own ``AgentMechanismInterface``) and
    can change its returned value for the same output during the
-   negotiation. Ufuns need not be dyanmic in this sense but they can be.
+   negotiation. Ufuns need not be dynamic in this sense but they can be.
 
 Mechanisms (Negotiations)
 -------------------------
@@ -1703,7 +1703,7 @@ respond to every offer in parallel.
             self.state.current_offer = None
             self.current_offerer = -1
 
-        def __call__(self, state):
+        def __call__(self, state, action=None):
             n_agents = len(self.negotiators)
             nxt = (self.current_offerer + 1) % n_agents
             current = self.negotiators[nxt]

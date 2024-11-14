@@ -204,7 +204,7 @@ class OfferingPolicy(GBComponent):
         init=False, default=(-1, None)
     )
 
-    def propose(self, state: GBState) -> Outcome | None:
+    def propose(self, state: GBState, dest: str | None = None) -> Outcome | None:
         """Propose an offer or None to refuse.
 
         Args:

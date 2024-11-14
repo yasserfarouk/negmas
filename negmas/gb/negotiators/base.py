@@ -68,7 +68,9 @@ class GBNegotiator(Negotiator[GBNMI, GBState], Generic[TNMI, TState]):
         )
 
     @abstractmethod
-    def propose(self, state) -> Outcome | ExtendedOutcome | None:
+    def propose(
+        self, state: GBState, dest: str | None = None
+    ) -> Outcome | ExtendedOutcome | None:
         """Propose an offer or None to refuse.
 
         Args:
@@ -142,13 +144,13 @@ class GBNegotiator(Negotiator[GBNMI, GBState], Generic[TNMI, TState]):
         """
 
     # compatibility with SAOMechanism
-    def __call__(self, state: SAOState) -> SAOResponse:
+    def __call__(self, state: SAOState, dest: str | None = None) -> SAOResponse:
         """
         Called by the mechanism to counter the offer. It just calls `respond_` and `propose_` as needed.
 
         Args:
             state: `SAOState` giving current state of the negotiation.
-            offer: The offer to be countered. None means no offer and the agent is requested to propose an offer
+            partner: The partner to respond to with a counter offer.
 
         Returns:
             Tuple[ResponseType, Outcome]: The response to the given offer with a counter offer if the response is REJECT
@@ -183,7 +185,9 @@ class GBNegotiator(Negotiator[GBNMI, GBState], Generic[TNMI, TState]):
             )
         return SAOResponse(response, proposal)
 
-    def propose_(self, state: SAOState) -> Outcome | ExtendedOutcome | None:
+    def propose_(
+        self, state: SAOState, dest: str | None = None
+    ) -> Outcome | ExtendedOutcome | None:
         if not self._capabilities["propose"] or self.__end_negotiation:
             return None
         return self.propose(state=self._gb_state_from_sao_state(state))

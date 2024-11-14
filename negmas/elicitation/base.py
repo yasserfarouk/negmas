@@ -506,7 +506,7 @@ class BaseElicitor(SAONegotiator):
         """Returns whether we can do more elicitation"""
         raise NotImplementedError()
 
-    def propose(self, state: MechanismState) -> Outcome:
+    def propose(self, state: MechanismState, dest: str | None = None) -> Outcome:
         """
         Called to propose an outcome
 

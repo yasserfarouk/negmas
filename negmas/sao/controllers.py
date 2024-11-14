@@ -11,7 +11,8 @@ from collections import defaultdict
 from typing import TYPE_CHECKING, Any, Literal
 
 from negmas.gb.negotiators import AspirationNegotiator
-from negmas.preferences.protocols import UFun
+from negmas.outcomes.common import ExtendedOutcome
+from negmas.preferences.base_ufun import BaseUtilityFunction
 
 from negmas.negotiators.controller import Controller
 from ..gb.negotiators.base import GBNegotiator
@@ -111,16 +112,18 @@ class SAOController(Controller[SAONMI, SAOState, ControlledSAONegotiator]):
             role (str): role of the agent.
         """
 
-    def propose(self, negotiator_id: str, state: SAOState) -> Outcome | None:
+    def propose(
+        self, negotiator_id: str, state: SAOState, dest: str | None = None
+    ) -> Outcome | ExtendedOutcome | None:
         negotiator, _ = self._negotiators.get(negotiator_id, (None, None))
         if negotiator is None:
             raise ValueError(f"Unknown negotiator {negotiator_id}")
-        return self.call(negotiator, "propose", state=state)
+        return self.call(negotiator, "propose", state=state, dest=dest)
 
     def respond(
         self, negotiator_id: str, state: SAOState, source: str | None = None
     ) -> ResponseType:
-        negotiator, cntxt = self._negotiators.get(negotiator_id, (None, None))
+        negotiator, _ = self._negotiators.get(negotiator_id, (None, None))
         if negotiator is None:
             raise ValueError(f"Unknown negotiator {negotiator_id}")
         return self.call(negotiator, "respond", state=state, source=source)
@@ -146,7 +149,9 @@ class SAORandomController(SAOController):
         super().__init__(*args, **kwargs)
         self._p_acceptance = p_acceptance
 
-    def propose(self, negotiator_id: str, state: SAOState) -> Outcome | None:
+    def propose(
+        self, negotiator_id: str, state: SAOState, dest: str | None = None
+    ) -> Outcome | ExtendedOutcome | None:
         negotiator, cntxt = self._negotiators.get(negotiator_id, (None, None))
         if negotiator is None:
             raise ValueError(f"Unknown negotiator {negotiator_id}")
@@ -238,7 +243,7 @@ class SAOSyncController(SAOController):
             ufun = self.ufun
         except ValueError:
             ufun = negotiator.ufun
-        if isinstance(ufun, UFun):
+        if isinstance(ufun, BaseUtilityFunction):
             _, best = ufun.extreme_outcomes()
         else:
             best = None
@@ -261,7 +266,9 @@ class SAOSyncController(SAOController):
             )
         self.__first_proposals_collected = True
 
-    def propose(self, negotiator_id: str, state: SAOState) -> Outcome | None:
+    def propose(
+        self, negotiator_id: str, state: SAOState, dest: str | None = None
+    ) -> Outcome | ExtendedOutcome | None:
         # if there are no proposals yet, get first proposals
         if not self.__proposals:
             self._set_first_proposals()
@@ -809,7 +816,9 @@ class SAOMetaNegotiatorController(SAOController):
             )
         self.meta_negotiator = meta_negotiator
 
-    def propose(self, negotiator_id: str, state: SAOState) -> Outcome | None:
+    def propose(
+        self, negotiator_id: str, state: SAOState, dest: str | None = None
+    ) -> Outcome | ExtendedOutcome | None:
         """Uses the meta negotiator to propose"""
         negotiator, _ = self._negotiators.get(negotiator_id, (None, None))
         if negotiator is None:

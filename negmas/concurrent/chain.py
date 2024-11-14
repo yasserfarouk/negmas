@@ -101,7 +101,7 @@ class ChainNegotiator(Negotiator, ABC):
         """
 
     @abstractmethod
-    def propose(self, state: MechanismState) -> Offer:
+    def propose(self, state: MechanismState, dest: str | None = None) -> Offer:
         """
         Called to allow the agent to propose to either its left or its right in the chain
 
@@ -176,7 +176,7 @@ class MultiChainNegotiator(Negotiator, ABC):
         """
 
     @abstractmethod
-    def propose(self, state: MechanismState) -> Offer:
+    def propose(self, state: MechanismState, dest: str | None = None) -> Offer:
         """
         Called to allow the agent to propose to either its left or its right in the chain
 

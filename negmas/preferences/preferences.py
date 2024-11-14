@@ -27,10 +27,6 @@ class Preferences(NamedObject, ABC):
         outcome_space: The outcome-space over which the preferences are defined
     """
 
-    outcome_space: OutcomeSpace | None
-    reserved_outcome: Outcome
-    owner: Rational | None = None
-
     def __init__(
         self,
         *args,
@@ -38,9 +34,10 @@ class Preferences(NamedObject, ABC):
         issues: tuple[Issue] | None = None,
         outcomes: tuple[Outcome] | int | None = None,
         reserved_outcome: Outcome | None = None,
+        owner: Rational | None = None,
         **kwargs,
     ) -> None:
-        self.owner = None
+        self.owner = owner
         check_one_at_most(outcome_space, issues, outcomes)
         super().__init__(*args, **kwargs)
         self.outcome_space = os_or_none(outcome_space, issues, outcomes)

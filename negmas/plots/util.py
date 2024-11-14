@@ -800,6 +800,7 @@ def plot_offline_run(
     timedout: bool,
     broken: bool,
     has_error: bool,
+    errstr: str = "",
     names: list[str] | None = None,
     *,
     negotiators: tuple[int, int] | tuple[str, str] | None = (0, 1),
@@ -915,9 +916,9 @@ def plot_offline_run(
             elif agreement is not None:
                 reason = "Negotiation Success"
             elif has_error:
-                reason = "Negotiation ERROR"
+                reason = f"Negotiation ERROR: {errstr}"
             elif agreement is not None:
-                reason = "Agreemend Reached"
+                reason = "Agreement Reached"
             elif broken:
                 reason = "Negotiation Ended"
             elif agreement is None:
@@ -1088,6 +1089,17 @@ def plot_mechanism_run(
     if not no2d:
         agreement = mechanism.agreement
         state = mechanism.state
+        if not state.erred_negotiator:
+            erredneg = errdetails = ""
+        else:
+            state = mechanism.state
+            try:
+                ids = mechanism.negotiator_ids
+                names = mechanism.negotiator_names
+                erredneg = names[ids.index(state.erred_negotiator)]
+                errdetails = state.error_details.split("\n")[-1][-30:]
+            except Exception:
+                erredneg = errdetails = ""
         if not show_end_reason:
             reason = None
         else:
@@ -1096,9 +1108,9 @@ def plot_mechanism_run(
             elif agreement is not None:
                 reason = "Negotiation Success"
             elif state.has_error:
-                reason = "Negotiation ERROR"
+                reason = f"ERROR by {erredneg}: {errdetails}"
             elif agreement is not None:
-                reason = "Agreemend Reached"
+                reason = "Agreement Reached"
             elif state.broken:
                 reason = "Negotiation Ended"
             elif agreement is None:

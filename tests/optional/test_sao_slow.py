@@ -78,7 +78,7 @@ ALL_BUILTIN_NEGOTIATORS = [
 
 
 class MyRaisingNegotiator(SAONegotiator):
-    def propose(self, state: SAOState) -> Outcome | None:
+    def propose(self, state: SAOState, dest: str | None = None) -> Outcome | None:
         _ = state
         raise ValueError(exception_str)
 
@@ -125,7 +125,7 @@ class MySyncController(SAOSyncController):
             self.sent_responses[negotiator_id][state.step].append(response)
         return response
 
-    def propose(self, negotiator_id, state):
+    def propose(self, negotiator_id, state, dest: str | None = None):
         outcome = super().propose(negotiator_id, state)
         self.sent_offers[negotiator_id][state.step].append(outcome)
         return outcome
@@ -190,7 +190,7 @@ class InfiniteLoopNegotiator(RandomNegotiator):
         super().__init__(*args, **kwargs)
         self.__stop = False
 
-    def __call__(self, state: SAOState) -> SAOResponse:
+    def __call__(self, state: SAOState, dest: str | None = None) -> SAOResponse:
         while not self.__stop:
             _ = state
         return SAOResponse(ResponseType.END_NEGOTIATION, None)
@@ -223,7 +223,7 @@ class TimeWaster(RandomNegotiator):
             self.n_waits = random.randint(0, n_waits)
         self.waited = 0
 
-    def __call__(self, state) -> SAOResponse:
+    def __call__(self, state, dest: str | None = None) -> SAOResponse:
         offer = state.current_offer
         if not self.nmi:
             return SAOResponse(ResponseType.END_NEGOTIATION, None)
@@ -835,7 +835,7 @@ def test_acceptable_outcomes():
 
 
 class MyNegotiator(SAONegotiator):
-    def propose(self, state):
+    def propose(self, state, dest: str | None = None):
         _ = state
         return (3.0, 2, 1.0)
 

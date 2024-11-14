@@ -48,7 +48,12 @@ class GBThread:
         source = self.negotiator.id
         if action is None:
             strt = perf_counter()
-            offer = self.negotiator.propose(mechanism_state)
+            dest = (
+                self.mechanism.dest_separator.join([_.id for _ in self.responders])
+                if self.mechanism.dest_separator
+                else None
+            )
+            offer = self.negotiator.propose(mechanism_state, dest=dest)
             self.mechanism._negotiator_times[self.negotiator.id] += (
                 perf_counter() - strt
             )
@@ -116,6 +121,10 @@ class GBThread:
 
 
 class BaseGBMechanism(Mechanism[GBNMI, GBState, GBAction, GBNegotiator]):
+    """
+    Base for all Generalized Bargaining Mechanisms
+    """
+
     def __init__(
         self,
         *args,
@@ -129,8 +138,10 @@ class BaseGBMechanism(Mechanism[GBNMI, GBState, GBAction, GBNegotiator]):
         parallel: bool = True,
         sync_calls: bool = False,
         initial_state: GBState | None = None,
+        dest_separator: str | None = ";",
         **kwargs,
     ):
+        self.dest_separator = dest_separator
         super().__init__(
             *args,
             dynamic_entry=dynamic_entry,

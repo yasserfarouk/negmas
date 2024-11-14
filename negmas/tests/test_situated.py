@@ -117,12 +117,12 @@ class NegPerStepWorld(World):
 
 
 class NeverCalled(SAONegotiator):
-    def __call__(self, state: SAOState) -> SAOResponse:
+    def __call__(self, state: SAOState, dest: str | None = None) -> SAOResponse:
         raise AssertionError(
             f"Negotiator {self.id} of agent {self.owner} should have never been called"
         )
 
-    def propose(self, state: SAOState) -> Outcome | None:
+    def propose(self, state: SAOState, dest: str | None = None) -> Outcome | None:
         raise AssertionError(
             f"Negotiator {self.id} of agent {self.owner} should have never been called"
         )
@@ -134,10 +134,10 @@ class NeverCalled(SAONegotiator):
 
 
 class AlwaysRejectingNegotiator(SAONegotiator):
-    def __call__(self, state: SAOState) -> SAOResponse:
+    def __call__(self, state: SAOState, dest: str | None = None) -> SAOResponse:
         return SAOResponse(ResponseType.REJECT_OFFER, self.nmi.random_outcome())
 
-    def propose(self, state: SAOState) -> Outcome | None:
+    def propose(self, state: SAOState, dest: str | None = None) -> Outcome | None:
         return self.nmi.random_outcome()
 
     def respond(self, state: SAOState, source: str | None = None) -> ResponseType:

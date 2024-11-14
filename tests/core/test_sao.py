@@ -70,7 +70,7 @@ class SmartAspirationNegotiator(SAONegotiator):
         # accept if the offer is not worse for me than what I would have offered
         return super().respond(state, source)
 
-    def propose(self, state):
+    def propose(self, state, dest: str | None = None):
         # calculate my current aspiration level (utility level at which I will offer and accept)
         a = (self._max - self._min) * self._asp.utility_at(  # type: ignore
             state.relative_time
@@ -483,7 +483,7 @@ class RTRecorder(SAONegotiator):
         self.records = []
         super().__init__(*args, **kwargs)
 
-    def __call__(self, state: SAOState) -> SAOResponse:
+    def __call__(self, state: SAOState, dest: str | None = None) -> SAOResponse:
         self.records.append(
             (
                 state.step,

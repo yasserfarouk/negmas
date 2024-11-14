@@ -14,7 +14,7 @@ class ControlledSAONegotiator(SAONegotiator, ControlledNegotiator):
     This negotiator simply calls its controler for everything.
     """
 
-    def propose(self, state: SAOState) -> Outcome | None:
+    def propose(self, state: SAOState, dest: str | None = None) -> Outcome | None:
         """Calls parent controller"""
         if self._Negotiator__parent:  # type: ignore
             return self._Negotiator__parent.propose(self.id, state)  # type: ignore

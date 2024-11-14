@@ -25,7 +25,7 @@ from negmas.tournaments.neg.simple.cartesian import (
 
 
 class TimeWaster(SAONegotiator):
-    def __call__(self, state) -> SAOResponse:
+    def __call__(self, state, dest: str | None = None) -> SAOResponse:
         sleep(10000 * 60 * 60)
         return SAOResponse(ResponseType.REJECT_OFFER, self.nmi.random_outcome())
 

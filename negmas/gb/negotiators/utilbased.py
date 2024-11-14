@@ -80,7 +80,7 @@ class UtilBasedNegotiator(GBNegotiator):
             return ResponseType.ACCEPT_OFFER
         return ResponseType.REJECT_OFFER
 
-    def propose(self, state):
+    def propose(self, state, dest: str | None = None):
         self._inverter.before_proposing(state)
         if self.ufun is None:
             warnings.warn(

@@ -418,12 +418,12 @@ class GeniusNegotiator(SAONegotiator):
 
     def on_negotiation_end(self, state: MechanismState) -> None:
         """called when a negotiation is ended"""
-        super().on_negotiation_end(state)
+        super().on_negotiation_end(state)  # type: ignore
         self.destroy_java_counterpart(state)
 
     def on_negotiation_start(self, state: MechanismState) -> None:
         """Called when the info starts. Connects to the JVM."""
-        super().on_negotiation_start(state=state)
+        super().on_negotiation_start(state=state)  # type: ignore
         if self._strict is None and self.nmi is not None:
             self._strict = self.nmi.n_steps is not None and self.nmi.n_steps != float(
                 "inf"
@@ -650,7 +650,7 @@ class GeniusNegotiator(SAONegotiator):
             )
         return response, tuple(outcome) if outcome else None
 
-    def __call__(self, state: SAOState) -> SAOResponse:
+    def __call__(self, state: SAOState, dest: str | None = None) -> SAOResponse:
         self.respond_sao(state)
         return SAOResponse(self.__my_last_response, self.__my_last_offer)
 
@@ -660,12 +660,13 @@ class GeniusNegotiator(SAONegotiator):
             s = int(s / self.nmi.n_negotiators)
         return s
 
-    def respond_sao(self, state: SAOState) -> None:
+    def respond_sao(self, state: SAOState, source: str | None = None) -> None:
         offer = state.current_offer
         if offer is None and self.__my_last_offer is not None and self._strict:
             raise ValueError(f"{self._me()} got counter with a None offer.")
         if offer is None:
-            self.propose_sao(state)
+            # TODO: change this to use the correct source if multilateral negotiation
+            self.propose_sao(state, source)
             return
         proposer_id = self.nmi.genius_id(state.current_proposer)
         current_step = self._current_step(state)
@@ -678,7 +679,7 @@ class GeniusNegotiator(SAONegotiator):
             )
         self.propose_sao(state)
 
-    def propose_sao(self, state: SAOState) -> SAOResponse:
+    def propose_sao(self, state: SAOState, dest: str | None = None) -> SAOResponse:
         current_step = self._current_step(state)
         if current_step == self.__my_last_offer_step:
             return SAOResponse(self.__my_last_response, self.__my_last_offer)
@@ -743,7 +744,7 @@ class GeniusNegotiator(SAONegotiator):
         self.propose(state)
         return self.__my_last_response
 
-    def propose(self, state: GBState) -> Outcome | None:
+    def propose(self, state: GBState, dest: str | None = None) -> Outcome | None:
         # saves one new offer/response every step
         # if current_step >= 146:
         #     breakpoint()

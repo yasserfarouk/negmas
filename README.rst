@@ -159,7 +159,7 @@ Developing a novel negotiator slightly more difficult by is still doable in few 
 
 
     class MyAwsomeNegotiator(SAONegotiator):
-        def propose(self, state):
+        def propose(self, state, dest=None):
             """Your code to create a proposal goes here"""
 
 By just implementing `propose()`, this negotiator is now capable of engaging in alternating offers
@@ -176,7 +176,7 @@ Developing a novel negotiation protocol is actually even simpler:
 
 
     class MyNovelProtocol(Mechanism):
-        def __call__(self, state: MechanismState):
+        def __call__(self, state: MechanismState, action=None):
             """One round of the protocol"""
 
 By implementing the single `__call__()` function, a new protocol is created. New negotiators can be added to the

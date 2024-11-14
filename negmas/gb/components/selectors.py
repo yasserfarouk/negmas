@@ -2,9 +2,9 @@ from __future__ import annotations
 from abc import abstractmethod
 from random import choice
 from typing import TYPE_CHECKING, Callable, Protocol, Sequence
+from warnings import warn
 
-from yaml import warnings
-
+import negmas.warnings as warnings
 from negmas.gb.components import GBComponent
 from negmas.outcomes.outcome_ops import generalized_minkowski_distance, min_dist
 from negmas.preferences import (
@@ -176,13 +176,13 @@ class RandomOfferSelector(OfferSelector):
 class BestOfferSelector(OfferSelector):
     def __call__(self, outcomes: Sequence[Outcome], state: GBState) -> Outcome | None:
         if not self._negotiator:
-            warnings.warn(
+            warn(
                 "Asked to select an outcome with unkonwn negotiator",
                 warnings.NegmasUnexpectedValueWarning,
             )
             return None
         if not self._negotiator.ufun:
-            warnings.warn(
+            warn(
                 "Asked to select an outcome with unkonwn utility function",
                 warnings.NegmasUnexpectedValueWarning,
             )
@@ -197,13 +197,13 @@ class BestOfferSelector(OfferSelector):
 class MedianOfferSelector(OfferSelector):
     def __call__(self, outcomes: Sequence[Outcome], state: GBState) -> Outcome | None:
         if not self._negotiator:
-            warnings.warn(
+            warn(
                 "Asked to select an outcome with unkonwn negotiator",
                 warnings.NegmasUnexpectedValueWarning,
             )
             return None
         if not self._negotiator.ufun:
-            warnings.warn(
+            warn(
                 "Asked to select an outcome with unkonwn utility function",
                 warnings.NegmasUnexpectedValueWarning,
             )
@@ -219,13 +219,13 @@ class MedianOfferSelector(OfferSelector):
 class WorstOfferSelector(OfferSelector):
     def __call__(self, outcomes: Sequence[Outcome], state: GBState) -> Outcome | None:
         if not self._negotiator:
-            warnings.warn(
+            warn(
                 "Asked to select an outcome with unkonwn negotiator",
                 warnings.NegmasUnexpectedValueWarning,
             )
             return None
         if not self._negotiator.ufun:
-            warnings.warn(
+            warn(
                 "Asked to select an outcome with unkonwn utility function",
                 warnings.NegmasUnexpectedValueWarning,
             )
@@ -273,8 +273,8 @@ class FirstOfferOrientedSelector(OfferOrientedSelector):
     """
 
     def before_responding(
-        self, state: GBState, offer: Outcome | None, source: str
-    ) -> Outcome | None:
+        self, state: GBState, offer: Outcome | None, source: str | None = None
+    ):
         if self._pivot or offer is None:
             return
         self._pivot = offer
@@ -285,7 +285,9 @@ class LastOfferOrientedSelector(OfferOrientedSelector):
     Selects the offer nearest the partner's last offer
     """
 
-    def before_responding(self, state: GBState, offer: Outcome | None, source: str):
+    def before_responding(
+        self, state: GBState, offer: Outcome | None, source: str | None = None
+    ):
         if offer is None:
             return
         self._pivot = offer
@@ -298,7 +300,9 @@ class BestOfferOrientedSelector(OfferOrientedSelector):
 
     _pivot_util: float = float("-inf")
 
-    def before_responding(self, state: GBState, offer: Outcome | None, source: str):
+    def before_responding(
+        self, state: GBState, offer: Outcome | None, source: str | None = None
+    ):
         if offer is None:
             return
         if not self._negotiator or not self._negotiator.ufun:
@@ -351,7 +355,9 @@ class PartnerOffersOrientedSelector(OutcomeSetOrientedSelector):
     Orients offes toward the set of past opponent offers
     """
 
-    def before_responding(self, state: GBState, offer: Outcome | None, source: str):
+    def before_responding(
+        self, state: GBState, offer: Outcome | None, source: str | None = None
+    ):
         if offer is None:
             return
         self._pivots.append(offer)

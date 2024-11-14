@@ -40,6 +40,10 @@ def test_offline_plot():
     ids = m.negotiator_ids
     names = m.negotiator_names
     state = m.state
+    try:
+        erredneg = names[ids.index(state.erred_negotiator)]
+    except Exception:
+        erredneg = ""
 
     plot_offline_run(
         trace,
@@ -50,6 +54,9 @@ def test_offline_plot():
         state.broken,
         state.has_error,
         names=names,
+        errstr=f"{erredneg}: {str(state.error_details).split('\n')[-1]}"
+        if state.has_error
+        else "",
     )
     import matplotlib.pyplot as plt
 

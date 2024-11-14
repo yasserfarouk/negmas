@@ -59,7 +59,7 @@ class TopFractionNegotiator(MAPNegotiator):
         self.__offered = False
         super().__init__(acceptance=acceptance, offering=offering, **kwargs)
 
-    def propose(self, state):
+    def propose(self, state, dest: str | None = None):
         if not self.ufun:
             return None
         if not self.__offered:

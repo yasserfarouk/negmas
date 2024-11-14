@@ -278,6 +278,7 @@ class SAOMechanism(
         times: dict[str, float],
         action: dict[str, SAOResponse] | None,
         exceptions: dict[str, list],
+        dest: str | None,
         *,
         args: tuple = tuple(),
         kwargs: dict | None = None,
@@ -309,17 +310,31 @@ class SAOMechanism(
                     negotiator == self._current_proposer
                 ) and self._offering_is_accepting:
                     self._current_state.n_acceptances = 0
-                    response = (
-                        given_response
-                        if given_response
-                        else negotiator(*args, **kwargs)
-                    )
+                    try:
+                        response = (
+                            given_response
+                            if given_response
+                            else negotiator(*args, **kwargs, dest=dest)
+                        )
+                    except Exception:
+                        response = (
+                            given_response
+                            if given_response
+                            else negotiator(*args, **kwargs)
+                        )
                 else:
-                    response = (
-                        given_response
-                        if given_response
-                        else negotiator(*args, **kwargs)
-                    )
+                    try:
+                        response = (
+                            given_response
+                            if given_response
+                            else negotiator(*args, **kwargs, dest=dest)
+                        )
+                    except Exception:
+                        response = (
+                            given_response
+                            if given_response
+                            else negotiator(*args, **kwargs)
+                        )
             except TimeoutError:
                 response = None
                 try:
@@ -452,8 +467,17 @@ class SAOMechanism(
             self._last_checked_negotiator = neg_indx
             neg = self.negotiators[neg_indx]
             strt = time.perf_counter()
+            dest = self._negotiators[
+                ordered_indices[(neg_indx + 1) % len(ordered_indices)]
+            ].id
             resp, has_exceptions = self._safe_counter(
-                neg, state, times, action, exceptions, kwargs=dict(state=self.state)
+                neg,
+                state,
+                times,
+                action,
+                exceptions,
+                dest=dest,
+                kwargs=dict(state=self.state),
             )
             self._negotiator_times[neg.id] += time.perf_counter() - strt
             if has_exceptions:

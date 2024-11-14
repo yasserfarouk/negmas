@@ -2,6 +2,7 @@
 """
 A set of utilities to handle probability distributions
 """
+
 from __future__ import annotations
 
 import copy
@@ -121,7 +122,7 @@ class Real(Distribution):
             return Real(float(self) - other)
         return other.__class__(loc=self.loc - other.loc, scale=other.scale)
 
-    def __mul__(self, other):
+    def __mul__(self, other):  # type: ignore
         """Returns the distribution for the sum of samples of `self` and `other`"""
         if isinstance(other, float):
             return self._loc * other

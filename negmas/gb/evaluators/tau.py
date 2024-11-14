@@ -1,13 +1,12 @@
 from __future__ import annotations
 from collections import defaultdict
 from sys import maxsize
-from typing import Literal
 
 from attrs import define, field
 
 from negmas.outcomes import Outcome
 
-from ..common import GBState, ResponseType
+from ..common import GBState, ResponseType, GBResponse
 from ..evaluators.base import EvaluationStrategy
 
 INFINITE = maxsize
@@ -30,8 +29,12 @@ class TAUEvaluationStrategy(EvaluationStrategy):
     _last: dict[str, Outcome | None] = field(factory=lambda: defaultdict(Outcome))
 
     def __call__(
-        self, negotiator_ids: list[str], state: GBState, history: list[GBState]
-    ) -> Outcome | None | Literal["continue"]:
+        self,
+        negotiator_ids: list[str],
+        state: GBState,
+        history: list[GBState],
+        active_thread: int | None,
+    ) -> GBResponse:
         for source, t in state.threads.items():
             offer = t.new_offer
             self._repeating[source] = offer == self._last[source]

@@ -23,9 +23,9 @@ class GBModularNegotiator(ModularNegotiator, GBNegotiator):
     A generic modular GB negotiator.
     """
 
-    _components: list[GBComponent]
+    _components: list[GBComponent]  # type: ignore
 
-    def components(self) -> tuple[GBComponent, ...]:
+    def components(self) -> tuple[GBComponent, ...]:  # type: ignore
         return super().components  # type: ignore
 
     @abstractmethod
@@ -38,7 +38,7 @@ class GBModularNegotiator(ModularNegotiator, GBNegotiator):
     def generate_proposal(self, state: GBState) -> Outcome | None:
         ...
 
-    def propose(self, state: GBState) -> Outcome | None:
+    def propose(self, state: GBState, dest: str | None = None) -> Outcome | None:
         for c in self._components:
             c.before_proposing(state)
         offer = self.generate_proposal(state)
