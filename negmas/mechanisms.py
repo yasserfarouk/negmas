@@ -1289,14 +1289,19 @@ class Mechanism(
             - sequential means running each mechanism until completion before going to the next
             - serial means stepping mechanisms in some order which can be controlled by `ordering`. If no ordering is given, the ordering is just round-robin
         """
-        completed = [_ is None for _ in mechanisms]
-        states: list[TState | None] = [None] * len(mechanisms)
-        indices = list(range(len(list(mechanisms)))) if not ordering else list(ordering)
         if method == "sequential":
             for mechanism in mechanisms:
                 mechanism.run()
             states = [_.state for _ in mechanisms]
         elif method == "serial":
+            completed = [_ is None for _ in mechanisms]
+            states: list[TState | None] = [None] * len(mechanisms)
+            allindices = list(range(len(list(mechanisms))))
+            indices = allindices if not ordering else list(ordering)
+            notmentioned = set(allindices).difference(indices)
+            assert (
+                len(notmentioned) == 0
+            ), f"Mechanisms {notmentioned} are never mentioned in the ordering."
             while not all(completed):
                 if not keep_order:
                     random.shuffle(indices)
