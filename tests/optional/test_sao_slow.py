@@ -59,6 +59,8 @@ ALL_BUILTIN_NEGOTIATORS = [
     for x in negmas.sao.negotiators.__all__
     if x
     not in [
+        "SAOCallNegotiator",
+        "SAOPRNegotiator",
         "SAONegotiator",
         "UtilBasedNegotiator",
         "make_boa",
