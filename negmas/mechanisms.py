@@ -1269,7 +1269,8 @@ class Mechanism(
         cls,
         mechanisms: list[Mechanism] | tuple[Mechanism, ...],
         keep_order=True,
-        method="serial",
+        method: str = "serial",
+        ordering: tuple[int, ...] | None = None,
     ) -> list[TState | None]:
         """Runs all mechanisms.
 
@@ -1277,16 +1278,25 @@ class Mechanism(
             mechanisms: list of mechanisms
             keep_order: if True, the mechanisms will be run in order every step otherwise the order will be randomized
                         at every step. This is only allowed if the method is serial
-            method: the method to use for running all the sessions.  Acceptable options are: serial, threads, processes
+            method: the method to use for running all the sessions.  Acceptable options are: sequential, serial, threads, processes
+            ordering: Controls the order of advancing the negotiations with the "serial" method.
 
         Returns:
             - list of states of all mechanisms after completion
             - None for any such states indicates disagreements
+
+        Remarks:
+            - sequential means running each mechanism until completion before going to the next
+            - serial means stepping mechanisms in some order which can be controlled by `ordering`. If no ordering is given, the ordering is just round-robin
         """
         completed = [_ is None for _ in mechanisms]
         states: list[TState | None] = [None] * len(mechanisms)
-        indices = list(range(len(list(mechanisms))))
-        if method == "serial":
+        indices = list(range(len(list(mechanisms)))) if not ordering else list(ordering)
+        if method == "sequential":
+            for mechanism in mechanisms:
+                mechanism.run()
+            states = [_.state for _ in mechanisms]
+        elif method == "serial":
             while not all(completed):
                 if not keep_order:
                     random.shuffle(indices)
