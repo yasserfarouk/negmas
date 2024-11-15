@@ -36,13 +36,10 @@ jobs:
         run: "java -jar $HOME/negmas/files/geniusbridge.jar --silent --no-logs &"
       - name: "Run pytest for ${{ matrix.python-version }}"
         run: |
-          python -W ignore -m pytest tests/genius  || python -W ignore -m pytest --last-failed .
-      - name: "Run pytest for ${{ matrix.python-version }}"
-        run: |
           export NEGMAS_IGNORE_TEST_NOTEBOOKS=True
           export NEGMAS_SLOW_TEST=True
           export NEGMAS_BRIDGE_OPS
           unset NEGMAS_BRIDGE_OPS
           export NEGMAS_IGNORE_TEST_NOTEBOOKS=True
           export NEGMAS_BRIDGE_OPS=True
-          uv run pytest src/negmas tests/core || uv run pytest --last-failed src pytest
+          uv run pytest src/negmas tests/genius || uv run pytest --last-failed src/negmas tests/genius

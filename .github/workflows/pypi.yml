@@ -29,7 +29,7 @@ jobs:
           password: ${{ secrets.pypitesttoken }}
           repository_url: https://test.pypi.org/legacy/
       - name: Run tests
-        run: "uv run pytest src/negmas tests/core || uv run pytest --last-failed src pytest"
+        run: "uv run pytest src/negmas tests/core || uv run pytest --last-failed src/negmas tests/core"
       - name: Publish distribution 📦 to PyPI
         if: github.event_name == 'push' && startsWith(github.event.ref, 'refs/tags')
         uses: pypa/gh-action-pypi-publish@master

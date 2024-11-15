@@ -39,4 +39,4 @@ jobs:
           export NEGMAS_IGNORE_TEST_NOTEBOOKS=True
           export NEGMAS_FASTRUN=True
       - name: "Run pytest for ${{ matrix.python-version }}"
-        run: "python -W ignore -m pytest negmas tests/optional || python -W ignore -m pytest --last-failed ."
+        run: "uv run pytest src/negmas tests || uv run pytest --last-failed src/negmas tests"
