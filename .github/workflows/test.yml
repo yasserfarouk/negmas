@@ -19,7 +19,9 @@ jobs:
       - name: Setup Python
         run: uv python install
       - name: Install the project
-        run: uv sync --all-extras --dev
+        run: |
+          uv sync --all-extras --dev
+          uv pip install -e "."
       - name: "Install Genius Bridge"
         run: negmas genius-setup
       - name: "Install Jupyter Kernel"
