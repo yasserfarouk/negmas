@@ -1,3 +1,134 @@
+[project]
+name = "negmas"
+version = "0.1.0"
+description = "NEGotiations Managed by Agent Simulations"
+readme = "README.rst"
+requires-python = ">=3.11"
+license = { text = "GNU General Public License v2 or later (GPLv2+)" }
+authors = [
+    { name = "Yasser Mohammad", email = "yasserfarouk@gmail.com" },
+]
+classifiers = [
+    "License :: OSI Approved :: GNU General Public License v2 or later (GPLv2+)",
+    "Programming Language :: Python :: 3",
+    "Programming Language :: Python :: 3.11",
+    "Programming Language :: Python :: 3.12",
+    "Programming Language :: Python :: 3.13",
+    "Programming Language :: Python :: Implementation :: CPython",
+]
+dependencies = [
+    "attrs>=24.2.0",
+    "click>=8.1.7",
+    "click-config-file>=0.6.0",
+    "cloudpickle>=3.1.0",
+    "colorlog>=6.9.0",
+    "dill>=0.3.9",
+    "gif>=23.3.0",
+    "hypothesis>=6.118.8",
+    "inflect>=7.4.0",
+    "matplotlib>=3.9.2",
+    "networkx>=3.4.2",
+    "psutil>=6.1.0",
+    "py4j>=0.10.9.7",
+    "rich>=13.9.4",
+    "scikit-learn>=1.5.2",
+    "seaborn>=0.13.2",
+    "setuptools>=75.5.0",
+    "stringcase>=1.2.0",
+    "tabulate>=0.9.0",
+    "typer>=0.13.0",
+    "typing>=3.10.0.0",
+    "pyyaml>=6.0.2",
+    "progressbar2>=4.5.0",
+    "typing-extensions>=4.12.2",
+    "pytest-runner>=6.0.1",
+    "pandas>=2.2.3",
+    "scipy>=1.14.1",
+    "numpy>=2.1.3",
+]
+
 [build-system]
-requires = ["setuptools >= 40.6.0", "wheel"]
-build-backend = "setuptools.build_meta"
+requires = ["hatchling"]
+build-backend = "hatchling.build"
+
+[project.optional-dependencies]
+gui = [
+    "pyqt5>=5.15.11",
+]
+distributed = [
+    "dask[complete]>=2024.11.2",
+]
+testing = [
+    "pytest-check>=2.4.1",
+    "pytest-timeout>=2.3.1",
+    "pytest>=8.3.3",
+]
+dev = [
+    "bumpversion>=0.6.0",
+    "codacy-coverage>=1.3.11",
+    "coverage>=7.6.5",
+    "docopt>=0.6.2",
+    "docutils>=0.21.2",
+    "hypothesis>=6.118.8",
+    "ipykernel>=6.29.5",
+    "jupyter>=1.1.1",
+    "markupsafe>=3.0.2",
+    "pandoc>=2.4",
+    "papermill>=2.6.0",
+    "pre-commit>=4.0.1",
+    "pytest-check>=2.4.1",
+    "pytest-cov>=6.0.0",
+    "pytest-sugar>=1.0.0",
+    "pytest>=8.3.3",
+    "readme-renderer>=44.0",
+    "recommonmark>=0.7.1",
+    "tox>=4.23.2",
+    "twine>=5.1.1",
+    "wheel>=0.45.0",
+]
+
+[project.scripts]  # Entry points
+negmas = "negmas.scripts.app:cli"
+negotiate = "negmas.scripts.negotiate:app"
+negui = "negmas.gui.app:cli"
+
+# --- Tool Configurations ---
+
+[tool.bumpversion]  # bumpversion config
+current_version = "0.10.23"
+delete_bookmark = true
+commit = false
+tag = false
+
+
+# [tool.bumpversion.file:pyproject.toml]  # Update pyproject.toml
+# search = "version = \"{current_version}\""
+# replace = "version = \"{new_version}\""
+#
+# [tool.bumpversion.file:negmas/__init__.py]
+# search = "__version__ = \"{current_version}\""
+# replace = "__version__ = \"{new_version}\""
+#
+# [tool.bumpversion.file:docs/conf.py]
+# search = "version = \"{current_version}\""
+# replace = "version = \"{new_version}\""
+
+[tool.flake8]
+exclude = ["docs"]
+
+[tool.pytest.ini_options]  # pytest config
+# addopts = "--doctest-modules"  # Example: If you use doctest
+# testpaths = ["tests"]         # Example: If you have a tests directory
+collect_ignore = ['setup.py']
+
+[tool.mypy]
+warn_unused_configs = false
+warn_incomplete_stub = true
+check_untyped_defs = true
+python_version = "3.10"
+strict_optional = false
+ignore_missing_imports = false
+
+[[tool.mypy.overrides]]  # mypy overrides
+module = ["setup.*"]
+check_untyped_defs = false

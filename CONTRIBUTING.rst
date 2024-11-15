@@ -61,13 +61,17 @@ Ready to contribute? Here's how to set up `negmas` for local development.
 2. Clone your fork locally::
 
     $ git clone git@github.com:your_name_here/negmas.git
+3. If you are using uv (recommended)::
 
-3. Install your local copy into a virtualenv. This is how you set up your fork for local development
+   $ uv sync
+
+3. If you are not using uv, Install your local copy into a virtualenv. This is how you set up your fork for local development
    (assuming you are using poetry)::
 
-    $ python -m venv venv
-    $ source venv/bin/activate
-    $ poetry install
+    $ python -m venv .venv
+    $ source .venv/bin/activate
+    $ pip install -e .
+    $ pip install -e ".[dev]"
 
 4. Create a branch for local development::
 
@@ -79,8 +83,7 @@ Ready to contribute? Here's how to set up `negmas` for local development.
    tests, including testing other Python versions with tox::
 
     $ flake8 negmas tests
-    $ python setup.py test or py.test
-    $ tox
+    $ python -m pytest negmas
 
    To get flake8 and tox, just pip install them into your virtualenv.
 
