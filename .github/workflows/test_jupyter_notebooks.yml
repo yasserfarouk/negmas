@@ -1,4 +1,4 @@
-name: CI
+name: JupyterNotebooks
 on:
   push:
     branches: ["*"]
@@ -8,7 +8,7 @@ jobs:
   tests:
     name: "Python ${{ matrix.python-version }}"
     runs-on: "ubuntu-latest"
-    timeout-minutes: 180
+    timeout-minutes: 240
     strategy:
       matrix:
         python-version: ["3.11", "3.12", "3.13"]
@@ -26,13 +26,11 @@ jobs:
           uv pip install -e "."
       - name: "Activate the project"
         run: source .venv/bin/activate
-      - name: "Install Jupyter Kernel"
-        run: uv run -m ipykernel install --user --name=negmas
       - name: "Install Genius Bridge"
         run: uv run negmas genius-setup
-      - name: "Setting up environment"
-        run: |
-          export NEGMAS_IGNORE_TEST_NOTEBOOKS=True
-          export NEGMAS_FASTRUN=True
+      - name: "Install Jupyter Kernel"
+        run: uv run -m ipykernel install --user --name=negmas
+      - name: "running genius bridge"
+        run: "java -jar $HOME/negmas/files/geniusbridge.jar --silent --no-logs &"
       - name: "Run pytest for ${{ matrix.python-version }}"
         run: "uv run pytest src/negmas tests/core || uv run pytest --last-failed src pytest"

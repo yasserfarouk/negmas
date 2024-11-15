@@ -1,4 +1,4 @@
-name: CI
+name: SlowCI
 on:
   push:
     branches: ["*"]
@@ -8,16 +8,14 @@ jobs:
   tests:
     name: "Python ${{ matrix.python-version }}"
     runs-on: "ubuntu-latest"
-    timeout-minutes: 180
+    timeout-minutes: 360
     strategy:
       matrix:
-        python-version: ["3.11", "3.12", "3.13"]
+        python-version: ["3.12"]
     steps:
       - uses: "actions/checkout@v4"
       - name: Install uv
         uses: astral-sh/setup-uv@v3
-        with:
-          enable-cache: true
       - name: Set up Python ${{ matrix.python-version }}
         run: uv python install ${{ matrix.python-version }}
       - name: Install the project
@@ -30,9 +28,15 @@ jobs:
         run: uv run -m ipykernel install --user --name=negmas
       - name: "Install Genius Bridge"
         run: uv run negmas genius-setup
+      - uses: actions/setup-java@v4
+        with:
+          distribution: "zulu" # See 'Supported distributions' for available options
+          java-version: "15"
+      - name: "running genius bridge"
+        run: "java -jar $HOME/negmas/files/geniusbridge.jar --silent --no-logs &"
       - name: "Setting up environment"
         run: |
           export NEGMAS_IGNORE_TEST_NOTEBOOKS=True
           export NEGMAS_FASTRUN=True
       - name: "Run pytest for ${{ matrix.python-version }}"
-        run: "uv run pytest src/negmas tests/core || uv run pytest --last-failed src pytest"
+        run: "python -W ignore -m pytest negmas tests/optional || python -W ignore -m pytest --last-failed ."

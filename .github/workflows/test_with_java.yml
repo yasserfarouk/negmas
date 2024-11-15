@@ -1,0 +1,48 @@
+name: GeniusBridge
+on:
+  push:
+    branches: ["*"]
+  pull_request:
+    branches: ["*"]
+jobs:
+  tests:
+    name: "Python ${{ matrix.python-version }}"
+    runs-on: "ubuntu-latest"
+    timeout-minutes: 120
+    env:
+      USING_COVERAGE: "3.12"
+    strategy:
+      matrix:
+        python-version: ["3.12"]
+    steps:
+      - uses: "actions/checkout@v4"
+      - name: Install uv
+        uses: astral-sh/setup-uv@v3
+        with:
+          enable-cache: true
+      - name: Set up Python ${{ matrix.python-version }}
+        run: uv python install ${{ matrix.python-version }}
+      - name: Install the project
+        run: |
+          uv sync --all-extras --dev
+          uv pip install -e "."
+      - name: "Activate the project"
+        run: source .venv/bin/activate
+      - name: "Install Genius Bridge"
+        run: uv run negmas genius-setup
+      - name: "Install Jupyter Kernel"
+        run: uv run -m ipykernel install --user --name=negmas
+      - name: "running genius bridge"
+        run: "java -jar $HOME/negmas/files/geniusbridge.jar --silent --no-logs &"
+      - name: "Run pytest for ${{ matrix.python-version }}"
+        run: |
+          python -W ignore -m pytest tests/genius  || python -W ignore -m pytest --last-failed .
+      - name: "Run pytest for ${{ matrix.python-version }}"
+        run: |
+          export NEGMAS_IGNORE_TEST_NOTEBOOKS=True
+          export NEGMAS_SLOW_TEST=True
+          export NEGMAS_BRIDGE_OPS
+          unset NEGMAS_BRIDGE_OPS
+          export NEGMAS_IGNORE_TEST_NOTEBOOKS=True
+          export NEGMAS_BRIDGE_OPS=True
+          uv run pytest src/negmas tests/core || uv run pytest --last-failed src pytest
