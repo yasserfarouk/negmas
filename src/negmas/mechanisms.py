@@ -1276,6 +1276,7 @@ class Mechanism(
         keep_order=True,
         method: str = "serial",
         ordering: tuple[int, ...] | None = None,
+        ordering_fun: Callable[[int, list[TState | None]], int] | None = None,
     ) -> list[TState | None]:
         """Runs all mechanisms.
 
@@ -1285,6 +1286,9 @@ class Mechanism(
                         at every step. This is only allowed if the method is serial
             method: the method to use for running all the sessions.  Acceptable options are: sequential, serial, threads, processes
             ordering: Controls the order of advancing the negotiations with the "serial" method.
+            ordering_fun: A function to implement dynamic ordering for the "serial" method.
+                 This function receives a list of states and returns the index of the next mechanism to step.
+                 Note that a state may be None if the corresponding mechanism was None and it should never be stepped
 
         Returns:
             - list of states of all mechanisms after completion
@@ -1295,6 +1299,9 @@ class Mechanism(
             - serial means stepping mechanisms in some order which can be controlled by `ordering`. If no ordering is given, the ordering is just round-robin
         """
         if method == "sequential":
+            if not keep_order:
+                mechanisms = [_ for _ in mechanisms]
+                random.shuffle(mechanisms)
             for mechanism in mechanisms:
                 mechanism.run()
             states = [_.state for _ in mechanisms]
@@ -1307,20 +1314,34 @@ class Mechanism(
             assert (
                 len(notmentioned) == 0
             ), f"Mechanisms {notmentioned} are never mentioned in the ordering."
-            while not all(completed):
-                if not keep_order:
-                    random.shuffle(indices)
-                for i in indices:
-                    done, mechanism = completed[i], mechanisms[i]
-                    if done:
+            if ordering_fun:
+                j = 0
+                while not all(completed):
+                    states = [_.state for _ in mechanisms]
+                    i = ordering_fun(j, states)
+                    j += 1
+                    mechanism = mechanisms[i]
+                    if completed[i]:
                         continue
                     result = mechanism.step()
                     if result.running:
                         continue
                     completed[i] = True
-                    states[i] = mechanism.state
-                    if all(completed):
-                        break
+            else:
+                while not all(completed):
+                    if not keep_order:
+                        random.shuffle(indices)
+                    for i in indices:
+                        mechanism = mechanisms[i]
+                        if completed[i]:
+                            continue
+                        result = mechanism.step()
+                        if result.running:
+                            continue
+                        completed[i] = True
+                        states[i] = mechanism.state
+                        if all(completed):
+                            break
         elif method == "threads":
             raise NotImplementedError()
         elif method == "processes":

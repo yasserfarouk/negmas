@@ -79,6 +79,48 @@ ALL_BUILTIN_NEGOTIATORS = [
 ]
 
 
+@st.composite
+def generate_data(draw):
+    values = list(range(10))
+    sub_values = (
+        st.lists(st.sampled_from(values))
+        .map(lambda sublist: sublist + values)
+        .flatmap(st.permutations)
+    )
+    return draw(sub_values)
+
+
+@given(
+    ordering=generate_data(),
+    offering_is_accepting=st.booleans(),
+    n_negotiators=st.integers(2, 4),
+)
+def test_mechanism_runall_ordering_with_fun(
+    ordering, offering_is_accepting, n_negotiators
+):
+    n_outcomes = 5
+    mechanisms = []
+
+    def orderer(indx: int, states: list[SAOState | None]) -> int:
+        return ordering[indx % len(ordering)]
+
+    for _ in range(10):
+        assert _ in ordering
+        mechanism = SAOMechanism(
+            outcomes=n_outcomes,
+            n_steps=random.randint(3, 20),
+            offering_is_accepting=offering_is_accepting,
+        )
+        ufuns = MappingUtilityFunction.generate_random(1, outcomes=n_outcomes)
+        for i in range(n_negotiators):
+            mechanism.add(AspirationNegotiator(name=f"agent{i}"), preferences=ufuns[0])
+        mechanisms.append(mechanism)
+
+    states = SAOMechanism.runall(mechanisms, method="serial", ordering_fun=orderer)
+    assert len(states) == 10
+    assert not any(_ is not None and _.running for _ in states)
+
+
 class MyRaisingNegotiator(SAONegotiator):
     def propose(self, state: SAOState, dest: str | None = None) -> Outcome | None:
         _ = state
@@ -308,8 +350,8 @@ def test_neg_run_no_waiting():
         assert v >= waste * n_steps
 
 
-@mark.parametrize(["keep_order"], [(True,), (False,)])
-def test_neg_sync_loop(keep_order):
+@mark.parametrize(["keep_order", "method"], [(True, "serial"), (False, "serial")])
+def test_neg_sync_loop_sync(keep_order, method):
     # from pprint import pprint
 
     n_outcomes, n_steps = 10, 10
@@ -334,7 +376,7 @@ def test_neg_sync_loop(keep_order):
             c2.create_negotiator(preferences=ufuns[1], id=f"1-{m}", name=f"1-{m}")  # type: ignore It will be SAOControlled
         )
         mechanisms.append(mechanism)
-    SAOMechanism.runall(mechanisms, keep_order=keep_order)
+    SAOMechanism.runall(mechanisms, method=method, keep_order=keep_order)
 
     for mechanism in mechanisms:
         assert mechanism.state.started
@@ -472,22 +514,55 @@ def test_mechanism_runs_with_offering_not_accepting(n_negotiators, oia):
     assert mechanism.agreement is not None
 
 
-@mark.parametrize("n_negotiators,oia", [(2, True), (3, True), (2, False), (3, False)])
-def test_mechanism_runall(n_negotiators, oia):
+@mark.parametrize(
+    "n_negotiators,offering_is_accepting,method,keep_order",
+    [
+        _
+        for _ in itertools.product(
+            (2, 3, 4), (True, False), ("sequential", "serial"), (True, False)
+        )
+    ],
+)
+def test_mechanism_runall(n_negotiators, offering_is_accepting, method, keep_order):
     n_outcomes = 5
     mechanisms = []
     for _ in range(10):
         mechanism = SAOMechanism(
             outcomes=n_outcomes,
             n_steps=random.randint(3, 20),
-            offering_is_accepting=oia,
+            offering_is_accepting=offering_is_accepting,
         )
         ufuns = MappingUtilityFunction.generate_random(1, outcomes=n_outcomes)
         for i in range(n_negotiators):
             mechanism.add(AspirationNegotiator(name=f"agent{i}"), preferences=ufuns[0])
         mechanisms.append(mechanism)
 
-    states = SAOMechanism.runall(mechanisms)
+    states = SAOMechanism.runall(mechanisms, method=method, keep_order=keep_order)
+    assert len(states) == 10
+    assert not any(_ is not None and _.running for _ in states)
+
+
+@given(
+    ordering=generate_data(),
+    offering_is_accepting=st.booleans(),
+    n_negotiators=st.integers(2, 4),
+)
+def test_mechanism_runall_ordering(ordering, offering_is_accepting, n_negotiators):
+    n_outcomes = 5
+    mechanisms = []
+    for _ in range(10):
+        assert _ in ordering
+        mechanism = SAOMechanism(
+            outcomes=n_outcomes,
+            n_steps=random.randint(3, 20),
+            offering_is_accepting=offering_is_accepting,
+        )
+        ufuns = MappingUtilityFunction.generate_random(1, outcomes=n_outcomes)
+        for i in range(n_negotiators):
+            mechanism.add(AspirationNegotiator(name=f"agent{i}"), preferences=ufuns[0])
+        mechanisms.append(mechanism)
+
+    states = SAOMechanism.runall(mechanisms, method="serial", ordering=ordering)
     assert len(states) == 10
     assert not any(_ is not None and _.running for _ in states)
 
