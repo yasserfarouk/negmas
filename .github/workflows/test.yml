@@ -1,31 +1,32 @@
 name: CI
 on:
-    push:
-        branches: ["*"]
-    pull_request:
-        branches: ["*"]
+  push:
+    branches: ["*"]
+  pull_request:
+    branches: ["*"]
 jobs:
-    tests:
-        name: "Python ${{ matrix.python-version }}"
-        runs-on: "ubuntu-latest"
-        timeout-minutes: 180
-        strategy:
-            matrix:
-                python-version: ["3.11", "3.12", "3.13"]
-        steps:
-            - uses: "actions/checkout@v4"
-            - uses: "actions/setup-python@v5"
-              with:
-                  python-version: "${{ matrix.python-version }}"
-            - name: Install the project
-              run: uv sync --all-extras --dev
-            - name: "Install Genius Bridge"
-              run: negmas genius-setup
-            - name: "Install Jupyter Kernel"
-              run: python -m ipykernel install --user --name=negmas
-            - name: "Setting up environment"
-              run: |
-                  export NEGMAS_IGNORE_TEST_NOTEBOOKS=True
-                  export NEGMAS_FASTRUN=True
-            - name: "Run pytest for ${{ matrix.python-version }}"
-              run: "python -W ignore -m pytest negmas tests/core || python -W ignore -m pytest --last-failed ."
+  tests:
+    name: "Python ${{ matrix.python-version }}"
+    runs-on: "ubuntu-latest"
+    timeout-minutes: 180
+    strategy:
+      matrix:
+        python-version: ["3.11", "3.12", "3.13"]
+    steps:
+      - uses: "actions/checkout@v4"
+      - name: Install uv
+        uses: astral-sh/setup-uv@v3
+      - name: Setup Python
+        run: uv python install
+      - name: Install the project
+        run: uv sync --all-extras --dev
+      - name: "Install Genius Bridge"
+        run: negmas genius-setup
+      - name: "Install Jupyter Kernel"
+        run: python -m ipykernel install --user --name=negmas
+      - name: "Setting up environment"
+        run: |
+          export NEGMAS_IGNORE_TEST_NOTEBOOKS=True
+          export NEGMAS_FASTRUN=True
+      - name: "Run pytest for ${{ matrix.python-version }}"
+        run: "python -W ignore -m pytest negmas tests/core || python -W ignore -m pytest --last-failed ."
