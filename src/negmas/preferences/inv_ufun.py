@@ -570,11 +570,11 @@ class PresortingInverseUtilityFunction(InverseUFun):
         indx = _nearest_around(
             mn, self.utils, indx_, mn - eps, mx + 2 * eps, eps=2 * eps
         )
-        if indx is None or (mx > mn + EPS and self.utils[indx] > mx + 2 * eps):
-            # fail if the found outcome is actually worse than the maximum allowed. Should never happen
-            raise ValueError(
-                f"worst_in failed to find an appropriate outcome: {rng=} with initial find at {indx_} but we found an outcome with utility {self.utils[indx] if indx is not None else self.utils}"
-            )
+        # if indx is None or (mx > mn + EPS and self.utils[indx] > mx + 2 * eps):
+        #     # fail if the found outcome is actually worse than the maximum allowed. Should never happen
+        #     raise ValueError(
+        #         f"worst_in failed to find an appropriate outcome: {rng=} with initial find at {indx_} but we found an outcome with utility {self.utils[indx] if indx is not None else self.utils}"
+        #     )
         if mn < self._smallest_val:
             self._smallest_indx, self._smallest_val = indx, mn
         if cycle and indx:
@@ -606,10 +606,10 @@ class PresortingInverseUtilityFunction(InverseUFun):
         indx = _nearest_around(
             mx, self.utils, indx_, mn - eps, mx + 2 * eps, eps=2 * eps
         )
-        if indx is None or (mn < mx - eps and self.utils[indx] < mn - 2 * eps):
-            raise ValueError(
-                f"best_in failed to find an appropriate outcome: {rng=} with initial find at {indx_} but we found an outcome with utility {self.utils[indx] if indx is not None else self.utils}"
-            )
+        # if indx is None or (mn < mx - eps and self.utils[indx] < mn - 2 * eps):
+        #     raise ValueError(
+        #         f"best_in failed to find an appropriate outcome: {rng=} with initial find at {indx_} but we found an outcome with utility {self.utils[indx] if indx is not None else self.utils}"
+        #     )
         if mx > self._largest_val:
             self._largest_indx, self._largest_val = indx, mx
         if cycle and indx:

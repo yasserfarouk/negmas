@@ -152,7 +152,6 @@ class UtilityBasedOutcomeSetRecommender(GBComponent):
             # warn(
             #     f"It seems that on_prefrences_changed() was not called until propose for a ufun of type {self._negotiator.ufun.__class__.__name__}"
             #     f" for negotiator {self._negotiator.id} of type {self.__class__.__name__}",
-            #     NegmasUnexpectedValueWarning,
             # )
             self.on_preferences_changed([PreferencesChange()])
         if self.max is None or self.min is None:
@@ -161,6 +160,10 @@ class UtilityBasedOutcomeSetRecommender(GBComponent):
         if adjusted:
             adjusted[0] -= self.eps
             adjusted[-1] += self.eps
+        adjusted = [max(self.min, min(self.max, _)) for _ in adjusted]
+        assert (
+            adjusted[0] <= adjusted[1]
+        ), f"{urange=} adjusted to {adjusted=} ({self.min=}, {self.max=})"
         return tuple(adjusted)
 
     @property
