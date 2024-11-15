@@ -20,12 +20,12 @@ def test_mechanism_plot():
         m.add(AspirationNegotiator(id=f"a{i}", name=f"n{i}", ufun=u))
     m.run()
     m.plot()
-    import matplotlib.pyplot as plt
+    # import matplotlib.pyplot as plt
+    #
+    # plt.show()
 
-    plt.show()
 
-
-@pytest.mark.skip("A test added for manually testing plotting")
+@pytest.mark.skip(reason="A test added for manually testing plotting")
 def test_offline_plot():
     os = make_os([make_issue(10) for _ in range(3)])
     m = SAOMechanism(n_steps=100, outcome_space=os)
@@ -41,9 +41,14 @@ def test_offline_plot():
     names = m.negotiator_names
     state = m.state
     try:
-        erredneg = names[ids.index(state.erred_negotiator)]
+        names[ids.index(state.erred_negotiator)]
     except Exception:
-        erredneg = ""
+        pass
+    errstr = (
+        str(state.error_details).split("\n")[-1]
+        if state.has_error and state.error_details
+        else ""
+    )
 
     plot_offline_run(
         trace,
@@ -54,10 +59,8 @@ def test_offline_plot():
         state.broken,
         state.has_error,
         names=names,
-        errstr=f"{erredneg}: {str(state.error_details).split('\n')[-1]}"
-        if state.has_error
-        else "",
+        errstr=errstr,
     )
-    import matplotlib.pyplot as plt
-
-    plt.show()
+    # import matplotlib.pyplot as plt
+    #
+    # plt.show()
