@@ -38,8 +38,7 @@ jobs:
         run: |
           export NEGMAS_IGNORE_TEST_NOTEBOOKS=True
           export NEGMAS_SLOW_TEST=True
-          export NEGMAS_BRIDGE_OPS
-          unset NEGMAS_BRIDGE_OPS
-          export NEGMAS_IGNORE_TEST_NOTEBOOKS=True
           export NEGMAS_BRIDGE_OPS=True
+          export NEGMAS_FAST_RUN=
+          export NEGMAS_RUN_GENIUS=True
           uv run pytest tests/genius || uv run pytest --last-failed tests/genius
