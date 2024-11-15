@@ -22,13 +22,15 @@ jobs:
         run: |
           uv sync --all-extras --dev
           uv pip install -e "."
+      - name: "Activate the project"
+        run: source .venv/bin/activate
       - name: "Install Genius Bridge"
-        run: negmas genius-setup
+        run: uv run negmas genius-setup
       - name: "Install Jupyter Kernel"
-        run: python -m ipykernel install --user --name=negmas
+        run: uv run -m ipykernel install --user --name=negmas
       - name: "Setting up environment"
         run: |
           export NEGMAS_IGNORE_TEST_NOTEBOOKS=True
           export NEGMAS_FASTRUN=True
       - name: "Run pytest for ${{ matrix.python-version }}"
-        run: "python -W ignore -m pytest negmas tests/core || python -W ignore -m pytest --last-failed ."
+        run: "uv run pytest src/negmas tests/core || uv run pytest --last-failed src pytest"
