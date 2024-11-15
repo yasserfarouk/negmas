@@ -1,6 +1,6 @@
 [project]
 name = "negmas"
-version = "0.1.0"
+version = "0.10.23"
 description = "NEGotiations Managed by Agent Simulations"
 readme = "README.rst"
 requires-python = ">=3.11"
@@ -48,8 +48,10 @@ dependencies = [
 ]
 
 [build-system]
-requires = ["hatchling"]
-build-backend = "hatchling.build"
+# requires = ["hatchling"]
+# build-backend = "hatchling.build"
+requires = ["setuptools >= 40.6.0", "wheel"]
+build-backend = "setuptools.build_meta"
 
 [project.optional-dependencies]
 gui = [

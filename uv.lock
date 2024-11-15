@@ -1867,7 +1867,7 @@ wheels = [
 
 [[package]]
 name = "negmas"
-version = "0.1.0"
+version = "0.10.23"
 source = { editable = "." }
 dependencies = [
     { name = "attrs" },

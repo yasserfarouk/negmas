@@ -1790,7 +1790,7 @@ def conflict_level(
     # TODO: confirm this is correct
     if len(signs) == 0:
         return 1.0
-    return signs.mean()
+    return float(signs.mean())
 
 
 def winwin_level(

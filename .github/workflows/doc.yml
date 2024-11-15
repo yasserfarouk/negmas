@@ -1,27 +1,32 @@
 name: Documentation
 on:
-    push:
-        branches: ["master"]
-    pull_request:
-        branches: ["master"]
+  push:
+    branches: ["master"]
+  pull_request:
+    branches: ["master"]
 jobs:
-    docs:
-        name: "Build Documentation"
-        runs-on: "ubuntu-latest"
-        timeout-minutes: 60
-        steps:
-            - uses: "actions/checkout@v4"
-            - uses: r-lib/actions/setup-pandoc@v1
-            - uses: "actions/setup-python@v5"
-              with:
-                  python-version: "3.12"
-            - name: "Install documentation requirements"
-              run: |
-                  ulimit -n 50000
-                  python -m pip install -r requirements.txt
-                  python -m pip install -r requirements-dev.txt
-                  python -m pip install -r docs/requirements.txt
-                  python -m pip install -e .
-            - name: "Create documentation"
-              run: sh make_docs.sh
-              working-directory: ./docs
+  docs:
+    name: "Build Documentation"
+    runs-on: "ubuntu-latest"
+    timeout-minutes: 60
+    steps:
+      - uses: "actions/checkout@v4"
+      - name: Install uv
+        uses: astral-sh/setup-uv@v3
+      - name: Setup Python
+        run: uv python install
+      - name: Install the project
+        run: |
+          uv sync --all-extras --dev
+          uv pip install -e "."
+      - name: "Activate the project"
+        run: source .venv/bin/activate
+      - uses: "actions/checkout@v4"
+      - uses: r-lib/actions/setup-pandoc@v1
+      - name: "Install documentation requirements"
+        run: |
+          ulimit -n 50000
+          uv pip install -r docs/requirements.txt
+      - name: "Create documentation"
+        run: sh make_docs.sh
+        working-directory: ./docs
