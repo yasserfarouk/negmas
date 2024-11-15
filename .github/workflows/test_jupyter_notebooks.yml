@@ -33,4 +33,4 @@ jobs:
       - name: "running genius bridge"
         run: "java -jar $HOME/negmas/files/geniusbridge.jar --silent --no-logs &"
       - name: "Run pytest for ${{ matrix.python-version }}"
-        run: "uv run pytest src/negmas tests || uv run pytest --last-failed src/negmas tests"
+        run: "uv run pytest tests/optional/test_jupyter.py || uv run pytest --last-failed tests/optional/test_jupyter.py"

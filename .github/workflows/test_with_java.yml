@@ -42,4 +42,4 @@ jobs:
           unset NEGMAS_BRIDGE_OPS
           export NEGMAS_IGNORE_TEST_NOTEBOOKS=True
           export NEGMAS_BRIDGE_OPS=True
-          uv run pytest src/negmas tests/genius || uv run pytest --last-failed src/negmas tests/genius
+          uv run pytest tests/genius || uv run pytest --last-failed tests/genius

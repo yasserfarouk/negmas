@@ -37,6 +37,6 @@ jobs:
       - name: "Setting up environment"
         run: |
           export NEGMAS_IGNORE_TEST_NOTEBOOKS=True
-          export NEGMAS_FASTRUN=True
+          export NEGMAS_SLOW_TEST=True
       - name: "Run pytest for ${{ matrix.python-version }}"
         run: "uv run pytest src/negmas tests || uv run pytest --last-failed src/negmas tests"
