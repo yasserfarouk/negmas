@@ -34,7 +34,6 @@ from negmas.common import (
     MechanismState,
     NegotiatorInfo,
     NegotiatorMechanismInterface,
-    ReactiveStrategy,
     TraceElement,
 )
 from negmas.events import Event, EventSource
@@ -680,6 +679,11 @@ class Mechanism(
         _ = negotiator
         return self.nmi
 
+    def _get_ami(self, negotiator: TNegotiator) -> TNMI:
+        _ = negotiator
+        warnings.deprecated("_get_ami is depricated. Use `get_nmi` instead of it")
+        return self.nmi
+
     def add(
         self,
         negotiator: TNegotiator,
@@ -1050,12 +1054,13 @@ class Mechanism(
                 etatime = self.expected_remaining_time
                 etatime = etatime if etatime is not None else float("inf")
                 if remaining is not None:
-                    _eta = (
-                        humanize_time(
-                            min((_elapsed * remaining) / self.current_step, etatime)
-                        )
-                        + f" {remaining} steps"
+                    tt = humanize_time(
+                        min((_elapsed * remaining) / self.current_step, etatime)
                     )
+                    if tt is not None:
+                        _eta = tt + f" {remaining} steps"
+                    else:
+                        _eta = "--"
                 else:
                     _eta = "--"
                 print(
@@ -1560,11 +1565,6 @@ class Mechanism(
     def plot(self, **kwargs) -> Any:
         """A method for plotting a negotiation session."""
         _ = kwargs
-
-    def _get_ami(self, negotiator: ReactiveStrategy) -> TNMI:
-        _ = negotiator
-        warnings.deprecated("_get_ami is depricated. Use `get_nmi` instead of it")
-        return self.nmi
 
     def __iter__(self):
         return self

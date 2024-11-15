@@ -7,6 +7,8 @@ from abc import ABC, abstractmethod
 from collections import defaultdict, namedtuple
 from dataclasses import dataclass
 
+from negmas.preferences.base_ufun import BaseUtilityFunction
+
 from ..common import NegotiatorMechanismInterface, MechanismAction, MechanismState
 from ..mechanisms import Mechanism, MechanismStepResult
 from ..negotiators import Negotiator
@@ -68,6 +70,7 @@ class ChainNegotiator(Negotiator, ABC):
         state: MechanismState,
         *,
         preferences: Preferences | None = None,
+        ufun: BaseUtilityFunction | None = None,
         role: str = "negotiator",
     ) -> bool:
         to_join = super().join(nmi, state, preferences=preferences, role=role)
@@ -143,6 +146,7 @@ class MultiChainNegotiator(Negotiator, ABC):
         state: MechanismState,
         *,
         preferences: Preferences | None = None,
+        ufun: BaseUtilityFunction | None = None,
         role: str = "negotiator",
     ) -> bool:
         to_join = super().join(nmi, state, preferences=preferences, role=role)
@@ -212,11 +216,11 @@ class MultiChainNegotiator(Negotiator, ABC):
 
 
 class ChainNegotiationsMechanism(
-    Mechanism[MechanismState, MechanismAction, ChainNMI, ChainNegotiator]
+    Mechanism[ChainNMI, MechanismState, MechanismAction, ChainNegotiator]
 ):
     def __init__(self, initial_state: MechanismState | None = None, *args, **kwargs):
         super().__init__(
-            initial_state if initial_state else MechanismState() * args, **kwargs
+            initial_state if initial_state else MechanismState(), *args, **kwargs
         )
         self.__chain: list[ChainNegotiator | None] = []
         self.__next_agent = 0
@@ -226,7 +230,7 @@ class ChainNegotiationsMechanism(
         self.__temp_agreements: dict[int, Outcome | None] = defaultdict(lambda: None)
 
     def _get_ami(
-        self, negotiator: Negotiator, role: str
+        self, negotiator: ChainNegotiator, role: str
     ) -> NegotiatorMechanismInterface:
         """
         Returns a chain AMI instead of the standard AMI.

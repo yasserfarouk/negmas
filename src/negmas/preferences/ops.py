@@ -1720,7 +1720,7 @@ def opposition_level(
             )
         if v < nearest_val:
             nearest_val = v
-    return sqrt(nearest_val)
+    return float(sqrt(nearest_val))
 
 
 def conflict_level(

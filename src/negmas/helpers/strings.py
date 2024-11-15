@@ -72,7 +72,7 @@ def shorten(name: str, length: int = 4, common_parts=COMMON_NAME_PARTS) -> str:
             continue
         needed -= 1
         caps.append(c)
-    return "".join(caps[:length])
+    return str("".join(caps[:length]))
 
 
 def unique_name(base, add_time=True, add_host=False, rand_digits=8, sep="/") -> str:
@@ -368,4 +368,4 @@ def humanize_time(
                 parts.append("%2d%s%s" % (n, unit, ""))
             else:
                 parts.append("%2d%s%s" % (n, unit, ""))
-    return "".join(parts)
+    return str("".join(parts))

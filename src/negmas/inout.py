@@ -412,18 +412,20 @@ class Scenario:
                     continue
                 us = (u1, u2)
                 fu_, findx = pareto_frontier(
-                    us, outcomes=outcomes, sort_by_welfare=True
+                    us,  # type: ignore
+                    outcomes=outcomes,
+                    sort_by_welfare=True,
                 )
                 foutcomes_ = [outcomes[i] for i in findx]
                 fu[(u1.name, u2.name)], fo[(u1.name, u2.name)] = (
                     fu_,
                     [outcomes[_] for _ in findx],
                 )
-                pts = nash_points((u1, u2), fu_, outcomes=outcomes)
+                pts = nash_points((u1, u2), fu_, outcomes=outcomes)  # type: ignore
                 nu[(u1.name, u2.name)], nindx = pts[0] if pts else (None, None)
                 no[(u1.name, u2.name)] = foutcomes_[nindx] if nindx else None
                 ol[(u1.name, u2.name)] = opposition_level(
-                    (u1, u2),
+                    (u1, u2),  # type: ignore
                     outcomes=outcomes,
                     max_utils=(minmax[i][1], minmax[j][1]),
                     max_tests=max_cardinality,
