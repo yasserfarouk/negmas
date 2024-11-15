@@ -19,24 +19,12 @@ jobs:
             - uses: "actions/setup-python@v5"
               with:
                   python-version: "${{ matrix.python-version }}"
-            - uses: actions/setup-java@v4
-              with:
-                  distribution: "zulu" # See 'Supported distributions' for available options
-                  java-version: "15"
-            - name: "Install dependencies"
-              run: |
-                  set -xe
-                  ulimit -n 50000
-                  python -VV
-                  python -m site
-                  python -m pip install --upgrade pip setuptools wheel pytest
-                  python -m pip install --upgrade  virtualenv
-            - name: "Install negmas and geinus-bridge"
-              run: |
-                  python -m pip install -r requirements.txt
-                  python -m pip install -r requirements-dev.txt
-                  python -m pip install -e .
-                  negmas genius-setup
+            - name: Install the project
+              run: uv sync --all-extras --dev
+            - name: "Install Genius Bridge"
+              run: negmas genius-setup
+            - name: "Install Jupyter Kernel"
+              run: python -m ipykernel install --user --name=negmas
             - name: "running genius bridge"
               run: "java -jar $HOME/negmas/files/geniusbridge.jar --silent --no-logs &"
             - name: "Run pytest for ${{ matrix.python-version }}"
