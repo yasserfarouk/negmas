@@ -22,6 +22,7 @@ from typing import (
     TypeVar,
     Generic,
 )
+from warnings import warn
 
 from attrs import define
 from rich.progress import Progress
@@ -1274,7 +1275,7 @@ class Mechanism(
         cls,
         mechanisms: list[Mechanism] | tuple[Mechanism, ...],
         keep_order=True,
-        method: str = "serial",
+        method: str = "ordered",
         ordering: tuple[int, ...] | None = None,
         ordering_fun: Callable[[int, list[TState | None]], int] | None = None,
     ) -> list[TState | None]:
@@ -1283,10 +1284,10 @@ class Mechanism(
         Args:
             mechanisms: list of mechanisms
             keep_order: if True, the mechanisms will be run in order every step otherwise the order will be randomized
-                        at every step. This is only allowed if the method is serial
-            method: the method to use for running all the sessions.  Acceptable options are: sequential, serial, threads, processes
-            ordering: Controls the order of advancing the negotiations with the "serial" method.
-            ordering_fun: A function to implement dynamic ordering for the "serial" method.
+                        at every step. This is only allowed if the method is ordered
+            method: the method to use for running all the sessions.  Acceptable options are: sequential, ordered, threads, processes
+            ordering: Controls the order of advancing the negotiations with the "ordered" method.
+            ordering_fun: A function to implement dynamic ordering for the "ordered" method.
                  This function receives a list of states and returns the index of the next mechanism to step.
                  Note that a state may be None if the corresponding mechanism was None and it should never be stepped
 
@@ -1296,8 +1297,14 @@ class Mechanism(
 
         Remarks:
             - sequential means running each mechanism until completion before going to the next
-            - serial means stepping mechanisms in some order which can be controlled by `ordering`. If no ordering is given, the ordering is just round-robin
+            - ordered means stepping mechanisms in some order which can be controlled by `ordering`. If no ordering is given, the ordering is just round-robin
         """
+        if method == "serial":
+            warn(
+                "`serial`  method is deprecated. Please use 'ordered' instead.",
+                DeprecationWarning,
+            )
+            method = "ordered"
         if method == "sequential":
             if not keep_order:
                 mechanisms = [_ for _ in mechanisms]
@@ -1305,7 +1312,7 @@ class Mechanism(
             for mechanism in mechanisms:
                 mechanism.run()
             states = [_.state for _ in mechanisms]
-        elif method == "serial":
+        elif method == "ordered":
             completed = [_ is None for _ in mechanisms]
             states: list[TState | None] = [None] * len(mechanisms)
             allindices = list(range(len(list(mechanisms))))
