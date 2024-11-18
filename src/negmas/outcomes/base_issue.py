@@ -127,6 +127,41 @@ class Issue(HasMinMax, Iterable, ABC):
         self._n_values = float("inf")
         self.min_value, self.max_value = None, None
 
+    def intersect(self, other: "Issue"):
+        """Returns an issue which is the intersection of the two issues and otherwise is the same as this one"""
+        from negmas.outcomes.contiguous_issue import ContiguousIssue
+        from negmas.outcomes.ordinal_issue import DiscreteOrdinalIssue
+        from negmas.outcomes.continuous_issue import ContinuousIssue
+
+        if (
+            isinstance(self, ContiguousIssue) and isinstance(other, ContiguousIssue)
+        ) or (isinstance(self, ContinuousIssue) and isinstance(other, ContinuousIssue)):
+            return make_issue(
+                (
+                    max(self._values[0], other._values[0]),
+                    min(self._values[-1], other._values[-1]),
+                ),
+                name=self.name,
+            )
+        if isinstance(self, DiscreteOrdinalIssue) and isinstance(
+            other, (ContiguousIssue, ContinuousIssue)
+        ):
+            return make_issue(
+                [_ for _ in self.all if other.min_value <= _ <= other.max_value],
+                name=self.name,
+            )
+        if isinstance(other, DiscreteOrdinalIssue) and isinstance(
+            self, (ContiguousIssue, ContinuousIssue)
+        ):
+            return make_issue(
+                [_ for _ in other.all if self.min_value <= _ <= self.max_value],
+                name=other.name,
+            )
+        return make_issue(
+            list(set(_ for _ in self.all).intersection(set(_ for _ in other.all))),
+            name=self.name,
+        )
+
     def __copy__(self):
         return make_issue(name=self.name, values=self._values)
 
