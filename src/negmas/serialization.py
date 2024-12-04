@@ -4,7 +4,7 @@ Implements serialization to and from strings and secondary storage.
 """
 
 from __future__ import annotations
-
+import types
 from pathlib import Path
 from typing import Any, Iterable
 
@@ -149,14 +149,23 @@ def serialize(
                 for _ in value
             )
         )
-    if hasattr(value, "to_dict"):
-        converted = value.to_dict()  # type: ignore
-        if isinstance(converted, dict):
-            if add_type_field and (PYTHON_CLASS_IDENTIFIER not in converted.keys()):
-                converted[PYTHON_CLASS_IDENTIFIER] = get_type_field(value)
-            return adjust_dict({k: v for k, v in converted.items()})
-        else:
-            return adjust_dict(converted)
+
+    def convertwith(value, method):
+        if hasattr(value, method) and isinstance(
+            getattr(value, method), types.MethodType
+        ):
+            converted = getattr(value, method)()  # type: ignore
+            if isinstance(converted, dict):
+                if add_type_field and (PYTHON_CLASS_IDENTIFIER not in converted.keys()):
+                    converted[PYTHON_CLASS_IDENTIFIER] = get_type_field(value)
+                return adjust_dict({k: v for k, v in converted.items()})
+            else:
+                return adjust_dict(converted)
+
+    for method in ("to_dict", "asdict", "dict"):
+        converted = convertwith(value, method)
+        if converted is not None:
+            return converted
     if isinstance(value, str):
         return value
     if isinstance(value, bytes):
