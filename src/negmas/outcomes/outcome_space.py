@@ -1,5 +1,8 @@
 from __future__ import annotations
+from math import isinf
+import numbers
 from functools import reduce
+import random
 from itertools import filterfalse
 from operator import mul
 from typing import TYPE_CHECKING, Callable, Iterable, Sequence, Union
@@ -36,6 +39,7 @@ if TYPE_CHECKING:
 
 __all__ = [
     "CartesianOutcomeSpace",
+    "EnumeratingOutcomeSpace",
     "DiscreteCartesianOutcomeSpace",
     "make_os",
     "DistanceFun",
@@ -81,6 +85,172 @@ def make_os(
     if all(_.is_discrete() for _ in issues_):
         return DiscreteCartesianOutcomeSpace(issues_, name=name if name else "")
     return CartesianOutcomeSpace(issues_, name=name if name else "")
+
+
+@define
+class OSWithValidity:
+    invalid: set[Outcome] = field(factory=set)
+    _baseset: set[Outcome] = field(factory=set)
+
+    def __attrs_post_init__(self):
+        self.update()
+
+    def update(self):
+        self._baseset = set(self.enumerate()).difference(self.invalid)
+
+
+@define
+class EnumeratingOutcomeSpace(DiscreteOutcomeSpace, OSWithValidity):
+    """An outcome space representing the enumeration of some outcomes. No issues defined"""
+
+    def invalidate(self, outcome: Outcome) -> None:
+        """Indicates that the outcome is invalid"""
+        self.invalid.add(outcome)
+        self.update()
+
+    def validate(self, outcome: Outcome) -> None:
+        """Indicates that the outcome is invalid"""
+        try:
+            self.invalid.remove(outcome)
+        except Exception:
+            pass
+        self.update()
+
+    def is_valid(self, outcome: Outcome) -> bool:
+        """Checks if the given outcome is valid for that outcome space"""
+        return outcome in self._baseset
+
+    def are_types_ok(self, outcome: Outcome) -> bool:
+        """Checks if the type of each value in the outcome is correct for the given issue"""
+        return True
+
+    def ensure_correct_types(self, outcome: Outcome) -> Outcome:
+        """Returns an outcome that is guaratneed to have correct types or raises an exception"""
+        return outcome
+
+    @property
+    def cardinality(self) -> int:
+        """The space cardinality = the number of outcomes"""
+        return len(self._baseset)
+
+    def is_numeric(self) -> bool:
+        """Checks whether all values in all outcomes are numeric"""
+        samples = random.choices(list(self._baseset), k=int(min(self.cardinality, 10)))
+        numeric = [all(isinstance(_, numbers.Number) for _ in s) for s in samples]
+        return all(numeric)
+
+    def is_integer(self) -> bool:
+        """Checks whether all values in all outcomes are integers"""
+        samples = random.choices(list(self._baseset), k=int(min(self.cardinality, 10)))
+        numeric = [all(isinstance(_, numbers.Integral) for _ in s) for s in samples]
+        return all(numeric)
+
+    def is_float(self) -> bool:
+        """Checks whether all values in all outcomes are real"""
+        samples = random.choices(list(self._baseset), k=int(min(self.cardinality, 10)))
+        numeric = [
+            all(
+                isinstance(_, numbers.Real) and not isinstance(_, numbers.Integral)
+                for _ in s
+            )
+            for s in samples
+        ]
+        return all(numeric)
+
+    def to_discrete(
+        self, levels: int | float = 5, max_cardinality: int | float = float("inf")
+    ) -> DiscreteOutcomeSpace:
+        """
+        Returns a **stable** finite outcome space. If the outcome-space is already finite. It shoud return itself.
+
+        Args:
+            levels: The levels of discretization of any continuous dimension (or subdimension)
+            max_cardintlity: The maximum cardinality allowed for the resulting outcomespace (if the original OS was infinite).
+                             This limitation is **NOT** applied for outcome spaces that are alredy discretized. See `limit_cardinality()`
+                             for a method to limit the cardinality of an already discrete space
+
+        If called again, it should return the same discrete outcome space every time.
+        """
+        return self
+
+    def random_outcome(self) -> Outcome:
+        """Returns a single random outcome."""
+        return list(self.sample(1))[0]
+
+    def to_largest_discrete(
+        self, levels: int, max_cardinality: int | float = float("inf"), **kwargs
+    ) -> DiscreteOutcomeSpace:
+        return self
+
+    def cardinality_if_discretized(
+        self, levels: int, max_cardinality: int | float = float("inf")
+    ) -> int:
+        """
+        Returns the cardinality if discretized the given way.
+        """
+        return self.cardinality
+
+    def enumerate_or_sample(
+        self,
+        levels: int | float = float("inf"),
+        max_cardinality: int | float = float("inf"),
+    ) -> Iterable[Outcome]:
+        """Enumerates all outcomes if possible (i.e. discrete space) or returns `max_cardinality` different outcomes otherwise"""
+        return self.enumerate()
+
+    def is_discrete(self) -> bool:
+        """Checks whether there are no continua components of the space"""
+        return True
+
+    def is_finite(self) -> bool:
+        """Checks whether the space is finite"""
+        return self.is_discrete()
+
+    def __contains__(self, item: Outcome | OutcomeSpace | Issue) -> bool:  # type: ignore
+        if isinstance(item, Issue):
+            return False
+        if isinstance(item, Outcome):
+            return item in self._baseset
+        if not isinstance(item, OutcomeSpace):
+            return False
+        if isinf(item.cardinality):
+            return False
+        return all(x in self for x in item.enumerate_or_sample())
+
+    def enumerate(self) -> Iterable[Outcome]:
+        """
+        Enumerates the outcome space returning all its outcomes (or up to max_cardinality for infinite ones)
+        """
+        return self._baseset
+
+    def sample(
+        self, n_outcomes: int, with_replacement: bool = False, fail_if_not_enough=False
+    ) -> Iterable[Outcome]:
+        """Samples up to n_outcomes with or without replacement"""
+        if self.cardinality < n_outcomes and not with_replacement:
+            return []
+        if with_replacement:
+            return (random.choice(list(self._baseset)) for _ in range(n_outcomes))
+        return random.sample(list(self._baseset), k=n_outcomes)
+
+    def limit_cardinality(
+        self,
+        max_cardinality: int | float = float("inf"),
+        levels: int | float = float("inf"),
+    ) -> DiscreteOutcomeSpace:
+        """
+        Limits the cardinality of the outcome space to the given maximum (or the number of levels for each issue to `levels`)
+
+        Args:
+            max_cardinality: The maximum number of outcomes in the resulting space
+            levels: The maximum levels allowed per issue (if issues are defined for this outcome space)
+        """
+        ...
+
+    def to_single_issue(
+        self, numeric: bool = False, stringify: bool = True
+    ) -> CartesianOutcomeSpace:
+        ...
 
 
 @define(frozen=True)
@@ -202,7 +372,7 @@ class CartesianOutcomeSpace(XmlSerializable):
 
     @classmethod
     def from_xml_str(
-        cls, xml_str: str, safe_parsing=True, name=None
+        cls, xml_str: str, safe_parsing=True, name=None, **kwargs
     ) -> CartesianOutcomeSpace:
         issues, _ = issues_from_xml_str(
             xml_str, safe_parsing=safe_parsing, n_discretization=None
@@ -225,7 +395,7 @@ class CartesianOutcomeSpace(XmlSerializable):
             issues_from_outcomes(outcomes, numeric_as_ranges, issue_names), name=name
         )
 
-    def to_xml_str(self) -> str:
+    def to_xml_str(self, **kwargs) -> str:
         return issues_to_xml_str(self.issues)
 
     def are_types_ok(self, outcome: Outcome) -> bool:
@@ -490,11 +660,17 @@ class DiscreteCartesianOutcomeSpace(CartesianOutcomeSpace):
         """Checks whether there are no continua components of the space"""
         return True
 
-    def to_discrete(self, *args, **kwargs) -> DiscreteOutcomeSpace:
+    def to_discrete(
+        self, levels: int | float = 10, max_cardinality: int | float = float("inf")
+    ) -> DiscreteCartesianOutcomeSpace:
         return self
 
     def to_single_issue(
-        self, numeric=False, stringify=True
+        self,
+        numeric=False,
+        stringify=True,
+        levels: int = NLEVELS,
+        max_cardinality: int | float = float("inf"),
     ) -> DiscreteCartesianOutcomeSpace:
         """
         Creates a new outcome space that is a single-issue version of this one

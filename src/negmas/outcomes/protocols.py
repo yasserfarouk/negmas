@@ -111,7 +111,7 @@ class OutcomeSpace(Container, Protocol):
         """Checks whether the space is finite"""
         return self.is_discrete()
 
-    def __contains__(self, item: Outcome | OutcomeSpace | Issue) -> bool:
+    def __contains__(self, item: Outcome | OutcomeSpace | Issue) -> bool:  # type: ignore
         ...
 
 
