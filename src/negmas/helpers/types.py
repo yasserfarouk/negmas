@@ -144,12 +144,14 @@ def get_class(
 
 
 def instantiate(
-    class_name: str | type,
+    class_name: str | type | None,
     module_name: str | None = None,
     scope: dict | None = None,
     **kwargs,
 ) -> Any:
     """Imports and instantiates an object of a class"""
+    if class_name is None:
+        return None
     return get_class(class_name, module_name)(**kwargs)
 
 
