@@ -163,11 +163,16 @@ def serialize(
             )
         )
 
-    def convertwith(value, method):
+    def convertwith(value, method, pass_identifier=False):
         if hasattr(value, method) and isinstance(
             getattr(value, method), types.MethodType
         ):
-            converted = getattr(value, method)()  # type: ignore
+            if pass_identifier:
+                converted = getattr(value, method)(
+                    python_class_identifier=python_class_identifier
+                )  # type: ignore
+            else:
+                converted = getattr(value, method)()  # type: ignore
             if isinstance(converted, dict):
                 if add_type_field and (python_class_identifier not in converted.keys()):
                     converted[python_class_identifier] = get_type_field(value)
@@ -175,8 +180,11 @@ def serialize(
             else:
                 return adjust_dict(converted)
 
+    converted = convertwith(value, "to_dict", pass_identifier=True)
+    if converted is not None:
+        return converted
     for method in ("to_dict", "asdict", "dict"):
-        converted = convertwith(value, method)
+        converted = convertwith(value, method, pass_identifier=False)
         if converted is not None:
             return converted
     if isinstance(value, str):
@@ -368,8 +376,15 @@ def deserialize(
                     if good_field(k)
                 }
             # deserialize needs to do a shallow conversion from a dict as deep conversion is taken care of already.
+            #
             if hasattr(python_class, "from_dict"):
-                return python_class.from_dict({k: v for k, v in d.items()})  # type: ignore
+                try:
+                    return python_class.from_dict(
+                        {k: v for k, v in d.items()},
+                        python_class_identifier=python_class_identifier,
+                    )  # type: ignore
+                except Exception:
+                    return python_class.from_dict({k: v for k, v in d.items()})  # type: ignore
             if deep:
                 d = {
                     k: deserialize(
