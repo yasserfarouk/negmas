@@ -1,5 +1,5 @@
 from .base import *
+from .tau import *
+from .tauserial import *
 
-# from .mechanisms import *
-
-__all__ = base.__all__  #  + mechanisms.__all__
+__all__ = base.__all__  + tau.__all__ + tauserial.__all__
