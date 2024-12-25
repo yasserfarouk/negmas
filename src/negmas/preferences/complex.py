@@ -113,17 +113,29 @@ class WeightedUtilityFunction(_DependenceMixin, BaseUtilityFunction):
             u += util * w  # type: ignore
         return u
 
-    def to_dict(self) -> dict[str, Any]:
-        d = {PYTHON_CLASS_IDENTIFIER: get_full_type_name(type(self))}
+    def to_dict(
+        self, python_class_identifier=PYTHON_CLASS_IDENTIFIER
+    ) -> dict[str, Any]:
+        d = {python_class_identifier: get_full_type_name(type(self))}
         d.update(super().to_dict())
         return dict(
-            **d, ufuns=[serialize(_) for _ in self.values], weights=self.weights
+            **d,
+            ufuns=[
+                serialize(_, python_class_identifier=python_class_identifier)
+                for _ in self.values
+            ],
+            weights=self.weights,
         )
 
     @classmethod
-    def from_dict(cls, d: dict[str, Any]):
-        d.pop(PYTHON_CLASS_IDENTIFIER, None)
-        d["ufuns"] = [deserialize(_) for _ in d["ufuns"]]
+    def from_dict(
+        cls, d: dict[str, Any], python_class_identifier=PYTHON_CLASS_IDENTIFIER
+    ):
+        d.pop(python_class_identifier, None)
+        d["ufuns"] = [
+            deserialize(_, python_class_identifier=python_class_identifier)
+            for _ in d["ufuns"]
+        ]
         return cls(**d)
 
 
@@ -180,19 +192,32 @@ class ComplexNonlinearUtilityFunction(_DependenceMixin, BaseUtilityFunction):
             **kwargs,
         )
 
-    def to_dict(self) -> dict[str, Any]:
-        d = {PYTHON_CLASS_IDENTIFIER: get_full_type_name(type(self))}
+    def to_dict(
+        self, python_class_identifier=PYTHON_CLASS_IDENTIFIER
+    ) -> dict[str, Any]:
+        d = {python_class_identifier: get_full_type_name(type(self))}
         d.update(super().to_dict())
         return dict(
-            ufuns=serialize(self.ufuns),
-            combination_function=serialize(self.combination_function),
+            ufuns=serialize(
+                self.ufuns, python_class_identifier=python_class_identifier
+            ),
+            combination_function=serialize(
+                self.combination_function,
+                python_class_identifier=python_class_identifier,
+            ),
         )
 
     @classmethod
-    def from_dict(cls, d: dict[str, Any]):
-        d.pop(PYTHON_CLASS_IDENTIFIER, None)
-        d["ufuns"] = deserialize(d["ufuns"])
-        d["combination_function"] = deserialize(d["combination_function"])
+    def from_dict(
+        cls, d: dict[str, Any], python_class_identifier=PYTHON_CLASS_IDENTIFIER
+    ):
+        d.pop(python_class_identifier, None)
+        d["ufuns"] = deserialize(
+            d["ufuns"], python_class_identifier=python_class_identifier
+        )
+        d["combination_function"] = deserialize(
+            d["combination_function"], python_class_identifier=python_class_identifier
+        )
         return cls(**d)
 
     def eval(self, offer: Outcome) -> Value:

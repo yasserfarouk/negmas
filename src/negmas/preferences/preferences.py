@@ -72,20 +72,27 @@ class Preferences(NamedObject, ABC):
         Does the utility of an outcome depend on the negotiation state?
         """
 
-    def to_dict(self) -> dict[str, Any]:
-        d = {PYTHON_CLASS_IDENTIFIER: get_full_type_name(type(self))}
+    def to_dict(
+        self, python_class_identifier=PYTHON_CLASS_IDENTIFIER
+    ) -> dict[str, Any]:
+        d = {python_class_identifier: get_full_type_name(type(self))}
         return dict(
             **d,
-            outcome_space=serialize(self.outcome_space),
+            outcome_space=serialize(
+                self.outcome_space, python_class_identifier=python_class_identifier
+            ),
             reserved_outcome=self.reserved_outcome,
             name=self.name,
             id=self.id,
         )
 
     @classmethod
-    def from_dict(cls, d):
-        d.pop(PYTHON_CLASS_IDENTIFIER, None)
-        d["outcome_space"] = deserialize(d.get("outcome_space", None))
+    def from_dict(cls, d, python_class_identifier=PYTHON_CLASS_IDENTIFIER):
+        d.pop(python_class_identifier, None)
+        d["outcome_space"] = deserialize(
+            d.get("outcome_space", None),
+            python_class_identifier=python_class_identifier,
+        )
         return cls(**d)
 
     def is_stationary(self) -> bool:

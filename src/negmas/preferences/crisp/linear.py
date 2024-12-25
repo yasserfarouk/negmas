@@ -276,18 +276,23 @@ class AffineUtilityFunction(StationaryMixin, UtilityFunction):
         )
         return ufun
 
-    def to_dict(self):
-        d = {PYTHON_CLASS_IDENTIFIER: get_full_type_name(type(self))}
+    def to_dict(self, python_class_identifier=PYTHON_CLASS_IDENTIFIER):
+        d = {python_class_identifier: get_full_type_name(type(self))}
         d.update(super().to_dict())
         return dict(**d, weights=self._weights, bias=self._bias)
 
     @classmethod
-    def from_dict(cls, d: dict):
+    def from_dict(cls, d: dict, python_class_identifier=PYTHON_CLASS_IDENTIFIER):
         if isinstance(d, cls):
             return d
-        d.pop(PYTHON_CLASS_IDENTIFIER, None)
+        d.pop(python_class_identifier, None)
         # d["values"]=deserialize(d["values"]),  # type: ignore (deserialize can return anything but it should be OK)
-        d = deserialize(d, deep=True, remove_type_field=True)  # type: ignore
+        d = deserialize(
+            d,
+            deep=True,
+            remove_type_field=True,
+            python_class_identifier=python_class_identifier,
+        )  # type: ignore
         return cls(**d)  # type: ignore I konw that d will be a dict with string keys
 
     def shift_by(
@@ -739,18 +744,29 @@ class LinearAdditiveUtilityFunction(  # type: ignore
             output += f'<weight index="{len(self.weights) + 1}" value="{self._bias}">\n</weight>\n'
         return output
 
-    def to_dict(self):
-        d = {PYTHON_CLASS_IDENTIFIER: get_full_type_name(type(self))}
+    def to_dict(self, python_class_identifier=PYTHON_CLASS_IDENTIFIER):
+        d = {python_class_identifier: get_full_type_name(type(self))}
         d.update(super().to_dict())
-        return dict(**d, weights=self.weights, values=serialize(self.values))
+        return dict(
+            **d,
+            weights=self.weights,
+            values=serialize(
+                self.values, python_class_identifier=python_class_identifier
+            ),
+        )
 
     @classmethod
-    def from_dict(cls, d: dict):
+    def from_dict(cls, d: dict, python_class_identifier=PYTHON_CLASS_IDENTIFIER):
         if isinstance(d, cls):
             return d
-        d.pop(PYTHON_CLASS_IDENTIFIER, None)
+        d.pop(python_class_identifier, None)
         # d["values"]=deserialize(d["values"]),  # type: ignore (deserialize can return anything but it should be OK)
-        d = deserialize(d, deep=True, remove_type_field=True)  # type: ignore
+        d = deserialize(
+            d,
+            deep=True,
+            remove_type_field=True,
+            python_class_identifier=python_class_identifier,
+        )  # type: ignore
         return cls(**d)  # type: ignore I konw that d will be a dict with string keys
 
     def extreme_outcomes(

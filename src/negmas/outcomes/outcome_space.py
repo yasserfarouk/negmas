@@ -103,6 +103,8 @@ class OSWithValidity:
 class EnumeratingOutcomeSpace(DiscreteOutcomeSpace, OSWithValidity):
     """An outcome space representing the enumeration of some outcomes. No issues defined"""
 
+    name: str | None = field(eq=False, default=None)
+
     def invalidate(self, outcome: Outcome) -> None:
         """Indicates that the outcome is invalid"""
         self.invalid.add(outcome)
@@ -266,6 +268,11 @@ class CartesianOutcomeSpace(XmlSerializable):
         if not self.name:
             object.__setattr__(self, "name", unique_name("os", add_time=False, sep=""))
 
+    def __mul__(self, other: CartesianOutcomeSpace) -> CartesianOutcomeSpace:
+        issues = list(self.issues) + list(other.issues)
+        name = f"{self.name}*{other.name}"
+        return CartesianOutcomeSpace(tuple(issues), name=name)
+
     def contains_issue(self, x: Issue) -> bool:
         """Cheks that the given issue is in the tuple of issues constituting the outcome space (i.e. it is one of its dimensions)"""
         return x in self.issues
@@ -299,13 +306,19 @@ class CartesianOutcomeSpace(XmlSerializable):
         )
         return all(self.is_valid(_) for _ in x.enumerate())  # type: ignore If we are here, we know that x is finite
 
-    def to_dict(self):
-        d = {PYTHON_CLASS_IDENTIFIER: get_full_type_name(type(self))}
-        return dict(**d, name=self.name, issues=serialize(self.issues))
+    def to_dict(self, python_class_identifier=PYTHON_CLASS_IDENTIFIER):
+        d = {python_class_identifier: get_full_type_name(type(self))}
+        return dict(
+            **d,
+            name=self.name,
+            issues=serialize(
+                self.issues, python_class_identifier=python_class_identifier
+            ),
+        )
 
     @classmethod
-    def from_dict(cls, d):
-        return cls(**deserialize(d))  # type: ignore
+    def from_dict(cls, d, python_class_identifier=PYTHON_CLASS_IDENTIFIER):
+        return cls(**deserialize(d, python_class_identifier=python_class_identifier))  # type: ignore
 
     @property
     def issue_names(self) -> list[str]:

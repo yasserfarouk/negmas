@@ -15,7 +15,12 @@ from negmas.negotiators import Negotiator
 from negmas.outcomes import Issue
 from negmas.preferences import Preferences
 from negmas.sao import SAONegotiator
-from negmas.serialization import deserialize, serialize, to_flat_dict
+from negmas.serialization import (
+    deserialize,
+    serialize,
+    to_flat_dict,
+    PYTHON_CLASS_IDENTIFIER,
+)
 from negmas.situated import (
     Action,
     Agent,
@@ -218,30 +223,44 @@ class Condition:
     scored_indices: tuple[int, ...] | None = None
     """Indices of negotiators to be scored in this negotiation. `None` is equivalent to `[self.index]`"""
 
-    def to_dict(self):
+    def to_dict(self, python_class_identifier=PYTHON_CLASS_IDENTIFIER):
         return dict(
             name=self.name,
             issues=[i.to_dict() for i in self.issues],
-            ufuns=[serialize(u) for u in self.ufuns],
+            ufuns=[
+                serialize(u, python_class_identifier=python_class_identifier)
+                for u in self.ufuns
+            ],
             partner_types=[get_full_type_name(_) for _ in self.partner_types],  # type: ignore
             index=self.index,
-            partner_params=serialize(self.partner_params),
+            partner_params=serialize(
+                self.partner_params, python_class_identifier=python_class_identifier
+            ),
             roles=self.roles,
-            annotation=serialize(self.annotation),
+            annotation=serialize(
+                self.annotation, python_class_identifier=python_class_identifier
+            ),
             scored_indices=self.scored_indices,
         )
 
     @classmethod
-    def from_dict(cls, d):
+    def from_dict(cls, d, python_class_identifier=PYTHON_CLASS_IDENTIFIER):
         return cls(
             name=d["name"],
             issues=tuple(Issue.from_dict(_) for _ in d["issues"]),
-            ufuns=tuple(deserialize(u) for u in d["ufuns"]),  # type: ignore The type should be correct in the dict
+            ufuns=tuple(
+                deserialize(u, python_class_identifier=python_class_identifier)
+                for u in d["ufuns"]
+            ),  # type: ignore The type should be correct in the dict
             partner_types=tuple(get_class(_) for _ in d["partner_types"]),
             index=d["index"],
-            partner_params=deserialize(d["partner_params"]),  # type: ignore The type should be correct in the dict
+            partner_params=deserialize(
+                d["partner_params"], python_class_identifier=python_class_identifier
+            ),  # type: ignore The type should be correct in the dict
             roles=d["roles"],
-            annotation=deserialize(d["annotation"]),  # type: ignore The type should be correct in the dict
+            annotation=deserialize(
+                d["annotation"], python_class_identifier=python_class_identifier
+            ),  # type: ignore The type should be correct in the dict
             scored_indices=d["scored_indices"],
         )
 
@@ -284,6 +303,7 @@ class NegWorld(NoContractExecutionMixin, World):
         compact: bool = False,
         no_logs: bool = False,
         normalize_scores: bool = False,
+        python_class_identifier: str = PYTHON_CLASS_IDENTIFIER,
         **kwargs,
     ):
         kwargs["log_to_file"] = not no_logs
@@ -306,7 +326,9 @@ class NegWorld(NoContractExecutionMixin, World):
 
         if self.info is None:
             self.info = {}
-        self.info["scenario"] = serialize(scenario)
+        self.info["scenario"] = serialize(
+            scenario, python_class_identifier=python_class_identifier
+        )
         self.info["n_steps"] = self.n_steps
         self.info["n_negotiators"] = len(scenario.ufuns)
 

@@ -1,4 +1,5 @@
 """Implements Event management"""
+
 from __future__ import annotations
 import json
 import random
@@ -11,7 +12,7 @@ from typing import Any, Callable, Iterable
 from negmas import warnings
 
 from .outcomes import Issue
-from .serialization import serialize
+from .serialization import PYTHON_CLASS_IDENTIFIER, serialize
 from .types import NamedObject
 
 __all__ = [
@@ -98,7 +99,12 @@ class EventLogger(EventSink):
     def reset_timer(self):
         self._start = time.perf_counter()
 
-    def on_event(self, event: Event, sender: EventSource):
+    def on_event(
+        self,
+        event: Event,
+        sender: EventSource,
+        python_class_identifier=PYTHON_CLASS_IDENTIFIER,
+    ):
         if not self._file_name:
             return
         if self._types is not None and event.type not in self._types:
@@ -122,7 +128,11 @@ class EventLogger(EventSink):
             # return _simplify(myvars(x))
 
         try:
-            sid = sender.id if hasattr(sender, "id") else serialize(sender)  # type: ignore
+            sid = (
+                sender.id
+                if hasattr(sender, "id")
+                else serialize(sender, python_class_identifier=python_class_identifier)
+            )  # type: ignore
             d = dict(
                 sender=sid,
                 time=time.perf_counter() - self._start,

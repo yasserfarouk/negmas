@@ -42,7 +42,7 @@ from negmas.preferences.ops import (
 )
 from negmas.sao.common import SAOState
 from negmas.sao.mechanism import SAOMechanism
-from negmas.serialization import serialize, to_flat_dict
+from negmas.serialization import serialize, to_flat_dict, PYTHON_CLASS_IDENTIFIER
 import signal
 import os
 import time
@@ -778,7 +778,14 @@ def _make_record(
 
 
 def _save_record(
-    run_record, m: Mechanism, partner_names, real_scenario_name, rep, run_id, path
+    run_record,
+    m: Mechanism,
+    partner_names,
+    real_scenario_name,
+    rep,
+    run_id,
+    path,
+    python_class_identifier=PYTHON_CLASS_IDENTIFIER,
 ):
     file_name = f"{real_scenario_name}_{'_'.join(partner_names)}_{rep}_{run_id}"
     if not path:
@@ -849,7 +856,9 @@ def _save_record(
                     neg_name,
                 )  # type: ignore
     else:
-        pd.DataFrame.from_records(serialize(m.history)).to_csv(full_name, index=False)
+        pd.DataFrame.from_records(
+            serialize(m.history, python_class_identifier=python_class_identifier)
+        ).to_csv(full_name, index=False)
     full_name = path / RESULTS_DIR_NAME / f"{file_name}.json"
     if full_name.exists():
         print(f"[yellow]{full_name} already found[/yellow]")
@@ -1183,6 +1192,7 @@ def cartesian_tournament(
     raise_exceptions: bool = True,
     mask_scenario_names: bool = True,
     only_failures_on_self_play: bool = False,
+    python_class_identifier=PYTHON_CLASS_IDENTIFIER,
 ) -> SimpleTournamentResults:
     """A simplified version of Cartesian tournaments not using the internal machinay of NegMAS  tournaments
 
@@ -1270,7 +1280,19 @@ def cartesian_tournament(
         partners_list = list(product(*tuple([competitor_info] * n)))
         if not self_play:
             partners_list = [
-                _ for _ in partners_list if len({str(serialize(p)) for p in _}) > 1
+                _
+                for _ in partners_list
+                if len(
+                    {
+                        str(
+                            serialize(
+                                p, python_class_identifier=python_class_identifier
+                            )
+                        )
+                        for p in _
+                    }
+                )
+                > 1
             ]
 
         ufun_sets = [[copy.deepcopy(_) for _ in s.ufuns]]
@@ -1338,7 +1360,12 @@ def cartesian_tournament(
             if save_stats:
                 stats = calc_scenario_stats(scenario.ufuns)
                 if this_path:
-                    dump(serialize(stats), this_path / "stats.json")
+                    dump(
+                        serialize(
+                            stats, python_class_identifier=python_class_identifier
+                        ),
+                        this_path / "stats.json",
+                    )
 
             mparams = copy.deepcopy(mechanism_params)
             mparams.update(
@@ -1410,7 +1437,9 @@ def cartesian_tournament(
         return results, scores
 
     def get_run_id(info):
-        return hash(str(serialize(info)))
+        return hash(
+            str(serialize(info, python_class_identifier=python_class_identifier))
+        )
 
     if njobs < 0:
         for i, info in enumerate(

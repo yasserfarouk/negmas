@@ -463,8 +463,11 @@ class GeniusNegotiator(SAONegotiator):
                 )
             )
         n_rounds = info.n_steps
-        if n_rounds is not None and info.one_offer_per_step:
-            n_rounds = int(math.ceil(float(n_rounds) / info.n_negotiators))
+        try:
+            if n_rounds is not None and info.one_offer_per_step:
+                n_rounds = int(math.ceil(float(n_rounds) / info.n_negotiators))
+        except Exception:
+            pass
         n_steps = -1 if n_rounds is None or math.isinf(n_rounds) else int(n_rounds)
         n_seconds = (
             -1

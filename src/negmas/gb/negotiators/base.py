@@ -22,6 +22,10 @@ TNMI = TypeVar("TNMI", bound=NegotiatorMechanismInterface)
 TState = TypeVar("TState", bound=MechanismState)
 
 
+def none_return():
+    return None
+
+
 class GBNegotiator(Negotiator[GBNMI, GBState], Generic[TNMI, TState]):
     """
     Base class for all GB negotiators.
@@ -64,7 +68,7 @@ class GBNegotiator(Negotiator[GBNMI, GBState], Generic[TNMI, TState]):
         self.add_capabilities({"respond": True, "propose": True, "max-proposals": 1})
         self.__end_negotiation = False
         self.__received_offer: dict[str | None, Outcome | None] = defaultdict(
-            lambda: None
+            none_return
         )
 
     @abstractmethod

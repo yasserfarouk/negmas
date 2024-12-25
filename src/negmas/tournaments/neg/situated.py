@@ -1,6 +1,7 @@
 """
 Negotiation tournaments created and manged as standard situated tournaments.
 """
+
 from __future__ import annotations
 from collections import defaultdict
 from copy import deepcopy
@@ -15,7 +16,7 @@ from negmas.inout import Scenario
 from negmas.negotiators import Negotiator
 from negmas.outcomes import Issue, make_issue
 from negmas.preferences.crisp.linear import LinearUtilityFunction
-from negmas.serialization import deserialize, serialize
+from negmas.serialization import PYTHON_CLASS_IDENTIFIER, deserialize, serialize
 from negmas.situated import Agent
 from negmas.situated.neg import Condition, NegAgent, NegWorld  # , _wrap_in_agents
 from negmas.tournaments.tournaments import (
@@ -47,6 +48,7 @@ def neg_config_generator(
     non_competitor_params: tuple[dict[str, Any]] | None = None,
     compact: bool = False,
     n_repetitions: int = 1,
+    python_class_identifier: str = PYTHON_CLASS_IDENTIFIER,
     **kwargs,
 ) -> list[dict[str, Any]]:
     """
@@ -78,7 +80,10 @@ def neg_config_generator(
     world_name = unique_name(f"{scenario.name}", add_time=False, rand_digits=1, sep=".")
     no_logs = compact
     world_params = dict(
-        name=world_name, scenario=serialize(scenario), compact=compact, no_logs=no_logs
+        name=world_name,
+        scenario=serialize(scenario, python_class_identifier=python_class_identifier),
+        compact=compact,
+        no_logs=no_logs,
     )
     world_params.update(kwargs)
     config = {
@@ -126,7 +131,7 @@ def neg_config_assigner(
     return configs
 
 
-def neg_world_generator(**kwargs):
+def neg_world_generator(python_class_identifier=PYTHON_CLASS_IDENTIFIER, **kwargs):
     """
     Generates the world
     """
@@ -136,7 +141,9 @@ def neg_world_generator(**kwargs):
         deepcopy(config["params"]),
     )
     config["types"] = [get_class(_) for _ in config["types"]]
-    config["scenario"] = deserialize(config["scenario"])
+    config["scenario"] = deserialize(
+        config["scenario"], python_class_identifier=python_class_identifier
+    )
     # name = config["scenario"].name
     # config["name"] = name if name is not None else unique_name("world", sep="_")
     return NegWorld(**config)

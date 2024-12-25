@@ -62,7 +62,7 @@ class BaseUtilityFunction(Preferences, ABC):
         self.reserved_value = reserved_value
         self._cached_inverse: InverseUFun | None = None
         self._cached_inverse_type: type[InverseUFun] | None = None
-        self.__invalid_value = invalid_value
+        self._invalid_value = invalid_value
 
     @abstractmethod
     def eval(self, offer: Outcome) -> Value:
@@ -465,20 +465,27 @@ class BaseUtilityFunction(Preferences, ABC):
 
         return ProbAdapter(self)
 
-    def to_dict(self) -> dict[str, Any]:
-        d = {PYTHON_CLASS_IDENTIFIER: get_full_type_name(type(self))}
+    def to_dict(
+        self, python_class_identifier=PYTHON_CLASS_IDENTIFIER
+    ) -> dict[str, Any]:
+        d = {python_class_identifier: get_full_type_name(type(self))}
         return dict(
             **d,
-            outcome_space=serialize(self.outcome_space),
+            outcome_space=serialize(
+                self.outcome_space, python_class_identifier=python_class_identifier
+            ),
             reserved_value=self.reserved_value,
             name=self.name,
             id=self.id,
         )
 
     @classmethod
-    def from_dict(cls, d):
-        d.pop(PYTHON_CLASS_IDENTIFIER, None)
-        d["outcome_space"] = deserialize(d.get("outcome_space", None))
+    def from_dict(cls, d, python_class_identifier=PYTHON_CLASS_IDENTIFIER):
+        d.pop(python_class_identifier, None)
+        d["outcome_space"] = deserialize(
+            d.get("outcome_space", None),
+            python_class_identifier=python_class_identifier,
+        )
         return cls(**d)
 
     def sample_outcome_with_utility(
@@ -1118,11 +1125,11 @@ class BaseUtilityFunction(Preferences, ABC):
         if offer is None:
             return self.reserved_value  # type: ignore I know that concrete subclasses will be returning the correct type
         if (
-            self.__invalid_value is not None
+            self._invalid_value is not None
             and self.outcome_space
             and offer not in self.outcome_space
         ):
-            return self.__invalid_value
+            return self._invalid_value
         return self.eval(offer)
 
 

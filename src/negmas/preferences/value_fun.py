@@ -1,4 +1,5 @@
 """Defines value functions for single issues"""
+
 from __future__ import annotations
 
 import math
@@ -57,14 +58,16 @@ class BaseFun(ABC):
         ...
 
     @classmethod
-    def from_dict(cls, d: dict):
+    def from_dict(cls, d: dict, python_class_identifier=PYTHON_CLASS_IDENTIFIER):
         if isinstance(d, cls):
             return d
-        _ = d.pop(PYTHON_CLASS_IDENTIFIER, None)
-        return cls(**deserialize(d))
+        _ = d.pop(python_class_identifier, None)
+        return cls(**deserialize(d, python_class_identifier=python_class_identifier))  # type: ignore
 
-    def to_dict(self) -> dict[str, Any]:
-        return serialize(asdict(self))
+    def to_dict(
+        self, python_class_identifier=PYTHON_CLASS_IDENTIFIER
+    ) -> dict[str, Any]:
+        return serialize(asdict(self), python_class_identifier=python_class_identifier)
 
     def min(self, input: Issue) -> float:
         mn, _ = self.minmax(input)

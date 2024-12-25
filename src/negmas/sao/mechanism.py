@@ -35,6 +35,10 @@ __all__ = ["SAOMechanism", "SAOProtocol", "TraceElement"]
 DEFAULT_COLORMAP = "jet"
 
 
+def return_inf():
+    return float("inf")
+
+
 class SAOMechanism(
     Mechanism[SAONMI, SAOState, SAOResponse, SAONegotiator | GBNegotiator]
 ):
@@ -171,7 +175,7 @@ class SAOMechanism(
         self._offering_is_accepting = offering_is_accepting
         self._n_waits = 0
         self._waiting_time: dict[str, float] = defaultdict(float)
-        self._waiting_start: dict[str, float] = defaultdict(lambda: float("inf"))
+        self._waiting_start: dict[str, float] = defaultdict(return_inf)
         self._selected_first = 0
 
     @property

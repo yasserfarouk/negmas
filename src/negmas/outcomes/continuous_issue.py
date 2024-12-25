@@ -8,6 +8,7 @@ import numpy as np
 
 from negmas.outcomes.base_issue import Issue
 from negmas.outcomes.range_issue import RangeIssue
+from negmas.serialization import PYTHON_CLASS_IDENTIFIER
 
 from .common import DEFAULT_LEVELS
 
@@ -30,8 +31,8 @@ class ContinuousIssue(RangeIssue):
             f'        <range lowerbound="{self._values[0]}" upperbound="{self._values[1]}"></range>\n    </issue>\n'
         )
 
-    def to_dict(self):
-        d = super().to_dict()
+    def to_dict(self, python_class_identifier=PYTHON_CLASS_IDENTIFIER):
+        d = super().to_dict(python_class_identifier=python_class_identifier)
         d["n_levels"] = self._n_levels
         return d
 

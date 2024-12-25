@@ -52,6 +52,7 @@ def serialize(
     ignore_lambda=False,
     shorten_type_field=False,
     objmem=None,
+    python_class_identifier=PYTHON_CLASS_IDENTIFIER,
 ):
     """
     Encodes the given value as nothing more complex than simple dict
@@ -97,7 +98,7 @@ def serialize(
             return False
         if not isinstance(k, str):
             return False
-        return keep_private or not (k != PYTHON_CLASS_IDENTIFIER and k.startswith("_"))
+        return keep_private or not (k != python_class_identifier and k.startswith("_"))
 
     def adjust_dict(d):
         if not isinstance(d, dict):
@@ -127,7 +128,13 @@ def serialize(
             return adjust_dict({k: v for k, v in value.items()})
         return adjust_dict(
             {
-                k: serialize(v, deep=deep, add_type_field=add_type_field, objmem=objmem)
+                k: serialize(
+                    v,
+                    deep=deep,
+                    add_type_field=add_type_field,
+                    objmem=objmem,
+                    python_class_identifier=python_class_identifier,
+                )
                 for k, v in value.items()
                 if good_field(k, v, objmem)
             }
@@ -145,7 +152,13 @@ def serialize(
         objmem = add_to_mem(value, objmem)
         return adjust_dict(
             type(value)(
-                serialize(_, deep=deep, add_type_field=add_type_field, objmem=objmem)
+                serialize(
+                    _,
+                    deep=deep,
+                    add_type_field=add_type_field,
+                    objmem=objmem,
+                    python_class_identifier=python_class_identifier,
+                )
                 for _ in value
             )
         )
@@ -156,8 +169,8 @@ def serialize(
         ):
             converted = getattr(value, method)()  # type: ignore
             if isinstance(converted, dict):
-                if add_type_field and (PYTHON_CLASS_IDENTIFIER not in converted.keys()):
-                    converted[PYTHON_CLASS_IDENTIFIER] = get_type_field(value)
+                if add_type_field and (python_class_identifier not in converted.keys()):
+                    converted[python_class_identifier] = get_type_field(value)
                 return adjust_dict({k: v for k, v in converted.items()})
             else:
                 return adjust_dict(converted)
@@ -192,14 +205,20 @@ def serialize(
         if deep:
             objmem = add_to_mem(value, objmem)
             d = {
-                k: serialize(v, deep=deep, add_type_field=add_type_field, objmem=objmem)
+                k: serialize(
+                    v,
+                    deep=deep,
+                    add_type_field=add_type_field,
+                    objmem=objmem,
+                    python_class_identifier=python_class_identifier,
+                )
                 for k, v in value.__dict__.items()
                 if good_field(k, v, objmem)
             }
         else:
             d = {k: v for k, v in value.__dict__.items() if good_field(k, v, objmem)}
         if add_type_field:
-            d[PYTHON_CLASS_IDENTIFIER] = get_type_field(value)
+            d[python_class_identifier] = get_type_field(value)
         return adjust_dict(d)
 
     if hasattr(value, "__slots__"):
@@ -214,6 +233,7 @@ def serialize(
                             deep=deep,
                             add_type_field=add_type_field,
                             objmem=objmem,
+                            python_class_identifier=python_class_identifier,
                         )
                         for _ in value.__slots__  # type: ignore
                     ),
@@ -227,7 +247,7 @@ def serialize(
                 )
             )
         if add_type_field:
-            d[PYTHON_CLASS_IDENTIFIER] = get_type_field(value)
+            d[python_class_identifier] = get_type_field(value)
         return adjust_dict(d)
     if isinstance(value, np.int64):  # type: ignore
         return int(value)
@@ -247,7 +267,11 @@ def serialize(
 
 
 def to_flat_dict(
-    value, deep=True, add_type_field=False, shorten_type_field=False
+    value,
+    deep=True,
+    add_type_field=False,
+    shorten_type_field=False,
+    python_class_identifier=PYTHON_CLASS_IDENTIFIER,
 ) -> dict[str, Any]:
     """
     Encodes the given value as a flat dictionary
@@ -266,6 +290,7 @@ def to_flat_dict(
         add_type_field=add_type_field,
         shorten_type_field=shorten_type_field,
         deep=deep,
+        python_class_identifier=python_class_identifier,
     )
     if d is None:
         return {}

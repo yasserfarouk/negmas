@@ -46,15 +46,23 @@ class ProbMappingUtilityFunction(StationaryMixin, ProbUtilityFunction):
         self.mapping = mapping
         self.default = default
 
-    def to_dict(self):
-        d = {PYTHON_CLASS_IDENTIFIER: get_full_type_name(type(self))}
+    def to_dict(self, python_class_identifier=PYTHON_CLASS_IDENTIFIER):
+        d = {python_class_identifier: get_full_type_name(type(self))}
         d.update(super().to_dict())
-        return dict(**d, mapping=serialize(self.mapping), default=self.default)
+        return dict(
+            **d,
+            mapping=serialize(
+                self.mapping, python_class_identifier=python_class_identifier
+            ),
+            default=self.default,
+        )
 
     @classmethod
-    def from_dict(cls, d):
-        d.pop(PYTHON_CLASS_IDENTIFIER, None)
-        d["mapping"] = deserialize(d["mapping"])
+    def from_dict(cls, d, python_class_identifier=PYTHON_CLASS_IDENTIFIER):
+        d.pop(python_class_identifier, None)
+        d["mapping"] = deserialize(
+            d["mapping"], python_class_identifier=python_class_identifier
+        )
         return cls(**d)
 
     def eval(self, offer: Outcome | None) -> Distribution | float | None:

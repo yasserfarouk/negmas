@@ -8,7 +8,7 @@ from typing import TYPE_CHECKING, Any
 import pandas as pd
 
 from negmas.helpers.inout import dump
-from negmas.serialization import serialize
+from negmas.serialization import PYTHON_CLASS_IDENTIFIER, serialize
 
 if TYPE_CHECKING:
     from .world import World
@@ -21,6 +21,7 @@ def save_stats(
     log_dir: PathLike | str,
     params: dict[str, Any] | None = None,
     stats_file_name: str | None = None,
+    python_class_identifier=PYTHON_CLASS_IDENTIFIER,
 ):
     """
     Saves the statistics of a world run.
@@ -46,7 +47,12 @@ def save_stats(
     logdir_ = Path(log_dir)
     os.makedirs(logdir_, exist_ok=True)
     if params is None:
-        d: dict = serialize(world, add_type_field=False, deep=False)  # type: ignore
+        d: dict = serialize(
+            world,
+            add_type_field=False,
+            deep=False,
+            python_class_identifier=python_class_identifier,
+        )  # type: ignore
         to_del = []
         for k, v in d.items():
             if isinstance(v, list) or isinstance(v, tuple):
@@ -83,7 +89,9 @@ def save_stats(
 
     dump(agents, logdir_ / "agents")
     with open(logdir_ / "params.json", "w") as f_:
-        f_.write(str(serialize(params)))
+        f_.write(
+            str(serialize(params, python_class_identifier=python_class_identifier))
+        )
 
     # dump(world.stats, logdir_ / stats_file_name)
 

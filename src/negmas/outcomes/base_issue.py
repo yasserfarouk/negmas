@@ -261,23 +261,30 @@ class Issue(HasMinMax, Iterable, ABC):
         return self.rand()
 
     @classmethod
-    def from_dict(cls, d):
+    def from_dict(cls, d, python_class_identifier=PYTHON_CLASS_IDENTIFIER):
         """
         Constructs an issue from a dict generated using `to_dict()`
         """
         if isinstance(d, cls):
             return d
-        d.pop(PYTHON_CLASS_IDENTIFIER, None)
-        d["values"] = deserialize(d["values"])
+        d.pop(python_class_identifier, None)
+        d["values"] = deserialize(
+            d["values"], python_class_identifier=python_class_identifier
+        )
         return cls(values=d.get("values", None), name=d.get("name", None))
 
-    def to_dict(self):
+    def to_dict(self, python_class_identifier=PYTHON_CLASS_IDENTIFIER):
         """
         Converts the issue to a dictionary from which it can be constructed again using `Issue.from_dict()`
         """
-        d = {PYTHON_CLASS_IDENTIFIER: get_full_type_name(type(self))}
+        d = {python_class_identifier: get_full_type_name(type(self))}
         return dict(
-            **d, values=serialize(self.values), name=self.name, n_values=self._n_values
+            **d,
+            values=serialize(
+                self.values, python_class_identifier=python_class_identifier
+            ),
+            name=self.name,
+            n_values=self._n_values,
         )
 
     @abstractmethod

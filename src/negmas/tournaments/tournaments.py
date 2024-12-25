@@ -45,7 +45,7 @@ from negmas.helpers import (
 )
 from negmas.helpers.inout import dump, load
 from negmas.helpers.numeric import truncated_mean
-from negmas.serialization import serialize, to_flat_dict
+from negmas.serialization import PYTHON_CLASS_IDENTIFIER, serialize, to_flat_dict
 from negmas.situated import Agent, World, save_stats
 
 __all__ = [
@@ -535,6 +535,7 @@ def _run_worlds(
     attempts_path=None,
     max_attempts=float("inf"),
     verbose=False,
+    python_class_identifier=PYTHON_CLASS_IDENTIFIER,
 ) -> tuple[
     str,
     list[str],
@@ -770,6 +771,7 @@ def _run_worlds(
                     scores_ = serialize(
                         score_calculator(worlds, scoring_context, False),
                         add_type_field=False,
+                        python_class_identifier=python_class_identifier,
                     )
                     scores_["n_steps"] = world.n_steps
                     scores_["step"] = world.current_step

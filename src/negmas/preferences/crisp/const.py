@@ -28,20 +28,20 @@ class ConstUtilityFunction(StationaryMixin, UtilityFunction):
         self.reserved_value = reserved_value
         self.value = value
 
-    def to_dict(self):
-        d = {PYTHON_CLASS_IDENTIFIER: get_full_type_name(type(self))}
+    def to_dict(self, python_class_identifier=PYTHON_CLASS_IDENTIFIER):
+        d = {python_class_identifier: get_full_type_name(type(self))}
         d.update(super().to_dict())
         return dict(value=self.value, **d)
 
     @classmethod
-    def from_dict(cls, d):
-        d.pop(PYTHON_CLASS_IDENTIFIER, None)
+    def from_dict(cls, d, python_class_identifier=PYTHON_CLASS_IDENTIFIER):
+        d.pop(python_class_identifier, None)
         return cls(**d)
 
-    def eval(self, offer: Outcome) -> Value:
+    def eval(self, offer: Outcome) -> float:
         if offer is None:
             return self.reserved_value
-        return self.value
+        return float(self.value)
 
     def xml(self, issues: list[Issue]) -> str:
         from negmas.preferences.crisp.linear import AffineUtilityFunction

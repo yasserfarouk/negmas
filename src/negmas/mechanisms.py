@@ -1355,7 +1355,7 @@ class Mechanism(
             raise NotImplementedError()
         else:
             raise ValueError(
-                f"method {method} is unknown. Acceptable options are serial, threads, processes"
+                f"method {method} is unknown. Acceptable options are ordered, sequential, threads, processes"
             )
         return states
 

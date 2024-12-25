@@ -8,6 +8,7 @@ from typing import (
     runtime_checkable,
 )
 
+
 if TYPE_CHECKING:
     from .base_issue import DiscreteIssue, Issue
     from .common import Outcome

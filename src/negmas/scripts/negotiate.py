@@ -37,6 +37,7 @@ from negmas.preferences.ops import (
     pareto_frontier,
 )
 from negmas.preferences.generators import generate_multi_issue_ufuns
+from negmas.serialization import PYTHON_CLASS_IDENTIFIER
 
 app = typer.Typer()
 
@@ -163,7 +164,7 @@ def diff(x: tuple[float, ...], lst: list[tuple[float, ...]]):
 
 @app.command()
 def run(
-    scenario: Optional[Path] = typer.Argument(
+    scenario: Optional[Path] = typer.Option(
         default=None,
         show_default="Generate A new Scenario",
         help="The scenario to negotiate about",
@@ -306,6 +307,11 @@ def run(
         "min",
         help="Reservation value selector if both reserved-values and rational-fraction are given: min|max|first|last",
         rich_help_panel="Generated Scenario",
+    ),
+    python_class_identifier: str = typer.Option(
+        PYTHON_CLASS_IDENTIFIER,
+        help="Python class identifier in the saved files",
+        rich_help_panel="Output control",
     ),
     issue_name: Optional[list[str]] = typer.Option(
         None, help="Issue Names", rich_help_panel="Generated Scenario"
@@ -657,7 +663,9 @@ def run(
     results["advantages"] = advantages
     results["negotiator_names"] = [x.name for x in session.negotiators]
     results["negotiator_ids"] = [x.id for x in session.negotiators]
-    results["final_state"] = serialize(session.state)
+    results["final_state"] = serialize(
+        session.state, python_class_identifier=python_class_identifier
+    )
     results["step"] = session.current_step
     results["relative_time"] = session.relative_time
     results["n_steps"] = session.n_steps
@@ -800,7 +808,12 @@ def run(
                 ],
             )
         else:
-            hist = pd.DataFrame.from_records([serialize(_) for _ in session.history])
+            hist = pd.DataFrame.from_records(
+                [
+                    serialize(_, python_class_identifier=python_class_identifier)
+                    for _ in session.history
+                ]
+            )
         dump(hist, save_path / "history.csv", compact=True, sort_keys=False)
 
 

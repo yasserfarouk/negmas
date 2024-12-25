@@ -101,20 +101,26 @@ class ExpDiscountedUFun(DiscountedUtilityFunction):
             dynamic_reservation=self.dynamic_reservation,
         )
 
-    def to_dict(self) -> dict[str, Any]:
+    def to_dict(
+        self, python_class_identifier=PYTHON_CLASS_IDENTIFIER
+    ) -> dict[str, Any]:
         d = super().to_dict()
         return dict(
             **d,
-            ufun=serialize(self.ufun),
+            ufun=serialize(self.ufun, python_class_identifier=python_class_identifier),
             discount=self.discount,
             factor=self.factor,
             dynamic_reservation=self.dynamic_reservation,
         )
 
     @classmethod
-    def from_dict(cls, d: dict[str, Any]):
-        d.pop(PYTHON_CLASS_IDENTIFIER, None)
-        d["ufun"] = deserialize(d["ufun"])
+    def from_dict(
+        cls, d: dict[str, Any], python_class_identifier=PYTHON_CLASS_IDENTIFIER
+    ):
+        d.pop(python_class_identifier, None)
+        d["ufun"] = deserialize(
+            d["ufun"], python_class_identifier=python_class_identifier
+        )
         return cls(**d)
 
     @classmethod
@@ -239,11 +245,13 @@ class LinDiscountedUFun(DiscountedUtilityFunction):
         self.power = power
         self.dynamic_reservation = dynamic_reservation
 
-    def to_dict(self) -> dict[str, Any]:
-        d = super().to_dict()
+    def to_dict(
+        self, python_class_identifier=PYTHON_CLASS_IDENTIFIER
+    ) -> dict[str, Any]:
+        d = super().to_dict(python_class_identifier=python_class_identifier)
         return dict(
             **d,
-            ufun=serialize(self.ufun),
+            ufun=serialize(self.ufun, python_class_identifier=python_class_identifier),
             cost=self.cost,
             power=self.power,
             factor=self.factor,
@@ -251,9 +259,13 @@ class LinDiscountedUFun(DiscountedUtilityFunction):
         )
 
     @classmethod
-    def from_dict(cls, d: dict[str, Any]):
-        d.pop(PYTHON_CLASS_IDENTIFIER, None)
-        d["ufun"] = deserialize(d["ufun"])
+    def from_dict(
+        cls, d: dict[str, Any], python_class_identifier=PYTHON_CLASS_IDENTIFIER
+    ):
+        d.pop(python_class_identifier, None)
+        d["ufun"] = deserialize(
+            d["ufun"], python_class_identifier=python_class_identifier
+        )
         return cls(**d)
 
     def eval_on_state(

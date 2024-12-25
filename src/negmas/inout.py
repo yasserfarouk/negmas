@@ -452,7 +452,9 @@ class Scenario:
             bilateral_frontier_outcomes=fo,
         )
 
-    def serialize(self) -> dict[str, Any]:
+    def serialize(
+        self, python_class_identifier=PYTHON_CLASS_IDENTIFIER
+    ) -> dict[str, Any]:
         """
         Converts the current scenario into a serializable dict.
 
@@ -507,11 +509,24 @@ class Scenario:
             return d
 
         domain = adjust(
-            serialize(self.outcome_space, shorten_type_field=True, add_type_field=True),
+            serialize(
+                self.outcome_space,
+                shorten_type_field=True,
+                add_type_field=True,
+                python_class_identifier=python_class_identifier,
+            ),
             "domain",
         )
         ufuns = [
-            adjust(serialize(u, shorten_type_field=True, add_type_field=True), i)
+            adjust(
+                serialize(
+                    u,
+                    shorten_type_field=True,
+                    add_type_field=True,
+                    python_class_identifier=python_class_identifier,
+                ),
+                i,
+            )
             for i, u in enumerate(self.ufuns)
         ]
         return dict(domain=domain, ufuns=ufuns)
@@ -532,13 +547,19 @@ class Scenario:
         """
         self.dumpas(folder, "json")
 
-    def dumpas(self, folder: Path | str, type="yml", compact: bool = False) -> None:
+    def dumpas(
+        self,
+        folder: Path | str,
+        type="yml",
+        compact: bool = False,
+        python_class_identifier=PYTHON_CLASS_IDENTIFIER,
+    ) -> None:
         """
         Dumps the scenario in the given file format.
         """
         folder = Path(folder)
         folder.mkdir(parents=True, exist_ok=True)
-        serialized = self.serialize()
+        serialized = self.serialize(python_class_identifier=python_class_identifier)
         dump(serialized["domain"], folder / f"{serialized['domain']['name']}.{type}")
         for u in serialized["ufuns"]:
             dump(u, folder / f"{u['name']}.{type}", sort_keys=True, compact=compact)
@@ -666,6 +687,7 @@ class Scenario:
         ignore_discount=False,
         ignore_reserved=False,
         safe_parsing=True,
+        python_class_identifier="type",
     ) -> Scenario | None:
         _ = safe_parsing  # yaml parsing is always safe
 
@@ -677,13 +699,13 @@ class Scenario:
 
         os = deserialize(
             adjust_type(load(domain)),
-            python_class_identifier="type",
             base_module="negmas",
+            python_class_identifier=python_class_identifier,
         )
         utils = tuple(
             deserialize(
                 adjust_type(load(fname), domain=os),
-                python_class_identifier="type",
+                python_class_identifier=python_class_identifier,
                 base_module="negmas",
             )
             for fname in ufuns

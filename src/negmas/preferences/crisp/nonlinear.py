@@ -109,15 +109,23 @@ class NonLinearAggregationUtilityFunction(StationaryMixin, UtilityFunction):
     def xml(self, issues: list[Issue]) -> str:
         raise NotImplementedError(f"Cannot convert {self.__class__.__name__} to xml")
 
-    def to_dict(self):
-        d = {PYTHON_CLASS_IDENTIFIER: get_full_type_name(type(self))}
-        return dict(**d, values=serialize(self.values), f=serialize(self.f))
+    def to_dict(self, python_class_identifier=PYTHON_CLASS_IDENTIFIER):
+        d = {python_class_identifier: get_full_type_name(type(self))}
+        return dict(
+            **d,
+            values=serialize(
+                self.values, python_class_identifier=python_class_identifier
+            ),
+            f=serialize(self.f),
+        )
 
     @classmethod
-    def from_dict(cls, d):
-        d.pop(PYTHON_CLASS_IDENTIFIER, None)
+    def from_dict(cls, d, python_class_identifier=PYTHON_CLASS_IDENTIFIER):
+        d.pop(python_class_identifier, None)
         for k in ("values", "f"):
-            d[k] = deserialize(d.get(k, None))
+            d[k] = deserialize(
+                d.get(k, None), python_class_identifier=python_class_identifier
+            )
         return cls(**d)
 
     def eval(self, offer: Outcome | None) -> float:
@@ -350,23 +358,29 @@ class HyperRectangleUtilityFunction(StationaryMixin, UtilityFunction):
         """Generates a random ufun of the given type"""
         raise NotImplementedError("random hyper-rectangle ufuns are not implemented")
 
-    def to_dict(self):
-        d = {PYTHON_CLASS_IDENTIFIER: get_full_type_name(type(self))}
+    def to_dict(self, python_class_identifier=PYTHON_CLASS_IDENTIFIER):
+        d = {python_class_identifier: get_full_type_name(type(self))}
         d.update(super().to_dict())
         return dict(
             **d,
-            outcome_ranges=serialize(self.outcome_ranges),
-            utilities=serialize(self.mappings),
+            outcome_ranges=serialize(
+                self.outcome_ranges, python_class_identifier=python_class_identifier
+            ),
+            utilities=serialize(
+                self.mappings, python_class_identifier=python_class_identifier
+            ),
             weights=self.weights,
             ignore_issues_not_in_input=self.ignore_issues_not_in_input,
             ignore_failing_range_utilities=self.ignore_failing_range_utilities,
         )
 
     @classmethod
-    def from_dict(cls, d):
-        d.pop(PYTHON_CLASS_IDENTIFIER, None)
+    def from_dict(cls, d, python_class_identifier=PYTHON_CLASS_IDENTIFIER):
+        d.pop(python_class_identifier, None)
         for k in ("oucome_ranges", "utilities"):
-            d[k] = deserialize(d.get(k, None))
+            d[k] = deserialize(
+                d.get(k, None), python_class_identifier=python_class_identifier
+            )
         return cls(**d)
 
     def eval(self, offer: Outcome | None) -> float:
@@ -430,21 +444,27 @@ class NonlinearHyperRectangleUtilityFunction(StationaryMixin, UtilityFunction):
     def xml(self, issues: list[Issue]) -> str:
         raise NotImplementedError(f"Cannot convert {self.__class__.__name__} to xml")
 
-    def to_dict(self):
-        d = {PYTHON_CLASS_IDENTIFIER: get_full_type_name(type(self))}
+    def to_dict(self, python_class_identifier=PYTHON_CLASS_IDENTIFIER):
+        d = {python_class_identifier: get_full_type_name(type(self))}
         d.update(super().to_dict())
         return dict(
             **d,
-            hypervolumes=serialize(self.hypervolumes),
-            mappings=serialize(self.mappings),
-            f=serialize(self.f),
+            hypervolumes=serialize(
+                self.hypervolumes, python_class_identifier=python_class_identifier
+            ),
+            mappings=serialize(
+                self.mappings, python_class_identifier=python_class_identifier
+            ),
+            f=serialize(self.f, python_class_identifier=python_class_identifier),
         )
 
     @classmethod
-    def from_dict(cls, d):
-        d.pop(PYTHON_CLASS_IDENTIFIER, None)
+    def from_dict(cls, d, python_class_identifier=PYTHON_CLASS_IDENTIFIER):
+        d.pop(python_class_identifier, None)
         for k in ("hypervolumes", "mapoints", "f"):
-            d[k] = deserialize(d.get(k, None))
+            d[k] = deserialize(
+                d.get(k, None), python_class_identifier=python_class_identifier
+            )
         return cls(**d)
 
     def eval(self, offer: Outcome | None) -> float:

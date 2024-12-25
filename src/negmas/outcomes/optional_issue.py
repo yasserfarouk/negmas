@@ -75,24 +75,26 @@ class OptionalIssue(Issue):
         return self.base.rand()
 
     @classmethod
-    def from_dict(cls, d):
+    def from_dict(cls, d, python_class_identifier=PYTHON_CLASS_IDENTIFIER):
         """
         Constructs an issue from a dict generated using `to_dict()`
         """
         if isinstance(d, cls):
             return d
-        d.pop(PYTHON_CLASS_IDENTIFIER, None)
-        d["base"] = deserialize(d["base"])
+        d.pop(python_class_identifier, None)
+        d["base"] = deserialize(
+            d["base"], python_class_identifier=python_class_identifier
+        )
         return cls(base=d.get("base", None), name=d.get("name", None))
 
-    def to_dict(self):
+    def to_dict(self, python_class_identifier=PYTHON_CLASS_IDENTIFIER):
         """
         Converts the issue to a dictionary from which it can be constructed again using `Issue.from_dict()`
         """
-        d = {PYTHON_CLASS_IDENTIFIER: get_full_type_name(type(self))}
+        d = {python_class_identifier: get_full_type_name(type(self))}
         return dict(
             **d,
-            base=serialize(self.base),
+            base=serialize(self.base, python_class_identifier=python_class_identifier),
             name=self.name,
             n_values=self.cardinality + 1,
         )
