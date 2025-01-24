@@ -1,6 +1,6 @@
 from __future__ import annotations
 from abc import abstractmethod
-from typing import TYPE_CHECKING
+from typing import TYPE_CHECKING, Iterable
 
 from negmas.gb.common import get_offer
 
@@ -23,10 +23,17 @@ class GBModularNegotiator(ModularNegotiator, GBNegotiator):
     A generic modular GB negotiator.
     """
 
-    _components: list[GBComponent]  # type: ignore
-
-    def components(self) -> tuple[GBComponent, ...]:  # type: ignore
-        return super().components  # type: ignore
+    def __init__(
+        self,
+        *args,
+        components: Iterable[GBComponent],
+        component_names: Iterable[str] | None = None,
+        **kwargs,
+    ):
+        super().__init__(
+            *args, components=components, component_names=component_names, **kwargs
+        )
+        self._components: list[GBComponent]  # type: ignore
 
     @abstractmethod
     def generate_response(
@@ -35,15 +42,17 @@ class GBModularNegotiator(ModularNegotiator, GBNegotiator):
         ...
 
     @abstractmethod
-    def generate_proposal(self, state: GBState) -> Outcome | None:
+    def generate_proposal(
+        self, state: GBState, dest: str | None = None
+    ) -> Outcome | None:
         ...
 
     def propose(self, state: GBState, dest: str | None = None) -> Outcome | None:
         for c in self._components:
-            c.before_proposing(state)
-        offer = self.generate_proposal(state)
+            c.before_proposing(state, dest=dest)
+        offer = self.generate_proposal(state, dest=dest)
         for c in self._components:
-            c.after_proposing(state, offer=offer)
+            c.after_proposing(state, offer=offer, dest=dest)
         return offer
 
     def respond(self, state: GBState, source: str | None = None) -> ResponseType:

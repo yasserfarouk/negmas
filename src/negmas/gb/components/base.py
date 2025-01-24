@@ -23,14 +23,16 @@ __all__ = [
 
 @define
 class GBComponent(Component):
-    _negotiator: GBNegotiator | None = field(default=None, kw_only=True)
+    _negotiator: GBNegotiator | None = field(default=None, kw_only=True)  # type: ignore
 
-    def before_proposing(self, state: GBState):
+    def before_proposing(self, state: GBState, dest: str | None = None):
         """
         Called before proposing
         """
 
-    def after_proposing(self, state: GBState, offer: Outcome | None):
+    def after_proposing(
+        self, state: GBState, offer: Outcome | None, dest: str | None = None
+    ):
         """
         Called after proposing
         """
@@ -190,7 +192,7 @@ class RejectionPolicy(AcceptancePolicy):
     a: AcceptancePolicy
 
     def __call__(
-        self, state: GBState, offer: Outcome | None, source: str
+        self, state: GBState, offer: Outcome | None, source: str | None
     ) -> ResponseType:
         response = self.a(state, offer, source)
         if response == ResponseType.ACCEPT_OFFER:
@@ -200,8 +202,8 @@ class RejectionPolicy(AcceptancePolicy):
 
 @define
 class OfferingPolicy(GBComponent):
-    _current_offer: tuple[int, str, Outcome | None] = field(
-        init=False, default=(-1, None)
+    _current_offer: tuple[int, str | None, Outcome | None] = field(
+        init=False, default=(-1, None, None)
     )
 
     def propose(self, state: GBState, dest: str | None = None) -> Outcome | None:
@@ -209,7 +211,7 @@ class OfferingPolicy(GBComponent):
 
         Args:
             state: `GBState` giving current state of the negotiation.
-            source: the thread in which I am supposed to offer.
+            dest: the thread in which I am supposed to offer.
 
         Returns:
             The outcome being proposed or None to refuse to propose
@@ -219,14 +221,14 @@ class OfferingPolicy(GBComponent):
             - Caching is useful when the acceptance strategy calls the offering strategy
 
         """
-        source = self.negotiator.id
-        if self._current_offer[0] != state.step or self._current_offer[1] != source:
-            offer = self(state)
-            self._current_offer = (state.step, source, offer)
+        thread = self.negotiator.id
+        if self._current_offer[0] != state.step or self._current_offer[1] != thread:
+            offer = self(state, dest=dest)
+            self._current_offer = (state.step, thread, offer)
         return self._current_offer[2]
 
     @abstractmethod
-    def __call__(self, state: GBState) -> Outcome | None:
+    def __call__(self, state: GBState, dest: str | None = None) -> Outcome | None:
         ...
 
     def __and__(self, s: OfferingPolicy):

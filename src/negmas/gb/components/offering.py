@@ -40,12 +40,12 @@ __all__ = [
     "OfferBest",
     "TFTOfferingPolicy",
     "MiCROOfferingPolicy",
-    "TimeBasedOfferingStrategy",
+    "TimeBasedOfferingPolicy",
 ]
 
 
 @define
-class TimeBasedOfferingStrategy(OfferingPolicy):
+class TimeBasedOfferingPolicy(OfferingPolicy):
     curve: PolyAspiration = field(factory=lambda: PolyAspiration(1.0, "boulware"))
     stochastic: bool = False
 
@@ -61,7 +61,7 @@ class TimeBasedOfferingStrategy(OfferingPolicy):
         )
         self.sorter.init()
 
-    def __call__(self, state: GBState):
+    def __call__(self, state: GBState, dest: str | None = None):
         assert self.negotiator.ufun is not None
         asp = self.curve.utility_at(state.relative_time)
         mn, mx = self.sorter.minmax()
@@ -128,7 +128,7 @@ class MiCROOfferingPolicy(OfferingPolicy):
     def ready_to_concede(self) -> bool:
         return len(self._sent) <= len(self._received)
 
-    def __call__(self, state: GBState) -> Outcome | None:
+    def __call__(self, state: GBState, dest: str | None = None) -> Outcome | None:
         outcome = self.next_offer()
         assert self.sorter
         assert self.negotiator.ufun
@@ -180,7 +180,7 @@ class CABOfferingPolicy(OfferingPolicy):
             self.next_indx = 0
             self._repeating = False
 
-    def __call__(self, state: GBState) -> Outcome | None:
+    def __call__(self, state: GBState, dest: str | None = None) -> Outcome | None:
         if (
             self._repeating
             or not self.negotiator
@@ -253,7 +253,7 @@ class WAROfferingPolicy(OfferingPolicy):
         self._irrational_index = self.negotiator.nmi.n_outcomes - 1  # type: ignore
         return super().on_negotiation_start(state)
 
-    def __call__(self, state: GBState) -> Outcome | None:
+    def __call__(self, state: GBState, dest: str | None = None) -> Outcome | None:
         if not self.negotiator or not self.negotiator.ufun or not self.negotiator.nmi:
             return self._last_offer
         if self._repeating:
@@ -314,7 +314,7 @@ class TFTOfferingPolicy(OfferingPolicy):
         super().on_preferences_changed(changes)
         self.partner_ufun.on_preferences_changed(changes)
 
-    def __call__(self, state: GBState):
+    def __call__(self, state: GBState, dest: str | None = None):
         if not self.negotiator or not self.negotiator.ufun:
             return None
         partner_u = (
@@ -358,7 +358,7 @@ class OfferBest(OfferingPolicy):
             return
         _, self._best = self.negotiator.ufun.extreme_outcomes()
 
-    def __call__(self, state: GBState) -> Outcome | None:
+    def __call__(self, state: GBState, dest: str | None = None) -> Outcome | None:
         return self._best
 
 
@@ -393,7 +393,7 @@ class OfferTop(OfferingPolicy):
             top_f = inverter.within_fractions((0.0, self.fraction))
             self._top = list(set(top_k + top_f))
 
-    def __call__(self, state: GBState) -> Outcome | None:
+    def __call__(self, state: GBState, dest: str | None = None) -> Outcome | None:
         if not self.negotiator or not self.negotiator.ufun:
             return None
         if self._top is None:
@@ -409,7 +409,7 @@ class NoneOfferingPolicy(OfferingPolicy):
     Always offers `None` which means it never gets an agreement.
     """
 
-    def __call__(self, state: GBState) -> Outcome | None:
+    def __call__(self, state: GBState, dest: str | None = None) -> Outcome | None:
         return None
 
 
@@ -419,7 +419,7 @@ class RandomOfferingPolicy(OfferingPolicy):
     Always offers `None` which means it never gets an agreement.
     """
 
-    def __call__(self, state: GBState) -> Outcome | None:
+    def __call__(self, state: GBState, dest: str | None = None) -> Outcome | None:
         if not self.negotiator or not self.negotiator.nmi:
             return None
         return self.negotiator.nmi.random_outcome()
@@ -435,7 +435,9 @@ class LimitedOutcomesOfferingPolicy(OfferingPolicy):
     prob: list[float] | None = None
     p_ending: float = 0.0
 
-    def __call__(self, state: GBState, retry=False) -> Outcome | None:
+    def _run(
+        self, state: GBState, dest: str | None = None, second_trial: bool = False
+    ) -> Outcome | None:
         if not self.negotiator or not self.negotiator.nmi:
             return None
         if random.random() < self.p_ending - 1e-7:
@@ -451,12 +453,15 @@ class LimitedOutcomesOfferingPolicy(OfferingPolicy):
             s += p
             if r <= s:
                 return w
-        if retry:
+        if second_trial:
             return None
         if s > 0.999:
             return self.outcomes[-1]
         self.prob = [_ / s for _ in self.prob]
-        return self(state, True)
+        return self._run(state, dest, True)
+
+    def __call__(self, state: GBState, dest: str | None = None) -> Outcome | None:
+        return self._run(state, dest)
 
 
 @define
@@ -467,7 +472,7 @@ class NegotiatorOfferingPolicy(OfferingPolicy):
 
     proposer: GBNegotiator = field(kw_only=True)
 
-    def __call__(self, state: GBState) -> Outcome | None:
+    def __call__(self, state: GBState, dest: str | None = None) -> Outcome | None:
         r = self.proposer.propose(state)
         if isinstance(r, ExtendedOutcome):
             return r.outcome
@@ -503,7 +508,7 @@ class ConcensusOfferingPolicy(OfferingPolicy, ABC):
         Called to make a final decsision given the decisions of the stratgeis with indices `indices` (see `filter` for filtering rules)
         """
 
-    def __call__(self, state: GBState) -> Outcome | None:
+    def __call__(self, state: GBState, dest: str | None = None) -> Outcome | None:
         selected, selected_indices = [], []
         for i, s in enumerate(self.strategies):
             response = s.propose(state)

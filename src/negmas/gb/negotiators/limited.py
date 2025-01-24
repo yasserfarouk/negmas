@@ -76,7 +76,7 @@ class LimitedOutcomesNegotiator(MAPNegotiator):
             if acceptance_probabilities is None:
                 acceptance_probabilities = [1.0] * len(acceptable_outcomes)
             acceptance = LimitedOutcomesAcceptancePolicy(
-                prob=dict(zip(acceptable_outcomes, acceptance_probabilities)),
+                prob=dict(zip(acceptable_outcomes, acceptance_probabilities)),  # type: ignore
                 p_ending=p_ending,
             )
         super().__init__(acceptance=acceptance, offering=offering, **kwargs)

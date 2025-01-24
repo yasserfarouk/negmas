@@ -69,7 +69,12 @@ class SAONMI(NegotiatorMechanismInterface):
     @property
     def trace(self) -> list[tuple[str, Outcome]]:
         """Returns the negotiation history as a list of negotiator, offer tuples"""
-        return self._mechanism.extended_trace  # type: ignore
+        return self._mechanism.trace  # type: ignore
+
+    @property
+    def offers(self) -> list[Outcome]:
+        """Returns offers exchanged in order"""
+        return self._mechanism.offers  # type: ignore
 
     def negotiator_offers(self, negotiator_id: str) -> list[Outcome]:
         return self._mechanism.negotiator_offers(negotiator_id)  # type: ignore

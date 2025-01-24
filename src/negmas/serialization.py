@@ -150,18 +150,32 @@ def serialize(
     #     return value.tolist()
     if isinstance(value, (list, tuple)) and not isinstance(value, str):
         objmem = add_to_mem(value, objmem)
-        return adjust_dict(
-            type(value)(
-                serialize(
-                    _,
-                    deep=deep,
-                    add_type_field=add_type_field,
-                    objmem=objmem,
-                    python_class_identifier=python_class_identifier,
+        try:
+            return adjust_dict(
+                type(value)(
+                    serialize(
+                        _,
+                        deep=deep,
+                        add_type_field=add_type_field,
+                        objmem=objmem,
+                        python_class_identifier=python_class_identifier,
+                    )
+                    for _ in value
                 )
-                for _ in value
             )
-        )
+        except Exception:
+            return adjust_dict(
+                [
+                    serialize(
+                        _,
+                        deep=deep,
+                        add_type_field=add_type_field,
+                        objmem=objmem,
+                        python_class_identifier=python_class_identifier,
+                    )
+                    for _ in value
+                ]
+            )
 
     def convertwith(value, method, pass_identifier=False):
         if hasattr(value, method) and isinstance(

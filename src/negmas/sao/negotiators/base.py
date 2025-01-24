@@ -96,6 +96,7 @@ class SAOPRNegotiator(GBNegotiator[SAONMI, SAOState]):
 
         Args:
             state: The mechanism state
+            dest: the destination (can be ignored in AOP, SAOP, MAOP)
 
         Returns:
             An outcome to offer or None to refuse to offer
@@ -225,7 +226,7 @@ class SAOPRNegotiator(GBNegotiator[SAONMI, SAOState]):
 
         Args:
             state: `SAOState` giving current state of the negotiation.
-            dest: The ID of the destination of the response. Will be empty under `SAOMechanism`
+            dest: The ID of the destination of the response. May be empty under `SAOMechanism`
 
         Returns:
             Tuple[ResponseType, Outcome]: The response to the given offer with a counter offer if the response is REJECT
@@ -287,7 +288,7 @@ class SAOCallNegotiator(SAOPRNegotiator, ABC):
 
     @abstractmethod
     def __call__(self, state: SAOState, dest: str | None = None) -> SAOResponse:
-        ...
+        """Implements counter-offering."""
 
     def propose(
         self, state: SAOState, dest: str | None = None

@@ -390,7 +390,7 @@ class Issue(HasMinMax, Iterable, ABC):
     @abstractmethod
     def value_at(self, index: int):
         """
-        Returns the value at the given indes of the issue. The same index  will have the same values always indepdendent of whether the values of the issue have defined ordering.
+        Returns the value at the given index of the issue. The same index  will have the same values always indepdendent of whether the values of the issue have defined ordering.
         """
         ...
 

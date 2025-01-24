@@ -141,9 +141,8 @@ class GBNegotiator(Negotiator[GBNMI, GBState], Generic[TNMI, TState]):
         """
         Called when a partner ends the negotiation.
 
-        Note  that the negotiator owning this component may never receive this
-        offer.
-        This is only receivd if the mechanism is sending notifications
+        Note that the negotiator owning this component may never receive this
+        offer. This is only received if the mechanism is sending notifications
         on every offer.
         """
 
@@ -154,7 +153,7 @@ class GBNegotiator(Negotiator[GBNMI, GBState], Generic[TNMI, TState]):
 
         Args:
             state: `SAOState` giving current state of the negotiation.
-            partner: The partner to respond to with a counter offer.
+            dest: The partner to respond to with a counter offer (for AOP, SAOP, MAOP this can safely be ignored).
 
         Returns:
             Tuple[ResponseType, Outcome]: The response to the given offer with a counter offer if the response is REJECT
@@ -177,12 +176,14 @@ class GBNegotiator(Negotiator[GBNMI, GBState], Generic[TNMI, TState]):
                     ResponseType.REJECT_OFFER, proposal.outcome, proposal.data
                 )
             return SAOResponse(ResponseType.REJECT_OFFER, proposal)
-        response = self.respond_(state=state)
+        response = self.respond_(
+            state=state, source=state.current_proposer if state.current_proposer else ""
+        )
         if response == ResponseType.ACCEPT_OFFER:
             return SAOResponse(response, offer)
         if response != ResponseType.REJECT_OFFER:
             return SAOResponse(response, None)
-        proposal = self.propose_(state=state)
+        proposal = self.propose_(state=state, dest=dest)
         if isinstance(proposal, ExtendedOutcome):
             return SAOResponse(
                 ResponseType.REJECT_OFFER, proposal.outcome, proposal.data
@@ -194,18 +195,15 @@ class GBNegotiator(Negotiator[GBNMI, GBState], Generic[TNMI, TState]):
     ) -> Outcome | ExtendedOutcome | None:
         if not self._capabilities["propose"] or self.__end_negotiation:
             return None
-        return self.propose(state=self._gb_state_from_sao_state(state))
+        return self.propose(state=self._gb_state_from_sao_state(state), dest=dest)
 
-    def respond_(self, state: SAOState) -> ResponseType:
+    def respond_(self, state: SAOState, source: str | None = None) -> ResponseType:
         offer = state.current_offer
         if self.__end_negotiation:
             return ResponseType.END_NEGOTIATION
         self.__received_offer[state.current_proposer] = offer
 
-        return self.respond(
-            state=self._gb_state_from_sao_state(state),
-            source=state.current_proposer if state.current_proposer else "",
-        )
+        return self.respond(state=self._gb_state_from_sao_state(state), source=source)
 
     def _gb_state_from_sao_state(self, state: SAOState) -> GBState:
         if isinstance(state, GBState):

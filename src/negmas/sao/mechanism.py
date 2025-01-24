@@ -314,31 +314,31 @@ class SAOMechanism(
                     negotiator == self._current_proposer
                 ) and self._offering_is_accepting:
                     self._current_state.n_acceptances = 0
-                    try:
-                        response = (
-                            given_response
-                            if given_response
-                            else negotiator(*args, **kwargs, dest=dest)
-                        )
-                    except Exception:
-                        response = (
-                            given_response
-                            if given_response
-                            else negotiator(*args, **kwargs)
-                        )
-                else:
-                    try:
-                        response = (
-                            given_response
-                            if given_response
-                            else negotiator(*args, **kwargs, dest=dest)
-                        )
-                    except Exception:
-                        response = (
-                            given_response
-                            if given_response
-                            else negotiator(*args, **kwargs)
-                        )
+                try:
+                    response = (
+                        given_response
+                        if given_response
+                        else negotiator(*args, **kwargs, dest=dest)
+                    )
+                except Exception:
+                    response = (
+                        given_response
+                        if given_response
+                        else negotiator(*args, **kwargs)
+                    )
+                # else:
+                #     try:
+                #         response = (
+                #             given_response
+                #             if given_response
+                #             else negotiator(*args, **kwargs, dest=dest)
+                #         )
+                #     except Exception:
+                #         response = (
+                #             given_response
+                #             if given_response
+                #             else negotiator(*args, **kwargs)
+                #         )
             except TimeoutError:
                 response = None
                 try:
@@ -360,7 +360,7 @@ class SAOMechanism(
                     raise ex
             times[negotiator.id] += time.perf_counter() - __strt
         else:
-            fun = functools.partial(negotiator, *args, **kwargs)
+            fun = functools.partial(negotiator, *args, **kwargs, dest=dest)
             __strt = time.perf_counter()
             try:
                 if (
@@ -380,19 +380,40 @@ class SAOMechanism(
                     )
             except TimeoutError:
                 response = None
-            except Exception as ex:
-                exceptions[negotiator.id].append(exception2str())
-                if self.ignore_negotiator_exceptions:
-                    self.announce(
-                        Event(
-                            "negotiator_exception",
-                            {"negotiator": negotiator, "exception": ex},
+            except Exception:
+                fun = functools.partial(negotiator, *args, **kwargs)
+                __strt = time.perf_counter()
+                try:
+                    if (
+                        negotiator == self._current_proposer
+                    ) and self._offering_is_accepting:
+                        state.n_acceptances = 0
+                        response = (
+                            given_response
+                            if given_response
+                            else TimeoutCaller.run(fun, timeout=timeout)
                         )
-                    )
-                    times[negotiator.id] += time.perf_counter() - __strt
-                    return SAOResponse(ResponseType.END_NEGOTIATION, None), True
-                else:
-                    raise ex
+                    else:
+                        response = (
+                            given_response
+                            if given_response
+                            else TimeoutCaller.run(fun, timeout=timeout)
+                        )
+                except TimeoutError:
+                    response = None
+                except Exception as ex:
+                    exceptions[negotiator.id].append(exception2str())
+                    if self.ignore_negotiator_exceptions:
+                        self.announce(
+                            Event(
+                                "negotiator_exception",
+                                {"negotiator": negotiator, "exception": ex},
+                            )
+                        )
+                        times[negotiator.id] += time.perf_counter() - __strt
+                        return SAOResponse(ResponseType.END_NEGOTIATION, None), True
+                    else:
+                        raise ex
             times[negotiator.id] += time.perf_counter() - __strt
         if response and isinstance(response.outcome, ExtendedOutcome):
             response = SAOResponse(

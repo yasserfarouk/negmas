@@ -6,14 +6,13 @@ from .mapneg import MAPNegotiator
 
 if TYPE_CHECKING:
     from ...components import GBComponent
-    from ...negotiators.base import GBNegotiator
 
 __all__ = ["make_boa", "BOANegotiator"]
 
 
 def make_boa(
-    acceptance: AcceptancePolicy | GBNegotiator | None = None,
-    offering: OfferingPolicy | GBNegotiator | None = None,
+    acceptance: AcceptancePolicy | None = None,
+    offering: OfferingPolicy | None = None,
     model: Model | None = None,
     extra_components: list[GBComponent] | None = None,
     extra_component_names: list[str] | None = None,
@@ -52,14 +51,14 @@ class BOANegotiator(MAPNegotiator):
     3. An `OfferingStrategy` That is used for generating offers.
 
 
-    For all callbacks, partner-model is called first, followed by the acceptance strategy followed by the offering strategy
+    For all callbacks, partner-model is called first, followed by the acceptance strategy followed by the offering strategy.
 
     """
 
     def __init__(
         *args,
-        acceptance: AcceptancePolicy | GBNegotiator | None = None,
-        offering: OfferingPolicy | GBNegotiator | None = None,
+        acceptance: AcceptancePolicy | None = None,
+        offering: OfferingPolicy | None = None,
         model: Model | None = None,
         extra_components: list[GBComponent] | None = None,
         extra_component_names: list[str] | None = None,
@@ -73,5 +72,6 @@ class BOANegotiator(MAPNegotiator):
             extra_components=extra_components,
             extra_component_names=extra_component_names,
             type_name="BOANegotiator",
+            acceptance_first=False,
             **kwargs,
         )

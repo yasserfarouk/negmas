@@ -667,6 +667,7 @@ class PresortingInverseUtilityFunction(InverseUFun):
             # mx, mn = mn, mx
 
         if mn == mx:
+            mn = int(mn)
             return self.outcomes[mn]
         indx = random.randint(mn, mx)
         return self.outcomes[indx]
