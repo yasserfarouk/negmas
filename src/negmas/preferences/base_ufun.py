@@ -204,7 +204,9 @@ class BaseUtilityFunction(Preferences, ABC):
         d = 1 / d
         return (u - mn) * d
 
-    def invert(self, inverter: type[InverseUFun] | None = None) -> InverseUFun:
+    def invert(
+        self, inverter: type[InverseUFun] | None = None, **kwargs
+    ) -> InverseUFun:
         """
         Inverts the ufun, initializes it and caches the result.
         """
@@ -217,7 +219,7 @@ class BaseUtilityFunction(Preferences, ABC):
         if inverter is None:
             inverter = PresortingInverseUtilityFunction
         self._cached_inverse_type = inverter
-        self._cached_inverse = inverter(self)
+        self._cached_inverse = inverter(self, **kwargs)
         self._cached_inverse.init()
         return self._cached_inverse
 
