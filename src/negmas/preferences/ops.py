@@ -52,6 +52,7 @@ __all__ = [
     "distance_to",
     "distance_between",
     "calc_outcome_distances",
+    "calc_outcome_optimality",
     "calc_scenario_stats",
     "ScenarioStats",
     "OutcomeDistances",
@@ -157,6 +158,7 @@ class ScenarioStats:
     ks_outcomes: list[Outcome] = field(factory=list)
     modified_ks_utils: list[tuple[float, ...]] = field(factory=list)
     modified_ks_outcomes: list[Outcome] = field(factory=list)
+
     # TODO: Add more stats here. See the negobench overleaf for examples.
     # Add advantage_range_ratio (ratio of rational ufun ranges), utility_range_ratio.
     # Add distances between major points like kalai, kalai-smorodinsky, nash and max-welfare
