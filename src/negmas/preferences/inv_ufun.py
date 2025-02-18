@@ -56,9 +56,10 @@ def index_below_or_equal(a: NDArray, x: Any, lo: int = 0, hi: int | None = None)
         hi = len(a) - 1
     i = np.searchsorted(a[lo : hi + 1], x, side="right") + lo
     i = max(0, min(len(a) - 1, i))
-    if a[i] - EPS <= x:
+    j = max(0, i - 1)
+    if abs(a[i] - x) <= abs(a[j] - x):
         return i
-    return max(0, i - 1)
+    return j
 
 
 class SamplingInverseUtilityFunction(InverseUFun):
