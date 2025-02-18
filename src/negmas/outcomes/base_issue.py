@@ -318,7 +318,7 @@ class Issue(HasMinMax, Iterable, ABC):
         Args:
             n: The number of samples. If inf or None, all values will be generated but when the issue is infinite, it will just fail
             grid: Sample on a grid (equally distanced as much as possible)
-            compact: If True, the samples will be choosen near each other (see endpoints though)
+            compact: If True, the samples will be chosen near each other (see endpoints though)
             endpoints: If given, the first and last index are guaranteed to be in the samples
 
         Remarks:
