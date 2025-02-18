@@ -5,11 +5,13 @@ Datatypes that do not directly relate to negotiation.
 
 from __future__ import annotations
 
+import sys
 import functools
 import importlib
 import json
 from enum import Enum
 from os import PathLike
+from pathlib import Path
 from types import FunctionType, LambdaType
 from typing import Any, Callable, overload
 
@@ -94,8 +96,15 @@ def get_class(
     module_name: str | None = None,
     scope: dict | None = None,
     allow_nonstandard_names=False,
+    extra_modules: tuple[str, ...] = tuple(),
+    extra_paths: tuple[str | Path, ...] = tuple(),
 ) -> type:
     """Imports and creates a class object for the given class name"""
+
+    for p in extra_paths:
+        sys.path.append(str(p))
+    for module in extra_modules:
+        importlib.import_module(module)
     if not isinstance(class_name, str):
         return class_name
 

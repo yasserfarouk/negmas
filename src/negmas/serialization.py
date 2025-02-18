@@ -4,9 +4,11 @@ Implements serialization to and from strings and secondary storage.
 """
 
 from __future__ import annotations
+import importlib
 import types
 from pathlib import Path
-from typing import Any, Iterable
+from typing import Any, Callable, Iterable
+import sys
 
 import cloudpickle
 import numpy as np
@@ -332,8 +334,19 @@ def deserialize(
     remove_type_field=True,
     keep_private=False,
     fallback_class_name: str | None = None,
-    python_class_identifier=PYTHON_CLASS_IDENTIFIER,
     base_module: str = "",
+    deep_ignore: bool = True,
+    ignored_keys: tuple[str, ...] = tuple(),
+    python_class_identifier=PYTHON_CLASS_IDENTIFIER,
+    type_marker: str = TYPE_START,
+    path_marker: str = PATH_START,
+    lambda_marker: bytes = LAMBDA_START,
+    function_marker: bytes = FUNCTION_START,
+    cloudpickle_marker: bytes = CLOUDPICKLE_START,
+    extra_paths: tuple[str | Path, ...] = tuple(),
+    extra_modules: tuple[str, ...] = tuple(),
+    type_name_adapter: Callable[[str], str] | None = None,
+    path_adapter: Callable[[str], str] | None = None,
 ):
     """Decodes a dict/object coming from `serialize`
 
@@ -344,6 +357,8 @@ def deserialize(
         remove_type_field: If true the field called `PYTHON_CLASS_IDENTIFIER` will be removed if found.
         keep_private: If given, private fields (starting with _) will be kept
         fallback_class_name: If given, it is used as the fall-back  type if ``PYTHON_CLASS_IDENTIFIER` is not in the dict.
+        ignored_keys: Keys to ignore
+        deep_ignore: if given, ignored keys are ignored in all components recusrively when deep is specified
 
     Remarks:
 
@@ -357,7 +372,41 @@ def deserialize(
 
     """
 
+    def do_nothing(x):
+        return x
+
+    params_ = dict(
+        deep=deep,
+        remove_type_field=remove_type_field,
+        keep_private=keep_private,
+        fallback_class_name=fallback_class_name,
+        base_module=base_module,
+        deep_ignore=deep_ignore if deep_ignore else False,
+        ignored_keys=ignored_keys if deep_ignore else tuple(),
+        python_class_identifier=python_class_identifier,
+        type_marker=type_marker,
+        path_marker=path_marker,
+        lambda_marker=lambda_marker,
+        function_marker=function_marker,
+        cloudpickle_marker=cloudpickle_marker,
+        extra_paths=extra_paths,
+        extra_modules=extra_modules,
+        type_name_adapter=type_name_adapter,
+        path_adapter=path_adapter,
+    )
+
+    if type_name_adapter is None:
+        type_name_adapter = do_nothing
+    if path_adapter is None:
+        path_adapter = do_nothing
+    for p in extra_paths:
+        sys.path.append(str(p))
+    for module in extra_modules:
+        importlib.import_module(module)
+
     def good_field(k: str):
+        if k in ignored_keys:
+            return False
         if not isinstance(k, str):
             return True
         return keep_private or not (k != python_class_identifier and k.startswith("_"))
@@ -371,21 +420,18 @@ def deserialize(
             python_class_name = d.get(python_class_identifier, fallback_class_name)
         if python_class_name is not None and python_class_name != "functools.partial":
             try:
-                python_class = get_class(python_class_name)
+                python_class = get_class(type_name_adapter(python_class_name))
             except Exception as e:
                 if base_module:
-                    python_class = get_class(f"{base_module}.{python_class_name}")
+                    python_class = get_class(
+                        type_name_adapter(f"{base_module}.{python_class_name}")
+                    )
                 else:
                     raise e
             # we resolve sub-objects first from the dict if deep is specified before calling deserialize on the class
             if deep:
                 d = {
-                    k: deserialize(
-                        v,
-                        deep=deep,
-                        python_class_identifier=python_class_identifier,
-                        base_module=base_module,
-                    )
+                    k: deserialize(v, **params_)  # type: ignore
                     for k, v in d.items()
                     if good_field(k)
                 }
@@ -394,18 +440,16 @@ def deserialize(
             if hasattr(python_class, "from_dict"):
                 try:
                     return python_class.from_dict(
-                        {k: v for k, v in d.items()},
+                        {k: v for k, v in d.items() if k not in ignored_keys},
                         python_class_identifier=python_class_identifier,
                     )  # type: ignore
                 except Exception:
-                    return python_class.from_dict({k: v for k, v in d.items()})  # type: ignore
+                    return python_class.from_dict(
+                        {k: v for k, v in d.items() if k not in ignored_keys}
+                    )
             if deep:
                 d = {
-                    k: deserialize(
-                        v,
-                        python_class_identifier=python_class_identifier,
-                        base_module=base_module,
-                    )
+                    k: deserialize(v, **params_)  # type: ignore
                     for k, v in d.items()
                     if good_field(k)
                 }
@@ -414,41 +458,28 @@ def deserialize(
             return python_class(**d)
         if not deep:
             return d
-        return {
-            k: deserialize(
-                v,
-                deep=deep,
-                python_class_identifier=python_class_identifier,
-                base_module=base_module,
-            )
-            for k, v in d.items()
-            if good_field(k)
-        }
+        return {k: deserialize(v, **params_) for k, v in d.items() if good_field(k)}  # type: ignore
     if not deep:
         return d
     if isinstance(d, str):
-        if d.startswith(TYPE_START):
-            return get_class(d[len(TYPE_START) :])
-        elif d.startswith(PATH_START):
-            return Path(d[len(PATH_START) :])
+        if d.startswith(type_marker):
+            return get_class(type_name_adapter(d[len(type_marker) :]))
+        elif d.startswith(path_marker):
+            return Path(path_adapter(d[len(path_marker) :]))
         return d
     if isinstance(d, bytes):
-        if d.startswith(LAMBDA_START):
-            return cloudpickle.loads(d[len(LAMBDA_START) :])
-        if d.startswith(FUNCTION_START):
-            return cloudpickle.loads(d[len(FUNCTION_START) :])
-        if d.startswith(CLOUDPICKLE_START):
-            return cloudpickle.loads(d[len(CLOUDPICKLE_START) :])
+        if d.startswith(lambda_marker):
+            return cloudpickle.loads(d[len(lambda_marker) :])
+        if d.startswith(function_marker):
+            return cloudpickle.loads(d[len(function_marker) :])
+        if d.startswith(cloudpickle_marker):
+            return cloudpickle.loads(d[len(cloudpickle_marker) :])
         # if d.startswith(JSON_START):
         #     return json.loads(d[JSON_START:])
         return d
     if isinstance(d, tuple) or isinstance(d, list):
         return type(d)(
-            deserialize(
-                _,
-                python_class_identifier=python_class_identifier,
-                base_module=base_module,
-            )
+            deserialize(_, **params_)  # type: ignore
             for _ in d
         )
     return d
