@@ -543,7 +543,7 @@ def generate_multi_issue_ufuns(
     sizes: None = None,
     n_ufuns: int = 2,
     pareto_generators: tuple[ParetoGenerator | str, ...] = ("piecewise_linear",),
-    generator_params: tuple[dict[str, Any], ...] | None = None,
+    generator_params: tuple[dict[str, Any], ...] | list[dict[str, Any]] | None = None,
     reserved_values: list[float] | tuple[float, float] | float = 0.0,
     rational_fractions: list[float] | None = None,
     reservation_selector: Callable[[float, float], float] = max,
@@ -553,6 +553,7 @@ def generate_multi_issue_ufuns(
     numeric: bool = False,
     linear: bool = True,
     guarantee_rational: bool = False,
+    numeric_prob: float = -1,
 ) -> tuple[LinearAdditiveUtilityFunction | MappingUtilityFunction, ...]:
     ...
 
@@ -564,7 +565,7 @@ def generate_multi_issue_ufuns(
     sizes: tuple[int, ...] | list[int] = tuple(),
     n_ufuns: int = 2,
     pareto_generators: tuple[ParetoGenerator | str, ...] = ("piecewise_linear",),
-    generator_params: tuple[dict[str, Any], ...] | None = None,
+    generator_params: tuple[dict[str, Any], ...] | list[dict[str, Any]] | None = None,
     reserved_values: list[float] | tuple[float, float] | float = 0.0,
     rational_fractions: list[float] | None = None,
     reservation_selector: Callable[[float, float], float] = max,
@@ -574,6 +575,7 @@ def generate_multi_issue_ufuns(
     numeric: bool = False,
     linear: bool = True,
     guarantee_rational: bool = False,
+    numeric_prob: float = -1,
 ) -> tuple[LinearAdditiveUtilityFunction | MappingUtilityFunction, ...]:
     ...
 
@@ -584,7 +586,7 @@ def generate_multi_issue_ufuns(
     sizes: tuple[int, ...] | list[int] | None = None,
     n_ufuns: int = 2,
     pareto_generators: tuple[ParetoGenerator | str, ...] = tuple(GENERATOR_MAP.keys()),
-    generator_params: tuple[dict[str, Any], ...] | None = None,
+    generator_params: tuple[dict[str, Any], ...] | list[dict[str, Any]] | None = None,
     reserved_values: list[float] | tuple[float, float] | float = 0.0,
     rational_fractions: list[float] | None = None,
     reservation_selector: Callable[[float, float], float] = max,
@@ -594,6 +596,7 @@ def generate_multi_issue_ufuns(
     numeric: bool = False,
     linear: bool = True,
     guarantee_rational: bool = False,
+    numeric_prob: float = -1,
 ) -> tuple[LinearAdditiveUtilityFunction | MappingUtilityFunction, ...]:
     """Generates a set of ufuns with an outcome space of the given number of issues.
 
@@ -617,6 +620,8 @@ def generate_multi_issue_ufuns(
         ufun_names: Names of utility functions
         numeric: All issue values are numeric (integers)
         linear: Whether to use a linear-additive-ufun instead of the general mapping ufun
+        numeric_prob: Probability of having a numeric issue (setting to 1.0 is equivalent to setting `numeric` to `True`).
+                      A negative value means no issues will be numeric (unless `numeric == True` in which case all will be).
 
     Returns:
         A tuple of `n_ufuns` utility functions.
@@ -635,13 +640,13 @@ def generate_multi_issue_ufuns(
         ufun_names = tuple(f"u{i+1}" for i in range(n_ufuns))
     vals = [dict() for _ in range(n_ufuns)]
     if not generator_params:
-        generator_params = [dict() for _ in pareto_generators]  # type: ignore
+        generator_params = [dict() for _ in pareto_generators]
     if not issue_names:
         issue_names = tuple(f"i{k+1}" for k in range(n_issues))
-    gp = list(zip(pareto_generators, generator_params))  # type: ignore
+    gp = list(zip(pareto_generators, generator_params))
     if sizes is None or len(sizes) == 0:
         assert n_values is not None and (isinstance(n_values, tuple) or n_values > 0)
-        sizes = tuple(intin(n_values) for _ in range(n_issues))  # type: ignore
+        sizes = tuple(intin(n_values) for _ in range(n_issues))
     assert sizes is not None
     for i, n in enumerate(sizes):
         g, p = random.choice(gp)
@@ -651,12 +656,17 @@ def generate_multi_issue_ufuns(
         for j in range(n_ufuns):
             vals[j][i] = [float(_[j]) for _ in v]
     weights = [float(_) for _ in generate_random_weights(n_issues)]
+    is_numeric = (
+        ([True] * n_issues)
+        if numeric
+        else ([random.random() < numeric_prob for _ in range(n_issues)])
+    )
     os = make_os(
         issues=[
             make_issue(ni, name=iname)
-            if numeric
+            if num
             else make_issue([f"v{k+1}" for k in range(ni)], name=f"i{i+1}")
-            for i, (ni, iname) in enumerate(zip(sizes, issue_names))
+            for i, (ni, iname, num) in enumerate(zip(sizes, issue_names, is_numeric))
         ],
         name=os_name,
     )
@@ -666,15 +676,12 @@ def generate_multi_issue_ufuns(
                 TableFun(
                     dict(
                         zip(
-                            [
-                                k if numeric else f"v{k+1}"
-                                for k in range(len(vals[j][i]))
-                            ],
+                            [k if num else f"v{k+1}" for k in range(len(vals[j][i]))],
                             vals[j][i],
                         )
                     )
                 )
-                for i in range(n_issues)
+                for i, num in enumerate(is_numeric)
             ],
             weights=weights,
             outcome_space=os,
