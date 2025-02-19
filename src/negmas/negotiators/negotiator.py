@@ -57,6 +57,7 @@ class Negotiator(Rational, Notifiable, Generic[TNMI, TState]):
         type_name: str | None = None,
         private_info: dict[str, Any] | None = None,
     ) -> None:
+        self._private_info = private_info if private_info else dict()
         if ufun is not None:
             preferences = ufun
         self.__parent = parent
@@ -69,7 +70,6 @@ class Negotiator(Rational, Notifiable, Generic[TNMI, TState]):
             name=name, ufun=None, preferences=None, id=id, type_name=type_name
         )
         self._preferences = preferences
-        self._private_info = private_info if private_info else dict()
         self.__saved_pref_os = None
         self.__saved_prefs = None
 

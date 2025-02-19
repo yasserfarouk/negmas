@@ -47,6 +47,8 @@ class MAPNegotiator(GBModularNegotiator):
     ):
         from negmas.gb.components.models.ufun import UFunModel
 
+        self._private_info = kwargs.get("private_info", dict())
+
         components, names = [], []
         ufun_models = []
         if models:
