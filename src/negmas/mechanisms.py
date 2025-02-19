@@ -1285,7 +1285,8 @@ class Mechanism(
             mechanisms: list of mechanisms
             keep_order: if True, the mechanisms will be run in order every step otherwise the order will be randomized
                         at every step. This is only allowed if the method is ordered
-            method: the method to use for running all the sessions.  Acceptable options are: sequential, ordered, threads, processes
+            method: the method to use for running all the sessions.
+                    Acceptable options are: sequential, ordered, threads, processes
             ordering: Controls the order of advancing the negotiations with the "ordered" method.
             ordering_fun: A function to implement dynamic ordering for the "ordered" method.
                  This function receives a list of states and returns the index of the next mechanism to step.
