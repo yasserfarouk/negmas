@@ -196,11 +196,11 @@ def serialize(
             else:
                 return adjust_dict(converted)
 
-    converted = convertwith(value, "to_dict", pass_identifier=True)
-    if converted is not None:
-        return converted
     for method in ("to_dict", "asdict", "dict"):
-        converted = convertwith(value, method, pass_identifier=False)
+        try:
+            converted = convertwith(value, method, pass_identifier=True)
+        except Exception:
+            converted = convertwith(value, method, pass_identifier=False)
         if converted is not None:
             return converted
     if isinstance(value, str):

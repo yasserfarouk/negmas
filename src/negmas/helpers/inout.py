@@ -46,6 +46,22 @@ PATH_START = "__PATH__:"
 DEFAULT_DUMP_EXTENSION = negmas_config("default_dump_extension", "json")
 
 
+def convert_numpy(obj):
+    """Recursively converts NumPy types to standard Python types."""
+    if isinstance(obj, np.floating):
+        return float(obj)
+    elif isinstance(obj, np.integer):
+        return int(obj)
+    elif isinstance(obj, np.ndarray):
+        return obj.tolist()  # Convert NumPy array to list
+    elif isinstance(obj, dict):
+        return {k: convert_numpy(v) for k, v in obj.items()}
+    elif isinstance(obj, list):
+        return [convert_numpy(v) for v in obj]
+    else:
+        return obj  # for all other types, return the object.
+
+
 def is_nonzero_file(fpath: PathLike) -> bool:
     """Whether or not the path is for an existing nonzero file.
 
@@ -396,7 +412,9 @@ def dump(
             )
     elif file_name.suffix in (".yaml", ".yml"):
         with open(file_name, "w") as f:
-            yaml.safe_dump(d, f, default_flow_style=compact, sort_keys=sort_keys)
+            yaml.safe_dump(
+                convert_numpy(d), f, default_flow_style=compact, sort_keys=sort_keys
+            )
     elif file_name.suffix == ".pickle":
         with open(file_name, "wb") as f:
             pickle.dump(d, f)
