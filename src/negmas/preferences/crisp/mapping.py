@@ -99,7 +99,7 @@ class MappingUtilityFunction(StationaryMixin, UtilityFunction):
 
     def to_dict(self, python_class_identifier=PYTHON_CLASS_IDENTIFIER):
         d = {python_class_identifier: get_full_type_name(type(self))}
-        d.update(super().to_dict())
+        d.update(super().to_dict(python_class_identifier=python_class_identifier))
         return dict(
             **d,
             mapping=serialize(

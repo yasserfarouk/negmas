@@ -226,7 +226,10 @@ class Condition:
     def to_dict(self, python_class_identifier=PYTHON_CLASS_IDENTIFIER):
         return dict(
             name=self.name,
-            issues=[i.to_dict() for i in self.issues],
+            issues=[
+                i.to_dict(python_class_identifier=python_class_identifier)
+                for i in self.issues
+            ],
             ufuns=[
                 serialize(u, python_class_identifier=python_class_identifier)
                 for u in self.ufuns

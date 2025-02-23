@@ -77,7 +77,7 @@ class UtilityBasedOutcomeSetRecommender(GBComponent):
         self.min = self.max = self.best = None
         self._inv_method = None
 
-    def set_negotiator(self, negotiator: GBNegotiator) -> None:
+    def set_negotiator(self, negotiator: GBNegotiator) -> None:  # type: ignore
         super().set_negotiator(negotiator)
         self.inv: InverseUFun | None = None
         self.min = self.max = self.best = None
@@ -118,7 +118,7 @@ class UtilityBasedOutcomeSetRecommender(GBComponent):
         if self.min < ufun.reserved_value:
             self.min = ufun.reserved_value
 
-    def before_proposing(self, state: GBState):
+    def before_proposing(self, state: GBState, dest: str | None = None):
         if self._negotiator is None:
             raise ValueError("Unknown negotiator in a component")
         if self.inv is None or self.max is None or self.min is None:
@@ -190,7 +190,7 @@ class UtilityBasedOutcomeSetRecommender(GBComponent):
         """
         if self._negotiator is None:
             raise ValueError("Unknown negotiator in a component")
-        urange = self.scale_utilities(urange)
+        urange = self.scale_utilities(urange)  # type: ignore
         outcomes = self._inv_method(urange, normalized=False)  # type: ignore
         if outcomes is None:
             return []
@@ -204,7 +204,7 @@ class UtilityInverter(GBComponent):
     A component that can recommend an outcome based on utility
     """
 
-    def set_negotiator(self, negotiator: GBNegotiator) -> None:
+    def set_negotiator(self, negotiator: GBNegotiator) -> None:  # type: ignore
         super().set_negotiator(negotiator)
         self.recommender.set_negotiator(negotiator)
 
@@ -235,7 +235,7 @@ class UtilityInverter(GBComponent):
     def on_preferences_changed(self, changes: list[PreferencesChange]):
         self.recommender.on_preferences_changed(changes)
 
-    def before_proposing(self, state: GBState):
+    def before_proposing(self, state: GBState, dest: str | None = None):
         self.recommender.before_proposing(state)
 
     def scale_utilities(self, urange):

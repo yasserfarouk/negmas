@@ -104,7 +104,7 @@ class ExpDiscountedUFun(DiscountedUtilityFunction):
     def to_dict(
         self, python_class_identifier=PYTHON_CLASS_IDENTIFIER
     ) -> dict[str, Any]:
-        d = super().to_dict()
+        d = super().to_dict(python_class_identifier=python_class_identifier)
         return dict(
             **d,
             ufun=serialize(self.ufun, python_class_identifier=python_class_identifier),

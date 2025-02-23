@@ -117,7 +117,7 @@ class WeightedUtilityFunction(_DependenceMixin, BaseUtilityFunction):
         self, python_class_identifier=PYTHON_CLASS_IDENTIFIER
     ) -> dict[str, Any]:
         d = {python_class_identifier: get_full_type_name(type(self))}
-        d.update(super().to_dict())
+        d.update(super().to_dict(python_class_identifier=python_class_identifier))
         return dict(
             **d,
             ufuns=[
@@ -196,7 +196,7 @@ class ComplexNonlinearUtilityFunction(_DependenceMixin, BaseUtilityFunction):
         self, python_class_identifier=PYTHON_CLASS_IDENTIFIER
     ) -> dict[str, Any]:
         d = {python_class_identifier: get_full_type_name(type(self))}
-        d.update(super().to_dict())
+        d.update(super().to_dict(python_class_identifier=python_class_identifier))
         return dict(
             ufuns=serialize(
                 self.ufuns, python_class_identifier=python_class_identifier

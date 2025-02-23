@@ -37,6 +37,8 @@ def _rand_mapping(x, r):
 
 
 def _rand_mapping_normalized(x, mx, mn, r):
+    if mx == mn:
+        return mx
     return r * (x - mn) / (mx - mn)
 
 
@@ -278,7 +280,7 @@ class AffineUtilityFunction(StationaryMixin, UtilityFunction):
 
     def to_dict(self, python_class_identifier=PYTHON_CLASS_IDENTIFIER):
         d = {python_class_identifier: get_full_type_name(type(self))}
-        d.update(super().to_dict())
+        d.update(super().to_dict(python_class_identifier=PYTHON_CLASS_IDENTIFIER))
         return dict(**d, weights=self._weights, bias=self._bias)
 
     @classmethod
@@ -746,7 +748,7 @@ class LinearAdditiveUtilityFunction(  # type: ignore
 
     def to_dict(self, python_class_identifier=PYTHON_CLASS_IDENTIFIER):
         d = {python_class_identifier: get_full_type_name(type(self))}
-        d.update(super().to_dict())
+        d.update(super().to_dict(python_class_identifier=python_class_identifier))
         return dict(
             **d,
             weights=self.weights,

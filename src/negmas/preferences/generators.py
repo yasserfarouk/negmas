@@ -13,6 +13,7 @@ from negmas.helpers.misc import (
 )
 from negmas.negotiators.helpers import PolyAspiration, TimeCurve
 from negmas.outcomes import make_issue, make_os
+from negmas.outcomes.outcome_space import DiscreteCartesianOutcomeSpace
 from negmas.preferences.crisp.linear import LinearAdditiveUtilityFunction
 from negmas.preferences.crisp.mapping import MappingUtilityFunction
 from negmas.preferences.ops import nash_points, pareto_frontier
@@ -27,6 +28,7 @@ __all__ = [
     "make_non_pareto",
     "generate_utility_values",
     "generate_multi_issue_ufuns",
+    "generate_ufuns_for",
     "generate_single_issue_ufuns",
     "ParetoGenerator",
     "GENERATOR_MAP",
@@ -626,6 +628,77 @@ def generate_multi_issue_ufuns(
     Returns:
         A tuple of `n_ufuns` utility functions.
     """
+    if not issue_names:
+        issue_names = tuple(f"i{k+1}" for k in range(n_issues))
+    if sizes is None or len(sizes) == 0:
+        assert n_values is not None and (isinstance(n_values, tuple) or n_values > 0)
+        sizes = tuple(intin(n_values) for _ in range(n_issues))
+    assert sizes is not None
+    is_numeric = (
+        ([True] * n_issues)
+        if numeric
+        else ([random.random() < numeric_prob for _ in range(n_issues)])
+    )
+    os = make_os(
+        issues=[
+            make_issue(ni, name=iname)
+            if num
+            else make_issue([f"v{k+1}" for k in range(ni)], name=f"i{i+1}")
+            for i, (ni, iname, num) in enumerate(zip(sizes, issue_names, is_numeric))
+        ],
+        name=os_name,
+    )
+    assert isinstance(os, DiscreteCartesianOutcomeSpace)
+    return generate_ufuns_for(
+        os,
+        n_ufuns=n_ufuns,
+        pareto_generators=pareto_generators,
+        generator_params=generator_params,
+        reserved_values=reserved_values,
+        rational_fractions=rational_fractions,
+        reservation_selector=reservation_selector,
+        ufun_names=ufun_names,
+        linear=linear,
+        guarantee_rational=guarantee_rational,
+    )
+
+
+def generate_ufuns_for(
+    outcome_space: DiscreteCartesianOutcomeSpace,
+    n_ufuns: int = 2,
+    pareto_generators: tuple[ParetoGenerator | str, ...] = tuple(GENERATOR_MAP.keys()),
+    generator_params: tuple[dict[str, Any], ...] | list[dict[str, Any]] | None = None,
+    reserved_values: list[float] | tuple[float, float] | float = 0.0,
+    rational_fractions: list[float] | None = None,
+    reservation_selector: Callable[[float, float], float] = max,
+    ufun_names: tuple[str, ...] | None = None,
+    guarantee_rational: bool = False,
+    linear: bool = True,
+) -> tuple[LinearAdditiveUtilityFunction | MappingUtilityFunction, ...]:
+    """Generates a set of ufuns with an outcome space of the given number of issues.
+
+    Args:
+        n_issues: Number of issues
+        n_values: Range of issue sizes. Only used if `sizes` is not passed
+        sizes: Sizes of issues
+        n_ufuns: Number of ufuns to generate
+        pareto_generators: The generators to use internally to generate value functions
+        generator_params: parameters of the generators.
+        reserved_values: Reserved values to use for generated ufuns.
+                         A list to cycle through, or a tuple to sample within or a single value to repeat.
+        rational_fractions: Fraction of rational outcomes for each ufun. Should have `n_ufuns` values
+                            (or it will cycle). If given with `reserved_values`, the `reservation_selector`
+                            will be used to select the final reservation value
+        reservation_selector: A function that receives the reserved value suggested by rational_fraction and
+                               that suggested by reserved_value and selects the final reserved values. The
+                               default is `max`. You can replace that with `min`, the first, the second,
+                               mean, or any combination.
+        ufun_names: Names of utility functions
+        linear: Whether to use a linear-additive-ufun instead of the general mapping ufun
+
+    Returns:
+        A tuple of `n_ufuns` utility functions.
+    """
     if (
         isinstance(reserved_values, tuple)
         and len(reserved_values) == 2
@@ -641,50 +714,25 @@ def generate_multi_issue_ufuns(
     vals = [dict() for _ in range(n_ufuns)]
     if not generator_params:
         generator_params = [dict() for _ in pareto_generators]
-    if not issue_names:
-        issue_names = tuple(f"i{k+1}" for k in range(n_issues))
     gp = list(zip(pareto_generators, generator_params))
-    if sizes is None or len(sizes) == 0:
-        assert n_values is not None and (isinstance(n_values, tuple) or n_values > 0)
-        sizes = tuple(intin(n_values) for _ in range(n_issues))
-    assert sizes is not None
-    for i, n in enumerate(sizes):
+    sizes = [int(_.cardinality) for _ in outcome_space.issues]
+    for i, (n, issue) in enumerate(zip(sizes, outcome_space.issues, strict=True)):
         g, p = random.choice(gp)
         v = generate_utility_values(
             n, n, n_ufuns, pareto_generator=g, generator_params=p
         )
         for j in range(n_ufuns):
-            vals[j][i] = [float(_[j]) for _ in v]
+            vals[j][i] = dict(
+                [(y, float(x[j])) for x, y in zip(v, issue.all, strict=True)]
+            )
+    n_issues = len(outcome_space.issues)
     weights = [float(_) for _ in generate_random_weights(n_issues)]
-    is_numeric = (
-        ([True] * n_issues)
-        if numeric
-        else ([random.random() < numeric_prob for _ in range(n_issues)])
-    )
-    os = make_os(
-        issues=[
-            make_issue(ni, name=iname)
-            if num
-            else make_issue([f"v{k+1}" for k in range(ni)], name=f"i{i+1}")
-            for i, (ni, iname, num) in enumerate(zip(sizes, issue_names, is_numeric))
-        ],
-        name=os_name,
-    )
+    [_.is_numeric() for _ in outcome_space.issues]
     ufuns = tuple(
         LinearAdditiveUtilityFunction(
-            values=[
-                TableFun(
-                    dict(
-                        zip(
-                            [k if num else f"v{k+1}" for k in range(len(vals[j][i]))],
-                            vals[j][i],
-                        )
-                    )
-                )
-                for i, num in enumerate(is_numeric)
-            ],
+            values=[TableFun(vals[j][i]) for i in range(n_issues)],
             weights=weights,
-            outcome_space=os,
+            outcome_space=outcome_space,
             name=name,
             reserved_value=r,
         )
@@ -692,7 +740,7 @@ def generate_multi_issue_ufuns(
     )
     return _adjust_ufuns(
         ufuns,
-        os,
+        outcome_space,
         linear,
         rational_fractions,
         reservation_selector,
