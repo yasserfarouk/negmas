@@ -239,12 +239,11 @@ class Scenario:
 
         args = self.mechanism_params
         args.update(kwargs)
-        m = self.mechanism_type(
-            outcome_space=self.outcome_space,
-            n_steps=n_steps,
-            time_limit=time_limit,
-            **args,
-        )
+        if n_steps:
+            args["n_steps"] = n_steps
+        if time_limit:
+            args["time_limit"] = time_limit
+        m = self.mechanism_type(outcome_space=self.outcome_space, **args)
         if not negotiators:
             return m
         negs: list[Negotiator]
@@ -270,9 +269,10 @@ class Scenario:
             ]
         else:
             negs = list(negotiators)
-        for neg, ou in zip(negs, opp_ufuns):
-            if share_ufuns and neg.opponent_ufun is None and ou is not None:
-                neg._private_info["opponent_ufun"] = ou
+        if share_ufuns:
+            for neg, ou in zip(negs, opp_ufuns):
+                if share_ufuns and neg.opponent_ufun is None and ou is not None:
+                    neg._private_info["opponent_ufun"] = ou
         if len(self.ufuns) != len(negs) or len(negs) < 1:
             raise ValueError(
                 f"Invalid ufuns ({self.ufuns}) or negotiators ({negotiators})"
