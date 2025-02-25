@@ -104,9 +104,69 @@ class Controller(Rational, Generic[TNMI, TState, TControlledNegotiator]):
         return self._negotiators
 
     @property
+    def unfinished_negotiators(self) -> dict[str, NegotiatorInfo]:
+        """
+        Returns the negotiators whose negotiations started and did not complete yet
+
+        Returns a dictionary mapping negotiator ID to the a tuple containing the negotiator
+        and its context
+        """
+        return {
+            k: v
+            for k, v in self._negotiators.items()
+            if v[0].nmi is not None
+            and v[0].nmi.state.started
+            and v[0].nmi.state.running
+        }
+
+    @property
+    def finished_negotiators(self) -> dict[str, NegotiatorInfo]:
+        """
+        Returns the negotiators whose negotiations started and completed
+
+        Returns a dictionary mapping negotiator ID to the a tuple containing the negotiator
+        and its context
+        """
+        return {
+            k: v
+            for k, v in self._negotiators.items()
+            if v[0].nmi is not None
+            and v[0].nmi.state.started
+            and not v[0].nmi.state.running
+        }
+
+    @property
+    def to_start_negotiators(self) -> dict[str, NegotiatorInfo]:
+        """
+        Returns the negotiators whose negotiations did not start yet
+
+        Returns a dictionary mapping negotiator ID to the a tuple containing the negotiator
+        and its context
+        """
+        return {
+            k: v
+            for k, v in self._negotiators.items()
+            if v[0].nmi is not None and not v[0].nmi.state.started
+        }
+
+    @property
+    def started_negotiators(self) -> dict[str, NegotiatorInfo]:
+        """
+        Returns the negotiators whose negotiations started
+
+        Returns a dictionary mapping negotiator ID to the a tuple containing the negotiator
+        and its context
+        """
+        return {
+            k: v
+            for k, v in self._negotiators.items()
+            if v[0].nmi is not None and (v[0].nmi.state.started)
+        }
+
+    @property
     def active_negotiators(self) -> dict[str, NegotiatorInfo]:
         """
-        Returns the negotiators whose negotiations are running.
+        Returns the negotiators whose negotiations running or did not start yet.
 
         Returns a dictionary mapping negotiator ID to the a tuple containing the negotiator
         and its context
