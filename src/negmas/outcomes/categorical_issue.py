@@ -18,7 +18,9 @@ class CategoricalIssue(DiscreteIssue):
         values = list(values)
         self._n_values = len(values)
         self._value_type = (
-            type(values[0]) if len({type(_) for _ in values}) == 1 else object
+            type(values[0])
+            if len({type(_) for _ in values if _ is not None}) == 1
+            else object
         )
         if self.is_numeric():
             self.min_value, self.max_value = min(values), max(values)
@@ -45,7 +47,7 @@ class CategoricalIssue(DiscreteIssue):
     def all(self) -> Generator[Any, None, None]:
         yield from self._values
 
-    def rand_invalid(self):
+    def rand_invalid(self):  # type: ignore
         """Pick a random *invalid* value"""
 
         if self.is_float():
@@ -53,5 +55,8 @@ class CategoricalIssue(DiscreteIssue):
 
         if self.is_integer():
             return random.randint(self.max_value + 1, self.max_value * 2)
+
+        if issubclass(self._value_type, tuple):
+            return (random.randint(100, 200), unique_name(""))
 
         return unique_name("") + str(random.choice(self._values)) + unique_name("")

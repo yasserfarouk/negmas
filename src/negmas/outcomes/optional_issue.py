@@ -65,7 +65,7 @@ class OptionalIssue(Issue):
         """Adds one to the base cardinality to handle None"""
         return self.base.cardinality + 1
 
-    def rand(self) -> int | float | str | None:
+    def rand(self) -> int | float | str | None:  # type: ignore
         """Picks a random valid value."""
         if self.is_continuous():
             return self.base.rand()

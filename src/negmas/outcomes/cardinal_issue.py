@@ -20,7 +20,7 @@ class CardinalIssue(OrdinalIssue):
             )
 
 
-class DiscreteCardinalIssue(DiscreteOrdinalIssue, CardinalIssue):
+class DiscreteCardinalIssue(DiscreteOrdinalIssue, CardinalIssue):  # type: ignore
     """
     An issue that has an ordering and for which differences between values is defined (i.e. subtraction)
     """

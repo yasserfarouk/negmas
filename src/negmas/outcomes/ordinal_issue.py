@@ -29,13 +29,13 @@ class OrdinalIssue(Issue, ABC):
     """
 
     @abstractmethod
-    def ordered_value_generator(
+    def ordered_value_generator(  # type: ignore
         self, n: int = 10, grid=True, compact=False, endpoints=True
     ) -> Generator[Any, None, None]:
         ...
 
 
-class DiscreteOrdinalIssue(DiscreteIssue, OrdinalIssue):
+class DiscreteOrdinalIssue(DiscreteIssue, OrdinalIssue):  # type: ignore
     """
     A `DiscreteIssue` that have some defined ordering of outcomes but not necessarily a meaningful difference function between its values.
     """
@@ -49,7 +49,7 @@ class DiscreteOrdinalIssue(DiscreteIssue, OrdinalIssue):
             values = generate_values(values)
         else:
             values = list(values)
-        types = {type(_) for _ in values}
+        types = {type(_) for _ in values if _ is not None}
         if len(types) == 1:
             type_ = list(types)[0]
         elif all(is_int_type(_) for _ in types):
@@ -78,7 +78,7 @@ class DiscreteOrdinalIssue(DiscreteIssue, OrdinalIssue):
     def all(self) -> Generator[Any, None, None]:
         yield from self._values  # type: ignore
 
-    def rand_invalid(self):
+    def rand_invalid(self):  # type: ignore
         """Pick a random *invalid* value"""
 
         if self.is_float():
@@ -89,7 +89,7 @@ class DiscreteOrdinalIssue(DiscreteIssue, OrdinalIssue):
 
         return unique_name("") + str(random.choice(self._values)) + unique_name("")
 
-    def ordered_value_generator(
+    def ordered_value_generator(  # type: ignore
         self, n: int = 10, grid=True, compact=False, endpoints=True
     ) -> Generator[Any, None, None]:
         """
