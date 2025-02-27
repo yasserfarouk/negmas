@@ -190,6 +190,60 @@ class Controller(Rational, Generic[TNMI, TState, TControlledNegotiator]):
             )
         )
 
+    def partner_negotiator_ids(self, negotiator_id: str) -> list[str] | None:
+        """
+        Finds the negotiator ID negotiating with one of our negotiators.
+
+        Args:
+
+            negotiator_id: Our negotiator ID
+        """
+        negotiator, cntxt = self._negotiators.get(negotiator_id, (None, None))
+        if not negotiator or not negotiator.nmi:
+            return None
+        return [_ for _ in negotiator.nmi.negotiator_ids if _ != negotiator_id]
+
+    def partner_negotiator_names(self, negotiator_id: str) -> list[str] | None:
+        """
+        Finds the negotiator names negotiating with one of our negotiators.
+
+        Args:
+
+            negotiator_id: Our negotiator ID
+        """
+        negotiator, cntxt = self._negotiators.get(negotiator_id, (None, None))
+        if not negotiator or not negotiator.nmi:
+            return None
+        return [_ for _ in negotiator.nmi.negotiator_names if _ != negotiator.name]
+
+    def partner_agent_ids(self, negotiator_id: str) -> list[str] | None:
+        """
+        Finds the agent ID negotiating with one of our negotiators.
+
+        Args:
+
+            negotiator_id: Our negotiator ID
+        """
+        negotiator, _ = self._negotiators.get(negotiator_id, (None, None))
+        if not negotiator or not negotiator.nmi:
+            return None
+        me = negotiator.owner.id if negotiator.owner else ""
+        return [_ for _ in negotiator.nmi.agent_ids if _ and _ != me]
+
+    def partner_agent_names(self, negotiator_id: str) -> list[str] | None:
+        """
+        Finds the negotiator names negotiating with one of our negotiators.
+
+        Args:
+
+            negotiator_id: Our negotiator ID
+        """
+        negotiator, cntxt = self._negotiators.get(negotiator_id, (None, None))
+        if not negotiator or not negotiator.nmi:
+            return None
+        me = negotiator.owner.name if negotiator.owner else ""
+        return [_ for _ in negotiator.nmi.agent_names if _ and _ != me]
+
     def make_negotiator(
         self,
         negotiator_type: str | TControlledNegotiator | None = None,
@@ -304,60 +358,6 @@ class Controller(Rational, Generic[TNMI, TState, TControlledNegotiator]):
         if response or force:
             negotiator._Negotiator__parent = None
             self._negotiators.pop(negotiator_id, None)
-
-    def partner_negotiator_ids(self, negotiator_id: str) -> list[str] | None:
-        """
-        Finds the negotiator ID negotiating with one of our negotiators.
-
-        Args:
-
-            negotiator_id: Our negotiator ID
-        """
-        negotiator, cntxt = self._negotiators.get(negotiator_id, (None, None))
-        if not negotiator or not negotiator.nmi:
-            return None
-        return [_ for _ in negotiator.nmi.negotiator_ids if _ != negotiator_id]
-
-    def partner_negotiator_names(self, negotiator_id: str) -> list[str] | None:
-        """
-        Finds the negotiator names negotiating with one of our negotiators.
-
-        Args:
-
-            negotiator_id: Our negotiator ID
-        """
-        negotiator, cntxt = self._negotiators.get(negotiator_id, (None, None))
-        if not negotiator or not negotiator.nmi:
-            return None
-        return [_ for _ in negotiator.nmi.negotiator_names if _ != negotiator.name]
-
-    def partner_agent_ids(self, negotiator_id: str) -> list[str] | None:
-        """
-        Finds the agent ID negotiating with one of our negotiators.
-
-        Args:
-
-            negotiator_id: Our negotiator ID
-        """
-        negotiator, _ = self._negotiators.get(negotiator_id, (None, None))
-        if not negotiator or not negotiator.nmi:
-            return None
-        me = negotiator.owner.id if negotiator.owner else ""
-        return [_ for _ in negotiator.nmi.agent_ids if _ and _ != me]
-
-    def partner_agent_names(self, negotiator_id: str) -> list[str] | None:
-        """
-        Finds the negotiator names negotiating with one of our negotiators.
-
-        Args:
-
-            negotiator_id: Our negotiator ID
-        """
-        negotiator, cntxt = self._negotiators.get(negotiator_id, (None, None))
-        if not negotiator or not negotiator.nmi:
-            return None
-        me = negotiator.owner.name if negotiator.owner else ""
-        return [_ for _ in negotiator.nmi.agent_names if _ and _ != me]
 
     def before_join(
         self,
