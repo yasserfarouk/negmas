@@ -739,3 +739,211 @@ class DiscreteCartesianOutcomeSpace(CartesianOutcomeSpace):
 
     def __len__(self) -> int:
         return self.cardinality
+
+
+# def flat_issues(
+#     outcome_spaces: tuple[OutcomeSpace, ...],
+#     add_index_to_issue_names: bool = False,
+#     add_os_to_issue_name: bool = False,
+# ) -> tuple[Issue, ...]:
+#     """Generates a single outcome-space which is the Cartesian product of input outcome_spaces."""
+#
+#     from negmas.outcomes import make_issue
+#     from negmas.outcomes.optional_issue import OptionalIssue
+#
+#     def _name(i: int, os_name: str | None, issue_name: str | None) -> str:
+#         x = issue_name if issue_name else ""
+#         if add_os_to_issue_name and os_name:
+#             x = f"{os_name}:{x}"
+#         if add_index_to_issue_names:
+#             x = f"{x}:{i}"
+#         return x
+#
+#     values, names, nissues = [], [], []
+#     for i, os in enumerate(outcome_spaces):
+#         if isinstance(os, EnumeratingOutcomeSpace):
+#             values.append(list(os.enumerate()))
+#             names.append(_name(i, "", os.name))
+#             nissues.append(1)
+#         elif isinstance(os, CartesianOutcomeSpace):
+#             for issue in os.issues:
+#                 values.append(issue.values)
+#                 names.append(_name(i, os.name, issue.name))
+#             nissues.append(len(os.issues))
+#         else:
+#             raise TypeError(
+#                 f"Outcome space of type {type(os)} cannot be combined with other outcome-spaces"
+#             )
+#     return tuple(OptionalIssue(make_issue(v, n), n) for v, n in zip(values, names))
+#
+#
+# @define(frozen=True)
+# class DiscreteCartesianOutcomeSpaceProduct(DiscreteCartesianOutcomeSpace):
+#     """
+#     A discrete outcome-space that is by multiplying multiple discrete outcome spaces
+#     """
+#
+#     issues: tuple[Issue, ...] = field(init=False)  # type: ignore
+#     outcome_spaces: tuple[CartesianOutcomeSpace, ...] = field(init=True, default=None)
+#     _sizes: tuple[int, ...] = field(init=False, default=None)
+#     _extended_sizes: tuple[int, ...] = field(init=False, default=None)
+#     _cardinality: int = field(init=False, default=0)
+#
+#     def __attrs_post_init__(self):
+#         object.__setattr__(self, "issues", flat_issues(self.outcome_spaces))
+#         for issue in self.issues:
+#             if not issue.is_discrete():
+#                 raise ValueError(
+#                     f"Issue is not discrete. Cannot be added to a DiscreteOutcomeSpace. You must discretize it first: {issue} "
+#                 )
+#         object.__setattr__(
+#             self, "_sizes", tuple(int(_.cardinality) for _ in self.outcome_spaces)
+#         )
+#         object.__setattr__(self, "_extended_sizes", tuple(_ + 1 for _ in self._sizes))
+#         object.__setattr__(self, "_cardinality", reduce(mul, self._extended_sizes, 1))
+#
+#     @property
+#     def cardinality(self) -> int:
+#         return self._cardinality
+#
+#     def cardinality_if_discretized(
+#         self, levels: int, max_cardinality: int | float = float("inf")
+#     ) -> int:
+#         return self._cardinality
+#
+#     def enumerate(self) -> Iterable[Outcome]:
+#         return enumerate_discrete_issues(  #  type: ignore I know that all my issues are actually discrete
+#             self.issues  #  type: ignore I know that all my issues are actually discrete
+#         )
+#
+#     def limit_cardinality(
+#         self,
+#         max_cardinality: int | float = float("inf"),
+#         levels: int | float = float("inf"),
+#     ) -> DiscreteCartesianOutcomeSpace:
+#         """
+#         Limits the cardinality of the outcome space to the given maximum (or the number of levels for each issue to `levels`)
+#
+#         Args:
+#             max_cardinality: The maximum number of outcomes in the resulting space
+#             levels: The maximum number of levels for each issue/subissue
+#         """
+#         if self.cardinality <= max_cardinality or all(
+#             _.cardinality < levels for _ in self.issues
+#         ):
+#             return self
+#         new_levels = [_.cardinality for _ in self.issues]  # type: ignore will be corrected the next line
+#         new_levels = [int(_) if _ < levels else int(levels) for _ in new_levels]
+#         new_cardinality = reduce(mul, new_levels, 1)
+#
+#         def _reduce_total_cardinality(new_levels, max_cardinality, new_cardinality):
+#             sort = reversed(sorted((_, i) for i, _ in enumerate(new_levels)))
+#             sorted_levels = [_[0] for _ in sort]
+#             indices = [_[1] for _ in sort]
+#             needed = new_cardinality - max_cardinality
+#             current = 0
+#             n = len(sorted_levels)
+#             while needed > 0 and current < n:
+#                 nxt = n - 1
+#                 v = sorted_levels[current]
+#                 if v == 1:
+#                     continue
+#                 for i in range(current + 1, n - 1):
+#                     if v == sorted_levels[i]:
+#                         continue
+#                     nxt = i
+#                     break
+#                 diff = v - sorted_levels[nxt]
+#                 if not diff:
+#                     diff = 1
+#                 new_levels[indices[current]] -= 1
+#                 max_cardinality = (max_cardinality // v) * (v - 1)
+#                 sort = reversed(sorted((_, i) for i, _ in enumerate(new_levels)))
+#                 sorted_levels = [_[0] for _ in sort]
+#                 current = 0
+#                 needed = new_cardinality - max_cardinality
+#             return new_levels
+#
+#         if new_cardinality > max_cardinality:
+#             new_levels: list[int] = _reduce_total_cardinality(
+#                 new_levels, max_cardinality, new_cardinality
+#             )
+#         issues: list[Issue] = []
+#         for j, i, issue in zip(
+#             new_levels, (_.cardinality for _ in self.issues), self.issues
+#         ):
+#             issues.append(issue if j >= i else issue.to_discrete(j, compact=True))
+#         return DiscreteCartesianOutcomeSpace(
+#             tuple(issues), name=f"{self.name}-{max_cardinality}"
+#         )
+#
+#     def is_discrete(self) -> bool:
+#         """Checks whether there are no continua components of the space"""
+#         return True
+#
+#     def to_discrete(
+#         self, levels: int | float = 10, max_cardinality: int | float = float("inf")
+#     ) -> DiscreteCartesianOutcomeSpace:
+#         return self
+#
+#     def to_single_issue(
+#         self,
+#         numeric=False,
+#         stringify=True,
+#         levels: int = NLEVELS,
+#         max_cardinality: int | float = float("inf"),
+#     ) -> DiscreteCartesianOutcomeSpace:
+#         """
+#         Creates a new outcome space that is a single-issue version of this one
+#
+#         Args:
+#             numeric: If given, the output issue will be a `ContiguousIssue` otherwise it will be a `CategoricalIssue`
+#             stringify:  If given, the output issue will have string values. Checked only if `numeric` is `False`
+#
+#         Remarks:
+#             - maps the agenda and ufuns to work correctly together
+#             - Only works if the outcome space is finite
+#         """
+#         outcomes = list(self.enumerate())
+#         values = (
+#             range(len(outcomes))
+#             if numeric
+#             else [f"v{_}" for _ in range(len(outcomes))]
+#             if stringify
+#             else outcomes
+#         )
+#         issue = (
+#             ContiguousIssue(len(outcomes), name="-".join(self.issue_names))
+#             if numeric
+#             else CategoricalIssue(values, name="-".join(self.issue_names))
+#         )
+#         return DiscreteCartesianOutcomeSpace(issues=(issue,), name=self.name)
+#
+#     # def sample(
+#     #     self,
+#     #     n_outcomes: int,
+#     #     with_replacement: bool = False,
+#     #     fail_if_not_enough=True,
+#     # ) -> Iterable[Outcome]:
+#     #     """
+#     #     Samples up to n_outcomes with or without replacement.
+#     #     """
+#     #
+#     #     return sample_issues(
+#     #         self.issues, n_outcomes, with_replacement, fail_if_not_enough
+#     #     )
+#     #
+#     #     # outcomes = self.enumerate()
+#     #     # outcomes = list(outcomes)
+#     #     # if with_replacement:
+#     #     #     return random.choices(outcomes, k=n_outcomes)
+#     #     # if fail_if_not_enough and n_outcomes > self.cardinality:
+#     #     #     raise ValueError("Cannot sample enough")
+#     #     # random.shuffle(outcomes)
+#     #     # return outcomes[:n_outcomes]
+#
+#     def __iter__(self):
+#         return self.enumerate().__iter__()
+#
+#     def __len__(self) -> int:
+#         return self.cardinality

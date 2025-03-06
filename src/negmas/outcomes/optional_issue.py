@@ -116,7 +116,7 @@ class OptionalIssue(Issue):
         """
         return "optional_" + self.base.__class__.__name__.lower().replace("issue", "")
 
-    def ordered_value_generator(
+    def ordered_value_generator(  # type: ignore
         self, n: int | float | None = None, grid=True, compact=False, endpoints=True
     ) -> Generator[int | None, None, None]:
         yield None
@@ -128,7 +128,7 @@ class OptionalIssue(Issue):
         yield None
         yield from self.base.value_generator(n, grid, compact, endpoints)
 
-    def to_discrete(
+    def to_discrete(  # type: ignore
         self, n: int | float | None = 10, grid=True, compact=True, endpoints=True
     ) -> OptionalIssue:
         return OptionalIssue(self.base.to_discrete(n, grid, compact, endpoints))

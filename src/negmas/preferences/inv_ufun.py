@@ -491,7 +491,7 @@ class PresortingInverseUtilityFunction(InverseUFun):
 
         if len(self._waypoints) <= 0:
             return []
-        rng = self._un_normalize_range(rng, normalized, True)
+        rng = self._un_normalize_range(rng, normalized, False)
         mn, mx = rng
         lo, hi = self._get_limiting_waypoints(mn, mx)
         if lo > hi:
@@ -634,7 +634,7 @@ class PresortingInverseUtilityFunction(InverseUFun):
             - This is an O(log(n)) operation (where n is the number of outcomes)
             - We only search rational outcomes
         """
-        mx, rmn, rmx = self._indx_of_best_in(rng, normalized)
+        mx, rmn, rmx = self._indx_of_worst_in(rng, normalized)
         if mx > self._last_rational or not self._in(self.utils[mx], (rmn, rmx)):
             return None
         mn, rmn, rmx = self._indx_of_worst_in(rng, normalized)

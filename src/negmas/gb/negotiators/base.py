@@ -245,6 +245,7 @@ class GBNegotiator(Negotiator[GBNMI, GBState], Generic[TNMI, TState]):
             owner = self.nmi._mechanism._negotiator_map[offerer].owner
             aid = owner.id if owner else None
             current_offer = state.threads[state.last_thread].new_offer
+            current_data = state.threads[state.last_thread].new_data
             current_proposer = None
             current_proposer_agent = None
             n_acceptances = len(
@@ -255,14 +256,17 @@ class GBNegotiator(Negotiator[GBNMI, GBState], Generic[TNMI, TState]):
                 ]
             )
             new_offers = [(offerer, state.threads[state.last_thread].new_offer)]
+            new_data = [(offerer, state.threads[state.last_thread].new_data)]
             new_offerer_agents = [aid]
             last_negotiator = None
         else:
             current_offer = None
+            current_data = None
             current_proposer = None
             current_proposer_agent = None
             n_acceptances = 0
             new_offers = []
+            new_data = []
             new_offerer_agents = []
             last_negotiator = None
         return SAOState(
@@ -280,10 +284,12 @@ class GBNegotiator(Negotiator[GBNMI, GBState], Generic[TNMI, TState]):
             has_error=state.has_error,
             error_details=state.error_details,
             current_offer=current_offer,
+            current_data=current_data,
             current_proposer=current_proposer,
             current_proposer_agent=current_proposer_agent,
             n_acceptances=n_acceptances,
             new_offers=new_offers,
+            new_data=new_data,
             new_offerer_agents=new_offerer_agents,
             last_negotiator=last_negotiator,
         )

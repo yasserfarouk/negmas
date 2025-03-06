@@ -334,12 +334,14 @@ class TAUNegotiatorAdapter(GBNegotiator):
             has_error=state.has_error,
             error_details=state.error_details,
             current_offer=thread.new_offer,
+            current_data=thread.new_data,
             current_proposer=state.last_thread,
             current_proposer_agent=None,
             n_acceptances=len(
                 [_ for _ in thread.new_responses if _ == ResponseType.ACCEPT_OFFER]
             ),
             new_offers=[(k, _.new_offer) for k, _ in state.threads.items()],
+            new_data=[(k, _.new_data) for k, _ in state.threads.items()],
             new_offerer_agents=[None for _ in state.threads.keys()],
             last_negotiator=state.last_thread,
         )

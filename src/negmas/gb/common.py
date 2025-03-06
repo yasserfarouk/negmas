@@ -46,6 +46,7 @@ class ResponseType(IntEnum):
 @define
 class ThreadState:
     new_offer: Outcome | None = None
+    new_data: dict | None = None
     new_responses: dict[str, ResponseType] = field(factory=dict)
     accepted_offers: list[Outcome] = field(factory=list)
 

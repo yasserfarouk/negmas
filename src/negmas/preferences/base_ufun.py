@@ -223,6 +223,10 @@ class BaseUtilityFunction(Preferences, ABC):
         self._cached_inverse.init()
         return self._cached_inverse
 
+    def forget_inverter(self):
+        """Deletes the cached inverter."""
+        self._cached_inverse = None
+
     def is_volatile(self) -> bool:
         return True
 

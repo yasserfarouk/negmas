@@ -454,6 +454,7 @@ class SAOMechanism(
         state = self._current_state
         if self._frozen_neg_list is None:
             state.new_offers = []
+            state.new_data = []
         negotiators: list[SAONegotiator | GBNegotiator] = self.negotiators
         n_negotiators = len(negotiators)
         # times = dict(zip([_.id for _ in negotiators], itertools.repeat(0.0)))
@@ -601,9 +602,11 @@ class SAOMechanism(
                                 partner_id=neg.id, offer=proposal, state=self.state
                             )
                 state.current_offer = proposal
+                state.current_data = resp.data
                 self._current_proposer = neg
                 state.current_proposer = neg.id
                 state.new_offers.append((neg.id, proposal))
+                state.new_data.append((neg.id, resp.data))
                 if self._last_checked_negotiator >= 0:
                     state.last_negotiator = self.negotiators[
                         self._last_checked_negotiator
