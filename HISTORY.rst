@@ -1,6 +1,15 @@
 History
 =======
 
+
+Release 0.11.2
+--------------
+
+* Allow 0.11.* and 0.10.* signatures for the propose() method in SAONegotiator. You can now use any of the following signatures::
+
+  - def propose(self, state)
+  - def propose(self, state, dest)
+
 Release 0.11.1
 --------------
 

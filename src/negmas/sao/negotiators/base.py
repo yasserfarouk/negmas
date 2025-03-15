@@ -118,10 +118,16 @@ class SAOPRNegotiator(GBNegotiator[SAONMI, SAOState]):
             and self.__my_last_proposal is not None
         ):
             return self.__my_last_proposal
-        self.__my_last_proposal = self.propose(
-            state=state,
-            dest=dest if dest or self.nmi.n_negotiators > 2 else state.current_proposer,
-        )
+        try:
+            self.__my_last_proposal = self.propose(
+                state=state,
+                dest=dest
+                if dest or self.nmi.n_negotiators > 2
+                else state.current_proposer,
+            )
+        except TypeError:
+            self.__my_last_proposal = self.propose(state=state)
+
         self.__my_last_proposal_time = state.step
         return self.__my_last_proposal
 
