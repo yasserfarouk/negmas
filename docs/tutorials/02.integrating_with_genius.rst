@@ -136,19 +136,19 @@ bridge explicitly as described in the previous section*
 Running a negotiation in python
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
-You can run a negotiation between that has some Genius negotiators in
-them in python almost as easily as running a negotiation between two
-native NegMAS negotiators. Here is an example using the scenario we just
-saved:
+You can run a negotiation that has some Genius negotiators in them in
+python almost as easily as running a negotiation between two native
+NegMAS negotiators. Here is an example using the scenario we just saved:
 
 .. code:: ipython3
 
     from pathlib import Path
     from negmas.inout import Scenario
+    from negmas.scenarios import load_scenario
     from negmas.sao.negotiators import AspirationNegotiator
     from negmas.genius.gnegotiators import BoulwareNegotiationParty
 
-    scenario = Scenario.load(Path.home() / "negmas" / "scenarios" / "CameraB")
+    scenario = load_scenario("CameraB")
     session = scenario.make_session(time_limit=10)
     session.add(AspirationNegotiator(preferences=scenario.ufuns[0], name="aspiration"))
     session.add(BoulwareNegotiationParty(preferences=scenario.ufuns[1], name="boulware"))

@@ -24,14 +24,13 @@ import os
 # NON_RTD_THEME = "python_docs_theme"
 # NON_RTD_THEME = "groundwork"
 # on_rtd is whether we are on readthedocs.org
-import sphinx_rtd_theme
 
 on_rtd = os.environ.get("READTHEDOCS", None)
 
 THEME_NAME = "sphinx_rtd_theme"
-THEME_PATH = None
-if not on_rtd:
-    THEME_PATH = [sphinx_rtd_theme.get_html_theme_path()]
+# THEME_PATH = None
+# if not on_rtd:
+#     THEME_PATH = [sphinx_rtd_theme.get_html_theme_path()]
 
 # typing.get_type_hints = lambda obj, *unused: obj
 
@@ -57,8 +56,8 @@ extensions = [
     "sphinx_automodapi.smart_resolver",
     # "nb2plots",
     "sphinx.ext.mathjax",
-    "sphinx_autodoc_typehints",
-    "sphinx_autodoc_annotation",
+    # "sphinx_autodoc_typehints",
+    # "sphinx_autodoc_annotation",
     # "sphinxcontrib.fulltoc",
     "nbsphinx",
     "sphinx_tabs",
@@ -148,8 +147,8 @@ html_theme_options = {
     "titles_only": False,
 }
 html_theme = THEME_NAME
-if THEME_PATH:
-    html_theme_path = THEME_PATH
+# if THEME_PATH:
+#     html_theme_path = THEME_PATH
 
 html_sidebars = {
     "**": ["globaltoc.html", "relations.html", "sourcelink.html", "searchbox.html"]
