@@ -1,6 +1,102 @@
 History
 =======
 
+Release 0.11.0
+--------------
+
+* Freeing numpy version and passing data through
+* minor: do not count None when counting types in issues
+* minor: changing order of methods of controller
+* Adding more negotiator accessors to controllers
+
+  *  negotiators(self) -> dict[str, NegotiatorInfo]:
+  *  unfinished_negotiators(self) -> dict[str, NegotiatorInfo]:
+  *  finished_negotiators(self) -> dict[str, NegotiatorInfo]:
+  *  to_start_negotiators(self) -> dict[str, NegotiatorInfo]:
+  *  started_negotiators(self) -> dict[str, NegotiatorInfo]:
+  *  active_negotiators(self) -> dict[str, NegotiatorInfo]:
+
+* minor: better setting of time limits in run_session()
+* Handling numpy arrays when dumping to yaml
+* [bugfix] Passing python_class_identifier around
+* When serializing/deserializing, not all classes were passing
+* python_class_identifier which resulted in some of them always using
+* [bugfix] __python_class__ which may lead to incorrect deserialization.
+* Ensuring private_info is defined in mapneg
+* Removing dependence on typing
+* Passing extra_paths and extra_modules to deserialize and get_class
+* Exporting calc_outcome_optimality from preferences.ops
+* Avoid going too far when inverting a ufun
+* Added passing numeric_prob to ufun generators. This allows us to generate ufun sets with outcome-spaces that are "sometimes" numeric.
+* Allow passing kwargs to invert() in ufuns
+* python_class_identifier in to_dict during serialization
+* Using python-class-identifier everywhere
+* This paramter to loading/saving functions allows the caller to change the identifier used to mark python classes in dumped files.
+* Adding tau
+* get_class returns None if given None
+* Adding EnumeratingOutcomeSpace
+* This outcome-space represents a set of outcomes with no issue structure.
+* Supporting pydantic in serialization
+* Compatibility with data-model-generator
+* Adding intersection function to issues
+* Renaming serial -> ordered in Mechanism.runall. This way it is less likely to be confused with sequential and it better represents what is happening.
+* Adding ordering_fun for dynamic ordering runall
+* Typing corrections
+* More genius tests
+* Passing a couple of tests of ufun inversion
+* Github Action Updates
+* Fixing testing is some Actions
+* Casting conflict_level output to float
+* Switching to uv
+* Avoiding plotting unnecessarily in a tests
+* Removing SAOCall and SAOPR from ALL_NEGOTIATORS
+* Checking that all indices appear in the ordering
+* Adding sequential option to Mechanism.runall()
+
+  * You can run negotiations sequentially in runall
+  * You can specify the ordering in serial runs explicitly
+
+* Ufuns can have an invalid-value
+* If the offer is not in the outcome-space and the invalid-value is not None, the invalid-value will be returned form __call__ in all ufuns formatting update
+* Adding default negotiator type to all controllers
+* bugfix: Adding context in controllers
+* Extra copying of ufuns and private infos to avoid sharing a copy of the ufun or any private info between the negotiator and the scenario or the negotiators which can cause hard-to-find bugs
+* Adding support for ANL-Agents in negotiate CLI. You can now use anl.anl2024.MissG for example as a negotiator. This will use the anl-agents package if it is installed. You can also pass --share-ufuns and --share-reserved-values to pass opponent ufuns (as in ANL 2024) to negotiators This makes it possible to run a negotiation like this:
+
+  ```bash
+  negotiate --plot -p sao -n anl.anl2024.Shochan -n anl.anl2024.AgentRenting2024 --steps=180 --share-ufuns --no-share-reserved-values
+  ````
+
+* Adding estimated_time_limit/n_steps to NMI
+* Documenting private info
+* Adding atomic_steps to all NMIs
+* Adding history to all states. Moreover, we added extended_trace and trace to SAOP states
+* Doc update: Improving upgrade guide
+* feature: Adding ExtendedOutcome containing data
+* Now SAO and GP negotiators can return an extended outcome from their proposal strategy which consists of an outcome and a dict with extra data. Examples include text, images, videos, arguments, etc. This is now supported for all SAOMechanism and GBMechanism(s).
+* Generating ufuns with variable n_values
+* Improving accuracy of inv-ufun
+* Requiring final scores when complete_only
+* Adding complete_only in Cartesian tournament combination
+* Better loading-saving of cartesian tournaments
+* Upgrading GitHub actions to avoid node 16
+* Stop testing notebooks on 3.10
+* Checking for NMI when filtering in controllers
+* Adding timeout to all github actions
+* Filtering unexpected offers before counter_all
+* Adding is_clean() to controllers
+* Checks that a controller has no negotiators and not internal state (i.e. it is in a blank state)
+* Saving negotiation details in World
+* Default to no neg-step-time-limit in World
+* just-in-time filtering of ended negs to controllers
+* Agent IDs and names in NMI match negotiator order
+* Adding completed/done to MechanismState (= ended)
+* [buffix] new_offers and dominant_outcomes init
+* These were incorrectly intialized to a type list instead of an empty list.
+* Adding Kalai-Smorodinsky to stats
+* The current implementation is approximate
+* Mechanism params saved in scenarios in tournaments
+* Minor printing improvement in tournaments
 
 Release 0.10.23
 ---------------
