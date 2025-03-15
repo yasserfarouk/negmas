@@ -55,6 +55,7 @@ __all__ = [
 
 STATS_MAX_CARDINALITY = 10_000_000_000
 GENIUSWEB_UFUN_TYPES = ("LinearAdditiveUtilitySpace",)
+INFO_FILE_NAME = "_info"
 
 
 def scenario_size(self: Scenario):
@@ -78,6 +79,7 @@ class Scenario:
     ufuns: tuple[UtilityFunction, ...]
     mechanism_type: type[Mechanism] | None = SAOMechanism
     mechanism_params: dict = field(factory=dict)
+    info: dict[str, Any] = field(factory=dict)
 
     def __lt__(self, other: Scenario):
         return scenario_size(self) < scenario_size(other)
@@ -564,6 +566,21 @@ class Scenario:
         for u in serialized["ufuns"]:
             dump(u, folder / f"{u['name']}.{type}", sort_keys=True, compact=compact)
 
+    def load_info_file(self, file: Path):
+        if not file.is_file():
+            return self
+        self.info = load(file)
+        return self
+
+    def load_info(self, folder: PathLike | str):
+        for ext in ("yml", "yaml", "json"):
+            path = Path(folder) / f"{INFO_FILE_NAME}.{ext}"
+            if not path.is_file():
+                continue
+            self.info = load(path)
+            break
+        return self
+
     @staticmethod
     def from_genius_folder(
         path: PathLike | str,
@@ -571,12 +588,15 @@ class Scenario:
         ignore_reserved=False,
         safe_parsing=True,
     ) -> Scenario | None:
-        return load_genius_domain_from_folder(
+        s = load_genius_domain_from_folder(
             folder_name=str(path),
             ignore_discount=ignore_discount,
             ignore_reserved=ignore_reserved,
             safe_parsing=safe_parsing,
         )
+        if s is None:
+            return s
+        return s.load_info(path)
 
     @classmethod
     def load(cls, folder: Path | str, safe_parsing=False) -> Scenario | None:
@@ -590,7 +610,9 @@ class Scenario:
         ):
             domain, _ = finder(folder)
             if domain is not None:
-                return loader(folder, safe_parsing=safe_parsing)
+                s = loader(folder, safe_parsing=safe_parsing)
+                if s is not None:
+                    return s.load_info(folder)
 
     @classmethod
     def is_loadable(cls, path: PathLike | str):
@@ -610,11 +632,12 @@ class Scenario:
     def from_genius_files(
         domain: PathLike,
         ufuns: Iterable[PathLike],
+        info: PathLike | None = None,
         ignore_discount=False,
         ignore_reserved=False,
         safe_parsing=True,
     ) -> Scenario | None:
-        return load_genius_domain(
+        s = load_genius_domain(
             domain,
             [_ for _ in ufuns],
             safe_parsing=safe_parsing,
@@ -623,6 +646,11 @@ class Scenario:
             normalize_utilities=False,
             normalize_max_only=False,
         )
+        if not s:
+            return s
+        if info is not None:
+            return s.load_info_file(Path(info))
+        return s
 
     @staticmethod
     def from_geniusweb_folder(
@@ -632,24 +660,28 @@ class Scenario:
         use_reserved_outcome=False,
         safe_parsing=True,
     ) -> Scenario | None:
-        return load_geniusweb_domain_from_folder(
+        s = load_geniusweb_domain_from_folder(
             folder_name=str(path),
             ignore_discount=ignore_discount,
             use_reserved_outcome=use_reserved_outcome,
             ignore_reserved=ignore_reserved,
             safe_parsing=safe_parsing,
         )
+        if not s:
+            return s
+        return s.load_info(path)
 
     @staticmethod
     def from_geniusweb_files(
         domain: PathLike,
         ufuns: Iterable[PathLike],
+        info: PathLike | None = None,
         ignore_discount=False,
         ignore_reserved=False,
         use_reserved_outcome=False,
         safe_parsing=True,
     ) -> Scenario | None:
-        return load_geniusweb_domain(
+        s = load_geniusweb_domain(
             domain,
             [_ for _ in ufuns],
             safe_parsing=safe_parsing,
@@ -659,6 +691,11 @@ class Scenario:
             normalize_utilities=False,
             normalize_max_only=False,
         )
+        if not s:
+            return s
+        if info is not None:
+            return s.load_info_file(Path(info))
+        return s
 
     @classmethod
     def from_yaml_folder(
@@ -671,19 +708,23 @@ class Scenario:
         domain, ufuns = find_domain_and_utility_files_yaml(path)
         if not domain:
             return None
-        return cls.from_yaml_files(
+        s = cls.from_yaml_files(
             domain=domain,
             ufuns=ufuns,
             ignore_discount=ignore_discount,
             ignore_reserved=ignore_reserved,
             safe_parsing=safe_parsing,
         )
+        if not s:
+            return s
+        return s.load_info(path)
 
     @classmethod
     def from_yaml_files(
         cls,
         domain: PathLike,
         ufuns: Iterable[PathLike],
+        info: PathLike | None = None,
         ignore_discount=False,
         ignore_reserved=False,
         safe_parsing=True,
@@ -734,6 +775,8 @@ class Scenario:
             s = s.remove_discounting()
         if s and ignore_reserved:
             s = s.remove_reserved_values()
+        if info is not None:
+            return s.load_info_file(Path(info))
         return s
 
 
