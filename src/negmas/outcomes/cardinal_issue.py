@@ -1,7 +1,7 @@
 from __future__ import annotations
 from negmas.outcomes.ordinal_issue import DiscreteOrdinalIssue, OrdinalIssue
 
-__all__ = ["CardinalIssue"]
+__all__ = ["CardinalIssue", "DiscreteCardinalIssue"]
 
 
 class CardinalIssue(OrdinalIssue):
