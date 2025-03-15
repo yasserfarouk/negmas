@@ -1,6 +1,12 @@
 History
 =======
 
+Release 0.11.1
+--------------
+
+* added scenarios.load_scenario() to load negotiation scenarios distributed in negmas. Currently only CameraB is available.
+* Documentation update
+
 Release 0.11.0
 --------------
 

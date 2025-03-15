@@ -15,21 +15,12 @@ jobs:
         run: |
           uv sync --all-extras --dev
           uv pip install -e "."
-      - name: "Activate the project"
-        run: source .venv/bin/activate
+      - name: Run tests
+        run: "uv run pytest src/negmas tests/core || uv run pytest --last-failed src/negmas tests/core"
       - name: "Build package"
         run: uv build
       - name: "Check long_description"
         run: "uv run twine check dist/*"
-      - name: Publish distribution 📦 to Test PyPI
-        if: github.event_name == 'push' && startsWith(github.event.ref, 'refs/tags')
-        uses: pypa/gh-action-pypi-publish@release/v1
-        with:
-          user: __token__
-          password: ${{ secrets.pypitesttoken }}
-          repository_url: https://test.pypi.org/legacy/
-      - name: Run tests
-        run: "uv run pytest src/negmas tests/core || uv run pytest --last-failed src/negmas tests/core"
       - name: Publish distribution 📦 to PyPI
         if: github.event_name == 'push' && startsWith(github.event.ref, 'refs/tags')
         uses: pypa/gh-action-pypi-publish@master
