@@ -957,3 +957,6 @@ Download :download:`Notebook<notebooks/03.develop_new_negotiator.ipynb>`.
 
 
 Download :download:`Notebook<notebooks/03.develop_new_negotiator.ipynb>`.
+
+
+Download :download:`Notebook<notebooks/03.develop_new_negotiator.ipynb>`.

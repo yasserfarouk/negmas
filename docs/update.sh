@@ -20,8 +20,11 @@ for fils in ../notebooks/tutorials/*_files ; do
 done
 mv ../notebooks/overview.rst .
 mv ../notebooks/getting_started.rst .
+for fils in ../notebooks/*_files ; do
+    mv $fils .
+done
 mkdir ./figs
-for ext in png jpg pdf; do
+for ext in png jpeg jpg pdf; do
     cp ../notebooks/figs/*.$ext ./figs
 
     mkdir ./tutorials/notebooks

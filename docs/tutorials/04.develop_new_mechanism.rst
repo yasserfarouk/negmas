@@ -707,3 +707,6 @@ Download :download:`Notebook<notebooks/04.develop_new_mechanism.ipynb>`.
 
 
 Download :download:`Notebook<notebooks/04.develop_new_mechanism.ipynb>`.
+
+
+Download :download:`Notebook<notebooks/04.develop_new_mechanism.ipynb>`.

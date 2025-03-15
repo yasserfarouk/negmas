@@ -486,3 +486,6 @@ Download :download:`Notebook<notebooks/01.running_simple_negotiation.ipynb>`.
 
 
 Download :download:`Notebook<notebooks/01.running_simple_negotiation.ipynb>`.
+
+
+Download :download:`Notebook<notebooks/01.running_simple_negotiation.ipynb>`.
