@@ -82,10 +82,10 @@ repeatedly. Every holiday season, an agent can request to negotiate with
 one or more other agents trying to arrange a trip. Each trip is
 described by the following attributes:
 
--  **Active**: Binary issue (either an active trip with lots of hiking,
-   running ,etc or not)
--  **Duration**: Integer issue (between 1 and 7 days)
--  **Cost**: Continuous range issue (between 0.0 and 1.0)
+- **Active**: Binary issue (either an active trip with lots of hiking,
+  running ,etc or not)
+- **Duration**: Integer issue (between 1 and 7 days)
+- **Cost**: Continuous range issue (between 0.0 and 1.0)
 
 All agents involved in a negotiation must agree for the trip to be
 conducted. An agent can request at most :math:`n` negotiations in a
@@ -353,11 +353,11 @@ We then define four data-members that we keep track of:
            self._ufuns: Dict[str, UtilityFunction] = dict()
            self._breach_prob: Dict[str, float] = dict()
 
--  \**_contracts*\* maps step number to the contracts to be executed in
-   it.
--  \**_total_utility, \_ufuns, \_breach_prob*\* maps agent ID to the
-   total utility it currently has, its utility function and its breach
-   probability (the probability of not showing up for a trip).
+- \**_contracts*\* maps step number to the contracts to be executed in
+  it.
+- \**_total_utility, \_ufuns, \_breach_prob*\* maps agent ID to the
+  total utility it currently has, its utility function and its breach
+  probability (the probability of not showing up for a trip).
 
 Joining the world
 ^^^^^^^^^^^^^^^^^
@@ -381,10 +381,10 @@ base class version using ``super()``:
            super().join(x, **kwargs)
            ...
 
--  We need to override the this method in order to set the utility
-   function of the agent that just joined and its breach probability. In
-   both cases, we use the value provided by the user if any and generate
-   an appropriate random value if nothing is provided.
+- We need to override the this method in order to set the utility
+  function of the agent that just joined and its breach probability. In
+  both cases, we use the value provided by the user if any and generate
+  an appropriate random value if nothing is provided.
 
 .. code:: python
 
@@ -560,25 +560,25 @@ These six steps complete all processing of contracts. Nevertheless, we
 still need to override three other methods to define how contracts and
 breaches are stored and the *value* of a contract
 
--  **contract_record** should return a dictionary representing a
-   contract. We simply convert it to a dictionary using a helper
-   function from negmas ``to_flat_dict``:
+- **contract_record** should return a dictionary representing a
+  contract. We simply convert it to a dictionary using a helper function
+  from negmas ``to_flat_dict``:
 
 .. code:: python
 
        return to_flat_dict(contract)
 
--  **breach_record** Same as contract record but for breaches. We do the
-   same.
+- **breach_record** Same as contract record but for breaches. We do the
+  same.
 
 .. code:: python
 
        return to_flat_dict(breach)
 
--  **contract_size** Used to specify some sense of size for contracts.
-   This is only used for statistics and does not affect the operation of
-   the simulation. We define the contract size here as the welfar (total
-   utility of all partners):
+- **contract_size** Used to specify some sense of size for contracts.
+  This is only used for statistics and does not affect the operation of
+  the simulation. We define the contract size here as the welfar (total
+  utility of all partners):
 
 .. code:: python
 
@@ -789,25 +789,25 @@ These callbacks are called by the world at key points of the process
 from a negotiation request to an exeucted/breached contract. The names
 are self-explanatory but we summarize them here:
 
--  **on_neg_request_rejectect/accepted** Called to tell the agent about
-   the fate of a negotiation request it initiated (using
-   ``request_negotiation``). Agents can access the current requests
-   using their ``negotiation_requests`` property to get more information
-   about the request if needed.
--  **on_negotiation_failure.success** Called to tell the agent about the
-   fate of negotiations it engaged in (using its own negotiators). The
-   agent can access the current set of negotiations using its
-   ``negotiations`` property.
--  **set_renegotiation_agenda/respond_to_renegotiation_request** Only
-   needed for worlds that allow re-negotiation of breached contracts.
--  **on_contract_executed/breached** Called to tell the agent about the
-   fate of a contract it signed.
--  There is also an **on_contracts_finalized** callback that is used to
-   tell the agent about which of its agreements have been signed by
-   everyone and became binding and which were canceled because one or
-   more of the partners refused to sign it. In our world, singing is
-   forced so this callback is not necessary and it is not abstract so we
-   did not implement it.
+- **on_neg_request_rejectect/accepted** Called to tell the agent about
+  the fate of a negotiation request it initiated (using
+  ``request_negotiation``). Agents can access the current requests using
+  their ``negotiation_requests`` property to get more information about
+  the request if needed.
+- **on_negotiation_failure.success** Called to tell the agent about the
+  fate of negotiations it engaged in (using its own negotiators). The
+  agent can access the current set of negotiations using its
+  ``negotiations`` property.
+- **set_renegotiation_agenda/respond_to_renegotiation_request** Only
+  needed for worlds that allow re-negotiation of breached contracts.
+- **on_contract_executed/breached** Called to tell the agent about the
+  fate of a contract it signed.
+- There is also an **on_contracts_finalized** callback that is used to
+  tell the agent about which of its agreements have been signed by
+  everyone and became binding and which were canceled because one or
+  more of the partners refused to sign it. In our world, singing is
+  forced so this callback is not necessary and it is not abstract so we
+  did not implement it.
 
 We now have all the ingredients to create specific agents and start
 simulations. In the next tutorial we will develop an agent for this
@@ -832,14 +832,14 @@ works. The most important of these are ``name`` to set a name for the
 world, and ``awi_type`` which controls the type of AWI used to connect
 agents to it.
 
--  name: World Name
--  bulletin_board: A bulletin board object to use. If not given one will
-   be created
--  awi_type: The type used for agent world interfaces (must descend from
-   or behave like ``AgentWorldInterface`` )
--  info: A dictionary of key-value pairs that is kept within the world
-   but never used. It is useful for storing contextual information. For
-   example, when running tournaments.
+- name: World Name
+- bulletin_board: A bulletin board object to use. If not given one will
+  be created
+- awi_type: The type used for agent world interfaces (must descend from
+  or behave like ``AgentWorldInterface`` )
+- info: A dictionary of key-value pairs that is kept within the world
+  but never used. It is useful for storing contextual information. For
+  example, when running tournaments.
 
 Simulation parameters
 ^^^^^^^^^^^^^^^^^^^^^
@@ -847,53 +847,53 @@ Simulation parameters
 These options control how the simulation is run and the order of
 operations in each simulation step.
 
--  n_steps: Total simulation time in steps
+- n_steps: Total simulation time in steps
 
--  time_limit: Real-time limit on the simulation
+- time_limit: Real-time limit on the simulation
 
--  operations: A list of ``Operations`` to run in order during every
-   simulation step. You can use this parameter to set the order of
-   events in your simulation. For example, you can choose when
-   negotiations run relative to the ``simulation_step`` of your world.
-   Available operations include:
+- operations: A list of ``Operations`` to run in order during every
+  simulation step. You can use this parameter to set the order of events
+  in your simulation. For example, you can choose when negotiations run
+  relative to the ``simulation_step`` of your world. Available
+  operations include:
 
-   -  StatsUpdate: Updating statistics stored in ``_stats`` by calling
-      ``update_stats`` of the ``World`` class. Each time this operation
-      is conducted a higher ``stage`` is passed to the ``update_stats``
-      method (the first such call will by default run ``pre_step_stats``
-      and later calls will call ``post_step_stats`` but you can change
-      that.
-   -  SimulationStep: Calling ``simulation_step`` of the ``World``
-      class. Each time this operation is conducted a higher ``stage`` is
-      passed to ``simulation_step``.
-   -  Negotiations: Running all registered negotiations
-   -  ContractSigning: Sign contracts (if enabled)
-   -  ContractExecution: Execute contracts
-   -  AgentSteps: Step all agents by calling their ``step`` method
+  - StatsUpdate: Updating statistics stored in ``_stats`` by calling
+    ``update_stats`` of the ``World`` class. Each time this operation is
+    conducted a higher ``stage`` is passed to the ``update_stats``
+    method (the first such call will by default run ``pre_step_stats``
+    and later calls will call ``post_step_stats`` but you can change
+    that.
+  - SimulationStep: Calling ``simulation_step`` of the ``World`` class.
+    Each time this operation is conducted a higher ``stage`` is passed
+    to ``simulation_step``.
+  - Negotiations: Running all registered negotiations
+  - ContractSigning: Sign contracts (if enabled)
+  - ContractExecution: Execute contracts
+  - AgentSteps: Step all agents by calling their ``step`` method
 
 Negotiation Parameters
 ^^^^^^^^^^^^^^^^^^^^^^
 
 Controls all negotiations conducted during the simulation.
 
--  negotiation_speed: The number of negotiation steps per simulation
-   step. None means infinite
--  neg_n_steps: Maximum number of steps allowed for a negotiation.
--  neg_step_time_limit: Time limit for single step of the negotiation
-   protocol.
--  neg_time_limit: Real-time limit on each single negotiation
--  negotiation_quota_per_step: Number of negotiations an agent is
-   allowed to start per step
--  negotiation_quota_per_simulation: Number of negotiations an agent is
-   allowed to start in the simulation
--  start_negotiations_immediately: If true negotiations start
-   immediately when registered rather than waiting for the next step
--  mechanisms: The mechanism types allowed in this world associated with
-   each keyword arguments to be passed to it. This is a dictionary
-   mapping a class name defining a mechanism to the parameters to use by
-   default for that mechanism. For example, to allow both stacked
-   alternating offers (with some custom setting) and the veto single
-   text mechanisms in your world, you can use something like:
+- negotiation_speed: The number of negotiation steps per simulation
+  step. None means infinite
+- neg_n_steps: Maximum number of steps allowed for a negotiation.
+- neg_step_time_limit: Time limit for single step of the negotiation
+  protocol.
+- neg_time_limit: Real-time limit on each single negotiation
+- negotiation_quota_per_step: Number of negotiations an agent is allowed
+  to start per step
+- negotiation_quota_per_simulation: Number of negotiations an agent is
+  allowed to start in the simulation
+- start_negotiations_immediately: If true negotiations start immediately
+  when registered rather than waiting for the next step
+- mechanisms: The mechanism types allowed in this world associated with
+  each keyword arguments to be passed to it. This is a dictionary
+  mapping a class name defining a mechanism to the parameters to use by
+  default for that mechanism. For example, to allow both stacked
+  alternating offers (with some custom setting) and the veto single text
+  mechanisms in your world, you can use something like:
 
 .. code:: python
 
@@ -915,14 +915,14 @@ reached by their negotiators. You can control whether or not this step
 is needed for any world simulation and how confirmation (i.e. signing)
 is done through these parameters.
 
--  default_signing_delay: The default number of steps between contract
-   conclusion and signing it. Only takes effect if ``force_signing`` is
-   ``False``
--  force_signing: If true, agents are not asked to sign contracts. They
-   are forced to do so. In this case, ``default_singing_delay`` is not
-   effective and signature is immediate
--  batch_signing: If true, contracts are signed in batches not
-   individually
+- default_signing_delay: The default number of steps between contract
+  conclusion and signing it. Only takes effect if ``force_signing`` is
+  ``False``
+- force_signing: If true, agents are not asked to sign contracts. They
+  are forced to do so. In this case, ``default_singing_delay`` is not
+  effective and signature is immediate
+- batch_signing: If true, contracts are signed in batches not
+  individually
 
 Breach Processing
 ^^^^^^^^^^^^^^^^^
@@ -930,16 +930,16 @@ Breach Processing
 When contracts fail to execute, breaches occur. You can control what
 happens when breaches occur using this parameter.
 
--  breach_processing: How to handle breaches. Can be any of
-   ``BreachProcessing`` values. Three options are available:
+- breach_processing: How to handle breaches. Can be any of
+  ``BreachProcessing`` values. Three options are available:
 
-   -  No processing. In this case, the breach is just reported to the
-      breach-list on the bulletin board and that is it.
-   -  Victim, then perpetrator. In this case victims of the breach are
-      given the chance to propose a resolution followed by the
-      perpetrator.
-   -  Renegotiation, where a complete negotiation session is conducted
-      to resolve the breach.
+  - No processing. In this case, the breach is just reported to the
+    breach-list on the bulletin board and that is it.
+  - Victim, then perpetrator. In this case victims of the breach are
+    given the chance to propose a resolution followed by the
+    perpetrator.
+  - Renegotiation, where a complete negotiation session is conducted to
+    resolve the breach.
 
 Logging
 ^^^^^^^
@@ -949,21 +949,21 @@ NegMAS supports both general logs through the ``log*`` methods of the
 methods of the AWI. These parameters control logging. The default
 logging location is ``~/negmas/logs``.
 
--  log_folder: Folder to save all logs
--  log_to_file: If true, will log to a file
--  log_file_name: Name of the log file
--  log_file_level: The log-level to save to file (WARNING, ERROR, INFO,
-   DEBUG, CRITICAL, …)
--  log_ufuns: Log utility functions
--  log_negotiations: Log all negotiation events
--  log_to_screen: Whether to log to screen
--  log_screen_level: The log-level to show on screen (WARNING, ERROR,
-   INFO, DEBUG, CRITICAL, …)
--  no_logs: If True, All logging will be disabled no matter what other
-   options are given.
--  log_stats_every: If nonzero and positive, the period of saving stats
--  construct_graphs: If true, information needed to draw graphs using
-   ``draw`` method are kept.
+- log_folder: Folder to save all logs
+- log_to_file: If true, will log to a file
+- log_file_name: Name of the log file
+- log_file_level: The log-level to save to file (WARNING, ERROR, INFO,
+  DEBUG, CRITICAL, …)
+- log_ufuns: Log utility functions
+- log_negotiations: Log all negotiation events
+- log_to_screen: Whether to log to screen
+- log_screen_level: The log-level to show on screen (WARNING, ERROR,
+  INFO, DEBUG, CRITICAL, …)
+- no_logs: If True, All logging will be disabled no matter what other
+  options are given.
+- log_stats_every: If nonzero and positive, the period of saving stats
+- construct_graphs: If true, information needed to draw graphs using
+  ``draw`` method are kept.
 
 What to save
 ^^^^^^^^^^^^
@@ -971,11 +971,11 @@ What to save
 These settings greatly affect the memory consumption of the simulation.
 It tells NegMAS what exactly do you need to save in-memory.
 
--  save_signed_contracts: Save all signed contracts
--  save_cancelled_contracts: Save all canceled contracts
--  save_negotiations: Save all negotiation records
--  save_resolved_breaches: Save all resolved breaches
--  save_unresolved_breaches: Save all unresolved breaches
+- save_signed_contracts: Save all signed contracts
+- save_cancelled_contracts: Save all canceled contracts
+- save_negotiations: Save all negotiation records
+- save_resolved_breaches: Save all resolved breaches
+- save_unresolved_breaches: Save all unresolved breaches
 
 Exception Handling
 ^^^^^^^^^^^^^^^^^^
@@ -984,15 +984,15 @@ It is inevitable that exceptions will happen in agent code or the
 simulation. This set of parameters control how to handle these
 exceptions.
 
--  ignore_agent_exceptions: Ignore agent exceptions and keep running
--  ignore_mechanism_exceptions: If true, all mechanism exceptions are
-   ignored and the mechanism is aborted
--  ignore_simulation_exceptions: Ignore simulation exceptions and keep
-   running
--  ignore_contract_execution_exceptions: Ignore contract execution
-   exceptions and keep running
--  safe_stats_monitoring: Never throw an exception for a failure to save
-   stats or because of a Stats Monitor object
+- ignore_agent_exceptions: Ignore agent exceptions and keep running
+- ignore_mechanism_exceptions: If true, all mechanism exceptions are
+  ignored and the mechanism is aborted
+- ignore_simulation_exceptions: Ignore simulation exceptions and keep
+  running
+- ignore_contract_execution_exceptions: Ignore contract execution
+  exceptions and keep running
+- safe_stats_monitoring: Never throw an exception for a failure to save
+  stats or because of a Stats Monitor object
 
 Checkpoints
 ^^^^^^^^^^^
@@ -1002,19 +1002,19 @@ recover and continue the simulation later. These checkpoints are not
 stored by default but you can enable them and control their frequency
 and location using this set of parameters
 
--  checkpoint_every: The number of steps to checkpoint after. Set to <=
-   0 to disable
--  checkpoint_folder: The folder to save checkpoints into. Set to None
-   to disable
--  checkpoint_filename: The base filename to use for checkpoints
-   (multiple checkpoints will be prefixed with step number).
--  single_checkpoint: If true, only the most recent checkpoint will be
-   saved.
--  extra_checkpoint_info: Any extra information to save with the
-   checkpoint in the corresponding json file as a dictionary with string
-   keys
--  exist_ok: IF true, checkpoints override existing checkpoints with the
-   same filename.
+- checkpoint_every: The number of steps to checkpoint after. Set to <= 0
+  to disable
+- checkpoint_folder: The folder to save checkpoints into. Set to None to
+  disable
+- checkpoint_filename: The base filename to use for checkpoints
+  (multiple checkpoints will be prefixed with step number).
+- single_checkpoint: If true, only the most recent checkpoint will be
+  saved.
+- extra_checkpoint_info: Any extra information to save with the
+  checkpoint in the corresponding json file as a dictionary with string
+  keys
+- exist_ok: IF true, checkpoints override existing checkpoints with the
+  same filename.
 
 We can now continue to the next tutorials in which we will develop
 agents for your newly created world.

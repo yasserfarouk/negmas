@@ -39,91 +39,90 @@ The package is organized into a set of modules/packages that combine
 together related functionality. There are base modules, protocol
 specific modules, advanced and helper modules.
 
--  **Base Modules** Implements basic automated negotiation
-   functionality:
+- **Base Modules** Implements basic automated negotiation functionality:
 
-   1. **outcomes** This module represents issues, outcome and responses
-      and provides basic functions and methods to operator with and on
-      them.
-   2. **preferences** This modules represents the base type of all
-      preferences and different widely used utility function types
-      including linear and nonlinear utilities and constraint-based
-      utilities. This module also implements basic analysis tools like
-      finding the pareto-frontier, sampling outcomes with given
-      utilities from the outcome space, etc.
-   3. **negotiators** This module represents basic negotiation agent
-      implementation and provides basic interfaces to be overridden
-      (implemented) by higher specialized modules
-   4. **mechanisms** This module represents the most basic conceptual
-      view of a negotiation protocol supporting both mediate and
-      unmediated mechanisms. The term ``mechanism`` was used instead of
-      the more common ``protocol`` to stress the fact that this
-      mechanism need not be a standard negotiation protocol. For example
-      auction mechanisms (like second-price auctions) can easily be
-      implemented as a ``Mechanism`` in negmas.
-   5. **common** Provides data structures that are used by all modules
-      including mechanism-state, and the agent-mechanism-interface.
-   6. **genius** Implements a specific type negotiator for the stacked
-      alternating offers protocol called ``GeniusNegotiator`` which can
-      run ``NegotiationParty`` based agents from the Java
-      `Genius <http://ii.tudelft.nl/genius/>`__ platform.
+  1. **outcomes** This module represents issues, outcome and responses
+     and provides basic functions and methods to operator with and on
+     them.
+  2. **preferences** This modules represents the base type of all
+     preferences and different widely used utility function types
+     including linear and nonlinear utilities and constraint-based
+     utilities. This module also implements basic analysis tools like
+     finding the pareto-frontier, sampling outcomes with given utilities
+     from the outcome space, etc.
+  3. **negotiators** This module represents basic negotiation agent
+     implementation and provides basic interfaces to be overridden
+     (implemented) by higher specialized modules
+  4. **mechanisms** This module represents the most basic conceptual
+     view of a negotiation protocol supporting both mediate and
+     unmediated mechanisms. The term ``mechanism`` was used instead of
+     the more common ``protocol`` to stress the fact that this mechanism
+     need not be a standard negotiation protocol. For example auction
+     mechanisms (like second-price auctions) can easily be implemented
+     as a ``Mechanism`` in negmas.
+  5. **common** Provides data structures that are used by all modules
+     including mechanism-state, and the agent-mechanism-interface.
+  6. **genius** Implements a specific type negotiator for the stacked
+     alternating offers protocol called ``GeniusNegotiator`` which can
+     run ``NegotiationParty`` based agents from the Java
+     `Genius <http://ii.tudelft.nl/genius/>`__ platform.
 
--  **Mechanism Specific Modules** These modules implement the base
-   mechanism, negotiator type(s), state, and related computational
-   resources specific to a single (or a set of related)
-   negotiation/auction protocols
+- **Mechanism Specific Modules** These modules implement the base
+  mechanism, negotiator type(s), state, and related computational
+  resources specific to a single (or a set of related)
+  negotiation/auction protocols
 
-   1. **sao** Implements that stacked alternating offers protocol for
-      unmediated multiparty multi-issue negotiations. Other than
-      providing the ``SAOMechanism`` class representing the protocol,
-      this package provides a set of simple negotiators including the
-      time-based ``AspirationNegotiator``, a
-      ``SimpleTitForTatNegotiator``, among others.
-   2. **st** Implements two basic single-text mediated negotiation
-      protocols (veto and hill-climbing) and the basic negotiator types
-      to support them.
-   3. **mt** Implements and extension of single text mediated protocols
-      to handle multiple *proposed agreements* in parallel.
-   4. **ga** Implements a Genetic Algorithm based single text mediated
-      negotiation protocol
+  1. **sao** Implements that stacked alternating offers protocol for
+     unmediated multiparty multi-issue negotiations. Other than
+     providing the ``SAOMechanism`` class representing the protocol,
+     this package provides a set of simple negotiators including the
+     time-based ``AspirationNegotiator``, a
+     ``SimpleTitForTatNegotiator``, among others.
+  2. **st** Implements two basic single-text mediated negotiation
+     protocols (veto and hill-climbing) and the basic negotiator types
+     to support them.
+  3. **mt** Implements and extension of single text mediated protocols
+     to handle multiple *proposed agreements* in parallel.
+  4. **ga** Implements a Genetic Algorithm based single text mediated
+     negotiation protocol
 
--  **Advanced Negotiation Modules** These modules model advanced
-   negotiation problems and techniques
+- **Advanced Negotiation Modules** These modules model advanced
+  negotiation problems and techniques
 
-   1. **situated** Implements world simulations within which agents with
-      intrinsic utility functions can engage in simultaneous
-      interconnected situated negotiations. It is the most important
-      module for the goals of this library. The ``Agent`` and ``World``
-      classes described in details later belong to this module
-   2. **modeling** This is a set of submodules implementing modeling of
-      opponent utility, opponent strategy, opponent’s future offers and
-      opponent’s probability of accepting offers.
-   3. **elicitation** Implements several preference elicitation during
-      negotiation methods.
-   4. **concurrent** Implements mechanism types, and other computational
-      resources to support concurrent negotiation.
+  1. **situated** Implements world simulations within which agents with
+     intrinsic utility functions can engage in simultaneous
+     interconnected situated negotiations. It is the most important
+     module for the goals of this library. The ``Agent`` and ``World``
+     classes described in details later belong to this module
+  2. **modeling** This is a set of submodules implementing modeling of
+     opponent utility, opponent strategy, opponent’s future offers and
+     opponent’s probability of accepting offers.
+  3. **elicitation** Implements several preference elicitation during
+     negotiation methods.
+  4. **concurrent** Implements mechanism types, and other computational
+     resources to support concurrent negotiation.
 
--  **Helper Modules** These modules provide basic activities that is not
-   directly related to the negotiation but that are relied upon by
-   different base modules. The end user is not expected to interact
-   directly with these modules.
+- **Helper Modules** These modules provide basic activities that is not
+  directly related to the negotiation but that are relied upon by
+  different base modules. The end user is not expected to interact
+  directly with these modules.
 
-   -  **common** Provides common interfaces that are used by all other
-      modules.
-   -  **helpers** Various helper functions and classes used throughout
-      the library including mixins for logging.
-   -  **inout** Provides functions to load and store XML Genius domains
-      and utility functions.
-   -  **java** [Deprecated] Provides an interface to JNegMAS allowing
-      agents and negotiators to be developed in Java.
-   -  **tournaments** Supports creating and running tournaments to
-      compare agents and negotiators.
-   -  **checkpoints** Supports saving and reloading world simulations
-      to/from secondary storage.
-   -  **visualizers** [Under development] Supports visualization of
-      world simulation, negotiation sessions, negotiators, and agents.
-   -  **generics** Provides a set of types and interfaces to increase
-      the representation flexibility of different base modules.
+  - **common** Provides common interfaces that are used by all other
+    modules.
+  - **helpers** Various helper functions and classes used throughout the
+    library including mixins for logging.
+  - **inout** Provides functions to load and store XML Genius domains
+    and utility functions.
+  - **java** [Deprecated] Provides an interface to JNegMAS allowing
+    agents and negotiators to be developed in Java.
+  - **tournaments** Supports creating and running tournaments to compare
+    agents and negotiators.
+  - **checkpoints** Supports saving and reloading world simulations
+    to/from secondary storage.
+  - **visualizers** [Under development] Supports visualization of world
+    simulation, negotiation sessions, negotiators, and agents.
+  - **generics** Provides a set of types and interfaces to increase the
+    representation flexibility of different base modules.
 
 A (not very) brief introduction to NegMAS
 -----------------------------------------
@@ -156,18 +155,17 @@ So now we have the **World** and the **Agent** objects, and we already
 said that the agent does not directly interact with the world. How does
 these two types of entities interact then?
 
--  When the **World** wants to interact with the **Agent**, it calls
-   some method in it. For example, to instruct the agent to *initialize*
-   itself, the world calls the **init()** method defined by the
-   **Agent**. To inform the agent that a negotiation it is involved in
-   is concluded with success, the **World** calls the method
-   **on_negotiation_success()** defined by the agent.
--  When the **Agent** wants to interact with the **World**, it accesses
-   an interface object called an **AgentWorldInterface** or **AWI** for
-   short which provides all the services available to the **Agent**. For
-   example, to request a negotiation with another agent, the **Agent**
-   object needs to call **request_negotiation()** defined in the
-   **AWI**.
+- When the **World** wants to interact with the **Agent**, it calls some
+  method in it. For example, to instruct the agent to *initialize*
+  itself, the world calls the **init()** method defined by the
+  **Agent**. To inform the agent that a negotiation it is involved in is
+  concluded with success, the **World** calls the method
+  **on_negotiation_success()** defined by the agent.
+- When the **Agent** wants to interact with the **World**, it accesses
+  an interface object called an **AgentWorldInterface** or **AWI** for
+  short which provides all the services available to the **Agent**. For
+  example, to request a negotiation with another agent, the **Agent**
+  object needs to call **request_negotiation()** defined in the **AWI**.
 
 The world designer usually defines an AWI for its world that inherits
 NegMAS’s **AgentWorldInterface** class and provides any special services
@@ -296,7 +294,7 @@ is defined by a set of ``values`` and a ``name``.
 
 NegMAS supports a variety of ``Issue`` types.
 
--  Using a set of strings:
+- Using a set of strings:
 
 .. code:: ipython3
 
@@ -324,8 +322,8 @@ NegMAS supports a variety of ``Issue`` types.
 
 
 
--  Using a single integer to give an issue which takes any value from
-   ``0`` to the given integer minus 1:
+- Using a single integer to give an issue which takes any value from
+  ``0`` to the given integer minus 1:
 
 .. code:: ipython3
 
@@ -341,9 +339,9 @@ NegMAS supports a variety of ``Issue`` types.
 
 
 
--  Using a ``tuple`` with a lower and upper real-valued boundaries to
-   give an issue with an infinite number of possibilities (all real
-   numbers in between)
+- Using a ``tuple`` with a lower and upper real-valued boundaries to
+  give an issue with an infinite number of possibilities (all real
+  numbers in between)
 
 .. code:: ipython3
 
@@ -424,7 +422,7 @@ You can pick random valid or invalid values for the issue:
 
 .. parsed-literal::
 
-    [['to be', '20231127H095259847823jJTGt6qBto be20231127H095259847844XtRgNy0I'],
+    [['to be', '20250315H165549399269jJTGt6qBto be20250315H165549399295XtRgNy0I'],
      [6, 10],
      [0.6118970848141451, 1.928063278403899]]
 
@@ -609,12 +607,12 @@ representing a range or a ``list`` of values. This is easier shown:
 
 ``range1`` represents the following range of outcomes:
 
--  **The Problem**: accepts both ``to be`` and ``not to be``
+- **The Problem**: accepts both ``to be`` and ``not to be``
 
--  **number of items**: accepts only the value ``5``
+- **number of items**: accepts only the value ``5``
 
--  **cost**: accepts any real number between ``0.1`` and ``0.2`` up to
-   representation error
+- **cost**: accepts any real number between ``0.1`` and ``0.2`` up to
+  representation error
 
 It is easy to check whether a specific outcome is within a given range:
 
@@ -639,13 +637,13 @@ It is easy to check whether a specific outcome is within a given range:
 In general outcome ranges constraint outcomes depending on the type of
 the constraint:
 
--  **tuple** The outcome must fall within the range specified by the
-   first and second elements. Only valid for values that can be compared
-   using ``__lt__`` (e.g. int, float, str).
--  **single value** The outcome must equal this given value.
--  **list of values** The outcome must be within the list.
--  **list of tuples** The outcome must fall within one of the ranges
-   specified by the tuples.
+- **tuple** The outcome must fall within the range specified by the
+  first and second elements. Only valid for values that can be compared
+  using ``__lt__`` (e.g. int, float, str).
+- **single value** The outcome must equal this given value.
+- **list of values** The outcome must be within the list.
+- **list of tuples** The outcome must fall within one of the ranges
+  specified by the tuples.
 
 Outcome Spaces
 ~~~~~~~~~~~~~~
@@ -672,35 +670,35 @@ set of issues and can be created using ``make_os`` function:
 
 
 A special case of ``CartesianOutcomeSpace`` is a
-``DiscreteCartesianOutcomeSpace`` (see the example above) which represent
-a Cartesian outcome-space with discrete issues (i.e. no issues are
-continuous).
+``DiscreteCartesianOutcomeSpace`` (see the example above) which
+represent a Cartesian outcome-space with discrete issues (i.e. no issues
+are continuous).
 
-``OutcomeSpace`` provide convenient methods for getting information about
-the outcome-space or manipulating it. Some of the most important
+``OutcomeSpace`` provide convenient methods for getting information
+about the outcome-space or manipulating it. Some of the most important
 examples are:
 
--  **is_numeric, is_integer, is_float** Checks if all components of all
-   outcomes are numeric, integer or float.
--  **is_discrete, is_finite, is_continuous** Check if the outcome space
-   itself is discrete, finite or continuous.
--  **cardinality** returns the number of outcomes in the outcome-space.
--  **cardinality_if_discretized** returns the number of outcomes in the
-   outcome-space if we discretize it.
--  **to_discrete, to_largest_discrete** create an discrete outcome-space
-   that ranges over the input outcome-space.
--  **sample** returns outcomes from the outcome-space.
--  **enumerate_or_sample** sample from continuous outcome-spaces and
-   enumerate all outcomes of discrete outcome-spaces.
+- **is_numeric, is_integer, is_float** Checks if all components of all
+  outcomes are numeric, integer or float.
+- **is_discrete, is_finite, is_continuous** Check if the outcome space
+  itself is discrete, finite or continuous.
+- **cardinality** returns the number of outcomes in the outcome-space.
+- **cardinality_if_discretized** returns the number of outcomes in the
+  outcome-space if we discretize it.
+- **to_discrete, to_largest_discrete** create an discrete outcome-space
+  that ranges over the input outcome-space.
+- **sample** returns outcomes from the outcome-space.
+- **enumerate_or_sample** sample from continuous outcome-spaces and
+  enumerate all outcomes of discrete outcome-spaces.
 
 ``DiscreteOutcomeSpace`` is a special case of ``OutcomeSpace``
 representing a finite outcome space and adds some operations including:
 
--  **to_single_issue** generates a single-issue outcome-space with the
-   same number of outcomes as the given outcome-space
--  **limit_cardinality** generates a discrete outcome-space that
-   *approximates* the input outcome-space using at most some predefined
-   number of outcomes.
+- **to_single_issue** generates a single-issue outcome-space with the
+  same number of outcomes as the given outcome-space
+- **limit_cardinality** generates a discrete outcome-space that
+  *approximates* the input outcome-space using at most some predefined
+  number of outcomes.
 
 Utilities and Preferences
 -------------------------
@@ -725,28 +723,28 @@ over utilities.
 a utility distribution. This is achieved through the use of two basic
 type definitions:
 
--  ``Distribution`` That is a probability distribution class capable of
-   representing probabilistic variables having both continuous and
-   discrete distributions and applying basic operations on them
-   (addition, subtraction and multiplication). Currently we use
-   ``scipy.stats`` for modeling these distributions but this is an
-   implementation detail that should not be relied upon as it is likely
-   that the probabilistic framework will be changed in the future to
-   enhance the flexibility of the package and its integration with other
-   probabilistic modeling packages (e.g. PyMC3). A concrete
-   implementation of ``Distribution`` provided by NegMAS is
-   ``ScipyDistribution``. A special case if the ``Real`` distribution
-   which represents a delta distribution :math:`\delta(v)` at a given
-   real value :math:`v` (i.e. :math:`p(x)=1` for :math:`x=v` and
-   :math:`0` otherwise) which acts both as a ``Distribution`` and a
-   ``float``.
+- ``Distribution`` That is a probability distribution class capable of
+  representing probabilistic variables having both continuous and
+  discrete distributions and applying basic operations on them
+  (addition, subtraction and multiplication). Currently we use
+  ``scipy.stats`` for modeling these distributions but this is an
+  implementation detail that should not be relied upon as it is likely
+  that the probabilistic framework will be changed in the future to
+  enhance the flexibility of the package and its integration with other
+  probabilistic modeling packages (e.g. PyMC3). A concrete
+  implementation of ``Distribution`` provided by NegMAS is
+  ``ScipyDistribution``. A special case if the ``Real`` distribution
+  which represents a delta distribution :math:`\delta(v)` at a given
+  real value :math:`v` (i.e. :math:`p(x)=1` for :math:`x=v` and
+  :math:`0` otherwise) which acts both as a ``Distribution`` and a
+  ``float``.
 
--  ``Value`` This is the input and output type used whenever a utility
-   value is to be represented in the whole package. It is defined as a
-   union of a real value and a ``Distribution``
-   (``float | Distribution``). This way, it is possible to pass utility
-   distributions to most functions expecting (or returning) a utility
-   value including utility functions.
+- ``Value`` This is the input and output type used whenever a utility
+  value is to be represented in the whole package. It is defined as a
+  union of a real value and a ``Distribution``
+  (``float | Distribution``). This way, it is possible to pass utility
+  distributions to most functions expecting (or returning) a utility
+  value including utility functions.
 
 This means that both of the following are valid utility values
 
@@ -962,7 +960,7 @@ Notice that (as the last example shows) utility functions can return
 outcome/offer.
 
 Preferences Protocols
-~~~~~~~~~~~~~~~~~~~~
+~~~~~~~~~~~~~~~~~~~~~
 
 The ``preferences`` module provide a set of other python protocols that
 guarantee that a given ``Preferences`` object has some predefined
@@ -1311,14 +1309,14 @@ two different local ones:
 
 There are three nonlinear functions in this example:
 
--  A global function which gives a utility of ``5.0`` everywhere
--  A local function which gives a utility of ``2.0`` to any outcome for
-   which the first issue (issue ``0``) has a value between
-   ``1.0 and``\ 2.0\ ``and the second issue (issue``\ 1\ ``) has a value between``\ 1.0\ ``and``\ 2.0\ ``which is represented as:``\ {0:
-   (1.0, 2.0), 1: (1.0, 2.0)}`\`
--  A second local function which gives a utility that depends on both
-   the third and first issues ``(lambda x: 2 * x[2] + x[0]``) on the
-   range ``{0: (1.4, 2.0), 2: (2.0, 3.0)}``.
+- A global function which gives a utility of ``5.0`` everywhere
+- A local function which gives a utility of ``2.0`` to any outcome for
+  which the first issue (issue ``0``) has a value between
+  ``1.0 and``\ 2.0\ ``and the second issue (issue``\ 1\ ``) has a value between``\ 1.0\ ``and``\ 2.0\ ``which is represented as:``\ {0:
+  (1.0, 2.0), 1: (1.0, 2.0)}`\`
+- A second local function which gives a utility that depends on both the
+  third and first issues ``(lambda x: 2 * x[2] + x[0]``) on the range
+  ``{0: (1.4, 2.0), 2: (2.0, 3.0)}``.
 
 You can also have weights for combining these functions linearly. The
 default is just to sum all values from these functions to calculate the
@@ -1340,8 +1338,8 @@ constraints:
 
 
 
--  An outcome that falls in the range of the global and first local
-   constraints only:
+- An outcome that falls in the range of the global and first local
+  constraints only:
 
 .. code:: ipython3
 
@@ -1356,7 +1354,7 @@ constraints:
 
 
 
--  An outcome that misses a value for some of the issues:
+- An outcome that misses a value for some of the issues:
 
 .. code:: ipython3
 
@@ -1366,7 +1364,7 @@ constraints:
 
 .. raw:: html
 
-    <pre style="white-space:pre;overflow-x:auto;line-height:normal;font-family:Menlo,'DejaVu Sans Mono',consolas,'Courier New',monospace"><span style="color: #800080; text-decoration-color: #800080; font-style: italic">None</span>
+    <pre style="white-space:pre;overflow-x:auto;line-height:normal;font-family:Menlo,'DejaVu Sans Mono',consolas,'Courier New',monospace">nan
     </pre>
 
 
@@ -1466,15 +1464,15 @@ Utility Helpers and Analysis Tools
 NegMAS provides a set of functions that help with common tasks required
 while developing negotiation agents. These are some examples:
 
--  **pareto_frontier** Finds the pareto-frontier of a set of utility
-   functions.
--  **make_discounted_ufun** Takes a utility function and returns one
-   that is discounted (linearly and/or exponentially).
--  **normalize** Normalizes a utility function within a given range.
--  **outcome_with_utility** Finds an outcome with a utility within some
-   range.
--  **minmax** Finds the range of values of a utility function and
-   outcomes with highest and lowest utilities.
+- **pareto_frontier** Finds the pareto-frontier of a set of utility
+  functions.
+- **make_discounted_ufun** Takes a utility function and returns one that
+  is discounted (linearly and/or exponentially).
+- **normalize** Normalizes a utility function within a given range.
+- **outcome_with_utility** Finds an outcome with a utility within some
+  range.
+- **minmax** Finds the range of values of a utility function and
+  outcomes with highest and lowest utilities.
 
 Responses
 ---------
@@ -1486,24 +1484,24 @@ Negotiators can then respond with one of the values defined by the
 ``Response`` enumeration in the ``outcomes`` module. Currently these
 are:
 
--  **ACCEPT_OFFER** Accepts the offer.
--  **REJECT_OFFER** Rejects the offer.
--  **END_NEGOTIATION** This implies rejection of the offer and further
-   more indicates that the agent is not willing to continue with the
-   negotiation. The protocol is free to handle this situation. It may
-   just end the negotiation with no agreement, may just remove the agent
-   from the negotiation and keep it running with the remaining agents
-   (if that makes sense) or just gives the agent a second chance by
-   treating it as just a ``REJECT_OFFER`` case. In most case the first
-   response (just end the negotiation) is expected.
--  **NO_RESPONSE** Making no response at all. This is usually not
-   allowed by negotiation protocols and will be considered a protocol
-   violation in most cases. Nevertheless, negotiation protocols are free
-   to handle this response when it arise in any way.
--  **WAIT** Used to make the negotiation wait for a slow running process
-   in one of the negotiators. This should never be returned from user
-   code. It is used by some builtin controllers in the system to
-   synchronize responses (e.g. ``SAOSyncController`` )
+- **ACCEPT_OFFER** Accepts the offer.
+- **REJECT_OFFER** Rejects the offer.
+- **END_NEGOTIATION** This implies rejection of the offer and further
+  more indicates that the agent is not willing to continue with the
+  negotiation. The protocol is free to handle this situation. It may
+  just end the negotiation with no agreement, may just remove the agent
+  from the negotiation and keep it running with the remaining agents (if
+  that makes sense) or just gives the agent a second chance by treating
+  it as just a ``REJECT_OFFER`` case. In most case the first response
+  (just end the negotiation) is expected.
+- **NO_RESPONSE** Making no response at all. This is usually not allowed
+  by negotiation protocols and will be considered a protocol violation
+  in most cases. Nevertheless, negotiation protocols are free to handle
+  this response when it arise in any way.
+- **WAIT** Used to make the negotiation wait for a slow running process
+  in one of the negotiators. This should never be returned from user
+  code. It is used by some builtin controllers in the system to
+  synchronize responses (e.g. ``SAOSyncController`` )
 
 Rational Entities
 -----------------
@@ -1512,23 +1510,22 @@ A ``Rational`` entity in NegMAS is an object that has an associated
 ``UtilityFunction``. There are three types of ``Rational`` entities
 defined in the library:
 
--  **Negotiator** represents a negotiation agent that can interact with
-   ``Mechanism`` objects (representing negotiation protocols) using a
-   dedicated ``AgentMechanismInterface`` the defines public information
-   of the mechanism. A negotiator is tied to a single negotiation.
--  **Agent** represents a more complex entity than a negotiation agent.
-   It does not interact directly with negotiation protocols (i.e. it
-   does not have an ``AgentMechanismInterface``) and is needed when
-   there is a need to adjust behavior in multiple negotiations and/or
-   when there is a need to interact with a simulation or the real world
-   (represented in negmas by a ``World`` object) through an
-   ``AgentWorldInterface``.
--  **Controller** A mid-level entity between ``Negotiator`` and
-   ``Agent``. It can *control* multiple negotiator objects at the same
-   time but it cannot interact with mechanisms or worlds directly.
-   Usually controllers are created by agents to manage a set of
-   interrelated negotiations through dedicated negotiators in each of
-   them.
+- **Negotiator** represents a negotiation agent that can interact with
+  ``Mechanism`` objects (representing negotiation protocols) using a
+  dedicated ``AgentMechanismInterface`` the defines public information
+  of the mechanism. A negotiator is tied to a single negotiation.
+- **Agent** represents a more complex entity than a negotiation agent.
+  It does not interact directly with negotiation protocols (i.e. it does
+  not have an ``AgentMechanismInterface``) and is needed when there is a
+  need to adjust behavior in multiple negotiations and/or when there is
+  a need to interact with a simulation or the real world (represented in
+  negmas by a ``World`` object) through an ``AgentWorldInterface``.
+- **Controller** A mid-level entity between ``Negotiator`` and
+  ``Agent``. It can *control* multiple negotiator objects at the same
+  time but it cannot interact with mechanisms or worlds directly.
+  Usually controllers are created by agents to manage a set of
+  interrelated negotiations through dedicated negotiators in each of
+  them.
 
 Negotiators
 ~~~~~~~~~~~
@@ -1602,35 +1599,35 @@ Putting Everything together
 Other than ``Rational`` objects, NegMAS defines two types of entities
 that orchestrate the interactions between ``Rational`` objects:
 
--  **Mechanisms** represent interaction protocols which can be
-   negotiation protocols or auctions. A ``Mechanism`` object connects a
-   set of ``Negotiator``\ s and implements the interaction protocol.
--  **Worlds** represent either the real world or (usually) a simulation
-   that connects ``Agent``\ s together. ``Agent``\ s can find each other
-   using the world’s ``BulletinBoard`` (or other mechanisms defined by
-   the world simulation), they can act in the world, receive state from
-   it and – most importantly for our current purposes – request/run
-   negotiations involving other agents (through dedicated ``Controller``
-   and/or ``Negotiator`` objects).
+- **Mechanisms** represent interaction protocols which can be
+  negotiation protocols or auctions. A ``Mechanism`` object connects a
+  set of ``Negotiator``\ s and implements the interaction protocol.
+- **Worlds** represent either the real world or (usually) a simulation
+  that connects ``Agent``\ s together. ``Agent``\ s can find each other
+  using the world’s ``BulletinBoard`` (or other mechanisms defined by
+  the world simulation), they can act in the world, receive state from
+  it and – most importantly for our current purposes – request/run
+  negotiations involving other agents (through dedicated ``Controller``
+  and/or ``Negotiator`` objects).
 
 A picture is worth a thousand words. The following figure shows how all
 the classes we mentioned so far fit together
 
 The most important points to notice about this figure are the following:
 
--  Almost all entities are ``NamedObject``\ s which means they have a
-   *user assigned* name used for debugging, printing, and logging, and a
-   *system assigned* id used when programmatically accessing the object.
-   For example, agents request negotiations with other agents from the
-   world using the partner’s *id* not *name*.
--  ``Controller`` objects can access neither worlds nor mechanisms
-   directly and they depend on agents to create them and on negotiators
-   to negotiate for them.
--  A ``UtilityFunction`` in negmas is an active entity, it is not just a
-   mathematical function but it can have state, access the mechanism
-   state or settings (through its own ``AgentMechanismInterface``) and
-   can change its returned value for the same output during the
-   negotiation. Ufuns need not be dynamic in this sense but they can be.
+- Almost all entities are ``NamedObject``\ s which means they have a
+  *user assigned* name used for debugging, printing, and logging, and a
+  *system assigned* id used when programmatically accessing the object.
+  For example, agents request negotiations with other agents from the
+  world using the partner’s *id* not *name*.
+- ``Controller`` objects can access neither worlds nor mechanisms
+  directly and they depend on agents to create them and on negotiators
+  to negotiate for them.
+- A ``UtilityFunction`` in negmas is an active entity, it is not just a
+  mathematical function but it can have state, access the mechanism
+  state or settings (through its own ``AgentMechanismInterface``) and
+  can change its returned value for the same output during the
+  negotiation. Ufuns need not be dynamic in this sense but they can be.
 
 Mechanisms (Negotiations)
 -------------------------
@@ -1641,44 +1638,27 @@ module.
 All protocols in the package inherit from the ``Mechanism`` class and
 provide the following basic functionalities:
 
--  checking ``capabilities`` of agents against ``requirements`` of the
-   protocol
--  allowing agents to be join and leave the negotiation under the
-   control of the underlying protocol. For example the protocol may
-   allow or disallow agents from entering the negotiation once it
-   started, it may allow or disallow modifying the issues being
-   negotiated, may allow only a predefined maximum and minimum number of
-   agents to engage in the negotiation. All of this is controlled
-   through parameters to the protocol initializer.
--  provide the basic flow of protocols so that new protocols can be
-   implemented by just overriding a single ``__call__()`` function.
--  provide basic callbacks that can be extended by new protocols.
+- checking ``capabilities`` of agents against ``requirements`` of the
+  protocol
+- allowing agents to be join and leave the negotiation under the control
+  of the underlying protocol. For example the protocol may allow or
+  disallow agents from entering the negotiation once it started, it may
+  allow or disallow modifying the issues being negotiated, may allow
+  only a predefined maximum and minimum number of agents to engage in
+  the negotiation. All of this is controlled through parameters to the
+  protocol initializer.
+- provide the basic flow of protocols so that new protocols can be
+  implemented by just overriding a single ``__call__()`` function.
+- provide basic callbacks that can be extended by new protocols.
 
-   .. container:: alert alert-block alert-warning
+.. container:: alert alert-block alert-warning
 
-      Protocols must extend any callback (i.e. call the ``super()``
-      version) instead of overriding them as they may do some actions to
-      ensure correct processing.
+   Protocols must extend any callback (i.e. call the ``super()``
+   version) instead of overriding them as they may do some actions to
+   ensure correct processing.
 
 The simplest way to use a protocol is to just run one of the already
 provided protocols. This is an example of a full negotiation session:
-
-.. code:: ipython3
-
-    p = SAOMechanism(outcomes=6, n_steps=10)
-    p.add(LimitedOutcomesNegotiator(name="seller", acceptable_outcomes=[(2,), (3,), (5,)]))
-    p.add(LimitedOutcomesNegotiator(name="buyer", acceptable_outcomes=[(1,), (4,), (3,)]))
-    state = p.run()
-    p.state.agreement
-
-
-
-
-.. parsed-literal::
-
-    (3,)
-
-
 
 You can create a new protocol by overriding a single function in the
 ``Mechanism`` class.
@@ -1812,8 +1792,6 @@ Our mechanism keeps a history in the form of a list of
           <th>agreement</th>
           <th>results</th>
           <th>...</th>
-          <th>error_details</th>
-          <th>threads</th>
           <th>last_thread</th>
           <th>current_offer</th>
           <th>current_proposer</th>
@@ -1822,6 +1800,8 @@ Our mechanism keeps a history in the form of a list of
           <th>new_offers</th>
           <th>new_offerer_agents</th>
           <th>last_negotiator</th>
+          <th>current_data</th>
+          <th>new_data</th>
         </tr>
       </thead>
       <tbody>
@@ -1832,26 +1812,26 @@ Our mechanism keeps a history in the form of a list of
           <td>True</td>
           <td>0</td>
           <td>0.0</td>
-          <td>0.0</td>
+          <td>0.090909</td>
           <td>False</td>
           <td>False</td>
           <td>(3,)</td>
           <td>None</td>
           <td>...</td>
           <td></td>
-          <td>{}</td>
-          <td></td>
           <td>(3,)</td>
           <td>None</td>
           <td>None</td>
           <td>0</td>
-          <td>&lt;class 'list'&gt;</td>
-          <td>&lt;class 'list'&gt;</td>
+          <td>[]</td>
+          <td>[]</td>
           <td>None</td>
+          <td>None</td>
+          <td>[]</td>
         </tr>
       </tbody>
     </table>
-    <p>1 rows × 22 columns</p>
+    <p>1 rows × 26 columns</p>
     </div>
 
 
@@ -1964,7 +1944,7 @@ to confirm that the current offer and its source are stored.
           <th>0</th>
           <td>0</td>
           <td>(3,)</td>
-          <td>0.0</td>
+          <td>0.090909</td>
           <td>False</td>
           <td>False</td>
           <td>(3,)</td>
@@ -2033,7 +2013,7 @@ acceptable outcomes in our case):
           <th>0</th>
           <td>0</td>
           <td>None</td>
-          <td>0.000000</td>
+          <td>0.142857</td>
           <td>False</td>
           <td>False</td>
           <td>(5,)</td>
@@ -2153,7 +2133,7 @@ agree upon:
           <th>0</th>
           <td>0</td>
           <td>None</td>
-          <td>0.000000</td>
+          <td>0.142857</td>
           <td>False</td>
           <td>False</td>
           <td>(0,)</td>

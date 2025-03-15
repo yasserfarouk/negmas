@@ -3,6 +3,7 @@ rm ./tutorials.rst
 cp ./tutorials_template ./tutorials.rst
 echo "    " >> ./tutorials.rst
 jupyter nbconvert --TagRemovePreprocessor.remove_cell_tags "remove_cell" --to rst ../notebooks/overview.ipynb
+jupyter nbconvert --TagRemovePreprocessor.remove_cell_tags "remove_cell" --to rst ../notebooks/getting_started.ipynb
 for notebook in `ls ../notebooks/tutorials/*.ipynb | sort -g` ; do
     jupyter nbconvert --TagRemovePreprocessor.remove_cell_tags "remove_cell" --to rst "$notebook"
     jupyter nbconvert --TagRemovePreprocessor.remove_cell_tags "remove_cell" --to rst "$notebook"
@@ -18,6 +19,7 @@ for fils in ../notebooks/tutorials/*_files ; do
     mv $fils ./tutorials
 done
 mv ../notebooks/overview.rst .
+mv ../notebooks/getting_started.rst .
 mkdir ./figs
 for ext in png jpg pdf; do
     cp ../notebooks/figs/*.$ext ./figs

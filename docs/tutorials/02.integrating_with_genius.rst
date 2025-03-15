@@ -84,23 +84,22 @@ it to some place in your hard-disk to use later for the negotiation. Or
 just run the following command to download it to
 ``negmas/scenarios/CameraB`` under your home directory:
 
--  On Linux and
+- On Linux and
 
-   .. code:: bash
+  .. code:: bash
 
-      curl https://yasserfarouk.github.io/files/CameraB.zip --create-dirs -o $HOME/negmas/scenarios/CameraB.zip
-      unzip $HOME/negmas/scenarios/CameraB.zip -d $HOME/negmas/scenarios/
-      rm $HOME/negmas/scenarios/CameraB.zip
+     curl https://yasserfarouk.github.io/files/CameraB.zip --create-dirs -o $HOME/negmas/scenarios/CameraB.zip
+     unzip $HOME/negmas/scenarios/CameraB.zip -d $HOME/negmas/scenarios/
+     rm $HOME/negmas/scenarios/CameraB.zip
 
--  On Windows (You’ll need an unzip utility like
-   `7-Zip <https://www.7-zip.org/>`__ installed for this script to
-   work.)
+- On Windows (You’ll need an unzip utility like
+  `7-Zip <https://www.7-zip.org/>`__ installed for this script to work.)
 
-   .. code:: powershell
+  .. code:: powershell
 
-      Invoke-WebRequest -Uri https://yasserfarouk.github.io/files/CameraB.zip -OutFile $HOME/negmas/scenarios/CameraB.zip
-      7z x $HOME/negmas/scenarios/CameraB.zip -o$HOME\negmas\scenarios
-      Remove-Item $HOME/negmas/scenarios/CameraB.zip
+     Invoke-WebRequest -Uri https://yasserfarouk.github.io/files/CameraB.zip -OutFile $HOME/negmas/scenarios/CameraB.zip
+     7z x $HOME/negmas/scenarios/CameraB.zip -o$HOME\negmas\scenarios
+     Remove-Item $HOME/negmas/scenarios/CameraB.zip
 
 Running a negotiation from the command line
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
@@ -198,16 +197,16 @@ objects to NegMAS. The most important difference between a
 point of view is the way they are constructed. A ``GeniusNegotiator``
 has the following extra parameters in its ``__init__()`` function:
 
--  java_class_name (str \| None) – The java class name of the Geinus
-   underlying agent
--  domain_file_name (str \| Path \| None) – Optional domain file name
-   (containing the negotiation issues or agenda)
--  utility_file_name (str \| Path \| None) – Optional ufun file name
-   (xml) from which a ufun will be loaded for the agent-
--  auto_load_java (bool) – Load the genius bridge if needed
--  port (int) – The port to load the genius bridge to (or use if it is
-   already loaded)
--  genius_bridge_path (str \| None) – The path to the genius bridge
+- java_class_name (str \| None) – The java class name of the Geinus
+  underlying agent
+- domain_file_name (str \| Path \| None) – Optional domain file name
+  (containing the negotiation issues or agenda)
+- utility_file_name (str \| Path \| None) – Optional ufun file name
+  (xml) from which a ufun will be loaded for the agent-
+- auto_load_java (bool) – Load the genius bridge if needed
+- port (int) – The port to load the genius bridge to (or use if it is
+  already loaded)
+- genius_bridge_path (str \| None) – The path to the genius bridge
 
 Inside ``genius.gnegotiators`` we simply create classes for all Genius
 agents like this:

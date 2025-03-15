@@ -216,7 +216,11 @@ exchanged (along with the agent that offered it):
 
 .. parsed-literal::
 
-    [('buyer-0fc1def3-d56c-47c0-84f5-708d67ffbbb3', (3, 10, 7))]
+    [('buyer-bd2870df-6a60-4a8b-8c78-1cbe4e8583d4', (3, 5, 8)),
+     ('seller-41ae35d0-af57-46d3-970c-165fe031aa13', (5, 10, 2)),
+     ('buyer-bd2870df-6a60-4a8b-8c78-1cbe4e8583d4', (2, 10, 5)),
+     ('seller-41ae35d0-af57-46d3-970c-165fe031aa13', (9, 1, 9)),
+     ('buyer-bd2870df-6a60-4a8b-8c78-1cbe4e8583d4', (6, 8, 7))]
 
 
 
@@ -290,9 +294,9 @@ following signature:
 The ``ResponseType`` returned is an enum with different possible
 options. We are only interested in three of them:
 
--  ACCEPT_OFFER: Accept
--  REJECT_OFFER: Reject
--  END_NEGOTIATION: End the negotiation immediately
+- ACCEPT_OFFER: Accept
+- REJECT_OFFER: Reject
+- END_NEGOTIATION: End the negotiation immediately
 
 Here is how we can add our acceptance strategy:
 
@@ -341,24 +345,28 @@ negotiation:
         <span style="color: #808000; text-decoration-color: #808000">waiting</span>=<span style="color: #ff0000; text-decoration-color: #ff0000; font-style: italic">False</span>,
         <span style="color: #808000; text-decoration-color: #808000">started</span>=<span style="color: #00ff00; text-decoration-color: #00ff00; font-style: italic">True</span>,
         <span style="color: #808000; text-decoration-color: #808000">step</span>=<span style="color: #008080; text-decoration-color: #008080; font-weight: bold">3</span>,
-        <span style="color: #808000; text-decoration-color: #808000">time</span>=<span style="color: #008080; text-decoration-color: #008080; font-weight: bold">0.0005532499926630408</span>,
+        <span style="color: #808000; text-decoration-color: #808000">time</span>=<span style="color: #008080; text-decoration-color: #008080; font-weight: bold">0.0007858330063754693</span>,
         <span style="color: #808000; text-decoration-color: #808000">relative_time</span>=<span style="color: #008080; text-decoration-color: #008080; font-weight: bold">0.19047619047619047</span>,
         <span style="color: #808000; text-decoration-color: #808000">broken</span>=<span style="color: #ff0000; text-decoration-color: #ff0000; font-style: italic">False</span>,
         <span style="color: #808000; text-decoration-color: #808000">timedout</span>=<span style="color: #ff0000; text-decoration-color: #ff0000; font-style: italic">False</span>,
-        <span style="color: #808000; text-decoration-color: #808000">agreement</span>=<span style="font-weight: bold">(</span><span style="color: #008080; text-decoration-color: #008080; font-weight: bold">7</span>, <span style="color: #008080; text-decoration-color: #008080; font-weight: bold">3</span>, <span style="color: #008080; text-decoration-color: #008080; font-weight: bold">0</span><span style="font-weight: bold">)</span>,
+        <span style="color: #808000; text-decoration-color: #808000">agreement</span>=<span style="font-weight: bold">(</span><span style="color: #008080; text-decoration-color: #008080; font-weight: bold">3</span>, <span style="color: #008080; text-decoration-color: #008080; font-weight: bold">11</span>, <span style="color: #008080; text-decoration-color: #008080; font-weight: bold">0</span><span style="font-weight: bold">)</span>,
         <span style="color: #808000; text-decoration-color: #808000">results</span>=<span style="color: #800080; text-decoration-color: #800080; font-style: italic">None</span>,
         <span style="color: #808000; text-decoration-color: #808000">n_negotiators</span>=<span style="color: #008080; text-decoration-color: #008080; font-weight: bold">2</span>,
         <span style="color: #808000; text-decoration-color: #808000">has_error</span>=<span style="color: #ff0000; text-decoration-color: #ff0000; font-style: italic">False</span>,
         <span style="color: #808000; text-decoration-color: #808000">error_details</span>=<span style="color: #008000; text-decoration-color: #008000">''</span>,
+        <span style="color: #808000; text-decoration-color: #808000">erred_negotiator</span>=<span style="color: #008000; text-decoration-color: #008000">''</span>,
+        <span style="color: #808000; text-decoration-color: #808000">erred_agent</span>=<span style="color: #008000; text-decoration-color: #008000">''</span>,
         <span style="color: #808000; text-decoration-color: #808000">threads</span>=<span style="font-weight: bold">{}</span>,
         <span style="color: #808000; text-decoration-color: #808000">last_thread</span>=<span style="color: #008000; text-decoration-color: #008000">''</span>,
-        <span style="color: #808000; text-decoration-color: #808000">current_offer</span>=<span style="font-weight: bold">(</span><span style="color: #008080; text-decoration-color: #008080; font-weight: bold">7</span>, <span style="color: #008080; text-decoration-color: #008080; font-weight: bold">3</span>, <span style="color: #008080; text-decoration-color: #008080; font-weight: bold">0</span><span style="font-weight: bold">)</span>,
-        <span style="color: #808000; text-decoration-color: #808000">current_proposer</span>=<span style="color: #008000; text-decoration-color: #008000">'buyer-75c6ca59-85ea-41dd-8957-2cb944f88990'</span>,
+        <span style="color: #808000; text-decoration-color: #808000">current_offer</span>=<span style="font-weight: bold">(</span><span style="color: #008080; text-decoration-color: #008080; font-weight: bold">3</span>, <span style="color: #008080; text-decoration-color: #008080; font-weight: bold">11</span>, <span style="color: #008080; text-decoration-color: #008080; font-weight: bold">0</span><span style="font-weight: bold">)</span>,
+        <span style="color: #808000; text-decoration-color: #808000">current_proposer</span>=<span style="color: #008000; text-decoration-color: #008000">'buyer-63fd1074-5d79-4f49-9226-32fe564bf016'</span>,
         <span style="color: #808000; text-decoration-color: #808000">current_proposer_agent</span>=<span style="color: #800080; text-decoration-color: #800080; font-style: italic">None</span>,
         <span style="color: #808000; text-decoration-color: #808000">n_acceptances</span>=<span style="color: #008080; text-decoration-color: #008080; font-weight: bold">2</span>,
-        <span style="color: #808000; text-decoration-color: #808000">new_offers</span>=<span style="font-weight: bold">[(</span><span style="color: #008000; text-decoration-color: #008000">'buyer-75c6ca59-85ea-41dd-8957-2cb944f88990'</span>, <span style="font-weight: bold">(</span><span style="color: #008080; text-decoration-color: #008080; font-weight: bold">7</span>, <span style="color: #008080; text-decoration-color: #008080; font-weight: bold">3</span>, <span style="color: #008080; text-decoration-color: #008080; font-weight: bold">0</span><span style="font-weight: bold">))]</span>,
+        <span style="color: #808000; text-decoration-color: #808000">new_offers</span>=<span style="font-weight: bold">[(</span><span style="color: #008000; text-decoration-color: #008000">'buyer-63fd1074-5d79-4f49-9226-32fe564bf016'</span>, <span style="font-weight: bold">(</span><span style="color: #008080; text-decoration-color: #008080; font-weight: bold">3</span>, <span style="color: #008080; text-decoration-color: #008080; font-weight: bold">11</span>, <span style="color: #008080; text-decoration-color: #008080; font-weight: bold">0</span><span style="font-weight: bold">))]</span>,
         <span style="color: #808000; text-decoration-color: #808000">new_offerer_agents</span>=<span style="font-weight: bold">[</span><span style="color: #800080; text-decoration-color: #800080; font-style: italic">None</span><span style="font-weight: bold">]</span>,
-        <span style="color: #808000; text-decoration-color: #808000">last_negotiator</span>=<span style="color: #008000; text-decoration-color: #008000">'buyer'</span>
+        <span style="color: #808000; text-decoration-color: #808000">last_negotiator</span>=<span style="color: #008000; text-decoration-color: #008000">'buyer'</span>,
+        <span style="color: #808000; text-decoration-color: #808000">current_data</span>=<span style="color: #800080; text-decoration-color: #800080; font-style: italic">None</span>,
+        <span style="color: #808000; text-decoration-color: #808000">new_data</span>=<span style="font-weight: bold">[(</span><span style="color: #008000; text-decoration-color: #008000">'buyer-63fd1074-5d79-4f49-9226-32fe564bf016'</span>, <span style="color: #800080; text-decoration-color: #800080; font-style: italic">None</span><span style="font-weight: bold">)]</span>
     <span style="font-weight: bold">)</span>
     </pre>
 
@@ -371,36 +379,35 @@ check some of these first:
 
 Negotiation execution state:
 
--  **started** Did the negotiation start?
--  **running** Is the negotiation still running?
--  **waiting** Is the negotiation waiting for some response from one of
-   the negtiators?
--  **has_errors** Does the negotiation have any exceptions?
+- **started** Did the negotiation start?
+- **running** Is the negotiation still running?
+- **waiting** Is the negotiation waiting for some response from one of
+  the negtiators?
+- **has_errors** Does the negotiation have any exceptions?
 
 Negotiation end state:
 
--  **broken** Did a negotiator end the negotiation (by returning
-   ``ResponseType.END_NEGOTIATION`` from its ``respond()`` method).
--  **timedout** The negotiation timed out without agreement.
--  **agreement** The final agreement (or ``None`` if broken or
-   timedout).
+- **broken** Did a negotiator end the negotiation (by returning
+  ``ResponseType.END_NEGOTIATION`` from its ``respond()`` method).
+- **timedout** The negotiation timed out without agreement.
+- **agreement** The final agreement (or ``None`` if broken or timedout).
 
 Timing state:
 
--  **step** The current negotiation step (here it is *9* out of the *20*
-   steps allowed)
--  **time** The real time that passed since the negotiation stareted
--  **relative_time** The fraction of the negotiation that passed (here
-   it is :math:`(9+1)/(20+1=0.476...`).
+- **step** The current negotiation step (here it is *9* out of the *20*
+  steps allowed)
+- **time** The real time that passed since the negotiation stareted
+- **relative_time** The fraction of the negotiation that passed (here it
+  is :math:`(9+1)/(20+1=0.476...`).
 
 There are also SAO specific state variables:
 
 The most important for us are:
 
--  **current_offer** which will be the same as the agreement as the
-   negotiation has already ended.
--  **current_proposer** The ID of the negotiator that proposed the
-   ``current_offer``.
+- **current_offer** which will be the same as the agreement as the
+  negotiation has already ended.
+- **current_proposer** The ID of the negotiator that proposed the
+  ``current_offer``.
 
 Using this information, we can confirm the utility value of the
 agreement for the agent that accepted it as follows:
@@ -417,7 +424,7 @@ agreement for the agent that accepted it as follows:
 
 .. raw:: html
 
-    <pre style="white-space:pre;overflow-x:auto;line-height:normal;font-family:Menlo,'DejaVu Sans Mono',consolas,'Courier New',monospace"><span style="color: #008080; text-decoration-color: #008080; font-weight: bold">0.9644268774703557</span>
+    <pre style="white-space:pre;overflow-x:auto;line-height:normal;font-family:Menlo,'DejaVu Sans Mono',consolas,'Courier New',monospace"><span style="color: #008080; text-decoration-color: #008080; font-weight: bold">0.9407114624505929</span>
     </pre>
 
 
@@ -458,8 +465,8 @@ negotiator will need to re-calculate the utility value associated with
 each outcome at every ufun change. It can do that in the
 ``on_preferences_changed()`` callback.
 
-Moreover, we need some way to calculate the current utility level we
-are willing to accept (and to offer around). Here we can use another
+Moreover, we need some way to calculate the current utility level we are
+willing to accept (and to offer around). Here we can use another
 component from NegMAS called ``PolyAspiration`` which is designed
 exactly for that. Let’s see what the negotiator looks like and then
 explain it:
@@ -648,9 +655,9 @@ with ``AspriationNegotiator`` on multiple negotiations:
 .. raw:: html
 
     <pre style="white-space:pre;overflow-x:auto;line-height:normal;font-family:Menlo,'DejaVu Sans Mono',consolas,'Courier New',monospace">Distance to Pareto Frontier: <span style="font-weight: bold">{</span><span style="color: #008000; text-decoration-color: #008000">'AspirationNegotiator'</span>: <span style="color: #008080; text-decoration-color: #008080; font-weight: bold">4.99999999999999</span>, <span style="color: #008000; text-decoration-color: #008000">'SmartAspirationNegotiator'</span>: <span style="color: #008080; text-decoration-color: #008080; font-weight: bold">0.0</span>,
-    <span style="color: #008000; text-decoration-color: #008000">'RandomNegotiator'</span>: <span style="color: #008080; text-decoration-color: #008080; font-weight: bold">5.772604782081802</span><span style="font-weight: bold">}</span>
-    Distance to the Nash Bargaining Solution: <span style="font-weight: bold">{</span><span style="color: #008000; text-decoration-color: #008000">'AspirationNegotiator'</span>: <span style="color: #008080; text-decoration-color: #008080; font-weight: bold">0.3953547528665905</span>, <span style="color: #008000; text-decoration-color: #008000">'SmartAspirationNegotiator'</span>:
-    <span style="color: #008080; text-decoration-color: #008080; font-weight: bold">0.09861855750792485</span>, <span style="color: #008000; text-decoration-color: #008000">'RandomNegotiator'</span>: <span style="color: #008080; text-decoration-color: #008080; font-weight: bold">0.3113391773960004</span><span style="font-weight: bold">}</span>
+    <span style="color: #008000; text-decoration-color: #008000">'RandomNegotiator'</span>: <span style="color: #008080; text-decoration-color: #008080; font-weight: bold">5.85872665597123</span><span style="font-weight: bold">}</span>
+    Distance to the Nash Bargaining Solution: <span style="font-weight: bold">{</span><span style="color: #008000; text-decoration-color: #008000">'AspirationNegotiator'</span>: <span style="color: #800080; text-decoration-color: #800080; font-weight: bold">np.float64</span><span style="font-weight: bold">(</span><span style="color: #008080; text-decoration-color: #008080; font-weight: bold">0.3953547528665905</span><span style="font-weight: bold">)</span>,
+    <span style="color: #008000; text-decoration-color: #008000">'SmartAspirationNegotiator'</span>: <span style="color: #800080; text-decoration-color: #800080; font-weight: bold">np.float64</span><span style="font-weight: bold">(</span><span style="color: #008080; text-decoration-color: #008080; font-weight: bold">0.09861855750792485</span><span style="font-weight: bold">)</span>, <span style="color: #008000; text-decoration-color: #008000">'RandomNegotiator'</span>: <span style="color: #800080; text-decoration-color: #800080; font-weight: bold">np.float64</span><span style="font-weight: bold">(</span><span style="color: #008080; text-decoration-color: #008080; font-weight: bold">0.32620749031424884</span><span style="font-weight: bold">)}</span>
     </pre>
 
 
@@ -693,11 +700,11 @@ against other negotiators on a set of negotiation scenarios to evaluate
 its performance. NegMAS simplifies this process by providing two types
 of negotiation tournaments:
 
--  neg_tournament() is designed to run a number of **competitor
-   negotiators** against a common set of opponents.
--  cartesian_tournament() is designed to run a number of competitors
-   against **each other** as well as some other optional non-competing
-   negotiators.
+- neg_tournament() is designed to run a number of **competitor
+  negotiators** against a common set of opponents.
+- cartesian_tournament() is designed to run a number of competitors
+  against **each other** as well as some other optional non-competing
+  negotiators.
 
 Firstly, we need to generate a set of ``Scenario``\ s to use for the
 tournament. This is a simple function that generates ``n`` random
@@ -758,7 +765,7 @@ We can now run a simple Cartesian tournament as follows:
         competitors=[BoulwareTBNegotiator, ConcederTBNegotiator, LinearTBNegotiator],
         scenarios=get_scenarios(),
         mechanism_params=dict(time_limit=5),  # time per negotiation in seconds and rounds
-        n_repetitions=5,  # number of repetition of each negotiation (these are not combined in score)
+        n_repetitions=1,  # number of repetition of each negotiation (these are not combined in score)
         path=path,
     )
     print(f"Done in {humanize_time(time.perf_counter() - tic)}")
@@ -767,15 +774,8 @@ We can now run a simple Cartesian tournament as follows:
 
 .. raw:: html
 
-    <pre style="white-space:pre;overflow-x:auto;line-height:normal;font-family:Menlo,'DejaVu Sans Mono',consolas,'Courier New',monospace">Will run <span style="color: #008080; text-decoration-color: #008080; font-weight: bold">180</span> negotiations on <span style="color: #008080; text-decoration-color: #008080; font-weight: bold">2</span> scenarios between <span style="color: #008080; text-decoration-color: #008080; font-weight: bold">3</span> competitors
+    <pre style="white-space:pre;overflow-x:auto;line-height:normal;font-family:Menlo,'DejaVu Sans Mono',consolas,'Courier New',monospace">Will run <span style="color: #008080; text-decoration-color: #008080; font-weight: bold">36</span> negotiations on <span style="color: #008080; text-decoration-color: #008080; font-weight: bold">2</span> scenarios between <span style="color: #008080; text-decoration-color: #008080; font-weight: bold">3</span> competitors
     </pre>
-
-
-
-
-.. raw:: html
-
-    <pre style="white-space:pre;overflow-x:auto;line-height:normal;font-family:Menlo,'DejaVu Sans Mono',consolas,'Courier New',monospace"></pre>
 
 
 
@@ -788,8 +788,7 @@ We can now run a simple Cartesian tournament as follows:
 
 .. raw:: html
 
-    <pre style="white-space:pre;overflow-x:auto;line-height:normal;font-family:Menlo,'DejaVu Sans Mono',consolas,'Courier New',monospace">
-    </pre>
+    <pre style="white-space:pre;overflow-x:auto;line-height:normal;font-family:Menlo,'DejaVu Sans Mono',consolas,'Courier New',monospace"></pre>
 
 
 
@@ -797,9 +796,9 @@ We can now run a simple Cartesian tournament as follows:
 .. raw:: html
 
     <pre style="white-space:pre;overflow-x:auto;line-height:normal;font-family:Menlo,'DejaVu Sans Mono',consolas,'Courier New',monospace">               strategy     score
-    <span style="color: #008080; text-decoration-color: #008080; font-weight: bold">0</span>  BoulwareTBNegotiator  <span style="color: #008080; text-decoration-color: #008080; font-weight: bold">0.924346</span>
-    <span style="color: #008080; text-decoration-color: #008080; font-weight: bold">1</span>    LinearTBNegotiator  <span style="color: #008080; text-decoration-color: #008080; font-weight: bold">0.857887</span>
-    <span style="color: #008080; text-decoration-color: #008080; font-weight: bold">2</span>  ConcederTBNegotiator  <span style="color: #008080; text-decoration-color: #008080; font-weight: bold">0.777152</span>
+    <span style="color: #008080; text-decoration-color: #008080; font-weight: bold">0</span>  BoulwareTBNegotiator  <span style="color: #008080; text-decoration-color: #008080; font-weight: bold">0.978630</span>
+    <span style="color: #008080; text-decoration-color: #008080; font-weight: bold">1</span>    LinearTBNegotiator  <span style="color: #008080; text-decoration-color: #008080; font-weight: bold">0.902408</span>
+    <span style="color: #008080; text-decoration-color: #008080; font-weight: bold">2</span>  ConcederTBNegotiator  <span style="color: #008080; text-decoration-color: #008080; font-weight: bold">0.703577</span>
     </pre>
 
 
@@ -820,7 +819,7 @@ We can now run a simple Cartesian tournament as follows:
 
 .. raw:: html
 
-    <pre style="white-space:pre;overflow-x:auto;line-height:normal;font-family:Menlo,'DejaVu Sans Mono',consolas,'Courier New',monospace">Done in  4s151ms
+    <pre style="white-space:pre;overflow-x:auto;line-height:normal;font-family:Menlo,'DejaVu Sans Mono',consolas,'Courier New',monospace">Done in  4s47ms
     </pre>
 
 
@@ -879,36 +878,36 @@ for each negotiator type:
       <tbody>
         <tr>
           <th>BoulwareTBNegotiator</th>
-          <td>120.0</td>
-          <td>0.924346</td>
-          <td>0.075517</td>
-          <td>0.751351</td>
-          <td>0.878762</td>
-          <td>0.936668</td>
+          <td>24.0</td>
+          <td>0.978630</td>
+          <td>0.037625</td>
+          <td>0.881063</td>
+          <td>0.981384</td>
+          <td>0.997838</td>
           <td>1.000000</td>
-          <td>1.0</td>
+          <td>1.000000</td>
         </tr>
         <tr>
           <th>LinearTBNegotiator</th>
-          <td>120.0</td>
-          <td>0.857887</td>
-          <td>0.128219</td>
-          <td>0.558439</td>
-          <td>0.789007</td>
-          <td>0.878762</td>
-          <td>0.973484</td>
-          <td>1.0</td>
+          <td>24.0</td>
+          <td>0.902408</td>
+          <td>0.156692</td>
+          <td>0.551182</td>
+          <td>0.909330</td>
+          <td>0.982856</td>
+          <td>0.991920</td>
+          <td>1.000000</td>
         </tr>
         <tr>
           <th>ConcederTBNegotiator</th>
-          <td>120.0</td>
-          <td>0.777152</td>
-          <td>0.181186</td>
-          <td>0.367708</td>
-          <td>0.713144</td>
-          <td>0.801560</td>
-          <td>0.973484</td>
-          <td>1.0</td>
+          <td>24.0</td>
+          <td>0.703577</td>
+          <td>0.234388</td>
+          <td>0.377042</td>
+          <td>0.534894</td>
+          <td>0.638668</td>
+          <td>0.982856</td>
+          <td>0.989227</td>
         </tr>
       </tbody>
     </table>
@@ -945,7 +944,7 @@ We can check the complete logs with a wealth of extra information at the
 
 .. parsed-literal::
 
-    PosixPath('/Users/yasser/negmas/test/20240221H171558908755lGCwjGiV')
+    PosixPath('/Users/yasser/negmas/test/20250315H170000081604crlguRai')
 
 
 

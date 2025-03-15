@@ -241,16 +241,31 @@ NegMAS 0.10 is *not* backward compatible with NegMAS 0.9 and to use it you
 will need to make some modifications to your code. This guide aims at helping
 you achieve this with minimal hassle.
 
-================================  ===================================  =============================================================================================================
- from                              to                                   Notes
-================================  ===================================  =============================================================================================================
-def respond(self,state, offer,...)     def respond(self, state, ...)            SAO negotiator's respond() does not receive the offer anymore. You can get the offer as `state.current_offer`
-PreferenceChangeType.Scaled         PreferenceChangeType.Scale
-PreferenceChangeType.Shifted         PreferenceChangeType.Shift
-================================  ===================================  =============================================================================================================
+=================================== ===================================  =======================================================================================================================
+ From                                To                                   Notes
+=================================== ===================================  =======================================================================================================================
+def respond(self,state, offer,...)      def respond(self, state, ...)            SAO negotiator's respond() does not receive the offer anymore. You can get the offer as `state.current_offer`
+PreferenceChangeType.Scaled          PreferenceChangeType.Scale
+PreferenceChangeType.Shifted          PreferenceChangeType.Shift
+=================================== ===================================  =======================================================================================================================
 
 Other Changes
 -------------
 
 - You can now step any world focusing on negotiations instead of simulation step boundaries. See documentation of `World.step` for details which helps with exposing NegMAS worlds as RL environments.
 - You can now pass negotiation actions to the `SAOMechanism` (and to some extend the `GBMechanism` ) which is useful when using RL on negmas.
+
+0.10->0.11 Upgrade Guide
+========================
+
+NegMAS 0.11 is *not* backward compatible with NegMAS 0.10 and to use it you
+will need to make some modifications to your code. This guide aims at helping
+you achieve this with minimal hassle.
+
+=================================== ======================================  =======================================================================================================================
+ From                                To                                      Notes
+=================================== ======================================  =======================================================================================================================
+def propose(self, state)             def propose(self, state, dest=None)     The `propose()` function of SAONegotiator now takes an optional `dest` parameter.
+def respond(self, state)             def respond(self, state, src=None)      The `respond()` function of SAONegotiator now takes an optional `src` parameter.
+def __call__(self, state)            def __call__(self, state, dest=None)    The `__call__()` function of SAONegotiator now takes an optional `dest` parameter.
+=================================== ======================================  =======================================================================================================================

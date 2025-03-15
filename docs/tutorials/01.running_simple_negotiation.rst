@@ -32,25 +32,29 @@ to run negotiations as follows:
         <span style="color: #808000; text-decoration-color: #808000">running</span>=<span style="color: #ff0000; text-decoration-color: #ff0000; font-style: italic">False</span>,
         <span style="color: #808000; text-decoration-color: #808000">waiting</span>=<span style="color: #ff0000; text-decoration-color: #ff0000; font-style: italic">False</span>,
         <span style="color: #808000; text-decoration-color: #808000">started</span>=<span style="color: #00ff00; text-decoration-color: #00ff00; font-style: italic">True</span>,
-        <span style="color: #808000; text-decoration-color: #808000">step</span>=<span style="color: #008080; text-decoration-color: #008080; font-weight: bold">1</span>,
-        <span style="color: #808000; text-decoration-color: #808000">time</span>=<span style="color: #008080; text-decoration-color: #008080; font-weight: bold">0.0023992909700609744</span>,
-        <span style="color: #808000; text-decoration-color: #808000">relative_time</span>=<span style="color: #008080; text-decoration-color: #008080; font-weight: bold">0.019801980198019802</span>,
-        <span style="color: #808000; text-decoration-color: #808000">broken</span>=<span style="color: #00ff00; text-decoration-color: #00ff00; font-style: italic">True</span>,
+        <span style="color: #808000; text-decoration-color: #808000">step</span>=<span style="color: #008080; text-decoration-color: #008080; font-weight: bold">95</span>,
+        <span style="color: #808000; text-decoration-color: #808000">time</span>=<span style="color: #008080; text-decoration-color: #008080; font-weight: bold">0.021065915992949158</span>,
+        <span style="color: #808000; text-decoration-color: #808000">relative_time</span>=<span style="color: #008080; text-decoration-color: #008080; font-weight: bold">0.9504950495049505</span>,
+        <span style="color: #808000; text-decoration-color: #808000">broken</span>=<span style="color: #ff0000; text-decoration-color: #ff0000; font-style: italic">False</span>,
         <span style="color: #808000; text-decoration-color: #808000">timedout</span>=<span style="color: #ff0000; text-decoration-color: #ff0000; font-style: italic">False</span>,
-        <span style="color: #808000; text-decoration-color: #808000">agreement</span>=<span style="color: #800080; text-decoration-color: #800080; font-style: italic">None</span>,
+        <span style="color: #808000; text-decoration-color: #808000">agreement</span>=<span style="font-weight: bold">(</span><span style="color: #008080; text-decoration-color: #008080; font-weight: bold">2</span>,<span style="font-weight: bold">)</span>,
         <span style="color: #808000; text-decoration-color: #808000">results</span>=<span style="color: #800080; text-decoration-color: #800080; font-style: italic">None</span>,
         <span style="color: #808000; text-decoration-color: #808000">n_negotiators</span>=<span style="color: #008080; text-decoration-color: #008080; font-weight: bold">5</span>,
         <span style="color: #808000; text-decoration-color: #808000">has_error</span>=<span style="color: #ff0000; text-decoration-color: #ff0000; font-style: italic">False</span>,
         <span style="color: #808000; text-decoration-color: #808000">error_details</span>=<span style="color: #008000; text-decoration-color: #008000">''</span>,
+        <span style="color: #808000; text-decoration-color: #808000">erred_negotiator</span>=<span style="color: #008000; text-decoration-color: #008000">''</span>,
+        <span style="color: #808000; text-decoration-color: #808000">erred_agent</span>=<span style="color: #008000; text-decoration-color: #008000">''</span>,
         <span style="color: #808000; text-decoration-color: #808000">threads</span>=<span style="font-weight: bold">{}</span>,
         <span style="color: #808000; text-decoration-color: #808000">last_thread</span>=<span style="color: #008000; text-decoration-color: #008000">''</span>,
-        <span style="color: #808000; text-decoration-color: #808000">current_offer</span>=<span style="color: #800080; text-decoration-color: #800080; font-style: italic">None</span>,
-        <span style="color: #808000; text-decoration-color: #808000">current_proposer</span>=<span style="color: #800080; text-decoration-color: #800080; font-style: italic">None</span>,
+        <span style="color: #808000; text-decoration-color: #808000">current_offer</span>=<span style="font-weight: bold">(</span><span style="color: #008080; text-decoration-color: #008080; font-weight: bold">2</span>,<span style="font-weight: bold">)</span>,
+        <span style="color: #808000; text-decoration-color: #808000">current_proposer</span>=<span style="color: #008000; text-decoration-color: #008000">'a1-0c64f66e-a435-48c3-9ae7-2b1fc1f961d9'</span>,
         <span style="color: #808000; text-decoration-color: #808000">current_proposer_agent</span>=<span style="color: #800080; text-decoration-color: #800080; font-style: italic">None</span>,
-        <span style="color: #808000; text-decoration-color: #808000">n_acceptances</span>=<span style="color: #008080; text-decoration-color: #008080; font-weight: bold">0</span>,
+        <span style="color: #808000; text-decoration-color: #808000">n_acceptances</span>=<span style="color: #008080; text-decoration-color: #008080; font-weight: bold">5</span>,
         <span style="color: #808000; text-decoration-color: #808000">new_offers</span>=<span style="font-weight: bold">[]</span>,
-        <span style="color: #808000; text-decoration-color: #808000">new_offerer_agents</span>=<span style="font-weight: bold">&lt;</span><span style="color: #ff00ff; text-decoration-color: #ff00ff; font-weight: bold">class</span><span style="color: #000000; text-decoration-color: #000000"> </span><span style="color: #008000; text-decoration-color: #008000">'list'</span><span style="font-weight: bold">&gt;</span>,
-        <span style="color: #808000; text-decoration-color: #808000">last_negotiator</span>=<span style="color: #800080; text-decoration-color: #800080; font-style: italic">None</span>
+        <span style="color: #808000; text-decoration-color: #808000">new_offerer_agents</span>=<span style="font-weight: bold">[</span><span style="color: #800080; text-decoration-color: #800080; font-style: italic">None</span>, <span style="color: #800080; text-decoration-color: #800080; font-style: italic">None</span><span style="font-weight: bold">]</span>,
+        <span style="color: #808000; text-decoration-color: #808000">last_negotiator</span>=<span style="color: #008000; text-decoration-color: #008000">'a1'</span>,
+        <span style="color: #808000; text-decoration-color: #808000">current_data</span>=<span style="color: #800080; text-decoration-color: #800080; font-style: italic">None</span>,
+        <span style="color: #808000; text-decoration-color: #808000">new_data</span>=<span style="font-weight: bold">[]</span>
     <span style="font-weight: bold">)</span>
     </pre>
 
@@ -197,7 +201,7 @@ This can be modeled in the following negotiation:
         <span style="color: #808000; text-decoration-color: #808000">waiting</span>=<span style="color: #ff0000; text-decoration-color: #ff0000; font-style: italic">False</span>,
         <span style="color: #808000; text-decoration-color: #808000">started</span>=<span style="color: #00ff00; text-decoration-color: #00ff00; font-style: italic">True</span>,
         <span style="color: #808000; text-decoration-color: #808000">step</span>=<span style="color: #008080; text-decoration-color: #008080; font-weight: bold">18</span>,
-        <span style="color: #808000; text-decoration-color: #808000">time</span>=<span style="color: #008080; text-decoration-color: #008080; font-weight: bold">0.0057805420365184546</span>,
+        <span style="color: #808000; text-decoration-color: #808000">time</span>=<span style="color: #008080; text-decoration-color: #008080; font-weight: bold">0.012747249988024123</span>,
         <span style="color: #808000; text-decoration-color: #808000">relative_time</span>=<span style="color: #008080; text-decoration-color: #008080; font-weight: bold">0.9047619047619048</span>,
         <span style="color: #808000; text-decoration-color: #808000">broken</span>=<span style="color: #ff0000; text-decoration-color: #ff0000; font-style: italic">False</span>,
         <span style="color: #808000; text-decoration-color: #808000">timedout</span>=<span style="color: #ff0000; text-decoration-color: #ff0000; font-style: italic">False</span>,
@@ -206,15 +210,19 @@ This can be modeled in the following negotiation:
         <span style="color: #808000; text-decoration-color: #808000">n_negotiators</span>=<span style="color: #008080; text-decoration-color: #008080; font-weight: bold">2</span>,
         <span style="color: #808000; text-decoration-color: #808000">has_error</span>=<span style="color: #ff0000; text-decoration-color: #ff0000; font-style: italic">False</span>,
         <span style="color: #808000; text-decoration-color: #808000">error_details</span>=<span style="color: #008000; text-decoration-color: #008000">''</span>,
+        <span style="color: #808000; text-decoration-color: #808000">erred_negotiator</span>=<span style="color: #008000; text-decoration-color: #008000">''</span>,
+        <span style="color: #808000; text-decoration-color: #808000">erred_agent</span>=<span style="color: #008000; text-decoration-color: #008000">''</span>,
         <span style="color: #808000; text-decoration-color: #808000">threads</span>=<span style="font-weight: bold">{}</span>,
         <span style="color: #808000; text-decoration-color: #808000">last_thread</span>=<span style="color: #008000; text-decoration-color: #008000">''</span>,
         <span style="color: #808000; text-decoration-color: #808000">current_offer</span>=<span style="font-weight: bold">(</span><span style="color: #008080; text-decoration-color: #008080; font-weight: bold">1</span>, <span style="color: #008080; text-decoration-color: #008080; font-weight: bold">9</span>, <span style="color: #008080; text-decoration-color: #008080; font-weight: bold">0</span><span style="font-weight: bold">)</span>,
-        <span style="color: #808000; text-decoration-color: #808000">current_proposer</span>=<span style="color: #008000; text-decoration-color: #008000">'seller-8bc36403-7be3-4374-9086-a860e1ae2df7'</span>,
+        <span style="color: #808000; text-decoration-color: #808000">current_proposer</span>=<span style="color: #008000; text-decoration-color: #008000">'seller-d5d50fb8-209f-4d68-a994-a59881fe4c6c'</span>,
         <span style="color: #808000; text-decoration-color: #808000">current_proposer_agent</span>=<span style="color: #800080; text-decoration-color: #800080; font-style: italic">None</span>,
         <span style="color: #808000; text-decoration-color: #808000">n_acceptances</span>=<span style="color: #008080; text-decoration-color: #008080; font-weight: bold">2</span>,
         <span style="color: #808000; text-decoration-color: #808000">new_offers</span>=<span style="font-weight: bold">[]</span>,
         <span style="color: #808000; text-decoration-color: #808000">new_offerer_agents</span>=<span style="font-weight: bold">[</span><span style="color: #800080; text-decoration-color: #800080; font-style: italic">None</span>, <span style="color: #800080; text-decoration-color: #800080; font-style: italic">None</span><span style="font-weight: bold">]</span>,
-        <span style="color: #808000; text-decoration-color: #808000">last_negotiator</span>=<span style="color: #008000; text-decoration-color: #008000">'seller'</span>
+        <span style="color: #808000; text-decoration-color: #808000">last_negotiator</span>=<span style="color: #008000; text-decoration-color: #008000">'seller'</span>,
+        <span style="color: #808000; text-decoration-color: #808000">current_data</span>=<span style="color: #800080; text-decoration-color: #800080; font-style: italic">None</span>,
+        <span style="color: #808000; text-decoration-color: #808000">new_data</span>=<span style="font-weight: bold">[]</span>
     <span style="font-weight: bold">)</span>
     </pre>
 
@@ -238,40 +246,40 @@ s tep of the negotiation:
 
 .. parsed-literal::
 
-    [(0, 'buyer-5c76fbe1-c1b3-4958-9f9d-a5409d2e1197', (0, 11, 9)),
-     (0, 'seller-8bc36403-7be3-4374-9086-a860e1ae2df7', (9, 11, 0)),
-     (1, 'buyer-5c76fbe1-c1b3-4958-9f9d-a5409d2e1197', (0, 11, 9)),
-     (1, 'seller-8bc36403-7be3-4374-9086-a860e1ae2df7', (9, 11, 0)),
-     (2, 'buyer-5c76fbe1-c1b3-4958-9f9d-a5409d2e1197', (0, 11, 9)),
-     (2, 'seller-8bc36403-7be3-4374-9086-a860e1ae2df7', (9, 11, 0)),
-     (3, 'buyer-5c76fbe1-c1b3-4958-9f9d-a5409d2e1197', (0, 11, 9)),
-     (3, 'seller-8bc36403-7be3-4374-9086-a860e1ae2df7', (9, 11, 0)),
-     (4, 'buyer-5c76fbe1-c1b3-4958-9f9d-a5409d2e1197', (0, 11, 9)),
-     (4, 'seller-8bc36403-7be3-4374-9086-a860e1ae2df7', (9, 11, 0)),
-     (5, 'buyer-5c76fbe1-c1b3-4958-9f9d-a5409d2e1197', (0, 11, 9)),
-     (5, 'seller-8bc36403-7be3-4374-9086-a860e1ae2df7', (9, 11, 0)),
-     (6, 'buyer-5c76fbe1-c1b3-4958-9f9d-a5409d2e1197', (0, 10, 9)),
-     (6, 'seller-8bc36403-7be3-4374-9086-a860e1ae2df7', (9, 10, 0)),
-     (7, 'buyer-5c76fbe1-c1b3-4958-9f9d-a5409d2e1197', (0, 9, 9)),
-     (7, 'seller-8bc36403-7be3-4374-9086-a860e1ae2df7', (9, 9, 0)),
-     (8, 'buyer-5c76fbe1-c1b3-4958-9f9d-a5409d2e1197', (0, 8, 9)),
-     (8, 'seller-8bc36403-7be3-4374-9086-a860e1ae2df7', (9, 8, 0)),
-     (9, 'buyer-5c76fbe1-c1b3-4958-9f9d-a5409d2e1197', (0, 11, 8)),
-     (9, 'seller-8bc36403-7be3-4374-9086-a860e1ae2df7', (9, 11, 1)),
-     (10, 'buyer-5c76fbe1-c1b3-4958-9f9d-a5409d2e1197', (0, 9, 8)),
-     (10, 'seller-8bc36403-7be3-4374-9086-a860e1ae2df7', (9, 4, 0)),
-     (11, 'buyer-5c76fbe1-c1b3-4958-9f9d-a5409d2e1197', (0, 1, 9)),
-     (11, 'seller-8bc36403-7be3-4374-9086-a860e1ae2df7', (8, 6, 0)),
-     (12, 'buyer-5c76fbe1-c1b3-4958-9f9d-a5409d2e1197', (0, 2, 8)),
-     (12, 'seller-8bc36403-7be3-4374-9086-a860e1ae2df7', (9, 7, 2)),
-     (13, 'buyer-5c76fbe1-c1b3-4958-9f9d-a5409d2e1197', (2, 2, 9)),
-     (13, 'seller-8bc36403-7be3-4374-9086-a860e1ae2df7', (9, 7, 3)),
-     (14, 'buyer-5c76fbe1-c1b3-4958-9f9d-a5409d2e1197', (0, 10, 4)),
-     (14, 'seller-8bc36403-7be3-4374-9086-a860e1ae2df7', (4, 10, 0)),
-     (15, 'buyer-5c76fbe1-c1b3-4958-9f9d-a5409d2e1197', (1, 8, 4)),
-     (15, 'seller-8bc36403-7be3-4374-9086-a860e1ae2df7', (8, 3, 4)),
-     (16, 'buyer-5c76fbe1-c1b3-4958-9f9d-a5409d2e1197', (6, 9, 7)),
-     (16, 'seller-8bc36403-7be3-4374-9086-a860e1ae2df7', (1, 9, 0))]
+    [(0, 'buyer-19434e01-7f9c-41a5-88b8-e74428e2e788', (0, 11, 9)),
+     (0, 'seller-d5d50fb8-209f-4d68-a994-a59881fe4c6c', (9, 11, 0)),
+     (1, 'buyer-19434e01-7f9c-41a5-88b8-e74428e2e788', (0, 11, 9)),
+     (1, 'seller-d5d50fb8-209f-4d68-a994-a59881fe4c6c', (9, 11, 0)),
+     (2, 'buyer-19434e01-7f9c-41a5-88b8-e74428e2e788', (0, 11, 9)),
+     (2, 'seller-d5d50fb8-209f-4d68-a994-a59881fe4c6c', (9, 11, 0)),
+     (3, 'buyer-19434e01-7f9c-41a5-88b8-e74428e2e788', (0, 11, 9)),
+     (3, 'seller-d5d50fb8-209f-4d68-a994-a59881fe4c6c', (9, 11, 0)),
+     (4, 'buyer-19434e01-7f9c-41a5-88b8-e74428e2e788', (0, 11, 9)),
+     (4, 'seller-d5d50fb8-209f-4d68-a994-a59881fe4c6c', (9, 11, 0)),
+     (5, 'buyer-19434e01-7f9c-41a5-88b8-e74428e2e788', (0, 11, 9)),
+     (5, 'seller-d5d50fb8-209f-4d68-a994-a59881fe4c6c', (9, 11, 0)),
+     (6, 'buyer-19434e01-7f9c-41a5-88b8-e74428e2e788', (0, 10, 9)),
+     (6, 'seller-d5d50fb8-209f-4d68-a994-a59881fe4c6c', (9, 10, 0)),
+     (7, 'buyer-19434e01-7f9c-41a5-88b8-e74428e2e788', (0, 9, 9)),
+     (7, 'seller-d5d50fb8-209f-4d68-a994-a59881fe4c6c', (9, 9, 0)),
+     (8, 'buyer-19434e01-7f9c-41a5-88b8-e74428e2e788', (0, 8, 9)),
+     (8, 'seller-d5d50fb8-209f-4d68-a994-a59881fe4c6c', (9, 8, 0)),
+     (9, 'buyer-19434e01-7f9c-41a5-88b8-e74428e2e788', (0, 11, 8)),
+     (9, 'seller-d5d50fb8-209f-4d68-a994-a59881fe4c6c', (9, 11, 1)),
+     (10, 'buyer-19434e01-7f9c-41a5-88b8-e74428e2e788', (0, 9, 8)),
+     (10, 'seller-d5d50fb8-209f-4d68-a994-a59881fe4c6c', (9, 4, 0)),
+     (11, 'buyer-19434e01-7f9c-41a5-88b8-e74428e2e788', (0, 1, 9)),
+     (11, 'seller-d5d50fb8-209f-4d68-a994-a59881fe4c6c', (8, 6, 0)),
+     (12, 'buyer-19434e01-7f9c-41a5-88b8-e74428e2e788', (0, 2, 8)),
+     (12, 'seller-d5d50fb8-209f-4d68-a994-a59881fe4c6c', (9, 7, 2)),
+     (13, 'buyer-19434e01-7f9c-41a5-88b8-e74428e2e788', (2, 2, 9)),
+     (13, 'seller-d5d50fb8-209f-4d68-a994-a59881fe4c6c', (9, 7, 3)),
+     (14, 'buyer-19434e01-7f9c-41a5-88b8-e74428e2e788', (0, 10, 4)),
+     (14, 'seller-d5d50fb8-209f-4d68-a994-a59881fe4c6c', (4, 10, 0)),
+     (15, 'buyer-19434e01-7f9c-41a5-88b8-e74428e2e788', (1, 8, 4)),
+     (15, 'seller-d5d50fb8-209f-4d68-a994-a59881fe4c6c', (8, 3, 4)),
+     (16, 'buyer-19434e01-7f9c-41a5-88b8-e74428e2e788', (6, 9, 7)),
+     (16, 'seller-d5d50fb8-209f-4d68-a994-a59881fe4c6c', (1, 9, 0))]
 
 
 
@@ -324,7 +332,7 @@ the delivery time and price to go down. Let’s see what happens:
         <span style="color: #808000; text-decoration-color: #808000">waiting</span>=<span style="color: #ff0000; text-decoration-color: #ff0000; font-style: italic">False</span>,
         <span style="color: #808000; text-decoration-color: #808000">started</span>=<span style="color: #00ff00; text-decoration-color: #00ff00; font-style: italic">True</span>,
         <span style="color: #808000; text-decoration-color: #808000">step</span>=<span style="color: #008080; text-decoration-color: #008080; font-weight: bold">41</span>,
-        <span style="color: #808000; text-decoration-color: #808000">time</span>=<span style="color: #008080; text-decoration-color: #008080; font-weight: bold">0.007554874988272786</span>,
+        <span style="color: #808000; text-decoration-color: #808000">time</span>=<span style="color: #008080; text-decoration-color: #008080; font-weight: bold">0.02594933299405966</span>,
         <span style="color: #808000; text-decoration-color: #808000">relative_time</span>=<span style="color: #008080; text-decoration-color: #008080; font-weight: bold">0.8235294117647058</span>,
         <span style="color: #808000; text-decoration-color: #808000">broken</span>=<span style="color: #ff0000; text-decoration-color: #ff0000; font-style: italic">False</span>,
         <span style="color: #808000; text-decoration-color: #808000">timedout</span>=<span style="color: #ff0000; text-decoration-color: #ff0000; font-style: italic">False</span>,
@@ -333,15 +341,19 @@ the delivery time and price to go down. Let’s see what happens:
         <span style="color: #808000; text-decoration-color: #808000">n_negotiators</span>=<span style="color: #008080; text-decoration-color: #008080; font-weight: bold">2</span>,
         <span style="color: #808000; text-decoration-color: #808000">has_error</span>=<span style="color: #ff0000; text-decoration-color: #ff0000; font-style: italic">False</span>,
         <span style="color: #808000; text-decoration-color: #808000">error_details</span>=<span style="color: #008000; text-decoration-color: #008000">''</span>,
+        <span style="color: #808000; text-decoration-color: #808000">erred_negotiator</span>=<span style="color: #008000; text-decoration-color: #008000">''</span>,
+        <span style="color: #808000; text-decoration-color: #808000">erred_agent</span>=<span style="color: #008000; text-decoration-color: #008000">''</span>,
         <span style="color: #808000; text-decoration-color: #808000">threads</span>=<span style="font-weight: bold">{}</span>,
         <span style="color: #808000; text-decoration-color: #808000">last_thread</span>=<span style="color: #008000; text-decoration-color: #008000">''</span>,
         <span style="color: #808000; text-decoration-color: #808000">current_offer</span>=<span style="font-weight: bold">(</span><span style="color: #008080; text-decoration-color: #008080; font-weight: bold">1</span>, <span style="color: #008080; text-decoration-color: #008080; font-weight: bold">10</span>, <span style="color: #008080; text-decoration-color: #008080; font-weight: bold">3</span><span style="font-weight: bold">)</span>,
-        <span style="color: #808000; text-decoration-color: #808000">current_proposer</span>=<span style="color: #008000; text-decoration-color: #008000">'seller-c6393529-15a1-4ae4-871d-9b74be353336'</span>,
+        <span style="color: #808000; text-decoration-color: #808000">current_proposer</span>=<span style="color: #008000; text-decoration-color: #008000">'seller-c8481a48-5e76-4f38-84b0-9cd3a041375c'</span>,
         <span style="color: #808000; text-decoration-color: #808000">current_proposer_agent</span>=<span style="color: #800080; text-decoration-color: #800080; font-style: italic">None</span>,
         <span style="color: #808000; text-decoration-color: #808000">n_acceptances</span>=<span style="color: #008080; text-decoration-color: #008080; font-weight: bold">2</span>,
         <span style="color: #808000; text-decoration-color: #808000">new_offers</span>=<span style="font-weight: bold">[]</span>,
         <span style="color: #808000; text-decoration-color: #808000">new_offerer_agents</span>=<span style="font-weight: bold">[</span><span style="color: #800080; text-decoration-color: #800080; font-style: italic">None</span>, <span style="color: #800080; text-decoration-color: #800080; font-style: italic">None</span><span style="font-weight: bold">]</span>,
-        <span style="color: #808000; text-decoration-color: #808000">last_negotiator</span>=<span style="color: #008000; text-decoration-color: #008000">'seller'</span>
+        <span style="color: #808000; text-decoration-color: #808000">last_negotiator</span>=<span style="color: #008000; text-decoration-color: #008000">'seller'</span>,
+        <span style="color: #808000; text-decoration-color: #808000">current_data</span>=<span style="color: #800080; text-decoration-color: #800080; font-style: italic">None</span>,
+        <span style="color: #808000; text-decoration-color: #808000">new_data</span>=<span style="font-weight: bold">[]</span>
     <span style="font-weight: bold">)</span>
     </pre>
 
@@ -456,15 +468,14 @@ the other?
 
 Try to give an intuition for what happened:
 
--  Why did the negotiation take shorter than the previous one?
--  Why is the final agreement nearer to the pareto front?
--  Why is the buyer getting higher utility than in the case before the
-   previous (in which it was also using a Boulware strategy)?
--  Why is the seller getting lower utility than in the case before the
-   previous (in which it was also using a linear concession strategy)?
--  If the seller knew that the buyer will be using this strategy, what
-   is its best response?
-
+- Why did the negotiation take shorter than the previous one?
+- Why is the final agreement nearer to the pareto front?
+- Why is the buyer getting higher utility than in the case before the
+  previous (in which it was also using a Boulware strategy)?
+- Why is the seller getting lower utility than in the case before the
+  previous (in which it was also using a linear concession strategy)?
+- If the seller knew that the buyer will be using this strategy, what is
+  its best response?
 
 
 

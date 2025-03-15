@@ -49,11 +49,11 @@ negotiators is less than or equal to one:
 
 .
 
--  A disagreement point
-   :math:`d \equiv \tilde u_1(\phi) + \tilde u_2(\phi) \in \Re^2` which
-   is the utility value received by the two players in case of
-   disagreement ( reserved values) and :math:`\phi` represents the
-   disagreement.
+- A disagreement point
+  :math:`d \equiv  \tilde u_1(\phi) + \tilde u_2(\phi) \in \Re^2` which
+  is the utility value received by the two players in case of
+  disagreement ( reserved values) and :math:`\phi` represents the
+  disagreement.
 
 .. code:: ipython3
 
@@ -61,7 +61,7 @@ negotiators is less than or equal to one:
         """A mechanism representing the nash bargaining game"""
 
         def __init__(self, **kwargs):
-            kwargs.update(dict(n_steps=1, max_n_agents=2, dynamic_entry=False))
+            kwargs.update(dict(n_steps=1, max_n_negotiators=2, dynamic_entry=False))
             super().__init__(**kwargs, issues=[make_issue((0.0, 1.0))])
             self.add_requirements(dict(propose_for_self=True))
             self.ufuns: List[UtilityFunction] = []
@@ -125,13 +125,13 @@ is pareto-efficient.
 Based on the axioms used to represent rationality, there are three
 widely known equilibria for the Nash bargaining game:
 
--  Nash Point (1950): The point at which the product of surplus utility
-   (above reservation value) of negotiators is maximized
+- Nash Point (1950): The point at which the product of surplus utility
+  (above reservation value) of negotiators is maximized
 
 .. math:: \text{argmax}_{\omega_1, \omega_2} \prod_{i=1}^2\left(\tilde u_i(\omega_{i}) - \tilde u_i(\phi)\right)
 
--  Kalai-Smorodinsky Point (1975): The pareto outcome with equal ratios
-   of achieved surplus utility and maximum feasible surplus utility
+- Kalai-Smorodinsky Point (1975): The pareto outcome with equal ratios
+  of achieved surplus utility and maximum feasible surplus utility
 
 .. math::
 
@@ -141,8 +141,8 @@ widely known equilibria for the Nash bargaining game:
    \frac{\max_{v \in F} \left(\tilde u_1(v)\right)-\tilde u_1(\phi)}{\max_{v \in F}
    \left(\tilde u_2(v)\right)-\tilde u_2(\phi)}\right)
 
--  Kalai Point (1977): The pareto outcome maximizing the utility for the
-   unfortunate player. Defining :math:`P` as the pareto front,
+- Kalai Point (1977): The pareto outcome maximizing the utility for the
+  unfortunate player. Defining :math:`P` as the pareto front,
 
 .. math:: \text{argmax}_{\omega_1, \omega_2 \in P} \min_{i \in \{1,2\}}\left(\tilde u_i(\omega_{i}) - \tilde u_i(\phi)\right)
 
@@ -180,7 +180,7 @@ Now let’s try our brand new mechanism and negotiator
 
 .. parsed-literal::
 
-    Agreement: (0.49999999380800164, 0.4999999972481267)
+    Agreement: (0.5000000026607994, 0.4999999976924583)
 
 
 As expected, the two negotiators agreed on the expected nash point (0.5,
@@ -333,7 +333,7 @@ We can then define the mechanism class itself:
                         make_issue(values=(0.0, 1.0), name="first"),
                         make_issue(values=(0.0, 1.0), name="second"),
                     ],
-                    max_n_agents=2,
+                    max_n_negotiators=2,
                     dynamic_entry=False,
                     initial_state=RubinsteinMechanismState(),
                 )
@@ -428,7 +428,9 @@ We can now develop the base negotiator type for this mechanism:
             self.my_index = indx
 
         @abstractmethod
-        def propose(self, state: RubinsteinMechanismState, dest: str | None = None) -> Outcome:
+        def propose(
+            self, state: RubinsteinMechanismState, dest: str | None = None
+        ) -> Outcome:
             """Proposes an outcome which is a tuple of two numbers between zero and one"""
 
 The base negotiator here implements ``set_index`` so that specific
@@ -472,7 +474,9 @@ discounting) and otherwise returns a random apportionment of the pie.
 .. code:: ipython3
 
     class RandomRubinsteinNegotiator(RubinsteinNegotiator):
-        def propose(self, state: RubinsteinMechanismState, dest: str | None = None) -> Outcome:
+        def propose(
+            self, state: RubinsteinMechanismState, dest: str | None = None
+        ) -> Outcome:
             if self.ufun((1.0, 1.0)) < 0.0:
                 return None
             r = random()
@@ -491,7 +495,7 @@ Now we can run negotiations using our new protocol and negotiator:
 
 .. parsed-literal::
 
-    Agreed to: (0.8493891745606217, 0.15061082543937837) after 74 steps
+    Agreed to: (0.970350465903039, 0.029649534096961028) after 1304 steps
 
 
 
@@ -508,7 +512,9 @@ We can implement the optimal negotiator for this mechanism as follows:
 .. code:: ipython3
 
     class OptimalRubinsteinNegotiator(RubinsteinNegotiator):
-        def propose(self, state: RubinsteinMechanismState, dest: str | None = None) -> Outcome:
+        def propose(
+            self, state: RubinsteinMechanismState, dest: str | None = None
+        ) -> Outcome:
             first = (1 - state.discounts[1]) / (1 - state.discounts[1] * state.discounts[0])
             return first, 1 - first
 
@@ -543,7 +549,9 @@ other agent’s
             super().__init__(*args, **kwargs)
             self._asp = PolyAspiration(max_aspiration, aspiration_type)
 
-        def propose(self, state: RubinsteinMechanismState, dest: str | None = None) -> Outcome:
+        def propose(
+            self, state: RubinsteinMechanismState, dest: str | None = None
+        ) -> Outcome:
             if self.ufun((1.0, 1.0)) < 0.0:
                 return None
             r = self._asp.utility_at(state.relative_time)

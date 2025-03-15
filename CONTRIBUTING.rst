@@ -63,7 +63,7 @@ Ready to contribute? Here's how to set up `negmas` for local development.
     $ git clone git@github.com:your_name_here/negmas.git
 3. If you are using uv (recommended)::
 
-   $ uv sync
+   $ uv sync --all-extras --dev
 
 3. If you are not using uv, Install your local copy into a virtualenv. This is how you set up your fork for local development
    (assuming you are using poetry)::

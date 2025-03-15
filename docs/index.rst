@@ -23,6 +23,7 @@ Nevertheless, it can; and was used; in modeling simpler bilateral and multi-late
 
     readme
     installation
+    getting_started
     overview
 
 .. toctree::
