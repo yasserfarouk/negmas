@@ -26,23 +26,26 @@ done
 mkdir ./figs
 for ext in png jpeg jpg pdf; do
     cp ../notebooks/figs/*.$ext ./figs
+done
+for ext in png jpeg jpg pdf; do
+    cp ../notebooks/tutorials/figs/*.$ext ./tutorials/figs
+done
 
-    mkdir ./tutorials/notebooks
-    for f in ../notebooks/tutorials/*.ipynb ; do
-        cp $f ./tutorials/notebooks
-    done
+mkdir ./tutorials/notebooks
+for f in ../notebooks/tutorials/*.ipynb ; do
+    cp $f ./tutorials/notebooks
+done
 
-    for f in ../notebooks/tutorials/*.gif ; do
-        cp $f ./tutorials/notebooks
-    done
-    for rstfile in ./tutorials/*.rst; do
-        filename1=${rstfile##*/}
-        filename=${filename1%????}
-        echo "" >> $rstfile
-        # echo ".. only:: builder_html">> $rstfile
-        echo "" >> $rstfile
-        echo "Download :download:\`Notebook<notebooks/$filename.ipynb>\`." >> $rstfile
-    done
+for f in ../notebooks/tutorials/*.gif ; do
+    cp $f ./tutorials/notebooks
+done
+for rstfile in ./tutorials/*.rst; do
+    filename1=${rstfile##*/}
+    filename=${filename1%????}
+    echo "" >> $rstfile
+    # echo ".. only:: builder_html">> $rstfile
+    echo "" >> $rstfile
+    echo "Download :download:\`Notebook<notebooks/$filename.ipynb>\`." >> $rstfile
 done
 echo "------------------------------------------------"
 make clean
