@@ -39,4 +39,4 @@ jobs:
           export NEGMAS_IGNORE_TEST_NOTEBOOKS=True
           export NEGMAS_SLOW_TEST=True
       - name: "Run pytest for ${{ matrix.python-version }}"
-        run: "run_with_timeout.sh 20000"
+        run: "./run_with_timeout.sh 20000"

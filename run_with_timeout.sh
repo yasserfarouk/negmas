@@ -4,6 +4,8 @@
 TIMEOUT=${1:-21000}
 echo Timeout is $TIMEOUT
 
+export NEGMAS_IGNORE_TEST_NOTEBOOKS=True
+export NEGMAS_SLOW_TEST=True
 # Start the process in the background
 uv run pytest src/negmas tests &
 
