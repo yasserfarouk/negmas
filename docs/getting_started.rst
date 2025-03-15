@@ -1,10 +1,23 @@
+Getting Started
+===============
+
+Running a negotiation
+---------------------
+
+NegMAS has several built-in negotiation ``Mechanisms``, negotiation
+agents (``Negotiators``), and ``UtilityFunctions``. You can use these to
+run negotiations as follows.
+
+Imagine a buyer and a seller negotiating over the price of a single
+object. First, we make an issue “price” with 50 discrete values. Note
+here, it is possible to create multiple issues, but we will not include
+that here. If you are interested, see the `NegMAS
+documentation <https://negmas.readthedocs.io/en/latest/tutorials/01.running_simple_negotiation.html>`__
+for a tutorial.
+
 .. code:: ipython3
 
-    from negmas import (
-        make_issue,
-        SAOMechanism,
-       TimeBasedConcedingNegotiator,
-    )
+    from negmas import make_issue, SAOMechanism, TimeBasedConcedingNegotiator
     from negmas.sao.negotiators import BoulwareTBNegotiator as Boulware
     from negmas.sao.negotiators import LinearTBNegotiator as Linear
     from negmas.preferences import LinearAdditiveUtilityFunction as UFun
@@ -13,9 +26,7 @@
 
 
     # create negotiation agenda (issues)
-    issues = [
-        make_issue(name="price", values=50),
-    ]
+    issues = [make_issue(name="price", values=50)]
 
     # create the mechanism
     mechanism = SAOMechanism(issues=issues, n_steps=20)
@@ -38,19 +49,14 @@ is scaled between 0 and 1.
 
 .. code:: ipython3
 
-    seller_utility = UFun(
-        values=[IdentityFun()],
-        outcome_space=mechanism.outcome_space,
-    )
+    seller_utility = UFun(values=[IdentityFun()], outcome_space=mechanism.outcome_space)
 
     buyer_utility = UFun(
-        values=[AffineFun(slope=-1)],
-        outcome_space=mechanism.outcome_space,
+        values=[AffineFun(slope=-1)], outcome_space=mechanism.outcome_space
     )
 
     seller_utility = seller_utility.normalize()
     buyer_utility = buyer_utility.normalize()
-
 
 Then we add two agents with a boulware strategy. The negotiation ends
 with status overview. For example, you can see if the negotiation
@@ -166,4 +172,36 @@ We can also plot the negotiation.
 
 
 
-.. image:: getting_started_files/getting_started_8_0.png
+.. image:: getting_started_files/getting_started_9_0.png
+
+
+The most commonly used method for visualizing a negotiation is to plot
+the utility of one negotiator on the x-axis and the utility of the other
+in the y-axis, offers of different negotiators are then displayed in
+different colors. The agreement is marked by a black star and important
+points like the `Nash Bargaining
+Solution <https://en.wikipedia.org/wiki/Cooperative_bargaining#Nash_bargaining_solution>`__,
+`Kalai/Egaliterian Bargaining
+Solution <https://en.wikipedia.org/wiki/Cooperative_bargaining#Egalitarian_bargaining_solution>`__,
+`Kalai-Smorodonisky Bargaining
+Solution <https://en.wikipedia.org/wiki/Cooperative_bargaining#Kalai–Smorodinsky_bargaining_solution>`__
+and points with maximum welfare. This kind of figure is shown in the
+left-hand side of the previous graph and can be produced by calling
+``plot()`` on the mechanism. Because our single-issue negotiation is a
+zero-sum game, all points have the same welfare of ``1.0`` and lie on a
+straight line.
+
+Another type of graph represents time (i.e. relative-time ranging from 0
+to 1, real time, or step number) on the x-axis and represents the
+utility of one negotiator’s offer for itself with a bold color on the
+y-axis. The utility of the offers from this negotiators for all other
+negotiators are also shown using a lighter line with no marks. This kind
+of representation is useful in understanding clearly the change of each
+negotiator’s behavior over time (in terms of its own and its partners’
+utilities). In the previous graph, we can clearly see the difference
+between the seller’s (upper right) and buyer’s (lower right) offering
+strategies.
+
+The ``plot`` function is very customizable and you can learn about all
+its parameters
+`here <https://negmas.readthedocs.io/en/latest/api/negmas.sao.SAOMechanism.html#negmas.sao.SAOMechanism.plot>`__
