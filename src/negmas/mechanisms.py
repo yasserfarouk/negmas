@@ -1278,6 +1278,7 @@ class Mechanism(
         method: str = "ordered",
         ordering: tuple[int, ...] | None = None,
         ordering_fun: Callable[[int, list[TState | None]], int] | None = None,
+        completion_callback: Callable[[int, Mechanism], None] | None = None,
     ) -> list[TState | None]:
         """Runs all mechanisms.
 
@@ -1291,6 +1292,7 @@ class Mechanism(
             ordering_fun: A function to implement dynamic ordering for the "ordered" method.
                  This function receives a list of states and returns the index of the next mechanism to step.
                  Note that a state may be None if the corresponding mechanism was None and it should never be stepped
+            completion_callback: A callback to be called at the moment each mechanism is ended
 
         Returns:
             - list of states of all mechanisms after completion
@@ -1310,8 +1312,10 @@ class Mechanism(
             if not keep_order:
                 mechanisms = [_ for _ in mechanisms]
                 random.shuffle(mechanisms)
-            for mechanism in mechanisms:
+            for i, mechanism in enumerate(mechanisms):
                 mechanism.run()
+                if completion_callback:
+                    completion_callback(i, mechanism)
             states = [_.state for _ in mechanisms]
         elif method == "ordered":
             completed = [_ is None for _ in mechanisms]
@@ -1335,6 +1339,8 @@ class Mechanism(
                     if result.running:
                         continue
                     completed[i] = True
+                    if completion_callback:
+                        completion_callback(i, mechanism)
             else:
                 while not all(completed):
                     if not keep_order:
@@ -1347,6 +1353,8 @@ class Mechanism(
                         if result.running:
                             continue
                         completed[i] = True
+                        if completion_callback:
+                            completion_callback(i, mechanism)
                         states[i] = mechanism.state
                         if all(completed):
                             break
