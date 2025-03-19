@@ -1,6 +1,10 @@
 History
 =======
 
+Release 0.11.3
+--------------
+
+* [feature] Adding completion_callback to runall()
 
 Release 0.11.2
 --------------
