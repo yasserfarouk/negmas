@@ -1892,7 +1892,7 @@ wheels = [
 
 [[package]]
 name = "negmas"
-version = "0.11.0"
+version = "0.11.3"
 source = { editable = "." }
 dependencies = [
     { name = "attrs" },

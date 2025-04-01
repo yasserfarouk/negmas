@@ -2,6 +2,7 @@ from __future__ import annotations
 import random
 from random import choice
 
+from negmas.gb.negotiators.hybrid import HybridNegotiator
 from negmas.sao.negotiators import AspirationNegotiator
 import hypothesis.strategies as st
 from hypothesis import example, given, settings
@@ -342,6 +343,58 @@ def test_basic_sao():
     assert session.remaining_time is None
     assert not session.state.started and not session.state.running
     for i in range(n_steps):
+        if not session.step().running:
+            break
+        assert (
+            session.state.started and session.state.running
+        ), f"{session.state=}\n{session.extended_trace=}"
+        assert (
+            session.current_step == i + 1
+        ), f"{session.state=}\n{session.extended_trace=}"
+        assert session.expected_remaining_steps == (
+            n_steps - i - 1
+        ), f"{session.state=}\n{session.extended_trace=}"
+        assert (
+            session.remaining_steps == n_steps - i - 1
+        ), f"{session.state=}\n{session.extended_trace=}"
+        assert (
+            abs(session.relative_time - ((i + 2) / (n_steps + 1))) < 1e-6
+        ), f"{session.state=}\n{session.extended_trace=}"
+        assert session.remaining_time is None
+    assert session.state.started and not session.state.running
+    assert session.state.step <= n_steps
+
+
+def test_basic_sao_hybrid():
+    n_steps = 100
+    issues: list[Issue] = [
+        make_issue(10, "price"),
+        make_issue(5, "quantity"),
+        make_issue(["red", "green", "blue"], "color"),
+    ]
+    os = make_os(issues)
+    ufuns = [
+        LinearAdditiveUtilityFunction.random(outcome_space=os, reserved_value=0.0),
+        LinearAdditiveUtilityFunction.random(outcome_space=os, reserved_value=0.0),
+        LinearAdditiveUtilityFunction.random(outcome_space=os, reserved_value=0.0),
+    ]
+    session = SAOMechanism(
+        n_steps=n_steps,
+        outcome_space=os,
+        one_offer_per_step=True,
+        ignore_negotiator_exceptions=False,
+    )
+    agents = [HybridNegotiator() for _ in range(len(ufuns))]
+    for u, a in zip(ufuns, agents):
+        assert session.add(a, ufun=u)  # type: ignore
+    # offers = [os.random_outcome() for _ in range(n_steps)]
+    assert session.expected_remaining_steps == n_steps
+    assert session.remaining_steps == n_steps
+    assert session.current_step == 0
+    assert abs(session.relative_time - (1.0 / (n_steps + 1))) < 1e-6
+    assert session.remaining_time is None
+    assert not session.state.started and not session.state.running
+    for i in range(n_steps + 1):
         if not session.step().running:
             break
         assert (

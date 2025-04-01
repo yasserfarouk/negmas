@@ -340,9 +340,9 @@ class ACNext(AcceptancePolicy):
     def __call__(self, state, offer, source):
         if not self.negotiator or not self.negotiator.ufun:
             return ResponseType.REJECT_OFFER
-        next = float(self.negotiator.ufun(self.offering_strategy(state)))
+        nxt = float(self.negotiator.ufun(self.offering_strategy(state)))
         u = float(self.negotiator.ufun(offer))
-        if self.alpha * u + self.beta >= next:
+        if self.alpha * u + self.beta >= nxt:
             return ResponseType.ACCEPT_OFFER
         return ResponseType.REJECT_OFFER
 

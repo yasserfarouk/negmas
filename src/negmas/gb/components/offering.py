@@ -4,12 +4,15 @@ import random
 from abc import ABC, abstractmethod
 from typing import TYPE_CHECKING
 
+import bisect
+
 from attrs import define, field
 
 from negmas import warnings
 from negmas.common import PreferencesChangeType, Value
 from negmas.negotiators.helpers import PolyAspiration
 from negmas.outcomes.common import ExtendedOutcome
+from negmas.outcomes.protocols import DiscreteOutcomeSpace
 from negmas.preferences.inv_ufun import PresortingInverseUtilityFunction
 
 from .base import FilterResult, OfferingPolicy
@@ -41,7 +44,195 @@ __all__ = [
     "TFTOfferingPolicy",
     "MiCROOfferingPolicy",
     "TimeBasedOfferingPolicy",
+    "HybridOfferingPolicy",
 ]
+
+
+def index_of_nearest_value(
+    values: list[float], x: float, above_only: bool = False
+) -> int:
+    """
+    Finds the index of the nearest value to x
+
+    Args:
+        values: A list of sorted values (sorted ascendingly)
+        x: The target float value.
+        above_only: If True, only consider items with values above x.
+
+    Returns:
+        The index of the item with the nearest value. -1 means an empty list
+    """
+
+    if not values:
+        return -1
+
+    n = len(values)
+    if above_only:
+        # Find the first item with a value greater than or equal to x
+        first_above_index = bisect.bisect_left(values, x)
+        if first_above_index >= n - 1:
+            return n - 1
+        return first_above_index
+
+    else:
+        # Find the nearest value using bisect
+        index = bisect.bisect_left(values, x)
+        if index == 0:
+            return 0
+        elif index == n:
+            return n - 1
+        if abs(values[index - 1] - x) <= abs(values[index] - x):
+            return index - 1
+        return index
+
+
+@define
+class HybridOfferingPolicy(OfferingPolicy):
+    initial_utility: float = float("nan")
+    concession_ratio: float = float("nan")
+    final_utility: float = float("nan")
+    empathy_score: float = float("nan")
+    frac_time_based: dict[int, tuple[float, ...]] = field(
+        factory=lambda: {
+            1: (1.0,),
+            2: (0.25, 0.75),
+            3: (0.11, 0.22, 0.66),
+            4: (0.05, 0.15, 0.3, 0.5),
+        }
+    )
+    above_only: bool = False
+    _sent_offers: list[Outcome] = field(init=False, factory=list)
+    _sent_utils: list[float] = field(init=False, factory=list)
+    _received_offers: list[Outcome] = field(init=False, factory=list)
+    _received_utils: list[float] = field(init=False, factory=list)
+    _outcomes: list[Outcome] = field(init=False, factory=list)
+    _values: list[float] = field(init=False, factory=list)
+
+    def _adjust_params(self):
+        self.initial_utility = 1.0
+        self.concession_ratio = 0.75
+        self.final_utility = 0.55
+        self.empathy_score = 0.5
+
+        ufun = self.negotiator.ufun
+        assert ufun, "Unknown ufun. Cannot continue"
+        domain_size = int(ufun.outcome_space.cardinality)  # type: ignore
+
+        if domain_size < 450:
+            self.final_utility = 0.80
+        elif domain_size < 1500:
+            self.final_utility = 0.775
+        elif domain_size < 4500:
+            self.final_utility = 0.75
+        elif domain_size < 18000:
+            self.final_utility = 0.725
+        elif domain_size < 33000:
+            self.final_utility = 0.70
+        else:
+            self.final_utility = 0.675
+
+        self._sent_utils = [ufun(_) for _ in self._sent_offers]
+        self._received_utils = [ufun(_) for _ in self._received_utils]
+
+        self.final_utility = max(self.final_utility, float(ufun.reserved_value))
+        os = ufun.outcome_space
+        assert os
+        outcomes = (
+            os.enumerate_or_sample(levels=10, max_cardinality=1_000_000)
+            if not isinstance(os, DiscreteOutcomeSpace)
+            else os.enumerate()
+        )
+        r = float(ufun.reserved_value)
+        outcome_util = sorted([(u, _) for _ in outcomes if (u := ufun(_)) >= r])
+        self._outcomes = [_[1] for _ in outcome_util]
+        self._values = [_[0] for _ in outcome_util]
+
+    def on_preferences_changed(self, changes: list[PreferencesChange]):
+        self._adjust_params()
+        return super().on_preferences_changed(changes)
+
+    def time_based(self, t: float) -> float:
+        """
+            Target utility calculation of Time-Based strategy
+        :param t: Negotiation time
+        :return: Target utility
+        """
+        return (
+            (1 - t) * (1 - t) * self.initial_utility
+            + 2 * (1 - t) * t * self.concession_ratio
+            + t * t * self.final_utility
+        )
+
+    def behaviour_based(self, t: float) -> float:
+        """
+            Target utility calculation of Behavior-Based strategy
+        :param t: Negotiation time
+        :return: Target utility
+        """
+
+        # Utility differences of consecutive offers of opponent
+        diff = [
+            self._received_utils[i + 1] - self._received_utils[i]
+            for i in range(len(self._received_utils) - 1)
+        ]
+
+        # Fixed size window
+        if len(diff) > len(self.frac_time_based):
+            diff = diff[-len(self.frac_time_based) :]
+
+        # delta = diff * window
+        delta = sum([u * w for u, w in zip(diff, self.frac_time_based[len(diff)])])
+
+        # Calculate target utility by updating the last offered bid
+        target_utility = (
+            self._sent_utils[-1] - (self.empathy_score + self.empathy_score * t) * delta
+        )
+
+        return target_utility
+
+    def __call__(self, state: GBState, dest: str | None = None):
+        if not self._values:
+            self._adjust_params()
+        t = state.relative_time
+        # Target utility of Time-Based strategy
+        target_utility = self.time_based(t)
+
+        # If first 2 round, apply only Time-Based strategy
+        if len(self._received_offers) > 2:
+            # Target utility of Behavior-Based strategy
+            behavior_utility = self.behaviour_based(t)
+
+            # Combining Time-Based and Behavior-Based strategy
+            target_utility = (1.0 - t * t) * behavior_utility + t * t * target_utility
+
+        ufun = self.negotiator.ufun
+        assert ufun, "Unknown ufun. Cannot continue"
+        r = float(ufun.reserved_value)
+        # Target utility cannot be lower than the reservation value.
+        if target_utility < r:
+            target_utility = r
+
+        # # AC_Next strategy to decide accepting or not
+        # if self.can_accept() and target_utility <= self.last_received_bids[-1].utility:
+        #     return self.accept_action
+
+        # Find the closest bid to target utility
+        indx = index_of_nearest_value(self._values, target_utility)
+        outcome = self._outcomes[indx]
+
+        self._sent_offers.append(outcome)
+        self._sent_utils.append(float(ufun(outcome)))
+
+        return outcome
+
+    def on_partner_proposal(
+        self, state: GBState, partner_id: str, offer: Outcome
+    ) -> None:
+        ufun = self.negotiator.ufun
+        assert ufun, "Unknown ufun. Cannot continue"
+        self._received_offers.append(offer)
+        self._received_utils.append(float(ufun(offer)))
+        return super().on_partner_proposal(state, partner_id, offer)
 
 
 @define
