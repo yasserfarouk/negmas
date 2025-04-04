@@ -1279,6 +1279,7 @@ class Mechanism(
         ordering: tuple[int, ...] | None = None,
         ordering_fun: Callable[[int, list[TState | None]], int] | None = None,
         completion_callback: Callable[[int, Mechanism], None] | None = None,
+        ignore_mechanism_exceptions: bool = False,
     ) -> list[TState | None]:
         """Runs all mechanisms.
 
@@ -1293,6 +1294,7 @@ class Mechanism(
                  This function receives a list of states and returns the index of the next mechanism to step.
                  Note that a state may be None if the corresponding mechanism was None and it should never be stepped
             completion_callback: A callback to be called at the moment each mechanism is ended
+            ignore_mechanism_exceptions: If given, mechanisms with exceptions will be treated as ending and running will continue
 
         Returns:
             - list of states of all mechanisms after completion
@@ -1313,7 +1315,14 @@ class Mechanism(
                 mechanisms = [_ for _ in mechanisms]
                 random.shuffle(mechanisms)
             for i, mechanism in enumerate(mechanisms):
-                mechanism.run()
+                try:
+                    mechanism.run()
+                except Exception as e:
+                    if not ignore_mechanism_exceptions:
+                        raise e
+                    mechanism.state.has_error = True
+                    mechanism.state.error_details = str(e)
+
                 if completion_callback:
                     completion_callback(i, mechanism)
             states = [_.state for _ in mechanisms]
@@ -1335,7 +1344,17 @@ class Mechanism(
                     mechanism = mechanisms[i]
                     if completed[i]:
                         continue
-                    result = mechanism.step()
+                    try:
+                        result = mechanism.step()
+                    except Exception as e:
+                        if not ignore_mechanism_exceptions:
+                            raise e
+                        mechanism.state.has_error = True
+                        mechanism.state.error_details = str(e)
+                        completed[i] = True
+                        if completion_callback:
+                            completion_callback(i, mechanism)
+                        result = mechanism.state
                     if result.running:
                         continue
                     completed[i] = True
@@ -1349,7 +1368,17 @@ class Mechanism(
                         mechanism = mechanisms[i]
                         if completed[i]:
                             continue
-                        result = mechanism.step()
+                        try:
+                            result = mechanism.step()
+                        except Exception as e:
+                            if not ignore_mechanism_exceptions:
+                                raise e
+                            mechanism.state.has_error = True
+                            mechanism.state.error_details = str(e)
+                            completed[i] = True
+                            if completion_callback:
+                                completion_callback(i, mechanism)
+                            result = mechanism.state
                         if result.running:
                             continue
                         completed[i] = True
