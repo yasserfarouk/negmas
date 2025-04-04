@@ -88,6 +88,7 @@ def all_negotiator_types() -> list[SAONegotiator]:
     import negmas
     from negmas.helpers import get_class
     from negmas.sao import SAONegotiator
+    from negmas.gb import GBNegotiator
 
     results = []
     for _ in dir(negmas.sao.negotiators):
@@ -96,6 +97,6 @@ def all_negotiator_types() -> list[SAONegotiator]:
             type()
         except Exception:
             continue
-        if issubclass(type, SAONegotiator):
+        if issubclass(type, SAONegotiator) or issubclass(type, GBNegotiator):
             results.append(type)
     return results
