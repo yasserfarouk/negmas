@@ -1,6 +1,14 @@
 History
 =======
 
+
+Release 0.11.4
+--------------
+
+* Control of exceptions in runall()
+* get_all_negotiators() return SAO and GB based ones
+* Adding Hybrid Negotiator
+
 Release 0.11.3
 --------------
 
