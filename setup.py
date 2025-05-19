@@ -2,7 +2,7 @@ from setuptools import setup, find_packages
 
 setup(
     name="negmas",
-    version="0.11.4",
+    version="0.11.5",
     description="NEGotiations Managed by Agent Simulations",
     author="Yasser Mohammad",
     author_email="yasserfarouk@gmail.com",

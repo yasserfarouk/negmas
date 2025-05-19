@@ -1,6 +1,6 @@
 [project]
 name = "negmas"
-version = "0.11.4"
+version = "0.11.5"
 description = "NEGotiations Managed by Agent Simulations"
 readme = "README.rst"
 requires-python = ">=3.11"
@@ -97,7 +97,7 @@ negui = "negmas.gui.app:cli"
 # --- Tool Configurations ---
 
 [tool.bumpversion]  # bumpversion config
-current_version = "0.11.4"
+current_version = "0.11.5"
 delete_bookmark = true
 commit = false
 tag = false

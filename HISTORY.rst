@@ -1,6 +1,10 @@
 History
 =======
 
+Release 0.11.5
+--------------
+
+* Avoiding a build error with twine
 
 Release 0.11.4
 --------------
