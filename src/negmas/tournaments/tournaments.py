@@ -2299,11 +2299,15 @@ def combine_tournament_stats(
         for filename in src.glob(f"**/{STATS_FILE}"):
             # try:
             if verbose:
-                print(f"[{added + 1}] Stats from {filename}", end="", flush=True)
+                print(f"[{added + 1}] Stats from {filename} ", end="", flush=True)
             data = extract_basic_stats(filename)
             if data is None:
                 if verbose:
                     print("No data found")
+                continue
+            if len(data) == 0:
+                if verbose:
+                    print("Zero records found")
                 continue
             if verbose:
                 print("{len(data)} records")
@@ -2377,9 +2381,14 @@ def combine_tournament_results(
         for filename in src.glob("**/scores.csv"):
             try:
                 data = pd.read_csv(filename)
-                scores.append(data)
+
                 if verbose:
-                    print(f"[{added + 1}] Read: {str(filename)} ({len(data)} records)")
+                    print(f"[{added + 1}] Read: {str(filename)} ", end="", flush=True)
+                if data is None or len(data) == 0:
+                    print("No data found")
+                    continue
+                scores.append(data)
+                print(f"{len(data)} records")
                 added += 1
                 if added >= max_sources:
                     break
