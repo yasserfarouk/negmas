@@ -1019,9 +1019,9 @@ def run_world(
     world_generator = world_params.get("__world_generator", None)
     score_calculator = world_params.get("__score_calculator", None)
     tournament_name = world_params.get("__tournament_name", unique_name(base=""))
-    assert world_generator and score_calculator, (
-        "Cannot run without specifying both a world generator and a score " "calculator"
-    )
+    assert (
+        world_generator and score_calculator
+    ), "Cannot run without specifying both a world generator and a score calculator"
 
     world_generator = import_by_name(world_generator)
     score_calculator = import_by_name(score_calculator)
@@ -1280,7 +1280,7 @@ def _submit_all(
     if verbose:
         print("Submitted all processes ", end="")
         if len(assigned) > 0:
-            print(f"{len(future_results)/len(assigned):5.2%}")
+            print(f"{len(future_results) / len(assigned):5.2%}")
         else:
             print("")
     return future_results, timeout
@@ -1327,8 +1327,8 @@ def save_run_results(
     if verbose:
         _duration = time.perf_counter() - _strt
         print(
-            f'{datetime.now().strftime("%Y-%m-%d %H:%M:%S")} {i + 1:003} of {n_world_configs:003} [{100 * (i + 1) / n_world_configs:0.3}%] '
-            f'{"completed"} in '
+            f"{datetime.now().strftime('%Y-%m-%d %H:%M:%S')} {i + 1:003} of {n_world_configs:003} [{100 * (i + 1) / n_world_configs:0.3}%] "
+            f"{'completed'} in "
             f"{humanize_time(_duration)}"
             f" [ETA {humanize_time(_duration * n_world_configs / (i + 1))}]"
         )
@@ -1674,9 +1674,9 @@ def run_tournament(
     assert (
         total_timeout is None or parallelism not in dask_options
     ), f"Cannot use {parallelism} with a total-timeout"
-    assert world_progress_callback is None or parallelism not in dask_options, (
-        f"Cannot use {parallelism} with a " f"world callback"
-    )
+    assert (
+        world_progress_callback is None or parallelism not in dask_options
+    ), f"Cannot use {parallelism} with a world callback"
 
     n_world_configs = len(assigned)
     n_already_done = len(run_ids)
@@ -1705,7 +1705,7 @@ def run_tournament(
                     _duration = time.perf_counter() - strt
                     print(
                         f"{i + 1:003} of {n_world_configs:003} [{(i + 1) / n_world_configs:.02%}] "
-                        f'{"Skipped"} '
+                        f"{'Skipped'} "
                         f"in {humanize_time(_duration)}"
                         f" [ETA {humanize_time(_duration * n_world_configs / (i + 1))}]"
                     )
@@ -2095,9 +2095,9 @@ def create_tournament(
                 all_assigned.append([])
                 for w_ in a_:
                     cpy = copy.deepcopy(w_)
-                    cpy["world_params"]["name"] += f"_{r+1}"
+                    cpy["world_params"]["name"] += f"_{r + 1}"
                     if cpy["world_params"]["log_folder"]:
-                        cpy["world_params"]["log_folder"] += f"_{r+1}"
+                        cpy["world_params"]["log_folder"] += f"_{r + 1}"
                     all_assigned[-1].append(cpy)
         del assigned
         assigned = all_assigned
@@ -2284,18 +2284,35 @@ def _combine_stats(stats: pd.DataFrame | None) -> pd.DataFrame | None:
 
 
 def combine_tournament_stats(
-    sources: Iterable[str | Path], dest: str | Path | None = None, verbose=False
+    sources: Iterable[str | Path],
+    dest: str | Path | None = None,
+    verbose=False,
+    max_sources: int | None = None,
 ) -> pd.DataFrame:
     """Combines statistical results of several tournament runs in the destination path."""
     slist = []
+    if max_sources is None:
+        max_sources = sys.maxsize
+    added = 0
     for src in sources:
         src = _path(src)
         for filename in src.glob(f"**/{STATS_FILE}"):
             # try:
+            if verbose:
+                print(f"[{added + 1}] Stats from {filename}", end="", flush=True)
             data = extract_basic_stats(filename)
             if data is None:
+                if verbose:
+                    print("No data found")
                 continue
+            if verbose:
+                print("")
+            added += 1
+            if added >= max_sources:
+                break
             slist.append(data)
+        if added >= max_sources:
+            break
     if len(slist) < 1:
         if verbose:
             print("No slist found")
@@ -2344,21 +2361,32 @@ def compile_results(path: str | Path | Path):
 
 
 def combine_tournament_results(
-    sources: Iterable[str | Path], dest: str | Path | None = None, verbose=False
+    sources: Iterable[str | Path],
+    dest: str | Path | None = None,
+    verbose=False,
+    max_sources: int | None = None,
 ) -> pd.DataFrame:
     """Combines results of several tournament runs in the destination path."""
 
     scores = []
+    if max_sources is None:
+        max_sources = sys.maxsize
+    added = 0
     for src in sources:
         src = _path(src)
         for filename in src.glob("**/scores.csv"):
             try:
                 scores.append(pd.read_csv(filename))
                 if verbose:
-                    print(f"Read: {str(filename)}")
+                    print(f"[{added + 1}] Read: {str(filename)}")
+                added += 1
+                if added >= max_sources:
+                    break
             except Exception:
                 if verbose:
                     print(f"FAILED {str(filename)}")
+        if added >= max_sources:
+            break
     if len(scores) < 1:
         if verbose:
             print("No scores found")

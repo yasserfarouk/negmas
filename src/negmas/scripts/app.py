@@ -779,6 +779,12 @@ def combine(path, dest, verbose):
     help="The statistical metric used for choosing the winners. Possibilities are mean, median, std, var, sum, truncated_mean",
 )
 @click.option(
+    "--max-sources",
+    default=None,
+    type=int,
+    help="Maximum number of sources to use. Default to all available",
+)
+@click.option(
     "--significance/--no-significance",
     default=False,
     help="Whether to show significance table",
@@ -790,13 +796,19 @@ def combine(path, dest, verbose):
     help="Whether to recompile results from individual world runs or just show the already-compiled results",
 )
 @click_config_file.configuration_option()
-def combine_results(path, dest, metric, significance, compile, verbose):
+def combine_results(path, dest, metric, max_sources, significance, compile, verbose):
+    if max_sources is not None and max_sources == 0:
+        max_sources = None
     tpath = [_path(_) for _ in path]
 
     if len(tpath) < 1:
         print("No paths are given to combine")
-    scores = combine_tournament_results(sources=tpath, dest=None, verbose=verbose)
-    stats = combine_tournament_stats(sources=tpath, dest=None, verbose=verbose)
+    scores = combine_tournament_results(
+        sources=tpath, dest=None, verbose=verbose, max_sources=max_sources
+    )
+    stats = combine_tournament_stats(
+        sources=tpath, dest=None, verbose=verbose, max_sources=max_sources
+    )
     results = evaluate_tournament(
         dest, scores, stats, verbose=verbose, metric=metric, compile=compile
     )
