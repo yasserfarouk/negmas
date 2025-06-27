@@ -800,7 +800,13 @@ def combine_results(path, dest, metric, significance, compile, verbose):
     results = evaluate_tournament(
         dest, scores, stats, verbose=verbose, metric=metric, compile=compile
     )
-    display_results(results, metric, significance)
+    try:
+        display_results(results, metric, significance)
+    except Exception as e:
+        print(
+            f"Cannot display results: {e}\n{metric=}, {significance=}, {len(results.total_scores)=}"
+        )
+        print(results.total_scores)
 
 
 @cli.command(help="Start the bridge to genius (to use GeniusNegotiator)")
