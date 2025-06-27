@@ -2306,7 +2306,7 @@ def combine_tournament_stats(
                     print("No data found")
                 continue
             if verbose:
-                print("")
+                print("{len(data)} records")
             added += 1
             if added >= max_sources:
                 break
@@ -2376,9 +2376,10 @@ def combine_tournament_results(
         src = _path(src)
         for filename in src.glob("**/scores.csv"):
             try:
-                scores.append(pd.read_csv(filename))
+                data = pd.read_csv(filename)
+                scores.append(data)
                 if verbose:
-                    print(f"[{added + 1}] Read: {str(filename)}")
+                    print(f"[{added + 1}] Read: {str(filename)} ({len(data)} records)")
                 added += 1
                 if added >= max_sources:
                     break
@@ -2392,6 +2393,8 @@ def combine_tournament_results(
             print("No scores found")
         return pd.DataFrame()
     df: pd.DataFrame = pd.concat(scores, axis=0, ignore_index=True, sort=True)
+    if verbose:
+        print(f"Read a total of {len(df)} score records")
     if dest is not None:
         df.to_csv(str(_path(dest) / SCORES_FILE), index=False)
     return df
