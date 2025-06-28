@@ -796,7 +796,7 @@ def combine(path, dest, verbose):
 #     help="Whether to recompile results from individual world runs or just show the already-compiled results",
 # )
 @click_config_file.configuration_option()
-def combine_results(path, dest, metric, max_sources, significance, compile, verbose):
+def combine_results(path, dest, metric, max_sources, significance, verbose):
     if max_sources is not None and max_sources == 0:
         max_sources = None
     tpath = [_path(_) for _ in path]
