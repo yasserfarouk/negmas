@@ -2296,7 +2296,8 @@ def combine_tournament_stats(
     added = 0
     for src in sources:
         src = _path(src)
-        for filename in src.glob(f"**/{STATS_FILE}"):
+        files = sorted(list(src.glob(f"**/{STATS_FILE}")))
+        for filename in files:
             # try:
             if verbose:
                 print(f"[{added + 1}] Stats from {filename} ", end="", flush=True)
@@ -2378,7 +2379,8 @@ def combine_tournament_results(
     added = 0
     for src in sources:
         src = _path(src)
-        for filename in src.glob("**/scores.csv"):
+        files = sorted(list(src.glob("**/scores.csv")))
+        for filename in files:
             try:
                 data = pd.read_csv(filename)
 
