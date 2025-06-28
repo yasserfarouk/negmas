@@ -790,11 +790,11 @@ def combine(path, dest, verbose):
     help="Whether to show significance table",
 )
 @click.option("--verbose/--silent", default=True, help="Whether to be verbose")
-@click.option(
-    "--compile/--show",
-    default=True,
-    help="Whether to recompile results from individual world runs or just show the already-compiled results",
-)
+# @click.option(
+#     "--compile/--show",
+#     default=True,
+#     help="Whether to recompile results from individual world runs or just show the already-compiled results",
+# )
 @click_config_file.configuration_option()
 def combine_results(path, dest, metric, max_sources, significance, compile, verbose):
     if max_sources is not None and max_sources == 0:
@@ -811,7 +811,7 @@ def combine_results(path, dest, metric, max_sources, significance, compile, verb
     )
     print(f"Collected {len(scores)} scores and {len(stats)} stats")
     results = evaluate_tournament(
-        dest, scores, stats, verbose=verbose, metric=metric, compile=compile
+        dest, scores=scores, stats=stats, verbose=verbose, metric=metric, compile=False
     )
     try:
         display_results(results, metric, significance)
