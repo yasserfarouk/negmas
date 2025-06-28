@@ -804,11 +804,12 @@ def combine_results(path, dest, metric, max_sources, significance, compile, verb
     if len(tpath) < 1:
         print("No paths are given to combine")
     scores = combine_tournament_results(
-        sources=tpath, dest=None, verbose=verbose, max_sources=max_sources
+        sources=tpath, dest=dest, verbose=verbose, max_sources=max_sources
     )
     stats = combine_tournament_stats(
-        sources=tpath, dest=None, verbose=verbose, max_sources=max_sources
+        sources=tpath, dest=dest, verbose=verbose, max_sources=max_sources
     )
+    print(f"Collected {len(scores)} scores and {len(stats)} stats")
     results = evaluate_tournament(
         dest, scores, stats, verbose=verbose, metric=metric, compile=compile
     )
