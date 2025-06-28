@@ -2311,7 +2311,7 @@ def combine_tournament_stats(
                     print("Zero records found")
                 continue
             if verbose:
-                print("{len(data)} records")
+                print(f"{len(data)} records")
             added += 1
             if added >= max_sources:
                 break
