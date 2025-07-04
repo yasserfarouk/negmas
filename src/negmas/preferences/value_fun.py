@@ -85,7 +85,6 @@ class TableFun(BaseFun):
     def minmax(self, input: Issue) -> tuple[float, float]:
         return self._minmax(input)
 
-    @lru_cache
     def _minmax(self, input: Issue) -> tuple[float, float]:
         return nonmonotonic_minmax(input, self)
 
@@ -111,13 +110,11 @@ class TableFun(BaseFun):
             if issue.is_float()
             else "discrete"
         )
-        output = f'<issue index="{indx+1}" etype="{dtype}" type="{dtype}" vtype="{vtype}" name="{issue_name}">\n'
+        output = f'<issue index="{indx + 1}" etype="{dtype}" type="{dtype}" vtype="{vtype}" name="{issue_name}">\n'
         vals = issue.all
         for i, issue_value in enumerate(vals):
             uu = self(issue_value) + bias
-            output += (
-                f'    <item index="{i+1}" value="{issue_value}" evaluation="{uu}" />\n'
-            )
+            output += f'    <item index="{i + 1}" value="{issue_value}" evaluation="{uu}" />\n'
         output += "</issue>\n"
         return output
 
@@ -147,7 +144,7 @@ class AffineFun(BaseFun):
         issue_name = issue.name
         if issue.is_continuous():
             output = f'<issue index="{indx + 1}" etype="real" type="real" vtype="real" name="{issue_name}">\n'
-            output += f'    <evaluator ftype="linear" parameter0="{bias+self.bias}" parameter1="{self.slope}"></evaluator>\n'
+            output += f'    <evaluator ftype="linear" parameter0="{bias + self.bias}" parameter1="{self.slope}"></evaluator>\n'
         # elif isinstance(issue, ContiguousIssue) and issue.cardinality > 50_000:
         #     output = f'<issue index="{indx + 1}" etype="real" type="integer" vtype="integer" name="{issue_name}">\n'
         #     output += f'    <evaluator ftype="linear" parameter0="{bias+self.bias}" parameter1="{self.slope}"></evaluator>\n'
@@ -329,10 +326,10 @@ class QuadraticFun(BaseFun):
         issue_name = issue.name
         if issue.is_continuous():
             output = f'<issue index="{indx + 1}" etype="real" type="real" vtype="real" name="{issue_name}">\n'
-            output += f'    <evaluator ftype="quadratic" parameter0="{bias+self.bias}" parameter1="{self.a1} parameter2={self.a2}"></evaluator>\n'
+            output += f'    <evaluator ftype="quadratic" parameter0="{bias + self.bias}" parameter1="{self.a1} parameter2={self.a2}"></evaluator>\n'
         elif isinstance(issue, ContiguousIssue):
             output = f'<issue index="{indx + 1}" etype="integer" type="integer" vtype="integer" name="{issue_name}">\n'
-            output += f'    <evaluator ftype="quadratic" parameter0="{bias+self.bias}" parameter1="{self.a1} parameter2={self.a2}"></evaluator>\n'
+            output += f'    <evaluator ftype="quadratic" parameter0="{bias + self.bias}" parameter1="{self.a1} parameter2={self.a2}"></evaluator>\n'
         else:
             vals = list(issue.all)
             return TableFun(dict(zip(vals, [self(_) for _ in vals]))).xml(
@@ -372,14 +369,18 @@ class PolynomialFun(BaseFun):
         issue_name = issue.name
         if issue.is_continuous():
             output = f'<issue index="{indx + 1}" etype="real" type="real" vtype="real" name="{issue_name}">\n'
-            output += f'    <evaluator ftype="poynomial" parameter0="{bias+self.bias}"'
+            output += (
+                f'    <evaluator ftype="poynomial" parameter0="{bias + self.bias}"'
+            )
             for i, x in enumerate(self.coefficients):
                 output += f'parameter{i}="{x}"'
 
             output += "></evaluator>\n"
         elif isinstance(issue, ContiguousIssue):
             output = f'<issue index="{indx + 1}" etype="integer" type="integer" vtype="integer" name="{issue_name}">\n'
-            output += f'    <evaluator ftype="poynomial" parameter0="{bias+self.bias}"'
+            output += (
+                f'    <evaluator ftype="poynomial" parameter0="{bias + self.bias}"'
+            )
             for i, x in enumerate(self.coefficients):
                 output += f'parameter{i}="{x}"'
 
@@ -478,10 +479,10 @@ class ExponentialFun(BaseFun):
         issue_name = issue.name
         if issue.is_continuous():
             output = f'<issue index="{indx + 1}" etype="real" type="real" vtype="real" name="{issue_name}">\n'
-            output += f'    <evaluator ftype="exponential" parameter0="{bias+self.bias}" parameter1="{self.tau} parameter2={self.base}"></evaluator>\n'
+            output += f'    <evaluator ftype="exponential" parameter0="{bias + self.bias}" parameter1="{self.tau} parameter2={self.base}"></evaluator>\n'
         elif isinstance(issue, ContiguousIssue):
             output = f'<issue index="{indx + 1}" etype="integer" type="integer" vtype="integer" name="{issue_name}">\n'
-            output += f'    <evaluator ftype="exponential" parameter0="{bias+self.bias}" parameter1="{self.tau} parameter2={self.base}"></evaluator>\n'
+            output += f'    <evaluator ftype="exponential" parameter0="{bias + self.bias}" parameter1="{self.tau} parameter2={self.base}"></evaluator>\n'
         else:
             vals = list(issue.all)
             return TableFun(dict(zip(vals, [self(_) for _ in vals]))).xml(
@@ -530,10 +531,10 @@ class CosFun(BaseFun):
         issue_name = issue.name
         if issue.is_continuous():
             output = f'<issue index="{indx + 1}" etype="real" type="real" vtype="real" name="{issue_name}">\n'
-            output += f'    <evaluator ftype="cos" parameter0="{bias+self.bias}" parameter1="{self.amplitude} parameter2={self.multiplier} parameter3={self.phase}"></evaluator>\n'
+            output += f'    <evaluator ftype="cos" parameter0="{bias + self.bias}" parameter1="{self.amplitude} parameter2={self.multiplier} parameter3={self.phase}"></evaluator>\n'
         elif isinstance(issue, ContiguousIssue):
             output = f'<issue index="{indx + 1}" etype="integer" type="integer" vtype="integer" name="{issue_name}">\n'
-            output += f'    <evaluator ftype="cos" parameter0="{bias+self.bias}" parameter1="{self.amplitude} parameter2={self.multiplier} parameter3={self.phase}"></evaluator>\n'
+            output += f'    <evaluator ftype="cos" parameter0="{bias + self.bias}" parameter1="{self.amplitude} parameter2={self.multiplier} parameter3={self.phase}"></evaluator>\n'
         else:
             vals = list(issue.all)
             return TableFun(dict(zip(vals, [self(_) for _ in vals]))).xml(
@@ -582,10 +583,10 @@ class SinFun(BaseFun):
         issue_name = issue.name
         if issue.is_continuous():
             output = f'<issue index="{indx + 1}" etype="real" type="real" vtype="real" name="{issue_name}">\n'
-            output += f'    <evaluator ftype="sin" parameter0="{bias+self.bias}" parameter1="{self.amplitude} parameter2={self.multiplier} parameter3={self.phase}"></evaluator>\n'
+            output += f'    <evaluator ftype="sin" parameter0="{bias + self.bias}" parameter1="{self.amplitude} parameter2={self.multiplier} parameter3={self.phase}"></evaluator>\n'
         elif isinstance(issue, ContiguousIssue):
             output = f'<issue index="{indx + 1}" etype="integer" type="integer" vtype="integer" name="{issue_name}">\n'
-            output += f'    <evaluator ftype="sin" parameter0="{bias+self.bias}" parameter1="{self.amplitude} parameter2={self.multiplier} parameter3={self.phase}"></evaluator>\n'
+            output += f'    <evaluator ftype="sin" parameter0="{bias + self.bias}" parameter1="{self.amplitude} parameter2={self.multiplier} parameter3={self.phase}"></evaluator>\n'
         else:
             vals = list(issue.all)
             return TableFun(dict(zip(vals, [self(_) for _ in vals]))).xml(
@@ -629,10 +630,10 @@ class LogFun(BaseFun):
         issue_name = issue.name
         if issue.is_continuous():
             output = f'<issue index="{indx + 1}" etype="real" type="real" vtype="real" name="{issue_name}">\n'
-            output += f'    <evaluator ftype="log" parameter0="{bias+self.bias}" parameter1="{self.tau} parameter2={self.base} paramter3={self.scale}"></evaluator>\n'
+            output += f'    <evaluator ftype="log" parameter0="{bias + self.bias}" parameter1="{self.tau} parameter2={self.base} paramter3={self.scale}"></evaluator>\n'
         elif isinstance(issue, ContiguousIssue):
             output = f'<issue index="{indx + 1}" etype="integer" type="integer" vtype="integer" name="{issue_name}">\n'
-            output += f'    <evaluator ftype="log" parameter0="{bias+self.bias}" parameter1="{self.tau} parameter2={self.base} parameter3={self.scale}"></evaluator>\n'
+            output += f'    <evaluator ftype="log" parameter0="{bias + self.bias}" parameter1="{self.tau} parameter2={self.base} parameter3={self.scale}"></evaluator>\n'
         else:
             vals = list(issue.all)
             return TableFun(dict(zip(vals, [self(_) for _ in vals]))).xml(
@@ -807,4 +808,4 @@ def make_fun_from_xml(item) -> tuple[BaseFun, str]:
         return TriangularFun(start=strt, end=end, middle=middle), "triangular"
     else:
         # todo: implement all other functions defined in value_fun.py
-        raise ValueError(f'Unknown ftype {item.attrib["ftype"]}')
+        raise ValueError(f"Unknown ftype {item.attrib['ftype']}")

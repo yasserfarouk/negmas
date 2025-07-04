@@ -147,14 +147,17 @@ def nonmonotonic_minmax(
     input: Iterable, f: Callable[[Any], float]
 ) -> tuple[float, float]:
     """Finds the limits of a function `f` for the input assuming that it is non-monotonic and input is iterable"""
-    mn, mx = float("inf"), float("-inf")
-    fmn, fmx = float("-inf"), float("inf")
-    for x in input:
+    _mn, _mx = None, None
+    vals = [_ for _ in input]
+    if not vals:
+        return float("nan"), float("nan")
+    fmn, fmx = float("inf"), float("-inf")
+    for x in vals:
         fx = float(f(x))
-        if fx < mn:
-            mn, fmn = x, fx
-        if fx > mx:
-            mx, fmx = x, fx
+        if fx < fmn:
+            _mn, fmn = x, fx
+        if fx > fmx:
+            _mx, fmx = x, fx
     return fmn, fmx
 
 

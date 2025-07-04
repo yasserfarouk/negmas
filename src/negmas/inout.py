@@ -599,7 +599,9 @@ class Scenario:
         return s.load_info(path)
 
     @classmethod
-    def load(cls, folder: Path | str, safe_parsing=False) -> Scenario | None:
+    def load(
+        cls, folder: Path | str, safe_parsing=False, ignore_discount=False, **kwargs
+    ) -> Scenario | None:
         """
         Loads the scenario from a folder with supported formats: XML, YML
         """
@@ -610,7 +612,12 @@ class Scenario:
         ):
             domain, _ = finder(folder)
             if domain is not None:
-                s = loader(folder, safe_parsing=safe_parsing)
+                s = loader(
+                    folder,
+                    safe_parsing=safe_parsing,
+                    ignore_discount=ignore_discount,
+                    **kwargs,
+                )
                 if s is not None:
                     return s.load_info(folder)
 
