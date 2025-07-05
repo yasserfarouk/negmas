@@ -151,13 +151,17 @@ def nonmonotonic_minmax(
     vals = [_ for _ in input]
     if not vals:
         return float("nan"), float("nan")
-    fmn, fmx = float("inf"), float("-inf")
+    fmn, fmx = None, None
     for x in vals:
         fx = float(f(x))
-        if fx < fmn:
+        if fmn is None or fx < fmn:
             _mn, fmn = x, fx
-        if fx > fmx:
+        if fmx is None or fx > fmx:
             _mx, fmx = x, fx
+    if fmn is None:
+        fmn = float("nan")
+    if fmx is None:
+        fmx = float("nan")
     return fmn, fmx
 
 
