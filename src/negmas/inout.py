@@ -750,14 +750,16 @@ class Scenario:
             base_module="negmas",
             python_class_identifier=python_class_identifier,
         )
-        utils = tuple(
+        utils = [
             deserialize(
                 adjust_type(load(fname), domain=os),
                 python_class_identifier=python_class_identifier,
                 base_module="negmas",
             )
             for fname in ufuns
-        )
+        ]
+        for u in utils:
+            u.outcome_space = os
 
         # d = load(domain)
         # type_ = d.pop("type", "")

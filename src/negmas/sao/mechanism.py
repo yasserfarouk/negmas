@@ -625,6 +625,16 @@ class SAOMechanism(
         return MechanismStepResult(state, times=times, exceptions=exceptions)
 
     @property
+    def full_trace_with_utils(self) -> list[tuple]:
+        """Returns the full trace and the utility of the negotiators at each step."""
+        trace = self.full_trace
+        ufuns = [_.ufun for _ in self.negotiators]
+        return [
+            tuple(list(_) + [u(_[-3]) if u else float("nan") for u in ufuns])
+            for _ in trace
+        ]
+
+    @property
     def full_trace(self) -> list[TraceElement]:
         """Returns the negotiation history as a list of relative_time/step/negotiator/offer tuples"""
 
@@ -697,6 +707,65 @@ class SAOMechanism(
                     {n: ResponseType.ACCEPT_OFFER for n in acceptances},
                     response(self._history[-1]),
                 )
+            )
+        if (
+            self.state.done
+            and self.agreement is not None
+            and offers
+            and not not_equal(offers[-1].offer, self.agreement)
+        ):
+            acceptances = get_acceptances(self._history[-1])
+            offers[-1] = TraceElement(
+                self._history[-1].time,
+                self._history[-1].relative_time,
+                self._history[-1].step,
+                self._history[-1].current_proposer,
+                self.agreement,
+                {n: ResponseType.ACCEPT_OFFER for n in acceptances},
+                response(self._history[-1]),
+            )
+        if (
+            self.state.done
+            and self.agreement is None
+            and offers
+            and self.state.has_error
+        ):
+            acceptances = get_acceptances(self._history[-1])
+            offers[-1] = TraceElement(
+                self._history[-1].time,
+                self._history[-1].relative_time,
+                self._history[-1].step,
+                self._history[-1].current_proposer,
+                self.agreement,
+                {n: ResponseType.ACCEPT_OFFER for n in acceptances},
+                "error",
+            )
+        elif (
+            self.state.done
+            and self.agreement is None
+            and offers
+            and self.state.timedout
+        ):
+            acceptances = get_acceptances(self._history[-1])
+            offers[-1] = TraceElement(
+                self._history[-1].time,
+                self._history[-1].relative_time,
+                self._history[-1].step,
+                self._history[-1].current_proposer,
+                self.agreement,
+                {n: ResponseType.ACCEPT_OFFER for n in acceptances},
+                "timedout",
+            )
+        elif self.state.done and self.agreement is None and offers:
+            acceptances = get_acceptances(self._history[-1])
+            offers[-1] = TraceElement(
+                self._history[-1].time,
+                self._history[-1].relative_time,
+                self._history[-1].step,
+                self._history[-1].current_proposer,
+                self.agreement,
+                {n: ResponseType.ACCEPT_OFFER for n in acceptances},
+                "broken",
             )
 
         return offers
