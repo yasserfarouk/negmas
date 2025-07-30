@@ -300,8 +300,9 @@ class Negotiator(Rational, Notifiable, Generic[TNMI, TState]):
         """
         if self._preferences:
             self._set_pref_os()
-            super().set_preferences(self._preferences, force=True)
         self.on_negotiation_start(state=state)
+        if self._preferences:
+            super().set_preferences(self._preferences, force=True)
 
     def on_round_start(self, state: TState) -> None:
         """
