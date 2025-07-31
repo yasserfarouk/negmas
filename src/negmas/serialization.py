@@ -9,6 +9,7 @@ import types
 from pathlib import Path
 from typing import Any, Callable, Iterable
 import sys
+from attr import has, asdict
 
 import cloudpickle
 import numpy as np
@@ -196,6 +197,20 @@ def serialize(
             else:
                 return adjust_dict(converted)
 
+    if has(type(value)):
+        converted = asdict(value, recurse=deep)
+        if converted is not None:
+            return serialize(
+                converted,
+                deep=deep,
+                add_type_field=add_type_field,
+                keep_private=keep_private,
+                ignore_methods=ignore_methods,
+                ignore_lambda=ignore_lambda,
+                shorten_type_field=shorten_type_field,
+                objmem=objmem,
+                python_class_identifier=python_class_identifier,
+            )
     for method in ("to_dict", "asdict", "dict"):
         try:
             converted = convertwith(value, method, pass_identifier=True)
