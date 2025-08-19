@@ -81,7 +81,7 @@ class SAONMI(NegotiatorMechanismInterface):
 
 
 @lru_cache(1)
-def all_negotiator_types() -> list[SAONegotiator]:
+def all_negotiator_types() -> list[type[SAONegotiator]]:
     """
     Returns all the negotiator types defined in negmas.sao.negotiators
     """
