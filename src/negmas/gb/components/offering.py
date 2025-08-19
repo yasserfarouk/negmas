@@ -342,6 +342,59 @@ class MiCROOfferingPolicy(OfferingPolicy):
 
 
 @define
+class FastMiCROOfferingPolicy(MiCROOfferingPolicy):
+    _skipped: set[Outcome] = field(factory=set)
+
+    def ready_to_concede(self) -> bool:
+        return (
+            len(self._sent) <= len(self._received)
+            or self.negotiator.nmi.state.relative_time > 0.95
+        )
+
+    def __call__(self, state: GBState, dest: str | None = None) -> Outcome | None:
+        outcome = self.next_offer()
+        assert self.sorter
+        assert self.negotiator.ufun
+        if (
+            outcome is None
+            or self.sorter.utility_at(self.next_indx)
+            < self.negotiator.ufun.reserved_value
+            or not self.ready_to_concede()
+        ):
+            if self._skipped and random.random() < (
+                len(self._skipped) / (len(self._skipped) + len(self._sent))
+            ):
+                o = random.choice(list(self._skipped))
+                self._skipped.remove(o)
+                self._sent.add(o)
+                return o
+            return self.sample_sent()
+        t = state.relative_time
+        n_sent = len(self._sent)
+        if t < 0.1 or n_sent < 5:
+            self.next_indx += 1
+        else:
+            n_remaining = len(self.sorter.outcomes) - 1 - self.next_indx
+            t_per_offer = (t) / n_sent
+            n_expected = int((1 - t) / t_per_offer + 0.5)
+            if n_remaining <= n_expected:
+                self.next_indx += 1
+            else:
+                n_skip = max(1, (n_expected - n_remaining))
+                for i in range(n_skip - 1):
+                    o = self.sorter.outcome_at(self.next_indx + 1)
+                    if o is None:
+                        break
+                    self._skipped.add(o)
+                    self.next_indx += 1
+                else:
+                    self.next_indx += 1
+
+        self._sent.add(outcome)
+        return outcome
+
+
+@define
 class CABOfferingPolicy(OfferingPolicy):
     next_indx: int = 0
     sorter: PresortingInverseUtilityFunction | None = field(repr=False, default=None)
