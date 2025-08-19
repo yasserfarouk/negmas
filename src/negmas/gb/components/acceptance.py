@@ -244,7 +244,10 @@ class ACLast(AcceptancePolicy):
     alpha: float = 1.0
     beta: float = 0.0
 
-    def after_proposing(self, state: GBState, offer: Outcome | None):
+    def after_proposing(
+        self, state: GBState, offer: Outcome | None, dest: str | None = None
+    ):
+        return super().after_proposing(state, offer, dest)
         if not self.negotiator or not self.negotiator.ufun:
             return
         self.last_offer_util = float(self.negotiator.ufun(offer))
@@ -267,9 +270,15 @@ class AcceptBetween(AcceptancePolicy):
 
     min: float
     max: float = 1.0
+    rational: bool = True
 
     def __call__(self, state, offer, source):
-        if self.max >= state.relative_time >= self.min:
+        if self.max >= state.relative_time >= self.min and (
+            not self.rational
+            or self.negotiator.ufun.is_not_worse(  # type: ignore
+                offer, None
+            )
+        ):
             return ResponseType.ACCEPT_OFFER
         return ResponseType.REJECT_OFFER
 
@@ -283,9 +292,15 @@ class ACTime(AcceptancePolicy):
     """
 
     tau: float
+    rational: bool = True
 
     def __call__(self, state, offer, source):
-        if state.relative_time >= self.tau:
+        if state.relative_time >= self.tau and (
+            not self.rational
+            or self.negotiator.ufun.is_not_worse(  # type: ignore
+                offer, None
+            )
+        ):
             return ResponseType.ACCEPT_OFFER
         return ResponseType.REJECT_OFFER
 

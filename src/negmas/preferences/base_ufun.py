@@ -697,7 +697,7 @@ class BaseUtilityFunction(Preferences, ABC):
                     info[a] = child.attrib.get(a, info[a])
                 issue_info[issue_key].update(info)
                 mytype = info["type"]
-                # vtype = info["vtype"]
+                info["vtype"]
                 if domain_issues_dict is None:
                     raise ValueError("unknown domain-issue-dict!!!")
 
@@ -891,7 +891,8 @@ class BaseUtilityFunction(Preferences, ABC):
             See ``from_xml_str`` for all the parameters
 
         """
-        kwargs["name"] = str(file_name)
+        if "name" not in kwargs:
+            kwargs["name"] = str(Path(file_name).stem)
         with open(file_name) as f:
             xml_str = f.read()
         return cls.from_xml_str(xml_str=xml_str, **kwargs)

@@ -106,6 +106,9 @@ def serialize(
     def adjust_dict(d):
         if not isinstance(d, dict):
             return d
+        if python_class_identifier in d.keys():
+            if shorten_type_field and d[python_class_identifier].startswith("negmas."):
+                d[python_class_identifier] = d[python_class_identifier].split(".")[-1]
         for a, b in zip(SPECIAL_FIELDS, SPECIAL_FIELDS_SHORT_NAMES):
             if a in d.keys():
                 if b in d.keys() and d[b] != d[a]:
@@ -198,12 +201,15 @@ def serialize(
                 return adjust_dict(converted)
 
     if has(type(value)):
-        converted = asdict(value, recurse=deep)
+        clsname = get_full_type_name(value.__class__)
+        if shorten_type_field and clsname.startswith("negmas."):
+            clsname = clsname.split("n")[-1]
+        converted = asdict(value, recurse=deep) | {python_class_identifier: clsname}
         if converted is not None:
             return serialize(
                 converted,
                 deep=deep,
-                add_type_field=add_type_field,
+                add_type_field=False,
                 keep_private=keep_private,
                 ignore_methods=ignore_methods,
                 ignore_lambda=ignore_lambda,

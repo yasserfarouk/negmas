@@ -454,9 +454,7 @@ class Scenario:
             bilateral_frontier_outcomes=fo,
         )
 
-    def serialize(
-        self, python_class_identifier=PYTHON_CLASS_IDENTIFIER
-    ) -> dict[str, Any]:
+    def serialize(self) -> dict[str, Any]:
         """
         Converts the current scenario into a serializable dict.
 
@@ -488,7 +486,7 @@ class Scenario:
                 return d
             if adjust_name and "name" in d:
                 d["name"] = get_name(d["name"], default_name)
-            if d.get(PYTHON_CLASS_IDENTIFIER, "").startswith("negmas."):
+            if d.get(PYTHON_CLASS_IDENTIFIER, "").startswith("negobench."):
                 d[PYTHON_CLASS_IDENTIFIER] = d[PYTHON_CLASS_IDENTIFIER].split(".")[-1]
             for old, new in rename.items():
                 if old in d.keys():
@@ -512,23 +510,12 @@ class Scenario:
 
         domain = adjust(
             serialize(
-                self.outcome_space,
-                shorten_type_field=True,
-                add_type_field=True,
-                python_class_identifier=python_class_identifier,
+                self.outcome_space, shorten_type_field=False, add_type_field=True
             ),
             "domain",
         )
         ufuns = [
-            adjust(
-                serialize(
-                    u,
-                    shorten_type_field=True,
-                    add_type_field=True,
-                    python_class_identifier=python_class_identifier,
-                ),
-                i,
-            )
+            adjust(serialize(u, shorten_type_field=False, add_type_field=True), i)
             for i, u in enumerate(self.ufuns)
         ]
         return dict(domain=domain, ufuns=ufuns)
@@ -549,22 +536,23 @@ class Scenario:
         """
         self.dumpas(folder, "json")
 
-    def dumpas(
-        self,
-        folder: Path | str,
-        type="yml",
-        compact: bool = False,
-        python_class_identifier=PYTHON_CLASS_IDENTIFIER,
-    ) -> None:
+    def dumpas(self, folder: Path | str, type="yml", compact: bool = False) -> None:
         """
         Dumps the scenario in the given file format.
         """
+        if type.startswith("."):
+            type = type[1:]
         folder = Path(folder)
+        if type == "xml":
+            self.to_genius_folder(folder)
+            return
         folder.mkdir(parents=True, exist_ok=True)
-        serialized = self.serialize(python_class_identifier=python_class_identifier)
+        serialized = self.serialize()
         dump(serialized["domain"], folder / f"{serialized['domain']['name']}.{type}")
         for u in serialized["ufuns"]:
             dump(u, folder / f"{u['name']}.{type}", sort_keys=True, compact=compact)
+        if self.info:
+            dump(self.info, folder / f"{INFO_FILE_NAME}.{type}")
 
     def load_info_file(self, file: Path):
         if not file.is_file():
@@ -740,7 +728,8 @@ class Scenario:
         _ = safe_parsing  # yaml parsing is always safe
 
         def adjust_type(d: dict, base: str = "negmas", domain=None) -> dict:
-            d["type"] = f"{base}.{d['type']}"
+            if "." not in d["type"]:
+                d["type"] = f"{base}.{d['type']}"
             if domain is not None:
                 d["outcome_space"] = domain
             return d
@@ -855,7 +844,7 @@ def load_genius_domain(
                 safe_parsing=safe_parsing,
                 ignore_discount=ignore_discount,
                 ignore_reserved=ignore_reserved,
-                name=str(ufname),
+                name=Path(ufname).stem,
             )
         except Exception as e:
             raise OSError(
@@ -865,7 +854,7 @@ def load_genius_domain(
         agent_info.append(
             {
                 "ufun": utility,
-                "ufun_name": ufname,
+                "ufun_name": Path(ufname).stem,
                 "reserved_value_func": utility.reserved_value
                 if utility is not None
                 else float("-inf"),
