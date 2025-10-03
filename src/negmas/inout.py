@@ -486,7 +486,7 @@ class Scenario:
                 return d
             if adjust_name and "name" in d:
                 d["name"] = get_name(d["name"], default_name)
-            if d.get(PYTHON_CLASS_IDENTIFIER, "").startswith("negobench."):
+            if d.get(PYTHON_CLASS_IDENTIFIER, "").startswith("negmas."):
                 d[PYTHON_CLASS_IDENTIFIER] = d[PYTHON_CLASS_IDENTIFIER].split(".")[-1]
             for old, new in rename.items():
                 if old in d.keys():

@@ -568,10 +568,17 @@ class NegotiatorMechanismInterface:
         self._mechanism.log(nid, level="critical", data=data)
 
 
-TraceElement = namedtuple(
-    "TraceElement",
-    ["time", "relative_time", "step", "negotiator", "offer", "responses", "state"],
-)
+TRACE_ELEMENT_MEMBERS = [
+    "time",
+    "relative_time",
+    "step",
+    "negotiator",
+    "offer",
+    "responses",
+    "state",
+]
+
+TraceElement = namedtuple("TraceElement", TRACE_ELEMENT_MEMBERS)
 """An element of the trace returned by `full_trace` representing the history of the negotiation"""
 
 AgentMechanismInterface = NegotiatorMechanismInterface

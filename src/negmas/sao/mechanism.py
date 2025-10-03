@@ -5,6 +5,7 @@ Implements Stacked Alternating Offers (SAO) mechanism.
 from __future__ import annotations
 
 import functools
+import pandas as pd
 import sys
 import time
 from collections import defaultdict
@@ -17,7 +18,7 @@ from negmas import warnings
 from negmas.gb.negotiators import GBNegotiator
 from negmas.helpers.strings import humanize_time
 
-from ..common import TraceElement
+from ..common import TRACE_ELEMENT_MEMBERS, TraceElement
 from ..events import Event
 from ..helpers import TimeoutCaller, TimeoutError, exception2str
 from ..mechanisms import Mechanism, MechanismStepResult
@@ -630,9 +631,26 @@ class SAOMechanism(
         trace = self.full_trace
         ufuns = [_.ufun for _ in self.negotiators]
         return [
-            tuple(list(_) + [u(_[-3]) if u else float("nan") for u in ufuns])
+            tuple(list(_) + [u(_.offer) if u else float("nan") for u in ufuns])
             for _ in trace
         ]
+
+    def full_trace_with_utils_df(
+        self, ufun_names: str | list[str] = "name"
+    ) -> pd.DataFrame:
+        """Returns the full trace and the utility of the negotiators at each step."""
+        if isinstance(ufun_names, str):
+            if ufun_names == "name":
+                names = list(self.negotiator_names)
+            elif ufun_names == "id":
+                names = list(self.negotiator_ids)
+            else:
+                names = [f"n{i:02}" for i in range(len(self.negotiators))]
+        else:
+            names = ufun_names
+
+        names = TRACE_ELEMENT_MEMBERS + names
+        return pd.DataFrame.from_records(self.full_trace_with_utils_df, columns=names)
 
     @property
     def full_trace(self) -> list[TraceElement]:
