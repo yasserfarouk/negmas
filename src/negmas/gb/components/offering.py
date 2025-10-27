@@ -121,7 +121,9 @@ class HybridOfferingPolicy(OfferingPolicy):
 
         ufun = self.negotiator.ufun
         assert ufun, "Unknown ufun. Cannot continue"
-        domain_size = int(ufun.outcome_space.cardinality)  # type: ignore
+        domain_size = ufun.outcome_space.cardinality  # type: ignore
+        if domain_size > 100_000:
+            domain_size = 100_000
 
         if domain_size < 450:
             self.final_utility = 0.80

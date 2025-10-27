@@ -81,7 +81,9 @@ class UtilBasedNegotiator(GBNegotiator):
         Returns:
             tuple[float, float]: The result.
         """
-        ...
+        raise NotImplementedError(
+            "utility_range_to_accept not implemented by  UtilBasedNegotiator"
+        )
 
     def respond(self, state, source: str | None = None) -> ResponseType:
         """Respond.

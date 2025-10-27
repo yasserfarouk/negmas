@@ -21,7 +21,7 @@ import dill
 from ..helpers import get_full_type_name, shorten, unique_name
 from ..helpers.inout import dump, load
 
-__all__ = ["NamedObject"]
+__all__ = ["NamedObject", "WithPath"]
 
 
 class NamedObject:
@@ -365,3 +365,22 @@ class NamedObject:
             str: The result.
         """
         return shorten(self.type_name)
+
+
+class WithPath:
+    """An object loaded from a specific path"""
+
+    _path: Path | None = None
+    _loaded: bool = True
+
+    def __init__(self, *args, path: Path, loaded: bool = True, **kwargs):
+        self._path = path
+        self._loaded = loaded
+
+    @property
+    def path(self):
+        return self._path
+
+    @property
+    def is_loaded(self):
+        return self._loaded

@@ -5,6 +5,7 @@ from __future__ import annotations
 from abc import ABC, abstractmethod
 from typing import TYPE_CHECKING, Any
 
+from pathlib import Path
 from negmas.common import PreferencesChange
 from negmas.helpers import snake_case
 from negmas.helpers.types import get_full_type_name
@@ -38,6 +39,7 @@ class Preferences(NamedObject, ABC):
         outcomes: tuple[Outcome] | int | None = None,
         reserved_outcome: Outcome | None = None,
         owner: Rational | None = None,
+        path: Path | None = None,
         **kwargs,
     ) -> None:
         """Initialize the instance.
@@ -52,6 +54,7 @@ class Preferences(NamedObject, ABC):
         self.outcome_space = os_or_none(outcome_space, issues, outcomes)
         self.reserved_outcome = reserved_outcome  # type: ignore
         self._changes: list[PreferencesChange] = []
+        self.path = path
 
     @abstractmethod
     def is_volatile(self) -> bool:

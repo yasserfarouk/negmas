@@ -1094,7 +1094,10 @@ class BaseUtilityFunction(Preferences, ABC):
             kwargs["name"] = str(Path(file_name).stem)
         with open(file_name) as f:
             xml_str = f.read()
-        return cls.from_xml_str(xml_str=xml_str, **kwargs)
+        u, x = cls.from_xml_str(xml_str=xml_str, **kwargs)
+        if u is not None:
+            u.path = file_name
+        return u, x
 
     @classmethod
     def from_geniusweb_json_str(
@@ -1192,7 +1195,10 @@ class BaseUtilityFunction(Preferences, ABC):
         kwargs["name"] = str(file_name)
         with open(file_name) as f:
             xml_str = f.read()
-        return cls.from_geniusweb_json_str(json_str=xml_str, **kwargs)
+        u, x = cls.from_geniusweb_json_str(json_str=xml_str, **kwargs)
+        if u is not None:
+            u.path = Path(file_name)
+        return u, x
 
     def to_xml_str(
         self, issues: Iterable[Issue] | None = None, discount_factor=None

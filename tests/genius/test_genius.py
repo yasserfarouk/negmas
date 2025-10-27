@@ -69,14 +69,14 @@ def test_genius_does_not_freeze():
     assert domain is not None
     a1 = GeniusNegotiator(
         java_class_name="agents.anac.y2017.ponpokoagent.PonPokoAgent",
-        domain_file_name=domain.outcome_space.name,
-        utility_file_name=domain.ufuns[0].name,
+        domain_file_name=domain.outcome_space.path,
+        utility_file_name=domain.ufuns[0].path,
     )
 
     a2 = GeniusNegotiator(
         java_class_name="agents.anac.y2016.yxagent.YXAgent",
-        domain_file_name=domain.outcome_space.name,
-        utility_file_name=domain.ufuns[1].name,
+        domain_file_name=domain.outcome_space.path,
+        utility_file_name=domain.ufuns[1].path,
     )
 
     mechanism = domain.make_session(n_steps=None, time_limit=TIMELIMIT)
@@ -101,14 +101,14 @@ def test_old_agent():
     assert domain is not None
     a1 = GeniusNegotiator(
         java_class_name="agents.anac.y2017.ponpokoagent.PonPokoAgent",
-        domain_file_name=domain.outcome_space.name,
-        utility_file_name=domain.ufuns[0].name,
+        domain_file_name=domain.outcome_space.path,
+        utility_file_name=domain.ufuns[0].path,
     )
 
     a2 = GeniusNegotiator(
         java_class_name="agents.anac.y2016.yxagent.YXAgent",
-        domain_file_name=domain.outcome_space.name,
-        utility_file_name=domain.ufuns[1].name,
+        domain_file_name=domain.outcome_space.path,
+        utility_file_name=domain.ufuns[1].path,
     )
 
     mechanism = domain.make_session(n_steps=None, time_limit=TIMELIMIT)
@@ -135,14 +135,14 @@ def test_old_agent2():
     assert domain is not None
     a1 = GeniusNegotiator(
         java_class_name="agents.anac.y2012.AgentLG.AgentLG",
-        domain_file_name=domain.outcome_space.name,
-        utility_file_name=domain.ufuns[0].name,
+        domain_file_name=domain.outcome_space.path,
+        utility_file_name=domain.ufuns[0].path,
     )
 
     a2 = GeniusNegotiator(
         java_class_name="agents.anac.y2016.yxagent.YXAgent",
-        domain_file_name=domain.outcome_space.name,
-        utility_file_name=domain.ufuns[1].name,
+        domain_file_name=domain.outcome_space.path,
+        utility_file_name=domain.ufuns[1].path,
     )
 
     mechanism = domain.make_session([a1, a2], n_steps=None, time_limit=TIMELIMIT)

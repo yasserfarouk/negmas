@@ -25,7 +25,9 @@ class TimeCurve(Protocol):
         Returns:
             tuple[float, float]: The result.
         """
-        pass
+        raise NotImplementedError(
+            "utility_range is not implemented in a TimeCurve class"
+        )
 
 
 @runtime_checkable
@@ -44,7 +46,7 @@ class Aspiration(TimeCurve, Protocol):
         Returns:
             float: The result.
         """
-        pass
+        raise NotImplementedError("utility_at is not implemented in a TimeCurve class")
 
     def utility_range(self, t: float) -> tuple[float, float]:
         """Utility range.

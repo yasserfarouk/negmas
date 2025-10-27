@@ -4,6 +4,7 @@ from __future__ import annotations
 
 from math import isinf
 import numbers
+from pathlib import Path
 from functools import reduce
 import random
 from itertools import filterfalse
@@ -59,6 +60,7 @@ def make_os(
     issues: Sequence[Issue] | None = None,
     outcomes: Sequence[Outcome] | None = None,
     name: str | None = None,
+    path: Path | None = None,
 ) -> CartesianOutcomeSpace:
     """
     A factory to create outcome-spaces from lists of `Issue` s or `Outcome` s.
@@ -86,8 +88,10 @@ def make_os(
 
     issues_ = tuple(issues_)
     if all(_.is_discrete() for _ in issues_):
-        return DiscreteCartesianOutcomeSpace(issues_, name=name if name else "")
-    return CartesianOutcomeSpace(issues_, name=name if name else "")
+        return DiscreteCartesianOutcomeSpace(
+            issues_, name=name if name else "", path=path
+        )
+    return CartesianOutcomeSpace(issues_, name=name if name else "", path=path)
 
 
 @define
@@ -111,6 +115,7 @@ class EnumeratingOutcomeSpace(DiscreteOutcomeSpace, OSWithValidity):
     """An outcome space representing the enumeration of some outcomes. No issues defined"""
 
     name: str | None = field(eq=False, default=None)
+    path: Path | None = field(eq=False, default=None)
 
     def invalidate(self, outcome: Outcome) -> None:
         """Indicates that the outcome is invalid"""
@@ -297,6 +302,7 @@ class CartesianOutcomeSpace(XmlSerializable):
 
     issues: tuple[Issue, ...] = field(converter=tuple)
     name: str | None = field(eq=False, default=None)
+    path: Path | None = field(eq=False, default=None)
 
     def __attrs_post_init__(self):
         """attrs post init  ."""

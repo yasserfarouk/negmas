@@ -45,6 +45,7 @@ from negmas.sao.negotiators import NaiveTitForTatNegotiator, NiceNegotiator
 exception_str = "Custom Exception"
 
 NEGTYPES = all_negotiator_types()
+# NEGTYPES = [_ for _ in all_negotiator_types() if not "Hybrid" in get_full_type_name(_)]
 
 TIME_BASED_NEGOTIATORS = [
     get_class(f"negmas.sao.negotiators.timebased.{x}")
@@ -884,6 +885,7 @@ def test_can_run_all_negotiators(a, b, w1p, w1q, w2p, w2q, r1, r2):
     m.add(a(preferences=u1))
     m.add(b(), preferences=u2)
     m.run()
+    assert m.state.started
     assert not m.running
 
 
@@ -1359,8 +1361,8 @@ def test_genius_in_sao_with_time_limit_and_nsteps_raises_warning():
         mechanism = d.make_session(n_steps=60, time_limit=180)
         a1 = GeniusNegotiator(
             java_class_name="agents.anac.y2017.ponpokoagent.PonPokoAgent",
-            domain_file_name=d.outcome_space.name,
-            utility_file_name=d.ufuns[0].name,
+            domain_file_name=d.outcome_space.path,
+            utility_file_name=d.ufuns[0].path,
         )
         mechanism.add(a1)
 
@@ -1382,8 +1384,8 @@ def test_genius_in_sao_with_time_limit_or_nsteps_raises_no_warning():
         mechanism = d.make_session(n_steps=None, time_limit=180)
         a1 = GeniusNegotiator(
             java_class_name="agents.anac.y2017.ponpokoagent.PonPokoAgent",
-            domain_file_name=d.outcome_space.name,
-            utility_file_name=d.ufuns[0].name,
+            domain_file_name=d.outcome_space.path,
+            utility_file_name=d.ufuns[0].path,
         )
         mechanism.add(a1)
 
@@ -1396,8 +1398,8 @@ def test_genius_in_sao_with_time_limit_or_nsteps_raises_no_warning():
         mechanism = d.make_session(n_steps=60, time_limit=None)
         a1 = GeniusNegotiator(
             java_class_name="agents.anac.y2017.ponpokoagent.PonPokoAgent",
-            domain_file_name=d.outcome_space.name,
-            utility_file_name=d.ufuns[0].name,
+            domain_file_name=d.outcome_space.path,
+            utility_file_name=d.ufuns[0].path,
         )
         mechanism.add(a1)
 

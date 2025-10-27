@@ -116,8 +116,10 @@ def compared_two_domains(domain, domain2):
         assert m is not None
         if not genius_bridge_is_running():
             continue
-        n1 = Atlas3(domain_file_name=m.name, preferences=ufun)
-        n2 = AgentX(domain_file_name=m.name, utility_file_name=ufun.name)
+        n1 = Atlas3(
+            domain_file_name=domain.outcome_space.path, utility_file_name=ufun.path
+        )
+        n2 = AgentX(domain_file_name=domain.outcome_space.path, preferences=ufun)
         m.add(n1)
         m.add(n2)
         u1, u2 = n1.ufun, n2.ufun

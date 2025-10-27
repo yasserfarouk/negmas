@@ -14,6 +14,7 @@ from typing import Any, Callable, Iterable, Sequence
 from attrs import define, field
 
 from negmas.helpers.inout import dump, load
+from negmas.helpers.strings import unique_name
 from negmas.helpers.types import get_full_type_name
 from negmas.outcomes.outcome_space import make_os
 from negmas.preferences.crisp.linear import LinearAdditiveUtilityFunction
@@ -293,7 +294,9 @@ class Scenario:
         if not isinstance(negotiators, Iterable):
             negs = [
                 negotiators(
-                    name=ufun.name.split("/")[-1]  # type: ignore We trust that the class given is a negotiator and has a name
+                    name=ufun.name
+                    if ufun.name
+                    else unique_name("n")  # type: ignore We trust that the class given is a negotiator and has a name
                     .replace(".xml", "")
                     .replace(".yml", ""),
                     private_info=dict(opponent_ufun=opp_ufun) if opp_ufun else None,  # type: ignore We trust that the class given is a negotiator and has private_info
@@ -891,6 +894,7 @@ class Scenario:
             base_module="negmas",
             python_class_identifier=python_class_identifier,
         )
+        os.path = Path(domain)
         utils = [
             deserialize(
                 adjust_type(load(fname), domain=os),
@@ -899,8 +903,9 @@ class Scenario:
             )
             for fname in ufuns
         ]
-        for u in utils:
+        for u, path in zip(utils, ufuns):
             u.outcome_space = os
+            u.path = path
 
         # d = load(domain)
         # type_ = d.pop("type", "")
@@ -1007,6 +1012,7 @@ def load_genius_domain(
             {
                 "ufun": utility,
                 "ufun_name": Path(ufname).stem,
+                "ufun_file_name": ufname,
                 "reserved_value_func": utility.reserved_value
                 if utility is not None
                 else float("-inf"),
@@ -1031,8 +1037,10 @@ def load_genius_domain(
         raise ValueError(f"Could not load domain {domain_file_name}")
 
     return Scenario(
-        outcome_space=make_os(issues, name=str(domain_file_name)),  #
-        ufuns=tuple(_["ufun"] for _ in agent_info),  #
+        outcome_space=make_os(
+            issues, name=Path(domain_file_name).stem, path=Path(domain_file_name)
+        ),
+        ufuns=tuple(_["ufun"] for _ in agent_info),
     )
 
 
@@ -1320,12 +1328,13 @@ def load_geniusweb_domain(
             ignore_discount=ignore_discount,
             ignore_reserved=ignore_reserved,
             use_reserved_outcome=use_reserved_outcome,
-            name=str(ufname),
+            name=Path(ufname).stem,
         )
         agent_info.append(
             {
                 "ufun": utility,
-                "ufun_name": ufname,
+                "ufun_name": Path(ufname).stem,
+                "ufun_file_name": ufname,
                 "reserved_value_func": utility.reserved_value
                 if utility is not None
                 else float("-inf"),
@@ -1350,6 +1359,6 @@ def load_geniusweb_domain(
         raise ValueError(f"Could not load domain {domain_file_name}")
 
     return Scenario(
-        outcome_space=make_os(issues, name=name),
+        outcome_space=make_os(issues, name=name, path=Path(domain_file_name)),
         ufuns=[_["ufun"] for _ in agent_info],  # type: ignore We trust that the ufun will be loaded
     )

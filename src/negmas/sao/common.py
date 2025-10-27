@@ -107,6 +107,9 @@ def all_negotiator_types() -> list[type[SAONegotiator]]:
     from negmas.helpers import get_class
     from negmas.sao import SAONegotiator
     from negmas.gb import GBNegotiator
+    from negmas.gb.negotiators.utilbased import UtilBasedNegotiator
+
+    excluded = {UtilBasedNegotiator}
 
     results = []
     for _ in dir(negmas.sao.negotiators):
@@ -117,4 +120,4 @@ def all_negotiator_types() -> list[type[SAONegotiator]]:
             continue
         if issubclass(type, SAONegotiator) or issubclass(type, GBNegotiator):
             results.append(type)
-    return results
+    return list(set(results) - excluded)
