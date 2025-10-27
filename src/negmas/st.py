@@ -62,6 +62,12 @@ class VetoSTMechanism(
         initial_state: STState | None = None,
         **kwargs,
     ):
+        """Initialize the instance.
+
+        Args:
+            *args: Additional positional arguments.
+            **kwargs: Additional keyword arguments.
+        """
         super().__init__(*args, **kwargs)
         self._current_state = initial_state if initial_state else STState()
         state = self._current_state
@@ -131,6 +137,13 @@ class VetoSTMechanism(
         show_all_offers=False,
         **kwargs,
     ):
+        """Plot.
+
+        Args:
+            visible_negotiators: Visible negotiators.
+            show_all_offers: Show all offers.
+            **kwargs: Additional keyword arguments.
+        """
         import matplotlib.gridspec as gridspec
         import matplotlib.pyplot as plt
         import pandas as pd
@@ -268,6 +281,7 @@ class VetoSTMechanism(
 
     @property
     def current_offer(self):
+        """Current offer."""
         return self._current_state.current_offer
 
 
@@ -307,6 +321,12 @@ class HillClimbingSTMechanism(VetoSTMechanism):
         return neighbors
 
     def __init__(self, *args, **kwargs):
+        """Initialize the instance.
+
+        Args:
+            *args: Additional positional arguments.
+            **kwargs: Additional keyword arguments.
+        """
         super().__init__(*args, **kwargs)
 
         for issue in self.issues:
@@ -361,4 +381,5 @@ class HillClimbingSTMechanism(VetoSTMechanism):
 
     @property
     def current_offer(self):
+        """Current offer."""
         return self._current_state.current_offer

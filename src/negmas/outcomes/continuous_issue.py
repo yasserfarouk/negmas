@@ -1,4 +1,7 @@
+"""Outcome representations."""
+
 from __future__ import annotations
+
 import math
 import numbers
 import random
@@ -21,6 +24,13 @@ class ContinuousIssue(RangeIssue):
     """
 
     def __init__(self, values, name=None, n_levels=DEFAULT_LEVELS) -> None:
+        """Initialize the instance.
+
+        Args:
+            values: Values.
+            name: Name.
+            n_levels: N levels.
+        """
         super().__init__(values, name=name)
         self._n_levels = n_levels
         self.delta = (self.max_value - self.min_value) / self._n_levels
@@ -32,22 +42,47 @@ class ContinuousIssue(RangeIssue):
         )
 
     def to_dict(self, python_class_identifier=PYTHON_CLASS_IDENTIFIER):
+        """To dict.
+
+        Args:
+            python_class_identifier: Python class identifier.
+        """
         d = super().to_dict(python_class_identifier=python_class_identifier)
         d["n_levels"] = self._n_levels
         return d
 
     @property
     def cardinality(self) -> int | float:
+        """Cardinality.
+
+        Returns:
+            int | float: The result.
+        """
         return float("inf")
 
     @property
     def type(self) -> str:
+        """Type.
+
+        Returns:
+            str: The result.
+        """
         return "continuous"
 
     def is_continuous(self) -> bool:
+        """Check if continuous.
+
+        Returns:
+            bool: The result.
+        """
         return True
 
     def is_uncountable(self) -> bool:
+        """Check if uncountable.
+
+        Returns:
+            bool: The result.
+        """
         return True
 
     def rand(self) -> float:
@@ -62,6 +97,17 @@ class ContinuousIssue(RangeIssue):
         compact=False,
         endpoints=True,
     ) -> Generator[float, None, None]:
+        """Ordered value generator.
+
+        Args:
+            n: Number of items.
+            grid: Grid.
+            compact: Compact.
+            endpoints: Endpoints.
+
+        Returns:
+            Generator[float, None, None]: The result.
+        """
         if n is None or not math.isfinite(n):
             raise ValueError(f"Cannot generate {n} values from issue: {self}")
         n = int(n)
@@ -90,11 +136,32 @@ class ContinuousIssue(RangeIssue):
         compact=False,
         endpoints=True,
     ) -> Generator[float, None, None]:
+        """Value generator.
+
+        Args:
+            n: Number of items.
+            grid: Grid.
+            compact: Compact.
+            endpoints: Endpoints.
+
+        Returns:
+            Generator[float, None, None]: The result.
+        """
         return self.ordered_value_generator(n, grid, compact, endpoints)
 
     def rand_outcomes(
         self, n: int, with_replacement=False, fail_if_not_enough=False
     ) -> list[float]:
+        """Rand outcomes.
+
+        Args:
+            n: Number of items.
+            with_replacement: With replacement.
+            fail_if_not_enough: Fail if not enough.
+
+        Returns:
+            list[float]: The result.
+        """
         if with_replacement:
             return (
                 np.random.rand(n) * (self._values[1] - self._values[0])
@@ -113,9 +180,15 @@ class ContinuousIssue(RangeIssue):
 
     @property
     def all(self):
+        """All."""
         raise ValueError("Cannot enumerate all values of a continuous issue")
 
     def value_at(self, index: int):
+        """Value at.
+
+        Args:
+            index: Index.
+        """
         v = self.min_value + self.delta * index
         if v > self.max_value:
             return IndexError(index)

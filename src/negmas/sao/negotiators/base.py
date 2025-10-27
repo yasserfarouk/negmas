@@ -1,4 +1,7 @@
+"""Negotiators base classes."""
+
 from __future__ import annotations
+
 from abc import abstractmethod, ABC
 from typing import TYPE_CHECKING
 
@@ -56,6 +59,19 @@ class SAOPRNegotiator(GBNegotiator[SAONMI, SAOState]):
         can_propose: bool = True,
         **kwargs,
     ):
+        """Initialize the instance.
+
+        Args:
+            preferences: Preferences.
+            ufun: Ufun.
+            name: Name.
+            parent: Parent.
+            owner: Owner.
+            id: Id.
+            type_name: Type name.
+            can_propose: Can propose.
+            **kwargs: Additional keyword arguments.
+        """
         super().__init__(
             name=name,
             preferences=preferences,
@@ -135,6 +151,15 @@ class SAOPRNegotiator(GBNegotiator[SAONMI, SAOState]):
     def propose(  # type: ignore
         self, state: SAOState, dest: str | None = None
     ) -> Outcome | ExtendedOutcome | None:
+        """Propose.
+
+        Args:
+            state: Current state.
+            dest: Dest.
+
+        Returns:
+            Outcome | ExtendedOutcome | None: The result.
+        """
         ...
 
     def respond(self, state: SAOState, source: str | None = None) -> ResponseType:  # type: ignore
@@ -288,6 +313,12 @@ class SAOCallNegotiator(SAOPRNegotiator, ABC):
     """
 
     def __init__(self, *args, **kwargs):
+        """Initialize the instance.
+
+        Args:
+            *args: Additional positional arguments.
+            **kwargs: Additional keyword arguments.
+        """
         super().__init__(*args, **kwargs)
         self.__last_offer: dict[str | None, Outcome | ExtendedOutcome | None] = dict()
         self.__last_response: dict[str | None, ResponseType] = dict()
@@ -299,6 +330,15 @@ class SAOCallNegotiator(SAOPRNegotiator, ABC):
     def propose(
         self, state: SAOState, dest: str | None = None
     ) -> Outcome | ExtendedOutcome | None:
+        """Propose.
+
+        Args:
+            state: Current state.
+            dest: Dest.
+
+        Returns:
+            Outcome | ExtendedOutcome | None: The result.
+        """
         if dest not in self.__last_offer:
             resp = self(state, dest)
             self.__last_response[dest] = resp.response
@@ -307,6 +347,15 @@ class SAOCallNegotiator(SAOPRNegotiator, ABC):
         return self.__last_offer.pop(dest, None)
 
     def respond(self, state: SAOState, source: str | None = None) -> ResponseType:
+        """Respond.
+
+        Args:
+            state: Current state.
+            source: Source identifier.
+
+        Returns:
+            ResponseType: The result.
+        """
         _ = source
         if source not in self.__last_response:
             try:
@@ -327,6 +376,15 @@ class _InfiniteWaiter(SAOPRNegotiator):
     """Used only for testing: waits forever and never agrees to anything"""
 
     def __call__(self, state, dest: str | None = None) -> SAOResponse:
+        """Make instance callable.
+
+        Args:
+            state: Current state.
+            dest: Dest.
+
+        Returns:
+            SAOResponse: The result.
+        """
         _ = state, dest
 
         sleep(10000 * 60 * 60)

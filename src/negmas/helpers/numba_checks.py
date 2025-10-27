@@ -1,4 +1,7 @@
+"""Helper utilities."""
+
 from __future__ import annotations
+
 import functools
 
 DISABLE_NUMBA = False
@@ -10,9 +13,21 @@ except Exception:
     NUMBA_OK = False
 
     def jit(nopython=True):
+        """Jit.
+
+        Args:
+            nopython: Nopython.
+        """
+
         def jit_decorator(f):
             @functools.wraps(f)
             def wrapper(*args, **kwargs):
+                """Wrapper.
+
+                Args:
+                    *args: Additional positional arguments.
+                    **kwargs: Additional keyword arguments.
+                """
                 return f(*args, **kwargs)
 
             return wrapper

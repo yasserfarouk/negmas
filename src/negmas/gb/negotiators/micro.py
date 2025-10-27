@@ -1,4 +1,7 @@
+"""Negotiator implementations."""
+
 from __future__ import annotations
+
 from ..components.acceptance import MiCROAcceptancePolicy
 from ..components.offering import MiCROOfferingPolicy, FastMiCROOfferingPolicy
 from .modular.mapneg import MAPNegotiator
@@ -20,6 +23,12 @@ class MiCRONegotiator(MAPNegotiator):
     """
 
     def __init__(self, *args, accept_same: bool = True, **kwargs):
+        """Initialize the instance.
+
+        Args:
+            *args: Additional positional arguments.
+            **kwargs: Additional keyword arguments.
+        """
         kwargs["offering"] = MiCROOfferingPolicy()
         kwargs["acceptance"] = MiCROAcceptancePolicy(kwargs["offering"], accept_same)
         super().__init__(*args, **kwargs)
@@ -39,6 +48,12 @@ class FastMiCRONegotiator(MAPNegotiator):
     """
 
     def __init__(self, *args, accept_same: bool = True, **kwargs):
+        """Initialize the instance.
+
+        Args:
+            *args: Additional positional arguments.
+            **kwargs: Additional keyword arguments.
+        """
         kwargs["offering"] = FastMiCROOfferingPolicy()
         kwargs["acceptance"] = MiCROAcceptancePolicy(kwargs["offering"], accept_same)
         super().__init__(*args, **kwargs)

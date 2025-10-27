@@ -37,6 +37,7 @@ DEFAULT_COLORMAP = "jet"
 
 
 def return_inf():
+    """Return inf."""
     return float("inf")
 
 
@@ -110,6 +111,25 @@ class SAOMechanism(
         one_offer_per_step: bool = False,
         **kwargs,
     ):
+        """Initialize the instance.
+
+        Args:
+            dynamic_entry: Dynamic entry.
+            extra_callbacks: Extra callbacks.
+            end_on_no_response: End on no response.
+            avoid_ultimatum: Avoid ultimatum.
+            check_offers: Check offers.
+            enforce_issue_types: Enforce issue types.
+            cast_offers: Cast offers.
+            offering_is_accepting: Offering is accepting.
+            allow_offering_just_rejected_outcome: Allow offering just rejected outcome.
+            name: Name.
+            max_wait: Max wait.
+            sync_calls: Sync calls.
+            initial_state: Initial state.
+            one_offer_per_step: One offer per step.
+            **kwargs: Additional keyword arguments.
+        """
         debug = kwargs.get("debug", False)
         if debug:
             sync_calls = True
@@ -195,6 +215,15 @@ class SAOMechanism(
         role: str | None = None,
         **kwargs,
     ) -> bool | None:
+        """Add.
+
+        Args:
+            negotiator: Negotiator.
+            **kwargs: Additional keyword arguments.
+
+        Returns:
+            bool | None: The result.
+        """
         from ..genius.negotiator import GeniusNegotiator
 
         added = super().add(negotiator, preferences=preferences, role=role, **kwargs)
@@ -216,6 +245,11 @@ class SAOMechanism(
         return added
 
     def set_sync_call(self, v: bool):
+        """Set sync call.
+
+        Args:
+            v: V.
+        """
         self._sync_call = v
 
     def _agent_info(self):
@@ -657,6 +691,11 @@ class SAOMechanism(
         """Returns the negotiation history as a list of relative_time/step/negotiator/offer tuples"""
 
         def response(state: SAOState):
+            """Response.
+
+            Args:
+                state: Current state.
+            """
             if state.agreement:
                 return "agreement"
             if state.timedout:
@@ -670,6 +709,11 @@ class SAOMechanism(
         offers = []
 
         def get_acceptances(state: SAOState):
+            """Get acceptances.
+
+            Args:
+                state: Current state.
+            """
             neg = state.current_proposer
             n_acceptances = state.n_acceptances
             if self._offering_is_accepting:
@@ -704,6 +748,12 @@ class SAOMechanism(
             ]
 
         def not_equal(a, b):
+            """Not equal.
+
+            Args:
+                a: A.
+                b: B.
+            """
             return any(x != y for x, y in zip(a, b))
 
         self._history: list[SAOState]
@@ -797,6 +847,12 @@ class SAOMechanism(
             offers += [(state.step, n, o) for n, o in state.new_offers]
 
         def not_equal(a, b):
+            """Not equal.
+
+            Args:
+                a: A.
+                b: B.
+            """
             return any(x != y for x, y in zip(a, b))
 
         self._history: list[SAOState]  #
@@ -825,6 +881,12 @@ class SAOMechanism(
             offers += [(n, o) for n, o in state.new_offers]
 
         def not_equal(a, b):
+            """Not equal.
+
+            Args:
+                a: A.
+                b: B.
+            """
             if isinstance(a, dict):
                 a = a.values()
             if isinstance(b, dict):
@@ -907,6 +969,48 @@ class SAOMechanism(
         mark_max_welfare_points: bool = True,
         **kwargs,
     ):
+        """Plot.
+
+        Args:
+            plotting_negotiators: Plotting negotiators.
+            save_fig: Save fig.
+            path: Path.
+            fig_name: Fig name.
+            ignore_none_offers: Ignore none offers.
+            with_lines: With lines.
+            show_agreement: Show agreement.
+            show_pareto_distance: Show pareto distance.
+            show_nash_distance: Show nash distance.
+            show_kalai_distance: Show kalai distance.
+            show_ks_distance: Show ks distance.
+            show_max_welfare_distance: Show max welfare distance.
+            show_max_relative_welfare_distance: Show max relative welfare distance.
+            show_end_reason: Show end reason.
+            show_last_negotiator: Show last negotiator.
+            show_annotations: Show annotations.
+            show_reserved: Show reserved.
+            show_total_time: Show total time.
+            show_relative_time: Show relative time.
+            show_n_steps: Show n steps.
+            colors: Colors.
+            markers: Markers.
+            colormap: Colormap.
+            ylimits: Ylimits.
+            common_legend: Common legend.
+            xdim: Xdim.
+            only2d: Only2d.
+            no2d: No2d.
+            fast: Fast.
+            simple_offers_view: Simple offers view.
+            mark_offers_view: Mark offers view.
+            mark_pareto_points: Mark pareto points.
+            mark_all_outcomes: Mark all outcomes.
+            mark_nash_points: Mark nash points.
+            mark_kalai_points: Mark kalai points.
+            mark_ks_points: Mark ks points.
+            mark_max_welfare_points: Mark max welfare points.
+            **kwargs: Additional keyword arguments.
+        """
         from negmas.plots.util import plot_mechanism_run
 
         extra_annotation = (

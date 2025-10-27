@@ -1,4 +1,7 @@
+"""Preference elicitation."""
+
 from __future__ import annotations
+
 import copy
 import operator
 import pprint
@@ -36,6 +39,12 @@ class Constraint(ABC):
         full_range: Sequence[tuple[float, float]] | tuple[float, float] = (0.0, 1.0),
         outcomes: list[Outcome] = None,
     ):
+        """Initialize the instance.
+
+        Args:
+            full_range: Full range.
+            outcomes: Outcomes.
+        """
         super().__init__()
         self.outcomes = outcomes
         self.index = None
@@ -55,16 +64,34 @@ class Constraint(ABC):
 
     @abstractmethod
     def marginals(self, outcomes: Iterable[Outcome] = None) -> list[ScipyDistribution]:
+        """Marginals.
+
+        Args:
+            outcomes: Outcomes.
+
+        Returns:
+            list[ScipyDistribution]: The result.
+        """
         ...
 
     @abstractmethod
     def marginal(self, outcome: Outcome) -> ScipyDistribution:
+        """Marginal.
+
+        Args:
+            outcome: Outcome to evaluate.
+
+        Returns:
+            ScipyDistribution: The result.
+        """
         ...
 
     def __repr__(self):
+        """repr  ."""
         return self.__dict__.__repr__()
 
     def __str__(self):
+        """str  ."""
         return pprint.pformat(self.__dict__)
 
 
@@ -73,6 +100,14 @@ class MarginalNeutralConstraint(Constraint):
     distribution."""
 
     def marginals(self, outcomes: Iterable[Outcome] = None) -> list[ScipyDistribution]:
+        """Marginals.
+
+        Args:
+            outcomes: Outcomes.
+
+        Returns:
+            list[ScipyDistribution]: The result.
+        """
         if outcomes is None:
             outcomes = self.outcomes
         # this works only for real-valued outcomes.
@@ -87,6 +122,14 @@ class MarginalNeutralConstraint(Constraint):
 
     def marginal(self, outcome: Outcome) -> ScipyDistribution:
         # this works only for real-valued outcomes.
+        """Marginal.
+
+        Args:
+            outcome: Outcome to evaluate.
+
+        Returns:
+            ScipyDistribution: The result.
+        """
         if self.outcomes is None:
             return ScipyDistribution(
                 type="uniform",
@@ -110,12 +153,28 @@ class RankConstraint(MarginalNeutralConstraint):
         full_range: Sequence[tuple[float, float]] | tuple[float, float] = (0.0, 1.0),
         outcomes: list[Outcome] = None,
     ):
+        """Initialize the instance.
+
+        Args:
+            rankings: Rankings.
+            full_range: Full range.
+            outcomes: Outcomes.
+        """
         super().__init__(full_range=full_range, outcomes=outcomes)
         self.rankings = rankings
 
     def is_satisfied(
         self, preferences: Preferences, outcomes: Iterable[Outcome] | None = None
     ) -> bool:
+        """Check if satisfied.
+
+        Args:
+            preferences: Preferences.
+            outcomes: Outcomes.
+
+        Returns:
+            bool: The result.
+        """
         if outcomes is None:
             outcomes = self.outcomes
         if outcomes is None:
@@ -134,6 +193,13 @@ class ComparisonConstraint(MarginalNeutralConstraint):
         full_range: Sequence[tuple[float, float]] | tuple[float, float] = (0.0, 1.0),
         outcomes: list[Outcome] = None,
     ):
+        """Initialize the instance.
+
+        Args:
+            op: Op.
+            full_range: Full range.
+            outcomes: Outcomes.
+        """
         super().__init__(full_range=full_range, outcomes=outcomes)
         if outcomes is not None and len(outcomes) != 2:
             raise ValueError(
@@ -158,6 +224,15 @@ class ComparisonConstraint(MarginalNeutralConstraint):
     def is_satisfied(
         self, preferences: Preferences, outcomes: Iterable[Outcome] | None = None
     ) -> bool:
+        """Check if satisfied.
+
+        Args:
+            preferences: Preferences.
+            outcomes: Outcomes.
+
+        Returns:
+            bool: The result.
+        """
         if outcomes is None:
             outcomes = self.outcomes
         if outcomes is None:
@@ -170,6 +245,7 @@ class ComparisonConstraint(MarginalNeutralConstraint):
         return self.op(u[0], u[1])
 
     def __str__(self):
+        """str  ."""
         return f"{self.outcomes[0]} {self.op_name} {self.outcomes[0]}"
 
     __repr__ = __str__
@@ -185,6 +261,14 @@ class RangeConstraint(Constraint):
         outcomes: list[Outcome] = None,
         eps=1e-5,
     ):
+        """Initialize the instance.
+
+        Args:
+            rng: Rng.
+            full_range: Full range.
+            outcomes: Outcomes.
+            eps: Eps.
+        """
         super().__init__(full_range=full_range, outcomes=outcomes)
 
         if outcomes is not None:
@@ -207,6 +291,15 @@ class RangeConstraint(Constraint):
     def is_satisfied(
         self, preferences: Preferences, outcomes: Iterable[Outcome] | None = None
     ) -> bool:
+        """Check if satisfied.
+
+        Args:
+            preferences: Preferences.
+            outcomes: Outcomes.
+
+        Returns:
+            bool: The result.
+        """
         if outcomes is None:
             outcomes = self.outcomes
         if outcomes is None:
@@ -224,6 +317,14 @@ class RangeConstraint(Constraint):
         return True
 
     def marginals(self, outcomes: Iterable[Outcome] = None) -> list[ScipyDistribution]:
+        """Marginals.
+
+        Args:
+            outcomes: Outcomes.
+
+        Returns:
+            list[ScipyDistribution]: The result.
+        """
         if outcomes is None:
             outcomes = self.outcomes
         # this works only for real-valued outcomes.
@@ -238,6 +339,14 @@ class RangeConstraint(Constraint):
 
     def marginal(self, outcome: Outcome) -> ScipyDistribution:
         # this works only for real-valued outcomes.
+        """Marginal.
+
+        Args:
+            outcome: Outcome to evaluate.
+
+        Returns:
+            ScipyDistribution: The result.
+        """
         if self.outcomes is None:
             return ScipyDistribution(
                 type="uniform",
@@ -252,6 +361,7 @@ class RangeConstraint(Constraint):
         )
 
     def __str__(self):
+        """str  ."""
         result = f"{self.range}"
         if self.outcomes is not None and len(self.outcomes) > 0:
             result += f"{self.outcomes}"
@@ -262,12 +372,15 @@ class RangeConstraint(Constraint):
 
 @dataclass
 class Answer:
+    """Answer implementation."""
+
     outcomes: list[Outcome]
     constraint: Constraint
     cost: float = 0.0
     name: str = ""
 
     def __str__(self):
+        """str  ."""
         if len(self.name) > 0:
             return self.name + f"{self.constraint}"
         else:
@@ -283,12 +396,15 @@ class Answer:
 
 @dataclass
 class Query:
+    """Query implementation."""
+
     answers: list[Answer]
     probs: list[float]
     cost: float = 0.0
     name: str = ""
 
     def __str__(self):
+        """str  ."""
         if len(self.name) > 0:
             return self.name
         else:
@@ -302,6 +418,8 @@ class Query:
 
 @dataclass
 class QResponse:
+    """QResponse implementation."""
+
     answer: Answer | None
     indx: int
     cost: float
@@ -387,8 +505,21 @@ def next_query(
 
 
 class CostEvaluator:
+    """CostEvaluator implementation."""
+
     def __init__(self, cost: float):
+        """Initialize the instance.
+
+        Args:
+            cost: Cost.
+        """
         self.cost = cost
 
     def __call__(self, query: Query, answer: Answer):
+        """Make instance callable.
+
+        Args:
+            query: Query.
+            answer: Answer.
+        """
         return self.cost + query.cost + (answer.cost if answer.cost else 0.0)

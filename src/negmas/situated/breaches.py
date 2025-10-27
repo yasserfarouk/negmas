@@ -1,4 +1,7 @@
+"""Situated negotiation."""
+
 from __future__ import annotations
+
 import uuid
 from enum import Enum
 
@@ -22,6 +25,8 @@ class BreachProcessing(Enum):
 
 @define
 class Breach:
+    """Breach implementation."""
+
     contract: Contract
     """The agreement being breached"""
     perpetrator: str
@@ -39,6 +44,7 @@ class Breach:
     """Object name"""
 
     def as_dict(self):
+        """As dict."""
         return {
             "contract": str(self.contract),
             "contract_id": self.contract.id,

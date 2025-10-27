@@ -1,4 +1,7 @@
+"""Preference representations."""
+
 from __future__ import annotations
+
 import itertools
 import random
 from typing import Any, Callable, Iterable, Literal, overload
@@ -519,7 +522,7 @@ def generate_single_issue_ufuns(
     if numeric:
         issues = (make_issue(n, issue_name),)
     else:
-        issues = (make_issue([f"{i}_{n-1 - i}" for i in range(n)], issue_name),)
+        issues = (make_issue([f"{i}_{n - 1 - i}" for i in range(n)], issue_name),)
     os = make_os(issues, name=os_name)
     if not ufun_names:
         ufun_names = tuple(f"u{i}" for i in range(n_ufuns))
@@ -557,6 +560,29 @@ def generate_multi_issue_ufuns(
     guarantee_rational: bool = False,
     numeric_prob: float = -1,
 ) -> tuple[LinearAdditiveUtilityFunction | MappingUtilityFunction, ...]:
+    """Generate multi issue ufuns.
+
+    Args:
+        n_issues: N issues.
+        n_values: N values.
+        sizes: Sizes.
+        n_ufuns: N ufuns.
+        pareto_generators: Pareto generators.
+        generator_params: Generator params.
+        reserved_values: Reserved values.
+        rational_fractions: Rational fractions.
+        reservation_selector: Reservation selector.
+        issue_names: Issue names.
+        os_name: Os name.
+        ufun_names: Ufun names.
+        numeric: Numeric.
+        linear: Linear.
+        guarantee_rational: Guarantee rational.
+        numeric_prob: Numeric prob.
+
+    Returns:
+        tuple[LinearAdditiveUtilityFunction | MappingUtilityFunction, ...]: The result.
+    """
     ...
 
 
@@ -579,6 +605,29 @@ def generate_multi_issue_ufuns(
     guarantee_rational: bool = False,
     numeric_prob: float = -1,
 ) -> tuple[LinearAdditiveUtilityFunction | MappingUtilityFunction, ...]:
+    """Generate multi issue ufuns.
+
+    Args:
+        n_issues: N issues.
+        n_values: N values.
+        sizes: Sizes.
+        n_ufuns: N ufuns.
+        pareto_generators: Pareto generators.
+        generator_params: Generator params.
+        reserved_values: Reserved values.
+        rational_fractions: Rational fractions.
+        reservation_selector: Reservation selector.
+        issue_names: Issue names.
+        os_name: Os name.
+        ufun_names: Ufun names.
+        numeric: Numeric.
+        linear: Linear.
+        guarantee_rational: Guarantee rational.
+        numeric_prob: Numeric prob.
+
+    Returns:
+        tuple[LinearAdditiveUtilityFunction | MappingUtilityFunction, ...]: The result.
+    """
     ...
 
 
@@ -629,7 +678,7 @@ def generate_multi_issue_ufuns(
         A tuple of `n_ufuns` utility functions.
     """
     if not issue_names:
-        issue_names = tuple(f"i{k+1}" for k in range(n_issues))
+        issue_names = tuple(f"i{k + 1}" for k in range(n_issues))
     if sizes is None or len(sizes) == 0:
         assert n_values is not None and (isinstance(n_values, tuple) or n_values > 0)
         sizes = tuple(intin(n_values) for _ in range(n_issues))
@@ -643,7 +692,7 @@ def generate_multi_issue_ufuns(
         issues=[
             make_issue(ni, name=iname)
             if num
-            else make_issue([f"v{k+1}" for k in range(ni)], name=f"i{i+1}")
+            else make_issue([f"v{k + 1}" for k in range(ni)], name=f"i{i + 1}")
             for i, (ni, iname, num) in enumerate(zip(sizes, issue_names, is_numeric))
         ],
         name=os_name,
@@ -710,7 +759,7 @@ def generate_ufuns_for(
     elif not isinstance(reserved_values, Iterable):
         reserved_values = [float(reserved_values)] * n_ufuns
     if ufun_names is None:
-        ufun_names = tuple(f"u{i+1}" for i in range(n_ufuns))
+        ufun_names = tuple(f"u{i + 1}" for i in range(n_ufuns))
     vals = [dict() for _ in range(n_ufuns)]
     if not generator_params:
         generator_params = [dict() for _ in pareto_generators]

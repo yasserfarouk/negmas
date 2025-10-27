@@ -1,3 +1,5 @@
+"""Module for warnings functionality."""
+
 import warnings
 from typing import Callable
 
@@ -34,6 +36,8 @@ __all__ = [
 
 
 class NegmasWarning(UserWarning):
+    """NegmasWarning implementation."""
+
     ...
 
 
@@ -50,94 +54,140 @@ def deprecated(message):
 
 
 class NegmasBridgePathWarning(NegmasWarning):
+    """NegmasBridgePathWarning implementation."""
+
     ...
 
 
 class NegmasBridgeProcessWarning(NegmasWarning):
+    """NegmasBridgeProcessWarning implementation."""
+
     ...
 
 
 class NegmasInfiniteNegotiationWarning(NegmasWarning):
+    """NegmasInfiniteNegotiationWarning implementation."""
+
     ...
 
 
 class NegmasStepAndTimeLimitWarning(NegmasWarning):
+    """NegmasStepAndTimeLimitWarning implementation."""
+
     ...
 
 
 class NegmasCannotStartNegotiation(NegmasWarning):
+    """NegmasCannotStartNegotiation implementation."""
+
     ...
 
 
 class NegmasBrdigeParsingWarning(NegmasWarning):
+    """NegmasBrdigeParsingWarning implementation."""
+
     ...
 
 
 class NegmasSarializationWarning(NegmasWarning):
+    """NegmasSarializationWarning implementation."""
+
     ...
 
 
 class NegmasIOWarning(NegmasWarning):
+    """NegmasIOWarning implementation."""
+
     ...
 
 
 class NegmasShutdownWarning(NegmasWarning):
+    """NegmasShutdownWarning implementation."""
+
     ...
 
 
 class NegmasWorldConfigWarning(NegmasWarning):
+    """NegmasWorldConfigWarning implementation."""
+
     ...
 
 
 class NegmasImportWarning(NegmasWarning, ImportWarning):
+    """NegmasImportWarning implementation."""
+
     ...
 
 
 class NegmasUnusedValueWarning(NegmasWarning):
+    """NegmasUnusedValueWarning implementation."""
+
     ...
 
 
 class NegmasMemoryWarning(NegmasWarning):
+    """NegmasMemoryWarning implementation."""
+
     ...
 
 
 class NegmasCaughtExceptionWarning(NegmasWarning):
+    """NegmasCaughtExceptionWarning implementation."""
+
     ...
 
 
 class NegmasVisualizationWarning(NegmasWarning):
+    """NegmasVisualizationWarning implementation."""
+
     ...
 
 
 class NegmasNoResponseWarning(NegmasWarning):
+    """NegmasNoResponseWarning implementation."""
+
     ...
 
 
 class NegmasLoggingWarning(NegmasWarning):
+    """NegmasLoggingWarning implementation."""
+
     ...
 
 
 class NegmasNumericWarning(NegmasWarning):
+    """NegmasNumericWarning implementation."""
+
     ...
 
 
 class NegmasSpeedWarning(NegmasWarning):
+    """NegmasSpeedWarning implementation."""
+
     ...
 
 
 class NegmasIgnoredValueWarning(NegmasWarning):
+    """NegmasIgnoredValueWarning implementation."""
+
     ...
 
 
 class NegmasDoubleAssignmentWarning(NegmasWarning):
+    """NegmasDoubleAssignmentWarning implementation."""
+
     ...
 
 
 class NegmasUnexpectedValueWarning(NegmasWarning):
+    """NegmasUnexpectedValueWarning implementation."""
+
     ...
 
 
 class NegmasSlowOperation(NegmasWarning):
+    """NegmasSlowOperation implementation."""
+
     ...
 
 

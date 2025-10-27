@@ -1,4 +1,7 @@
+"""Preference elicitation."""
+
 from __future__ import annotations
+
 from ..common import NegotiatorMechanismInterface, Value
 from ..helpers.prob import ScipyDistribution
 from ..preferences import IPUtilityFunction
@@ -29,6 +32,13 @@ class EStrategy:
     def __init__(
         self, strategy: str, resolution=1e-4, stop_at_cost: bool = True
     ) -> None:
+        """Initialize the instance.
+
+        Args:
+            strategy: Strategy.
+            resolution: Resolution.
+            stop_at_cost: Stop at cost.
+        """
         super().__init__()
         self.lower = None
         self.upper = None
@@ -40,6 +50,7 @@ class EStrategy:
 
     @classmethod
     def supported_strategies(cls):
+        """Supported strategies."""
         return [
             "exact",
             "titration{f}",
@@ -54,6 +65,14 @@ class EStrategy:
         ]
 
     def next_query(self, outcome: Outcome) -> Query | None:
+        """Next query.
+
+        Args:
+            outcome: Outcome to evaluate.
+
+        Returns:
+            Query | None: The result.
+        """
         lower, upper, _outcomes = self.lower, self.upper, self.outcomes
         index = self.indices[outcome]
         lower, upper = lower[index], upper[index]
@@ -262,6 +281,16 @@ class EStrategy:
         return ScipyDistribution(type="uniform", loc=self.lower[indx], scale=scale)
 
     def until(self, outcome: Outcome, user: User, dist: list[Value] | Value) -> Value:
+        """Until.
+
+        Args:
+            outcome: Outcome to evaluate.
+            user: User.
+            dist: Dist.
+
+        Returns:
+            Value: The result.
+        """
         if isinstance(dist, list):
             targets = [
                 (_ - self.resolution, _ + self.resolution)
@@ -279,6 +308,12 @@ class EStrategy:
         u = self.utility_estimate(outcome)
 
         def within_a_target(u, targets=targets):
+            """Within a target.
+
+            Args:
+                u: U.
+                targets: Targets.
+            """
             for lower, upper in targets:
                 if (_loc(u) >= (lower - self.resolution)) and (
                     (_upper(u)) <= upper + self.resolution
@@ -295,6 +330,12 @@ class EStrategy:
     def on_enter(
         self, nmi: NegotiatorMechanismInterface, preferences: IPUtilityFunction = None
     ) -> None:
+        """On enter.
+
+        Args:
+            nmi: Nmi.
+            preferences: Preferences.
+        """
         self.lower = [0.0] * nmi.n_outcomes
         self.upper = [1.0] * nmi.n_outcomes
         self.indices = dict(zip(nmi.outcomes, range(nmi.n_outcomes)))

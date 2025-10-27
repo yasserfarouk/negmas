@@ -172,6 +172,38 @@ class Mechanism(
         verbosity: int = 0,
         ignore_negotiator_exceptions=False,
     ):
+        """Initialize the instance.
+
+        Args:
+            initial_state: Initial state.
+            outcome_space: Outcome space.
+            issues: Issues.
+            outcomes: Outcomes.
+            n_steps: N steps.
+            time_limit: Time limit.
+            pend: Pend.
+            pend_per_second: Pend per second.
+            step_time_limit: Step time limit.
+            negotiator_time_limit: Negotiator time limit.
+            hidden_time_limit: Hidden time limit.
+            max_n_negotiators: Max n negotiators.
+            dynamic_entry: Dynamic entry.
+            annotation: Annotation.
+            nmi_factory: Nmi factory.
+            extra_callbacks: Extra callbacks.
+            checkpoint_every: Checkpoint every.
+            checkpoint_folder: Checkpoint folder.
+            checkpoint_filename: Checkpoint filename.
+            extra_checkpoint_info: Extra checkpoint info.
+            single_checkpoint: Single checkpoint.
+            exist_ok: Exist ok.
+            name: Name.
+            genius_port: Genius port.
+            id: Id.
+            type_name: Type name.
+            verbosity: Verbosity.
+            ignore_negotiator_exceptions: Ignore negotiator exceptions.
+        """
         check_one_and_only(outcome_space, issues, outcomes)
         outcome_space = ensure_os(outcome_space, issues, outcomes)
         self.__verbosity = verbosity
@@ -304,6 +336,11 @@ class Mechanism(
 
     @property
     def negotiators(self) -> list[TNegotiator]:
+        """Negotiators.
+
+        Returns:
+            list[TNegotiator]: The result.
+        """
         return self._negotiators
 
     @property
@@ -320,6 +357,11 @@ class Mechanism(
 
     @property
     def outcome_space(self) -> OutcomeSpace:
+        """Outcome space.
+
+        Returns:
+            OutcomeSpace: The result.
+        """
         return self.nmi.outcome_space
 
     def discrete_outcome_space(
@@ -338,6 +380,7 @@ class Mechanism(
 
     @property
     def outcomes(self):
+        """Outcomes."""
         return self.nmi.outcomes
 
     def discrete_outcomes(
@@ -556,6 +599,11 @@ class Mechanism(
             ),
         ],
     ):
+        """Requirements.
+
+        Args:
+            requirements: Requirements.
+        """
         self._requirements = {
             k: set(v) if isinstance(v, list) else v for k, v in requirements.items()
         }
@@ -854,10 +902,20 @@ class Mechanism(
 
     @property
     def negotiator_ids(self) -> list[str]:
+        """Negotiator ids.
+
+        Returns:
+            list[str]: The result.
+        """
         return [_.id for _ in self._negotiators]
 
     @property
     def genius_negotiator_ids(self) -> list[str]:
+        """Genius negotiator ids.
+
+        Returns:
+            list[str]: The result.
+        """
         return [
             getattr(_, "java_uuid") if hasattr(_, "java_uuid") else _.id
             for _ in self._negotiators
@@ -879,22 +937,39 @@ class Mechanism(
 
     @property
     def agent_ids(self) -> list[str | None]:
+        """Agent ids.
+
+        Returns:
+            list[str | None]: The result.
+        """
         return [_.owner.id if _.owner else None for _ in self._negotiators]
 
     @property
     def agent_names(self) -> list[str | None]:
+        """Agent names.
+
+        Returns:
+            list[str | None]: The result.
+        """
         return [_.owner.name if _.owner else None for _ in self._negotiators]
 
     @property
     def negotiator_names(self) -> list[str]:
+        """Negotiator names.
+
+        Returns:
+            list[str]: The result.
+        """
         return [_.name for _ in self._negotiators]
 
     @property
     def agreement(self):
+        """Agreement."""
         return self._current_state.agreement
 
     @property
     def n_outcomes(self):
+        """N outcomes."""
         return self.nmi.n_outcomes
 
     @property
@@ -918,22 +993,27 @@ class Mechanism(
 
     @property
     def n_steps(self):
+        """N steps."""
         return self.nmi.n_steps
 
     @property
     def time_limit(self):
+        """Time limit."""
         return self.nmi.time_limit
 
     @property
     def running(self):
+        """Running."""
         return self._current_state.running
 
     @property
     def dynamic_entry(self):
+        """Dynamic entry."""
         return self.nmi.dynamic_entry
 
     @property
     def max_n_negotiators(self):
+        """Max n negotiators."""
         return self.nmi.max_n_negotiators
 
     @property
@@ -1238,6 +1318,11 @@ class Mechanism(
         return self.state
 
     def __next__(self) -> TState:
+        """next  .
+
+        Returns:
+            TState: The result.
+        """
         result = self.step()
         if not self._current_state.running:
             raise StopIteration
@@ -1427,6 +1512,14 @@ class Mechanism(
         return [_.state for _ in mechanisms]
 
     def run_with_progress(self, timeout=None) -> TState:
+        """Run with progress.
+
+        Args:
+            timeout: Timeout.
+
+        Returns:
+            TState: The result.
+        """
         if timeout is None:
             with Progress() as progress:
                 task = progress.add_task("Negotiating ...", total=100)
@@ -1449,6 +1542,14 @@ class Mechanism(
         return self.state
 
     def run(self, timeout=None) -> TState:
+        """Run.
+
+        Args:
+            timeout: Timeout.
+
+        Returns:
+            TState: The result.
+        """
         if timeout is None:
             for _ in self:
                 pass
@@ -1467,14 +1568,21 @@ class Mechanism(
 
     @property
     def history(self) -> list[TState]:
+        """History.
+
+        Returns:
+            list[TState]: The result.
+        """
         return self._history
 
     @property
     def stats(self):
+        """Stats."""
         return self._stats
 
     @property
     def current_step(self):
+        """Current step."""
         return self._current_state.step
 
     def _get_preferences(self) -> list[UtilityFunction]:
@@ -1512,6 +1620,15 @@ class Mechanism(
     def pareto_frontier_bf(
         self, max_cardinality: float = float("inf"), sort_by_welfare=True
     ) -> tuple[list[tuple[float, ...]], list[Outcome]]:
+        """Pareto frontier bf.
+
+        Args:
+            max_cardinality: Max cardinality.
+            sort_by_welfare: Sort by welfare.
+
+        Returns:
+            tuple[list[tuple[float, ...]], list[Outcome]]: The result.
+        """
         return self._pareto_frontier(
             pareto_frontier_bf, max_cardinality, sort_by_welfare
         )
@@ -1519,6 +1636,15 @@ class Mechanism(
     def pareto_frontier(
         self, max_cardinality: float = float("inf"), sort_by_welfare=True
     ) -> tuple[tuple[tuple[float, ...], ...], list[Outcome]]:
+        """Pareto frontier.
+
+        Args:
+            max_cardinality: Max cardinality.
+            sort_by_welfare: Sort by welfare.
+
+        Returns:
+            tuple[tuple[tuple[float, ...], ...], list[Outcome]]: The result.
+        """
         ufuns = tuple(self._get_preferences())
         if any(_ is None for _ in ufuns):
             raise ValueError(
@@ -1540,6 +1666,16 @@ class Mechanism(
         frontier: tuple[tuple[float, ...], ...] | None = None,
         frontier_outcomes: list[Outcome] | None = None,
     ) -> tuple[tuple[tuple[float, ...], Outcome], ...]:
+        """Max welfare points.
+
+        Args:
+            max_cardinality: Max cardinality.
+            frontier: Frontier.
+            frontier_outcomes: Frontier outcomes.
+
+        Returns:
+            tuple[tuple[tuple[float, ...], Outcome], ...]: The result.
+        """
         ufuns = self._get_preferences()
         if not frontier:
             frontier, frontier_outcomes = self.pareto_frontier(max_cardinality)
@@ -1558,6 +1694,16 @@ class Mechanism(
         frontier: tuple[tuple[float, ...], ...] | None = None,
         frontier_outcomes: list[Outcome] | None = None,
     ) -> tuple[tuple[tuple[float, ...], Outcome], ...]:
+        """Max relative welfare points.
+
+        Args:
+            max_cardinality: Max cardinality.
+            frontier: Frontier.
+            frontier_outcomes: Frontier outcomes.
+
+        Returns:
+            tuple[tuple[tuple[float, ...], Outcome], ...]: The result.
+        """
         ufuns = self._get_preferences()
         if not frontier:
             frontier, frontier_outcomes = self.pareto_frontier(max_cardinality)
@@ -1576,6 +1722,16 @@ class Mechanism(
         frontier: tuple[tuple[float, ...], ...] | None = None,
         frontier_outcomes: list[Outcome] | None = None,
     ) -> tuple[tuple[tuple[float, ...], Outcome], ...]:
+        """Modified kalai points.
+
+        Args:
+            max_cardinality: Max cardinality.
+            frontier: Frontier.
+            frontier_outcomes: Frontier outcomes.
+
+        Returns:
+            tuple[tuple[tuple[float, ...], Outcome], ...]: The result.
+        """
         ufuns = self._get_preferences()
         if not frontier:
             frontier, frontier_outcomes = self.pareto_frontier(max_cardinality)
@@ -1597,6 +1753,16 @@ class Mechanism(
         frontier: tuple[tuple[float, ...], ...] | None = None,
         frontier_outcomes: list[Outcome] | None = None,
     ) -> tuple[tuple[tuple[float, ...], Outcome], ...]:
+        """Kalai points.
+
+        Args:
+            max_cardinality: Max cardinality.
+            frontier: Frontier.
+            frontier_outcomes: Frontier outcomes.
+
+        Returns:
+            tuple[tuple[tuple[float, ...], Outcome], ...]: The result.
+        """
         ufuns = self._get_preferences()
         if not frontier:
             frontier, frontier_outcomes = self.pareto_frontier(max_cardinality)
@@ -1618,6 +1784,16 @@ class Mechanism(
         frontier: tuple[tuple[float, ...], ...] | None = None,
         frontier_outcomes: list[Outcome] | None = None,
     ) -> tuple[tuple[tuple[float, ...], Outcome], ...]:
+        """Nash points.
+
+        Args:
+            max_cardinality: Max cardinality.
+            frontier: Frontier.
+            frontier_outcomes: Frontier outcomes.
+
+        Returns:
+            tuple[tuple[tuple[float, ...], Outcome], ...]: The result.
+        """
         ufuns = self._get_preferences()
         if not frontier:
             frontier, frontier_outcomes = self.pareto_frontier(max_cardinality)
@@ -1633,9 +1809,11 @@ class Mechanism(
         _ = kwargs
 
     def __iter__(self):
+        """iter  ."""
         return self
 
     def __str__(self):
+        """str  ."""
         d = self.__dict__.copy()
         return pprint.pformat(d)
 

@@ -1,4 +1,7 @@
+"""Negotiator implementations."""
+
 from __future__ import annotations
+
 import functools
 from typing import Callable
 
@@ -21,6 +24,11 @@ class ControlledNegotiator(Negotiator):
     """
 
     def __getattribute__(self, item):
+        """getattribute  .
+
+        Args:
+            item: Item.
+        """
         if item in (
             "id",
             "name",

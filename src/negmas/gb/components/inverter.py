@@ -1,4 +1,7 @@
+"""Module for inverter functionality."""
+
 from __future__ import annotations
+
 from random import choice
 from typing import TYPE_CHECKING, Callable, Literal, Sequence
 
@@ -66,6 +69,15 @@ class UtilityBasedOutcomeSetRecommender(GBComponent):
         | Literal["some"]
         | Literal["all"] = "some",
     ):
+        """Initialize the instance.
+
+        Args:
+            rank_only: Rank only.
+            ufun_inverter: Ufun inverter.
+            max_cardinality: Max cardinality.
+            eps: Eps.
+            inversion_method: Inversion method.
+        """
         super().__init__()
         self._rank_only = rank_only
         self._max_cardinality = max_cardinality
@@ -78,12 +90,22 @@ class UtilityBasedOutcomeSetRecommender(GBComponent):
         self._inv_method = None
 
     def set_negotiator(self, negotiator: GBNegotiator) -> None:  # type: ignore
+        """Set negotiator.
+
+        Args:
+            negotiator: Negotiator.
+        """
         super().set_negotiator(negotiator)
         self.inv: InverseUFun | None = None
         self.min = self.max = self.best = None
         self._inv_method = None
 
     def on_preferences_changed(self, changes: list[PreferencesChange]):
+        """On preferences changed.
+
+        Args:
+            changes: Changes.
+        """
         if self._negotiator is None:
             raise ValueError("Unknown negotiator in a component")
         ufun = self._negotiator.ufun
@@ -119,6 +141,12 @@ class UtilityBasedOutcomeSetRecommender(GBComponent):
             self.min = ufun.reserved_value
 
     def before_proposing(self, state: GBState, dest: str | None = None):
+        """Before proposing.
+
+        Args:
+            state: Current state.
+            dest: Dest.
+        """
         if self._negotiator is None:
             raise ValueError("Unknown negotiator in a component")
         if self.inv is None or self.max is None or self.min is None:
@@ -168,14 +196,17 @@ class UtilityBasedOutcomeSetRecommender(GBComponent):
 
     @property
     def tolerance(self):
+        """Tolerance."""
         return self.eps
 
     @property
     def ufun_max(self):
+        """Ufun max."""
         return self.max
 
     @property
     def ufun_min(self):
+        """Ufun min."""
         return self.min
 
     def __call__(
@@ -205,6 +236,11 @@ class UtilityInverter(GBComponent):
     """
 
     def set_negotiator(self, negotiator: GBNegotiator) -> None:  # type: ignore
+        """Set negotiator.
+
+        Args:
+            negotiator: Negotiator.
+        """
         super().set_negotiator(negotiator)
         self.recommender.set_negotiator(negotiator)
 
@@ -217,6 +253,12 @@ class UtilityInverter(GBComponent):
         | None = None,
         **kwargs,
     ):
+        """Initialize the instance.
+
+        Args:
+            *args: Additional positional arguments.
+            **kwargs: Additional keyword arguments.
+        """
         if offer_selector is None:
             type_ = "one"
         elif isinstance(offer_selector, Callable):
@@ -233,24 +275,43 @@ class UtilityInverter(GBComponent):
         self.set_negotiator(None)  # type: ignore (It is OK. We do not really need to pass this at all here.)
 
     def on_preferences_changed(self, changes: list[PreferencesChange]):
+        """On preferences changed.
+
+        Args:
+            changes: Changes.
+        """
         self.recommender.on_preferences_changed(changes)
 
     def before_proposing(self, state: GBState, dest: str | None = None):
+        """Before proposing.
+
+        Args:
+            state: Current state.
+            dest: Dest.
+        """
         self.recommender.before_proposing(state)
 
     def scale_utilities(self, urange):
+        """Scale utilities.
+
+        Args:
+            urange: Urange.
+        """
         return self.recommender.scale_utilities(urange)
 
     @property
     def tolerance(self):
+        """Tolerance."""
         return self.recommender.eps
 
     @property
     def ufun_max(self):
+        """Ufun max."""
         return self.recommender.max
 
     @property
     def ufun_min(self):
+        """Ufun min."""
         return self.recommender.min
 
     def __call__(self, urange: tuple[float, float], state: GBState) -> Outcome | None:

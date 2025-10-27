@@ -1,4 +1,7 @@
+"""Preference representations."""
+
 from __future__ import annotations
+
 from abc import abstractmethod
 from typing import TYPE_CHECKING
 
@@ -24,6 +27,7 @@ class VolatileUFunMixin:
     """
 
     def is_volatile(self):
+        """Check if volatile."""
         return True
 
 
@@ -39,6 +43,14 @@ class SessionDependentUFunMixin:
         """Evaluates the offer given a session"""
 
     def eval(self, offer: Outcome) -> Distribution:
+        """Eval.
+
+        Args:
+            offer: Offer being considered.
+
+        Returns:
+            Distribution: The result.
+        """
         if not self.owner or not self.owner.nmi:
             return self.eval_on_session(offer, None)
         self.owner: Negotiator
@@ -72,6 +84,14 @@ class StateDependentUFunMixin:
         """Evaluates the offer given a session and state"""
 
     def eval(self, offer: Outcome) -> Distribution:
+        """Eval.
+
+        Args:
+            offer: Offer being considered.
+
+        Returns:
+            Distribution: The result.
+        """
         if not self.owner or not self.owner.nmi:
             return self.eval_on_state(offer, None, None)
         self.owner: Negotiator
@@ -98,18 +118,43 @@ class StationaryMixin:
     """
 
     def is_session_dependent(self) -> bool:
+        """Check if session dependent.
+
+        Returns:
+            bool: The result.
+        """
         return False
 
     def is_volatile(self) -> bool:
+        """Check if volatile.
+
+        Returns:
+            bool: The result.
+        """
         return False
 
     def is_state_dependent(self) -> bool:
+        """Check if state dependent.
+
+        Returns:
+            bool: The result.
+        """
         return False
 
     def is_stationary(self) -> bool:
+        """Check if stationary.
+
+        Returns:
+            bool: The result.
+        """
         return True
 
     def to_stationary(self) -> UtilityFunction:
+        """To stationary.
+
+        Returns:
+            UtilityFunction: The result.
+        """
         return self  # type: ignore
 
     # @lru_cache(maxsize=100)

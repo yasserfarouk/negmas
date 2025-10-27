@@ -1,4 +1,7 @@
+"""Module for boa functionality."""
+
 from __future__ import annotations
+
 from typing import TYPE_CHECKING
 
 from ...components import AcceptancePolicy, Model, OfferingPolicy
@@ -64,6 +67,12 @@ class BOANegotiator(MAPNegotiator):
         extra_component_names: list[str] | None = None,
         **kwargs,
     ):
+        """Initialize the instance.
+
+        Args:
+            *args: Additional positional arguments.
+            **kwargs: Additional keyword arguments.
+        """
         super().__init__(
             acceptance=acceptance,
             offering=offering,

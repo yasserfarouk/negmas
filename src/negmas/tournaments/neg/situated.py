@@ -182,6 +182,12 @@ def neg_score_calculator(
     for world in worlds:
 
         def sumdict(a, b):
+            """Sumdict.
+
+            Args:
+                a: A.
+                b: B.
+            """
             return lambda x: 0.5 * (a(x) + b(x))
 
         # world = worlds
@@ -394,6 +400,11 @@ def random_discrete_scenarios(
         partners += [_ for _ in partners]
 
     def intin(i):
+        """Intin.
+
+        Args:
+            i: I.
+        """
         if isinstance(i, int):
             return i
         return randint(i[0], i[1])
@@ -411,6 +422,7 @@ def random_discrete_scenarios(
         ]
 
         def partners_generator():
+            """Partners generator."""
             if partner_extraction_method.startswith("permutation"):
                 yield from permutations(partners, n_negotiators - 1)
             if partner_extraction_method.startswith("combination"):
@@ -479,6 +491,14 @@ def _make_negs(
     def make_neg_scenarios(
         scenarios: tuple[Scenario, ...] | list[Scenario],
     ) -> list[Condition]:
+        """Make neg scenarios.
+
+        Args:
+            scenarios: Scenarios.
+
+        Returns:
+            list[Condition]: The result.
+        """
         negs = []
         for s in scenarios:
             k = 0

@@ -68,6 +68,12 @@ TIMEOUT_EXTRA = 1.05
 
 
 def to_file(x, f):
+    """To file.
+
+    Args:
+        x: X.
+        f: F.
+    """
     dump(x, f)
     # with open(f, "w") as file:
     #     s = serialize(x)
@@ -79,6 +85,11 @@ def to_file(x, f):
 
 
 def from_file(f):
+    """From file.
+
+    Args:
+        f: F.
+    """
     return load(f)
     # with open(f, "r") as file:
     #     s = file.read()
@@ -172,6 +183,20 @@ class ConfigGenerator(Protocol):
         compact: bool = False,
         **kwargs,
     ) -> list[dict[str, Any]]:
+        """Make instance callable.
+
+        Args:
+            n_competitors: N competitors.
+            n_agents_per_competitor: N agents per competitor.
+            agent_names_reveal_type: Agent names reveal type.
+            non_competitors: Non competitors.
+            non_competitor_params: Non competitor params.
+            compact: Compact.
+            **kwargs: Additional keyword arguments.
+
+        Returns:
+            list[dict[str, Any]]: The result.
+        """
         ...
 
 
@@ -208,6 +233,22 @@ class ConfigAssigner(Protocol):
         dynamic_non_competitor_params: Sequence[dict[str, Any]] | None = None,
         exclude_competitors_from_reassignment: bool = True,
     ) -> list[list[dict[str, Any]]]:
+        """Make instance callable.
+
+        Args:
+            config: Config.
+            max_n_worlds: Max n worlds.
+            n_agents_per_competitor: N agents per competitor.
+            fair: Fair.
+            competitors: Competitors.
+            params: Params.
+            dynamic_non_competitors: Dynamic non competitors.
+            dynamic_non_competitor_params: Dynamic non competitor params.
+            exclude_competitors_from_reassignment: Exclude competitors from reassignment.
+
+        Returns:
+            list[list[dict[str, Any]]]: The result.
+        """
         ...
 
 
@@ -234,6 +275,14 @@ class WorldRunResults:
 
 
 def score_adapter(scores_data: dict[str, Any]) -> WorldRunResults:
+    """Score adapter.
+
+    Args:
+        scores_data: Scores data.
+
+    Returns:
+        WorldRunResults: The result.
+    """
     world_names = (
         [scores_data["name"]]
         if isinstance(scores_data["name"], str)
@@ -255,6 +304,8 @@ def score_adapter(scores_data: dict[str, Any]) -> WorldRunResults:
 
 @dataclass
 class AgentStats:
+    """AgentStats implementation."""
+
     exceptions: dict[str, list[tuple[int, str]]] = field(
         default_factory=lambda: defaultdict(list)
     )
@@ -327,6 +378,12 @@ class AgentStats:
 
     @classmethod
     def from_records(cls, records: list[dict[str, Any]], label: str):
+        """From records.
+
+        Args:
+            records: Records.
+            label: Label.
+        """
         a = cls()
         if len(records) < 1:
             return a
@@ -407,10 +464,20 @@ class WorldSetRunStats:
     """Contracts executed"""
 
     def to_record(self, world):
+        """To record.
+
+        Args:
+            world: World.
+        """
         return [vars(self)]
 
     @classmethod
     def from_records(cls, records: list[dict[str, Any]]):
+        """From records.
+
+        Args:
+            records: Records.
+        """
         a = cls(name="", planned_n_steps=0, executed_n_steps=0, execution_time=0)
         if len(records) < 1:
             return a
@@ -430,6 +497,8 @@ class WorldSetRunStats:
 
 @dataclass
 class TournamentResults:
+    """TournamentResults implementation."""
+
     scores: pd.DataFrame
     """Scores of individual agent instantiations"""
     total_scores: pd.DataFrame
@@ -462,6 +531,7 @@ class TournamentResults:
     """Extra scores returned from the scoring function. This can be used to have multi-dimensional scoring"""
 
     def __str__(self):
+        """str  ."""
         import tabulate
 
         results = ""
@@ -1301,6 +1371,23 @@ def save_run_results(
     n_world_configs,
     i,
 ):
+    """Save run results.
+
+    Args:
+        run_id: Run id.
+        score_: Score .
+        world_stats_: World stats .
+        type_stats_: Type stats .
+        agent_stats_: Agent stats .
+        tournament_progress_callback: Tournament progress callback.
+        world_paths: World paths.
+        name: Name.
+        verbose: Verbose.
+        _strt:  strt.
+        attempts_path: Attempts path.
+        n_world_configs: N world configs.
+        i: I.
+    """
     if tournament_progress_callback is not None:
         tournament_progress_callback(score_, i, n_world_configs)
     if score_ is None:
@@ -2244,6 +2331,11 @@ def _combine_stats(stats: pd.DataFrame | None) -> pd.DataFrame | None:
     )
 
     def get_last(x):
+        """Get last.
+
+        Args:
+            x: X.
+        """
         return x.loc[x["step"] == x["step"].max(), :]
 
     last = stats.groupby(["world"]).apply(get_last)
@@ -2263,6 +2355,11 @@ def _combine_stats(stats: pd.DataFrame | None) -> pd.DataFrame | None:
     combined = pd.merge(combined, last, on=["world"])
 
     def adjust_name(s):
+        """Adjust name.
+
+        Args:
+            s: S.
+        """
         if isinstance(s, tuple):
             s = "".join(s)
         return (
@@ -2332,6 +2429,11 @@ def combine_tournament_stats(
 
 
 def compile_results(path: str | Path | Path):
+    """Compile results.
+
+    Args:
+        path: Path.
+    """
     path = _path(path)
     if not path.exists():
         return
@@ -2916,6 +3018,14 @@ def tournament(
 
 
 def is_already_run(world_params) -> bool:
+    """Check if already run.
+
+    Args:
+        world_params: World params.
+
+    Returns:
+        bool: The result.
+    """
     return False
 
 

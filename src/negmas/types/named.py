@@ -46,6 +46,11 @@ class NamedObject:
         id: str | None = None,
         type_name: str | None = None,
     ) -> None:
+        """Initialize the instance.
+
+        Args:
+            name: Name.
+        """
         if name is not None:
             name = str(name)
         self.__uuid = (
@@ -66,6 +71,12 @@ class NamedObject:
 
     @classmethod
     def spawn_object(cls, *args, **kwargs):
+        """Spawn object.
+
+        Args:
+            *args: Additional positional arguments.
+            **kwargs: Additional keyword arguments.
+        """
         return cls(*args, **kwargs)
 
     #     @classmethod
@@ -104,6 +115,14 @@ class NamedObject:
         *args,
         **kwargs,
     ):
+        """Spawn.
+
+        Args:
+            spawn_as: Spawn as.
+            spawn_params: Spawn params.
+            *args: Additional positional arguments.
+            **kwargs: Additional keyword arguments.
+        """
         if spawn_as == "object":
             return cls.spawn_object(*args, **kwargs)
         # if spawn_as == "thread":
@@ -132,6 +151,11 @@ class NamedObject:
 
     @name.setter
     def name(self, name):
+        """Name.
+
+        Args:
+            name: Name.
+        """
         self.__name = name
 
     @property
@@ -141,6 +165,11 @@ class NamedObject:
 
     @uuid.setter
     def uuid(self, uuid):
+        """Uuid.
+
+        Args:
+            uuid: Uuid.
+        """
         self.__uuid = uuid
 
     @property
@@ -154,6 +183,11 @@ class NamedObject:
 
     @id.setter
     def id(self, id):
+        """Id.
+
+        Args:
+            id: Id.
+        """
         self.__uuid = id
 
     def checkpoint(
@@ -242,6 +276,15 @@ class NamedObject:
     def from_checkpoint(
         cls, file_name: Path | str, return_info: Literal[False] = False
     ) -> NamedObject:
+        """From checkpoint.
+
+        Args:
+            file_name: File name.
+            return_info: Return info.
+
+        Returns:
+            NamedObject: The result.
+        """
         ...
 
     @overload
@@ -249,6 +292,15 @@ class NamedObject:
     def from_checkpoint(
         cls, file_name: Path | str, return_info: Literal[True] = True
     ) -> tuple[NamedObject, dict[str, Any]]:
+        """From checkpoint.
+
+        Args:
+            file_name: File name.
+            return_info: Return info.
+
+        Returns:
+            tuple[NamedObject, dict[str, Any]]: The result.
+        """
         ...
 
     @classmethod
@@ -296,10 +348,20 @@ class NamedObject:
 
     @property
     def type_name(self) -> str:
+        """Type name.
+
+        Returns:
+            str: The result.
+        """
         if self.__type_name:
             return self.__type_name
         return get_full_type_name(self.__class__)
 
     @property
     def short_type_name(self) -> str:
+        """Short type name.
+
+        Returns:
+            str: The result.
+        """
         return shorten(self.type_name)

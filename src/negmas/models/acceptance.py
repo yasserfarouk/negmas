@@ -48,18 +48,38 @@ class AcceptanceModelType(Enum):
 
 
 class DiscreteAcceptanceModel(ABC):
+    """DiscreteAcceptanceModel implementation."""
+
     """"""
 
     def __init__(self, outcomes: Iterable[Outcome]):
+        """Initialize the instance.
+
+        Args:
+            outcomes: Outcomes.
+        """
         outcomes = list(outcomes)
         self.outcomes = outcomes
         self.indx = dict(zip(outcomes, range(len(outcomes))))
 
     @abstractmethod
     def probability_of_acceptance_indx(self, outcome_index: int) -> float:
+        """Probability of acceptance indx.
+
+        Args:
+            outcome_index: Outcome index.
+
+        Returns:
+            float: The result.
+        """
         raise NotImplementedError()
 
     def probability_of_acceptance(self, outcome: Outcome):
+        """Probability of acceptance.
+
+        Args:
+            outcome: Outcome to evaluate.
+        """
         indx = self.indx.get(outcome, None)
         if indx is None:
             return 0.0
@@ -67,32 +87,64 @@ class DiscreteAcceptanceModel(ABC):
 
     @abstractmethod
     def update_rejected_indx(self, outcome_index: int):
+        """Update rejected indx.
+
+        Args:
+            outcome_index: Outcome index.
+        """
         raise NotImplementedError()
 
     def update_rejected(self, outcome: Outcome):
+        """Update rejected.
+
+        Args:
+            outcome: Outcome to evaluate.
+        """
         if outcome is None:
             return
         return self.update_rejected_indx(self.indx[outcome])
 
     @abstractmethod
     def update_offered_indx(self, outcome_index: int):
+        """Update offered indx.
+
+        Args:
+            outcome_index: Outcome index.
+        """
         raise NotImplementedError()
 
     def update_offered(self, outcome):
+        """Update offered.
+
+        Args:
+            outcome: Outcome to evaluate.
+        """
         if outcome is None:
             return
         return self.update_offered_indx(self.indx[outcome])
 
     def update_accepted(self, outcome):
+        """Update accepted.
+
+        Args:
+            outcome: Outcome to evaluate.
+        """
         return self.update_offered(outcome=outcome)
 
     def acceptance_probabilities(self) -> np.ndarray:
+        """Acceptance probabilities.
+
+        Returns:
+            np.ndarray: The result.
+        """
         return np.array(
             [self.probability_of_acceptance_indx(_) for _ in range(len(self.outcomes))]
         )
 
 
 class AdaptiveDiscreteAcceptanceModel(DiscreteAcceptanceModel):
+    """AdaptiveDiscreteAcceptanceModel implementation."""
+
     def __init__(
         self,
         outcomes: Iterable[Outcome],
@@ -105,6 +157,19 @@ class AdaptiveDiscreteAcceptanceModel(DiscreteAcceptanceModel):
         rejection_delta=0.0,
         not_offering_rejection_ratio=0.75,
     ):
+        """Initialize the instance.
+
+        Args:
+            outcomes: Outcomes.
+            n_negotiators: N negotiators.
+            prob: Prob.
+            end_prob: End prob.
+            p_accept_after_reject: P accept after reject.
+            p_reject_after_accept: P reject after accept.
+            rejection_discount: Rejection discount.
+            rejection_delta: Rejection delta.
+            not_offering_rejection_ratio: Not offering rejection ratio.
+        """
         super().__init__(outcomes=outcomes)
         outcomes = self.outcomes
         if isinstance(prob, list) and len(outcomes) != len(prob):
@@ -138,6 +203,18 @@ class AdaptiveDiscreteAcceptanceModel(DiscreteAcceptanceModel):
         p_accept_after_reject=0.0,
         p_reject_after_accept=0.0,
     ) -> AdaptiveDiscreteAcceptanceModel:
+        """From negotiation.
+
+        Args:
+            nmi: Nmi.
+            prob: Prob.
+            end_prob: End prob.
+            p_accept_after_reject: P accept after reject.
+            p_reject_after_accept: P reject after accept.
+
+        Returns:
+            AdaptiveDiscreteAcceptanceModel: The result.
+        """
         if not nmi.n_outcomes or nmi.outcomes is None:
             raise ValueError(
                 "Cannot initialize this simple opponents model for a negotiation with uncountable outcomes"
@@ -152,6 +229,14 @@ class AdaptiveDiscreteAcceptanceModel(DiscreteAcceptanceModel):
         )
 
     def probability_of_acceptance_indx(self, outcome_index: int) -> float:
+        """Probability of acceptance indx.
+
+        Args:
+            outcome_index: Outcome index.
+
+        Returns:
+            float: The result.
+        """
         return self.p[outcome_index]
 
     def acceptance_probabilities(self):
@@ -174,9 +259,19 @@ class AdaptiveDiscreteAcceptanceModel(DiscreteAcceptanceModel):
             )
 
     def update_rejected_indx(self, outcome_index: int):
+        """Update rejected indx.
+
+        Args:
+            outcome_index: Outcome index.
+        """
         self.p[outcome_index] = self._update(self.p[outcome_index], real_rejection=True)
 
     def update_offered_indx(self, outcome_index: int):
+        """Update offered indx.
+
+        Args:
+            outcome_index: Outcome index.
+        """
         try:
             self.not_offered.remove(outcome_index)
             self.p[outcome_index] = self.p_accept_after_accept
@@ -187,45 +282,113 @@ class AdaptiveDiscreteAcceptanceModel(DiscreteAcceptanceModel):
 
 
 class RandomDiscreteAcceptanceModel(DiscreteAcceptanceModel):
+    """RandomDiscreteAcceptanceModel implementation."""
+
     def __init__(self, outcomes: Collection[Outcome], **kwargs):
+        """Initialize the instance.
+
+        Args:
+            outcomes: Outcomes.
+            **kwargs: Additional keyword arguments.
+        """
         super().__init__(outcomes=outcomes)
 
     def probability_of_acceptance_indx(self, outcome_index: int) -> float:
+        """Probability of acceptance indx.
+
+        Args:
+            outcome_index: Outcome index.
+
+        Returns:
+            float: The result.
+        """
         return random.random()
 
     def update_rejected_indx(self, outcome_index: int):
+        """Update rejected indx.
+
+        Args:
+            outcome_index: Outcome index.
+        """
         pass
 
     def update_offered_indx(self, outcome_index: int):
+        """Update offered indx.
+
+        Args:
+            outcome_index: Outcome index.
+        """
         pass
 
 
 class ConstantDiscreteAcceptanceModel(DiscreteAcceptanceModel):
+    """ConstantDiscreteAcceptanceModel implementation."""
+
     def __init__(self, outcomes: Collection[Outcome], **kwargs):
+        """Initialize the instance.
+
+        Args:
+            outcomes: Outcomes.
+            **kwargs: Additional keyword arguments.
+        """
         super().__init__(outcomes=outcomes)
 
     def probability_of_acceptance_indx(self, outcome_index: int) -> float:
+        """Probability of acceptance indx.
+
+        Args:
+            outcome_index: Outcome index.
+
+        Returns:
+            float: The result.
+        """
         return 0.5
 
     def update_rejected_indx(self, outcome_index: int):
+        """Update rejected indx.
+
+        Args:
+            outcome_index: Outcome index.
+        """
         pass
 
     def update_offered_indx(self, outcome_index: int):
+        """Update offered indx.
+
+        Args:
+            outcome_index: Outcome index.
+        """
         pass
 
 
 class PeekingDiscreteAcceptanceModel(DiscreteAcceptanceModel):
+    """PeekingDiscreteAcceptanceModel implementation."""
+
     def __init__(
         self,
         outcomes: Collection[Outcome],
         opponents: SAONegotiator | Collection[SAONegotiator],
     ):
+        """Initialize the instance.
+
+        Args:
+            outcomes: Outcomes.
+            opponents: Opponents.
+        """
         super().__init__(outcomes=outcomes)
         if not isinstance(opponents, Collection):
             opponents = [opponents]
         self.opponents = opponents
 
     def probability_of_acceptance_indx(self, outcome_index: int) -> float:
+        """Probability of acceptance indx.
+
+        Args:
+            outcome_index: Outcome index.
+
+        Returns:
+            float: The result.
+        """
         outcome = self.outcomes[outcome_index]
         for opponent in self.opponents:
             if opponent is self:
@@ -239,24 +402,50 @@ class PeekingDiscreteAcceptanceModel(DiscreteAcceptanceModel):
         return 1.0
 
     def update_rejected_indx(self, outcome_index: int):
+        """Update rejected indx.
+
+        Args:
+            outcome_index: Outcome index.
+        """
         pass
 
     def update_offered_indx(self, outcome_index: int):
+        """Update offered indx.
+
+        Args:
+            outcome_index: Outcome index.
+        """
         pass
 
 
 class PeekingProbabilisticDiscreteAcceptanceModel(DiscreteAcceptanceModel):
+    """PeekingProbabilisticDiscreteAcceptanceModel implementation."""
+
     def __init__(
         self,
         outcomes: Collection[Outcome],
         opponents: SAONegotiator | Collection[SAONegotiator],
     ):
+        """Initialize the instance.
+
+        Args:
+            outcomes: Outcomes.
+            opponents: Opponents.
+        """
         super().__init__(outcomes=outcomes)
         if not isinstance(opponents, Collection):
             opponents = [opponents]
         self.opponents = opponents
 
     def probability_of_acceptance_indx(self, outcome_index: int) -> float:
+        """Probability of acceptance indx.
+
+        Args:
+            outcome_index: Outcome index.
+
+        Returns:
+            float: The result.
+        """
         outcome = self.outcomes[outcome_index]
         if outcome is None:
             return 0.0
@@ -266,19 +455,38 @@ class PeekingProbabilisticDiscreteAcceptanceModel(DiscreteAcceptanceModel):
         return prod
 
     def update_rejected_indx(self, outcome_index: int):
+        """Update rejected indx.
+
+        Args:
+            outcome_index: Outcome index.
+        """
         pass
 
     def update_offered_indx(self, outcome_index: int):
+        """Update offered indx.
+
+        Args:
+            outcome_index: Outcome index.
+        """
         pass
 
 
 class AggregatingDiscreteAcceptanceModel(DiscreteAcceptanceModel):
+    """AggregatingDiscreteAcceptanceModel implementation."""
+
     def __init__(
         self,
         outcomes: Collection[Outcome],
         models: list[DiscreteAcceptanceModel],
         weights: list[float] | None = None,
     ):
+        """Initialize the instance.
+
+        Args:
+            outcomes: Outcomes.
+            models: Models.
+            weights: Weights.
+        """
         super().__init__(outcomes=outcomes)
         if weights is None:
             weights = [1.0] * len(self.outcomes)
@@ -288,16 +496,34 @@ class AggregatingDiscreteAcceptanceModel(DiscreteAcceptanceModel):
         self.weights = weights
 
     def probability_of_acceptance_indx(self, outcome_index: int) -> float:
+        """Probability of acceptance indx.
+
+        Args:
+            outcome_index: Outcome index.
+
+        Returns:
+            float: The result.
+        """
         p = 0.0
         for model, w in zip(self.models, self.weights):
             p += w * model.probability_of_acceptance_indx(outcome_index=outcome_index)
         return min(1.0, max(0.0, p))
 
     def update_rejected_indx(self, outcome_index: int):
+        """Update rejected indx.
+
+        Args:
+            outcome_index: Outcome index.
+        """
         for model in self.models:
             model.update_rejected_indx(outcome_index=outcome_index)
 
     def update_offered_indx(self, outcome_index: int):
+        """Update offered indx.
+
+        Args:
+            outcome_index: Outcome index.
+        """
         for model in self.models:
             model.update_offered_indx(outcome_index=outcome_index)
 
@@ -328,6 +554,18 @@ class UncertainOpponentModel(AggregatingDiscreteAcceptanceModel):
         constant_base=True,
         accesses_real_acceptance=False,
     ):
+        """Initialize the instance.
+
+        Args:
+            outcomes: Outcomes.
+            opponents: Opponents.
+            uncertainty: Uncertainty.
+            adaptive: Adaptive.
+            rejection_discount: Rejection discount.
+            rejection_delta: Rejection delta.
+            constant_base: Constant base.
+            accesses_real_acceptance: Accesses real acceptance.
+        """
         randomizing_model: DiscreteAcceptanceModel
         peaking_model: DiscreteAcceptanceModel
         if adaptive:

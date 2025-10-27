@@ -1,6 +1,7 @@
 """
 Implements all Value-of-Information based elicitation methods.
 """
+
 from __future__ import annotations
 import copy
 import time
@@ -98,6 +99,13 @@ class BaseVOIElicitor(BaseElicitor):
         update_related_queries=True,
         **kwargs,
     ) -> None:
+        """Initialize the instance.
+
+        Args:
+            strategy: Strategy.
+            user: User.
+            **kwargs: Additional keyword arguments.
+        """
         super().__init__(strategy=strategy, user=user, **kwargs)
         self.eeu_query = None
         self.query_index_of_outcome = None
@@ -412,6 +420,15 @@ class BaseVOIElicitor(BaseElicitor):
         return True
 
     def utility_on_rejection(self, outcome: Outcome, state: MechanismState) -> Value:
+        """Utility on rejection.
+
+        Args:
+            outcome: Outcome to evaluate.
+            state: Current state.
+
+        Returns:
+            Value: The result.
+        """
         raise ValueError("utility_on_rejection should never be called on VOI Elicitors")
 
 
@@ -665,9 +682,15 @@ class VOINoUncertaintyElicitor(BaseVOIElicitor):
             self.outcome_in_policy[indx] = (_, indx)
 
     def init_query_eeus(self) -> None:
+        """Init query eeus."""
         pass
 
     def add_query(self, qeeu: tuple[float, int]) -> None:
+        """Add query.
+
+        Args:
+            qeeu: Qeeu.
+        """
         pass
 
     def _query_eeu(
@@ -676,6 +699,11 @@ class VOINoUncertaintyElicitor(BaseVOIElicitor):
         return -1.0
 
     def elicit_single(self, state: MechanismState):
+        """Elicit single.
+
+        Args:
+            state: Current state.
+        """
         return False
 
 
@@ -717,6 +745,11 @@ class VOIOptimalElicitor(BaseElicitor):
             Callable[[NegotiatorMechanismInterface], DiscreteAcceptanceModel]
         ) = lambda x: AdaptiveDiscreteAcceptanceModel.from_negotiation(nmi=x),
     ) -> None:
+        """Initialize the instance.
+
+        Args:
+            user: User.
+        """
         super().__init__(
             strategy=None,
             user=user,
@@ -896,6 +929,12 @@ class VOIOptimalElicitor(BaseElicitor):
         preferences: IPUtilityFunction | Distribution | None,
         queries: list[Query] | None = None,
     ) -> None:
+        """Init elicitation.
+
+        Args:
+            preferences: Preferences.
+            queries: Queries.
+        """
         super().init_elicitation(preferences=preferences)
         if queries is not None:
             raise ValueError(
@@ -932,14 +971,27 @@ class VOIOptimalElicitor(BaseElicitor):
         )
 
     def can_elicit(self) -> bool:
+        """Can elicit.
+
+        Returns:
+            bool: The result.
+        """
         return True
 
     def before_eliciting(self):
+        """Before eliciting."""
         pass
 
     def on_opponent_model_updated(
         self, outcomes: list[Outcome], old: list[float], new: list[float]
     ) -> None:
+        """On opponent model updated.
+
+        Args:
+            outcomes: Outcomes.
+            old: Old.
+            new: New.
+        """
         if any(o != n for o, n in zip(old, new)):
             self.init_optimal_policy()
             self.init_query_eeus()
@@ -952,6 +1004,11 @@ class VOIOptimalElicitor(BaseElicitor):
             self.init_optimal_policy()
 
     def elicit_single(self, state: MechanismState):
+        """Elicit single.
+
+        Args:
+            state: Current state.
+        """
         if self.eeu_query is not None and len(self.eeu_query) < 1:
             return False
         if not self.can_elicit():
@@ -1026,9 +1083,23 @@ class VOIOptimalElicitor(BaseElicitor):
         return True
 
     def utility_on_rejection(self, outcome: Outcome, state: MechanismState) -> Value:
+        """Utility on rejection.
+
+        Args:
+            outcome: Outcome to evaluate.
+            state: Current state.
+
+        Returns:
+            Value: The result.
+        """
         raise ValueError("utility_on_rejection should never be called on VOI Elicitors")
 
     def add_query(self, qeeu: tuple[float, int]) -> None:
+        """Add query.
+
+        Args:
+            qeeu: Qeeu.
+        """
         heappush(self.eeu_query, qeeu)
 
 

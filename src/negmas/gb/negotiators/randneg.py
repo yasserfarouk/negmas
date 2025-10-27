@@ -1,4 +1,7 @@
+"""Negotiator implementations."""
+
 from __future__ import annotations
+
 from ..components.acceptance import AcceptAround, RandomAcceptancePolicy
 from ..components.offering import RandomOfferingPolicy
 from .modular import MAPNegotiator
@@ -29,12 +32,23 @@ class RandomNegotiator(MAPNegotiator):
         can_propose=True,
         **kwargs,
     ) -> None:
+        """Initialize the instance.
+
+        Args:
+            p_acceptance: P acceptance.
+            p_rejection: P rejection.
+            p_ending: P ending.
+            can_propose: Can propose.
+            **kwargs: Additional keyword arguments.
+        """
         acceptance = RandomAcceptancePolicy(p_acceptance, p_rejection, p_ending)
         offering = None if not can_propose else RandomOfferingPolicy()
         super().__init__(acceptance=acceptance, offering=offering, **kwargs)
 
 
 class RandomAlwaysAcceptingNegotiator(MAPNegotiator):
+    """RandomAlwaysAccepting negotiator."""
+
     def __init__(
         self,
         p_acceptance=0.15,
@@ -45,6 +59,17 @@ class RandomAlwaysAcceptingNegotiator(MAPNegotiator):
         eps=1e-3,
         **kwargs,
     ) -> None:
+        """Initialize the instance.
+
+        Args:
+            p_acceptance: P acceptance.
+            p_rejection: P rejection.
+            p_ending: P ending.
+            can_propose: Can propose.
+            accept_around: Accept around.
+            eps: Eps.
+            **kwargs: Additional keyword arguments.
+        """
         acceptance = RandomAcceptancePolicy(
             p_acceptance, p_rejection, p_ending
         ) | AcceptAround(accept_around, eps=eps)

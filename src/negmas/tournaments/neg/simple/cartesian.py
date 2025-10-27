@@ -95,6 +95,8 @@ MECHANISM_FILE_NAME = "mechanism.json"
 
 @define
 class SimpleTournamentResults:
+    """SimpleTournamentResults implementation."""
+
     scores: pd.DataFrame
     """All scores per negotiator"""
     details: pd.DataFrame
@@ -195,6 +197,16 @@ class SimpleTournamentResults:
         verbosity: int = 1,
         final_score_stat: tuple[str, str] = ("advantage", "mean"),
     ) -> "SimpleTournamentResults":
+        """From result records.
+
+        Args:
+            path: Path.
+            verbosity: Verbosity.
+            final_score_stat: Final score stat.
+
+        Returns:
+            'SimpleTournamentResults': The result.
+        """
         return cls.combine(
             [Path(path)],
             recursive=False,
@@ -398,6 +410,15 @@ def combine_tournaments(
     add_tournament_column: bool = True,
     complete_only: bool = False,
 ) -> SimpleTournamentResults:
+    """Combine tournaments.
+
+    Args:
+        srcs: Srcs.
+        dst: Dst.
+
+    Returns:
+        SimpleTournamentResults: The result.
+    """
     results, paths = SimpleTournamentResults.combine(
         srcs,
         recursive,
@@ -792,6 +813,13 @@ def _save_record(
         return
 
     def save_as_df(data: list[TraceElement] | list[tuple], names, file_name):
+        """Save as df.
+
+        Args:
+            data: Data.
+            names: Names.
+            file_name: File name.
+        """
         pd.DataFrame(data=data, columns=names).to_csv(file_name, index=False)
 
     for k, v in m._negotiator_logs.items():
@@ -1029,6 +1057,29 @@ def failed_run_record(
     ignore_exceptions: bool = False,
     stats: ScenarioStats | None = None,
 ):
+    """Failed run record.
+
+    Args:
+        s: S.
+        partners: Partners.
+        timeout: Timeout.
+        partner_names: Partner names.
+        partner_params: Partner params.
+        error: Error.
+        rep: Rep.
+        path: Path.
+        mechanism_type: Mechanism type.
+        mechanism_params: Mechanism params.
+        full_names: Full names.
+        run_id: Run id.
+        annotation: Annotation.
+        private_infos: Private infos.
+        id_reveals_type: Id reveals type.
+        name_reveals_type: Name reveals type.
+        mask_scenario_name: Mask scenario name.
+        ignore_exceptions: Ignore exceptions.
+        stats: Stats.
+    """
     if partner_params is None:
         partner_params = tuple(dict() for _ in partners)  # type: ignore
     param_dump = tuple(str(to_flat_dict(_)) if _ else None for _ in partner_params)  # type: ignore
@@ -1109,6 +1160,14 @@ def failed_run_record(
 
 
 def make_scores(record: dict[str, Any]) -> list[dict[str, float]]:
+    """Make scores.
+
+    Args:
+        record: Record.
+
+    Returns:
+        list[dict[str, float]]: The result.
+    """
     utils, partners = record["utilities"], record["partners"]
     reserved_values = record["reserved_values"]
     negids = record["negotiator_ids"]
@@ -1262,6 +1321,11 @@ def cartesian_tournament(
         #            if not x:
         #                return name
         #            name = x
+        """Shorten.
+
+        Args:
+            name: Name.
+        """
         return name
 
     if shorten_names:
@@ -1425,6 +1489,13 @@ def cartesian_tournament(
     scores_path = path if not path else path / ALL_SCORES_FILE_NAME
 
     def process_record(record, results=results, scores=scores):
+        """Process record.
+
+        Args:
+            record: Record.
+            results: Results.
+            scores: Scores.
+        """
         if self_play and only_failures_on_self_play:
             is_self_play = len(set(record["partners"])) == 1
             if is_self_play and record["agreement"] is not None:
@@ -1437,6 +1508,11 @@ def cartesian_tournament(
         return results, scores
 
     def get_run_id(info):
+        """Get run id.
+
+        Args:
+            info: Info.
+        """
         return hash(
             str(serialize(info, python_class_identifier=python_class_identifier))
         )
@@ -1599,7 +1675,7 @@ if __name__ == "__main__":
                 pareto_generator="curve" if random() < 0.5 else "piecewise_linear",
             )
 
-        issues = (make_issue([f"{i}_{n-1 - i}" for i in range(n)], "portions"),)
+        issues = (make_issue([f"{i}_{n - 1 - i}" for i in range(n)], "portions"),)
         ufuns = tuple(
             U(
                 values=(

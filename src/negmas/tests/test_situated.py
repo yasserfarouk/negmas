@@ -672,8 +672,8 @@ def test_world_runs_with_some_negs():
     assert "A1: step 1" in results, "first step logged"
     assert "A2: step 1" in results, "first step logged"
     assert "A1 started negotiation with A2" in results, "negotiation started"
-    assert f"A1: step {world.n_steps-1}" in results, "last step logged"
-    assert f"A2: step {world.n_steps-1}" in results, "last step logged"
+    assert f"A1: step {world.n_steps - 1}" in results, "last step logged"
+    assert f"A2: step {world.n_steps - 1}" in results, "last step logged"
     assert len(world.saved_contracts) == 2
     assert sum(world.stats["n_negotiations"]) == 2
 

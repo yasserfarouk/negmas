@@ -1,4 +1,7 @@
+"""Outcome representations."""
+
 from __future__ import annotations
+
 import copy
 import itertools
 import json
@@ -401,6 +404,13 @@ def issues_from_outcomes(
         outcomes = [(_,) for _ in range(outcomes)]
 
     def convert_type(v, old, values):
+        """Convert type.
+
+        Args:
+            v: V.
+            old: Old.
+            values: Values.
+        """
         if isinstance(v, numbers.Integral) and not isinstance(old, numbers.Integral):
             return float(v)
 

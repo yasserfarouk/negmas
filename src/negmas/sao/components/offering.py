@@ -1,4 +1,6 @@
 # ruff: noqa: F403
+"""Offering strategies and policies for negotiations."""
+
 import negmas.gb.components.offering as _n
 from negmas.gb.components.offering import *
 

@@ -1,4 +1,7 @@
+"""Negotiator implementations."""
+
 from __future__ import annotations
+
 from ...outcomes import Outcome
 from ..common import ResponseType, SAOState
 from .base import SAONegotiator

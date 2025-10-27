@@ -1,14 +1,28 @@
+"""Module for component functionality."""
+
 from __future__ import annotations
+
 from typing import TYPE_CHECKING
 
 from attrs import define
 
 
 def __setattr__(self, name, value):
+    """setattr  .
+
+    Args:
+        name: Name.
+        value: Value.
+    """
     pass
 
 
 def __delattr__(self, name):
+    """delattr  .
+
+    Args:
+        name: Name.
+    """
     pass
 
 
@@ -34,6 +48,7 @@ class Component:
 
     @property
     def negotiator(self):
+        """Negotiator."""
         return self._negotiator
 
     def set_negotiator(self, negotiator: Negotiator) -> None:

@@ -1,4 +1,7 @@
+"""Outcome representations."""
+
 from __future__ import annotations
+
 import numbers
 import random
 import sys
@@ -29,6 +32,13 @@ class CountableInfiniteIssue(ContiguousIssue, InfiniteIssue):
     def __init__(
         self, values: tuple[int | float, int | float], *args, **kwargs
     ) -> None:
+        """Initialize the instance.
+
+        Args:
+            values: Values.
+            *args: Additional positional arguments.
+            **kwargs: Additional keyword arguments.
+        """
         v: tuple[int, int] = tuple(  # type: ignore
             int(_)
             if isinstance(_, numbers.Integral)
@@ -43,16 +53,32 @@ class CountableInfiniteIssue(ContiguousIssue, InfiniteIssue):
         self.min_value, self.max_value = values
 
     def is_continuous(self) -> bool:
+        """Check if continuous.
+
+        Returns:
+            bool: The result.
+        """
         return False
 
     def is_integer(self) -> bool:
+        """Check if integer.
+
+        Returns:
+            bool: The result.
+        """
         return True
 
     @property
     def cardinality(self) -> float:
+        """Cardinality.
+
+        Returns:
+            float: The result.
+        """
         return float("inf")
 
     def rand_invalid(self):
+        """Rand invalid."""
         if self._values[0] == -INFINITE_INT and self._values[1] == INFINITE_INT:
             return None
         if self._values[0] == -INFINITE_INT:
@@ -60,6 +86,11 @@ class CountableInfiniteIssue(ContiguousIssue, InfiniteIssue):
         return random.randint(-INFINITE_INT, self._values[0] - 1)
 
     def value_at(self, index: int):
+        """Value at.
+
+        Args:
+            index: Index.
+        """
         raise ValueError("Cannot index an infinite issue")
 
     def contains(self, issue: Issue) -> bool:

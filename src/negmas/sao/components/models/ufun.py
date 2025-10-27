@@ -1,4 +1,7 @@
+"""Utility function implementations."""
+
 from __future__ import annotations
+
 from typing import TYPE_CHECKING
 
 from attrs import define, field
@@ -48,6 +51,11 @@ class ZeroSumModel(StationaryMixin, UFunModel):
     _effective_ufun: BaseUtilityFunction = field(init=False, default=SENTINAL)
 
     def on_preferences_changed(self, changes: list[PreferencesChange]):
+        """On preferences changed.
+
+        Args:
+            changes: Changes.
+        """
         if not self.negotiator or not self.negotiator.ufun:
             raise ValueError("Negotiator or ufun are not known")
         self._effective_ufun = (
@@ -57,6 +65,14 @@ class ZeroSumModel(StationaryMixin, UFunModel):
         )
 
     def eval(self, offer: Outcome) -> Value:
+        """Eval.
+
+        Args:
+            offer: Offer being considered.
+
+        Returns:
+            Value: The result.
+        """
         uo = self._effective_ufun.eval_normalized(offer, self.above_reserve) * -1 + 1.0
         mn, mx = self._effective_ufun.minmax(above_reserve=False)
         return uo * (mx - mn) + mn
@@ -67,6 +83,16 @@ class ZeroSumModel(StationaryMixin, UFunModel):
         above_reserve: bool = True,
         expected_limits: bool = True,
     ) -> Value:
+        """Eval normalized.
+
+        Args:
+            offer: Offer being considered.
+            above_reserve: Above reserve.
+            expected_limits: Expected limits.
+
+        Returns:
+            Value: The result.
+        """
         if offer is None:
             return 0.0
         return (
@@ -82,6 +108,14 @@ class FrequencyUFunModel(UFunModel):
     """
 
     def eval(self, offer: Outcome) -> Value:
+        """Eval.
+
+        Args:
+            offer: Offer being considered.
+
+        Returns:
+            Value: The result.
+        """
         raise NotImplementedError()
 
 
@@ -91,4 +125,12 @@ class FrequencyLinearUFunModel(UFunModel):
     """
 
     def eval(self, offer: Outcome) -> Value:
+        """Eval.
+
+        Args:
+            offer: Offer being considered.
+
+        Returns:
+            Value: The result.
+        """
         raise NotImplementedError()

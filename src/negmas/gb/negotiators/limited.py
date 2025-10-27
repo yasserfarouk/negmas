@@ -1,4 +1,7 @@
+"""Negotiator implementations."""
+
 from __future__ import annotations
+
 from negmas import warnings
 from negmas.gb.components.acceptance import LimitedOutcomesAcceptancePolicy
 from negmas.gb.components.offering import LimitedOutcomesOfferingPolicy
@@ -43,6 +46,18 @@ class LimitedOutcomesNegotiator(MAPNegotiator):
         ufun=None,
         **kwargs,
     ) -> None:
+        """Initialize the instance.
+
+        Args:
+            acceptable_outcomes: Acceptable outcomes.
+            acceptance_probabilities: Acceptance probabilities.
+            proposable_outcomes: Proposable outcomes.
+            p_ending: P ending.
+            p_no_response: P no response.
+            preferences: Preferences.
+            ufun: Ufun.
+            **kwargs: Additional keyword arguments.
+        """
         if ufun:
             preferences = ufun
         if preferences is not None:
@@ -102,6 +117,16 @@ class LimitedOutcomesAcceptor(MAPNegotiator, GBNegotiator):
         ufun=None,
         **kwargs,
     ) -> None:
+        """Initialize the instance.
+
+        Args:
+            acceptable_outcomes: Acceptable outcomes.
+            acceptance_probabilities: Acceptance probabilities.
+            p_ending: P ending.
+            preferences: Preferences.
+            ufun: Ufun.
+            **kwargs: Additional keyword arguments.
+        """
         if ufun:
             preferences = ufun
         if preferences is not None:

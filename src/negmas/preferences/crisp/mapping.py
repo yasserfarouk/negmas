@@ -1,4 +1,7 @@
+"""Module for mapping functionality."""
+
 from __future__ import annotations
+
 import random
 from typing import Callable, Iterable
 
@@ -89,6 +92,14 @@ class MappingUtilityFunction(StationaryMixin, UtilityFunction):
         *args,
         **kwargs,
     ) -> None:
+        """Initialize the instance.
+
+        Args:
+            mapping: Mapping.
+            default: Default.
+            *args: Additional positional arguments.
+            **kwargs: Additional keyword arguments.
+        """
         super().__init__(*args, **kwargs)
         if self.outcome_space is None and isinstance(mapping, dict):
             self.outcome_space = os_or_none(
@@ -98,6 +109,11 @@ class MappingUtilityFunction(StationaryMixin, UtilityFunction):
         self.default = default
 
     def to_dict(self, python_class_identifier=PYTHON_CLASS_IDENTIFIER):
+        """To dict.
+
+        Args:
+            python_class_identifier: Python class identifier.
+        """
         d = {python_class_identifier: get_full_type_name(type(self))}
         d.update(super().to_dict(python_class_identifier=python_class_identifier))
         return dict(
@@ -110,6 +126,12 @@ class MappingUtilityFunction(StationaryMixin, UtilityFunction):
 
     @classmethod
     def from_dict(cls, d, python_class_identifier=PYTHON_CLASS_IDENTIFIER):
+        """From dict.
+
+        Args:
+            d: D.
+            python_class_identifier: Python class identifier.
+        """
         d.pop(python_class_identifier, None)
         d["mapping"] = deserialize(
             d["mapping"], python_class_identifier=python_class_identifier
@@ -118,6 +140,14 @@ class MappingUtilityFunction(StationaryMixin, UtilityFunction):
 
     def eval(self, offer: Outcome | None) -> float:
         # noinspection PyBroadException
+        """Eval.
+
+        Args:
+            offer: Offer being considered.
+
+        Returns:
+            float: The result.
+        """
         if offer is None:
             return self.reserved_value
         try:
@@ -164,13 +194,13 @@ class MappingUtilityFunction(StationaryMixin, UtilityFunction):
         if isinstance(self.mapping, Callable):
             for i, k in enumerate(issue.all):
                 output += (
-                    f'    <item index="{i+1}" value="{k}"  cost="0"  evaluation="{self(k)}" description="{k}">\n'
+                    f'    <item index="{i + 1}" value="{k}"  cost="0"  evaluation="{self(k)}" description="{k}">\n'
                     f"    </item>\n"
                 )
         else:
             for i, (k, v) in enumerate(self.mapping.items()):
                 output += (
-                    f'    <item index="{i+1}" value="{k}"  cost="0"  evaluation="{v}" description="{k}">\n'
+                    f'    <item index="{i + 1}" value="{k}"  cost="0"  evaluation="{v}" description="{k}">\n'
                     f"    </item>\n"
                 )
         output += "</issue>\n"
@@ -186,6 +216,14 @@ class MappingUtilityFunction(StationaryMixin, UtilityFunction):
         max_cardinality: int = 10000,
     ):
         # todo: corrrect this for continuous outcome-spaces
+        """Random.
+
+        Args:
+            outcome_space: Outcome space.
+            reserved_value: Reserved value.
+            normalized: Normalized.
+            max_cardinality: Max cardinality.
+        """
         if not isinstance(reserved_value, Iterable):
             reserved_value = (reserved_value, reserved_value)
         os = outcome_space.to_largest_discrete(
@@ -203,4 +241,9 @@ class MappingUtilityFunction(StationaryMixin, UtilityFunction):
         )
 
     def __str__(self) -> str:
+        """str  .
+
+        Returns:
+            str: The result.
+        """
         return f"mapping: {self.mapping}\ndefault: {self.default}"

@@ -1,4 +1,7 @@
+"""Outcome representations."""
+
 from __future__ import annotations
+
 import math
 import numbers
 import random
@@ -19,6 +22,12 @@ class ContiguousIssue(RangeIssue, DiscreteIssue):
     """
 
     def __init__(self, values: int | tuple[int, int], name: str | None = None) -> None:
+        """Initialize the instance.
+
+        Args:
+            values: Values.
+            name: Name.
+        """
         vt: tuple[int, int]
         vt = values  # type: ignore
         if isinstance(vt, numbers.Integral):
@@ -55,15 +64,36 @@ class ContiguousIssue(RangeIssue, DiscreteIssue):
 
     @property
     def all(self) -> Generator[int, None, None]:
+        """All.
+
+        Returns:
+            Generator[int, None, None]: The result.
+        """
         yield from range(self._values[0], self._values[1] + 1)
 
     @property
     def cardinality(self) -> int:
+        """Cardinality.
+
+        Returns:
+            int: The result.
+        """
         return self.max_value - self.min_value + 1
 
     def ordered_value_generator(
         self, n: int | float | None = None, grid=True, compact=False, endpoints=True
     ) -> Generator[int, None, None]:
+        """Ordered value generator.
+
+        Args:
+            n: Number of items.
+            grid: Grid.
+            compact: Compact.
+            endpoints: Endpoints.
+
+        Returns:
+            Generator[int, None, None]: The result.
+        """
         m = self.cardinality
         n = m if n is None or not math.isfinite(n) else int(n)
         for i in range(n):
@@ -72,6 +102,17 @@ class ContiguousIssue(RangeIssue, DiscreteIssue):
     def value_generator(
         self, n: int | float | None = 10, grid=True, compact=False, endpoints=True
     ) -> Generator[int, None, None]:
+        """Value generator.
+
+        Args:
+            n: Number of items.
+            grid: Grid.
+            compact: Compact.
+            endpoints: Endpoints.
+
+        Returns:
+            Generator[int, None, None]: The result.
+        """
         yield from (
             _ + self._values[0]
             for _ in sample(
@@ -82,6 +123,17 @@ class ContiguousIssue(RangeIssue, DiscreteIssue):
     def to_discrete(
         self, n: int | None, grid=True, compact=False, endpoints=True
     ) -> DiscreteIssue:
+        """To discrete.
+
+        Args:
+            n: Number of items.
+            grid: Grid.
+            compact: Compact.
+            endpoints: Endpoints.
+
+        Returns:
+            DiscreteIssue: The result.
+        """
         if n is None or self.cardinality < n:
             return self
         if not compact:
@@ -122,9 +174,19 @@ class ContiguousIssue(RangeIssue, DiscreteIssue):
         return random.randint(self.max_value + 1, 2 * self.max_value)
 
     def is_continuous(self) -> bool:
+        """Check if continuous.
+
+        Returns:
+            bool: The result.
+        """
         return False
 
     def value_at(self, index: int):
+        """Value at.
+
+        Args:
+            index: Index.
+        """
         if index < 0 or index > self.cardinality - 1:
             raise IndexError(index)
         return self.min_value + index

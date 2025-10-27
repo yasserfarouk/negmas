@@ -36,6 +36,14 @@ class Real(Distribution):
         scale: float = 0.0,
         **kwargs,
     ):
+        """Initialize the instance.
+
+        Args:
+            loc: Loc.
+            type: Type.
+            scale: Scale.
+            **kwargs: Additional keyword arguments.
+        """
         loc = float(loc)
         if not (0 <= scale <= EPSILON):
             raise ValueError(
@@ -46,9 +54,22 @@ class Real(Distribution):
         self._type = type if type else "uniform"
 
     def __float__(self) -> float:
+        """float  .
+
+        Returns:
+            float: The result.
+        """
         return self.loc
 
     def __call__(self, val: float) -> float:
+        """Make instance callable.
+
+        Args:
+            val: Val.
+
+        Returns:
+            float: The result.
+        """
         return 1.0 if abs(val - self.loc) < 1e-10 else 0.0
 
     @property
@@ -67,6 +88,11 @@ class Real(Distribution):
         # super().__init__(type=type if type else "uniform")
 
     def type(self) -> str:
+        """Type.
+
+        Returns:
+            str: The result.
+        """
         return self._type
 
     def mean(self) -> float:
@@ -101,9 +127,11 @@ class Real(Distribution):
         return self._loc
 
     def is_gaussian(self):
+        """Check if gaussian."""
         return True
 
     def is_uniform(self):
+        """Check if uniform."""
         return True
 
     def is_crisp(self) -> bool:
@@ -209,6 +237,12 @@ class ScipyDistribution(Distribution):
     """
 
     def __init__(self, type: str, **kwargs) -> None:
+        """Initialize the instance.
+
+        Args:
+            type: Type.
+            **kwargs: Additional keyword arguments.
+        """
         dist = getattr(stats, type.lower(), None)
         if dist is None:
             raise ValueError(f"Unknown distribution {type}")
@@ -221,12 +255,18 @@ class ScipyDistribution(Distribution):
         self._type = type
 
     def __copy__(self):
+        """copy  ."""
         cls = self.__class__
         result = cls.__new__(cls)
         result.__dict__.update(self.__dict__)
         return result
 
     def __deepcopy__(self, memo):
+        """deepcopy  .
+
+        Args:
+            memo: Memo.
+        """
         cls = self.__class__
         result = cls.__new__(cls)
         memo[id(self)] = result
@@ -235,6 +275,11 @@ class ScipyDistribution(Distribution):
         return result
 
     def type(self) -> str:
+        """Type.
+
+        Returns:
+            str: The result.
+        """
         return self._type
 
     def _make_dist(self, type: str, loc: float, scale: float):
@@ -245,13 +290,20 @@ class ScipyDistribution(Distribution):
 
     @property
     def loc(self):
+        """Loc."""
         return self._dist.kwds.get("loc", 0.5)
 
     @property
     def scale(self):
+        """Scale."""
         return self._dist.kwds.get("scale", 0.0)
 
     def mean(self) -> float:
+        """Mean.
+
+        Returns:
+            float: The result.
+        """
         if self._type != "uniform":
             raise NotImplementedError(
                 "Only uniform distributions are supported for now"
@@ -270,20 +322,32 @@ class ScipyDistribution(Distribution):
         return self._dist.cdf(mx) - self._dist.cdf(mn)
 
     def sample(self, size: int = 1) -> np.ndarray:
+        """Sample.
+
+        Args:
+            size: Size.
+
+        Returns:
+            np.ndarray: The result.
+        """
         return self._dist.rvs(size=size)
 
     @property
     def min(self):
+        """Min."""
         return self.loc - self.scale
 
     @property
     def max(self):
+        """Max."""
         return self.loc + self.scale
 
     def is_gaussian(self):
+        """Check if gaussian."""
         return self._type == "normal"
 
     def is_uniform(self):
+        """Check if uniform."""
         return self._type == "uniform"
 
     def is_crisp(self) -> bool:
@@ -295,16 +359,31 @@ class ScipyDistribution(Distribution):
         return self.prob(val)
 
     def __add__(self, other):
+        """add  .
+
+        Args:
+            other: Other.
+        """
         if isinstance(other, float) and self._type in ("uniform", "normal"):
             self._dist = self._make_dist(self._type, self.loc + other, self.scale)
         raise NotImplementedError()
 
     def __sub__(self, other):
+        """sub  .
+
+        Args:
+            other: Other.
+        """
         if isinstance(other, float) and self._type in ("uniform", "normal"):
             self._dist = self._make_dist(self._type, self.loc - other, self.scale)
         raise NotImplementedError()
 
     def __mul__(self, weight: float):
+        """mul  .
+
+        Args:
+            weight: Weight.
+        """
         if isinstance(weight, float) and self._type in ("uniform", "normal"):
             self._dist = self._make_dist(
                 self._type, self.loc * weight, self.scale * weight
@@ -366,10 +445,11 @@ class ScipyDistribution(Distribution):
         return self.mean()
 
     def __str__(self):
+        """str  ."""
         if self._type == "uniform":
-            return f"U({self.loc}, {self.loc+self.scale})"
+            return f"U({self.loc}, {self.loc + self.scale})"
         if self._type == "normal":
-            return f"G({self.loc}, {self.loc+self.scale})"
+            return f"G({self.loc}, {self.loc + self.scale})"
         return f"{self._type}(loc:{self.loc}, scale:{self.scale})"
 
     __repr__ = __str__
@@ -381,6 +461,13 @@ class UniformDistribution(ScipyDistribution):
     def __init__(
         self, loc: float = 0.0, scale: float = 1.0, *, type: str = "uniform", **kwargs
     ) -> None:
+        """Initialize the instance.
+
+        Args:
+            loc: Loc.
+            scale: Scale.
+            **kwargs: Additional keyword arguments.
+        """
         super().__init__(loc=loc, scale=scale, type="uniform", **kwargs)
 
 
@@ -390,6 +477,13 @@ class NormalDistribution(ScipyDistribution):
     def __init__(
         self, loc: float = 0.0, scale: float = 1.0, *, type: str = "norm", **kwargs
     ) -> None:
+        """Initialize the instance.
+
+        Args:
+            loc: Loc.
+            scale: Scale.
+            **kwargs: Additional keyword arguments.
+        """
         super().__init__(loc=loc, scale=scale, type="norm", **kwargs)
 
 

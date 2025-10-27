@@ -262,6 +262,11 @@ def _pretty_string(src, dpth=0, current_key="", tab_size=2) -> str:
     """
 
     def tabs(n):
+        """Tabs.
+
+        Args:
+            n: Number of items.
+        """
         return " " * n * tab_size  # or 2 or 8 or...
 
     output = ""
@@ -307,6 +312,15 @@ def pretty_string(src, tab_size=2, compact=False) -> str:
 
 
 def exception2str(limit=None, chain=True) -> str:
+    """Exception2str.
+
+    Args:
+        limit: Limit.
+        chain: Chain.
+
+    Returns:
+        str: The result.
+    """
     return traceback.format_exc(limit=limit, chain=chain)
 
 

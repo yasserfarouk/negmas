@@ -1,4 +1,7 @@
+"""Situated negotiation."""
+
 from __future__ import annotations
+
 from attrs import define
 
 __all__ = ["Action"]

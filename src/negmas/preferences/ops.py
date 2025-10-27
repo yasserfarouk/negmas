@@ -1,4 +1,7 @@
+"""Preference representations."""
+
 from __future__ import annotations
+
 import itertools
 import math
 from functools import reduce
@@ -73,6 +76,15 @@ def sort_by_utility(
     rational_only: bool = False,
     return_sorted_outcomes: Literal[True] = True,
 ) -> tuple[NDArray[np.floating[Any]], list[Outcome]]:
+    """Sort by utility.
+
+    Args:
+        ufun: Ufun.
+        outcomes: Outcomes.
+
+    Returns:
+        tuple[NDArray[np.floating[Any]], list[Outcome]]: The result.
+    """
     ...
 
 
@@ -86,6 +98,15 @@ def sort_by_utility(
     rational_only: bool = False,
     return_sorted_outcomes: Literal[False],
 ) -> NDArray[np.floating[Any]]:
+    """Sort by utility.
+
+    Args:
+        ufun: Ufun.
+        outcomes: Outcomes.
+
+    Returns:
+        NDArray[np.floating[Any]]: The result.
+    """
     ...
 
 
@@ -140,6 +161,8 @@ def sort_by_utility(
 
 @define
 class ScenarioStats:
+    """ScenarioStats implementation."""
+
     opposition: float
     utility_ranges: list[tuple[float, float]]
     pareto_utils: tuple[tuple[float, ...], ...]
@@ -173,11 +196,30 @@ class ScenarioStats:
         outcomes: Sequence[Outcome] | None = None,
         eps=1e-12,
     ) -> ScenarioStats:
+        """From ufuns.
+
+        Args:
+            ufuns: Ufuns.
+            outcomes: Outcomes.
+            eps: Eps.
+
+        Returns:
+            ScenarioStats: The result.
+        """
         return calc_scenario_stats(ufuns, outcomes, eps)
 
     def restrict(
         self, ufuns: tuple[UtilityFunction], reserved_values: tuple[float, ...]
     ) -> ScenarioStats:
+        """Restrict.
+
+        Args:
+            ufuns: Ufuns.
+            reserved_values: Reserved values.
+
+        Returns:
+            ScenarioStats: The result.
+        """
         ranges = self.utility_ranges
         pareto_indices = [
             i
@@ -258,6 +300,8 @@ class ScenarioStats:
 
 @define
 class OutcomeOptimality:
+    """OutcomeOptimality implementation."""
+
     pareto_optimality: float
     nash_optimality: float
     kalai_optimality: float
@@ -270,6 +314,8 @@ class OutcomeOptimality:
 
 @define
 class OutcomeDistances:
+    """OutcomeDistances implementation."""
+
     pareto_dist: float
     nash_dist: float
     kalai_dist: float
@@ -334,6 +380,24 @@ def make_discounted_ufun(
     discount_per_real_time: float | None = None,
     dynamic_reservation: bool = True,
 ) -> DiscountedUtilityFunction | UFunType:
+    """Make discounted ufun.
+
+    Args:
+        ufun: Ufun.
+        cost_per_round: Cost per round.
+        power_per_round: Power per round.
+        discount_per_round: Discount per round.
+        cost_per_relative_time: Cost per relative time.
+        power_per_relative_time: Power per relative time.
+        discount_per_relative_time: Discount per relative time.
+        cost_per_real_time: Cost per real time.
+        power_per_real_time: Power per real time.
+        discount_per_real_time: Discount per real time.
+        dynamic_reservation: Dynamic reservation.
+
+    Returns:
+        DiscountedUtilityFunction | UFunType: The result.
+    """
     from negmas.preferences.discounted import ExpDiscountedUFun, LinDiscountedUFun
 
     if cost_per_round is not None and cost_per_round > 0.0:
@@ -399,6 +463,16 @@ def make_discounted_ufun(
 def pareto_frontier_bf(
     points: np.ndarray | Iterable[Iterable[float]], eps=-1e-12, sort_by_welfare=True
 ) -> np.ndarray:
+    """Pareto frontier bf.
+
+    Args:
+        points: Points.
+        eps: Eps.
+        sort_by_welfare: Sort by welfare.
+
+    Returns:
+        np.ndarray: The result.
+    """
     points = np.asarray(points, dtype=np.float32)
     if len(points) < 1:
         return points
@@ -1141,16 +1215,43 @@ def max_welfare_points(
 
 
 def dist(x: tuple[float, ...], y: tuple[float, ...]) -> float:
+    """Dist.
+
+    Args:
+        x: X.
+        y: Y.
+
+    Returns:
+        float: The result.
+    """
     if x is None or y is None:
         return float("nan")
     return sqrt(sum((a - b) ** 2 for a, b in zip(x, y, strict=True)))
 
 
 def distance_between(w: tuple[float, ...], n: tuple[float, ...]) -> float:
+    """Distance between.
+
+    Args:
+        w: W.
+        n: Number of items.
+
+    Returns:
+        float: The result.
+    """
     return dist(w, n)
 
 
 def distance_to(w: tuple[float, ...], p: Iterable[tuple[float, ...]]) -> float:
+    """Distance to.
+
+    Args:
+        w: W.
+        p: P.
+
+    Returns:
+        float: The result.
+    """
     dists = list(distance_between(w, x) for x in p)
     if not dists:
         return float("nan")
@@ -1158,6 +1259,15 @@ def distance_to(w: tuple[float, ...], p: Iterable[tuple[float, ...]]) -> float:
 
 
 def max_distance_to(w: tuple[float, ...], p: Iterable[tuple[float, ...]]) -> float:
+    """Max distance to.
+
+    Args:
+        w: W.
+        p: P.
+
+    Returns:
+        float: The result.
+    """
     dists = list(distance_between(w, x) for x in p)
     if not dists:
         return float("nan")
@@ -1165,6 +1275,15 @@ def max_distance_to(w: tuple[float, ...], p: Iterable[tuple[float, ...]]) -> flo
 
 
 def is_rational(ufuns: Iterable[UtilityFunction], outcome: Outcome) -> bool:
+    """Check if rational.
+
+    Args:
+        ufuns: Ufuns.
+        outcome: Outcome to evaluate.
+
+    Returns:
+        bool: The result.
+    """
     for u in ufuns:
         if u(outcome) < u.reserved_value:
             return False
@@ -1172,12 +1291,30 @@ def is_rational(ufuns: Iterable[UtilityFunction], outcome: Outcome) -> bool:
 
 
 def is_irrational(utils: Iterable[UtilityFunction], outcome: Outcome) -> bool:
+    """Check if irrational.
+
+    Args:
+        utils: Utils.
+        outcome: Outcome to evaluate.
+
+    Returns:
+        bool: The result.
+    """
     return not is_rational(utils, outcome)
 
 
 def calc_outcome_distances(
     utils: tuple[float, ...], stats: ScenarioStats
 ) -> OutcomeDistances:
+    """Calc outcome distances.
+
+    Args:
+        utils: Utils.
+        stats: Stats.
+
+    Returns:
+        OutcomeDistances: The result.
+    """
     pdist = distance_to(utils, stats.pareto_utils)
     ndist = distance_to(utils, stats.nash_utils)
     kdist = distance_to(utils, stats.kalai_utils)
@@ -1189,6 +1326,14 @@ def calc_outcome_distances(
 
 
 def estimate_max_dist(ufuns: Sequence[UtilityFunction]) -> float:
+    """Estimate max dist.
+
+    Args:
+        ufuns: Ufuns.
+
+    Returns:
+        float: The result.
+    """
     ranges = [_.minmax(ufuns[0].outcome_space, above_reserve=False) for _ in ufuns]
     diffs = [float(b) - float(a) for a, b in ranges]
     assert all(_ >= 0 for _ in diffs)
@@ -1198,6 +1343,15 @@ def estimate_max_dist(ufuns: Sequence[UtilityFunction]) -> float:
 def estimate_max_dist_using_outcomes(
     ufuns: Sequence[UtilityFunction], outcome_utils: Sequence[tuple[float, ...]]
 ) -> float:
+    """Estimate max dist using outcomes.
+
+    Args:
+        ufuns: Ufuns.
+        outcome_utils: Outcome utils.
+
+    Returns:
+        float: The result.
+    """
     if not outcome_utils:
         return estimate_max_dist(ufuns)
     ranges = [_.minmax(ufuns[0].outcome_space) for _ in ufuns]
@@ -1219,6 +1373,16 @@ def estimate_max_dist_using_outcomes(
 def calc_outcome_optimality(
     dists: OutcomeDistances, stats: ScenarioStats, max_dist: float
 ) -> OutcomeOptimality:
+    """Calc outcome optimality.
+
+    Args:
+        dists: Dists.
+        stats: Stats.
+        max_dist: Max dist.
+
+    Returns:
+        OutcomeOptimality: The result.
+    """
     optim = dict()
     for name, lst, diff in (
         ("pareto_optimality", stats.pareto_utils, dists.pareto_dist),
@@ -1260,6 +1424,16 @@ def calc_scenario_stats(
     outcomes: Sequence[Outcome] | None = None,
     eps=1e-12,
 ) -> ScenarioStats:
+    """Calc scenario stats.
+
+    Args:
+        ufuns: Ufuns.
+        outcomes: Outcomes.
+        eps: Eps.
+
+    Returns:
+        ScenarioStats: The result.
+    """
     if not ufuns:
         raise ValueError("Must pass the ufuns")
     ufuns = list(ufuns)
@@ -1698,6 +1872,12 @@ def opposition_level(
     nearest_val = float("inf")
 
     def is_irrational(outcome, ufun: BaseUtilityFunction):
+        """Check if irrational.
+
+        Args:
+            outcome: Outcome to evaluate.
+            ufun: Ufun.
+        """
         try:
             return ufun.is_worse(outcome, None)
         except Exception:
@@ -1863,6 +2043,15 @@ def winwin_level(
 def get_ranks_bf(
     ufun: UtilityFunction, outcomes: Sequence[Outcome | None]
 ) -> list[float]:
+    """Get ranks bf.
+
+    Args:
+        ufun: Ufun.
+        outcomes: Outcomes.
+
+    Returns:
+        list[float]: The result.
+    """
     assert ufun.outcome_space is not None
     assert ufun.outcome_space.is_discrete()
     alloutcomes = list(ufun.outcome_space.enumerate_or_sample())
@@ -1914,6 +2103,16 @@ def get_ranks_bf(
 def get_ranks(
     ufun: UtilityFunction, outcomes: Sequence[Outcome | None], normalize=False
 ) -> list[float] | NDArray[np.floating[Any]]:
+    """Get ranks.
+
+    Args:
+        ufun: Ufun.
+        outcomes: Outcomes.
+        normalize: Normalize.
+
+    Returns:
+        list[float] | NDArray[np.floating[Any]]: The result.
+    """
     assert ufun.outcome_space is not None
     assert ufun.outcome_space.is_discrete()
     alloutcomes = (

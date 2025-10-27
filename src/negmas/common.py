@@ -183,6 +183,8 @@ class PreferencesChangeType(Enum):
 
 @define(frozen=True)
 class PreferencesChange:
+    """PreferencesChange implementation."""
+
     type: PreferencesChangeType = PreferencesChangeType.General
     data: Any = None
 
@@ -242,6 +244,7 @@ class MechanismState:
     """ID of the agent owning the negotiator that raised the last error"""
 
     def __hash__(self):
+        """hash  ."""
         return hash(self.asdict())
 
     #     def __copy__(self):
@@ -253,26 +256,31 @@ class MechanismState:
 
     @property
     def ended(self):
+        """Ended."""
         return self.started and (
             self.broken or self.timedout or (self.agreement is not None)
         )
 
     @property
     def completed(self):
+        """Completed."""
         return self.started and (
             self.broken or self.timedout or (self.agreement is not None)
         )
 
     @property
     def done(self):
+        """Done."""
         return self.started and (
             self.broken or self.timedout or (self.agreement is not None)
         )
 
     def keys(self):
+        """Keys."""
         return self.__dict__.keys()
 
     def values(self):
+        """Values."""
         return self.__dict__.values()
 
     def asdict(self):
@@ -418,6 +426,11 @@ class NegotiatorMechanismInterface:
 
     @property
     def atomic_steps(self) -> bool:
+        """Atomic steps.
+
+        Returns:
+            bool: The result.
+        """
         return self._mechanism.atomic_steps
 
     def discrete_outcomes(
@@ -438,6 +451,11 @@ class NegotiatorMechanismInterface:
 
     @property
     def issues(self) -> tuple[Issue, ...]:
+        """Issues.
+
+        Returns:
+            tuple[Issue, ...]: The result.
+        """
         os = self._mechanism.outcome_space
         if hasattr(os, "issues"):
             return os.issues  # type: ignore I am just checking that the attribute issues exists
@@ -458,6 +476,11 @@ class NegotiatorMechanismInterface:
 
     @property
     def participants(self) -> list[NegotiatorInfo]:
+        """Participants.
+
+        Returns:
+            list[NegotiatorInfo]: The result.
+        """
         return self._mechanism.participants
 
     @property
@@ -475,6 +498,11 @@ class NegotiatorMechanismInterface:
 
     @property
     def history(self) -> list:
+        """History.
+
+        Returns:
+            list: The result.
+        """
         return self._mechanism.history
 
     @property
@@ -534,9 +562,11 @@ class NegotiatorMechanismInterface:
         return self._mechanism.agent_names
 
     def keys(self):
+        """Keys."""
         return self.__dict__.keys()
 
     def values(self):
+        """Values."""
         return self.__dict__.values()
 
     def asdict(self):

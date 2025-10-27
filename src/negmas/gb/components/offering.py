@@ -1,4 +1,7 @@
+"""Offering strategies and policies for negotiations."""
+
 from __future__ import annotations
+
 import math
 import random
 from abc import ABC, abstractmethod
@@ -88,6 +91,8 @@ def index_of_nearest_value(
 
 @define
 class HybridOfferingPolicy(OfferingPolicy):
+    """HybridOffering policy implementation."""
+
     initial_utility: float = float("nan")
     concession_ratio: float = float("nan")
     final_utility: float = float("nan")
@@ -148,6 +153,11 @@ class HybridOfferingPolicy(OfferingPolicy):
         self._values = [_[0] for _ in outcome_util]
 
     def on_preferences_changed(self, changes: list[PreferencesChange]):
+        """On preferences changed.
+
+        Args:
+            changes: Changes.
+        """
         self._adjust_params()
         return super().on_preferences_changed(changes)
 
@@ -191,6 +201,12 @@ class HybridOfferingPolicy(OfferingPolicy):
         return target_utility
 
     def __call__(self, state: GBState, dest: str | None = None):
+        """Make instance callable.
+
+        Args:
+            state: Current state.
+            dest: Dest.
+        """
         if not self._values:
             self._adjust_params()
         t = state.relative_time
@@ -228,6 +244,13 @@ class HybridOfferingPolicy(OfferingPolicy):
     def on_partner_proposal(
         self, state: GBState, partner_id: str, offer: Outcome
     ) -> None:
+        """On partner proposal.
+
+        Args:
+            state: Current state.
+            partner_id: Partner id.
+            offer: Offer being considered.
+        """
         ufun = self.negotiator.ufun
         assert ufun, "Unknown ufun. Cannot continue"
         self._received_offers.append(offer)
@@ -237,10 +260,17 @@ class HybridOfferingPolicy(OfferingPolicy):
 
 @define
 class TimeBasedOfferingPolicy(OfferingPolicy):
+    """TimeBasedOffering policy implementation."""
+
     curve: PolyAspiration = field(factory=lambda: PolyAspiration(1.0, "boulware"))
     stochastic: bool = False
 
     def on_preferences_changed(self, changes: list[PreferencesChange]):
+        """On preferences changed.
+
+        Args:
+            changes: Changes.
+        """
         if not self.negotiator or not self.negotiator.ufun:
             return
         if self.sorter is not None:
@@ -253,6 +283,12 @@ class TimeBasedOfferingPolicy(OfferingPolicy):
         self.sorter.init()
 
     def __call__(self, state: GBState, dest: str | None = None):
+        """Make instance callable.
+
+        Args:
+            state: Current state.
+            dest: Dest.
+        """
         assert self.negotiator.ufun is not None
         asp = self.curve.utility_at(state.relative_time)
         mn, mx = self.sorter.minmax()
@@ -269,12 +305,19 @@ class TimeBasedOfferingPolicy(OfferingPolicy):
 
 @define
 class MiCROOfferingPolicy(OfferingPolicy):
+    """MiCROOffering policy implementation."""
+
     next_indx: int = 0
     sorter: PresortingInverseUtilityFunction | None = field(repr=False, default=None)
     _received: set[Outcome] = field(factory=set)
     _sent: set[Outcome] = field(factory=set)
 
     def on_preferences_changed(self, changes: list[PreferencesChange]):
+        """On preferences changed.
+
+        Args:
+            changes: Changes.
+        """
         if not self.negotiator or not self.negotiator.ufun:
             return
         if any(
@@ -295,11 +338,17 @@ class MiCROOfferingPolicy(OfferingPolicy):
             self._sent = set()
 
     def sample_sent(self) -> Outcome | None:
+        """Sample sent.
+
+        Returns:
+            Outcome | None: The result.
+        """
         if not len(self._sent):
             return None
         return random.choice(list(self._sent))
 
     def ensure_sorter(self):
+        """Ensure sorter."""
         if not self.sorter:
             assert self.negotiator.ufun
             self.sorter = PresortingInverseUtilityFunction(
@@ -309,17 +358,41 @@ class MiCROOfferingPolicy(OfferingPolicy):
         return self.sorter
 
     def next_offer(self) -> Outcome | None:
+        """Next offer.
+
+        Returns:
+            Outcome | None: The result.
+        """
         return self.ensure_sorter().outcome_at(self.next_indx)
 
     def best_offer_so_far(self) -> Outcome | None:
+        """Best offer so far.
+
+        Returns:
+            Outcome | None: The result.
+        """
         if self.next_indx > 0:
             return self.ensure_sorter().outcome_at(self.next_indx - 1)
         return None
 
     def ready_to_concede(self) -> bool:
+        """Ready to concede.
+
+        Returns:
+            bool: The result.
+        """
         return len(self._sent) <= len(self._received)
 
     def __call__(self, state: GBState, dest: str | None = None) -> Outcome | None:
+        """Make instance callable.
+
+        Args:
+            state: Current state.
+            dest: Dest.
+
+        Returns:
+            Outcome | None: The result.
+        """
         outcome = self.next_offer()
         assert self.sorter
         assert self.negotiator.ufun
@@ -337,21 +410,44 @@ class MiCROOfferingPolicy(OfferingPolicy):
     def on_partner_proposal(
         self, state: GBState, partner_id: str, offer: Outcome
     ) -> None:
+        """On partner proposal.
+
+        Args:
+            state: Current state.
+            partner_id: Partner id.
+            offer: Offer being considered.
+        """
         self._received.add(offer)
         return super().on_partner_proposal(state, partner_id, offer)
 
 
 @define
 class FastMiCROOfferingPolicy(MiCROOfferingPolicy):
+    """FastMiCROOffering policy implementation."""
+
     _skipped: set[Outcome] = field(factory=set)
 
     def ready_to_concede(self) -> bool:
+        """Ready to concede.
+
+        Returns:
+            bool: The result.
+        """
         return (
             len(self._sent) <= len(self._received)
             or self.negotiator.nmi.state.relative_time > 0.95
         )
 
     def __call__(self, state: GBState, dest: str | None = None) -> Outcome | None:
+        """Make instance callable.
+
+        Args:
+            state: Current state.
+            dest: Dest.
+
+        Returns:
+            Outcome | None: The result.
+        """
         outcome = self.next_offer()
         assert self.sorter
         assert self.negotiator.ufun
@@ -396,12 +492,19 @@ class FastMiCROOfferingPolicy(MiCROOfferingPolicy):
 
 @define
 class CABOfferingPolicy(OfferingPolicy):
+    """CABOffering policy implementation."""
+
     next_indx: int = 0
     sorter: PresortingInverseUtilityFunction | None = field(repr=False, default=None)
     _last_offer: Outcome | None = field(init=False, default=None)
     _repeating: bool = field(init=False, default=False)
 
     def on_preferences_changed(self, changes: list[PreferencesChange]):
+        """On preferences changed.
+
+        Args:
+            changes: Changes.
+        """
         if not self.negotiator or not self.negotiator.ufun:
             return
         if any(
@@ -425,6 +528,15 @@ class CABOfferingPolicy(OfferingPolicy):
             self._repeating = False
 
     def __call__(self, state: GBState, dest: str | None = None) -> Outcome | None:
+        """Make instance callable.
+
+        Args:
+            state: Current state.
+            dest: Dest.
+
+        Returns:
+            Outcome | None: The result.
+        """
         if (
             self._repeating
             or not self.negotiator
@@ -459,6 +571,8 @@ class CABOfferingPolicy(OfferingPolicy):
 
 @define
 class WAROfferingPolicy(OfferingPolicy):
+    """WAROffering policy implementation."""
+
     next_indx: int = 0
     sorter: PresortingInverseUtilityFunction | None = field(repr=False, default=None)
     _last_offer: Outcome | None = field(init=False, default=None)
@@ -467,6 +581,11 @@ class WAROfferingPolicy(OfferingPolicy):
     _irrational_index: int = field(init=False, default=-1)
 
     def on_preferences_changed(self, changes: list[PreferencesChange]):
+        """On preferences changed.
+
+        Args:
+            changes: Changes.
+        """
         if not self.negotiator or not self.negotiator.ufun:
             return
         self._irrational = True
@@ -492,12 +611,26 @@ class WAROfferingPolicy(OfferingPolicy):
             self._repeating = False
 
     def on_negotiation_start(self, state) -> None:
+        """On negotiation start.
+
+        Args:
+            state: Current state.
+        """
         self._repeating = False
         self._irrational = True
         self._irrational_index = self.negotiator.nmi.n_outcomes - 1  # type: ignore
         return super().on_negotiation_start(state)
 
     def __call__(self, state: GBState, dest: str | None = None) -> Outcome | None:
+        """Make instance callable.
+
+        Args:
+            state: Current state.
+            dest: Dest.
+
+        Returns:
+            Outcome | None: The result.
+        """
         if not self.negotiator or not self.negotiator.ufun or not self.negotiator.nmi:
             return self._last_offer
         if self._repeating:
@@ -552,13 +685,31 @@ class TFTOfferingPolicy(OfferingPolicy):
     def before_responding(
         self, state: GBState, offer: Outcome | None, source: str | None = None
     ):
+        """Before responding.
+
+        Args:
+            state: Current state.
+            offer: Offer being considered.
+            source: Source identifier.
+        """
         self._partner_offer = offer
 
     def on_preferences_changed(self, changes: list[PreferencesChange]):
+        """On preferences changed.
+
+        Args:
+            changes: Changes.
+        """
         super().on_preferences_changed(changes)
         self.partner_ufun.on_preferences_changed(changes)
 
     def __call__(self, state: GBState, dest: str | None = None):
+        """Make instance callable.
+
+        Args:
+            state: Current state.
+            dest: Dest.
+        """
         if not self.negotiator or not self.negotiator.ufun:
             return None
         partner_u = (
@@ -598,11 +749,25 @@ class OfferBest(OfferingPolicy):
     _best: Outcome | None = None
 
     def on_preferences_changed(self, changes: list[PreferencesChange]):
+        """On preferences changed.
+
+        Args:
+            changes: Changes.
+        """
         if not self.negotiator or not self.negotiator.ufun:
             return
         _, self._best = self.negotiator.ufun.extreme_outcomes()
 
     def __call__(self, state: GBState, dest: str | None = None) -> Outcome | None:
+        """Make instance callable.
+
+        Args:
+            state: Current state.
+            dest: Dest.
+
+        Returns:
+            Outcome | None: The result.
+        """
         return self._best
 
 
@@ -620,6 +785,11 @@ class OfferTop(OfferingPolicy):
     _top: list[Outcome] | None = field(init=False, default=None)
 
     def on_preferences_changed(self, changes: list[PreferencesChange]):
+        """On preferences changed.
+
+        Args:
+            changes: Changes.
+        """
         if not self.negotiator or not self.negotiator.ufun:
             return
         if any(
@@ -638,6 +808,15 @@ class OfferTop(OfferingPolicy):
             self._top = list(set(top_k + top_f))
 
     def __call__(self, state: GBState, dest: str | None = None) -> Outcome | None:
+        """Make instance callable.
+
+        Args:
+            state: Current state.
+            dest: Dest.
+
+        Returns:
+            Outcome | None: The result.
+        """
         if not self.negotiator or not self.negotiator.ufun:
             return None
         if self._top is None:
@@ -654,6 +833,15 @@ class NoneOfferingPolicy(OfferingPolicy):
     """
 
     def __call__(self, state: GBState, dest: str | None = None) -> Outcome | None:
+        """Make instance callable.
+
+        Args:
+            state: Current state.
+            dest: Dest.
+
+        Returns:
+            Outcome | None: The result.
+        """
         return None
 
 
@@ -664,6 +852,15 @@ class RandomOfferingPolicy(OfferingPolicy):
     """
 
     def __call__(self, state: GBState, dest: str | None = None) -> Outcome | None:
+        """Make instance callable.
+
+        Args:
+            state: Current state.
+            dest: Dest.
+
+        Returns:
+            Outcome | None: The result.
+        """
         if not self.negotiator or not self.negotiator.nmi:
             return None
         return self.negotiator.nmi.random_outcome()
@@ -705,6 +902,15 @@ class LimitedOutcomesOfferingPolicy(OfferingPolicy):
         return self._run(state, dest, True)
 
     def __call__(self, state: GBState, dest: str | None = None) -> Outcome | None:
+        """Make instance callable.
+
+        Args:
+            state: Current state.
+            dest: Dest.
+
+        Returns:
+            Outcome | None: The result.
+        """
         return self._run(state, dest)
 
 
@@ -717,6 +923,15 @@ class NegotiatorOfferingPolicy(OfferingPolicy):
     proposer: GBNegotiator = field(kw_only=True)
 
     def __call__(self, state: GBState, dest: str | None = None) -> Outcome | None:
+        """Make instance callable.
+
+        Args:
+            state: Current state.
+            dest: Dest.
+
+        Returns:
+            Outcome | None: The result.
+        """
         r = self.proposer.propose(state)
         if isinstance(r, ExtendedOutcome):
             return r.outcome
@@ -753,6 +968,15 @@ class ConcensusOfferingPolicy(OfferingPolicy, ABC):
         """
 
     def __call__(self, state: GBState, dest: str | None = None) -> Outcome | None:
+        """Make instance callable.
+
+        Args:
+            state: Current state.
+            dest: Dest.
+
+        Returns:
+            Outcome | None: The result.
+        """
         selected, selected_indices = [], []
         for i, s in enumerate(self.strategies):
             response = s.propose(state)
@@ -775,6 +999,15 @@ class UnanimousConcensusOfferingPolicy(ConcensusOfferingPolicy):
     def decide(
         self, indices: list[int], responses: list[Outcome | None]
     ) -> Outcome | None:
+        """Decide.
+
+        Args:
+            indices: Indices.
+            responses: Responses.
+
+        Returns:
+            Outcome | None: The result.
+        """
         outcomes = set(responses)
         if len(outcomes) != 1:
             return None
@@ -790,6 +1023,7 @@ class RandomConcensusOfferingPolicy(ConcensusOfferingPolicy):
     prob: list[float] | None = None
 
     def __attrs_post_init__(self):
+        """attrs post init  ."""
         if not self.prob:
             return
         s = sum(self.prob)
@@ -798,6 +1032,15 @@ class RandomConcensusOfferingPolicy(ConcensusOfferingPolicy):
     def decide(
         self, indices: list[int], responses: list[Outcome | None]
     ) -> Outcome | None:
+        """Decide.
+
+        Args:
+            indices: Indices.
+            responses: Responses.
+
+        Returns:
+            Outcome | None: The result.
+        """
         if not self.prob:
             return random.choice(responses)
 
@@ -826,6 +1069,15 @@ class UtilBasedConcensusOfferingPolicy(ConcensusOfferingPolicy, ABC):
     def decide(
         self, indices: list[int], responses: list[Outcome | None]
     ) -> Outcome | None:
+        """Decide.
+
+        Args:
+            indices: Indices.
+            responses: Responses.
+
+        Returns:
+            Outcome | None: The result.
+        """
         if not self.negotiator.ufun:
             raise ValueError("Cannot decide because I have no ufun")
         return responses[
@@ -840,6 +1092,14 @@ class MyBestConcensusOfferingPolicy(UtilBasedConcensusOfferingPolicy):
     """
 
     def decide_util(self, utils: list[Value]) -> int:
+        """Decide util.
+
+        Args:
+            utils: Utils.
+
+        Returns:
+            int: The result.
+        """
         return max(range(len(utils)), key=lambda x: utils[x])
 
 
@@ -850,4 +1110,12 @@ class MyWorstConcensusOfferingPolicy(UtilBasedConcensusOfferingPolicy):
     """
 
     def decide_util(self, utils: list[Value]) -> int:
+        """Decide util.
+
+        Args:
+            utils: Utils.
+
+        Returns:
+            int: The result.
+        """
         return min(range(len(utils)), key=lambda x: utils[x])

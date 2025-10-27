@@ -1,4 +1,7 @@
+"""Outcome representations."""
+
 from __future__ import annotations
+
 from negmas.outcomes.cardinal_issue import CardinalIssue
 
 __all__ = ["RangeIssue"]
@@ -10,6 +13,12 @@ class RangeIssue(CardinalIssue):
     """
 
     def __init__(self, values, name=None) -> None:
+        """Initialize the instance.
+
+        Args:
+            values: Values.
+            name: Name.
+        """
         if values[1] < values[0]:
             raise ValueError(
                 f"Trying to create a range issue with min {values[0]} and max {values[1]}!!!"
@@ -19,4 +28,9 @@ class RangeIssue(CardinalIssue):
         self.min_value, self.max_value = values[0], values[1]
 
     def is_valid(self, v):
+        """Check if valid.
+
+        Args:
+            v: V.
+        """
         return self.min_value <= v <= self.max_value

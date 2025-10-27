@@ -1,4 +1,7 @@
+"""Situated negotiation."""
+
 from __future__ import annotations
+
 from typing import TYPE_CHECKING, Any, Callable
 
 from negmas.common import NegotiatorMechanismInterface
@@ -28,6 +31,12 @@ class AgentWorldInterface:
     #     self.agent = self._world.agents[agent_id]
 
     def __init__(self, world: World, agent: Agent):
+        """Initialize the instance.
+
+        Args:
+            world: World.
+            agent: Agent.
+        """
         self._world, self.agent = world, agent
 
     def execute(
@@ -60,6 +69,11 @@ class AgentWorldInterface:
 
     @property
     def default_signing_delay(self) -> int:
+        """Default signing delay.
+
+        Returns:
+            int: The result.
+        """
         return self._world.default_signing_delay if not self._world.force_signing else 0
 
     def run_negotiation(
@@ -438,6 +452,7 @@ class AgentWorldInterface:
 
     @property
     def settings(self):
+        """Settings."""
         if not self._world.bulletin_board:
             return None
         return self._world.bulletin_board.data.get("settings", dict())

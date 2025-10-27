@@ -1,4 +1,6 @@
 # ruff: noqa: F403
+"""Negotiators base classes."""
+
 import negmas.gb.negotiators.utilbased as _n
 from negmas.gb.negotiators.utilbased import *
 

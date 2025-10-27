@@ -1,4 +1,7 @@
+"""Outcomes base classes."""
+
 from __future__ import annotations
+
 import math
 import numbers
 import random
@@ -121,6 +124,12 @@ class Issue(HasMinMax, Iterable, ABC):
     """
 
     def __init__(self, values, name: str | None = None) -> None:
+        """Initialize the instance.
+
+        Args:
+            values: Values.
+            name: Name.
+        """
         self.name = name if name else unique_name("issue", add_time=False, sep="")
         self._value_type = object
         self._values = values
@@ -163,9 +172,15 @@ class Issue(HasMinMax, Iterable, ABC):
         )
 
     def __copy__(self):
+        """copy  ."""
         return make_issue(name=self.name, values=self._values)
 
     def __deepcopy__(self, memodict={}):
+        """deepcopy  .
+
+        Args:
+            memodict: Memodict.
+        """
         _ = memodict
         return make_issue(name=self.name, values=self._values)
 
@@ -426,12 +441,23 @@ class Issue(HasMinMax, Iterable, ABC):
         )
 
     def __getitem__(self, indx):
+        """getitem  .
+
+        Args:
+            indx: Indx.
+        """
         return self.value_at(indx)
 
     def __iter__(self):
+        """iter  ."""
         return self.value_generator().__iter__()
 
     def __contains__(self, item):
+        """contains  .
+
+        Args:
+            item: Item.
+        """
         try:
             if isinstance(item, Issue):
                 return self.contains(item)
@@ -444,18 +470,27 @@ class Issue(HasMinMax, Iterable, ABC):
         return False
 
     def __len__(self):
+        """len  ."""
         return self.cardinality
 
     def __eq__(self, other):
+        """eq  .
+
+        Args:
+            other: Other.
+        """
         return self._values == other.values and self.name == other.name
 
     def __hash__(self):
+        """hash  ."""
         return hash(str(self))
 
     def __repr__(self):
+        """repr  ."""
         return f"{self.__class__.__name__}({self._values}, {self.name})"
 
     def __str__(self):
+        """str  ."""
         return f"{self.name}: {self._values}"
 
 
@@ -470,6 +505,11 @@ class DiscreteIssue(Issue):
         return self._n_values  # type: ignore
 
     def is_continuous(self) -> bool:
+        """Check if continuous.
+
+        Returns:
+            bool: The result.
+        """
         return False
 
     @property
@@ -491,6 +531,17 @@ class DiscreteIssue(Issue):
     def ordered_value_generator(
         self, n: int | float | None = 10, grid=True, compact=True, endpoints=True
     ) -> Generator[Any, None, None]:
+        """Ordered value generator.
+
+        Args:
+            n: Number of items.
+            grid: Grid.
+            compact: Compact.
+            endpoints: Endpoints.
+
+        Returns:
+            Generator[Any, None, None]: The result.
+        """
         _ = compact, grid, endpoints
         m = self.cardinality
         n = m if n is None or not math.isfinite(n) else int(n)
@@ -501,6 +552,17 @@ class DiscreteIssue(Issue):
     def value_generator(
         self, n: int | float | None = 10, grid=True, compact=True, endpoints=True
     ) -> Generator[Any, None, None]:
+        """Value generator.
+
+        Args:
+            n: Number of items.
+            grid: Grid.
+            compact: Compact.
+            endpoints: Endpoints.
+
+        Returns:
+            Generator[Any, None, None]: The result.
+        """
         m = self.cardinality
         n = m if n is None or not math.isfinite(n) else int(n)
 
@@ -510,6 +572,11 @@ class DiscreteIssue(Issue):
         )
 
     def value_at(self, index: int):
+        """Value at.
+
+        Args:
+            index: Index.
+        """
         if index < 0 or index > self.cardinality - 1:
             raise IndexError(index)
         return self._values[index]
@@ -538,7 +605,17 @@ class DiscreteIssue(Issue):
         ).tolist()
 
     def is_valid(self, v):
+        """Check if valid.
+
+        Args:
+            v: V.
+        """
         return v in self._values
 
     def __getitem__(self, indx):
+        """getitem  .
+
+        Args:
+            indx: Indx.
+        """
         return self.values(indx)

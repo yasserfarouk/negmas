@@ -1,4 +1,7 @@
+"""Outcome representations."""
+
 from __future__ import annotations
+
 import numbers
 from random import random
 from typing import Any, Generator
@@ -19,6 +22,12 @@ class OptionalIssue(Issue):
     """
 
     def __init__(self, base: Issue, name: str | None = None) -> None:
+        """Initialize the instance.
+
+        Args:
+            base: Base.
+            name: Name.
+        """
         self.base = base
         self._n_values = self.base._n_values + 1
         super().__init__(values=base.values, name=name)
@@ -44,20 +53,45 @@ class OptionalIssue(Issue):
         return self.min_value is not None and self.max_value is not None
 
     def is_numeric(self) -> bool:
+        """Check if numeric.
+
+        Returns:
+            bool: The result.
+        """
         return issubclass(self.base._value_type, numbers.Number)
 
     def is_integer(self) -> bool:
+        """Check if integer.
+
+        Returns:
+            bool: The result.
+        """
         return issubclass(self.base.value_type, numbers.Integral)
 
     def is_float(self) -> bool:
+        """Check if float.
+
+        Returns:
+            bool: The result.
+        """
         return issubclass(self._value_type, numbers.Real) and not issubclass(
             self._value_type, numbers.Integral
         )
 
     def is_continuous(self) -> bool:
+        """Check if continuous.
+
+        Returns:
+            bool: The result.
+        """
         return self.base.is_continuous()
 
     def is_discrete(self) -> bool:
+        """Check if discrete.
+
+        Returns:
+            bool: The result.
+        """
         return not self.is_continuous()
 
     @property
@@ -119,18 +153,51 @@ class OptionalIssue(Issue):
     def ordered_value_generator(  # type: ignore
         self, n: int | float | None = None, grid=True, compact=False, endpoints=True
     ) -> Generator[int | None, None, None]:
+        """Ordered value generator.
+
+        Args:
+            n: Number of items.
+            grid: Grid.
+            compact: Compact.
+            endpoints: Endpoints.
+
+        Returns:
+            Generator[int | None, None, None]: The result.
+        """
         yield None
         yield from self.base.ordered_value_generator(n, grid, compact, endpoints)
 
     def value_generator(
         self, n: int | float | None = 10, grid=True, compact=True, endpoints=True
     ) -> Generator[Any, None, None]:
+        """Value generator.
+
+        Args:
+            n: Number of items.
+            grid: Grid.
+            compact: Compact.
+            endpoints: Endpoints.
+
+        Returns:
+            Generator[Any, None, None]: The result.
+        """
         yield None
         yield from self.base.value_generator(n, grid, compact, endpoints)
 
     def to_discrete(  # type: ignore
         self, n: int | float | None = 10, grid=True, compact=True, endpoints=True
     ) -> OptionalIssue:
+        """To discrete.
+
+        Args:
+            n: Number of items.
+            grid: Grid.
+            compact: Compact.
+            endpoints: Endpoints.
+
+        Returns:
+            OptionalIssue: The result.
+        """
         return OptionalIssue(self.base.to_discrete(n, grid, compact, endpoints))
 
     def _to_xml_str(self, indx: int) -> str:
@@ -148,6 +215,16 @@ class OptionalIssue(Issue):
     def rand_outcomes(
         self, n: int, with_replacement=False, fail_if_not_enough=False
     ) -> list:
+        """Rand outcomes.
+
+        Args:
+            n: Number of items.
+            with_replacement: With replacement.
+            fail_if_not_enough: Fail if not enough.
+
+        Returns:
+            list: The result.
+        """
         return self.base.rand_outcomes(n, with_replacement, fail_if_not_enough)
 
     def rand_invalid(self):
@@ -163,12 +240,19 @@ class OptionalIssue(Issue):
         yield from self.base.all
 
     def __eq__(self, other):
+        """eq  .
+
+        Args:
+            other: Other.
+        """
         if not isinstance(other, OptionalIssue):
             return False
         return self.base == other.base
 
     def __repr__(self):
+        """repr  ."""
         return f"{self.__class__.__name__}({self.base}, {self.name})"
 
     def __str__(self):
+        """str  ."""
         return f"{self.name}: {self.base}"

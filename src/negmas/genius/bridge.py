@@ -232,11 +232,14 @@ def genius_bridge_is_installed() -> bool:
 
 
 class GeniusBridge:
+    """GeniusBridge implementation."""
+
     gateways: dict[int, JavaGateway] = dict()
     java_processes: dict[int, Any] = dict()
     python_ports: dict[int, int] = dict()
 
     def __init__(self):
+        """Initialize the instance."""
         raise RuntimeError("Cannot create objects of type GeniusBridge.")
 
     """Gateways to different genius bridges"""

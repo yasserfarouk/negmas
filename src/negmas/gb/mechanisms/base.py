@@ -1,4 +1,7 @@
+"""Mechanisms base classes."""
+
 from __future__ import annotations
+
 from random import shuffle
 from time import perf_counter
 from typing import TYPE_CHECKING, Any, Callable
@@ -28,6 +31,8 @@ DEFAULT_COLORMAP = "jet"
 
 @define
 class GBThread:
+    """GBThread implementation."""
+
     mechanism: BaseGBMechanism
     negotiator: GBNegotiator
     responders: list[GBNegotiator]
@@ -38,11 +43,24 @@ class GBThread:
 
     @property
     def accepted_offers(self) -> list[Outcome]:
+        """Accepted offers.
+
+        Returns:
+            list[Outcome]: The result.
+        """
         return self.state.accepted_offers
 
     def run(
         self, action: dict[str, GBAction] | None = None
     ) -> tuple[ThreadState, GBResponse | None]:
+        """Run.
+
+        Args:
+            action: Action.
+
+        Returns:
+            tuple[ThreadState, GBResponse | None]: The result.
+        """
         mechanism_state: GBState = self.mechanism.state  #
         history: list[GBState] = self.mechanism.history  #
         source = self.negotiator.id
@@ -141,6 +159,12 @@ class BaseGBMechanism(Mechanism[GBNMI, GBState, GBAction, GBNegotiator]):
         dest_separator: str | None = ";",
         **kwargs,
     ):
+        """Initialize the instance.
+
+        Args:
+            *args: Additional positional arguments.
+            **kwargs: Additional keyword arguments.
+        """
         self.dest_separator = dest_separator
         super().__init__(
             *args,
@@ -180,11 +204,25 @@ class BaseGBMechanism(Mechanism[GBNMI, GBState, GBAction, GBNegotiator]):
         return self._current_state
 
     def set_sync_call(self, v: bool):
+        """Set sync call.
+
+        Args:
+            v: V.
+        """
         self._sync_call = v
 
     def run_threads(
         self, action: dict[str, GBAction] | None = None
     ) -> dict[str, tuple[ThreadState, GBResponse | None]]:
+        """Run threads.
+
+        Args:
+            action: Action.
+
+        Returns:
+            dict[str, tuple[ThreadState, GBResponse | None]]: The result.
+        """
+
         def _do_run(idd, thread: GBThread):
             if self.verbosity > 2:
                 print(
@@ -213,7 +251,18 @@ class BaseGBMechanism(Mechanism[GBNMI, GBState, GBAction, GBNegotiator]):
 
     @property
     def full_trace(self) -> list[TraceElement]:
+        """Full trace.
+
+        Returns:
+            list[TraceElement]: The result.
+        """
+
         def response(state: GBState):
+            """Response.
+
+            Args:
+                state: Current state.
+            """
             if state.timedout:
                 return "timedout"
             if state.ended:
@@ -322,6 +371,39 @@ class BaseGBMechanism(Mechanism[GBNMI, GBState, GBAction, GBNegotiator]):
         simple_offers_view=False,
         **kwargs,
     ):
+        """Plot.
+
+        Args:
+            plotting_negotiators: Plotting negotiators.
+            save_fig: Save fig.
+            path: Path.
+            fig_name: Fig name.
+            ignore_none_offers: Ignore none offers.
+            with_lines: With lines.
+            show_agreement: Show agreement.
+            show_pareto_distance: Show pareto distance.
+            show_nash_distance: Show nash distance.
+            show_kalai_distance: Show kalai distance.
+            show_max_welfare_distance: Show max welfare distance.
+            show_max_relative_welfare_distance: Show max relative welfare distance.
+            show_end_reason: Show end reason.
+            show_annotations: Show annotations.
+            show_reserved: Show reserved.
+            show_total_time: Show total time.
+            show_relative_time: Show relative time.
+            show_n_steps: Show n steps.
+            colors: Colors.
+            markers: Markers.
+            colormap: Colormap.
+            ylimits: Ylimits.
+            common_legend: Common legend.
+            xdim: Xdim.
+            colorizer: Colorizer.
+            only2d: Only2d.
+            fast: Fast.
+            simple_offers_view: Simple offers view.
+            **kwargs: Additional keyword arguments.
+        """
         from negmas.plots.util import plot_mechanism_run
 
         return plot_mechanism_run(
@@ -366,6 +448,14 @@ class BaseGBMechanism(Mechanism[GBNMI, GBState, GBAction, GBNegotiator]):
         role: str | None = None,
         ufun: BaseUtilityFunction | None = None,
     ) -> bool | None:
+        """Add.
+
+        Args:
+            negotiator: Negotiator.
+
+        Returns:
+            bool | None: The result.
+        """
         added = super().add(negotiator, preferences=preferences, role=role, ufun=ufun)
         if added:
             for thread in self._threads:
@@ -395,6 +485,8 @@ class BaseGBMechanism(Mechanism[GBNMI, GBState, GBAction, GBNegotiator]):
 
 
 class GBMechanism(BaseGBMechanism):
+    """GB mechanism."""
+
     def __init__(
         self,
         *args,
@@ -419,6 +511,12 @@ class GBMechanism(BaseGBMechanism):
         initial_state: GBState | None = None,
         **kwargs,
     ):
+        """Initialize the instance.
+
+        Args:
+            *args: Additional positional arguments.
+            **kwargs: Additional keyword arguments.
+        """
         if not evaluator_type and not local_evaluator_type:
             raise ValueError(
                 "You must pass either `evaluator_type` or `local_evaluator_type` to GBMechanism"
@@ -495,6 +593,14 @@ class GBMechanism(BaseGBMechanism):
         role: str | None = None,
         ufun: BaseUtilityFunction | None = None,
     ) -> bool | None:
+        """Add.
+
+        Args:
+            negotiator: Negotiator.
+
+        Returns:
+            bool | None: The result.
+        """
         added = super().add(negotiator, preferences=preferences, role=role, ufun=ufun)
         if added:
             for thread in self._threads:
@@ -532,12 +638,26 @@ class GBMechanism(BaseGBMechanism):
         return added
 
     def set_sync_call(self, v: bool):
+        """Set sync call.
+
+        Args:
+            v: V.
+        """
         self._sync_call = v
 
     def __call__(  #
         self, state: GBState, action: dict[str, GBAction] | None = None
     ) -> MechanismStepResult:
         # print(f"Round {self._current_state.step}")
+        """Make instance callable.
+
+        Args:
+            state: Current state.
+            action: Action.
+
+        Returns:
+            MechanismStepResult: The result.
+        """
         results = self.run_threads(action)
         # if state.step > self.outcome_space.cardinality:
         #     self.plot()
@@ -580,7 +700,18 @@ class GBMechanism(BaseGBMechanism):
 
     @property
     def full_trace(self) -> list[TraceElement]:
+        """Full trace.
+
+        Returns:
+            list[TraceElement]: The result.
+        """
+
         def response(state: GBState):
+            """Response.
+
+            Args:
+                state: Current state.
+            """
             if state.timedout:
                 return "timedout"
             if state.ended:
@@ -689,6 +820,39 @@ class GBMechanism(BaseGBMechanism):
         simple_offers_view=False,
         **kwargs,
     ):
+        """Plot.
+
+        Args:
+            plotting_negotiators: Plotting negotiators.
+            save_fig: Save fig.
+            path: Path.
+            fig_name: Fig name.
+            ignore_none_offers: Ignore none offers.
+            with_lines: With lines.
+            show_agreement: Show agreement.
+            show_pareto_distance: Show pareto distance.
+            show_nash_distance: Show nash distance.
+            show_kalai_distance: Show kalai distance.
+            show_max_welfare_distance: Show max welfare distance.
+            show_max_relative_welfare_distance: Show max relative welfare distance.
+            show_end_reason: Show end reason.
+            show_annotations: Show annotations.
+            show_reserved: Show reserved.
+            show_total_time: Show total time.
+            show_relative_time: Show relative time.
+            show_n_steps: Show n steps.
+            colors: Colors.
+            markers: Markers.
+            colormap: Colormap.
+            ylimits: Ylimits.
+            common_legend: Common legend.
+            xdim: Xdim.
+            colorizer: Colorizer.
+            only2d: Only2d.
+            fast: Fast.
+            simple_offers_view: Simple offers view.
+            **kwargs: Additional keyword arguments.
+        """
         from negmas.plots.util import plot_mechanism_run
 
         return plot_mechanism_run(
@@ -727,12 +891,28 @@ class GBMechanism(BaseGBMechanism):
 
 
 class ParallelGBMechanism(GBMechanism):
+    """ParallelGB mechanism."""
+
     def __init__(self, *args, **kwargs):
+        """Initialize the instance.
+
+        Args:
+            *args: Additional positional arguments.
+            **kwargs: Additional keyword arguments.
+        """
         kwargs["parallel"] = True
         super().__init__(*args, **kwargs)
 
 
 class SerialGBMechanism(GBMechanism):
+    """SerialGB mechanism."""
+
     def __init__(self, *args, **kwargs):
+        """Initialize the instance.
+
+        Args:
+            *args: Additional positional arguments.
+            **kwargs: Additional keyword arguments.
+        """
         kwargs["parallel"] = False
         super().__init__(*args, **kwargs)

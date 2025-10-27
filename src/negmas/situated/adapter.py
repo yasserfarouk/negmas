@@ -1,4 +1,7 @@
+"""Situated negotiation."""
+
 from __future__ import annotations
+
 from .agent import Agent
 from .entity import Entity
 
@@ -38,6 +41,14 @@ class Adapter(Agent):
         include_obj_type_name=True,
         **kwargs,
     ):
+        """Initialize the instance.
+
+        Args:
+            obj: Obj.
+            include_adapter_type_name: Include adapter type name.
+            include_obj_type_name: Include obj type name.
+            **kwargs: Additional keyword arguments.
+        """
         super().__init__(**kwargs)
         if include_adapter_type_name is None:
             include_adapter_type_name = not self.__class__.__name__.startswith("_")
@@ -50,10 +61,23 @@ class Adapter(Agent):
 
     @property
     def adapted_object(self) -> Entity:
+        """Adapted object.
+
+        Returns:
+            Entity: The result.
+        """
         return self._obj
 
     @adapted_object.setter
     def adapted_object(self, x: Entity) -> Entity:
+        """Adapted object.
+
+        Args:
+            x: X.
+
+        Returns:
+            Entity: The result.
+        """
         self._obj = x
         return x
 
@@ -80,4 +104,9 @@ class Adapter(Agent):
         self._obj.step()
 
     def __getattr__(self, attr):
+        """getattr  .
+
+        Args:
+            attr: Attr.
+        """
         return getattr(self._obj, attr)

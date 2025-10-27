@@ -1,4 +1,6 @@
 # ruff: noqa: F403
+"""Module for boa functionality."""
+
 import negmas.gb.negotiators.modular.boa as _n
 from negmas.gb.negotiators.modular.boa import *
 

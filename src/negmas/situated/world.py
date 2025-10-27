@@ -1,4 +1,7 @@
+"""World environment for situated negotiations."""
+
 from __future__ import annotations
+
 import copy
 import itertools
 import logging
@@ -255,6 +258,64 @@ class World(
         name: str | None = None,
         id: str | None = None,
     ):
+        """Initialize the instance.
+
+        Args:
+            bulletin_board: Bulletin board.
+            n_steps: N steps.
+            time_limit: Time limit.
+            negotiation_speed: Negotiation speed.
+            neg_n_steps: Neg n steps.
+            neg_time_limit: Neg time limit.
+            neg_step_time_limit: Neg step time limit.
+            shuffle_negotiations: Shuffle negotiations.
+            negotiation_quota_per_step: Negotiation quota per step.
+            negotiation_quota_per_simulation: Negotiation quota per simulation.
+            default_signing_delay: Default signing delay.
+            force_signing: Force signing.
+            batch_signing: Batch signing.
+            breach_processing: Breach processing.
+            mechanisms: Mechanisms.
+            awi_type: Awi type.
+            start_negotiations_immediately: Start negotiations immediately.
+            log_folder: Log folder.
+            log_to_file: Log to file.
+            log_ufuns: Log ufuns.
+            log_negotiations: Log negotiations.
+            log_to_screen: Log to screen.
+            log_stats_every: Log stats every.
+            log_file_level: Log file level.
+            log_screen_level: Log screen level.
+            no_logs: No logs.
+            event_file_name: Event file name.
+            event_types: Event types.
+            log_file_name: Log file name.
+            save_signed_contracts: Save signed contracts.
+            save_cancelled_contracts: Save cancelled contracts.
+            save_negotiations: Save negotiations.
+            save_resolved_breaches: Save resolved breaches.
+            save_unresolved_breaches: Save unresolved breaches.
+            saved_details_level: Saved details level.
+            ignore_agent_exceptions: Ignore agent exceptions.
+            ignore_negotiation_exceptions: Ignore negotiation exceptions.
+            ignore_contract_execution_exceptions: Ignore contract execution exceptions.
+            ignore_simulation_exceptions: Ignore simulation exceptions.
+            safe_stats_monitoring: Safe stats monitoring.
+            construct_graphs: Construct graphs.
+            checkpoint_every: Checkpoint every.
+            checkpoint_folder: Checkpoint folder.
+            checkpoint_filename: Checkpoint filename.
+            extra_checkpoint_info: Extra checkpoint info.
+            single_checkpoint: Single checkpoint.
+            exist_ok: Exist ok.
+            operations: Operations.
+            info: Info.
+            genius_port: Genius port.
+            disable_agent_printing: Disable agent printing.
+            debug: Debug.
+            name: Name.
+            id: Id.
+        """
         self._debug = debug
         if debug:
             ignore_agent_exceptions = False
@@ -559,27 +620,79 @@ class World(
             df.to_csv(self._extra_folder / "agents.csv", index=False)
 
     def action_info_cols(self) -> list[tuple[str, type]]:
+        """Action info cols.
+
+        Returns:
+            list[tuple[str, type]]: The result.
+        """
         return [("offer", str)]
 
     def extract_action_info(self, action: Any) -> list[Any]:
+        """Extract action info.
+
+        Args:
+            action: Action.
+
+        Returns:
+            list[Any]: The result.
+        """
         return [str(action)]
 
     def agreement_info_cols(self) -> list[tuple[str, type]]:
+        """Agreement info cols.
+
+        Returns:
+            list[tuple[str, type]]: The result.
+        """
         return [("agreement", str)]
 
     def extract_agreement_info(self, agreement: Outcome | None) -> list[Any]:
+        """Extract agreement info.
+
+        Args:
+            agreement: Agreement.
+
+        Returns:
+            list[Any]: The result.
+        """
         return [str(agreement)] if agreement else [""]
 
     def extra_agent_info(self, agent: Agent | None) -> dict[str, Any]:
+        """Extra agent info.
+
+        Args:
+            agent: Agent.
+
+        Returns:
+            dict[str, Any]: The result.
+        """
         return dict()
 
     def extra_sim_step_info_pre(self) -> dict[str, Any]:
+        """Extra sim step info pre.
+
+        Returns:
+            dict[str, Any]: The result.
+        """
         return dict()
 
     def extra_sim_step_info_post(self) -> dict[str, Any]:
+        """Extra sim step info post.
+
+        Returns:
+            dict[str, Any]: The result.
+        """
         return dict()
 
     def extra_neg_info(self, info: NegotiationInfo) -> dict[str, Any]:
+        """Extra neg info.
+
+        Args:
+            info: Info.
+
+        Returns:
+            dict[str, Any]: The result.
+        """
         return dict()
 
     @property
@@ -599,11 +712,22 @@ class World(
 
     @property
     def stats(self) -> dict[str, Any]:
+        """Stats.
+
+        Returns:
+            dict[str, Any]: The result.
+        """
         if len(self._stats) == 0:
             return dict()
         L = max(len(_) for _ in self._stats.values())
 
         def extend(x, L):
+            """Extend.
+
+            Args:
+                x: X.
+                L: L.
+            """
             n = len(x)
             if n >= L:
                 return x
@@ -669,6 +793,11 @@ class World(
         self.logger.info(f"{self._log_header()}: " + s.strip())
 
     def set_bulletin_board(self, bulletin_board):
+        """Set bulletin board.
+
+        Args:
+            bulletin_board: Bulletin board.
+        """
         self.bulletin_board = (
             bulletin_board if bulletin_board is not None else BulletinBoard()
         )
@@ -719,6 +848,7 @@ class World(
 
     @property
     def current_step(self):
+        """Current step."""
         return self._current_step
 
     def _agent_logger(self, aid: str) -> logging.Logger:
@@ -769,6 +899,7 @@ class World(
 
     @property
     def log_folder(self):
+        """Log folder."""
         return self._log_folder
 
     def loginfo_agent(
@@ -940,6 +1071,11 @@ class World(
 
     @property
     def saved_negotiations(self) -> list[dict[str, Any]]:
+        """Saved negotiations.
+
+        Returns:
+            list[dict[str, Any]]: The result.
+        """
         return list(self._saved_negotiations.values())
 
     def on_exception(self, entity: Entity, e: Exception) -> None:
@@ -984,8 +1120,7 @@ class World(
                 raise e
             exc_type, exc_value, exc_traceback = sys.exc_info()
             self.logerror(
-                f"Entity exception @{agent.id}: "
-                f"{traceback.format_tb(exc_traceback)}",
+                f"Entity exception @{agent.id}: {traceback.format_tb(exc_traceback)}",
                 Event("entity-exception", dict(exception=e)),
             )
         finally:
@@ -1629,7 +1764,7 @@ class World(
                 raise e
             exc_type, exc_value, exc_traceback = sys.exc_info()
             self.logerror(
-                f"Mechanism exception: " f"{traceback.format_tb(exc_traceback)}",
+                f"Mechanism exception: {traceback.format_tb(exc_traceback)}",
                 Event("entity-exception", dict(exception=e)),
             )
         finally:
@@ -1761,6 +1896,7 @@ class World(
         )
 
     def append_stats(self):
+        """Append stats."""
         if self._stats_file_name is not None:
             save_stats(
                 self,
@@ -2389,14 +2525,29 @@ class World(
 
     @property
     def saved_breaches(self) -> list[dict[str, Any]]:
+        """Saved breaches.
+
+        Returns:
+            list[dict[str, Any]]: The result.
+        """
         return list(self._saved_breaches.values())
 
     @property
     def resolved_breaches(self) -> list[dict[str, Any]]:
+        """Resolved breaches.
+
+        Returns:
+            list[dict[str, Any]]: The result.
+        """
         return list(_ for _ in self._saved_breaches.values() if _["resolved"])
 
     @property
     def unresolved_breaches(self) -> list[dict[str, Any]]:
+        """Unresolved breaches.
+
+        Returns:
+            list[dict[str, Any]]: The result.
+        """
         return list(_ for _ in self._saved_breaches.values() if not _["resolved"])
 
     def run(self):
@@ -2438,15 +2589,35 @@ class World(
             self._entities[simulation_priority].add(x)
 
     def register_stats_monitor(self, m: StatsMonitor):
+        """Register stats monitor.
+
+        Args:
+            m: M.
+        """
         self.stats_monitors.add(m)
 
     def unregister_stats_monitor(self, m: StatsMonitor):
+        """Unregister stats monitor.
+
+        Args:
+            m: M.
+        """
         self.stats_monitors.remove(m)
 
     def register_world_monitor(self, m: WorldMonitor):
+        """Register world monitor.
+
+        Args:
+            m: M.
+        """
         self.world_monitors.add(m)
 
     def unregister_world_monitor(self, m: WorldMonitor):
+        """Unregister world monitor.
+
+        Args:
+            m: M.
+        """
         self.world_monitors.remove(m)
 
     def join(self, x: TAgent, simulation_priority: int = 0, **kwargs):
@@ -2488,6 +2659,12 @@ class World(
         result = deflistdict()
 
         def add_dicts(d1, d2):
+            """Add dicts.
+
+            Args:
+                d1: D1.
+                d2: D2.
+            """
             d3 = deflistdict()
             for k, v in d1.items():
                 d3[k] = v + d2[k]
@@ -3044,34 +3221,64 @@ class World(
 
     @property
     def saved_contracts(self) -> list[dict[str, Any]]:
+        """Saved contracts.
+
+        Returns:
+            list[dict[str, Any]]: The result.
+        """
         return list(self._saved_contracts.values())
 
     @property
     def executed_contracts(self) -> list[dict[str, Any]]:
+        """Executed contracts.
+
+        Returns:
+            list[dict[str, Any]]: The result.
+        """
         return list(
             _ for _ in self._saved_contracts.values() if _.get("executed_at", -1) >= 0
         )
 
     @property
     def signed_contracts(self) -> list[dict[str, Any]]:
+        """Signed contracts.
+
+        Returns:
+            list[dict[str, Any]]: The result.
+        """
         return list(
             _ for _ in self._saved_contracts.values() if _.get("signed_at", -1) >= 0
         )
 
     @property
     def nullified_contracts(self) -> list[dict[str, Any]]:
+        """Nullified contracts.
+
+        Returns:
+            list[dict[str, Any]]: The result.
+        """
         return list(
             _ for _ in self._saved_contracts.values() if _.get("nullified_at", -1) >= 0
         )
 
     @property
     def erred_contracts(self) -> list[dict[str, Any]]:
+        """Erred contracts.
+
+        Returns:
+            list[dict[str, Any]]: The result.
+        """
         return list(
             _ for _ in self._saved_contracts.values() if _.get("erred_at", -1) >= 0
         )
 
     @property
     def cancelled_contracts(self) -> list[dict[str, Any]]:
+        """Cancelled contracts.
+
+        Returns:
+            list[dict[str, Any]]: The result.
+        """
         return list(
             _ for _ in self._saved_contracts.values() if not _.get("signed_at", -1) < 0
         )
@@ -3193,6 +3400,11 @@ class World(
             steps = tuple(min(self.n_steps, max(0, _)) for _ in steps)
 
             def yes(x):
+                """Yes.
+
+                Args:
+                    x: X.
+                """
                 return True
 
             if who is None:
@@ -3268,6 +3480,11 @@ class World(
             steps = tuple(min(self.n_steps, max(0, _)) for _ in steps)
 
             def yes(x):
+                """Yes.
+
+                Args:
+                    x: X.
+                """
                 return True
 
             if who is None:
@@ -3374,6 +3591,16 @@ class World(
         draw_every: int = 1,
         fps: int = 5,
     ) -> None:
+        """Save gif.
+
+        Args:
+            path: Path.
+            what: What.
+            who: Who.
+            together: Together.
+            draw_every: Draw every.
+            fps: Fps.
+        """
         try:
             import gif
 
@@ -3383,6 +3610,11 @@ class World(
             # define the animation function. Simply draw the world
             @gif.frame
             def plot_frame(s):
+                """Plot frame.
+
+                Args:
+                    s: S.
+                """
                 self.draw(
                     steps=(s - draw_every, s),
                     what=what,
@@ -3626,12 +3858,18 @@ class World(
         """
 
     def __getstate__(self):
+        """getstate  ."""
         state = self.__dict__.copy()
         if "logger" in state.keys():
             state.pop("logger", None)
         return state
 
     def __setstate__(self, state):
+        """setstate  .
+
+        Args:
+            state: Current state.
+        """
         self.__dict__ = state
         self.logger = create_loggers(
             file_name=self.log_file_name,
@@ -3987,6 +4225,11 @@ class World(
                 )
 
     def on_negotiation_start(self, info: NegotiationInfo):
+        """On negotiation start.
+
+        Args:
+            info: Info.
+        """
         if self._saved_details_level < 2:
             return
         mech = info.mechanism
@@ -4003,11 +4246,24 @@ class World(
         self._neg_info[myid]["world"] = self.id
 
     def type_name_for_logs(self, agent: Agent | None) -> str | None:
+        """Type name for logs.
+
+        Args:
+            agent: Agent.
+
+        Returns:
+            str | None: The result.
+        """
         if not agent:
             return None
         return agent.type_name
 
     def on_negotiation_stepped(self, info: NegotiationInfo):
+        """On negotiation stepped.
+
+        Args:
+            info: Info.
+        """
         try:
             if self._saved_details_level < 3:
                 return
@@ -4026,6 +4282,11 @@ class World(
             assert isinstance(state, SAOState)
 
             def response(state: SAOState):
+                """Response.
+
+                Args:
+                    state: Current state.
+                """
                 if state.agreement:
                     return "agreement"
                 if state.timedout:
@@ -4060,6 +4321,11 @@ class World(
                 raise (e)
 
     def on_negotiation_end(self, info: NegotiationInfo):
+        """On negotiation end.
+
+        Args:
+            info: Info.
+        """
         try:
             if self._saved_details_level < 2:
                 return

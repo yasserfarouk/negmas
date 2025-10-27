@@ -1,4 +1,7 @@
+"""Negotiators base classes."""
+
 from __future__ import annotations
+
 from abc import abstractmethod
 from typing import Callable
 
@@ -37,6 +40,12 @@ class UtilBasedNegotiator(GBNegotiator):
         eps: float = 0.0001,
         **kwargs,
     ):
+        """Initialize the instance.
+
+        Args:
+            *args: Additional positional arguments.
+            **kwargs: Additional keyword arguments.
+        """
         super().__init__(*args, **kwargs)
         self._inverter = UtilityInverter(
             rank_only=rank_only,
@@ -52,13 +61,38 @@ class UtilBasedNegotiator(GBNegotiator):
 
     @abstractmethod
     def utility_range_to_propose(self, state) -> tuple[float, float]:
+        """Utility range to propose.
+
+        Args:
+            state: Current state.
+
+        Returns:
+            tuple[float, float]: The result.
+        """
         ...
 
     @abstractmethod
     def utility_range_to_accept(self, state) -> tuple[float, float]:
+        """Utility range to accept.
+
+        Args:
+            state: Current state.
+
+        Returns:
+            tuple[float, float]: The result.
+        """
         ...
 
     def respond(self, state, source: str | None = None) -> ResponseType:
+        """Respond.
+
+        Args:
+            state: Current state.
+            source: Source identifier.
+
+        Returns:
+            ResponseType: The result.
+        """
         offer = state.current_offer  # type: ignore
         if self._selector:
             self._selector.before_responding(state, offer, source)
@@ -81,6 +115,12 @@ class UtilBasedNegotiator(GBNegotiator):
         return ResponseType.REJECT_OFFER
 
     def propose(self, state, dest: str | None = None):
+        """Propose.
+
+        Args:
+            state: Current state.
+            dest: Dest.
+        """
         self._inverter.before_proposing(state)
         if self.ufun is None:
             warnings.warn(
@@ -90,6 +130,11 @@ class UtilBasedNegotiator(GBNegotiator):
         return self._inverter(self.utility_range_to_propose(state), state)
 
     def on_preferences_changed(self, changes: list[PreferencesChange]):
+        """On preferences changed.
+
+        Args:
+            changes: Changes.
+        """
         self._inverter.on_preferences_changed(changes)
         if self._selector:
             self._selector.on_preferences_changed(changes)

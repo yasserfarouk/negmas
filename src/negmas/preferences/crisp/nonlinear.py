@@ -1,4 +1,7 @@
+"""Module for nonlinear functionality."""
+
 from __future__ import annotations
+
 from typing import Callable, Iterable
 
 from negmas.generics import GenericMapping, gmap, ikeys
@@ -86,6 +89,14 @@ class NonLinearAggregationUtilityFunction(StationaryMixin, UtilityFunction):
         *args,
         **kwargs,
     ) -> None:
+        """Initialize the instance.
+
+        Args:
+            values: Values.
+            f: F.
+            *args: Additional positional arguments.
+            **kwargs: Additional keyword arguments.
+        """
         super().__init__(*args, **kwargs)
         if isinstance(values, dict):
             if not isinstance(self.outcome_space, CartesianOutcomeSpace):
@@ -107,9 +118,22 @@ class NonLinearAggregationUtilityFunction(StationaryMixin, UtilityFunction):
         self.f = f
 
     def xml(self, issues: list[Issue]) -> str:
+        """Xml.
+
+        Args:
+            issues: Issues.
+
+        Returns:
+            str: The result.
+        """
         raise NotImplementedError(f"Cannot convert {self.__class__.__name__} to xml")
 
     def to_dict(self, python_class_identifier=PYTHON_CLASS_IDENTIFIER):
+        """To dict.
+
+        Args:
+            python_class_identifier: Python class identifier.
+        """
         d = {python_class_identifier: get_full_type_name(type(self))}
         return dict(
             **d,
@@ -121,6 +145,12 @@ class NonLinearAggregationUtilityFunction(StationaryMixin, UtilityFunction):
 
     @classmethod
     def from_dict(cls, d, python_class_identifier=PYTHON_CLASS_IDENTIFIER):
+        """From dict.
+
+        Args:
+            d: D.
+            python_class_identifier: Python class identifier.
+        """
         d.pop(python_class_identifier, None)
         for k in ("values", "f"):
             d[k] = deserialize(
@@ -129,6 +159,14 @@ class NonLinearAggregationUtilityFunction(StationaryMixin, UtilityFunction):
         return cls(**d)
 
     def eval(self, offer: Outcome | None) -> float:
+        """Eval.
+
+        Args:
+            offer: Offer being considered.
+
+        Returns:
+            float: The result.
+        """
         if offer is None:
             return self.reserved_value
         if self.values is None:
@@ -232,6 +270,7 @@ class HyperRectangleUtilityFunction(StationaryMixin, UtilityFunction):
     """
 
     def adjust_params(self):
+        """Adjust params."""
         if self.weights is None:
             self.weights = [1.0] * len(self.outcome_ranges)
 
@@ -246,6 +285,18 @@ class HyperRectangleUtilityFunction(StationaryMixin, UtilityFunction):
         *args,
         **kwargs,
     ) -> None:
+        """Initialize the instance.
+
+        Args:
+            outcome_ranges: Outcome ranges.
+            utilities: Utilities.
+            weights: Weights.
+            ignore_issues_not_in_input: Ignore issues not in input.
+            ignore_failing_range_utilities: Ignore failing range utilities.
+            bias: Bias.
+            *args: Additional positional arguments.
+            **kwargs: Additional keyword arguments.
+        """
         super().__init__(*args, **kwargs)
         self.outcome_ranges = list(outcome_ranges)
         self.mappings = list(utilities)
@@ -305,18 +356,18 @@ class HyperRectangleUtilityFunction(StationaryMixin, UtilityFunction):
             name = issue.name
             if isinstance(issue.values, tuple):
                 output += (
-                    f'<issue index="{i+1}" name="{name}" vtype="real" type="real" etype="real">\n'
+                    f'<issue index="{i + 1}" name="{name}" vtype="real" type="real" etype="real">\n'
                     f'    <range lowerbound="{issue.values[0]}" upperbound="{issue.values[1]}"></range>\n'
                     f"</issue>"
                 )
             elif isinstance(issue.values, int):
                 output += (
-                    f'<issue index="{i+1}" name="{name}" vtype="integer" type="integer" etype="integer" '
+                    f'<issue index="{i + 1}" name="{name}" vtype="integer" type="integer" etype="integer" '
                     f'lowerbound="0" upperbound="{issue.values - 1}"/>\n'
                 )
             else:
                 output += (
-                    f'<issue index="{i+1}" name="{name}" vtype="integer" type="integer" etype="integer" '
+                    f'<issue index="{i + 1}" name="{name}" vtype="integer" type="integer" etype="integer" '
                     f'lowerbound="{min(issue.values)}" upperbound="{max(issue.values)}"/>\n'
                 )
         # todo find the real maxutility
@@ -349,6 +400,7 @@ class HyperRectangleUtilityFunction(StationaryMixin, UtilityFunction):
         return output
 
     def to_stationary(self):
+        """To stationary."""
         return self
 
     @classmethod
@@ -359,6 +411,11 @@ class HyperRectangleUtilityFunction(StationaryMixin, UtilityFunction):
         raise NotImplementedError("random hyper-rectangle ufuns are not implemented")
 
     def to_dict(self, python_class_identifier=PYTHON_CLASS_IDENTIFIER):
+        """To dict.
+
+        Args:
+            python_class_identifier: Python class identifier.
+        """
         d = {python_class_identifier: get_full_type_name(type(self))}
         d.update(super().to_dict(python_class_identifier=python_class_identifier))
         return dict(
@@ -376,6 +433,12 @@ class HyperRectangleUtilityFunction(StationaryMixin, UtilityFunction):
 
     @classmethod
     def from_dict(cls, d, python_class_identifier=PYTHON_CLASS_IDENTIFIER):
+        """From dict.
+
+        Args:
+            d: D.
+            python_class_identifier: Python class identifier.
+        """
         d.pop(python_class_identifier, None)
         for k in ("oucome_ranges", "utilities"):
             d[k] = deserialize(
@@ -384,6 +447,14 @@ class HyperRectangleUtilityFunction(StationaryMixin, UtilityFunction):
         return cls(**d)
 
     def eval(self, offer: Outcome | None) -> float:
+        """Eval.
+
+        Args:
+            offer: Offer being considered.
+
+        Returns:
+            float: The result.
+        """
         if offer is None:
             return self.reserved_value
         u = self.bias
@@ -436,15 +507,38 @@ class NonlinearHyperRectangleUtilityFunction(StationaryMixin, UtilityFunction):
         reserved_value: float = float("-inf"),
         id=None,
     ) -> None:
+        """Initialize the instance.
+
+        Args:
+            hypervolumes: Hypervolumes.
+            mappings: Mappings.
+            f: F.
+            name: Name.
+            reserved_value: Reserved value.
+            id: Id.
+        """
         super().__init__(name=name, reserved_value=reserved_value, id=id)
         self.hypervolumes = hypervolumes
         self.mappings = mappings
         self.f = f
 
     def xml(self, issues: list[Issue]) -> str:
+        """Xml.
+
+        Args:
+            issues: Issues.
+
+        Returns:
+            str: The result.
+        """
         raise NotImplementedError(f"Cannot convert {self.__class__.__name__} to xml")
 
     def to_dict(self, python_class_identifier=PYTHON_CLASS_IDENTIFIER):
+        """To dict.
+
+        Args:
+            python_class_identifier: Python class identifier.
+        """
         d = {python_class_identifier: get_full_type_name(type(self))}
         d.update(super().to_dict(python_class_identifier=python_class_identifier))
         return dict(
@@ -460,6 +554,12 @@ class NonlinearHyperRectangleUtilityFunction(StationaryMixin, UtilityFunction):
 
     @classmethod
     def from_dict(cls, d, python_class_identifier=PYTHON_CLASS_IDENTIFIER):
+        """From dict.
+
+        Args:
+            d: D.
+            python_class_identifier: Python class identifier.
+        """
         d.pop(python_class_identifier, None)
         for k in ("hypervolumes", "mapoints", "f"):
             d[k] = deserialize(
@@ -468,6 +568,14 @@ class NonlinearHyperRectangleUtilityFunction(StationaryMixin, UtilityFunction):
         return cls(**d)
 
     def eval(self, offer: Outcome | None) -> float:
+        """Eval.
+
+        Args:
+            offer: Offer being considered.
+
+        Returns:
+            float: The result.
+        """
         if offer is None:
             return self.reserved_value
         if not isinstance(self.hypervolumes, Iterable):

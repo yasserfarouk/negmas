@@ -1,4 +1,7 @@
+"""Concession strategies for negotiation."""
+
 from __future__ import annotations
+
 from abc import abstractmethod
 from typing import TYPE_CHECKING
 
@@ -48,9 +51,19 @@ class KindConcessionRecommender(ConcessionRecommender):
     inverter: UtilityInverter | None = None
 
     def set_inverter(self, inverter: UtilityInverter | None) -> None:
+        """Set inverter.
+
+        Args:
+            inverter: Inverter.
+        """
         self.inverter = inverter
 
     def set_negotiator(self, negotiator: GBNegotiator) -> None:
+        """Set negotiator.
+
+        Args:
+            negotiator: Negotiator.
+        """
         super().set_negotiator(negotiator)
         self._did_my_kindness = False
 

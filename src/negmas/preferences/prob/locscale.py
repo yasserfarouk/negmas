@@ -1,4 +1,7 @@
+"""Module for locscale functionality."""
+
 from __future__ import annotations
+
 from negmas.helpers.prob import ScipyDistribution
 from negmas.outcomes import Outcome
 
@@ -17,12 +20,29 @@ class ILSUtilityFunction(StationaryMixin, ProbUtilityFunction):
     def __init__(
         self, type: str, loc: UtilityFunction, scale: UtilityFunction, *args, **kwargs
     ):
+        """Initialize the instance.
+
+        Args:
+            type: Type.
+            loc: Loc.
+            scale: Scale.
+            *args: Additional positional arguments.
+            **kwargs: Additional keyword arguments.
+        """
         super().__init__(*args, **kwargs)
         self._type = type
         self.loc = loc
         self.scale = scale
 
     def eval(self, offer: Outcome) -> ScipyDistribution:
+        """Eval.
+
+        Args:
+            offer: Offer being considered.
+
+        Returns:
+            ScipyDistribution: The result.
+        """
         loc, scale = self.loc(offer), self.scale(offer)
         if loc is None or scale is None:
             raise ValueError(
@@ -37,6 +57,14 @@ class UniformUtilityFunction(ILSUtilityFunction):
     """
 
     def __init__(self, loc: UtilityFunction, scale: UtilityFunction, *args, **kwargs):
+        """Initialize the instance.
+
+        Args:
+            loc: Loc.
+            scale: Scale.
+            *args: Additional positional arguments.
+            **kwargs: Additional keyword arguments.
+        """
         super().__init__("uniform", loc, scale, *args, *kwargs)
 
 
@@ -46,6 +74,14 @@ class GaussianUtilityFunction(ILSUtilityFunction):
     """
 
     def __init__(self, loc: UtilityFunction, scale: UtilityFunction, *args, **kwargs):
+        """Initialize the instance.
+
+        Args:
+            loc: Loc.
+            scale: Scale.
+            *args: Additional positional arguments.
+            **kwargs: Additional keyword arguments.
+        """
         super().__init__("norm", loc, scale, *args, *kwargs)
 
 

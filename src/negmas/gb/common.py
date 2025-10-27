@@ -30,6 +30,8 @@ GBResponse = Union[Outcome, None, Literal["continue"]]
 
 
 class GBNMI(NegotiatorMechanismInterface):
+    """GBNMI implementation."""
+
     pass
 
 
@@ -45,6 +47,8 @@ class ResponseType(IntEnum):
 
 @define
 class ThreadState:
+    """ThreadState implementation."""
+
     new_offer: Outcome | None = None
     new_data: dict | None = None
     new_responses: dict[str, ResponseType] = field(factory=dict)
@@ -53,11 +57,18 @@ class ThreadState:
 
 @define
 class GBState(MechanismState):
+    """GBState implementation."""
+
     threads: dict[str, ThreadState] = field(factory=dict)
     last_thread: str = ""
 
     @property
     def base_state(self) -> MechanismState:
+        """Base state.
+
+        Returns:
+            MechanismState: The result.
+        """
         d = asdict(self)
         del d["threads"]
         del d["last_thread"]
@@ -65,6 +76,15 @@ class GBState(MechanismState):
 
     @classmethod
     def thread_history(cls, history: list[GBState], source: str) -> list[ThreadState]:
+        """Thread history.
+
+        Args:
+            history: History.
+            source: Source identifier.
+
+        Returns:
+            list[ThreadState]: The result.
+        """
         return [_.threads[source] for _ in history]
 
 
@@ -111,6 +131,15 @@ def current_thread_accepeted_offers(
 
 
 def get_offer(state: GBState, source: str | None) -> Outcome | None:
+    """Get offer.
+
+    Args:
+        state: Current state.
+        source: Source identifier.
+
+    Returns:
+        Outcome | None: The result.
+    """
     from negmas.sao import SAOState
 
     if isinstance(state, SAOState):

@@ -1,4 +1,7 @@
+"""Negotiators base classes."""
+
 from __future__ import annotations
+
 from typing import Callable, Literal, Sequence, TypeVar
 
 from negmas.gb.components.selectors import (
@@ -109,6 +112,12 @@ class TimeBasedNegotiator(UtilBasedNegotiator):
         offer_selector: OfferSelector | None = None,
         **kwargs,
     ):
+        """Initialize the instance.
+
+        Args:
+            *args: Additional positional arguments.
+            **kwargs: Additional keyword arguments.
+        """
         super().__init__(*args, offer_selector=offer_selector, **kwargs)
         offering_curve = make_curve(offering_curve, 1.0)
         if accepting_curve is None:
@@ -119,9 +128,25 @@ class TimeBasedNegotiator(UtilBasedNegotiator):
         self._accepting_curve = accepting_curve
 
     def utility_range_to_propose(self, state) -> tuple[float, float]:
+        """Utility range to propose.
+
+        Args:
+            state: Current state.
+
+        Returns:
+            tuple[float, float]: The result.
+        """
         return self._offering_curve.utility_range(state.relative_time)
 
     def utility_range_to_accept(self, state) -> tuple[float, float]:
+        """Utility range to accept.
+
+        Args:
+            state: Current state.
+
+        Returns:
+            tuple[float, float]: The result.
+        """
         return self._accepting_curve.utility_range(state.relative_time)
 
 
@@ -152,6 +177,12 @@ class TimeBasedConcedingNegotiator(TimeBasedNegotiator):
         starting_utility: float = 1.0,
         **kwargs,
     ):
+        """Initialize the instance.
+
+        Args:
+            *args: Additional positional arguments.
+            **kwargs: Additional keyword arguments.
+        """
         offering_curve = make_curve(offering_curve, starting_utility)
         if not accepting_curve:
             accepting_curve = offering_curve
@@ -169,6 +200,12 @@ class BoulwareTBNegotiator(TimeBasedConcedingNegotiator):
     """
 
     def __init__(self, *args, **kwargs):
+        """Initialize the instance.
+
+        Args:
+            *args: Additional positional arguments.
+            **kwargs: Additional keyword arguments.
+        """
         kwargs["offering_curve"] = PolyAspiration(1.0, "boulware")
         kwargs["stochastic"] = False
         super().__init__(*args, **kwargs)
@@ -180,6 +217,12 @@ class LinearTBNegotiator(TimeBasedConcedingNegotiator):
     """
 
     def __init__(self, *args, **kwargs):
+        """Initialize the instance.
+
+        Args:
+            *args: Additional positional arguments.
+            **kwargs: Additional keyword arguments.
+        """
         kwargs["offering_curve"] = PolyAspiration(1.0, "linear")
         kwargs["stochastic"] = False
         super().__init__(*args, **kwargs)
@@ -191,6 +234,12 @@ class ConcederTBNegotiator(TimeBasedConcedingNegotiator):
     """
 
     def __init__(self, *args, **kwargs):
+        """Initialize the instance.
+
+        Args:
+            *args: Additional positional arguments.
+            **kwargs: Additional keyword arguments.
+        """
         kwargs["offering_curve"] = PolyAspiration(1.0, "conceder")
         kwargs["stochastic"] = False
         super().__init__(*args, **kwargs)
@@ -241,6 +290,12 @@ class AspirationNegotiator(TimeBasedConcedingNegotiator):
         tolerance: float = 0.001,
         **kwargs,
     ):
+        """Initialize the instance.
+
+        Args:
+            *args: Additional positional arguments.
+            **kwargs: Additional keyword arguments.
+        """
         ufun_inverter = None if not presort else PresortingInverseUtilityFunction
         super().__init__(
             *args,
@@ -255,19 +310,27 @@ class AspirationNegotiator(TimeBasedConcedingNegotiator):
 
     @property
     def tolerance(self):
+        """Tolerance."""
         return self._inverter.tolerance
 
     def utility_at(self, t):
+        """Utility at.
+
+        Args:
+            t: T.
+        """
         if not self._offering_curve:
             raise ValueError("No inverse ufun is known yet")
         return self._offering_curve.utility_at(t)  # type: ignore (I know it is an Aspiration not a TimeCurve)
 
     @property
     def ufun_max(self):
+        """Ufun max."""
         return self._inverter.ufun_max
 
     @property
     def ufun_min(self):
+        """Ufun min."""
         return self._inverter.ufun_min
 
 
@@ -277,6 +340,12 @@ class OfferOrientedNegotiator(TimeBasedNegotiator):
     """
 
     def __init__(self, *args, offer_selector: OfferOrientedSelector, **kwargs):
+        """Initialize the instance.
+
+        Args:
+            *args: Additional positional arguments.
+            **kwargs: Additional keyword arguments.
+        """
         super().__init__(*args, offer_selector=offer_selector, **kwargs)
 
 
@@ -291,6 +360,12 @@ class FirstOfferOrientedTBNegotiator(OfferOrientedNegotiator):
         distance_fun: DistanceFun = generalized_minkowski_distance,
         **kwargs,
     ):
+        """Initialize the instance.
+
+        Args:
+            *args: Additional positional arguments.
+            **kwargs: Additional keyword arguments.
+        """
         kwargs["offer_selector"] = FirstOfferOrientedSelector(distance_fun)
         super().__init__(*args, **kwargs)
 
@@ -306,6 +381,12 @@ class BestOfferOrientedTBNegotiator(FirstOfferOrientedTBNegotiator):
         distance_fun: DistanceFun = generalized_minkowski_distance,
         **kwargs,
     ):
+        """Initialize the instance.
+
+        Args:
+            *args: Additional positional arguments.
+            **kwargs: Additional keyword arguments.
+        """
         kwargs["offer_selector"] = BestOfferOrientedSelector(distance_fun)
         super().__init__(*args, **kwargs)
 
@@ -321,6 +402,12 @@ class LastOfferOrientedTBNegotiator(FirstOfferOrientedTBNegotiator):
         distance_fun: DistanceFun = generalized_minkowski_distance,
         **kwargs,
     ):
+        """Initialize the instance.
+
+        Args:
+            *args: Additional positional arguments.
+            **kwargs: Additional keyword arguments.
+        """
         kwargs["offer_selector"] = LastOfferOrientedSelector(distance_fun)
         super().__init__(*args, **kwargs)
 
@@ -340,6 +427,12 @@ class MultiplicativeParetoFollowingTBNegotiator(TimeBasedNegotiator):
         offer_filter: OfferFilterProtocol = NoFiltering,
         **kwargs,
     ):
+        """Initialize the instance.
+
+        Args:
+            *args: Additional positional arguments.
+            **kwargs: Additional keyword arguments.
+        """
         super().__init__(
             *args,
             offer_selector=MultiplicativePartnerOffersOrientedSelector(
@@ -366,6 +459,12 @@ class AdditiveParetoFollowingTBNegotiator(TimeBasedNegotiator):
         offer_filter: OfferFilterProtocol = NoFiltering,
         **kwargs,
     ):
+        """Initialize the instance.
+
+        Args:
+            *args: Additional positional arguments.
+            **kwargs: Additional keyword arguments.
+        """
         super().__init__(
             *args,
             offer_selector=AdditivePartnerOffersOrientedSelector(
@@ -391,6 +490,12 @@ class MultiplicativeLastOfferFollowingTBNegotiator(TimeBasedNegotiator):
         issue_weights: list[float] | None = None,
         **kwargs,
     ):
+        """Initialize the instance.
+
+        Args:
+            *args: Additional positional arguments.
+            **kwargs: Additional keyword arguments.
+        """
         super().__init__(
             *args,
             offer_selector=MultiplicativePartnerOffersOrientedSelector(
@@ -414,6 +519,12 @@ class AdditiveLastOfferFollowingTBNegotiator(TimeBasedNegotiator):
         issue_weights: list[float] | None = None,
         **kwargs,
     ):
+        """Initialize the instance.
+
+        Args:
+            *args: Additional positional arguments.
+            **kwargs: Additional keyword arguments.
+        """
         super().__init__(
             *args,
             offer_selector=AdditivePartnerOffersOrientedSelector(
@@ -437,6 +548,12 @@ class MultiplicativeFirstFollowingTBNegotiator(TimeBasedNegotiator):
         issue_weights: list[float] | None = None,
         **kwargs,
     ):
+        """Initialize the instance.
+
+        Args:
+            *args: Additional positional arguments.
+            **kwargs: Additional keyword arguments.
+        """
         super().__init__(
             *args,
             offer_selector=MultiplicativePartnerOffersOrientedSelector(
@@ -460,6 +577,12 @@ class AdditiveFirstFollowingTBNegotiator(TimeBasedNegotiator):
         issue_weights: list[float] | None = None,
         **kwargs,
     ):
+        """Initialize the instance.
+
+        Args:
+            *args: Additional positional arguments.
+            **kwargs: Additional keyword arguments.
+        """
         super().__init__(
             *args,
             offer_selector=AdditivePartnerOffersOrientedSelector(

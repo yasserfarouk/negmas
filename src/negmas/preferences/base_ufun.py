@@ -1,4 +1,7 @@
+"""Preferences base classes."""
+
 from __future__ import annotations
+
 import json
 import math
 import xml.etree.ElementTree as ET
@@ -58,6 +61,12 @@ class BaseUtilityFunction(Preferences, ABC):
         invalid_value: float | None = None,
         **kwargs,
     ):
+        """Initialize the instance.
+
+        Args:
+            *args: Additional positional arguments.
+            **kwargs: Additional keyword arguments.
+        """
         super().__init__(*args, **kwargs)
         self.reserved_value = reserved_value
         self._cached_inverse: InverseUFun | None = None
@@ -66,9 +75,22 @@ class BaseUtilityFunction(Preferences, ABC):
 
     @abstractmethod
     def eval(self, offer: Outcome) -> Value:
+        """Eval.
+
+        Args:
+            offer: Offer being considered.
+
+        Returns:
+            Value: The result.
+        """
         ...
 
     def to_stationary(self: T) -> T:
+        """To stationary.
+
+        Returns:
+            T: The result.
+        """
         raise NotImplementedError(
             f"I do not know how to convert a ufun of type {self.type_name} to a stationary ufun."
         )
@@ -80,6 +102,17 @@ class BaseUtilityFunction(Preferences, ABC):
         outcomes: Iterable[Outcome] | None = None,
         max_cardinality=100_000,
     ) -> tuple[Outcome, Outcome]:
+        """Extreme outcomes.
+
+        Args:
+            outcome_space: Outcome space.
+            issues: Issues.
+            outcomes: Outcomes.
+            max_cardinality: Max cardinality.
+
+        Returns:
+            tuple[Outcome, Outcome]: The result.
+        """
         check_one_at_most(outcome_space, issues, outcomes)
         outcome_space = os_or_none(outcome_space, issues, outcomes)
         if not outcome_space:
@@ -144,21 +177,46 @@ class BaseUtilityFunction(Preferences, ABC):
 
     @property
     def reserved_distribution(self) -> Distribution:
+        """Reserved distribution.
+
+        Returns:
+            Distribution: The result.
+        """
         return ScipyDistribution(type="uniform", loc=self.reserved_value, scale=0.0)
 
     def max(self) -> Value:
+        """Max.
+
+        Returns:
+            Value: The result.
+        """
         _, mx = self.minmax()
         return mx
 
     def min(self) -> Value:
+        """Min.
+
+        Returns:
+            Value: The result.
+        """
         mn, _ = self.minmax()
         return mn
 
     def best(self) -> Outcome:
+        """Best.
+
+        Returns:
+            Outcome: The result.
+        """
         _, mx = self.extreme_outcomes()
         return mx
 
     def worst(self) -> Outcome:
+        """Worst.
+
+        Returns:
+            Outcome: The result.
+        """
         mn, _ = self.extreme_outcomes()
         return mn
 
@@ -228,17 +286,41 @@ class BaseUtilityFunction(Preferences, ABC):
         self._cached_inverse = None
 
     def is_volatile(self) -> bool:
+        """Check if volatile.
+
+        Returns:
+            bool: The result.
+        """
         return True
 
     def is_session_dependent(self) -> bool:
+        """Check if session dependent.
+
+        Returns:
+            bool: The result.
+        """
         return True
 
     def is_state_dependent(self) -> bool:
+        """Check if state dependent.
+
+        Returns:
+            bool: The result.
+        """
         return True
 
     def scale_by(
         self: T, scale: float, scale_reserved=True
     ) -> WeightedUtilityFunction | T:
+        """Scale by.
+
+        Args:
+            scale: Scale.
+            scale_reserved: Scale reserved.
+
+        Returns:
+            WeightedUtilityFunction | T: The result.
+        """
         if scale < 0:
             raise ValueError(f"Cannot scale with a negative multiplier ({scale})")
         from negmas.preferences.complex import WeightedUtilityFunction
@@ -256,6 +338,18 @@ class BaseUtilityFunction(Preferences, ABC):
         outcomes: Sequence[Outcome] | None = None,
         rng: tuple[float, float] | None = None,
     ) -> T:
+        """Scale min for.
+
+        Args:
+            to: To.
+            outcome_space: Outcome space.
+            issues: Issues.
+            outcomes: Outcomes.
+            rng: Rng.
+
+        Returns:
+            T: The result.
+        """
         if rng is None:
             mn, _ = self.minmax(outcome_space, issues, outcomes)
         else:
@@ -264,6 +358,15 @@ class BaseUtilityFunction(Preferences, ABC):
         return self.scale_by(scale)
 
     def scale_min(self: T, to: float, rng: tuple[float, float] | None = None) -> T:
+        """Scale min.
+
+        Args:
+            to: To.
+            rng: Rng.
+
+        Returns:
+            T: The result.
+        """
         return self.scale_min_for(to, outcome_space=self.outcome_space, rng=rng)
 
     def scale_max_for(
@@ -274,6 +377,18 @@ class BaseUtilityFunction(Preferences, ABC):
         outcomes: Sequence[Outcome] | None = None,
         rng: tuple[float, float] | None = None,
     ) -> T:
+        """Scale max for.
+
+        Args:
+            to: To.
+            outcome_space: Outcome space.
+            issues: Issues.
+            outcomes: Outcomes.
+            rng: Rng.
+
+        Returns:
+            T: The result.
+        """
         if rng is None:
             _, mx = self.minmax(outcome_space, issues, outcomes)
         else:
@@ -282,6 +397,15 @@ class BaseUtilityFunction(Preferences, ABC):
         return self.scale_by(scale)
 
     def scale_max(self: T, to: float, rng: tuple[float, float] | None = None) -> T:
+        """Scale max.
+
+        Args:
+            to: To.
+            rng: Rng.
+
+        Returns:
+            T: The result.
+        """
         return self.scale_max_for(to, outcome_space=self.outcome_space, rng=rng)
 
     def normalize_for(
@@ -289,6 +413,15 @@ class BaseUtilityFunction(Preferences, ABC):
         to: tuple[float, float] = (0.0, 1.0),
         outcome_space: OutcomeSpace | None = None,
     ) -> T | ConstUtilityFunction:
+        """Normalize for.
+
+        Args:
+            to: To.
+            outcome_space: Outcome space.
+
+        Returns:
+            T | ConstUtilityFunction: The result.
+        """
         max_cardinality: int = MAX_CARDINALITY
         if not outcome_space:
             outcome_space = self.outcome_space
@@ -318,6 +451,15 @@ class BaseUtilityFunction(Preferences, ABC):
     def normalize(
         self: T, to: tuple[float, float] = (0.0, 1.0), normalize_weights: bool = False
     ) -> T | ConstUtilityFunction:
+        """Normalize.
+
+        Args:
+            to: To.
+            normalize_weights: Normalize weights.
+
+        Returns:
+            T | ConstUtilityFunction: The result.
+        """
         _ = normalize_weights
         from negmas.preferences import ConstUtilityFunction
 
@@ -342,6 +484,15 @@ class BaseUtilityFunction(Preferences, ABC):
     def shift_by(
         self: T, offset: float, shift_reserved=True
     ) -> WeightedUtilityFunction | T:
+        """Shift by.
+
+        Args:
+            offset: Offset.
+            shift_reserved: Shift reserved.
+
+        Returns:
+            WeightedUtilityFunction | T: The result.
+        """
         from negmas.preferences.complex import WeightedUtilityFunction
         from negmas.preferences.crisp.const import ConstUtilityFunction
 
@@ -361,6 +512,18 @@ class BaseUtilityFunction(Preferences, ABC):
         outcomes: Sequence[Outcome] | None = None,
         rng: tuple[float, float] | None = None,
     ) -> T:
+        """Shift min for.
+
+        Args:
+            to: To.
+            outcome_space: Outcome space.
+            issues: Issues.
+            outcomes: Outcomes.
+            rng: Rng.
+
+        Returns:
+            T: The result.
+        """
         if rng is None:
             mn, _ = self.minmax(outcome_space, issues, outcomes)
         else:
@@ -376,6 +539,18 @@ class BaseUtilityFunction(Preferences, ABC):
         outcomes: Sequence[Outcome] | None = None,
         rng: tuple[float, float] | None = None,
     ) -> T:
+        """Shift max for.
+
+        Args:
+            to: To.
+            outcome_space: Outcome space.
+            issues: Issues.
+            outcomes: Outcomes.
+            rng: Rng.
+
+        Returns:
+            T: The result.
+        """
         if rng is None:
             _, mx = self.minmax(outcome_space, issues, outcomes)
         else:
@@ -462,11 +637,21 @@ class BaseUtilityFunction(Preferences, ABC):
         return float(self(offer))
 
     def to_crisp(self) -> UtilityFunction:
+        """To crisp.
+
+        Returns:
+            UtilityFunction: The result.
+        """
         from negmas.preferences.crisp_ufun import CrispAdapter
 
         return CrispAdapter(self)
 
     def to_prob(self) -> ProbUtilityFunction:
+        """To prob.
+
+        Returns:
+            ProbUtilityFunction: The result.
+        """
         from negmas.preferences.prob_ufun import ProbAdapter
 
         return ProbAdapter(self)
@@ -474,6 +659,14 @@ class BaseUtilityFunction(Preferences, ABC):
     def to_dict(
         self, python_class_identifier=PYTHON_CLASS_IDENTIFIER
     ) -> dict[str, Any]:
+        """To dict.
+
+        Args:
+            python_class_identifier: Python class identifier.
+
+        Returns:
+            dict[str, Any]: The result.
+        """
         d = {python_class_identifier: get_full_type_name(type(self))}
         return dict(
             **d,
@@ -487,6 +680,12 @@ class BaseUtilityFunction(Preferences, ABC):
 
     @classmethod
     def from_dict(cls, d, python_class_identifier=PYTHON_CLASS_IDENTIFIER):
+        """From dict.
+
+        Args:
+            d: D.
+            python_class_identifier: Python class identifier.
+        """
         d.pop(python_class_identifier, None)
         d["outcome_space"] = deserialize(
             d.get("outcome_space", None),
@@ -1100,6 +1299,15 @@ class BaseUtilityFunction(Preferences, ABC):
         return f - s
 
     def is_not_worse(self, first: Outcome | None, second: Outcome | None) -> bool:
+        """Check if not worse.
+
+        Args:
+            first: First.
+            second: Second.
+
+        Returns:
+            bool: The result.
+        """
         return self.difference_prob(first, second) >= 0.0
 
     def difference(self, first: Outcome | None, second: Outcome | None) -> float:
@@ -1146,15 +1354,35 @@ class _FullyStatic:
     """
 
     def is_session_dependent(self) -> bool:
+        """Check if session dependent.
+
+        Returns:
+            bool: The result.
+        """
         return False
 
     def is_volatile(self) -> bool:
+        """Check if volatile.
+
+        Returns:
+            bool: The result.
+        """
         return False
 
     def is_state_dependent(self) -> bool:
+        """Check if state dependent.
+
+        Returns:
+            bool: The result.
+        """
         return False
 
     def is_stationary(self) -> bool:
+        """Check if stationary.
+
+        Returns:
+            bool: The result.
+        """
         return True
 
 
@@ -1164,13 +1392,33 @@ class _ExtremelyDynamic:
     """
 
     def is_session_dependent(self) -> bool:
+        """Check if session dependent.
+
+        Returns:
+            bool: The result.
+        """
         return True
 
     def is_volatile(self) -> bool:
+        """Check if volatile.
+
+        Returns:
+            bool: The result.
+        """
         return True
 
     def is_state_dependent(self) -> bool:
+        """Check if state dependent.
+
+        Returns:
+            bool: The result.
+        """
         return True
 
     def is_stationary(self) -> bool:
+        """Check if stationary.
+
+        Returns:
+            bool: The result.
+        """
         return False

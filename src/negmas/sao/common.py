@@ -55,10 +55,20 @@ class SAONMI(NegotiatorMechanismInterface):
 
     @property
     def state(self) -> SAOState:
+        """State.
+
+        Returns:
+            SAOState: The result.
+        """
         return self._mechanism.state  # type: ignore
 
     @property
     def history(self) -> list[SAOState]:
+        """History.
+
+        Returns:
+            list[SAOState]: The result.
+        """
         return self._mechanism.history
 
     @property
@@ -77,6 +87,14 @@ class SAONMI(NegotiatorMechanismInterface):
         return self._mechanism.offers  # type: ignore
 
     def negotiator_offers(self, negotiator_id: str) -> list[Outcome]:
+        """Negotiator offers.
+
+        Args:
+            negotiator_id: Negotiator id.
+
+        Returns:
+            list[Outcome]: The result.
+        """
         return self._mechanism.negotiator_offers(negotiator_id)  # type: ignore
 
 

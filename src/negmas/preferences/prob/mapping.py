@@ -1,4 +1,7 @@
+"""Module for mapping functionality."""
+
 from __future__ import annotations
+
 import random
 from typing import Iterable
 
@@ -42,11 +45,24 @@ class ProbMappingUtilityFunction(StationaryMixin, ProbUtilityFunction):
     def __init__(
         self, mapping: OutcomeUtilityMapping, default=None, *args, **kwargs
     ) -> None:
+        """Initialize the instance.
+
+        Args:
+            mapping: Mapping.
+            default: Default.
+            *args: Additional positional arguments.
+            **kwargs: Additional keyword arguments.
+        """
         super().__init__(*args, **kwargs)
         self.mapping = mapping
         self.default = default
 
     def to_dict(self, python_class_identifier=PYTHON_CLASS_IDENTIFIER):
+        """To dict.
+
+        Args:
+            python_class_identifier: Python class identifier.
+        """
         d = {python_class_identifier: get_full_type_name(type(self))}
         d.update(super().to_dict(python_class_identifier=python_class_identifier))
         return dict(
@@ -59,6 +75,12 @@ class ProbMappingUtilityFunction(StationaryMixin, ProbUtilityFunction):
 
     @classmethod
     def from_dict(cls, d, python_class_identifier=PYTHON_CLASS_IDENTIFIER):
+        """From dict.
+
+        Args:
+            d: D.
+            python_class_identifier: Python class identifier.
+        """
         d.pop(python_class_identifier, None)
         d["mapping"] = deserialize(
             d["mapping"], python_class_identifier=python_class_identifier
@@ -67,6 +89,14 @@ class ProbMappingUtilityFunction(StationaryMixin, ProbUtilityFunction):
 
     def eval(self, offer: Outcome | None) -> Distribution | float | None:
         # noinspection PyBroadException
+        """Eval.
+
+        Args:
+            offer: Offer being considered.
+
+        Returns:
+            Distribution | float | None: The result.
+        """
         if offer is None:
             return self.reserved_value
         try:
@@ -77,6 +107,14 @@ class ProbMappingUtilityFunction(StationaryMixin, ProbUtilityFunction):
         return m
 
     def xml(self, issues: list[Issue]) -> str:
+        """Xml.
+
+        Args:
+            issues: Issues.
+
+        Returns:
+            str: The result.
+        """
         raise NotImplementedError("Cannot save ProbMappingUtilityFunction to xml")
 
     @classmethod
@@ -89,6 +127,15 @@ class ProbMappingUtilityFunction(StationaryMixin, ProbUtilityFunction):
         type: str = "uniform",
     ):
         # todo: corrrect this for continuous outcome-spaces
+        """Random.
+
+        Args:
+            outcome_space: Outcome space.
+            reserved_value: Reserved value.
+            normalized: Normalized.
+            max_cardinality: Max cardinality.
+            type: Type.
+        """
         if not isinstance(reserved_value, Iterable):
             reserved_value = (reserved_value, reserved_value)
         os = outcome_space.to_largest_discrete(
@@ -115,4 +162,9 @@ class ProbMappingUtilityFunction(StationaryMixin, ProbUtilityFunction):
         )
 
     def __str__(self) -> str:
+        """str  .
+
+        Returns:
+            str: The result.
+        """
         return f"mapping: {self.mapping}\ndefault: {self.default}"

@@ -1,5 +1,8 @@
 # ruff: noqa: F403
+"""Acceptance strategies and policies for negotiations."""
+
 from __future__ import annotations
+
 import negmas.gb.components.acceptance as _n
 from negmas.gb.components.acceptance import *
 

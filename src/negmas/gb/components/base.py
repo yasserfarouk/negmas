@@ -1,4 +1,7 @@
+"""Components base classes."""
+
 from __future__ import annotations
+
 from abc import abstractmethod
 from collections import namedtuple
 from typing import TYPE_CHECKING
@@ -23,6 +26,8 @@ __all__ = [
 
 @define
 class GBComponent(Component):
+    """GBComponent implementation."""
+
     _negotiator: GBNegotiator | None = field(default=None, kw_only=True)  # type: ignore
 
     def before_proposing(self, state: GBState, dest: str | None = None):
@@ -129,6 +134,8 @@ class GBComponent(Component):
 
 @define
 class AcceptancePolicy(GBComponent):
+    """Acceptance policy implementation."""
+
     def respond(
         self, state: GBState, offer: Outcome | None, source: str | None
     ) -> ResponseType:
@@ -150,15 +157,31 @@ class AcceptancePolicy(GBComponent):
         return self(state, offer, source)
 
     def __not__(self):
+        """not  ."""
         return RejectionPolicy(self)
 
     @abstractmethod
     def __call__(
         self, state: GBState, offer: Outcome | None, source: str | None
     ) -> ResponseType:
+        """Make instance callable.
+
+        Args:
+            state: Current state.
+            offer: Offer being considered.
+            source: Source identifier.
+
+        Returns:
+            ResponseType: The result.
+        """
         ...
 
     def __and__(self, s: AcceptancePolicy):
+        """and  .
+
+        Args:
+            s: S.
+        """
         from .acceptance import AllAcceptanceStrategies
 
         if self.negotiator is None and s.negotiator is not None:
@@ -171,6 +194,11 @@ class AcceptancePolicy(GBComponent):
         return AllAcceptanceStrategies([self, s])
 
     def __or__(self, s: AcceptancePolicy):
+        """or  .
+
+        Args:
+            s: S.
+        """
         from .acceptance import AnyAcceptancePolicy
 
         if self.negotiator is None and s.negotiator is not None:
@@ -194,6 +222,16 @@ class RejectionPolicy(AcceptancePolicy):
     def __call__(
         self, state: GBState, offer: Outcome | None, source: str | None
     ) -> ResponseType:
+        """Make instance callable.
+
+        Args:
+            state: Current state.
+            offer: Offer being considered.
+            source: Source identifier.
+
+        Returns:
+            ResponseType: The result.
+        """
         response = self.a(state, offer, source)
         if response == ResponseType.ACCEPT_OFFER:
             return ResponseType.REJECT_OFFER
@@ -202,6 +240,8 @@ class RejectionPolicy(AcceptancePolicy):
 
 @define
 class OfferingPolicy(GBComponent):
+    """Offering policy implementation."""
+
     _current_offer: tuple[int, str | None, Outcome | None] = field(
         init=False, default=(-1, None, None)
     )
@@ -229,9 +269,23 @@ class OfferingPolicy(GBComponent):
 
     @abstractmethod
     def __call__(self, state: GBState, dest: str | None = None) -> Outcome | None:
+        """Make instance callable.
+
+        Args:
+            state: Current state.
+            dest: Dest.
+
+        Returns:
+            Outcome | None: The result.
+        """
         ...
 
     def __and__(self, s: OfferingPolicy):
+        """and  .
+
+        Args:
+            s: S.
+        """
         from .offering import UnanimousConcensusOfferingPolicy
 
         if self.negotiator != s.negotiator:
@@ -239,6 +293,11 @@ class OfferingPolicy(GBComponent):
         return UnanimousConcensusOfferingPolicy([self, s])
 
     def __or__(self, s: OfferingPolicy):
+        """or  .
+
+        Args:
+            s: S.
+        """
         from .offering import RandomConcensusOfferingPolicy
 
         if self.negotiator != s.negotiator:

@@ -1,4 +1,7 @@
+"""Utility function implementations."""
+
 from __future__ import annotations
+
 import math
 import random
 from abc import abstractmethod
@@ -23,9 +26,22 @@ class UtilityFunction(_ExtremelyDynamic, BaseUtilityFunction):
 
     @abstractmethod
     def eval(self, offer: Outcome) -> float:
+        """Eval.
+
+        Args:
+            offer: Offer being considered.
+
+        Returns:
+            float: The result.
+        """
         ...
 
     def to_crisp(self) -> UtilityFunction:
+        """To crisp.
+
+        Returns:
+            UtilityFunction: The result.
+        """
         return self
 
     @classmethod
@@ -164,6 +180,15 @@ class UtilityFunction(_ExtremelyDynamic, BaseUtilityFunction):
         return ufuns
 
     def is_not_worse(self, first: Outcome | None, second: Outcome | None) -> bool:
+        """Check if not worse.
+
+        Args:
+            first: First.
+            second: Second.
+
+        Returns:
+            bool: The result.
+        """
         return self.difference(first, second) >= 0
 
     def difference_prob(
@@ -287,10 +312,25 @@ class CrispAdapter(UtilityFunction):
     """
 
     def __init__(self, prob: BaseUtilityFunction):
+        """Initialize the instance.
+
+        Args:
+            prob: Prob.
+        """
         self._prob = prob
 
     def eval(self, offer):
+        """Eval.
+
+        Args:
+            offer: Offer being considered.
+        """
         return float(self._prob.eval(offer))
 
     def to_stationary(self) -> UtilityFunction:
+        """To stationary.
+
+        Returns:
+            UtilityFunction: The result.
+        """
         return CrispAdapter(prob=self._prob.to_stationary())

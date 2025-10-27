@@ -1,4 +1,7 @@
+"""Module for modular functionality."""
+
 from __future__ import annotations
+
 from abc import abstractmethod
 from typing import TYPE_CHECKING, Iterable
 
@@ -30,6 +33,12 @@ class GBModularNegotiator(ModularNegotiator, GBNegotiator):
         component_names: Iterable[str] | None = None,
         **kwargs,
     ):
+        """Initialize the instance.
+
+        Args:
+            *args: Additional positional arguments.
+            **kwargs: Additional keyword arguments.
+        """
         super().__init__(
             *args, components=components, component_names=component_names, **kwargs
         )
@@ -39,15 +48,43 @@ class GBModularNegotiator(ModularNegotiator, GBNegotiator):
     def generate_response(
         self, state: GBState, offer: Outcome | None, source: str | None = None
     ) -> ResponseType:
+        """Generate response.
+
+        Args:
+            state: Current state.
+            offer: Offer being considered.
+            source: Source identifier.
+
+        Returns:
+            ResponseType: The result.
+        """
         ...
 
     @abstractmethod
     def generate_proposal(
         self, state: GBState, dest: str | None = None
     ) -> Outcome | None:
+        """Generate proposal.
+
+        Args:
+            state: Current state.
+            dest: Dest.
+
+        Returns:
+            Outcome | None: The result.
+        """
         ...
 
     def propose(self, state: GBState, dest: str | None = None) -> Outcome | None:
+        """Propose.
+
+        Args:
+            state: Current state.
+            dest: Dest.
+
+        Returns:
+            Outcome | None: The result.
+        """
         for c in self._components:
             c.before_proposing(state, dest=dest)
         offer = self.generate_proposal(state, dest=dest)
@@ -56,6 +93,15 @@ class GBModularNegotiator(ModularNegotiator, GBNegotiator):
         return offer
 
     def respond(self, state: GBState, source: str | None = None) -> ResponseType:
+        """Respond.
+
+        Args:
+            state: Current state.
+            source: Source identifier.
+
+        Returns:
+            ResponseType: The result.
+        """
         offer = get_offer(state, source)
         for c in self._components:
             c.before_responding(state=state, offer=offer, source=source)

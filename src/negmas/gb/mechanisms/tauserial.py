@@ -27,6 +27,12 @@ class SerialTAUMechanism(SerialGBMechanism):
         outcomes: list[Outcome] | int | None = None,
         **kwargs,
     ):
+        """Initialize the instance.
+
+        Args:
+            *args: Additional positional arguments.
+            **kwargs: Additional keyword arguments.
+        """
         check_one_and_only(outcome_space, issues, outcomes)
         outcome_space = ensure_os(outcome_space, issues, outcomes)
         kwargs["evaluator_type"] = TAUEvaluationStrategy

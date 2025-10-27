@@ -80,6 +80,23 @@ class GeniusNegotiator(SAONegotiator):
         strict: bool | None = None,
         id: str | None = None,
     ):
+        """Initialize the instance.
+
+        Args:
+            preferences: Preferences.
+            name: Name.
+            parent: Parent.
+            owner: Owner.
+            java_class_name: Java class name.
+            domain_file_name: Domain file name.
+            utility_file_name: Utility file name.
+            can_propose: Can propose.
+            auto_load_java: Auto load java.
+            port: Port.
+            genius_bridge_path: Genius bridge path.
+            strict: Strict.
+            id: Id.
+        """
         super().__init__(name=name, preferences=None, parent=parent, owner=owner, id=id)
         self.__frozen_relative_time = None
         self.__destroyed = False
@@ -136,26 +153,39 @@ class GeniusNegotiator(SAONegotiator):
 
     @property
     def strict(self):
+        """Strict."""
         return self._strict
 
     @strict.setter
     def strict(self, value: bool):
+        """Strict.
+
+        Args:
+            value: Value.
+        """
         self._strict = value
         return self._strict
 
     @property
     def is_connected(self):
+        """Check if connected."""
         return self.connected and self.java is not None
 
     @property
     def port(self):
         # if a port was not specified then we just set any random empty port to be used
+        """Port."""
         if not self.is_connected and self._port <= 0:
             self._port = get_free_tcp_port()
         return self._port
 
     @port.setter
     def port(self, port):
+        """Port.
+
+        Args:
+            port: Port.
+        """
         self._port = port
 
     @classmethod
@@ -186,6 +216,12 @@ class GeniusNegotiator(SAONegotiator):
 
     @classmethod
     def random_negotiator_name(cls, agent_based=True, party_based=True):
+        """Random negotiator name.
+
+        Args:
+            agent_based: Agent based.
+            party_based: Party based.
+        """
         agent_names = cls.negotiators(agent_based=agent_based, party_based=party_based)
         return random.choice(agent_names)
 
@@ -264,6 +300,7 @@ class GeniusNegotiator(SAONegotiator):
 
     @property
     def java_name(self):
+        """Java name."""
         if not self.java:
             return None
         return self.java.get_name(self.java_uuid)  # type: ignore
@@ -271,6 +308,15 @@ class GeniusNegotiator(SAONegotiator):
     def join(
         self, nmi, state, *, preferences=None, ufun=None, role="negotiator"
     ) -> bool:
+        """Join.
+
+        Args:
+            nmi: Nmi.
+            state: Current state.
+
+        Returns:
+            bool: The result.
+        """
         if ufun:
             preferences = ufun
         if not preferences:
@@ -358,6 +404,11 @@ class GeniusNegotiator(SAONegotiator):
         return output
 
     def destroy_java_counterpart(self, state=None) -> None:
+        """Destroy java counterpart.
+
+        Args:
+            state: Current state.
+        """
         if self.__started and not self.__destroyed:
             if self.java is not None:
                 try:
@@ -541,6 +592,11 @@ class GeniusNegotiator(SAONegotiator):
             )
 
     def cancel(self, reason=None) -> None:
+        """Cancel.
+
+        Args:
+            reason: Reason.
+        """
         _ = reason
         try:
             self.java.cancel(self.java_uuid)  # type: ignore
@@ -549,6 +605,11 @@ class GeniusNegotiator(SAONegotiator):
 
     @property
     def relative_time(self) -> float | None:
+        """Relative time.
+
+        Returns:
+            float | None: The result.
+        """
         if self.nmi is None or not self.nmi.state.started:
             return 0
         if self.nmi is not None and self.nmi.state.ended:
@@ -605,6 +666,12 @@ class GeniusNegotiator(SAONegotiator):
         issues = nmi.cartesian_outcome_space.issues
 
         def map_value(issue: Issue, val: str):
+            """Map value.
+
+            Args:
+                issue: Issue.
+                val: Val.
+            """
             if not issue.value_type:
                 return val
             if issubclass(issue.value_type, tuple):
@@ -654,6 +721,15 @@ class GeniusNegotiator(SAONegotiator):
         return response, tuple(outcome) if outcome else None
 
     def __call__(self, state: SAOState, dest: str | None = None) -> SAOResponse:
+        """Make instance callable.
+
+        Args:
+            state: Current state.
+            dest: Dest.
+
+        Returns:
+            SAOResponse: The result.
+        """
         self.respond_sao(state)
         return SAOResponse(self.__my_last_response, self.__my_last_offer)
 
@@ -664,6 +740,12 @@ class GeniusNegotiator(SAONegotiator):
         return s
 
     def respond_sao(self, state: SAOState, source: str | None = None) -> None:
+        """Respond sao.
+
+        Args:
+            state: Current state.
+            source: Source identifier.
+        """
         offer = state.current_offer
         if offer is None and self.__my_last_offer is not None and self._strict:
             raise ValueError(f"{self._me()} got counter with a None offer.")
@@ -683,6 +765,15 @@ class GeniusNegotiator(SAONegotiator):
         self.propose_sao(state)
 
     def propose_sao(self, state: SAOState, dest: str | None = None) -> SAOResponse:
+        """Propose sao.
+
+        Args:
+            state: Current state.
+            dest: Dest.
+
+        Returns:
+            SAOResponse: The result.
+        """
         current_step = self._current_step(state)
         if current_step == self.__my_last_offer_step:
             return SAOResponse(self.__my_last_response, self.__my_last_offer)
@@ -713,12 +804,22 @@ class GeniusNegotiator(SAONegotiator):
         return SAOResponse(response, outcome)
 
     def __str__(self):
+        """str  ."""
         name = super().__str__().split("/")
         return "/".join(name[:-1]) + f"/{self.java_class_name}/" + name[-1]
 
     # compatibility with GAO
 
     def respond(self, state: GBState, source: str | None = None) -> ResponseType:
+        """Respond.
+
+        Args:
+            state: Current state.
+            source: Source identifier.
+
+        Returns:
+            ResponseType: The result.
+        """
         if source is None:
             raise ValueError(
                 "Respond is not supposed to be called directly for GeniusNegotiator"
@@ -751,6 +852,15 @@ class GeniusNegotiator(SAONegotiator):
         # saves one new offer/response every step
         # if current_step >= 146:
         #     breakpoint()
+        """Propose.
+
+        Args:
+            state: Current state.
+            dest: Dest.
+
+        Returns:
+            Outcome | None: The result.
+        """
         current_step = self._current_step(state)
         if current_step == self.__my_last_offer_step:
             return self.__my_last_offer

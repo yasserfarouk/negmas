@@ -1,4 +1,7 @@
+"""Agent implementations."""
+
 from __future__ import annotations
+
 import uuid
 from abc import ABC, abstractmethod
 from typing import Any, Generic, TypeVar
@@ -41,6 +44,14 @@ class Agent(Entity, EventSink, ConfigReader, Notifier, Rational, Generic[TAWI], 
         preferences: Preferences | None = None,
         ufun: UtilityFunction | None = None,
     ):
+        """Initialize the instance.
+
+        Args:
+            name: Name.
+            type_postfix: Type postfix.
+            preferences: Preferences.
+            ufun: Ufun.
+        """
         super().__init__(type_postfix=type_postfix)
         Rational.__init__(self, name=name, preferences=preferences, ufun=ufun)
         self._running_negotiations: dict[str, RunningNegotiationInfo] = {}
@@ -238,6 +249,12 @@ class Agent(Entity, EventSink, ConfigReader, Notifier, Rational, Generic[TAWI], 
         )
 
     def on_event(self, event: Event, sender: EventSource):
+        """On event.
+
+        Args:
+            event: Event.
+            sender: Sender.
+        """
         if not isinstance(sender, Mechanism) and not isinstance(sender, Mechanism):
             raise ValueError(
                 f"Sender of the negotiation end event is of type {sender.__class__.__name__} "
@@ -587,6 +604,7 @@ class Agent(Entity, EventSink, ConfigReader, Notifier, Rational, Generic[TAWI], 
         """
 
     def __str__(self):
+        """str  ."""
         return f"{self.name}"
 
     __repr__ = __str__

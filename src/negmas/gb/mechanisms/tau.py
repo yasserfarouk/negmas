@@ -1,4 +1,7 @@
+"""Negotiation mechanism implementations."""
+
 from __future__ import annotations
+
 
 from collections import defaultdict
 
@@ -11,9 +14,17 @@ __all__ = ["TAUMechanism"]
 
 
 class TAUMechanism(BaseGBMechanism):
+    """TAU mechanism."""
+
     def __init__(
         self, *args, accept_in_any_thread: bool = True, parallel: bool = True, **kwargs
     ):
+        """Initialize the instance.
+
+        Args:
+            *args: Additional positional arguments.
+            **kwargs: Additional keyword arguments.
+        """
         super().__init__(*args, parallel=parallel, **kwargs)
         self._offers: dict[str, set[Outcome]] = defaultdict(set)
         self._acceptances: dict[Outcome, set[str]] = defaultdict(set)
@@ -25,6 +36,15 @@ class TAUMechanism(BaseGBMechanism):
         self._accept_in_any_thread = accept_in_any_thread
 
     def __call__(self, state: GBState, action=None) -> MechanismStepResult:
+        """Make instance callable.
+
+        Args:
+            state: Current state.
+            action: Action.
+
+        Returns:
+            MechanismStepResult: The result.
+        """
         assert (
             action is None
         ), "passing action != None to TAUMechanism is not yet supported"

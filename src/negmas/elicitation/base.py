@@ -1,4 +1,7 @@
+"""Elicitation base classes."""
+
 from __future__ import annotations
+
 import copy
 import time
 from abc import abstractmethod
@@ -21,6 +24,8 @@ __all__ = ["BaseElicitor"]
 
 
 class BaseElicitor(SAONegotiator):
+    """BaseElicitor implementation."""
+
     def accuracy_limit(self, cost: float) -> float:
         """The accuracy limit given the cost and `epsilon`."""
         return 0.5 * max(self.epsilon, cost)
@@ -559,8 +564,14 @@ class BaseElicitor(SAONegotiator):
         ]
 
     def __getattr__(self, item):
+        """getattr  .
+
+        Args:
+            item: Item.
+        """
         return getattr(self.base_negotiator, item)
         # TODO extend this to take the partner_id as a parameter to handle multiparty negotiation
 
     def __str__(self):
+        """str  ."""
         return f"{self.name}"

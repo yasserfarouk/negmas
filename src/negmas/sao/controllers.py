@@ -57,6 +57,14 @@ class SAOController(Controller[SAONMI, SAOState, ControlledSAONegotiator]):
         ufun=None,
         **kwargs,
     ):
+        """Initialize the instance.
+
+        Args:
+            default_negotiator_type: Default negotiator type.
+            preferences: Preferences.
+            ufun: Ufun.
+            **kwargs: Additional keyword arguments.
+        """
         if ufun is not None:
             preferences = ufun
         super().__init__(
@@ -95,6 +103,14 @@ class SAOController(Controller[SAONMI, SAOState, ControlledSAONegotiator]):
     def create_negotiator(
         self, negotiator_type=None, name: str | None = None, cntxt: Any = None, **kwargs
     ):
+        """Create negotiator.
+
+        Args:
+            negotiator_type: Negotiator type.
+            name: Name.
+            cntxt: Cntxt.
+            **kwargs: Additional keyword arguments.
+        """
         return super().create_negotiator(negotiator_type, name, cntxt, **kwargs)  # type: ignore I know that the return type is an SAONegotiator
 
     def after_join(
@@ -115,6 +131,16 @@ class SAOController(Controller[SAONMI, SAOState, ControlledSAONegotiator]):
     def propose(
         self, negotiator_id: str, state: SAOState, dest: str | None = None
     ) -> Outcome | ExtendedOutcome | None:
+        """Propose.
+
+        Args:
+            negotiator_id: Negotiator id.
+            state: Current state.
+            dest: Dest.
+
+        Returns:
+            Outcome | ExtendedOutcome | None: The result.
+        """
         negotiator, _ = self._negotiators.get(negotiator_id, (None, None))
         if negotiator is None:
             raise ValueError(f"Unknown negotiator {negotiator_id}")
@@ -123,6 +149,16 @@ class SAOController(Controller[SAONMI, SAOState, ControlledSAONegotiator]):
     def respond(
         self, negotiator_id: str, state: SAOState, source: str | None = None
     ) -> ResponseType:
+        """Respond.
+
+        Args:
+            negotiator_id: Negotiator id.
+            state: Current state.
+            source: Source identifier.
+
+        Returns:
+            ResponseType: The result.
+        """
         negotiator, _ = self._negotiators.get(negotiator_id, (None, None))
         if negotiator is None:
             raise ValueError(f"Unknown negotiator {negotiator_id}")
@@ -146,12 +182,28 @@ class SAORandomController(SAOController):
     """
 
     def __init__(self, *args, p_acceptance: float = 0.1, **kwargs):
+        """Initialize the instance.
+
+        Args:
+            *args: Additional positional arguments.
+            **kwargs: Additional keyword arguments.
+        """
         super().__init__(*args, **kwargs)
         self._p_acceptance = p_acceptance
 
     def propose(
         self, negotiator_id: str, state: SAOState, dest: str | None = None
     ) -> Outcome | ExtendedOutcome | None:
+        """Propose.
+
+        Args:
+            negotiator_id: Negotiator id.
+            state: Current state.
+            dest: Dest.
+
+        Returns:
+            Outcome | ExtendedOutcome | None: The result.
+        """
         negotiator, cntxt = self._negotiators.get(negotiator_id, (None, None))
         if negotiator is None:
             raise ValueError(f"Unknown negotiator {negotiator_id}")
@@ -162,6 +214,16 @@ class SAORandomController(SAOController):
     def respond(
         self, negotiator_id: str, state: SAOState, source: str | None = None
     ) -> ResponseType:
+        """Respond.
+
+        Args:
+            negotiator_id: Negotiator id.
+            state: Current state.
+            source: Source identifier.
+
+        Returns:
+            ResponseType: The result.
+        """
         negotiator, cntxt = self._negotiators.get(negotiator_id, (None, None))
         if negotiator is None:
             raise ValueError(f"Unknown negotiator {negotiator_id}")
@@ -189,11 +251,18 @@ class SAOSyncController(SAOController):
     """
 
     def __init__(self, *args, global_ufun=None, **kwargs):
+        """Initialize the instance.
+
+        Args:
+            *args: Additional positional arguments.
+            **kwargs: Additional keyword arguments.
+        """
         super().__init__(*args, **kwargs)
         self.__global_ufun = global_ufun
         self.reset()
 
     def reset(self):
+        """Reset."""
         self.__offers: dict[str, Outcome | None] = dict()
         self.__responses: dict[str, ResponseType] = dict()
         self.__proposals: dict[str, Outcome | None] = dict()
@@ -270,6 +339,16 @@ class SAOSyncController(SAOController):
         self, negotiator_id: str, state: SAOState, dest: str | None = None
     ) -> Outcome | ExtendedOutcome | None:
         # if there are no proposals yet, get first proposals
+        """Propose.
+
+        Args:
+            negotiator_id: Negotiator id.
+            state: Current state.
+            dest: Dest.
+
+        Returns:
+            Outcome | ExtendedOutcome | None: The result.
+        """
         if not self.__proposals:
             self._set_first_proposals()
         # get the saved proposal if it exists and return it
@@ -334,6 +413,16 @@ class SAOSyncController(SAOController):
     def respond(
         self, negotiator_id: str, state: SAOState, source: str | None = None
     ) -> ResponseType:
+        """Respond.
+
+        Args:
+            negotiator_id: Negotiator id.
+            state: Current state.
+            source: Source identifier.
+
+        Returns:
+            ResponseType: The result.
+        """
         offer = state.current_offer
         # get the saved response to this negotiator if any
         response = self.__responses.pop(negotiator_id, ResponseType.WAIT)
@@ -394,6 +483,12 @@ class SAOSyncController(SAOController):
         return self.__responses.pop(negotiator_id, ResponseType.REJECT_OFFER)
 
     def on_negotiation_end(self, negotiator_id: str, state: SAOState) -> None:
+        """On negotiation end.
+
+        Args:
+            negotiator_id: Negotiator id.
+            state: Current state.
+        """
         self._reset_for(negotiator_id)
         results = super().on_negotiation_end(negotiator_id, state)
         if not self.negotiators:
@@ -420,6 +515,12 @@ class SAORandomSyncController(SAOSyncController):
     def __init__(
         self, *args, p_acceptance=0.15, p_rejection=0.85, p_ending=0.0, **kwargs
     ):
+        """Initialize the instance.
+
+        Args:
+            *args: Additional positional arguments.
+            **kwargs: Additional keyword arguments.
+        """
         super().__init__(*args, **kwargs)
         self.p_acceptance = p_acceptance
         self.p_rejection = p_rejection
@@ -443,6 +544,11 @@ class SAORandomSyncController(SAOSyncController):
         self.wheel = self.wheel[1:]
 
     def make_response(self) -> ResponseType:
+        """Make response.
+
+        Returns:
+            ResponseType: The result.
+        """
         r = random.random()
         for w in self.wheel:
             if w[0] >= r:
@@ -450,6 +556,12 @@ class SAORandomSyncController(SAOSyncController):
         return ResponseType.NO_RESPONSE
 
     def counter_all(self, offers, states):
+        """Counter all.
+
+        Args:
+            offers: Offers.
+            states: States.
+        """
         result = {}
         for negotiator in offers.keys():
             response = self.make_response()
@@ -462,6 +574,7 @@ class SAORandomSyncController(SAOSyncController):
         return result
 
     def first_proposals(self):
+        """First proposals."""
         return dict(
             zip(
                 self.negotiators.keys(),
@@ -506,12 +619,24 @@ class SAOSingleAgreementController(SAOSyncController, ABC):
     """
 
     def __init__(self, *args, strict=False, **kwargs):
+        """Initialize the instance.
+
+        Args:
+            *args: Additional positional arguments.
+            **kwargs: Additional keyword arguments.
+        """
         super().__init__(*args, **kwargs)
         self._best_outcomes = dict()
         self.strict = strict
         self.__end_all = False
 
     def on_negotiation_end(self, negotiator_id: str, state: SAOState) -> None:
+        """On negotiation end.
+
+        Args:
+            negotiator_id: Negotiator id.
+            state: Current state.
+        """
         super().on_negotiation_end(negotiator_id, state)
         if state.agreement is not None:
             self.__end_all = True
@@ -747,6 +872,11 @@ class SAOSingleAgreementController(SAOSyncController, ABC):
         )
 
     def first_proposals(self) -> dict[str, Outcome | None]:
+        """First proposals.
+
+        Returns:
+            dict[str, Outcome | None]: The result.
+        """
         if not self.strict:
             return super().first_proposals()
 
@@ -780,6 +910,13 @@ class SAOSingleAgreementController(SAOSyncController, ABC):
     def after_join(
         self, negotiator_id, *args, ufun=None, preferences=None, **kwargs
     ) -> None:
+        """After join.
+
+        Args:
+            negotiator_id: Negotiator id.
+            *args: Additional positional arguments.
+            **kwargs: Additional keyword arguments.
+        """
         if ufun is not None:
             preferences = preferences
         super().after_join(negotiator_id, preferences=preferences, **kwargs)
@@ -809,6 +946,12 @@ class SAOMetaNegotiatorController(SAOController):
     """
 
     def __init__(self, *args, meta_negotiator: GBNegotiator | None = None, **kwargs):
+        """Initialize the instance.
+
+        Args:
+            *args: Additional positional arguments.
+            **kwargs: Additional keyword arguments.
+        """
         super().__init__(*args, **kwargs)
         if meta_negotiator is None:
             meta_negotiator = AspirationNegotiator(
@@ -847,18 +990,53 @@ class SAOSingleAgreementRandomController(SAOSingleAgreementController):
     """
 
     def __init__(self, *args, p_acceptance=0.1, **kwargs):
+        """Initialize the instance.
+
+        Args:
+            *args: Additional positional arguments.
+            **kwargs: Additional keyword arguments.
+        """
         super().__init__(*args, **kwargs)
         self.p_acceptance = p_acceptance
 
     def is_acceptable(self, offer: Outcome, source: str, state: SAOState) -> bool:
+        """Check if acceptable.
+
+        Args:
+            offer: Offer being considered.
+            source: Source identifier.
+            state: Current state.
+
+        Returns:
+            bool: The result.
+        """
         return random.random() > self.p_acceptance
 
     def best_offer(self, offers: dict[str, Outcome]) -> str | None:
+        """Best offer.
+
+        Args:
+            offers: Offers.
+
+        Returns:
+            str | None: The result.
+        """
         return random.sample(list(offers.keys()), 1)[0]
 
     def is_better(
         self, a: Outcome | None, b: Outcome | None, negotiator: str, state: SAOState
     ) -> bool:
+        """Check if better.
+
+        Args:
+            a: A.
+            b: B.
+            negotiator: Negotiator.
+            state: Current state.
+
+        Returns:
+            bool: The result.
+        """
         return random.random() > 0.5
 
 
@@ -894,13 +1072,31 @@ class SAOSingleAgreementAspirationController(SAOSingleAgreementController):
         | float = "boulware",
         **kwargs,
     ):
+        """Initialize the instance.
+
+        Args:
+            *args: Additional positional arguments.
+            **kwargs: Additional keyword arguments.
+        """
         super().__init__(*args, **kwargs)
         self.__asp = PolyAspiration(max_aspiration, aspiration_type)
 
     def utility_at(self, x):
+        """Utility at.
+
+        Args:
+            x: X.
+        """
         return self.__asp.utility_at(x)
 
     def is_acceptable(self, offer: Outcome, source: str, state: SAOState):
+        """Check if acceptable.
+
+        Args:
+            offer: Offer being considered.
+            source: Source identifier.
+            state: Current state.
+        """
         if not self.ufun:
             return False
         return self.ufun(offer) >= self.utility_at(state.relative_time)
@@ -908,11 +1104,27 @@ class SAOSingleAgreementAspirationController(SAOSingleAgreementController):
     def is_better(
         self, a: Outcome | None, b: Outcome | None, negotiator: str, state: SAOState
     ) -> bool:
+        """Check if better.
+
+        Args:
+            a: A.
+            b: B.
+            negotiator: Negotiator.
+            state: Current state.
+
+        Returns:
+            bool: The result.
+        """
         if not self.ufun:
             raise ValueError("No ufun is defined")
         return self.ufun.is_better(a, b)
 
     def best_offer(self, offers):
+        """Best offer.
+
+        Args:
+            offers: Offers.
+        """
         if not self.ufun:
             raise ValueError("No ufun is defined")
         best_negotiator, best_offer = None, None
@@ -925,6 +1137,12 @@ class SAOSingleAgreementAspirationController(SAOSingleAgreementController):
         return best_negotiator
 
     def best_outcome(self, negotiator, state=None):
+        """Best outcome.
+
+        Args:
+            negotiator: Negotiator.
+            state: Current state.
+        """
         if not self.ufun:
             raise ValueError("No ufun is defined")
         outcome = self.ufun.sample_outcome_with_utility(

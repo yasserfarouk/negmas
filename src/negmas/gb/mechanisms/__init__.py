@@ -1,3 +1,4 @@
+"""Negotiation mechanism implementations."""
 from .base import *
 from .tau import *
 from .tauserial import *

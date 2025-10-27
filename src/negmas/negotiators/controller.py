@@ -1,4 +1,7 @@
+"""Negotiator implementations."""
+
 from __future__ import annotations
+
 from collections import namedtuple
 from typing import TYPE_CHECKING, Any, TypeVar, Generic
 
@@ -68,6 +71,15 @@ class Controller(Rational, Generic[TNMI, TState, TControlledNegotiator]):
         auto_kill: bool = True,
         **kwargs,
     ):
+        """Initialize the instance.
+
+        Args:
+            default_negotiator_type: Default negotiator type.
+            default_negotiator_params: Default negotiator params.
+            parent: Parent.
+            auto_kill: Auto kill.
+            **kwargs: Additional keyword arguments.
+        """
         super().__init__(**kwargs)
         self._negotiators: dict[str, NegotiatorInfo] = {}
         if default_negotiator_params is None:
@@ -81,6 +93,7 @@ class Controller(Rational, Generic[TNMI, TState, TControlledNegotiator]):
 
     @property
     def default_negotiator_type(self):
+        """Default negotiator type."""
         return self.__default_negotiator_type
 
     def is_clean(self) -> bool:
@@ -537,6 +550,12 @@ class Controller(Rational, Generic[TNMI, TState, TControlledNegotiator]):
         return result
 
     def on_mechanism_error(self, negotiator_id: str, state: TState) -> None:
+        """On mechanism error.
+
+        Args:
+            negotiator_id: Negotiator id.
+            state: Current state.
+        """
         negotiator, cntxt = self._negotiators.get(negotiator_id, (None, None))
         if negotiator is None:
             return
@@ -545,6 +564,13 @@ class Controller(Rational, Generic[TNMI, TState, TControlledNegotiator]):
     def on_notification(
         self, negotiator_id: str, notification: Notification, notifier: str
     ):
+        """On notification.
+
+        Args:
+            negotiator_id: Negotiator id.
+            notification: Notification.
+            notifier: Notifier.
+        """
         negotiator, cntxt = self._negotiators.get(negotiator_id, (None, None))
         if negotiator is None:
             return
@@ -553,4 +579,5 @@ class Controller(Rational, Generic[TNMI, TState, TControlledNegotiator]):
         )
 
     def __str__(self):
+        """str  ."""
         return f"{self.name}"

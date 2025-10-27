@@ -1,4 +1,7 @@
+"""Module for util functionality."""
+
 from __future__ import annotations
+
 import math
 import pathlib
 import uuid
@@ -44,11 +47,22 @@ Colorizer = Callable[[TraceElement], float]
 
 
 def opacity_colorizer(t: TraceElement, alpha: float = 1.0):
+    """Opacity colorizer.
+
+    Args:
+        t: T.
+        alpha: Alpha.
+    """
     _ = t
     return alpha
 
 
 def default_colorizer(t: TraceElement):
+    """Default colorizer.
+
+    Args:
+        t: T.
+    """
     if not t.responses:
         return 1.0
     return (
@@ -60,6 +74,16 @@ def default_colorizer(t: TraceElement):
 
 
 def scatter_with_transparency(x, y, color, alpha_arr, ax, **kwarg):
+    """Scatter with transparency.
+
+    Args:
+        x: X.
+        y: Y.
+        color: Color.
+        alpha_arr: Alpha arr.
+        ax: Ax.
+        **kwarg: Additional keyword arguments.
+    """
     from matplotlib.colors import to_rgb  # , to_rgba
 
     r, g, b = to_rgb(color)
@@ -69,6 +93,12 @@ def scatter_with_transparency(x, y, color, alpha_arr, ax, **kwarg):
 
 
 def make_transparent(color, alpha):
+    """Make transparent.
+
+    Args:
+        color: Color.
+        alpha: Alpha.
+    """
     if alpha is None:
         return color
     from matplotlib.colors import to_rgb  # , to_rgba
@@ -91,6 +121,21 @@ def plot_with_trancparency(
     linewidth: float | int = 1,
     linestyle="solid",
 ):
+    """Plot with trancparency.
+
+    Args:
+        x: X.
+        y: Y.
+        alpha: Alpha.
+        color: Color.
+        marker: Marker.
+        ax: Ax.
+        label: Label.
+        with_lines: With lines.
+        alpha_global: Alpha global.
+        linewidth: Linewidth.
+        linestyle: Linestyle.
+    """
     if alpha_global is not None:
         alpha = [alpha_global * _ for _ in alpha]
     scatter_with_transparency(
@@ -142,40 +187,93 @@ TNMI = TypeVar("TNMI", bound=NegotiatorMechanismInterface, covariant=True)
 class PlottableMechanism(Protocol, Generic[TNMI, TNegotiator]):
     @property
     def outcome_space(self) -> OutcomeSpace:
+        """Outcome space.
+
+        Returns:
+            OutcomeSpace: The result.
+        """
         ...
 
     @property
     def negotiators(self) -> list[TNegotiator]:
+        """Negotiators.
+
+        Returns:
+            list[TNegotiator]: The result.
+        """
         ...
 
     @property
     def negotiator_ids(self) -> list[str]:
+        """Negotiator ids.
+
+        Returns:
+            list[str]: The result.
+        """
         ...
 
     @property
     def negotiator_names(self) -> list[str]:
+        """Negotiator names.
+
+        Returns:
+            list[str]: The result.
+        """
         ...
 
     @property
     def nmi(self) -> TNMI:
+        """Nmi.
+
+        Returns:
+            TNMI: The result.
+        """
         ...
 
     @property
     def agreement(self) -> Outcome | None:
+        """Agreement.
+
+        Returns:
+            Outcome | None: The result.
+        """
         ...
 
     @property
     def state(self) -> MechanismState:
+        """State.
+
+        Returns:
+            MechanismState: The result.
+        """
         ...
 
     @property
     def full_trace(self) -> list[TraceElement]:
+        """Full trace.
+
+        Returns:
+            list[TraceElement]: The result.
+        """
         ...
 
     def discrete_outcomes(self) -> list[Outcome]:
+        """Discrete outcomes.
+
+        Returns:
+            list[Outcome]: The result.
+        """
         ...
 
     def negotiator_index(self, source: str) -> int | None:
+        """Negotiator index.
+
+        Args:
+            source: Source identifier.
+
+        Returns:
+            int | None: The result.
+        """
         ...
 
 
@@ -191,6 +289,14 @@ def get_cmap(n, name=DEFAULT_COLORMAP):
 
 
 def make_colors_and_markers(colors, markers, n: int, colormap=DEFAULT_COLORMAP):
+    """Make colors and markers.
+
+    Args:
+        colors: Colors.
+        markers: Markers.
+        n: Number of items.
+        colormap: Colormap.
+    """
     if not colors:
         cmap = get_cmap(n, colormap)
         colors = [cmap(i) for i in range(n)]
@@ -221,6 +327,30 @@ def plot_offer_utilities(
     first_color_index: int = 0,
     mark_offers_view: bool = True,
 ):
+    """Plot offer utilities.
+
+    Args:
+        trace: Trace.
+        negotiator: Negotiator.
+        plotting_ufuns: Plotting ufuns.
+        plotting_negotiators: Plotting negotiators.
+        ignore_none_offers: Ignore none offers.
+        name_map: Name map.
+        colors: Colors.
+        markers: Markers.
+        colormap: Colormap.
+        ax: Ax.
+        sharey: Sharey.
+        xdim: Xdim.
+        ylimits: Ylimits.
+        show_legend: Show legend.
+        show_x_label: Show x label.
+        ignore_markers_limit: Ignore markers limit.
+        show_reserved: Show reserved.
+        colorizer: Colorizer.
+        first_color_index: First color index.
+        mark_offers_view: Mark offers view.
+    """
     import matplotlib.pyplot as plt
 
     if colorizer is None:
@@ -411,6 +541,46 @@ def plot_2dutils(
     colorizer: Colorizer | None = None,
     fast: bool = False,
 ):
+    """Plot 2dutils.
+
+    Args:
+        trace: Trace.
+        plotting_ufuns: Plotting ufuns.
+        plotting_negotiators: Plotting negotiators.
+        offering_negotiators: Offering negotiators.
+        agreement: Agreement.
+        outcome_space: Outcome space.
+        issues: Issues.
+        outcomes: Outcomes.
+        with_lines: With lines.
+        show_annotations: Show annotations.
+        show_agreement: Show agreement.
+        show_pareto_distance: Show pareto distance.
+        show_nash_distance: Show nash distance.
+        show_kalai_distance: Show kalai distance.
+        show_ks_distance: Show ks distance.
+        show_max_welfare_distance: Show max welfare distance.
+        mark_pareto_points: Mark pareto points.
+        mark_all_outcomes: Mark all outcomes.
+        mark_nash_points: Mark nash points.
+        mark_kalai_points: Mark kalai points.
+        mark_ks_points: Mark ks points.
+        mark_max_welfare_points: Mark max welfare points.
+        show_max_relative_welfare_distance: Show max relative welfare distance.
+        show_reserved: Show reserved.
+        show_total_time: Show total time.
+        show_relative_time: Show relative time.
+        show_n_steps: Show n steps.
+        end_reason: End reason.
+        extra_annotation: Extra annotation.
+        name_map: Name map.
+        colors: Colors.
+        markers: Markers.
+        colormap: Colormap.
+        ax: Ax.
+        colorizer: Colorizer.
+        fast: Fast.
+    """
     import matplotlib.patches as mpatches
     import matplotlib.pyplot as plt
 
@@ -842,6 +1012,19 @@ def plot_offline_run(
     mark_ks_points: bool = True,
     mark_max_welfare_points: bool = True,
 ):
+    """Plot offline run.
+
+    Args:
+        trace: Trace.
+        ids: Ids.
+        ufuns: Ufuns.
+        agreement: Agreement.
+        timedout: Timedout.
+        broken: Broken.
+        has_error: Has error.
+        errstr: Errstr.
+        names: Names.
+    """
     import matplotlib.gridspec as gridspec
     import matplotlib.pyplot as plt
 
@@ -1022,6 +1205,11 @@ def plot_mechanism_run(
     mark_ks_points: bool = True,
     mark_max_welfare_points: bool = True,
 ):
+    """Plot mechanism run.
+
+    Args:
+        mechanism: Mechanism.
+    """
     import matplotlib.gridspec as gridspec
     import matplotlib.pyplot as plt
 

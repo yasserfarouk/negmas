@@ -1,3 +1,4 @@
+"""Module for   init   functionality."""
 from .mapping import *
 from .independent import *
 from .locscale import *

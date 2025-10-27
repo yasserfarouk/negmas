@@ -66,18 +66,36 @@ def isreal(x):
 
 
 def get_one_int(i: int | tuple[int, int]):
+    """Get one int.
+
+    Args:
+        i: I.
+    """
     if isinstance(i, int):
         return i
     return random.randint(*i)
 
 
 def get_one_float(rng: float | tuple[float, float]):
+    """Get one float.
+
+    Args:
+        rng: Rng.
+    """
     if isinstance(rng, float):
         return rng
     return random.random() * (rng[1] - rng[0]) + rng[0]
 
 
 def make_range(x: T | tuple[T, T]) -> tuple[T, T]:
+    """Make range.
+
+    Args:
+        x: X.
+
+    Returns:
+        tuple[T, T]: The result.
+    """
     if isinstance(x, Iterable):
         return x  # type: ignore
     return (x, x)

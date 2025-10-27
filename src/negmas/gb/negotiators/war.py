@@ -1,4 +1,7 @@
+"""Negotiator implementations."""
+
 from __future__ import annotations
+
 from ..components.acceptance import (
     AcceptAnyRational,
     AcceptBetterRational,
@@ -24,6 +27,12 @@ class WABNegotiator(MAPNegotiator):
     """
 
     def __init__(self, *args, **kwargs):
+        """Initialize the instance.
+
+        Args:
+            *args: Additional positional arguments.
+            **kwargs: Additional keyword arguments.
+        """
         kwargs["acceptance"] = AcceptBetterRational()
         kwargs["offering"] = WAROfferingPolicy()
         super().__init__(*args, **kwargs)
@@ -43,6 +52,12 @@ class WARNegotiator(MAPNegotiator):
     """
 
     def __init__(self, *args, **kwargs):
+        """Initialize the instance.
+
+        Args:
+            *args: Additional positional arguments.
+            **kwargs: Additional keyword arguments.
+        """
         kwargs["acceptance"] = AcceptAnyRational()
         kwargs["offering"] = WAROfferingPolicy()
         super().__init__(*args, **kwargs)
@@ -62,6 +77,12 @@ class WANNegotiator(MAPNegotiator):
     """
 
     def __init__(self, *args, **kwargs):
+        """Initialize the instance.
+
+        Args:
+            *args: Additional positional arguments.
+            **kwargs: Additional keyword arguments.
+        """
         kwargs["acceptance"] = AcceptNotWorseRational()
         kwargs["offering"] = WAROfferingPolicy()
         super().__init__(*args, **kwargs)

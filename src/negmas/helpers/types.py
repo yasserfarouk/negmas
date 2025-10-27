@@ -37,6 +37,8 @@ TYPE_START = "__TYPE__:"
 
 
 class ReturnCause(Enum):
+    """ReturnCause implementation."""
+
     TIMEOUT = 0
     SUCCESS = 1
     FAILURE = 2
@@ -44,16 +46,37 @@ class ReturnCause(Enum):
 
 @overload
 def get_full_type_name(t: None) -> None:
+    """Get full type name.
+
+    Args:
+        t: T.
+    """
     ...
 
 
 @overload
 def get_full_type_name(t: str) -> str:
+    """Get full type name.
+
+    Args:
+        t: T.
+
+    Returns:
+        str: The result.
+    """
     ...
 
 
 @overload
 def get_full_type_name(t: type[Any] | Callable) -> str:
+    """Get full type name.
+
+    Args:
+        t: T.
+
+    Returns:
+        str: The result.
+    """
     ...
 
 
@@ -197,6 +220,11 @@ def is_not_lambda_nor_partial_function(obj):
 
 
 def is_jsonable(x):
+    """Check if jsonable.
+
+    Args:
+        x: X.
+    """
     try:
         json.dumps(x)
         return True

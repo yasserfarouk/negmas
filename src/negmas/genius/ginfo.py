@@ -1132,6 +1132,11 @@ ALL_ANAC_AGENTS = [_ for _ in ALL_NEGOTIATORS if "anac" in _]
 
 
 def simplify_name(x: str):
+    """Simplify name.
+
+    Args:
+        x: X.
+    """
     for c in ("agent", "Agent", "_main"):
         if x.endswith(c):
             x = x[: -len(c)]
@@ -1363,6 +1368,15 @@ def get_anac_agents(
     """
 
     def get_agents(year, d) -> set[tuple[str, str]]:
+        """Get agents.
+
+        Args:
+            year: Year.
+            d: D.
+
+        Returns:
+            set[tuple[str, str]]: The result.
+        """
         if winners_only:
             lst = d.get("winners", [[]])
             lst = list(itertools.chain(*lst))

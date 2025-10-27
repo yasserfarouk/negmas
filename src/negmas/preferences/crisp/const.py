@@ -1,4 +1,7 @@
+"""Module for const functionality."""
+
 from __future__ import annotations
+
 import random
 
 from negmas.helpers import get_full_type_name
@@ -24,26 +27,59 @@ class ConstUtilityFunction(StationaryMixin, UtilityFunction):
     def __init__(
         self, value: Value, *, reserved_value: float = float("-inf"), **kwargs
     ):
+        """Initialize the instance.
+
+        Args:
+            value: Value.
+            **kwargs: Additional keyword arguments.
+        """
         super().__init__(**kwargs)
         self.reserved_value = reserved_value
         self.value = value
 
     def to_dict(self, python_class_identifier=PYTHON_CLASS_IDENTIFIER):
+        """To dict.
+
+        Args:
+            python_class_identifier: Python class identifier.
+        """
         d = {python_class_identifier: get_full_type_name(type(self))}
         d.update(super().to_dict(python_class_identifier=python_class_identifier))
         return dict(value=self.value, **d)
 
     @classmethod
     def from_dict(cls, d, python_class_identifier=PYTHON_CLASS_IDENTIFIER):
+        """From dict.
+
+        Args:
+            d: D.
+            python_class_identifier: Python class identifier.
+        """
         d.pop(python_class_identifier, None)
         return cls(**d)
 
     def eval(self, offer: Outcome) -> float:
+        """Eval.
+
+        Args:
+            offer: Offer being considered.
+
+        Returns:
+            float: The result.
+        """
         if offer is None:
             return self.reserved_value
         return float(self.value)
 
     def xml(self, issues: list[Issue]) -> str:
+        """Xml.
+
+        Args:
+            issues: Issues.
+
+        Returns:
+            str: The result.
+        """
         from negmas.preferences.crisp.linear import AffineUtilityFunction
 
         return AffineUtilityFunction(
@@ -79,4 +115,5 @@ class ConstUtilityFunction(StationaryMixin, UtilityFunction):
         return cls(**kwargs)
 
     def __str__(self):
+        """str  ."""
         return str(self.value)

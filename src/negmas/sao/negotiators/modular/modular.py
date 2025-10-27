@@ -1,4 +1,6 @@
 # ruff: noqa: F403
+"""Module for modular functionality."""
+
 import negmas.gb.negotiators.modular.modular as _n
 from negmas.gb.negotiators.modular.modular import *
 

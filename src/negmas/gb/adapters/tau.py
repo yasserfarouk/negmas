@@ -1,3 +1,5 @@
+"""Module for tau functionality."""
+
 from typing import Any
 
 import numpy as np
@@ -65,6 +67,14 @@ class UtilityAdapter:
     def __call__(
         self, outcome: Outcome | ExtendedOutcome | None
     ) -> Outcome | ExtendedOutcome | None:
+        """Make instance callable.
+
+        Args:
+            outcome: Outcome to evaluate.
+
+        Returns:
+            Outcome | ExtendedOutcome | None: The result.
+        """
         if isinstance(outcome, ExtendedOutcome):
             outcome = outcome.outcome
         if outcome is None:
@@ -190,15 +200,30 @@ class UtilityAdapter:
 
     @property
     def average_u_diff(self) -> float:
+        """Average u diff.
+
+        Returns:
+            float: The result.
+        """
         if not self.n_offers:
             return 0.0
         return self.udiff / self.n_offers
 
     @property
     def total_u_diff(self) -> float:
+        """Total u diff.
+
+        Returns:
+            float: The result.
+        """
         return self.udiff
 
     def on_preferences_changed(self, ufun: BaseUtilityFunction | None):
+        """On preferences changed.
+
+        Args:
+            ufun: Ufun.
+        """
         self.ufun = ufun
         self._n_rational = float("inf")  # type: ignore
         self.outcome_index = dict()
@@ -277,6 +302,12 @@ class TAUNegotiatorAdapter(GBNegotiator):
         adapt_call: bool = False,
         **kwargs,
     ):
+        """Initialize the instance.
+
+        Args:
+            *args: Additional positional arguments.
+            **kwargs: Additional keyword arguments.
+        """
         self._adapt_call = adapt_call
         self.base = base
         if acceptance_policy is not None:
@@ -287,6 +318,7 @@ class TAUNegotiatorAdapter(GBNegotiator):
 
     @property
     def java_uuid(self):
+        """Java uuid."""
         return self.base.java_uuid  # type: ignore
 
     def _sao_stat_from_gb_state(
@@ -381,11 +413,29 @@ class TAUNegotiatorAdapter(GBNegotiator):
     def propose(
         self, state: GBState, dest: str | None = None
     ) -> Outcome | ExtendedOutcome | None:
+        """Propose.
+
+        Args:
+            state: Current state.
+            dest: Dest.
+
+        Returns:
+            Outcome | ExtendedOutcome | None: The result.
+        """
         return self.adapter(
             self.base.propose(self._sao_stat_from_gb_state(state, self.id), dest=dest)
         )
 
     def respond(self, state: GBState, source: str | None) -> ResponseType:
+        """Respond.
+
+        Args:
+            state: Current state.
+            source: Source identifier.
+
+        Returns:
+            ResponseType: The result.
+        """
         offer = get_offer(state, source)
         adapted_state = self._sao_stat_from_gb_state(state, source)
         response = self.base.respond(adapted_state, source)
@@ -396,51 +446,136 @@ class TAUNegotiatorAdapter(GBNegotiator):
         return response
 
     def on_partner_proposal(self, state: GBState, *args, **kwargs) -> None:
+        """On partner proposal.
+
+        Args:
+            state: Current state.
+            *args: Additional positional arguments.
+            **kwargs: Additional keyword arguments.
+        """
         return self.base.on_partner_proposal(
             self._sao_stat_from_gb_state(state), *args, **kwargs
         )
 
     def on_partner_response(self, state: GBState, *args, **kwargs) -> None:
+        """On partner response.
+
+        Args:
+            state: Current state.
+            *args: Additional positional arguments.
+            **kwargs: Additional keyword arguments.
+        """
         return self.base.on_partner_response(
             self._sao_stat_from_gb_state(state), *args, **kwargs
         )
 
     def on_partner_ended(self, partner: str):
+        """On partner ended.
+
+        Args:
+            partner: Partner.
+        """
         return self.base.on_partner_ended(partner)
 
     def propose_(
         self, state: GBState, *args, **kwargs
     ) -> Outcome | ExtendedOutcome | None:
+        """Propose .
+
+        Args:
+            state: Current state.
+            *args: Additional positional arguments.
+            **kwargs: Additional keyword arguments.
+
+        Returns:
+            Outcome | ExtendedOutcome | None: The result.
+        """
         return self.base.propose_(self._sao_stat_from_gb_state(state), *args, **kwargs)
 
     def respond_(self, state: GBState, *args, **kwargs) -> ResponseType:
+        """Respond .
+
+        Args:
+            state: Current state.
+            *args: Additional positional arguments.
+            **kwargs: Additional keyword arguments.
+
+        Returns:
+            ResponseType: The result.
+        """
         return self.base.respond_(self._sao_stat_from_gb_state(state), *args, **kwargs)
 
     def on_preferences_changed(self, *args, **kwargs):
+        """On preferences changed.
+
+        Args:
+            *args: Additional positional arguments.
+            **kwargs: Additional keyword arguments.
+        """
         self.base.on_preferences_changed(*args, **kwargs)
         self.adapter.on_preferences_changed(self.base.ufun)
 
     def set_preferences(
         self, value: Preferences | None, force=False, ignore_exceptions: bool = False
     ) -> Preferences | None:
+        """Set preferences.
+
+        Args:
+            value: Value.
+            force: Force.
+            ignore_exceptions: Ignore exceptions.
+
+        Returns:
+            Preferences | None: The result.
+        """
         super().set_preferences(value, force=force)
         r = self.base.set_preferences(value, force)
         self.adapter.ufun = self.base.ufun
         return r
 
     def before_death(self, cntxt: dict[str, Any]) -> bool:
+        """Before death.
+
+        Args:
+            cntxt: Cntxt.
+
+        Returns:
+            bool: The result.
+        """
         return self.base.before_death(cntxt)
 
     def isin(self, negotiation_id: str | None) -> bool:
+        """Isin.
+
+        Args:
+            negotiation_id: Negotiation id.
+
+        Returns:
+            bool: The result.
+        """
         return self.base.isin(negotiation_id)
 
     def add_capabilities(self, capabilities: dict) -> None:
+        """Add capabilities.
+
+        Args:
+            capabilities: Capabilities.
+        """
         super().add_capabilities(capabilities)
         self.base.add_capabilities(capabilities)
 
     def join(
         self, nmi, state: GBState, *, preferences=None, ufun=None, role="negotiator"
     ) -> bool:
+        """Join.
+
+        Args:
+            nmi: Nmi.
+            state: Current state.
+
+        Returns:
+            bool: The result.
+        """
         joined = self.base.join(
             nmi=nmi,
             state=self._sao_stat_from_gb_state(state),
@@ -473,34 +608,88 @@ class TAUNegotiatorAdapter(GBNegotiator):
         self.base.owner = owner
 
     def is_acceptable_as_agreement(self, outcome: Outcome) -> bool:
+        """Check if acceptable as agreement.
+
+        Args:
+            outcome: Outcome to evaluate.
+
+        Returns:
+            bool: The result.
+        """
         return self.base.is_acceptable_as_agreement(outcome)
 
     def remove_capability(self, name: str) -> None:
+        """Remove capability.
+
+        Args:
+            name: Name.
+        """
         self.base.remove_capability(name)
 
     def on_negotiation_start(self, state: GBState) -> None:
+        """On negotiation start.
+
+        Args:
+            state: Current state.
+        """
         return self.base.on_negotiation_start(self._sao_stat_from_gb_state(state))
 
     def on_round_start(self, state: GBState) -> None:
+        """On round start.
+
+        Args:
+            state: Current state.
+        """
         return self.base.on_round_start(self._sao_stat_from_gb_state(state))
 
     def on_mechanism_error(self, state: GBState) -> None:
+        """On mechanism error.
+
+        Args:
+            state: Current state.
+        """
         return self.base.on_mechanism_error(self._sao_stat_from_gb_state(state))
 
     def on_round_end(self, state: GBState) -> None:
+        """On round end.
+
+        Args:
+            state: Current state.
+        """
         return self.base.on_round_end(self._sao_stat_from_gb_state(state))
 
     def on_leave(self, state: GBState) -> None:
+        """On leave.
+
+        Args:
+            state: Current state.
+        """
         return self.base.on_leave(self._sao_stat_from_gb_state(state))
 
     def on_negotiation_end(self, state: GBState) -> None:
+        """On negotiation end.
+
+        Args:
+            state: Current state.
+        """
         return self.base.on_negotiation_start(self._sao_stat_from_gb_state(state))
 
     def on_notification(self, notification, notifier: str):
+        """On notification.
+
+        Args:
+            notification: Notification.
+            notifier: Notifier.
+        """
         super().on_notification(notification, notifier)
         self.base.on_notification(notification, notifier)
 
     def cancel(self, reason=None) -> None:
+        """Cancel.
+
+        Args:
+            reason: Reason.
+        """
         return self.base.cancel(reason)
 
     @property
@@ -516,6 +705,11 @@ class TAUNegotiatorAdapter(GBNegotiator):
 
     @crisp_ufun.setter
     def crisp_ufun(self, v):
+        """Crisp ufun.
+
+        Args:
+            v: V.
+        """
         self.base.crisp_ufun = v
 
     @property
@@ -525,14 +719,29 @@ class TAUNegotiatorAdapter(GBNegotiator):
 
     @prob_ufun.setter
     def prob_ufun(self, v):
+        """Prob ufun.
+
+        Args:
+            v: V.
+        """
         self.base.prob_ufun = v
 
     @property
     def ufun(self) -> BaseUtilityFunction | None:
+        """Ufun.
+
+        Returns:
+            BaseUtilityFunction | None: The result.
+        """
         return self.base.ufun
 
     @ufun.setter
     def ufun(self, v: BaseUtilityFunction):
+        """Ufun.
+
+        Args:
+            v: V.
+        """
         self.base.ufun = v
 
     @property
@@ -542,12 +751,27 @@ class TAUNegotiatorAdapter(GBNegotiator):
 
     @property
     def has_cardinal_preferences(self) -> bool:
+        """Check if has cardinal preferences.
+
+        Returns:
+            bool: The result.
+        """
         return self.base.has_cardinal_preferences
 
     @property
     def reserved_outcome(self) -> Outcome | None:
+        """Reserved outcome.
+
+        Returns:
+            Outcome | None: The result.
+        """
         return self.base.reserved_outcome
 
     @property
     def reserved_value(self) -> float:
+        """Reserved value.
+
+        Returns:
+            float: The result.
+        """
         return self.base.reserved_value

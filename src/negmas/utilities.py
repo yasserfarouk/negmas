@@ -1,5 +1,8 @@
 # ruff: noqa: F403
+"""Module for utilities functionality."""
+
 from __future__ import annotations
+
 from negmas import warnings
 
 

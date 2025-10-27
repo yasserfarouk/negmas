@@ -1,4 +1,7 @@
+"""Situated negotiation."""
+
 from __future__ import annotations
+
 import copy
 import re
 import uuid
@@ -100,6 +103,15 @@ class BulletinBoard(EventSource, ConfigReader):
 
     @classmethod
     def satisfies(cls, value: Any, query: Any) -> bool:
+        """Satisfies.
+
+        Args:
+            value: Value.
+            query: Query.
+
+        Returns:
+            bool: The result.
+        """
         method = getattr(value, "satisfies", None)
         if method is not None and isinstance(method, Callable):
             return method(query)

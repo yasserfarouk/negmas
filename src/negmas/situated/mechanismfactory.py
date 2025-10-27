@@ -1,4 +1,7 @@
+"""Negotiation mechanism implementations."""
+
 from __future__ import annotations
+
 from typing import TYPE_CHECKING, Any, Iterable
 
 from negmas.events import Event
@@ -38,6 +41,25 @@ class MechanismFactory:
         log_ufuns_file=None,
         group: str | None = None,
     ):
+        """Initialize the instance.
+
+        Args:
+            world: World.
+            mechanism_name: Mechanism name.
+            mechanism_params: Mechanism params.
+            issues: Issues.
+            req_id: Req id.
+            caller: Caller.
+            partners: Partners.
+            roles: Roles.
+            annotation: Annotation.
+            neg_n_steps: Neg n steps.
+            neg_time_limit: Neg time limit.
+            neg_step_time_limit: Neg step time limit.
+            allow_self_negotiation: Allow self negotiation.
+            log_ufuns_file: Log ufuns file.
+            group: Group.
+        """
         self.mechanism_name, self.mechanism_params = mechanism_name, mechanism_params
         self.caller = caller
         self.group = group
@@ -266,6 +288,11 @@ class MechanismFactory:
         return neg_info
 
     def init(self) -> NegotiationInfo | None:
+        """Init.
+
+        Returns:
+            NegotiationInfo | None: The result.
+        """
         return self._start_negotiation(
             mechanism_name=self.mechanism_name,
             mechanism_params=self.mechanism_params,

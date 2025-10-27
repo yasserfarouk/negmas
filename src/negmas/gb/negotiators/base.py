@@ -1,4 +1,7 @@
+"""Negotiators base classes."""
+
 from __future__ import annotations
+
 from abc import abstractmethod
 from collections import defaultdict
 from typing import TYPE_CHECKING, Generic, TypeVar
@@ -23,6 +26,7 @@ TState = TypeVar("TState", bound=MechanismState)
 
 
 def none_return():
+    """None return."""
     return None
 
 
@@ -55,6 +59,18 @@ class GBNegotiator(Negotiator[GBNMI, GBState], Generic[TNMI, TState]):
         type_name: str | None = None,
         **kwargs,
     ):
+        """Initialize the instance.
+
+        Args:
+            preferences: Preferences.
+            ufun: Ufun.
+            name: Name.
+            parent: Parent.
+            owner: Owner.
+            id: Id.
+            type_name: Type name.
+            **kwargs: Additional keyword arguments.
+        """
         super().__init__(
             name=name,
             preferences=preferences,
@@ -193,11 +209,29 @@ class GBNegotiator(Negotiator[GBNMI, GBState], Generic[TNMI, TState]):
     def propose_(
         self, state: SAOState, dest: str | None = None
     ) -> Outcome | ExtendedOutcome | None:
+        """Propose .
+
+        Args:
+            state: Current state.
+            dest: Dest.
+
+        Returns:
+            Outcome | ExtendedOutcome | None: The result.
+        """
         if not self._capabilities["propose"] or self.__end_negotiation:
             return None
         return self.propose(state=self._gb_state_from_sao_state(state), dest=dest)
 
     def respond_(self, state: SAOState, source: str | None = None) -> ResponseType:
+        """Respond .
+
+        Args:
+            state: Current state.
+            source: Source identifier.
+
+        Returns:
+            ResponseType: The result.
+        """
         offer = state.current_offer
         if self.__end_negotiation:
             return ResponseType.END_NEGOTIATION

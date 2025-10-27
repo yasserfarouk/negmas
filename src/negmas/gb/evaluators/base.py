@@ -49,14 +49,32 @@ class EvaluationStrategy(ABC):
         ...
 
     def __and__(self, other: EvaluationStrategy) -> EvaluationStrategy:
+        """and  .
+
+        Args:
+            other: Other.
+
+        Returns:
+            EvaluationStrategy: The result.
+        """
         return AllAcceptEvaluationStrategy([self, other])
 
     def __or__(self, other: EvaluationStrategy) -> EvaluationStrategy:
+        """or  .
+
+        Args:
+            other: Other.
+
+        Returns:
+            EvaluationStrategy: The result.
+        """
         return AnyAcceptEvaluationStrategy([self, other])
 
 
 @define
 class LocalEvaluationStrategy(EvaluationStrategy):
+    """LocalEvaluation strategy."""
+
     def __call__(
         self,
         negotiator_ids: list[str],
@@ -90,26 +108,77 @@ class LocalEvaluationStrategy(EvaluationStrategy):
         history: list[ThreadState],
         mechanism_state: MechanismState,
     ) -> GBResponse:
+        """Eval.
+
+        Args:
+            negotiator_id: Negotiator id.
+            state: Current state.
+            history: History.
+            mechanism_state: Mechanism state.
+
+        Returns:
+            GBResponse: The result.
+        """
         ...
 
 
 class AnyAcceptEvaluationStrategy(EvaluationStrategy):
+    """AnyAcceptEvaluation strategy."""
+
     def __init__(self, strategies: list[EvaluationStrategy]):
+        """Initialize the instance.
+
+        Args:
+            strategies: Strategies.
+        """
         self._strategies = strategies
 
     def __call__(self, *args, **kwargs) -> GBResponse:
+        """Make instance callable.
+
+        Args:
+            *args: Additional positional arguments.
+            **kwargs: Additional keyword arguments.
+
+        Returns:
+            GBResponse: The result.
+        """
         return any_accept([_(*args, **kwargs) for _ in self._strategies])
 
 
 class AllAcceptEvaluationStrategy(EvaluationStrategy):
+    """AllAcceptEvaluation strategy."""
+
     def __init__(self, strategies: list[EvaluationStrategy]):
+        """Initialize the instance.
+
+        Args:
+            strategies: Strategies.
+        """
         self._strategies = strategies
 
     def __call__(self, *args, **kwargs) -> GBResponse:
+        """Make instance callable.
+
+        Args:
+            *args: Additional positional arguments.
+            **kwargs: Additional keyword arguments.
+
+        Returns:
+            GBResponse: The result.
+        """
         return all_accept([_(*args, **kwargs) for _ in self._strategies])
 
 
 def all_accept(responses: list[GBResponse]) -> GBResponse:
+    """All accept.
+
+    Args:
+        responses: Responses.
+
+    Returns:
+        GBResponse: The result.
+    """
     if not responses:
         return "continue"
     if len(set(responses)) == 1:
@@ -121,6 +190,14 @@ def all_accept(responses: list[GBResponse]) -> GBResponse:
 
 
 def any_accept(responses: list[GBResponse]) -> GBResponse:
+    """Any accept.
+
+    Args:
+        responses: Responses.
+
+    Returns:
+        GBResponse: The result.
+    """
     if not responses:
         return "continue"
     acceptances = [_ for _ in responses if isinstance(_, Outcome)]

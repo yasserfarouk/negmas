@@ -1,3 +1,4 @@
+"""Module for   init   functionality."""
 from pathlib import Path
 from negmas.inout import Scenario
 

@@ -1,3 +1,4 @@
+"""Module for   init   functionality."""
 from .modular import *
 from .boa import *
 from .mapneg import *

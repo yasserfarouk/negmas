@@ -39,6 +39,7 @@ class EventSource:
     """An object capable of raising events"""
 
     def __init__(self):
+        """Initialize the instance."""
         super().__init__()
         self.__sinks: dict[str | None, list[EventSink]] = defaultdict(list)
 
@@ -67,10 +68,21 @@ class EventSink:
     """An object capable of receiving events"""
 
     def on_event(self, event: Event, sender: EventSource):
+        """On event.
+
+        Args:
+            event: Event.
+            sender: Sender.
+        """
         pass
 
 
 def myvars(x):
+    """Myvars.
+
+    Args:
+        x: X.
+    """
     if not x:
         return x
     return {
@@ -90,6 +102,12 @@ class EventLogger(EventSink):
     """
 
     def __init__(self, file_name: str | Path, types: list[str] | None = None):
+        """Initialize the instance.
+
+        Args:
+            file_name: File name.
+            types: Types.
+        """
         file_name = Path(file_name)
         file_name.parent.mkdir(parents=True, exist_ok=True)
         self._file_name = file_name
@@ -97,6 +115,7 @@ class EventLogger(EventSink):
         self._start = time.perf_counter()
 
     def reset_timer(self):
+        """Reset timer."""
         self._start = time.perf_counter()
 
     def on_event(
@@ -105,6 +124,13 @@ class EventLogger(EventSink):
         sender: EventSource,
         python_class_identifier=PYTHON_CLASS_IDENTIFIER,
     ):
+        """On event.
+
+        Args:
+            event: Event.
+            sender: Sender.
+            python_class_identifier: Python class identifier.
+        """
         if not self._file_name:
             return
         if self._types is not None and event.type not in self._types:
@@ -149,6 +175,8 @@ class EventLogger(EventSink):
 
 @dataclass
 class Notification:
+    """Notification implementation."""
+
     __slots__ = ["type", "data"]
     type: str
     data: Any
@@ -158,6 +186,12 @@ class Notifier(NamedObject):
     """An object that can notify other objects"""
 
     def notify(self, notifiable: Notifiable, notification: Notification):
+        """Notify.
+
+        Args:
+            notifiable: Notifiable.
+            notification: Notification.
+        """
         notifiable.on_notification_(notification=notification, notifier=self.id)
 
 

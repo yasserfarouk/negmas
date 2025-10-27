@@ -31,6 +31,8 @@ Outcome = tuple
 
 @define(frozen=True)
 class ExtendedOutcome:
+    """ExtendedOutcome implementation."""
+
     outcome: Outcome
     data: dict[str, Any] | None = None
 

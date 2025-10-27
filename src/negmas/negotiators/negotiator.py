@@ -1,4 +1,7 @@
+"""Negotiator implementations."""
+
 from __future__ import annotations
+
 from typing import TYPE_CHECKING, Any, TypeVar, Generic
 
 import negmas.warnings as warnings
@@ -57,6 +60,18 @@ class Negotiator(Rational, Notifiable, Generic[TNMI, TState]):
         type_name: str | None = None,
         private_info: dict[str, Any] | None = None,
     ) -> None:
+        """Initialize the instance.
+
+        Args:
+            name: Name.
+            preferences: Preferences.
+            ufun: Ufun.
+            parent: Parent.
+            owner: Owner.
+            id: Id.
+            type_name: Type name.
+            private_info: Private info.
+        """
         self._private_info = private_info if private_info else dict()
         if ufun is not None:
             preferences = ufun
@@ -75,6 +90,11 @@ class Negotiator(Rational, Notifiable, Generic[TNMI, TState]):
 
     @property
     def ami(self) -> TNMI:
+        """Ami.
+
+        Returns:
+            TNMI: The result.
+        """
         warnings.deprecated(
             "`ami` is depricated and will not be a member of `Negotiator` in the future. Use `nmi` instead."
         )
@@ -82,10 +102,20 @@ class Negotiator(Rational, Notifiable, Generic[TNMI, TState]):
 
     @property
     def opponent_ufun(self) -> BaseUtilityFunction | None:
+        """Opponent ufun.
+
+        Returns:
+            BaseUtilityFunction | None: The result.
+        """
         return self.private_info.get("opponent_ufun", None)
 
     @property
     def nmi(self) -> TNMI:
+        """Nmi.
+
+        Returns:
+            TNMI: The result.
+        """
         return self._nmi  # type: ignore
 
     @property
@@ -107,6 +137,16 @@ class Negotiator(Rational, Notifiable, Generic[TNMI, TState]):
     def set_preferences(
         self, value: Preferences | None, force=False, ignore_exceptions: bool = False
     ) -> Preferences | None:
+        """Set preferences.
+
+        Args:
+            value: Value.
+            force: Force.
+            ignore_exceptions: Ignore exceptions.
+
+        Returns:
+            Preferences | None: The result.
+        """
         if self._nmi is None:
             self._preferences = value
             return
@@ -433,4 +473,5 @@ class Negotiator(Rational, Notifiable, Generic[TNMI, TState]):
         """
 
     def __str__(self):
+        """str  ."""
         return f"{self.name}"

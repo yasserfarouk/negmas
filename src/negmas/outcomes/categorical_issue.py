@@ -1,4 +1,7 @@
+"""Outcome representations."""
+
 from __future__ import annotations
+
 import random
 from typing import Any, Generator
 
@@ -14,6 +17,12 @@ class CategoricalIssue(DiscreteIssue):
     """
 
     def __init__(self, values, name=None) -> None:
+        """Initialize the instance.
+
+        Args:
+            values: Values.
+            name: Name.
+        """
         super().__init__(values, name)
         values = list(values)
         self._n_values = len(values)
@@ -27,6 +36,11 @@ class CategoricalIssue(DiscreteIssue):
 
     @property
     def type(self) -> str:
+        """Type.
+
+        Returns:
+            str: The result.
+        """
         return "categorical"
 
     def _to_xml_str(self, indx):
@@ -38,13 +52,28 @@ class CategoricalIssue(DiscreteIssue):
         return output
 
     def is_continuous(self) -> bool:
+        """Check if continuous.
+
+        Returns:
+            bool: The result.
+        """
         return False
 
     def is_uncountable(self) -> bool:
+        """Check if uncountable.
+
+        Returns:
+            bool: The result.
+        """
         return False
 
     @property
     def all(self) -> Generator[Any, None, None]:
+        """All.
+
+        Returns:
+            Generator[Any, None, None]: The result.
+        """
         yield from self._values
 
     def rand_invalid(self):  # type: ignore

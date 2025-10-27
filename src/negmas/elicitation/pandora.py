@@ -1,4 +1,7 @@
+"""Preference elicitation."""
+
 from __future__ import annotations
+
 import functools
 import random
 import time
@@ -159,6 +162,12 @@ class BasePandoraElicitor(BaseElicitor):
         max_aspiration=0.99,
         aspiration_type="boulware",
     ) -> None:
+        """Initialize the instance.
+
+        Args:
+            user: User.
+            strategy: Strategy.
+        """
         super().__init__(
             strategy=strategy,
             user=user,
@@ -194,6 +203,11 @@ class BasePandoraElicitor(BaseElicitor):
         self.__asp = PolyAspiration(max_aspiration, aspiration_type)
 
     def utility_at(self, x):
+        """Utility at.
+
+        Args:
+            x: X.
+        """
         return self.__asp.utility_at(x)
 
     def utility_on_rejection(self, outcome: Outcome, state: MechanismState) -> Value:
@@ -299,6 +313,13 @@ class BasePandoraElicitor(BaseElicitor):
         else:
 
             def qualityfun(z, distribution, cost):
+                """Qualityfun.
+
+                Args:
+                    z: Z.
+                    distribution: Distribution.
+                    cost: Cost.
+                """
                 c_estimate = distribution.expect(lambda x: x - z, lb=z, ub=1.0)
                 if self.user_model_in_index:
                     p = self.opponent_model.probability_of_acceptance(outcomes[i])
@@ -476,6 +497,16 @@ class FullElicitor(BasePandoraElicitor):
         base_negotiator: SAONegotiator = AspirationNegotiator(),
         **kwargs,
     ) -> None:
+        """Initialize the instance.
+
+        Args:
+            strategy: Strategy.
+            user: User.
+            epsilon: Epsilon.
+            true_utility_on_zero_cost: True utility on zero cost.
+            base_negotiator: Base negotiator.
+            **kwargs: Additional keyword arguments.
+        """
         kwargs["deep_elicitation"] = True
         super().__init__(
             strategy=strategy,
@@ -488,17 +519,34 @@ class FullElicitor(BasePandoraElicitor):
         self.elicited = {}
 
     def update_best_offer_utility(self, outcome: Outcome, u: Value):
+        """Update best offer utility.
+
+        Args:
+            outcome: Outcome to evaluate.
+            u: U.
+        """
         pass
 
     def init_elicitation(
         self, preferences: IPUtilityFunction | Distribution | None, **kwargs
     ):
+        """Init elicitation.
+
+        Args:
+            preferences: Preferences.
+            **kwargs: Additional keyword arguments.
+        """
         super().init_elicitation(preferences=preferences)
         strt_time = time.perf_counter()
         self.elicited = False
         self._elicitation_time += time.perf_counter() - strt_time
 
     def elicit(self, state: MechanismState):
+        """Elicit.
+
+        Args:
+            state: Current state.
+        """
         if not self.elicited:
             outcomes = self._nmi.outcomes
             utilities = [
@@ -510,6 +558,11 @@ class FullElicitor(BasePandoraElicitor):
             self.elicited = True
 
     def init_unknowns(self) -> list[tuple[float, int]]:
+        """Init unknowns.
+
+        Returns:
+            list[tuple[float, int]]: The result.
+        """
         self.unknown = []
 
 
@@ -533,6 +586,18 @@ class RandomElicitor(BasePandoraElicitor):
         single_elicitation_per_round=False,
         **kwargs,
     ) -> None:
+        """Initialize the instance.
+
+        Args:
+            strategy: Strategy.
+            user: User.
+            deep_elicitation: Deep elicitation.
+            true_utility_on_zero_cost: True utility on zero cost.
+            base_negotiator: Base negotiator.
+            opponent_model_factory: Opponent model factory.
+            single_elicitation_per_round: Single elicitation per round.
+            **kwargs: Additional keyword arguments.
+        """
         kwargs["epsilon"] = 0.001
         super().__init__(
             strategy=strategy,
@@ -546,6 +611,7 @@ class RandomElicitor(BasePandoraElicitor):
         )
 
     def init_unknowns(self) -> None:
+        """Init unknowns."""
         n = self._nmi.n_outcomes
         z: list[tuple[float, int | None]] = list(
             zip((-random.random() for _ in range(n + 1)), range(n + 1))
@@ -555,6 +621,12 @@ class RandomElicitor(BasePandoraElicitor):
         self.unknown = z
 
     def update_best_offer_utility(self, outcome: Outcome, u: Value):
+        """Update best offer utility.
+
+        Args:
+            outcome: Outcome to evaluate.
+            u: U.
+        """
         pass
 
 
@@ -577,6 +649,13 @@ class PandoraElicitor(BasePandoraElicitor):
     """
 
     def __init__(self, strategy: EStrategy, user: User, **kwargs) -> None:
+        """Initialize the instance.
+
+        Args:
+            strategy: Strategy.
+            user: User.
+            **kwargs: Additional keyword arguments.
+        """
         kwargs.update(
             dict(
                 base_negotiator=AspirationNegotiator(),
@@ -604,6 +683,12 @@ class FastElicitor(PandoraElicitor):
     """
 
     def __init__(self, *args, **kwargs):
+        """Initialize the instance.
+
+        Args:
+            *args: Additional positional arguments.
+            **kwargs: Additional keyword arguments.
+        """
         kwargs["deep_elicitation"] = False
         super().__init__(*args, **kwargs)
 
@@ -611,6 +696,12 @@ class FastElicitor(PandoraElicitor):
         """We need not do anything here as we will remove the outcome anyway to the known list"""
 
     def do_elicit(self, outcome: Outcome, state: MechanismState):
+        """Do elicit.
+
+        Args:
+            outcome: Outcome to evaluate.
+            state: Current state.
+        """
         return self.expect(super().do_elicit(outcome, state), state=state)
 
 
@@ -622,6 +713,13 @@ class OptimalIncrementalElicitor(FastElicitor):
     """
 
     def __init__(self, strategy: EStrategy, user: User, **kwargs) -> None:
+        """Initialize the instance.
+
+        Args:
+            strategy: Strategy.
+            user: User.
+            **kwargs: Additional keyword arguments.
+        """
         kwargs.update(dict(incremental=True))
         super().__init__(strategy=strategy, user=user, **kwargs)
 
@@ -631,6 +729,13 @@ class MeanElicitor(OptimalIncrementalElicitor):
     estimating utilities"""
 
     def __init__(self, strategy: EStrategy, user: User, **kwargs) -> None:
+        """Initialize the instance.
+
+        Args:
+            strategy: Strategy.
+            user: User.
+            **kwargs: Additional keyword arguments.
+        """
         kwargs.update(dict(expector_factory=MeanExpector))
         super().__init__(strategy=strategy, user=user, **kwargs)
 
@@ -640,6 +745,13 @@ class BalancedElicitor(OptimalIncrementalElicitor):
     estimating utilities"""
 
     def __init__(self, strategy: EStrategy, user: User, **kwargs) -> None:
+        """Initialize the instance.
+
+        Args:
+            strategy: Strategy.
+            user: User.
+            **kwargs: Additional keyword arguments.
+        """
         kwargs.update(dict(expector_factory=BalancedExpector))
         super().__init__(strategy=strategy, user=user, **kwargs)
 
@@ -659,6 +771,13 @@ class AspiringElicitor(OptimalIncrementalElicitor):
         aspiration_type: float | str = "linear",
         **kwargs,
     ) -> None:
+        """Initialize the instance.
+
+        Args:
+            strategy: Strategy.
+            user: User.
+            **kwargs: Additional keyword arguments.
+        """
         kwargs.update(
             dict(
                 expector_factory=lambda: AspiringExpector(
@@ -682,6 +801,13 @@ class PessimisticElicitor(OptimalIncrementalElicitor):
     utilities."""
 
     def __init__(self, strategy: EStrategy, user: User, **kwargs) -> None:
+        """Initialize the instance.
+
+        Args:
+            strategy: Strategy.
+            user: User.
+            **kwargs: Additional keyword arguments.
+        """
         kwargs.update(dict(expector_factory=MinExpector))
         super().__init__(strategy=strategy, user=user, **kwargs)
 
@@ -691,5 +817,12 @@ class OptimisticElicitor(OptimalIncrementalElicitor):
     utilities."""
 
     def __init__(self, strategy: EStrategy, user: User, **kwargs) -> None:
+        """Initialize the instance.
+
+        Args:
+            strategy: Strategy.
+            user: User.
+            **kwargs: Additional keyword arguments.
+        """
         kwargs.update(dict(expector_factory=MaxExpector))
         super().__init__(strategy=strategy, user=user, **kwargs)

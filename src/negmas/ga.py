@@ -33,6 +33,14 @@ class GAMechanism(
     """
 
     def generate(self, n: int) -> list[Outcome]:
+        """Generate.
+
+        Args:
+            n: Number of items.
+
+        Returns:
+            list[Outcome]: The result.
+        """
         return self.random_outcomes(n)
 
     def __init__(
@@ -43,6 +51,13 @@ class GAMechanism(
         mutate_rate: float = 0.1,
         **kwargs,
     ):
+        """Initialize the instance.
+
+        Args:
+            initial_state: Initial state.
+            *args: Additional positional arguments.
+            **kwargs: Additional keyword arguments.
+        """
         super().__init__(initial_state if initial_state else GAState(), *args, **kwargs)
 
         self.n_population = n_population
@@ -88,6 +103,7 @@ class GAMechanism(
         return self.population
 
     def update_ranks(self):
+        """Update ranks."""
         self.ranks.clear()
         outcomes = {}
         for outcome in self.population:
@@ -126,6 +142,15 @@ class GAMechanism(
     def __call__(  # type: ignore
         self, state: GAState, action: MechanismAction | None = None
     ) -> MechanismStepResult:
+        """Make instance callable.
+
+        Args:
+            state: Current state.
+            action: Action.
+
+        Returns:
+            MechanismStepResult: The result.
+        """
         self.update_ranks()
         self.update_dominant_outcomes()
         self.next_generation(self.select(self.population))

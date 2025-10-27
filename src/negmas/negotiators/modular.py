@@ -1,4 +1,7 @@
+"""Negotiator implementations."""
+
 from __future__ import annotations
+
 import itertools
 from typing import TYPE_CHECKING, Iterable
 
@@ -58,6 +61,12 @@ class ModularNegotiator(Negotiator):
         component_names: Iterable[str] | None = None,
         **kwargs,
     ):
+        """Initialize the instance.
+
+        Args:
+            *args: Additional positional arguments.
+            **kwargs: Additional keyword arguments.
+        """
         super().__init__(*args, **kwargs)
         self._components: list[Component] = []
         self.__component_map: dict[str, int] = dict()
@@ -68,6 +77,11 @@ class ModularNegotiator(Negotiator):
 
     @property
     def components(self) -> tuple[Component, ...]:
+        """Components.
+
+        Returns:
+            tuple[Component, ...]: The result.
+        """
         return tuple(self._components)
 
     def remove_component_at(self, index: int) -> None:
@@ -98,6 +112,15 @@ class ModularNegotiator(Negotiator):
         ufun: BaseUtilityFunction | None = None,
         role: str = "negotiator",
     ) -> bool:
+        """Join.
+
+        Args:
+            nmi: Nmi.
+            state: Current state.
+
+        Returns:
+            bool: The result.
+        """
         if not all(
             _.can_join(nmi, state, preferences=preferences, ufun=ufun, role=role)
             for _ in self._components

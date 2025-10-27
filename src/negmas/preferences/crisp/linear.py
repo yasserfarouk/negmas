@@ -1,4 +1,7 @@
+"""Module for linear functionality."""
+
 from __future__ import annotations
+
 import random
 from functools import lru_cache, partial
 from typing import Any, Callable, Iterable, Mapping, TYPE_CHECKING
@@ -126,6 +129,14 @@ class AffineUtilityFunction(StationaryMixin, UtilityFunction):
         *args,
         **kwargs,
     ) -> None:
+        """Initialize the instance.
+
+        Args:
+            weights: Weights.
+            bias: Bias.
+            *args: Additional positional arguments.
+            **kwargs: Additional keyword arguments.
+        """
         super().__init__(*args, **kwargs)
         if self.outcome_space and not isinstance(
             self.outcome_space, IndependentIssuesOS
@@ -161,17 +172,28 @@ class AffineUtilityFunction(StationaryMixin, UtilityFunction):
 
     @property
     def bias(self):
+        """Bias."""
         return self._bias
 
     @property
     def weights(self):
+        """Weights."""
         return self._weights
 
     @property
     def values(self):
+        """Values."""
         return self._values
 
     def eval(self, offer: Outcome | None) -> float:
+        """Eval.
+
+        Args:
+            offer: Offer being considered.
+
+        Returns:
+            float: The result.
+        """
         if offer is None:
             return self.reserved_value
         return self._bias + sum(w * v for w, v in zip(self._weights, offer))
@@ -232,7 +254,7 @@ class AffineUtilityFunction(StationaryMixin, UtilityFunction):
             output += vfun.xml(i, issue, bias)
 
         for i, w in enumerate(self._weights):
-            output += f'<weight index="{i+1}" value="{w}">\n</weight>\n'
+            output += f'<weight index="{i + 1}" value="{w}">\n</weight>\n'
         if abs(self._bias) > EPSILON:
             output += f'<weight index="{len(self._weights) + 1}" value="{self._bias}">\n</weight>\n'
         return output
@@ -245,6 +267,13 @@ class AffineUtilityFunction(StationaryMixin, UtilityFunction):
         normalized=True,
     ):
         # from negmas.preferences.ops import normalize
+        """Random.
+
+        Args:
+            issues: Issues.
+            reserved_value: Reserved value.
+            normalized: Normalized.
+        """
         for issue in issues:
             if not issue.is_numeric():
                 raise ValueError(
@@ -279,12 +308,23 @@ class AffineUtilityFunction(StationaryMixin, UtilityFunction):
         return ufun
 
     def to_dict(self, python_class_identifier=PYTHON_CLASS_IDENTIFIER):
+        """To dict.
+
+        Args:
+            python_class_identifier: Python class identifier.
+        """
         d = {python_class_identifier: get_full_type_name(type(self))}
         d.update(super().to_dict(python_class_identifier=PYTHON_CLASS_IDENTIFIER))
         return dict(**d, weights=self._weights, bias=self._bias)
 
     @classmethod
     def from_dict(cls, d: dict, python_class_identifier=PYTHON_CLASS_IDENTIFIER):
+        """From dict.
+
+        Args:
+            d: D.
+            python_class_identifier: Python class identifier.
+        """
         if isinstance(d, cls):
             return d
         d.pop(python_class_identifier, None)
@@ -300,6 +340,15 @@ class AffineUtilityFunction(StationaryMixin, UtilityFunction):
     def shift_by(
         self, offset: float, shift_reserved: bool = True
     ) -> AffineUtilityFunction:
+        """Shift by.
+
+        Args:
+            offset: Offset.
+            shift_reserved: Shift reserved.
+
+        Returns:
+            AffineUtilityFunction: The result.
+        """
         return AffineUtilityFunction(
             self._weights,
             self._bias + offset,
@@ -313,6 +362,15 @@ class AffineUtilityFunction(StationaryMixin, UtilityFunction):
     def scale_by(
         self, scale: float, scale_reserved: bool = True
     ) -> AffineUtilityFunction:
+        """Scale by.
+
+        Args:
+            scale: Scale.
+            scale_reserved: Scale reserved.
+
+        Returns:
+            AffineUtilityFunction: The result.
+        """
         if scale < 0:
             raise ValueError(f"Cannot have a negative scale: {scale}")
         weights = [_ * scale for _ in self._weights]
@@ -382,6 +440,15 @@ class AffineUtilityFunction(StationaryMixin, UtilityFunction):
     def normalize(
         self, to: tuple[float, float] = (0.0, 1.0), normalize_weights: bool = False
     ) -> ConstUtilityFunction | AffineUtilityFunction | LinearUtilityFunction:
+        """Normalize.
+
+        Args:
+            to: To.
+            normalize_weights: Normalize weights.
+
+        Returns:
+            ConstUtilityFunction | AffineUtilityFunction | LinearUtilityFunction: The result.
+        """
         return self.normalize_for(to, self.outcome_space)
 
     def extreme_outcomes(
@@ -391,6 +458,17 @@ class AffineUtilityFunction(StationaryMixin, UtilityFunction):
         outcomes: Iterable[Outcome] | None = None,
         max_cardinality=1000,
     ) -> tuple[Outcome, Outcome]:
+        """Extreme outcomes.
+
+        Args:
+            outcome_space: Outcome space.
+            issues: Issues.
+            outcomes: Outcomes.
+            max_cardinality: Max cardinality.
+
+        Returns:
+            tuple[Outcome, Outcome]: The result.
+        """
         return self._extreme_outcomes(outcome_space, issues, outcomes, max_cardinality)
 
     @lru_cache
@@ -466,6 +544,7 @@ class AffineUtilityFunction(StationaryMixin, UtilityFunction):
         return super().extreme_outcomes(original_os, issues, outcomes, max_cardinality)
 
     def __str__(self):
+        """str  ."""
         return f"w: {self._weights}, b: {self._bias}"
 
 
@@ -495,6 +574,13 @@ class LinearUtilityFunction(AffineUtilityFunction):
         *args,
         **kwargs,
     ) -> None:
+        """Initialize the instance.
+
+        Args:
+            weights: Weights.
+            *args: Additional positional arguments.
+            **kwargs: Additional keyword arguments.
+        """
         kwargs["bias"] = 0
         super().__init__(weights, *args, **kwargs)
 
@@ -588,6 +674,15 @@ class LinearAdditiveUtilityFunction(  # type: ignore
         *args,
         **kwargs,
     ) -> None:
+        """Initialize the instance.
+
+        Args:
+            values: Values.
+            weights: Weights.
+            bias: Bias.
+            *args: Additional positional arguments.
+            **kwargs: Additional keyword arguments.
+        """
         super().__init__(*args, **kwargs)
         self._bias = bias
         if self.outcome_space and not isinstance(
@@ -653,9 +748,18 @@ class LinearAdditiveUtilityFunction(  # type: ignore
 
     @property
     def weights(self):
+        """Weights."""
         return self._weights
 
     def eval(self, offer: Outcome | None) -> float:
+        """Eval.
+
+        Args:
+            offer: Offer being considered.
+
+        Returns:
+            float: The result.
+        """
         if offer is None:
             return self.reserved_value
         u = self._bias
@@ -740,13 +844,18 @@ class LinearAdditiveUtilityFunction(  # type: ignore
             output += vfun.xml(i, issue, 0.0)
 
         for i, w in enumerate(self.weights):
-            output += f'<weight index="{i+1}" value="{w}">\n</weight>\n'
+            output += f'<weight index="{i + 1}" value="{w}">\n</weight>\n'
         # if we have a bias, just add one extra issue with a weight equal to the bias (this issue will implicitly be assumed to be numeric with a single value of 1)
         if abs(self._bias) > EPSILON:
             output += f'<weight index="{len(self.weights) + 1}" value="{self._bias}">\n</weight>\n'
         return output
 
     def to_dict(self, python_class_identifier=PYTHON_CLASS_IDENTIFIER):
+        """To dict.
+
+        Args:
+            python_class_identifier: Python class identifier.
+        """
         d = {python_class_identifier: get_full_type_name(type(self))}
         d.update(super().to_dict(python_class_identifier=python_class_identifier))
         return dict(
@@ -759,6 +868,12 @@ class LinearAdditiveUtilityFunction(  # type: ignore
 
     @classmethod
     def from_dict(cls, d: dict, python_class_identifier=PYTHON_CLASS_IDENTIFIER):
+        """From dict.
+
+        Args:
+            d: D.
+            python_class_identifier: Python class identifier.
+        """
         if isinstance(d, cls):
             return d
         d.pop(python_class_identifier, None)
@@ -778,6 +893,17 @@ class LinearAdditiveUtilityFunction(  # type: ignore
         outcomes: Iterable[Outcome] | None = None,
         max_cardinality=1000,
     ) -> tuple[Outcome, Outcome]:
+        """Extreme outcomes.
+
+        Args:
+            outcome_space: Outcome space.
+            issues: Issues.
+            outcomes: Outcomes.
+            max_cardinality: Max cardinality.
+
+        Returns:
+            tuple[Outcome, Outcome]: The result.
+        """
         return self._extreme_outcomes(outcome_space, issues, outcomes, max_cardinality)
 
     @lru_cache
@@ -865,6 +991,15 @@ class LinearAdditiveUtilityFunction(  # type: ignore
         **kwargs,
     ):
         # from negmas.preferences.ops import normalize
+        """Random.
+
+        Args:
+            outcome_space: Outcome space.
+            issues: Issues.
+            reserved_value: Reserved value.
+            normalized: Normalized.
+            **kwargs: Additional keyword arguments.
+        """
         if not issues and outcome_space:
             issues = outcome_space.issues
         if not issues:
@@ -895,6 +1030,16 @@ class LinearAdditiveUtilityFunction(  # type: ignore
     def shift_by(
         self, offset: float, shift_reserved: bool = True, change_bias_only: bool = False
     ) -> LinearAdditiveUtilityFunction:
+        """Shift by.
+
+        Args:
+            offset: Offset.
+            shift_reserved: Shift reserved.
+            change_bias_only: Change bias only.
+
+        Returns:
+            LinearAdditiveUtilityFunction: The result.
+        """
         if change_bias_only:
             return LinearAdditiveUtilityFunction(
                 values=self.values,  # type: ignore
@@ -926,6 +1071,17 @@ class LinearAdditiveUtilityFunction(  # type: ignore
         change_weights_only: bool = False,
         normalize_weights: bool = True,
     ) -> LinearAdditiveUtilityFunction:
+        """Scale by.
+
+        Args:
+            scale: Scale.
+            scale_reserved: Scale reserved.
+            change_weights_only: Change weights only.
+            normalize_weights: Normalize weights.
+
+        Returns:
+            LinearAdditiveUtilityFunction: The result.
+        """
         if scale < 0:
             raise ValueError(f"Cannot have a negative scale: {scale}")
         if change_weights_only and normalize_weights:
@@ -962,6 +1118,7 @@ class LinearAdditiveUtilityFunction(  # type: ignore
         )
 
     def __str__(self):
+        """str  ."""
         return f"u: {self.values}\n w: {self.weights}"
 
 

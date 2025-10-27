@@ -1,4 +1,6 @@
 # ruff: noqa: F403
+"""Concession strategies for negotiation."""
+
 import negmas.gb.components.concession as _n
 from negmas.gb.components.concession import *
 

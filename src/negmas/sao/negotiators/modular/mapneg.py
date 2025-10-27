@@ -1,4 +1,6 @@
 # ruff: noqa: F403
+"""Module for mapneg functionality."""
+
 import negmas.gb.negotiators.modular.mapneg as _n
 from negmas.gb.negotiators.modular.mapneg import *
 

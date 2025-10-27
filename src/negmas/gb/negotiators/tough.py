@@ -1,4 +1,7 @@
+"""Negotiator implementations."""
+
 from __future__ import annotations
+
 from ..components import AcceptAbove, AcceptBest, AcceptTop, OfferBest, OfferTop
 from .modular import MAPNegotiator
 
@@ -23,6 +26,12 @@ class ToughNegotiator(MAPNegotiator):
     """
 
     def __init__(self, can_propose=True, **kwargs):
+        """Initialize the instance.
+
+        Args:
+            can_propose: Can propose.
+            **kwargs: Additional keyword arguments.
+        """
         acceptance = AcceptBest()
         offering = None if not can_propose else OfferBest()
         super().__init__(acceptance=acceptance, offering=offering, **kwargs)
@@ -53,6 +62,15 @@ class TopFractionNegotiator(MAPNegotiator):
         can_propose=True,
         **kwargs,
     ):
+        """Initialize the instance.
+
+        Args:
+            min_utility: Min utility.
+            top_fraction: Top fraction.
+            best_first: Best first.
+            can_propose: Can propose.
+            **kwargs: Additional keyword arguments.
+        """
         acceptance = AcceptAbove(min_utility) and AcceptTop(top_fraction)
         offering = None if not can_propose else OfferTop(top_fraction)
         self._best_first = best_first
@@ -60,6 +78,12 @@ class TopFractionNegotiator(MAPNegotiator):
         super().__init__(acceptance=acceptance, offering=offering, **kwargs)
 
     def propose(self, state, dest: str | None = None):
+        """Propose.
+
+        Args:
+            state: Current state.
+            dest: Dest.
+        """
         if not self.ufun:
             return None
         if not self.__offered:

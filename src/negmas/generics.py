@@ -6,6 +6,7 @@ collections (e.g. `list`, `tuple`, `generator`) or even `Callable`\ s without aw
 other modules of the library.
 
 """
+
 from __future__ import annotations
 from typing import Any, Callable, Iterable, Mapping, Sequence, Union
 

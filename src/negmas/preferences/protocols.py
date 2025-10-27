@@ -1,4 +1,7 @@
+"""Protocol definitions."""
+
 from __future__ import annotations
+
 from abc import abstractmethod
 from os import PathLike
 from pathlib import Path
@@ -89,10 +92,28 @@ class XmlSerializableUFun(Protocol):
     def from_genius(
         cls: type[X], issues: list[Issue], file_name: PathLike, **kwargs
     ) -> X:
+        """From genius.
+
+        Args:
+            issues: Issues.
+            file_name: File name.
+            **kwargs: Additional keyword arguments.
+
+        Returns:
+            X: The result.
+        """
         ...
 
     @abstractmethod
     def xml(self, issues: list[Issue]) -> str:
+        """Xml.
+
+        Args:
+            issues: Issues.
+
+        Returns:
+            str: The result.
+        """
         ...
 
 
@@ -152,6 +173,11 @@ class HasReservedValue(Protocol):
 
     @property
     def reserved_distribution(self) -> Distribution:
+        """Reserved distribution.
+
+        Returns:
+            Distribution: The result.
+        """
         ...
 
 
@@ -167,6 +193,7 @@ class StationaryConvertible(Protocol):
     """Can be converted to stationary Prefereences (i.e. one indepndent of the negotiation session, state or external factors). The conversion is only accurate at the instant it is done"""
 
     def to_stationary(self):
+        """To stationary."""
         ...
 
 
@@ -325,6 +352,14 @@ class UFun(CardinalProb, Protocol):
         """
 
     def __call__(self, offer: Outcome | None) -> Value:
+        """Make instance callable.
+
+        Args:
+            offer: Offer being considered.
+
+        Returns:
+            Value: The result.
+        """
         ...
 
 
@@ -336,12 +371,33 @@ class UFunCrisp(UFun, Protocol):
     """Can be called to map an `Outcome` to a `float`"""
 
     def eval(self, offer: Outcome) -> float:
+        """Eval.
+
+        Args:
+            offer: Offer being considered.
+
+        Returns:
+            float: The result.
+        """
         ...
 
     def to_stationary(self: T) -> T:
+        """To stationary.
+
+        Returns:
+            T: The result.
+        """
         ...
 
     def __call__(self, offer: Outcome | None) -> float:
+        """Make instance callable.
+
+        Args:
+            offer: Offer being considered.
+
+        Returns:
+            float: The result.
+        """
         ...
 
 
@@ -351,9 +407,25 @@ class UFunProb(UFun, Protocol):
 
     @abstractmethod
     def eval(self, offer: Outcome) -> Distribution:
+        """Eval.
+
+        Args:
+            offer: Offer being considered.
+
+        Returns:
+            Distribution: The result.
+        """
         ...
 
     def __call__(self, offer: Outcome | None) -> Distribution:
+        """Make instance callable.
+
+        Args:
+            offer: Offer being considered.
+
+        Returns:
+            Distribution: The result.
+        """
         ...
 
 
@@ -429,6 +501,11 @@ class InverseUFun(Protocol):
     initialized: bool
 
     def __init__(self, ufun: UFun) -> None:
+        """Initialize the instance.
+
+        Args:
+            ufun: Ufun.
+        """
         ...
 
     def init(self):
@@ -667,20 +744,57 @@ class Fun(Protocol):
 
     @property
     def dim(self) -> int:
+        """Dim.
+
+        Returns:
+            int: The result.
+        """
         ...
 
     def minmax(self, input) -> tuple[float, float]:
+        """Minmax.
+
+        Args:
+            input: Input.
+
+        Returns:
+            tuple[float, float]: The result.
+        """
         ...
 
     @abstractmethod
     def shift_by(self, offset: float) -> Fun:
+        """Shift by.
+
+        Args:
+            offset: Offset.
+
+        Returns:
+            Fun: The result.
+        """
         ...
 
     @abstractmethod
     def scale_by(self, scale: float) -> Fun:
+        """Scale by.
+
+        Args:
+            scale: Scale.
+
+        Returns:
+            Fun: The result.
+        """
         ...
 
     def __call__(self, x) -> float:
+        """Make instance callable.
+
+        Args:
+            x: X.
+
+        Returns:
+            float: The result.
+        """
         ...
 
 
@@ -689,12 +803,38 @@ class SingleIssueFun(Fun, Protocol):
     """A value function mapping values from a **single** issue to a real number"""
 
     def xml(self, indx: int, issue: Issue, bias=0.0) -> str:
+        """Xml.
+
+        Args:
+            indx: Indx.
+            issue: Issue.
+            bias: Bias.
+
+        Returns:
+            str: The result.
+        """
         ...
 
     def min(self, input: Issue) -> float:
+        """Min.
+
+        Args:
+            input: Input.
+
+        Returns:
+            float: The result.
+        """
         ...
 
     def max(self, input: Issue) -> float:
+        """Max.
+
+        Args:
+            input: Input.
+
+        Returns:
+            float: The result.
+        """
         ...
 
 
@@ -704,21 +844,68 @@ class MultiIssueFun(Fun, Protocol):
 
     @property
     def dim(self) -> int:
+        """Dim.
+
+        Returns:
+            int: The result.
+        """
         ...
 
     def minmax(self, input: tuple[Issue, ...]) -> tuple[float, float]:
+        """Minmax.
+
+        Args:
+            input: Input.
+
+        Returns:
+            tuple[float, float]: The result.
+        """
         ...
 
     def shift_by(self, offset: float) -> MultiIssueFun:
+        """Shift by.
+
+        Args:
+            offset: Offset.
+
+        Returns:
+            MultiIssueFun: The result.
+        """
         ...
 
     def scale_by(self, scale: float) -> MultiIssueFun:
+        """Scale by.
+
+        Args:
+            scale: Scale.
+
+        Returns:
+            MultiIssueFun: The result.
+        """
         ...
 
     def xml(self, indx: int, issues: list[Issue] | tuple[Issue, ...], bias=0.0) -> str:
+        """Xml.
+
+        Args:
+            indx: Indx.
+            issues: Issues.
+            bias: Bias.
+
+        Returns:
+            str: The result.
+        """
         ...
 
     def __call__(self, x: tuple) -> float:
+        """Make instance callable.
+
+        Args:
+            x: X.
+
+        Returns:
+            float: The result.
+        """
         ...
 
 
@@ -728,14 +915,41 @@ class Shiftable(CardinalProb, Protocol):
 
     @abstractmethod
     def shift_by(self, offset: float, shift_reserved=True) -> Shiftable:
+        """Shift by.
+
+        Args:
+            offset: Offset.
+            shift_reserved: Shift reserved.
+
+        Returns:
+            Shiftable: The result.
+        """
         ...
 
     @abstractmethod
     def shift_min(self, to: float, rng: tuple[float, float] | None = None) -> Shiftable:
+        """Shift min.
+
+        Args:
+            to: To.
+            rng: Rng.
+
+        Returns:
+            Shiftable: The result.
+        """
         ...
 
     @abstractmethod
     def shift_max(self, to: float, rng: tuple[float, float] | None = None) -> Shiftable:
+        """Shift max.
+
+        Args:
+            to: To.
+            rng: Rng.
+
+        Returns:
+            Shiftable: The result.
+        """
         ...
 
 
@@ -745,14 +959,41 @@ class Scalable(UFun, Protocol):
 
     @abstractmethod
     def scale_by(self, scale: float, scale_reserved=True) -> Scalable:
+        """Scale by.
+
+        Args:
+            scale: Scale.
+            scale_reserved: Scale reserved.
+
+        Returns:
+            Scalable: The result.
+        """
         ...
 
     @abstractmethod
     def scale_min(self, to: float, rng: tuple[float, float] | None = None) -> Scalable:
+        """Scale min.
+
+        Args:
+            to: To.
+            rng: Rng.
+
+        Returns:
+            Scalable: The result.
+        """
         ...
 
     @abstractmethod
     def scale_max(self, to: float, rng: tuple[float, float] | None = None) -> Scalable:
+        """Scale max.
+
+        Args:
+            to: To.
+            rng: Rng.
+
+        Returns:
+            Scalable: The result.
+        """
         ...
 
 
@@ -769,6 +1010,18 @@ class PartiallyShiftable(Scalable, Protocol):
         outcomes: list[Outcome] | None = None,
         rng: tuple[float, float] | None = None,
     ) -> PartiallyScalable:
+        """Shift min for.
+
+        Args:
+            to: To.
+            outcome_space: Outcome space.
+            issues: Issues.
+            outcomes: Outcomes.
+            rng: Rng.
+
+        Returns:
+            PartiallyScalable: The result.
+        """
         ...
 
     @abstractmethod
@@ -780,6 +1033,18 @@ class PartiallyShiftable(Scalable, Protocol):
         outcomes: list[Outcome] | None = None,
         rng: tuple[float, float] | None = None,
     ) -> PartiallyScalable:
+        """Shift max for.
+
+        Args:
+            to: To.
+            outcome_space: Outcome space.
+            issues: Issues.
+            outcomes: Outcomes.
+            rng: Rng.
+
+        Returns:
+            PartiallyScalable: The result.
+        """
         ...
 
 
@@ -796,6 +1061,18 @@ class PartiallyScalable(Scalable, BasePref, Protocol):
         outcomes: list[Outcome] | None = None,
         rng: tuple[float, float] | None = None,
     ) -> PartiallyScalable:
+        """Scale min for.
+
+        Args:
+            to: To.
+            outcome_space: Outcome space.
+            issues: Issues.
+            outcomes: Outcomes.
+            rng: Rng.
+
+        Returns:
+            PartiallyScalable: The result.
+        """
         ...
 
     @abstractmethod
@@ -807,6 +1084,18 @@ class PartiallyScalable(Scalable, BasePref, Protocol):
         outcomes: list[Outcome] | None = None,
         rng: tuple[float, float] | None = None,
     ) -> PartiallyScalable:
+        """Scale max for.
+
+        Args:
+            to: To.
+            outcome_space: Outcome space.
+            issues: Issues.
+            outcomes: Outcomes.
+            rng: Rng.
+
+        Returns:
+            PartiallyScalable: The result.
+        """
         ...
 
 
@@ -819,6 +1108,14 @@ class Normalizable(Shiftable, Scalable, Protocol):
 
     @abstractmethod
     def normalize(self: N, to: tuple[float, float] = (0.0, 1.0)) -> N:
+        """Normalize.
+
+        Args:
+            to: To.
+
+        Returns:
+            N: The result.
+        """
         ...
 
 

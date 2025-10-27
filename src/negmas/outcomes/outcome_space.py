@@ -1,4 +1,7 @@
+"""Outcome representations."""
+
 from __future__ import annotations
+
 from math import isinf
 import numbers
 from functools import reduce
@@ -89,13 +92,17 @@ def make_os(
 
 @define
 class OSWithValidity:
+    """OSWithValidity implementation."""
+
     invalid: set[Outcome] = field(factory=set)
     _baseset: set[Outcome] = field(factory=set)
 
     def __attrs_post_init__(self):
+        """attrs post init  ."""
         self.update()
 
     def update(self):
+        """Update."""
         self._baseset = set(self.enumerate()).difference(self.invalid)
 
 
@@ -182,6 +189,16 @@ class EnumeratingOutcomeSpace(DiscreteOutcomeSpace, OSWithValidity):
     def to_largest_discrete(
         self, levels: int, max_cardinality: int | float = float("inf"), **kwargs
     ) -> DiscreteOutcomeSpace:
+        """To largest discrete.
+
+        Args:
+            levels: Levels.
+            max_cardinality: Max cardinality.
+            **kwargs: Additional keyword arguments.
+
+        Returns:
+            DiscreteOutcomeSpace: The result.
+        """
         return self
 
     def cardinality_if_discretized(
@@ -209,6 +226,14 @@ class EnumeratingOutcomeSpace(DiscreteOutcomeSpace, OSWithValidity):
         return self.is_discrete()
 
     def __contains__(self, item: Outcome | OutcomeSpace | Issue) -> bool:  # type: ignore
+        """contains  .
+
+        Args:
+            item: Item.
+
+        Returns:
+            bool: The result.
+        """
         if isinstance(item, Issue):
             return False
         if isinstance(item, Outcome):
@@ -252,6 +277,15 @@ class EnumeratingOutcomeSpace(DiscreteOutcomeSpace, OSWithValidity):
     def to_single_issue(
         self, numeric: bool = False, stringify: bool = True
     ) -> CartesianOutcomeSpace:
+        """To single issue.
+
+        Args:
+            numeric: Numeric.
+            stringify: Stringify.
+
+        Returns:
+            CartesianOutcomeSpace: The result.
+        """
         ...
 
 
@@ -265,10 +299,19 @@ class CartesianOutcomeSpace(XmlSerializable):
     name: str | None = field(eq=False, default=None)
 
     def __attrs_post_init__(self):
+        """attrs post init  ."""
         if not self.name:
             object.__setattr__(self, "name", unique_name("os", add_time=False, sep=""))
 
     def __mul__(self, other: CartesianOutcomeSpace) -> CartesianOutcomeSpace:
+        """mul  .
+
+        Args:
+            other: Other.
+
+        Returns:
+            CartesianOutcomeSpace: The result.
+        """
         issues = list(self.issues) + list(other.issues)
         name = f"{self.name}*{other.name}"
         return CartesianOutcomeSpace(tuple(issues), name=name)
@@ -278,6 +321,14 @@ class CartesianOutcomeSpace(XmlSerializable):
         return x in self.issues
 
     def is_valid(self, outcome: Outcome) -> bool:
+        """Check if valid.
+
+        Args:
+            outcome: Outcome to evaluate.
+
+        Returns:
+            bool: The result.
+        """
         return outcome_is_valid(outcome, self.issues)
 
     def is_discrete(self) -> bool:
@@ -307,6 +358,11 @@ class CartesianOutcomeSpace(XmlSerializable):
         return all(self.is_valid(_) for _ in x.enumerate())  # type: ignore If we are here, we know that x is finite
 
     def to_dict(self, python_class_identifier=PYTHON_CLASS_IDENTIFIER):
+        """To dict.
+
+        Args:
+            python_class_identifier: Python class identifier.
+        """
         d = {python_class_identifier: get_full_type_name(type(self))}
         return dict(
             **d,
@@ -318,6 +374,12 @@ class CartesianOutcomeSpace(XmlSerializable):
 
     @classmethod
     def from_dict(cls, d, python_class_identifier=PYTHON_CLASS_IDENTIFIER):
+        """From dict.
+
+        Args:
+            d: D.
+            python_class_identifier: Python class identifier.
+        """
         return cls(**deserialize(d, python_class_identifier=python_class_identifier))  # type: ignore
 
     @property
@@ -387,6 +449,17 @@ class CartesianOutcomeSpace(XmlSerializable):
     def from_xml_str(
         cls, xml_str: str, safe_parsing=True, name=None, **kwargs
     ) -> CartesianOutcomeSpace:
+        """From xml str.
+
+        Args:
+            xml_str: Xml str.
+            safe_parsing: Safe parsing.
+            name: Name.
+            **kwargs: Additional keyword arguments.
+
+        Returns:
+            CartesianOutcomeSpace: The result.
+        """
         issues, _ = issues_from_xml_str(
             xml_str, safe_parsing=safe_parsing, n_discretization=None
         )
@@ -404,11 +477,30 @@ class CartesianOutcomeSpace(XmlSerializable):
         issue_names: list[str] | None = None,
         name: str | None = None,
     ) -> DiscreteCartesianOutcomeSpace:
+        """From outcomes.
+
+        Args:
+            outcomes: Outcomes.
+            numeric_as_ranges: Numeric as ranges.
+            issue_names: Issue names.
+            name: Name.
+
+        Returns:
+            DiscreteCartesianOutcomeSpace: The result.
+        """
         return DiscreteCartesianOutcomeSpace(
             issues_from_outcomes(outcomes, numeric_as_ranges, issue_names), name=name
         )
 
     def to_xml_str(self, **kwargs) -> str:
+        """To xml str.
+
+        Args:
+            **kwargs: Additional keyword arguments.
+
+        Returns:
+            str: The result.
+        """
         return issues_to_xml_str(self.issues)
 
     def are_types_ok(self, outcome: Outcome) -> bool:
@@ -422,16 +514,36 @@ class CartesianOutcomeSpace(XmlSerializable):
     def sample(
         self, n_outcomes: int, with_replacement: bool = True, fail_if_not_enough=True
     ) -> Iterable[Outcome]:
+        """Sample.
+
+        Args:
+            n_outcomes: N outcomes.
+            with_replacement: With replacement.
+            fail_if_not_enough: Fail if not enough.
+
+        Returns:
+            Iterable[Outcome]: The result.
+        """
         return sample_issues(
             self.issues, n_outcomes, with_replacement, fail_if_not_enough
         )
 
     def random_outcome(self):
+        """Random outcome."""
         return tuple(_.rand() for _ in self.issues)
 
     def cardinality_if_discretized(
         self, levels: int, max_cardinality: int | float = float("inf")
     ) -> int:
+        """Cardinality if discretized.
+
+        Args:
+            levels: Levels.
+            max_cardinality: Max cardinality.
+
+        Returns:
+            int: The result.
+        """
         c = reduce(
             mul, [_.cardinality if _.is_discrete() else levels for _ in self.issues], 1
         )
@@ -440,6 +552,16 @@ class CartesianOutcomeSpace(XmlSerializable):
     def to_largest_discrete(
         self, levels: int, max_cardinality: int | float = float("inf"), **kwargs
     ) -> DiscreteCartesianOutcomeSpace:
+        """To largest discrete.
+
+        Args:
+            levels: Levels.
+            max_cardinality: Max cardinality.
+            **kwargs: Additional keyword arguments.
+
+        Returns:
+            DiscreteCartesianOutcomeSpace: The result.
+        """
         for level in range(levels, 0, -1):
             if self.cardinality_if_discretized(levels) < max_cardinality:
                 break
@@ -491,7 +613,19 @@ class CartesianOutcomeSpace(XmlSerializable):
             )
 
         def is_irrational(x: Outcome):
+            """Check if irrational.
+
+            Args:
+                x: X.
+            """
+
             def irrational(u: HasReservedOutcome | HasReservedValue, x: Outcome):
+                """Irrational.
+
+                Args:
+                    u: U.
+                    x: X.
+                """
                 if isinstance(u, HasReservedValue):
                     if u.reserved_value is None:
                         return False
@@ -555,6 +689,11 @@ class CartesianOutcomeSpace(XmlSerializable):
         return dos.to_single_issue(numeric, stringify)  # type: ignore
 
     def __contains__(self, item):
+        """contains  .
+
+        Args:
+            item: Item.
+        """
         if isinstance(item, OutcomeSpace):
             return self.contains_os(item)
         if isinstance(item, Issue):
@@ -585,9 +724,20 @@ class DiscreteCartesianOutcomeSpace(CartesianOutcomeSpace):
     def to_largest_discrete(
         self, levels: int, max_cardinality: int | float = float("inf"), **kwargs
     ) -> DiscreteCartesianOutcomeSpace:
+        """To largest discrete.
+
+        Args:
+            levels: Levels.
+            max_cardinality: Max cardinality.
+            **kwargs: Additional keyword arguments.
+
+        Returns:
+            DiscreteCartesianOutcomeSpace: The result.
+        """
         return self
 
     def __attrs_post_init__(self):
+        """attrs post init  ."""
         for issue in self.issues:
             if not issue.is_discrete():
                 raise ValueError(
@@ -596,14 +746,33 @@ class DiscreteCartesianOutcomeSpace(CartesianOutcomeSpace):
 
     @property
     def cardinality(self) -> int:
+        """Cardinality.
+
+        Returns:
+            int: The result.
+        """
         return reduce(mul, [_.cardinality for _ in self.issues], 1)
 
     def cardinality_if_discretized(
         self, levels: int, max_cardinality: int | float = float("inf")
     ) -> int:
+        """Cardinality if discretized.
+
+        Args:
+            levels: Levels.
+            max_cardinality: Max cardinality.
+
+        Returns:
+            int: The result.
+        """
         return self.cardinality
 
     def enumerate(self) -> Iterable[Outcome]:
+        """Enumerate.
+
+        Returns:
+            Iterable[Outcome]: The result.
+        """
         return enumerate_discrete_issues(  #  type: ignore I know that all my issues are actually discrete
             self.issues  #  type: ignore I know that all my issues are actually discrete
         )
@@ -676,6 +845,15 @@ class DiscreteCartesianOutcomeSpace(CartesianOutcomeSpace):
     def to_discrete(
         self, levels: int | float = 10, max_cardinality: int | float = float("inf")
     ) -> DiscreteCartesianOutcomeSpace:
+        """To discrete.
+
+        Args:
+            levels: Levels.
+            max_cardinality: Max cardinality.
+
+        Returns:
+            DiscreteCartesianOutcomeSpace: The result.
+        """
         return self
 
     def to_single_issue(
@@ -735,9 +913,15 @@ class DiscreteCartesianOutcomeSpace(CartesianOutcomeSpace):
     #     # return outcomes[:n_outcomes]
 
     def __iter__(self):
+        """iter  ."""
         return self.enumerate().__iter__()
 
     def __len__(self) -> int:
+        """len  .
+
+        Returns:
+            int: The result.
+        """
         return self.cardinality
 
 

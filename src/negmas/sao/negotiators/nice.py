@@ -1,4 +1,6 @@
 # ruff: noqa: F403
+"""Negotiator implementations."""
+
 import negmas.gb.negotiators.nice as _n
 from negmas.gb.negotiators.nice import *
 

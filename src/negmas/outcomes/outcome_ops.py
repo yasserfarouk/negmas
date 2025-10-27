@@ -1,6 +1,7 @@
 """
 Functions for handling outcome spaces
 """
+
 from __future__ import annotations
 
 
@@ -41,11 +42,26 @@ def _is_single(x):
 
 @overload
 def outcome2dict(outcome: None, issues: Sequence[str | Issue]) -> None:
+    """Outcome2dict.
+
+    Args:
+        outcome: Outcome to evaluate.
+        issues: Issues.
+    """
     ...
 
 
 @overload
 def outcome2dict(outcome: Outcome, issues: Sequence[str | Issue]) -> dict[str, Any]:
+    """Outcome2dict.
+
+    Args:
+        outcome: Outcome to evaluate.
+        issues: Issues.
+
+    Returns:
+        dict[str, Any]: The result.
+    """
     ...
 
 

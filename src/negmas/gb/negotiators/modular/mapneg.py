@@ -1,4 +1,7 @@
+"""Module for mapneg functionality."""
+
 from __future__ import annotations
+
 import itertools
 from typing import TYPE_CHECKING
 
@@ -45,6 +48,12 @@ class MAPNegotiator(GBModularNegotiator):
         acceptance_first: bool = True,
         **kwargs,
     ):
+        """Initialize the instance.
+
+        Args:
+            *args: Additional positional arguments.
+            **kwargs: Additional keyword arguments.
+        """
         from negmas.gb.components.models.ufun import UFunModel
 
         self._private_info = kwargs.get("private_info", dict())
@@ -100,6 +109,16 @@ class MAPNegotiator(GBModularNegotiator):
     def generate_response(
         self, state: GBState, offer: Outcome | None, source: str | None = None
     ) -> ResponseType:
+        """Generate response.
+
+        Args:
+            state: Current state.
+            offer: Offer being considered.
+            source: Source identifier.
+
+        Returns:
+            ResponseType: The result.
+        """
         if not self._acceptance:
             return ResponseType.REJECT_OFFER
         return self._acceptance.respond(state, offer, source)
@@ -107,6 +126,15 @@ class MAPNegotiator(GBModularNegotiator):
     def generate_proposal(
         self, state: GBState, dest: str | None = None
     ) -> Outcome | None:
+        """Generate proposal.
+
+        Args:
+            state: Current state.
+            dest: Dest.
+
+        Returns:
+            Outcome | None: The result.
+        """
         if not self._offering:
             return None
         return self._offering.propose(state, dest=dest)

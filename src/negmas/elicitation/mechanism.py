@@ -1,4 +1,7 @@
+"""Negotiation mechanism implementations."""
+
 from __future__ import annotations
+
 import logging
 import math
 import random
@@ -49,18 +52,39 @@ __all__ = ["SAOElicitingMechanism"]
 
 
 def uniform():
+    """Uniform."""
     loc = random.random()
     scale = random.random() * (1.0 - loc)
     return ScipyDistribution(type="uniform", loc=loc, scale=scale)
 
 
 def current_aspiration(elicitor, outcome: Outcome, negotiation: Mechanism) -> float:
+    """Current aspiration.
+
+    Args:
+        elicitor: Elicitor.
+        outcome: Outcome to evaluate.
+        negotiation: Negotiation.
+
+    Returns:
+        float: The result.
+    """
     return elicitor.utility_at(negotiation.relative_time)
 
 
 def create_negotiator(
     negotiator_type, preferences, can_propose, outcomes, toughness, **kwargs
 ):
+    """Create negotiator.
+
+    Args:
+        negotiator_type: Negotiator type.
+        preferences: Preferences.
+        can_propose: Can propose.
+        outcomes: Outcomes.
+        toughness: Toughness.
+        **kwargs: Additional keyword arguments.
+    """
     if negotiator_type == "limited_outcomes":
         if can_propose:
             negotiator = LimitedOutcomesNegotiator(
@@ -144,6 +168,8 @@ def _end(x):
 
 
 class SAOElicitingMechanism(SAOMechanism):
+    """SAOEliciting mechanism."""
+
     def __init__(
         self,
         priors,
@@ -169,6 +195,32 @@ class SAOElicitingMechanism(SAOMechanism):
         cost_assuming_titration=False,
         name: str | None = None,
     ):
+        """Initialize the instance.
+
+        Args:
+            priors: Priors.
+            true_utilities: True utilities.
+            elicitor_reserved_value: Elicitor reserved value.
+            cost: Cost.
+            opp_utility: Opp utility.
+            opponent: Opponent.
+            n_steps: N steps.
+            time_limit: Time limit.
+            base_agent: Base agent.
+            opponent_model: Opponent model.
+            elicitation_strategy: Elicitation strategy.
+            toughness: Toughness.
+            elicitor_type: Elicitor type.
+            history_file_name: History file name.
+            screen_log: Screen log.
+            dynamic_queries: Dynamic queries.
+            each_outcome_once: Each outcome once.
+            rational_answer_probs: Rational answer probs.
+            update_related_queries: Update related queries.
+            resolution: Resolution.
+            cost_assuming_titration: Cost assuming titration.
+            name: Name.
+        """
         self.elicitation_state = {}
         initial_priors = priors
         self.xw_real = priors
@@ -209,6 +261,13 @@ class SAOElicitingMechanism(SAOMechanism):
             strategy.on_enter(nmi=self.nmi, preferences=initial_priors)
 
         def create_elicitor(type_, strategy=strategy, opponent_model=opponent_model):
+            """Create elicitor.
+
+            Args:
+                type_: Type .
+                strategy: Strategy.
+                opponent_model: Opponent model.
+            """
             base_negotiator = create_negotiator(
                 negotiator_type=base_agent,
                 preferences=None,
@@ -388,6 +447,32 @@ class SAOElicitingMechanism(SAOMechanism):
         opponent_toughness=0.9,
         opponent_reserved_value=0.0,
     ) -> dict[str, Any]:
+        """Generate config.
+
+        Args:
+            cost: Cost.
+            n_outcomes: N outcomes.
+            rand_preferencess: Rand preferencess.
+            conflict: Conflict.
+            conflict_delta: Conflict delta.
+            winwin: Winwin.
+            genius_folder: Genius folder.
+            n_steps: N steps.
+            time_limit: Time limit.
+            own_utility_uncertainty: Own utility uncertainty.
+            own_uncertainty_variablility: Own uncertainty variablility.
+            own_reserved_value: Own reserved value.
+            own_base_agent: Own base agent.
+            opponent_model_uncertainty: Opponent model uncertainty.
+            opponent_model_adaptive: Opponent model adaptive.
+            opponent_proposes: Opponent proposes.
+            opponent_type: Opponent type.
+            opponent_toughness: Opponent toughness.
+            opponent_reserved_value: Opponent reserved value.
+
+        Returns:
+            dict[str, Any]: The result.
+        """
         config = {}
         if n_steps is None and time_limit is None and "aspiration" in opponent_type:
             raise ValueError(
@@ -506,6 +591,11 @@ class SAOElicitingMechanism(SAOMechanism):
         self.logger.error(s.strip())
 
     def step(self) -> SAOState:
+        """Step.
+
+        Returns:
+            SAOState: The result.
+        """
         start = time.perf_counter()
         _ = super().step()
         self.total_time += time.perf_counter() - start
@@ -515,6 +605,7 @@ class SAOElicitingMechanism(SAOMechanism):
         return _
 
     def on_negotiation_start(self):
+        """On negotiation start."""
         if not super().on_negotiation_start():
             return False
         self.elicitation_state = {}
@@ -548,6 +639,12 @@ class SAOElicitingMechanism(SAOMechanism):
         return True
 
     def plot(self, visible_negotiators=(0, 1), consider_costs=False):
+        """Plot.
+
+        Args:
+            visible_negotiators: Visible negotiators.
+            consider_costs: Consider costs.
+        """
         try:
             import matplotlib.gridspec as gridspec
             import matplotlib.pyplot as plt
@@ -738,6 +835,7 @@ class SAOElicitingMechanism(SAOMechanism):
             pass
 
     def on_negotiation_end(self):
+        """On negotiation end."""
         super().on_negotiation_end()
         self.elicitation_state = {}
         self.elicitation_state["steps"] = self._step + 1

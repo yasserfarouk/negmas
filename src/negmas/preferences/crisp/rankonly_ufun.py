@@ -1,4 +1,7 @@
+"""Utility function implementations."""
+
 from __future__ import annotations
+
 import math
 from itertools import chain
 from typing import TYPE_CHECKING
@@ -29,6 +32,14 @@ class RankOnlyUtilityFunction(StationaryMixin, UtilityFunction):
     """
 
     def eval(self, outcome: Outcome) -> int | None:
+        """Eval.
+
+        Args:
+            outcome: Outcome to evaluate.
+
+        Returns:
+            int | None: The result.
+        """
         return self._mapping.get(outcome, None)
 
     def __init__(
@@ -40,6 +51,16 @@ class RankOnlyUtilityFunction(StationaryMixin, UtilityFunction):
         id: str | None = None,
         type_name: str | None = None,
     ):
+        """Initialize the instance.
+
+        Args:
+            ufun: Ufun.
+            randomize_equal: Randomize equal.
+            eps: Eps.
+            name: Name.
+            id: Id.
+            type_name: Type name.
+        """
         if ufun.outcome_space is None:
             raise ValueError(
                 "Cannot craerte a RankOnly utility function for the given ufun because the outcome space is not konwn"
@@ -81,6 +102,11 @@ class RankOnlyUtilityFunction(StationaryMixin, UtilityFunction):
             self.reserved_value = self.eval(None)  # type: ignore
 
     def to_mapping_ufun(self) -> MappingUtilityFunction:
+        """To mapping ufun.
+
+        Returns:
+            MappingUtilityFunction: The result.
+        """
         return MappingUtilityFunction(
             self._mapping,
             outcome_space=self.outcome_space,

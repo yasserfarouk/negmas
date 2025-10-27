@@ -1,4 +1,7 @@
+"""Negotiator implementations."""
+
 from __future__ import annotations
+
 from ..components.acceptance import AcceptImmediately
 from ..components.offering import RandomOfferingPolicy
 from .modular.mapneg import MAPNegotiator
@@ -20,6 +23,12 @@ class NiceNegotiator(MAPNegotiator):
     """
 
     def __init__(self, *args, **kwargs):
+        """Initialize the instance.
+
+        Args:
+            *args: Additional positional arguments.
+            **kwargs: Additional keyword arguments.
+        """
         kwargs["acceptance"] = AcceptImmediately()
         kwargs["offering"] = RandomOfferingPolicy()
         super().__init__(*args, **kwargs)

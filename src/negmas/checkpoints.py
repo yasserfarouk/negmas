@@ -117,6 +117,15 @@ class CheckpointRunner:
         watch: bool = False,
         object_type: type[NamedObject] = NamedObject,
     ):
+        """Initialize the instance.
+
+        Args:
+            folder: Folder.
+            id: Id.
+            callback: Callback.
+            watch: Watch.
+            object_type: Object type.
+        """
         self.__folder = Path(folder).absolute()
         if id is None:
             pattern = "*.json"

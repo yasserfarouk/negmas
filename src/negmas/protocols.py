@@ -1,4 +1,7 @@
+"""Protocol definitions."""
+
 from __future__ import annotations
+
 from abc import abstractmethod
 from os import PathLike
 from pathlib import Path
@@ -69,14 +72,31 @@ D = TypeVar("D", bound="DictSerializable")
 
 
 class DictSerializable(Protocol):
+    """DictSerializable implementation."""
+
     def to_dict(self) -> str:
+        """To dict.
+
+        Returns:
+            str: The result.
+        """
         ...
 
     @classmethod
     def from_dict(cls: type[D], v: dict[str, Any]) -> D:
+        """From dict.
+
+        Args:
+            v: V.
+
+        Returns:
+            D: The result.
+        """
         ...
 
 
 class HasMinMax(Protocol):
+    """HasMinMax implementation."""
+
     min_value: Any
     max_value: Any

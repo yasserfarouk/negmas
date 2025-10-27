@@ -31,26 +31,41 @@ def force_single_thread(on: bool = True):
 
 @contextmanager
 def single_thread():
+    """Single thread."""
     force_single_thread(True)
     yield None
     force_single_thread(False)
 
 
 def is_single_thread() -> bool:
+    """Check if single thread.
+
+    Returns:
+        bool: The result.
+    """
     return SINGLE_THREAD_FORCED
 
 
 class TimeoutCaller:
+    """TimeoutCaller implementation."""
+
     pool = None
 
     @classmethod
     def get_pool(cls):
+        """Get pool."""
         if cls.pool is None:
             cls.pool = ThreadPoolExecutor()
         return cls.pool
 
     @classmethod
     def run(cls, to_run, timeout: float):
+        """Run.
+
+        Args:
+            to_run: To run.
+            timeout: Timeout.
+        """
         if is_single_thread():
             return to_run()
         pool = cls.get_pool()
@@ -64,6 +79,7 @@ class TimeoutCaller:
 
     @classmethod
     def cleanup(cls):
+        """Cleanup."""
         if cls.pool is not None:
             try:
                 cls.pool.shutdown(wait=False)

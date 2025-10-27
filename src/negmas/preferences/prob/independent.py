@@ -1,4 +1,7 @@
+"""Module for independent functionality."""
+
 from __future__ import annotations
+
 import pprint
 from typing import TYPE_CHECKING, Iterable
 
@@ -52,6 +55,14 @@ class IPUtilityFunction(StationaryMixin, ProbUtilityFunction):
         issue_names: Iterable[str] | None = None,
         **kwargs,
     ):
+        """Initialize the instance.
+
+        Args:
+            outcomes: Outcomes.
+            distributions: Distributions.
+            issue_names: Issue names.
+            **kwargs: Additional keyword arguments.
+        """
         super().__init__(**kwargs)
         outcomes = list(outcomes)
         distributions = (
@@ -255,6 +266,7 @@ class IPUtilityFunction(StationaryMixin, ProbUtilityFunction):
         )
 
     def is_state_dependent(self):
+        """Check if state dependent."""
         return True
 
     def sample(self) -> MappingUtilityFunction:
@@ -303,7 +315,16 @@ class IPUtilityFunction(StationaryMixin, ProbUtilityFunction):
         return self.distributions[offer]
 
     def xml(self, issues: list[Issue]) -> str:
+        """Xml.
+
+        Args:
+            issues: Issues.
+
+        Returns:
+            str: The result.
+        """
         raise NotImplementedError(f"Cannot convert {self.__class__.__name__} to xml")
 
     def __str__(self):
+        """str  ."""
         return pprint.pformat(self.distributions)

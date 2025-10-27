@@ -118,6 +118,15 @@ class Rational(NamedObject):
         id: str | None = None,
         type_name: str | None = None,
     ):
+        """Initialize the instance.
+
+        Args:
+            name: Name.
+            preferences: Preferences.
+            ufun: Ufun.
+            id: Id.
+            type_name: Type name.
+        """
         super().__init__(name, type_name=type_name, id=id)
         if ufun:
             preferences = ufun
@@ -144,6 +153,11 @@ class Rational(NamedObject):
 
     @crisp_ufun.setter
     def crisp_ufun(self, v: UtilityFunction):
+        """Crisp ufun.
+
+        Args:
+            v: V.
+        """
         from negmas.preferences import UtilityFunction
 
         if not isinstance(v, UtilityFunction):
@@ -163,6 +177,11 @@ class Rational(NamedObject):
 
     @prob_ufun.setter
     def prob_ufun(self, v: ProbUtilityFunction):
+        """Prob ufun.
+
+        Args:
+            v: V.
+        """
         from negmas.preferences import ProbUtilityFunction
 
         if not isinstance(v, ProbUtilityFunction):
@@ -184,6 +203,11 @@ class Rational(NamedObject):
 
     @ufun.setter
     def ufun(self, v: BaseUtilityFunction):
+        """Ufun.
+
+        Args:
+            v: V.
+        """
         self.set_preferences(v)
 
     @property

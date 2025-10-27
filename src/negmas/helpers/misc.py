@@ -192,10 +192,26 @@ def monotonic_multi_minmax(
 
 
 def remove_qoutes(s: str) -> str:
+    """Remove qoutes.
+
+    Args:
+        s: S.
+
+    Returns:
+        str: The result.
+    """
     return s.replace('"', "~`")
 
 
 def recover_qoutes(s: str) -> str:
+    """Recover qoutes.
+
+    Args:
+        s: S.
+
+    Returns:
+        str: The result.
+    """
     return s.replace("~`", '"')
 
 
@@ -223,6 +239,7 @@ def make_callable(x: dict | Sequence | Callable | None) -> Callable:
 
 
 def get_free_tcp_port():
+    """Get free tcp port."""
     tcp = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
     tcp.bind(("", 0))
     _, port = tcp.getsockname()

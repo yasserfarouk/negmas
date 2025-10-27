@@ -1,4 +1,7 @@
+"""Situated negotiation."""
+
 from __future__ import annotations
+
 
 __all__ = ["Entity"]
 
@@ -7,6 +10,11 @@ class Entity:
     """Defines an entity that is a part of the world but does not participate in the simulation"""
 
     def __init__(self, type_postfix: str = ""):
+        """Initialize the instance.
+
+        Args:
+            type_postfix: Type postfix.
+        """
         self._initialized = False
         self.__type_postfix = type_postfix
         self.__current_step = 0
@@ -45,6 +53,7 @@ class Entity:
 
     @property
     def type_postfix(self):
+        """Type postfix."""
         return self.__type_postfix
 
     def init(self):

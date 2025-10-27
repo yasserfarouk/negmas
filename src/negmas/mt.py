@@ -61,6 +61,12 @@ class VetoMTMechanism(
         initial_state: MTState | None = None,
         **kwargs,
     ):
+        """Initialize the instance.
+
+        Args:
+            *args: Additional positional arguments.
+            **kwargs: Additional keyword arguments.
+        """
         super().__init__(*args, **kwargs)
         state = self._current_state = initial_state if initial_state else MTState()
 

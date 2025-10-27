@@ -1,3 +1,4 @@
+"""Module for   init   functionality."""
 from .const import *
 from .linear import *
 from .mapping import *

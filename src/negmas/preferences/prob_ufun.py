@@ -1,4 +1,7 @@
+"""Utility function implementations."""
+
 from __future__ import annotations
+
 import numbers
 import random
 from abc import abstractmethod
@@ -19,9 +22,22 @@ class ProbUtilityFunction(_ExtremelyDynamic, BaseUtilityFunction):
 
     @abstractmethod
     def eval(self, offer: Outcome) -> Distribution:
+        """Eval.
+
+        Args:
+            offer: Offer being considered.
+
+        Returns:
+            Distribution: The result.
+        """
         ...
 
     def to_prob(self) -> ProbUtilityFunction:
+        """To prob.
+
+        Returns:
+            ProbUtilityFunction: The result.
+        """
         return self
 
     @classmethod
@@ -256,13 +272,27 @@ class ProbAdapter(ProbUtilityFunction):
     """
 
     def __init__(self, ufun: BaseUtilityFunction):
+        """Initialize the instance.
+
+        Args:
+            ufun: Ufun.
+        """
         self._ufun = ufun
 
     def eval(self, offer: Outcome) -> Distribution:
+        """Eval.
+
+        Args:
+            offer: Offer being considered.
+
+        Returns:
+            Distribution: The result.
+        """
         v = self._ufun.eval(offer)
         if isinstance(v, numbers.Real):
             return Real(v)
         return v  # type: ignore
 
     def to_stationary(self):
+        """To stationary."""
         return ProbAdapter(self._ufun.to_stationary())

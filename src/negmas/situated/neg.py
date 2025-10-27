@@ -45,6 +45,12 @@ class NegAgent(Agent):
         negotiator_params: dict[str, Any] | None = None,
         **kwargs,
     ):
+        """Initialize the instance.
+
+        Args:
+            *args: Additional positional arguments.
+            **kwargs: Additional keyword arguments.
+        """
         super().__init__(*args, **kwargs)
         self._negotiator_params = negotiator_params if negotiator_params else dict()
         self._negotiator_type = get_class(negotiator_type)
@@ -224,6 +230,11 @@ class Condition:
     """Indices of negotiators to be scored in this negotiation. `None` is equivalent to `[self.index]`"""
 
     def to_dict(self, python_class_identifier=PYTHON_CLASS_IDENTIFIER):
+        """To dict.
+
+        Args:
+            python_class_identifier: Python class identifier.
+        """
         return dict(
             name=self.name,
             issues=[
@@ -248,6 +259,12 @@ class Condition:
 
     @classmethod
     def from_dict(cls, d, python_class_identifier=PYTHON_CLASS_IDENTIFIER):
+        """From dict.
+
+        Args:
+            d: D.
+            python_class_identifier: Python class identifier.
+        """
         return cls(
             name=d["name"],
             issues=tuple(Issue.from_dict(_) for _ in d["issues"]),
@@ -309,6 +326,12 @@ class NegWorld(NoContractExecutionMixin, World):
         python_class_identifier: str = PYTHON_CLASS_IDENTIFIER,
         **kwargs,
     ):
+        """Initialize the instance.
+
+        Args:
+            *args: Additional positional arguments.
+            **kwargs: Additional keyword arguments.
+        """
         kwargs["log_to_file"] = not no_logs
         if compact:
             kwargs["event_file_name"] = None
@@ -380,6 +403,14 @@ class NegWorld(NoContractExecutionMixin, World):
         ]
 
         def add_agents(types, params, wrappers, target):
+            """Add agents.
+
+            Args:
+                types: Types.
+                params: Params.
+                wrappers: Wrappers.
+                target: Target.
+            """
             types, params = _wrap_in_agents(types, params, wrappers)
             for t, p in zip(types, params):
                 agent = instantiate(t, **p)
@@ -394,7 +425,19 @@ class NegWorld(NoContractExecutionMixin, World):
         add_agents(partner_types, partner_params, _NegPartner, self._partners)
 
     def simulation_step(self, stage):
+        """Simulation step.
+
+        Args:
+            stage: Stage.
+        """
+
         def unormalize(u, indx):
+            """Unormalize.
+
+            Args:
+                u: U.
+                indx: Indx.
+            """
             if self._normalize_scores:
                 mn, mx = self._preferences_ranges[indx]
                 if mx > mn:
@@ -404,10 +447,24 @@ class NegWorld(NoContractExecutionMixin, World):
             return u
 
         def calcu(ufun, indx, agreement):
+            """Calcu.
+
+            Args:
+                ufun: Ufun.
+                indx: Indx.
+                agreement: Agreement.
+            """
             u = ufun(agreement)
             return unormalize(u, indx)
 
         def getid(indx, aid, special_index=self._scenario.index):
+            """Getid.
+
+            Args:
+                indx: Indx.
+                aid: Aid.
+                special_index: Special index.
+            """
             lst = list(self._partners.keys())
             lst.insert(special_index, aid)
             return lst[indx]
@@ -472,39 +529,67 @@ class NegWorld(NoContractExecutionMixin, World):
             self.loginfo(f"{partner_names} -> {agreement}")
 
     def received_utility(self, aid: str):
+        """Received utility.
+
+        Args:
+            aid: Aid.
+        """
         return sum(
             self._received_utility.get(aid, [0])
         ) / self._n_negs_per_copmetitor.get(aid, 0)
 
     def agreement_rate(self, aid: str):
+        """Agreement rate.
+
+        Args:
+            aid: Aid.
+        """
         return sum(
             self._n_agreements_per_cometitor.get(aid, [0])
         ) / self._n_negs_per_agent.get(aid, 0)
 
     def partner_utility(self, aid: str):
+        """Partner utility.
+
+        Args:
+            aid: Aid.
+        """
         return sum(
             self._partner_utility.get(aid, [0])
         ) / self._n_negs_per_copmetitor.get(aid, 0)
 
     def received_advantage(self, aid: str):
+        """Received advantage.
+
+        Args:
+            aid: Aid.
+        """
         return sum(
             self._received_advantage.get(aid, [0])
         ) / self._n_negs_per_copmetitor.get(aid, 0)
 
     def partner_advantage(self, aid: str):
+        """Partner advantage.
+
+        Args:
+            aid: Aid.
+        """
         return sum(
             self._partner_advantage.get(aid, [0])
         ) / self._n_negs_per_copmetitor.get(aid, 0)
 
     @property
     def competitors(self):
+        """Competitors."""
         return self._competitors
 
     @property
     def partners(self):
+        """Partners."""
         return self._partners
 
     def post_step_stats(self):
+        """Post step stats."""
         for aid in self._competitors.keys():
             self._stats[f"has_agreement_{aid}"].append(self._success[aid])
             self._stats[f"received_utility_{aid}"].append(
@@ -522,24 +607,58 @@ class NegWorld(NoContractExecutionMixin, World):
             )
 
     def pre_step_stats(self):
+        """Pre step stats."""
         pass
 
     def order_contracts_for_execution(
         self, contracts: Collection[Contract]
     ) -> Collection[Contract]:
+        """Order contracts for execution.
+
+        Args:
+            contracts: Contracts.
+
+        Returns:
+            Collection[Contract]: The result.
+        """
         return contracts
 
     def contract_record(self, contract: Contract) -> dict[str, Any]:
+        """Contract record.
+
+        Args:
+            contract: Contract.
+
+        Returns:
+            dict[str, Any]: The result.
+        """
         return to_flat_dict(contract, deep=True)
 
     def breach_record(self, breach: Breach) -> dict[str, Any]:
+        """Breach record.
+
+        Args:
+            breach: Breach.
+
+        Returns:
+            dict[str, Any]: The result.
+        """
         return to_flat_dict(breach, deep=True)
 
     def contract_size(self, contract: Contract) -> float:
+        """Contract size.
+
+        Args:
+            contract: Contract.
+
+        Returns:
+            float: The result.
+        """
         n = len(self._competitors)
         return 1.0 / (n if n else 1)
 
     def delete_executed_contracts(self) -> None:
+        """Delete executed contracts."""
         pass
 
     def execute_action(
@@ -553,14 +672,34 @@ class NegWorld(NoContractExecutionMixin, World):
         ...
 
     def executable_contracts(self) -> Collection[Contract]:
+        """Executable contracts.
+
+        Returns:
+            Collection[Contract]: The result.
+        """
         return []
 
     def start_contract_execution(self, contract: Contract) -> set[Breach]:
+        """Start contract execution.
+
+        Args:
+            contract: Contract.
+
+        Returns:
+            set[Breach]: The result.
+        """
         return set()
 
     def complete_contract_execution(
         self, contract: Contract, breaches: list[Breach], resolution: Contract
     ) -> None:
+        """Complete contract execution.
+
+        Args:
+            contract: Contract.
+            breaches: Breaches.
+            resolution: Resolution.
+        """
         pass
 
 

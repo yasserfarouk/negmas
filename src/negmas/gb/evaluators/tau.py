@@ -1,4 +1,7 @@
+"""Module for tau functionality."""
+
 from __future__ import annotations
+
 from collections import defaultdict
 from sys import maxsize
 
@@ -35,6 +38,17 @@ class TAUEvaluationStrategy(EvaluationStrategy):
         history: list[GBState],
         active_thread: int | None,
     ) -> GBResponse:
+        """Make instance callable.
+
+        Args:
+            negotiator_ids: Negotiator ids.
+            state: Current state.
+            history: History.
+            active_thread: Active thread.
+
+        Returns:
+            GBResponse: The result.
+        """
         for source, t in state.threads.items():
             offer = t.new_offer
             self._repeating[source] = offer == self._last[source]

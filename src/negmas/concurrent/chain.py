@@ -39,6 +39,8 @@ Agreement = namedtuple("Agreement", ["outcome", "negotiators", "level"])
 
 
 class ChainNMI(NegotiatorMechanismInterface):
+    """ChainNMI implementation."""
+
     def __init__(
         self,
         *args,
@@ -47,12 +49,26 @@ class ChainNMI(NegotiatorMechanismInterface):
         level: int,
         **kwargs,
     ):
+        """Initialize the instance.
+
+        Args:
+            *args: Additional positional arguments.
+            **kwargs: Additional keyword arguments.
+        """
         super().__init__(*args, **kwargs)
         self.__parent = parent
         self.__negotiator = negotiator
         self.__level = level
 
     def confirm(self, parent: bool) -> bool:
+        """Confirm.
+
+        Args:
+            parent: Parent.
+
+        Returns:
+            bool: The result.
+        """
         return self.__parent.on_confirm(self.__level, parent)
 
 
@@ -60,6 +76,12 @@ class ChainNegotiator(Negotiator, ABC):
     """Base class for all nested negotiations negotiator"""
 
     def __init__(self, *args, **kwargs):
+        """Initialize the instance.
+
+        Args:
+            *args: Additional positional arguments.
+            **kwargs: Additional keyword arguments.
+        """
         super().__init__(*args, **kwargs)
         self._nmi: ChainNMI
         self.__level = -1
@@ -73,6 +95,15 @@ class ChainNegotiator(Negotiator, ABC):
         ufun: BaseUtilityFunction | None = None,
         role: str = "negotiator",
     ) -> bool:
+        """Join.
+
+        Args:
+            nmi: Nmi.
+            state: Current state.
+
+        Returns:
+            bool: The result.
+        """
         to_join = super().join(nmi, state, preferences=preferences, role=role)
         if to_join:
             self.__level = int(role)
@@ -137,6 +168,12 @@ class MultiChainNegotiator(Negotiator, ABC):
     """Base class for all nested negotiations negotiator"""
 
     def __init__(self, *args, **kwargs):
+        """Initialize the instance.
+
+        Args:
+            *args: Additional positional arguments.
+            **kwargs: Additional keyword arguments.
+        """
         super().__init__(*args, **kwargs)
         self.__level = -1
 
@@ -149,6 +186,15 @@ class MultiChainNegotiator(Negotiator, ABC):
         ufun: BaseUtilityFunction | None = None,
         role: str = "negotiator",
     ) -> bool:
+        """Join.
+
+        Args:
+            nmi: Nmi.
+            state: Current state.
+
+        Returns:
+            bool: The result.
+        """
         to_join = super().join(nmi, state, preferences=preferences, role=role)
         if to_join:
             self.__level = int(role)
@@ -218,7 +264,16 @@ class MultiChainNegotiator(Negotiator, ABC):
 class ChainNegotiationsMechanism(
     Mechanism[ChainNMI, MechanismState, MechanismAction, ChainNegotiator]
 ):
+    """ChainNegotiations mechanism."""
+
     def __init__(self, initial_state: MechanismState | None = None, *args, **kwargs):
+        """Initialize the instance.
+
+        Args:
+            initial_state: Initial state.
+            *args: Additional positional arguments.
+            **kwargs: Additional keyword arguments.
+        """
         super().__init__(
             initial_state if initial_state else MechanismState(), *args, **kwargs
         )
@@ -266,6 +321,15 @@ class ChainNegotiationsMechanism(
         role: str | None = None,
         **kwargs,
     ) -> bool | None:
+        """Add.
+
+        Args:
+            negotiator: Negotiator.
+            **kwargs: Additional keyword arguments.
+
+        Returns:
+            bool | None: The result.
+        """
         if role is None:
             raise ValueError(
                 "You cannot join this protocol without specifying the role. "
@@ -291,6 +355,15 @@ class ChainNegotiationsMechanism(
 
     def __call__(self, state, action=None) -> MechanismStepResult:
         # check that the chain is complete
+        """Make instance callable.
+
+        Args:
+            state: Current state.
+            action: Action.
+
+        Returns:
+            MechanismStepResult: The result.
+        """
         if not all(self.__chain):
             if self.dynamic_entry:
                 state.has_error = True
@@ -398,7 +471,15 @@ class ChainNegotiationsMechanism(
 class MultiChainNegotiationsMechanism(
     Mechanism[ChainNMI, MechanismState, MechanismAction, MultiChainNegotiator]
 ):
+    """MultiChainNegotiations mechanism."""
+
     def __init__(self, *args, **kwargs):
+        """Initialize the instance.
+
+        Args:
+            *args: Additional positional arguments.
+            **kwargs: Additional keyword arguments.
+        """
         super().__init__(*args, **kwargs)
         self.__chain: list[list[MultiChainNegotiator]] = []
         self.__next_agent_level = 0
@@ -448,6 +529,15 @@ class MultiChainNegotiationsMechanism(
         role: str | None = None,
         **kwargs,
     ) -> bool | None:
+        """Add.
+
+        Args:
+            negotiator: Negotiator.
+            **kwargs: Additional keyword arguments.
+
+        Returns:
+            bool | None: The result.
+        """
         if role is None:
             raise ValueError(
                 "You cannot join this protocol without specifying the role. "
@@ -480,6 +570,15 @@ class MultiChainNegotiationsMechanism(
 
     def __call__(self, state, action=None) -> MechanismStepResult:
         # check that the chain is complete
+        """Make instance callable.
+
+        Args:
+            state: Current state.
+            action: Action.
+
+        Returns:
+            MechanismStepResult: The result.
+        """
         if not all(len(_) > 0 for _ in self.__chain):
             if self.dynamic_entry:
                 state.has_error = True

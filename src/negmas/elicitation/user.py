@@ -1,4 +1,7 @@
+"""Preference elicitation."""
+
 from __future__ import annotations
+
 from dataclasses import dataclass
 
 import numpy as np
@@ -18,12 +21,15 @@ __all__ = ["User", "ElicitationRecord"]
 
 @dataclass
 class ElicitationRecord:
+    """ElicitationRecord implementation."""
+
     cost: float
     query: Query
     answer_index: int
     step: int | None = None
 
     def __str__(self):
+        """str  ."""
         if self.step is None:
             return f"{self.query}: {self.query.answers[self.answer_index]} @{self.cost}"
         return f"[{self.step}] {self.query}: {self.query.answers[self.answer_index]} @{self.cost}"
@@ -44,6 +50,14 @@ class User(Rational):
     """
 
     def __init__(self, cost: float = 0.0, nmi=None, *args, **kwargs):
+        """Initialize the instance.
+
+        Args:
+            cost: Cost.
+            nmi: Nmi.
+            *args: Additional positional arguments.
+            **kwargs: Additional keyword arguments.
+        """
         super().__init__(*args, **kwargs)
         self.cost = cost
         self.total_cost = 0.0

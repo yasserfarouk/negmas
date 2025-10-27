@@ -84,6 +84,12 @@ def serialize(
     """
 
     def add_to_mem(x, objmem):
+        """Add to mem.
+
+        Args:
+            x: X.
+            objmem: Objmem.
+        """
         if not objmem:
             objmem = {id(x)}
         else:
@@ -91,6 +97,13 @@ def serialize(
         return objmem
 
     def good_field(k: str, v, objmem):
+        """Good field.
+
+        Args:
+            k: K.
+            v: V.
+            objmem: Objmem.
+        """
         if not isinstance(k, str):
             return True
         if objmem and id(v) in objmem:
@@ -104,6 +117,11 @@ def serialize(
         return keep_private or not (k != python_class_identifier and k.startswith("_"))
 
     def adjust_dict(d):
+        """Adjust dict.
+
+        Args:
+            d: D.
+        """
         if not isinstance(d, dict):
             return d
         if python_class_identifier in d.keys():
@@ -124,6 +142,11 @@ def serialize(
         return None
 
     def get_type_field(value):
+        """Get type field.
+
+        Args:
+            value: Value.
+        """
         t = value.__class__.__name__
         if shorten_type_field and t.startswith("negmas."):
             return t
@@ -184,6 +207,13 @@ def serialize(
             )
 
     def convertwith(value, method, pass_identifier=False):
+        """Convertwith.
+
+        Args:
+            value: Value.
+            method: Method.
+            pass_identifier: Pass identifier.
+        """
         if hasattr(value, method) and isinstance(
             getattr(value, method), types.MethodType
         ):
@@ -394,6 +424,11 @@ def deserialize(
     """
 
     def do_nothing(x):
+        """Do nothing.
+
+        Args:
+            x: X.
+        """
         return x
 
     params_ = dict(
@@ -426,6 +461,11 @@ def deserialize(
         importlib.import_module(module)
 
     def good_field(k: str):
+        """Good field.
+
+        Args:
+            k: K.
+        """
         if k in ignored_keys:
             return False
         if not isinstance(k, str):

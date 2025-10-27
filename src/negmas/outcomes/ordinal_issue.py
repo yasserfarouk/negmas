@@ -1,4 +1,7 @@
+"""Outcome representations."""
+
 from __future__ import annotations
+
 import random
 from abc import ABC, abstractmethod
 from typing import Any, Generator
@@ -12,6 +15,14 @@ __all__ = ["OrdinalIssue", "DiscreteOrdinalIssue"]
 
 
 def generate_values(n: int) -> list[str]:
+    """Generate values.
+
+    Args:
+        n: Number of items.
+
+    Returns:
+        list[str]: The result.
+    """
     if n > 1000_000:
         warnings.warn(
             f"You are creating an OrdinalIssue with {n} items. This is too large."
@@ -32,6 +43,17 @@ class OrdinalIssue(Issue, ABC):
     def ordered_value_generator(  # type: ignore
         self, n: int = 10, grid=True, compact=False, endpoints=True
     ) -> Generator[Any, None, None]:
+        """Ordered value generator.
+
+        Args:
+            n: Number of items.
+            grid: Grid.
+            compact: Compact.
+            endpoints: Endpoints.
+
+        Returns:
+            Generator[Any, None, None]: The result.
+        """
         ...
 
 
@@ -76,6 +98,11 @@ class DiscreteOrdinalIssue(DiscreteIssue, OrdinalIssue):  # type: ignore
 
     @property
     def all(self) -> Generator[Any, None, None]:
+        """All.
+
+        Returns:
+            Generator[Any, None, None]: The result.
+        """
         yield from self._values  # type: ignore
 
     def rand_invalid(self):  # type: ignore

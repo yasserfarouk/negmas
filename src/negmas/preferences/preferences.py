@@ -1,4 +1,7 @@
+"""Preference representations."""
+
 from __future__ import annotations
+
 from abc import ABC, abstractmethod
 from typing import TYPE_CHECKING, Any
 
@@ -37,6 +40,12 @@ class Preferences(NamedObject, ABC):
         owner: Rational | None = None,
         **kwargs,
     ) -> None:
+        """Initialize the instance.
+
+        Args:
+            *args: Additional positional arguments.
+            **kwargs: Additional keyword arguments.
+        """
         self.owner = owner
         check_one_at_most(outcome_space, issues, outcomes)
         super().__init__(*args, **kwargs)
@@ -75,6 +84,14 @@ class Preferences(NamedObject, ABC):
     def to_dict(
         self, python_class_identifier=PYTHON_CLASS_IDENTIFIER
     ) -> dict[str, Any]:
+        """To dict.
+
+        Args:
+            python_class_identifier: Python class identifier.
+
+        Returns:
+            dict[str, Any]: The result.
+        """
         d = {python_class_identifier: get_full_type_name(type(self))}
         return dict(
             **d,
@@ -88,6 +105,12 @@ class Preferences(NamedObject, ABC):
 
     @classmethod
     def from_dict(cls, d, python_class_identifier=PYTHON_CLASS_IDENTIFIER):
+        """From dict.
+
+        Args:
+            d: D.
+            python_class_identifier: Python class identifier.
+        """
         d.pop(python_class_identifier, None)
         d["outcome_space"] = deserialize(
             d.get("outcome_space", None),

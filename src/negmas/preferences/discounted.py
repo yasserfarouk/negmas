@@ -1,4 +1,7 @@
+"""Preference representations."""
+
 from __future__ import annotations
+
 import random
 from typing import Any, Callable
 
@@ -19,13 +22,21 @@ class DiscountedUtilityFunction(StateDependentUFunMixin, BaseUtilityFunction):
     """Base class for all discounted ufuns"""
 
     def __init__(self, ufun: BaseUtilityFunction, **kwargs):
+        """Initialize the instance.
+
+        Args:
+            ufun: Ufun.
+            **kwargs: Additional keyword arguments.
+        """
         super().__init__(**kwargs)
         self.ufun = ufun
 
     def is_state_dependent(self):
+        """Check if state dependent."""
         return True
 
     def to_stationary(self):
+        """To stationary."""
         return self.ufun.to_stationary()
 
 
@@ -51,6 +62,18 @@ class ExpDiscountedUFun(DiscountedUtilityFunction):
         id=None,
         **kwargs,
     ):
+        """Initialize the instance.
+
+        Args:
+            ufun: Ufun.
+            discount: Discount.
+            factor: Factor.
+            name: Name.
+            reserved_value: Reserved value.
+            dynamic_reservation: Dynamic reservation.
+            id: Id.
+            **kwargs: Additional keyword arguments.
+        """
         super().__init__(
             ufun=ufun, name=name, reserved_value=reserved_value, id=id, **kwargs
         )
@@ -67,6 +90,18 @@ class ExpDiscountedUFun(DiscountedUtilityFunction):
         max_cardinality=10_000,
         above_reserve=False,
     ) -> tuple[float, float]:
+        """Minmax.
+
+        Args:
+            outcome_space: Outcome space.
+            issues: Issues.
+            outcomes: Outcomes.
+            max_cardinality: Max cardinality.
+            above_reserve: Above reserve.
+
+        Returns:
+            tuple[float, float]: The result.
+        """
         return self.ufun.minmax(
             outcome_space,
             issues,
@@ -76,6 +111,15 @@ class ExpDiscountedUFun(DiscountedUtilityFunction):
         )
 
     def shift_by(self, offset: float, shift_reserved: bool = True) -> ExpDiscountedUFun:
+        """Shift by.
+
+        Args:
+            offset: Offset.
+            shift_reserved: Shift reserved.
+
+        Returns:
+            ExpDiscountedUFun: The result.
+        """
         return ExpDiscountedUFun(
             outcome_space=self.outcome_space,
             ufun=self.ufun.shift_by(offset, shift_reserved),
@@ -89,6 +133,15 @@ class ExpDiscountedUFun(DiscountedUtilityFunction):
         )
 
     def scale_by(self, scale: float, scale_reserved: bool = True) -> ExpDiscountedUFun:
+        """Scale by.
+
+        Args:
+            scale: Scale.
+            scale_reserved: Scale reserved.
+
+        Returns:
+            ExpDiscountedUFun: The result.
+        """
         return ExpDiscountedUFun(
             outcome_space=self.outcome_space,
             ufun=self.ufun.scale_by(scale, scale_reserved),
@@ -104,6 +157,14 @@ class ExpDiscountedUFun(DiscountedUtilityFunction):
     def to_dict(
         self, python_class_identifier=PYTHON_CLASS_IDENTIFIER
     ) -> dict[str, Any]:
+        """To dict.
+
+        Args:
+            python_class_identifier: Python class identifier.
+
+        Returns:
+            dict[str, Any]: The result.
+        """
         d = super().to_dict(python_class_identifier=python_class_identifier)
         return dict(
             **d,
@@ -117,6 +178,12 @@ class ExpDiscountedUFun(DiscountedUtilityFunction):
     def from_dict(
         cls, d: dict[str, Any], python_class_identifier=PYTHON_CLASS_IDENTIFIER
     ):
+        """From dict.
+
+        Args:
+            d: D.
+            python_class_identifier: Python class identifier.
+        """
         d.pop(python_class_identifier, None)
         d["ufun"] = deserialize(
             d["ufun"], python_class_identifier=python_class_identifier
@@ -166,6 +233,13 @@ class ExpDiscountedUFun(DiscountedUtilityFunction):
         nmi: NegotiatorMechanismInterface | None = None,
         state: MechanismState | None = None,
     ):
+        """Eval on state.
+
+        Args:
+            offer: Offer being considered.
+            nmi: Nmi.
+            state: Current state.
+        """
         if offer is None and not self.dynamic_reservation:
             return self.reserved_value
         u = self.ufun(offer)
@@ -178,6 +252,14 @@ class ExpDiscountedUFun(DiscountedUtilityFunction):
         return (self.discount**factor) * u
 
     def xml(self, issues: list[Issue]) -> str:
+        """Xml.
+
+        Args:
+            issues: Issues.
+
+        Returns:
+            str: The result.
+        """
         if not hasattr(self.ufun, "xml"):
             raise ValueError(
                 f"Cannot serialize because my internal ufun of type {self.ufun.type} is not serializable"
@@ -196,16 +278,24 @@ class ExpDiscountedUFun(DiscountedUtilityFunction):
 
     @property
     def base_type(self):
+        """Base type."""
         return self.ufun.type
 
     @property
     def type(self):
+        """Type."""
         return self.ufun.type + "_exponentially_discounted"
 
     def __getattr__(self, item):
+        """getattr  .
+
+        Args:
+            item: Item.
+        """
         return getattr(self.ufun, item)
 
     def __str__(self):
+        """str  ."""
         return f"{self.ufun.type}-cost:{self.discount} based on {self.factor}"
 
 
@@ -234,6 +324,19 @@ class LinDiscountedUFun(DiscountedUtilityFunction):
         id=None,
         **kwargs,
     ):
+        """Initialize the instance.
+
+        Args:
+            ufun: Ufun.
+            cost: Cost.
+            factor: Factor.
+            power: Power.
+            name: Name.
+            reserved_value: Reserved value.
+            dynamic_reservation: Dynamic reservation.
+            id: Id.
+            **kwargs: Additional keyword arguments.
+        """
         super().__init__(
             ufun=ufun, name=name, reserved_value=reserved_value, id=id, **kwargs
         )
@@ -248,6 +351,14 @@ class LinDiscountedUFun(DiscountedUtilityFunction):
     def to_dict(
         self, python_class_identifier=PYTHON_CLASS_IDENTIFIER
     ) -> dict[str, Any]:
+        """To dict.
+
+        Args:
+            python_class_identifier: Python class identifier.
+
+        Returns:
+            dict[str, Any]: The result.
+        """
         d = super().to_dict(python_class_identifier=python_class_identifier)
         return dict(
             **d,
@@ -262,6 +373,12 @@ class LinDiscountedUFun(DiscountedUtilityFunction):
     def from_dict(
         cls, d: dict[str, Any], python_class_identifier=PYTHON_CLASS_IDENTIFIER
     ):
+        """From dict.
+
+        Args:
+            d: D.
+            python_class_identifier: Python class identifier.
+        """
         d.pop(python_class_identifier, None)
         d["ufun"] = deserialize(
             d["ufun"], python_class_identifier=python_class_identifier
@@ -274,6 +391,13 @@ class LinDiscountedUFun(DiscountedUtilityFunction):
         nmi: NegotiatorMechanismInterface | None = None,
         state: MechanismState | None = None,
     ):
+        """Eval on state.
+
+        Args:
+            offer: Offer being considered.
+            nmi: Nmi.
+            state: Current state.
+        """
         if offer is None and not self.dynamic_reservation:
             return self.reserved_value
         u = self.ufun(offer)
@@ -286,6 +410,14 @@ class LinDiscountedUFun(DiscountedUtilityFunction):
         return u - ((factor * self.cost) ** self.power)
 
     def xml(self, issues: list[Issue]) -> str:
+        """Xml.
+
+        Args:
+            issues: Issues.
+
+        Returns:
+            str: The result.
+        """
         if not hasattr(self.ufun, "xml"):
             raise ValueError(
                 f"Cannot serialize because my internal ufun of type {self.ufun.type} is not serializable"
@@ -307,10 +439,12 @@ class LinDiscountedUFun(DiscountedUtilityFunction):
 
     @property
     def base_type(self):
+        """Base type."""
         return self.ufun.type
 
     @property
     def type(self):
+        """Type."""
         return self.ufun.type + "_linearly_discounted"
 
     @classmethod
@@ -347,9 +481,15 @@ class LinDiscountedUFun(DiscountedUtilityFunction):
         )
 
     def __getattr__(self, item):
+        """getattr  .
+
+        Args:
+            item: Item.
+        """
         return getattr(self.ufun, item)
 
     def __str__(self):
+        """str  ."""
         return f"{self.ufun.type}-cost:{self.cost} raised to {self.power} based on {self.factor}"
 
     def minmax(
@@ -360,6 +500,18 @@ class LinDiscountedUFun(DiscountedUtilityFunction):
         max_cardinality=10_000,
         above_reserve=False,
     ) -> tuple[float, float]:
+        """Minmax.
+
+        Args:
+            outcome_space: Outcome space.
+            issues: Issues.
+            outcomes: Outcomes.
+            max_cardinality: Max cardinality.
+            above_reserve: Above reserve.
+
+        Returns:
+            tuple[float, float]: The result.
+        """
         return self.ufun.minmax(
             outcome_space,
             issues,

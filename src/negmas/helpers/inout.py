@@ -168,6 +168,11 @@ class ConfigReader:
         if isinstance(config, str):
             # If config is a string, assume it is a file and read it from the appropriate location
             def exists(nm):
+                """Exists.
+
+                Args:
+                    nm: Nm.
+                """
                 return os.path.exists(nm) and not os.path.isdir(nm)
 
             if not exists(config):
@@ -332,7 +337,14 @@ class ConfigReader:
 
 
 class NpEncoder(json.JSONEncoder):
+    """NpEncoder implementation."""
+
     def default(self, obj):
+        """Default.
+
+        Args:
+            obj: Obj.
+        """
         if isinstance(obj, np.integer):
             return int(obj)
         elif isinstance(obj, np.floating):
@@ -358,7 +370,14 @@ class NpEncoder(json.JSONEncoder):
 
 
 class NpDecorder(json.JSONDecoder):
+    """NpDecorder implementation."""
+
     def default(self, obj):
+        """Default.
+
+        Args:
+            obj: Obj.
+        """
         if isinstance(obj, str):
             if obj.startswith(BYTES_START):
                 return base64.b64decode(

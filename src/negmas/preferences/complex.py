@@ -1,4 +1,7 @@
+"""Preference representations."""
+
 from __future__ import annotations
+
 import random
 from typing import Any, Callable, Iterable
 
@@ -18,15 +21,31 @@ class _DependenceMixin:
     """Used to set dependence properties based on the object's `values` ."""
 
     def is_session_dependent(self):  # type: ignore
+        """Check if session dependent."""
         return any(_.is_session_dependent() for _ in self.values)  # type: ignore
 
     def is_stationary(self) -> bool:  # type: ignore
+        """Check if stationary.
+
+        Returns:
+            bool: The result.
+        """
         return any(_.is_stationary() for _ in self.values)  # type: ignore
 
     def is_volatile(self) -> bool:  # type: ignore
+        """Check if volatile.
+
+        Returns:
+            bool: The result.
+        """
         return any(_.is_volatile() for _ in self.values)  # type: ignore
 
     def is_state_dependent(self) -> bool:  # type: ignore
+        """Check if state dependent.
+
+        Returns:
+            bool: The result.
+        """
         return any(_.is_state_dependent() for _ in self.values)  # type: ignore
 
 
@@ -46,6 +65,13 @@ class WeightedUtilityFunction(_DependenceMixin, BaseUtilityFunction):
         weights: Iterable[float] | None = None,
         **kwargs,
     ):
+        """Initialize the instance.
+
+        Args:
+            ufuns: Ufuns.
+            weights: Weights.
+            **kwargs: Additional keyword arguments.
+        """
         super().__init__(**kwargs)
         self.values: list[BaseUtilityFunction] = list(ufuns)
         if weights is None:
@@ -53,6 +79,7 @@ class WeightedUtilityFunction(_DependenceMixin, BaseUtilityFunction):
         self.weights = list(weights)
 
     def to_stationary(self):
+        """To stationary."""
         return WeightedUtilityFunction(
             ufuns=[_.to_stationary() for _ in self.values],
             weights=self.weights,
@@ -116,6 +143,14 @@ class WeightedUtilityFunction(_DependenceMixin, BaseUtilityFunction):
     def to_dict(
         self, python_class_identifier=PYTHON_CLASS_IDENTIFIER
     ) -> dict[str, Any]:
+        """To dict.
+
+        Args:
+            python_class_identifier: Python class identifier.
+
+        Returns:
+            dict[str, Any]: The result.
+        """
         d = {python_class_identifier: get_full_type_name(type(self))}
         d.update(super().to_dict(python_class_identifier=python_class_identifier))
         return dict(
@@ -131,6 +166,12 @@ class WeightedUtilityFunction(_DependenceMixin, BaseUtilityFunction):
     def from_dict(
         cls, d: dict[str, Any], python_class_identifier=PYTHON_CLASS_IDENTIFIER
     ):
+        """From dict.
+
+        Args:
+            d: D.
+            python_class_identifier: Python class identifier.
+        """
         d.pop(python_class_identifier, None)
         d["ufuns"] = [
             deserialize(_, python_class_identifier=python_class_identifier)
@@ -155,11 +196,19 @@ class ComplexNonlinearUtilityFunction(_DependenceMixin, BaseUtilityFunction):
         combination_function: Callable[[Iterable[Value]], Value],
         **kwargs,
     ):
+        """Initialize the instance.
+
+        Args:
+            ufuns: Ufuns.
+            combination_function: Combination function.
+            **kwargs: Additional keyword arguments.
+        """
         super().__init__(**kwargs)
         self.ufuns = list(ufuns)
         self.combination_function = combination_function
 
     def to_stationary(self):
+        """To stationary."""
         return ComplexNonlinearUtilityFunction(
             ufuns=[_.to_stationary() for _ in self.ufuns],
             combination_function=self.combination_function,
@@ -195,6 +244,14 @@ class ComplexNonlinearUtilityFunction(_DependenceMixin, BaseUtilityFunction):
     def to_dict(
         self, python_class_identifier=PYTHON_CLASS_IDENTIFIER
     ) -> dict[str, Any]:
+        """To dict.
+
+        Args:
+            python_class_identifier: Python class identifier.
+
+        Returns:
+            dict[str, Any]: The result.
+        """
         d = {python_class_identifier: get_full_type_name(type(self))}
         d.update(super().to_dict(python_class_identifier=python_class_identifier))
         return dict(
@@ -211,6 +268,12 @@ class ComplexNonlinearUtilityFunction(_DependenceMixin, BaseUtilityFunction):
     def from_dict(
         cls, d: dict[str, Any], python_class_identifier=PYTHON_CLASS_IDENTIFIER
     ):
+        """From dict.
+
+        Args:
+            d: D.
+            python_class_identifier: Python class identifier.
+        """
         d.pop(python_class_identifier, None)
         d["ufuns"] = deserialize(
             d["ufuns"], python_class_identifier=python_class_identifier

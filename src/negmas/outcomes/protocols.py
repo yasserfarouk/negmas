@@ -1,4 +1,7 @@
+"""Protocol definitions."""
+
 from __future__ import annotations
+
 from typing import (
     TYPE_CHECKING,
     Collection,
@@ -86,6 +89,16 @@ class OutcomeSpace(Container, Protocol):
     def to_largest_discrete(
         self, levels: int, max_cardinality: int | float = float("inf"), **kwargs
     ) -> DiscreteOutcomeSpace:
+        """To largest discrete.
+
+        Args:
+            levels: Levels.
+            max_cardinality: Max cardinality.
+            **kwargs: Additional keyword arguments.
+
+        Returns:
+            DiscreteOutcomeSpace: The result.
+        """
         ...
 
     def cardinality_if_discretized(
@@ -113,6 +126,14 @@ class OutcomeSpace(Container, Protocol):
         return self.is_discrete()
 
     def __contains__(self, item: Outcome | OutcomeSpace | Issue) -> bool:  # type: ignore
+        """contains  .
+
+        Args:
+            item: Item.
+
+        Returns:
+            bool: The result.
+        """
         ...
 
 
@@ -154,11 +175,30 @@ class DiscreteOutcomeSpace(OutcomeSpace, Collection, Protocol):
     def to_single_issue(
         self, numeric: bool = False, stringify: bool = True
     ) -> CartesianOutcomeSpace:
+        """To single issue.
+
+        Args:
+            numeric: Numeric.
+            stringify: Stringify.
+
+        Returns:
+            CartesianOutcomeSpace: The result.
+        """
         ...
 
     def sample(
         self, n_outcomes: int, with_replacement: bool = False, fail_if_not_enough=True
     ) -> Iterable[Outcome]:
+        """Sample.
+
+        Args:
+            n_outcomes: N outcomes.
+            with_replacement: With replacement.
+            fail_if_not_enough: Fail if not enough.
+
+        Returns:
+            Iterable[Outcome]: The result.
+        """
         ...
 
     def is_discrete(self) -> bool:
@@ -166,12 +206,27 @@ class DiscreteOutcomeSpace(OutcomeSpace, Collection, Protocol):
         return True
 
     def to_discrete(self, *args, **kwargs) -> DiscreteOutcomeSpace:
+        """To discrete.
+
+        Args:
+            *args: Additional positional arguments.
+            **kwargs: Additional keyword arguments.
+
+        Returns:
+            DiscreteOutcomeSpace: The result.
+        """
         return self
 
     def __iter__(self):
+        """iter  ."""
         return self.enumerate().__iter__()
 
     def __len__(self) -> int:
+        """len  .
+
+        Returns:
+            int: The result.
+        """
         return self.cardinality
 
 

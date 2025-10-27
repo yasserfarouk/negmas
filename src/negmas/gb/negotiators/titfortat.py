@@ -1,4 +1,7 @@
+"""Negotiator implementations."""
+
 from __future__ import annotations
+
 from typing import TYPE_CHECKING, Literal
 
 from negmas.gb.components.concession import KindConcessionRecommender
@@ -47,6 +50,12 @@ class NaiveTitForTatNegotiator(MAPNegotiator):
         stochastic: bool = False,
         **kwargs,
     ):
+        """Initialize the instance.
+
+        Args:
+            *args: Additional positional arguments.
+            **kwargs: Additional keyword arguments.
+        """
         partner_model = ZeroSumModel(rank_only=rank_only, above_reserve=False)
         if isinstance(initial_concession, str):
             initial_concession = 0

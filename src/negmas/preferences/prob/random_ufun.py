@@ -1,4 +1,7 @@
+"""Utility function implementations."""
+
 from __future__ import annotations
+
 from random import choice, random
 from typing import TYPE_CHECKING
 
@@ -25,6 +28,15 @@ class ProbRandomUtilityFunction(StationaryMixin, ProbUtilityFunction):
         *args,
         **kwargs,
     ):
+        """Initialize the instance.
+
+        Args:
+            locs: Locs.
+            scales: Scales.
+            types: Types.
+            *args: Additional positional arguments.
+            **kwargs: Additional keyword arguments.
+        """
         super().__init__(*args, **kwargs)
         self._cache: dict[Outcome | None, tuple[float, float, str]] = dict()
         self._types = [types] if isinstance(types, str) else types
@@ -34,6 +46,14 @@ class ProbRandomUtilityFunction(StationaryMixin, ProbUtilityFunction):
         self._scale_offset = scales[0]
 
     def eval(self, offer: Outcome | None) -> Distribution:
+        """Eval.
+
+        Args:
+            offer: Offer being considered.
+
+        Returns:
+            Distribution: The result.
+        """
         v = self._cache.get(offer, None)
         if v is None:
             loc = self._loc_offset + self._loc_scale * random()

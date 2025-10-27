@@ -51,14 +51,33 @@ __all__ = [
 class BaseFun(ABC):
     @property
     def dim(self) -> int:
+        """Dim.
+
+        Returns:
+            int: The result.
+        """
         return 1
 
     @abstractmethod
     def minmax(self, input: Issue) -> tuple[float, float]:
+        """Minmax.
+
+        Args:
+            input: Input.
+
+        Returns:
+            tuple[float, float]: The result.
+        """
         ...
 
     @classmethod
     def from_dict(cls, d: dict, python_class_identifier=PYTHON_CLASS_IDENTIFIER):
+        """From dict.
+
+        Args:
+            d: D.
+            python_class_identifier: Python class identifier.
+        """
         if isinstance(d, cls):
             return d
         _ = d.pop(python_class_identifier, None)
@@ -67,40 +86,100 @@ class BaseFun(ABC):
     def to_dict(
         self, python_class_identifier=PYTHON_CLASS_IDENTIFIER
     ) -> dict[str, Any]:
+        """To dict.
+
+        Args:
+            python_class_identifier: Python class identifier.
+
+        Returns:
+            dict[str, Any]: The result.
+        """
         return serialize(asdict(self), python_class_identifier=python_class_identifier)
 
     def min(self, input: Issue) -> float:
+        """Min.
+
+        Args:
+            input: Input.
+
+        Returns:
+            float: The result.
+        """
         mn, _ = self.minmax(input)
         return mn
 
     def max(self, input: Issue) -> float:
+        """Max.
+
+        Args:
+            input: Input.
+
+        Returns:
+            float: The result.
+        """
         _, mx = self.minmax(input)
         return mx
 
 
 @define(frozen=True)
 class TableFun(BaseFun):
+    """TableFun implementation."""
+
     mapping: dict
 
     def minmax(self, input: Issue) -> tuple[float, float]:
+        """Minmax.
+
+        Args:
+            input: Input.
+
+        Returns:
+            tuple[float, float]: The result.
+        """
         return self._minmax(input)
 
     def _minmax(self, input: Issue) -> tuple[float, float]:
         return nonmonotonic_minmax(input, self)
 
     def shift_by(self, offset: float) -> TableFun:
+        """Shift by.
+
+        Args:
+            offset: Offset.
+
+        Returns:
+            TableFun: The result.
+        """
         d = dict()
         for k in self.mapping.keys():
             d[k] = self.mapping[k] + offset
         return TableFun(d)
 
     def scale_by(self, scale: float) -> TableFun:
+        """Scale by.
+
+        Args:
+            scale: Scale.
+
+        Returns:
+            TableFun: The result.
+        """
         d = dict()
         for k in self.mapping.keys():
             d[k] = self.mapping[k] * scale
         return TableFun(d)
 
     def xml(self, indx: int, issue: Issue, bias=0.0) -> str:
+        """Xml.
+
+        Args:
+            indx: Indx.
+            issue: Issue.
+            bias: Bias.
+
+        Returns:
+            str: The result.
+        """
         issue_name = issue.name
         dtype = "discrete"
         vtype = (
@@ -119,15 +198,33 @@ class TableFun(BaseFun):
         return output
 
     def __call__(self, x) -> float:
+        """Make instance callable.
+
+        Args:
+            x: X.
+
+        Returns:
+            float: The result.
+        """
         return self.mapping[x]
 
 
 @define(frozen=True)
 class AffineFun(BaseFun):
+    """AffineFun implementation."""
+
     slope: float
     bias: float = 0
 
     def minmax(self, input: Issue) -> tuple[float, float]:
+        """Minmax.
+
+        Args:
+            input: Input.
+
+        Returns:
+            tuple[float, float]: The result.
+        """
         return self._minmax(input)
 
     @lru_cache
@@ -135,12 +232,38 @@ class AffineFun(BaseFun):
         return monotonic_minmax(input, self)
 
     def shift_by(self, offset: float) -> AffineFun:
+        """Shift by.
+
+        Args:
+            offset: Offset.
+
+        Returns:
+            AffineFun: The result.
+        """
         return AffineFun(slope=self.slope, bias=self.bias + offset)
 
     def scale_by(self, scale: float) -> AffineFun:
+        """Scale by.
+
+        Args:
+            scale: Scale.
+
+        Returns:
+            AffineFun: The result.
+        """
         return AffineFun(slope=self.slope * scale, bias=self.bias * scale)
 
     def xml(self, indx: int, issue: Issue, bias=0.0) -> str:
+        """Xml.
+
+        Args:
+            indx: Indx.
+            issue: Issue.
+            bias: Bias.
+
+        Returns:
+            str: The result.
+        """
         issue_name = issue.name
         if issue.is_continuous():
             output = f'<issue index="{indx + 1}" etype="real" type="real" vtype="real" name="{issue_name}">\n'
@@ -157,14 +280,32 @@ class AffineFun(BaseFun):
         return output
 
     def __call__(self, x: float) -> float:
+        """Make instance callable.
+
+        Args:
+            x: X.
+
+        Returns:
+            float: The result.
+        """
         return x * self.slope + self.bias
 
 
 @define(frozen=True)
 class ConstFun(BaseFun):
+    """ConstFun implementation."""
+
     bias: float
 
     def minmax(self, input: Issue) -> tuple[float, float]:
+        """Minmax.
+
+        Args:
+            input: Input.
+
+        Returns:
+            tuple[float, float]: The result.
+        """
         _ = input
         return self._minmax(input)
 
@@ -174,28 +315,77 @@ class ConstFun(BaseFun):
         return (self.bias, self.bias)
 
     def shift_by(self, offset: float) -> ConstFun:
+        """Shift by.
+
+        Args:
+            offset: Offset.
+
+        Returns:
+            ConstFun: The result.
+        """
         return ConstFun(bias=offset + self.bias)
 
     def scale_by(self, scale: float) -> AffineFun:
+        """Scale by.
+
+        Args:
+            scale: Scale.
+
+        Returns:
+            AffineFun: The result.
+        """
         return AffineFun(slope=scale, bias=self.bias)
 
     def xml(self, indx: int, issue: Issue, bias=0.0) -> str:
+        """Xml.
+
+        Args:
+            indx: Indx.
+            issue: Issue.
+            bias: Bias.
+
+        Returns:
+            str: The result.
+        """
         return AffineFun(0.0, self.bias).xml(indx, issue, bias)
 
     def __call__(self, x: float) -> float:
+        """Make instance callable.
+
+        Args:
+            x: X.
+
+        Returns:
+            float: The result.
+        """
         _ = x
         return self.bias
 
 
 @define(frozen=True)
 class LinearFun(BaseFun):
+    """LinearFun implementation."""
+
     slope: float
 
     @property
     def bias(sef):
+        """Bias.
+
+        Args:
+            sef: Sef.
+        """
         return 0.0
 
     def minmax(self, input: Issue) -> tuple[float, float]:
+        """Minmax.
+
+        Args:
+            input: Input.
+
+        Returns:
+            tuple[float, float]: The result.
+        """
         return self._minmax(input)
 
     @lru_cache
@@ -203,38 +393,118 @@ class LinearFun(BaseFun):
         return monotonic_minmax(input, self)
 
     def shift_by(self, offset: float) -> AffineFun:
+        """Shift by.
+
+        Args:
+            offset: Offset.
+
+        Returns:
+            AffineFun: The result.
+        """
         return AffineFun(bias=offset, slope=self.slope)
 
     def scale_by(self, scale: float) -> LinearFun:
+        """Scale by.
+
+        Args:
+            scale: Scale.
+
+        Returns:
+            LinearFun: The result.
+        """
         return LinearFun(slope=scale * self.slope)
 
     def xml(self, indx: int, issue: Issue, bias=0.0) -> str:
+        """Xml.
+
+        Args:
+            indx: Indx.
+            issue: Issue.
+            bias: Bias.
+
+        Returns:
+            str: The result.
+        """
         return AffineFun(self.slope, 0.0).xml(indx, issue, bias)
 
     def __call__(self, x: float) -> float:
+        """Make instance callable.
+
+        Args:
+            x: X.
+
+        Returns:
+            float: The result.
+        """
         return x * self.slope
 
 
 @define(frozen=True)
 class IdentityFun(BaseFun):
+    """IdentityFun implementation."""
+
     def minmax(self, input: Issue) -> tuple[float, float]:
+        """Minmax.
+
+        Args:
+            input: Input.
+
+        Returns:
+            tuple[float, float]: The result.
+        """
         return (input.min_value, input.max_value)
 
     def shift_by(self, offset: float) -> ConstFun:
+        """Shift by.
+
+        Args:
+            offset: Offset.
+
+        Returns:
+            ConstFun: The result.
+        """
         return ConstFun(bias=offset)
 
     def scale_by(self, scale: float) -> LinearFun:
+        """Scale by.
+
+        Args:
+            scale: Scale.
+
+        Returns:
+            LinearFun: The result.
+        """
         return LinearFun(slope=scale)
 
     def xml(self, indx: int, issue: Issue, bias=0.0) -> str:
+        """Xml.
+
+        Args:
+            indx: Indx.
+            issue: Issue.
+            bias: Bias.
+
+        Returns:
+            str: The result.
+        """
         return LinearFun(1.0).xml(indx, issue, bias)
 
     def __call__(self, x: float) -> float:
+        """Make instance callable.
+
+        Args:
+            x: X.
+
+        Returns:
+            float: The result.
+        """
         return x
 
 
 @define(frozen=True)
 class LambdaFun(BaseFun):
+    """LambdaFun implementation."""
+
     f: Callable[[Any], float]
     bias: float = 0
     min_value: float | None = None
@@ -243,11 +513,20 @@ class LambdaFun(BaseFun):
     def __post_init__(self):
         # we need to be sure that f is a lambda function so that it can
         # correctly be serialized
+        """post init  ."""
         if not is_lambda_function(self.f):
             f = self.f
             object.__setattr__(self, "f", lambda x: f(x))
 
     def minmax(self, input) -> tuple[float, float]:
+        """Minmax.
+
+        Args:
+            input: Input.
+
+        Returns:
+            tuple[float, float]: The result.
+        """
         if self.min_value is not None and self.max_value is not None:
             return self.min_value, self.max_value
         mn, mx = nonmonotonic_minmax(input, self.f)
@@ -258,6 +537,15 @@ class LambdaFun(BaseFun):
         return mn, mx
 
     def shift_by(self, offset: float, change_bias: bool = False) -> LambdaFun:
+        """Shift by.
+
+        Args:
+            offset: Offset.
+            change_bias: Change bias.
+
+        Returns:
+            LambdaFun: The result.
+        """
         mn, mx = self.min_value, self.max_value
         return LambdaFun(
             self.f if change_bias else lambda x: offset + self.f(x),
@@ -267,6 +555,14 @@ class LambdaFun(BaseFun):
         )
 
     def scale_by(self, scale: float) -> LambdaFun:
+        """Scale by.
+
+        Args:
+            scale: Scale.
+
+        Returns:
+            LambdaFun: The result.
+        """
         mn, mx = self.min_value, self.max_value
         if scale < 0:
             mn, mx = mx, mn
@@ -278,6 +574,16 @@ class LambdaFun(BaseFun):
         )
 
     def xml(self, indx: int, issue: Issue, bias=0.0) -> str:
+        """Xml.
+
+        Args:
+            indx: Indx.
+            issue: Issue.
+            bias: Bias.
+
+        Returns:
+            str: The result.
+        """
         if issue.is_discrete():
             values = list(issue.all)
             return TableFun(dict(zip(values, [self(_) for _ in values]))).xml(
@@ -286,16 +592,34 @@ class LambdaFun(BaseFun):
         raise ValueError("LambdaFun with a continuous issue cannot be converted to XML")
 
     def __call__(self, x: Any) -> float:
+        """Make instance callable.
+
+        Args:
+            x: X.
+
+        Returns:
+            float: The result.
+        """
         return self.f(x) + self.bias
 
 
 @define(frozen=True)
 class QuadraticFun(BaseFun):
+    """QuadraticFun implementation."""
+
     a2: float
     a1: float
     bias: float = 0
 
     def minmax(self, input) -> tuple[float, float]:
+        """Minmax.
+
+        Args:
+            input: Input.
+
+        Returns:
+            tuple[float, float]: The result.
+        """
         return self._minmax(input)
 
     @lru_cache
@@ -315,14 +639,40 @@ class QuadraticFun(BaseFun):
         return fmiddle, fmn
 
     def shift_by(self, offset: float) -> QuadraticFun:
+        """Shift by.
+
+        Args:
+            offset: Offset.
+
+        Returns:
+            QuadraticFun: The result.
+        """
         return QuadraticFun(bias=self.bias + offset, a1=self.a1, a2=self.a2)
 
     def scale_by(self, scale: float) -> QuadraticFun:
+        """Scale by.
+
+        Args:
+            scale: Scale.
+
+        Returns:
+            QuadraticFun: The result.
+        """
         return QuadraticFun(
             bias=self.bias * scale, a1=self.a1 * scale, a2=self.a2 * scale
         )
 
     def xml(self, indx: int, issue: Issue, bias) -> str:
+        """Xml.
+
+        Args:
+            indx: Indx.
+            issue: Issue.
+            bias: Bias.
+
+        Returns:
+            str: The result.
+        """
         issue_name = issue.name
         if issue.is_continuous():
             output = f'<issue index="{indx + 1}" etype="real" type="real" vtype="real" name="{issue_name}">\n'
@@ -339,16 +689,31 @@ class QuadraticFun(BaseFun):
         return output
 
     def __call__(self, x: float):
+        """Make instance callable.
+
+        Args:
+            x: X.
+        """
         return self.a2 * x * x + self.a1 * x + self.bias
 
 
 @define(frozen=True)
 class PolynomialFun(BaseFun):
+    """PolynomialFun implementation."""
+
     coefficients: tuple[float, ...]
     bias: float = 0
 
     def minmax(self, input) -> tuple[float, float]:
         # todo: implement this exactly without sampling
+        """Minmax.
+
+        Args:
+            input: Input.
+
+        Returns:
+            tuple[float, float]: The result.
+        """
         return self._minmax(input)
 
     @lru_cache
@@ -357,15 +722,41 @@ class PolynomialFun(BaseFun):
         return nonmonotonic_minmax(input, self)
 
     def shift_by(self, offset: float) -> PolynomialFun:
+        """Shift by.
+
+        Args:
+            offset: Offset.
+
+        Returns:
+            PolynomialFun: The result.
+        """
         return PolynomialFun(bias=self.bias + offset, coefficients=self.coefficients)
 
     def scale_by(self, scale: float) -> PolynomialFun:
+        """Scale by.
+
+        Args:
+            scale: Scale.
+
+        Returns:
+            PolynomialFun: The result.
+        """
         return PolynomialFun(
             bias=self.bias * scale,
             coefficients=tuple(_ * scale for _ in self.coefficients),
         )
 
     def xml(self, indx: int, issue: Issue, bias) -> str:
+        """Xml.
+
+        Args:
+            indx: Indx.
+            issue: Issue.
+            bias: Bias.
+
+        Returns:
+            str: The result.
+        """
         issue_name = issue.name
         if issue.is_continuous():
             output = f'<issue index="{indx + 1}" etype="real" type="real" vtype="real" name="{issue_name}">\n'
@@ -394,6 +785,11 @@ class PolynomialFun(BaseFun):
         return output
 
     def __call__(self, x: float):
+        """Make instance callable.
+
+        Args:
+            x: X.
+        """
         return reduce(
             add, [b * pow(x, p + 1) for p, b in enumerate(self.coefficients)], self.bias
         )
@@ -401,17 +797,35 @@ class PolynomialFun(BaseFun):
 
 @define(frozen=True)
 class TriangularFun(BaseFun):
+    """TriangularFun implementation."""
+
     start: float
     middle: float
     end: float
     bias: float = 0
 
     def shift_by(self, offset: float) -> TriangularFun:
+        """Shift by.
+
+        Args:
+            offset: Offset.
+
+        Returns:
+            TriangularFun: The result.
+        """
         return TriangularFun(
             bias=self.bias + offset, start=self.start, middle=self.middle, end=self.end
         )
 
     def scale_by(self, scale: float) -> TriangularFun:
+        """Scale by.
+
+        Args:
+            scale: Scale.
+
+        Returns:
+            TriangularFun: The result.
+        """
         return TriangularFun(
             bias=self.bias * scale,
             start=self.start * scale,
@@ -421,6 +835,14 @@ class TriangularFun(BaseFun):
 
     def minmax(self, input) -> tuple[float, float]:
         # todo: implement this exactly without sampling
+        """Minmax.
+
+        Args:
+            input: Input.
+
+        Returns:
+            tuple[float, float]: The result.
+        """
         return self._minmax(input)
 
     @lru_cache
@@ -429,6 +851,16 @@ class TriangularFun(BaseFun):
         return nonmonotonic_minmax(input, self)
 
     def xml(self, indx: int, issue: Issue, bias) -> str:
+        """Xml.
+
+        Args:
+            indx: Indx.
+            issue: Issue.
+            bias: Bias.
+
+        Returns:
+            str: The result.
+        """
         issue_name = issue.name
         if issue.is_continuous():
             assert abs(bias + self.bias) < 1e-6
@@ -447,6 +879,11 @@ class TriangularFun(BaseFun):
         return output
 
     def __call__(self, x: float):
+        """Make instance callable.
+
+        Args:
+            x: X.
+        """
         bias1, slope1 = self.start, (self.middle - self.start)
         bias2, slope2 = self.middle, (self.middle - self.end)
         return self.bias + (
@@ -456,11 +893,21 @@ class TriangularFun(BaseFun):
 
 @define(frozen=True)
 class ExponentialFun(BaseFun):
+    """ExponentialFun implementation."""
+
     tau: float
     bias: float = 0
     base: float = e
 
     def minmax(self, input) -> tuple[float, float]:
+        """Minmax.
+
+        Args:
+            input: Input.
+
+        Returns:
+            tuple[float, float]: The result.
+        """
         return self._minmax(input)
 
     @lru_cache
@@ -468,14 +915,40 @@ class ExponentialFun(BaseFun):
         return monotonic_minmax(input, self)
 
     def shift_by(self, offset: float) -> ExponentialFun:
+        """Shift by.
+
+        Args:
+            offset: Offset.
+
+        Returns:
+            ExponentialFun: The result.
+        """
         return ExponentialFun(bias=self.bias + offset, tau=self.tau)
 
     def scale_by(self, scale: float) -> ExponentialFun:
+        """Scale by.
+
+        Args:
+            scale: Scale.
+
+        Returns:
+            ExponentialFun: The result.
+        """
         return ExponentialFun(
             bias=self.bias * scale, tau=self.tau + math.log(scale, base=self.base)
         )
 
     def xml(self, indx: int, issue: Issue, bias) -> str:
+        """Xml.
+
+        Args:
+            indx: Indx.
+            issue: Issue.
+            bias: Bias.
+
+        Returns:
+            str: The result.
+        """
         issue_name = issue.name
         if issue.is_continuous():
             output = f'<issue index="{indx + 1}" etype="real" type="real" vtype="real" name="{issue_name}">\n'
@@ -492,11 +965,18 @@ class ExponentialFun(BaseFun):
         return output
 
     def __call__(self, x: float):
+        """Make instance callable.
+
+        Args:
+            x: X.
+        """
         return pow(self.base, self.tau * x) + self.bias
 
 
 @define(frozen=True)
 class CosFun(BaseFun):
+    """CosFun implementation."""
+
     multiplier: float = 1.0
     bias: float = 0.0
     phase: float = 0.0
@@ -504,6 +984,14 @@ class CosFun(BaseFun):
 
     def minmax(self, input) -> tuple[float, float]:
         # todo: implement this exactly without sampling
+        """Minmax.
+
+        Args:
+            input: Input.
+
+        Returns:
+            tuple[float, float]: The result.
+        """
         return self._minmax(input)
 
     @lru_cache
@@ -512,6 +1000,14 @@ class CosFun(BaseFun):
         return nonmonotonic_minmax(input, self)
 
     def shift_by(self, offset: float) -> CosFun:
+        """Shift by.
+
+        Args:
+            offset: Offset.
+
+        Returns:
+            CosFun: The result.
+        """
         return CosFun(
             bias=self.bias + offset,
             multiplier=self.multiplier,
@@ -520,6 +1016,14 @@ class CosFun(BaseFun):
         )
 
     def scale_by(self, scale: float) -> CosFun:
+        """Scale by.
+
+        Args:
+            scale: Scale.
+
+        Returns:
+            CosFun: The result.
+        """
         return CosFun(
             amplitude=self.amplitude * scale,
             bias=self.bias * scale,
@@ -528,6 +1032,16 @@ class CosFun(BaseFun):
         )
 
     def xml(self, indx: int, issue: Issue, bias) -> str:
+        """Xml.
+
+        Args:
+            indx: Indx.
+            issue: Issue.
+            bias: Bias.
+
+        Returns:
+            str: The result.
+        """
         issue_name = issue.name
         if issue.is_continuous():
             output = f'<issue index="{indx + 1}" etype="real" type="real" vtype="real" name="{issue_name}">\n'
@@ -544,11 +1058,18 @@ class CosFun(BaseFun):
         return output
 
     def __call__(self, x: float):
+        """Make instance callable.
+
+        Args:
+            x: X.
+        """
         return self.amplitude * (cos(self.multiplier * x + self.phase)) + self.bias
 
 
 @define(frozen=True)
 class SinFun(BaseFun):
+    """SinFun implementation."""
+
     multiplier: float = 1.0
     bias: float = 0.0
     phase: float = 0.0
@@ -556,6 +1077,14 @@ class SinFun(BaseFun):
 
     def minmax(self, input) -> tuple[float, float]:
         # todo: implement this exactly without sampling
+        """Minmax.
+
+        Args:
+            input: Input.
+
+        Returns:
+            tuple[float, float]: The result.
+        """
         return self._minmax(input)
 
     @lru_cache
@@ -564,6 +1093,14 @@ class SinFun(BaseFun):
         return nonmonotonic_minmax(input, self)
 
     def shift_by(self, offset: float) -> SinFun:
+        """Shift by.
+
+        Args:
+            offset: Offset.
+
+        Returns:
+            SinFun: The result.
+        """
         return SinFun(
             bias=self.bias + offset,
             multiplier=self.multiplier,
@@ -572,6 +1109,14 @@ class SinFun(BaseFun):
         )
 
     def scale_by(self, scale: float) -> SinFun:
+        """Scale by.
+
+        Args:
+            scale: Scale.
+
+        Returns:
+            SinFun: The result.
+        """
         return SinFun(
             amplitude=self.amplitude * scale,
             bias=self.bias * scale,
@@ -580,6 +1125,16 @@ class SinFun(BaseFun):
         )
 
     def xml(self, indx: int, issue: Issue, bias) -> str:
+        """Xml.
+
+        Args:
+            indx: Indx.
+            issue: Issue.
+            bias: Bias.
+
+        Returns:
+            str: The result.
+        """
         issue_name = issue.name
         if issue.is_continuous():
             output = f'<issue index="{indx + 1}" etype="real" type="real" vtype="real" name="{issue_name}">\n'
@@ -596,17 +1151,32 @@ class SinFun(BaseFun):
         return output
 
     def __call__(self, x: float):
+        """Make instance callable.
+
+        Args:
+            x: X.
+        """
         return self.amplitude * (sin(self.multiplier * x + self.phase)) + self.bias
 
 
 @define(frozen=True)
 class LogFun(BaseFun):
+    """LogFun implementation."""
+
     tau: float
     bias: float = 0
     base: float = e
     scale: float = 1.0
 
     def minmax(self, input) -> tuple[float, float]:
+        """Minmax.
+
+        Args:
+            input: Input.
+
+        Returns:
+            tuple[float, float]: The result.
+        """
         return self._minmax(input)
 
     @lru_cache
@@ -614,11 +1184,27 @@ class LogFun(BaseFun):
         return monotonic_minmax(input, self)
 
     def shift_by(self, offset: float) -> LogFun:
+        """Shift by.
+
+        Args:
+            offset: Offset.
+
+        Returns:
+            LogFun: The result.
+        """
         return LogFun(
             bias=self.bias + offset, tau=self.tau, scale=self.scale, base=self.base
         )
 
     def scale_by(self, scale: float) -> LogFun:
+        """Scale by.
+
+        Args:
+            scale: Scale.
+
+        Returns:
+            LogFun: The result.
+        """
         return LogFun(
             bias=self.bias * scale,
             tau=self.tau,
@@ -627,6 +1213,16 @@ class LogFun(BaseFun):
         )
 
     def xml(self, indx: int, issue: Issue, bias) -> str:
+        """Xml.
+
+        Args:
+            indx: Indx.
+            issue: Issue.
+            bias: Bias.
+
+        Returns:
+            str: The result.
+        """
         issue_name = issue.name
         if issue.is_continuous():
             output = f'<issue index="{indx + 1}" etype="real" type="real" vtype="real" name="{issue_name}">\n'
@@ -643,14 +1239,29 @@ class LogFun(BaseFun):
         return output
 
     def __call__(self, x: float):
+        """Make instance callable.
+
+        Args:
+            x: X.
+        """
         return self.scale * log(self.tau * x, base=self.base) + self.bias
 
 
 @define(frozen=True)
 class TableMultiFun(MultiIssueFun):
+    """TableMultiFun implementation."""
+
     mapping: dict[tuple, Any]
 
     def minmax(self, input: Iterable[Issue]) -> tuple[float, float]:
+        """Minmax.
+
+        Args:
+            input: Input.
+
+        Returns:
+            tuple[float, float]: The result.
+        """
         return self._minmax(input)
 
     @lru_cache
@@ -658,12 +1269,28 @@ class TableMultiFun(MultiIssueFun):
         return nonmonotonic_multi_minmax(input, self)
 
     def shift_by(self, offset: float) -> TableMultiFun:
+        """Shift by.
+
+        Args:
+            offset: Offset.
+
+        Returns:
+            TableMultiFun: The result.
+        """
         d = dict()
         for k in self.mapping.keys():
             d[k] = self.mapping[k] + offset
         return TableMultiFun(d)
 
     def scale_by(self, scale: float) -> TableMultiFun:
+        """Scale by.
+
+        Args:
+            scale: Scale.
+
+        Returns:
+            TableMultiFun: The result.
+        """
         d = dict()
         for k in self.mapping.keys():
             d[k] = self.mapping[k] * scale
@@ -671,23 +1298,53 @@ class TableMultiFun(MultiIssueFun):
 
     @property
     def dim(self) -> int:
+        """Dim.
+
+        Returns:
+            int: The result.
+        """
         if not len(self.mapping):
             raise ValueError("Unkonwn dictionary in TableMultiFun")
         return len(list(self.mapping.keys())[0])
 
     def xml(self, indx, issues, bias: float = 0) -> str:
+        """Xml.
+
+        Args:
+            indx: Indx.
+            issues: Issues.
+            bias: Bias.
+
+        Returns:
+            str: The result.
+        """
         raise NotImplementedError()
 
     def __call__(self, x):
+        """Make instance callable.
+
+        Args:
+            x: X.
+        """
         return self.mapping[x]
 
 
 @define(frozen=True)
 class AffineMultiFun(MultiIssueFun):
+    """AffineMultiFun implementation."""
+
     slope: tuple[float, ...]
     bias: float = 0
 
     def minmax(self, input: Iterable[Issue]) -> tuple[float, float]:
+        """Minmax.
+
+        Args:
+            input: Input.
+
+        Returns:
+            tuple[float, float]: The result.
+        """
         return self._minmax(input)
 
     @lru_cache
@@ -695,33 +1352,80 @@ class AffineMultiFun(MultiIssueFun):
         return monotonic_multi_minmax(input, self)
 
     def shift_by(self, offset: float) -> AffineMultiFun:
+        """Shift by.
+
+        Args:
+            offset: Offset.
+
+        Returns:
+            AffineMultiFun: The result.
+        """
         return AffineMultiFun(slope=self.slope, bias=self.bias + offset)
 
     def scale_by(self, scale: float) -> AffineMultiFun:
+        """Scale by.
+
+        Args:
+            scale: Scale.
+
+        Returns:
+            AffineMultiFun: The result.
+        """
         return AffineMultiFun(
             slope=tuple(scale * _ for _ in self.slope), bias=self.bias * scale
         )
 
     @property
     def dim(self) -> int:
+        """Dim.
+
+        Returns:
+            int: The result.
+        """
         raise NotImplementedError()
 
     def xml(self, indx, issues, bias: float = 0) -> str:
+        """Xml.
+
+        Args:
+            indx: Indx.
+            issues: Issues.
+            bias: Bias.
+
+        Returns:
+            str: The result.
+        """
         raise NotImplementedError()
 
     def __call__(self, x: tuple):
+        """Make instance callable.
+
+        Args:
+            x: X.
+        """
         return reduce(add, [a * b for a, b in zip(self.slope, x)], self.bias)
 
 
 @define(frozen=True)
 class LinearMultiFun(MultiIssueFun):
+    """LinearMultiFun implementation."""
+
     slope: tuple[float, ...]
 
     @property
     def bias(self):
+        """Bias."""
         return 0
 
     def minmax(self, input: Iterable[Issue]) -> tuple[float, float]:
+        """Minmax.
+
+        Args:
+            input: Input.
+
+        Returns:
+            tuple[float, float]: The result.
+        """
         return self._minmax(input)
 
     @lru_cache
@@ -729,30 +1433,76 @@ class LinearMultiFun(MultiIssueFun):
         return monotonic_multi_minmax(input, self)
 
     def shift_by(self, offset: float) -> AffineMultiFun:
+        """Shift by.
+
+        Args:
+            offset: Offset.
+
+        Returns:
+            AffineMultiFun: The result.
+        """
         return AffineMultiFun(slope=self.slope, bias=self.bias + offset)
 
     def scale_by(self, scale: float) -> LinearMultiFun:
+        """Scale by.
+
+        Args:
+            scale: Scale.
+
+        Returns:
+            LinearMultiFun: The result.
+        """
         return LinearMultiFun(slope=tuple(scale * _ for _ in self.slope))
 
     @property
     def dim(self) -> int:
+        """Dim.
+
+        Returns:
+            int: The result.
+        """
         raise NotImplementedError()
 
     def xml(self, indx, issues, bias: float = 0) -> str:
+        """Xml.
+
+        Args:
+            indx: Indx.
+            issues: Issues.
+            bias: Bias.
+
+        Returns:
+            str: The result.
+        """
         raise NotImplementedError()
 
     def __call__(self, x: tuple):
+        """Make instance callable.
+
+        Args:
+            x: X.
+        """
         return reduce(add, [a * b for a, b in zip(self.slope, x)], 0)
 
 
 @define(frozen=True)
 class LambdaMultiFun(MultiIssueFun):
+    """LambdaMultiFun implementation."""
+
     f: Callable[[Any], float]
     bias: float = 0
     min_value: float | None = None
     max_value: float | None = None
 
     def minmax(self, input: Iterable[Issue]) -> tuple[float, float]:
+        """Minmax.
+
+        Args:
+            input: Input.
+
+        Returns:
+            tuple[float, float]: The result.
+        """
         return self._minmax(input)
 
     @lru_cache
@@ -767,23 +1517,70 @@ class LambdaMultiFun(MultiIssueFun):
         return mn, mx
 
     def shift_by(self, offset: float) -> AffineMultiFun:
+        """Shift by.
+
+        Args:
+            offset: Offset.
+
+        Returns:
+            AffineMultiFun: The result.
+        """
         raise NotImplementedError()
 
     def scale_by(self, scale: float) -> LinearMultiFun:
+        """Scale by.
+
+        Args:
+            scale: Scale.
+
+        Returns:
+            LinearMultiFun: The result.
+        """
         raise NotImplementedError()
 
     @property
     def dim(self) -> int:
+        """Dim.
+
+        Returns:
+            int: The result.
+        """
         raise NotImplementedError()
 
     def xml(self, indx, issues, bias: float = 0) -> str:
+        """Xml.
+
+        Args:
+            indx: Indx.
+            issues: Issues.
+            bias: Bias.
+
+        Returns:
+            str: The result.
+        """
         raise NotImplementedError()
 
     def __call__(self, x: Any) -> float:
+        """Make instance callable.
+
+        Args:
+            x: X.
+
+        Returns:
+            float: The result.
+        """
         return self.f(x) + self.bias
 
 
 def make_fun_from_xml(item) -> tuple[BaseFun, str]:
+    """Make fun from xml.
+
+    Args:
+        item: Item.
+
+    Returns:
+        tuple[BaseFun, str]: The result.
+    """
     if item.attrib["ftype"] == "linear":
         offset = item.attrib.get(
             "offset", item.attrib.get("parameter0", item.attrib.get("offset", 0.0))

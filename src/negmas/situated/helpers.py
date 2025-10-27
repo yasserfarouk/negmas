@@ -1,4 +1,7 @@
+"""Situated negotiation."""
+
 from __future__ import annotations
+
 from collections import defaultdict
 
 from .common import EDGE_COLORS, EDGE_TYPES
@@ -16,6 +19,7 @@ def safe_min(a, b):
 
 
 def deflistdict():
+    """Deflistdict."""
     return defaultdict(list)
 
 

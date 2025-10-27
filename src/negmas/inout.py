@@ -59,6 +59,7 @@ INFO_FILE_NAME = "_info"
 
 
 def scenario_size(self: Scenario):
+    """Scenario size."""
     size = self.outcome_space.cardinality
     if math.isinf(size):
         size = self.outcome_space.cardinality_if_discretized(10)
@@ -82,13 +83,28 @@ class Scenario:
     info: dict[str, Any] = field(factory=dict)
 
     def __lt__(self, other: Scenario):
+        """lt  .
+
+        Args:
+            other: Other.
+        """
         return scenario_size(self) < scenario_size(other)
 
     @property
     def issues(self) -> tuple[Issue, ...]:
+        """Issues.
+
+        Returns:
+            tuple[Issue, ...]: The result.
+        """
         return self.outcome_space.issues
 
     def plot(self, **kwargs):
+        """Plot.
+
+        Args:
+            **kwargs: Additional keyword arguments.
+        """
         from negmas.plots.util import plot_2dutils
 
         return plot_2dutils(
@@ -134,14 +150,29 @@ class Scenario:
 
     @property
     def n_negotiators(self) -> int:
+        """N negotiators.
+
+        Returns:
+            int: The result.
+        """
         return len(self.ufuns)
 
     @property
     def n_issues(self) -> int:
+        """N issues.
+
+        Returns:
+            int: The result.
+        """
         return len(self.outcome_space.issues)
 
     @property
     def issue_names(self) -> list[str]:
+        """Issue names.
+
+        Returns:
+            list[str]: The result.
+        """
         return self.outcome_space.issue_names
 
     def to_numeric(self) -> Scenario:
@@ -363,6 +394,11 @@ class Scenario:
         return self
 
     def calc_stats(self) -> ScenarioStats:
+        """Calc stats.
+
+        Returns:
+            ScenarioStats: The result.
+        """
         return calc_scenario_stats(self.ufuns)
 
     def calc_extra_stats(
@@ -465,6 +501,12 @@ class Scenario:
         """
 
         def get_name(x, default):
+            """Get name.
+
+            Args:
+                x: X.
+                default: Default.
+            """
             if not x:
                 return str(default)
             return x.split("/")[-1].replace(".xml", "")
@@ -477,6 +519,16 @@ class Scenario:
             ignored=("id", "n_values", "outcome_space"),
             rename={PYTHON_CLASS_IDENTIFIER: "type"},
         ):
+            """Adjust.
+
+            Args:
+                d: D.
+                default_name: Default name.
+                remove_dunder: Remove dunder.
+                adjust_name: Adjust name.
+                ignored: Ignored.
+                rename: Rename.
+            """
             if isinstance(d, list) or isinstance(d, tuple):
                 return [
                     adjust(_, default_name, remove_dunder, adjust_name, ignored)
@@ -555,12 +607,22 @@ class Scenario:
             dump(self.info, folder / f"{INFO_FILE_NAME}.{type}")
 
     def load_info_file(self, file: Path):
+        """Load info file.
+
+        Args:
+            file: File.
+        """
         if not file.is_file():
             return self
         self.info = load(file)
         return self
 
     def load_info(self, folder: PathLike | str):
+        """Load info.
+
+        Args:
+            folder: Folder.
+        """
         for ext in ("yml", "yaml", "json"):
             path = Path(folder) / f"{INFO_FILE_NAME}.{ext}"
             if not path.is_file():
@@ -576,6 +638,17 @@ class Scenario:
         ignore_reserved=False,
         safe_parsing=True,
     ) -> Scenario | None:
+        """From genius folder.
+
+        Args:
+            path: Path.
+            ignore_discount: Ignore discount.
+            ignore_reserved: Ignore reserved.
+            safe_parsing: Safe parsing.
+
+        Returns:
+            Scenario | None: The result.
+        """
         s = load_genius_domain_from_folder(
             folder_name=str(path),
             ignore_discount=ignore_discount,
@@ -611,6 +684,11 @@ class Scenario:
 
     @classmethod
     def is_loadable(cls, path: PathLike | str):
+        """Check if loadable.
+
+        Args:
+            path: Path.
+        """
         if not Path(path).is_dir():
             return False
         for finder in (
@@ -632,6 +710,19 @@ class Scenario:
         ignore_reserved=False,
         safe_parsing=True,
     ) -> Scenario | None:
+        """From genius files.
+
+        Args:
+            domain: Domain.
+            ufuns: Ufuns.
+            info: Info.
+            ignore_discount: Ignore discount.
+            ignore_reserved: Ignore reserved.
+            safe_parsing: Safe parsing.
+
+        Returns:
+            Scenario | None: The result.
+        """
         s = load_genius_domain(
             domain,
             [_ for _ in ufuns],
@@ -655,6 +746,18 @@ class Scenario:
         use_reserved_outcome=False,
         safe_parsing=True,
     ) -> Scenario | None:
+        """From geniusweb folder.
+
+        Args:
+            path: Path.
+            ignore_discount: Ignore discount.
+            ignore_reserved: Ignore reserved.
+            use_reserved_outcome: Use reserved outcome.
+            safe_parsing: Safe parsing.
+
+        Returns:
+            Scenario | None: The result.
+        """
         s = load_geniusweb_domain_from_folder(
             folder_name=str(path),
             ignore_discount=ignore_discount,
@@ -676,6 +779,20 @@ class Scenario:
         use_reserved_outcome=False,
         safe_parsing=True,
     ) -> Scenario | None:
+        """From geniusweb files.
+
+        Args:
+            domain: Domain.
+            ufuns: Ufuns.
+            info: Info.
+            ignore_discount: Ignore discount.
+            ignore_reserved: Ignore reserved.
+            use_reserved_outcome: Use reserved outcome.
+            safe_parsing: Safe parsing.
+
+        Returns:
+            Scenario | None: The result.
+        """
         s = load_geniusweb_domain(
             domain,
             [_ for _ in ufuns],
@@ -700,6 +817,17 @@ class Scenario:
         ignore_reserved=False,
         safe_parsing=True,
     ) -> Scenario | None:
+        """From yaml folder.
+
+        Args:
+            path: Path.
+            ignore_discount: Ignore discount.
+            ignore_reserved: Ignore reserved.
+            safe_parsing: Safe parsing.
+
+        Returns:
+            Scenario | None: The result.
+        """
         domain, ufuns = find_domain_and_utility_files_yaml(path)
         if not domain:
             return None
@@ -725,9 +853,33 @@ class Scenario:
         safe_parsing=True,
         python_class_identifier="type",
     ) -> Scenario | None:
+        """From yaml files.
+
+        Args:
+            domain: Domain.
+            ufuns: Ufuns.
+            info: Info.
+            ignore_discount: Ignore discount.
+            ignore_reserved: Ignore reserved.
+            safe_parsing: Safe parsing.
+            python_class_identifier: Python class identifier.
+
+        Returns:
+            Scenario | None: The result.
+        """
         _ = safe_parsing  # yaml parsing is always safe
 
         def adjust_type(d: dict, base: str = "negmas", domain=None) -> dict:
+            """Adjust type.
+
+            Args:
+                d: D.
+                base: Base.
+                domain: Domain.
+
+            Returns:
+                dict: The result.
+            """
             if "." not in d["type"]:
                 d["type"] = f"{base}.{d['type']}"
             if domain is not None:

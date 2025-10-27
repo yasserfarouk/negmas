@@ -1,3 +1,5 @@
+"""Fun base classes."""
+
 from typing import Any, Protocol, Sequence
 
 from negmas.common import (
@@ -31,6 +33,18 @@ class ReactiveStrategy(Protocol):
         changes: Sequence[PreferencesChange] = tuple(),
         **kwargs,
     ) -> Any:
+        """Make instance callable.
+
+        Args:
+            nmi: Nmi.
+            state: Current state.
+            preferences: Preferences.
+            changes: Changes.
+            **kwargs: Additional keyword arguments.
+
+        Returns:
+            Any: The result.
+        """
         ...
 
 
@@ -55,4 +69,15 @@ class AOStrategy(Protocol):
         preferences: Preferences,
         changes: Sequence[PreferencesChange] = tuple(),
     ) -> SAOResponse:
+        """Make instance callable.
+
+        Args:
+            nmi: Nmi.
+            state: Current state.
+            preferences: Preferences.
+            changes: Changes.
+
+        Returns:
+            SAOResponse: The result.
+        """
         ...

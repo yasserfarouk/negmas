@@ -1,4 +1,7 @@
+"""Negotiator implementations."""
+
 from __future__ import annotations
+
 import math
 from abc import abstractmethod
 from typing import Literal, Protocol, runtime_checkable
@@ -14,6 +17,14 @@ class TimeCurve(Protocol):
 
     @abstractmethod
     def utility_range(self, t: float) -> tuple[float, float]:
+        """Utility range.
+
+        Args:
+            t: T.
+
+        Returns:
+            tuple[float, float]: The result.
+        """
         pass
 
 
@@ -25,9 +36,25 @@ class Aspiration(TimeCurve, Protocol):
 
     @abstractmethod
     def utility_at(self, t: float) -> float:
+        """Utility at.
+
+        Args:
+            t: T.
+
+        Returns:
+            float: The result.
+        """
         pass
 
     def utility_range(self, t: float) -> tuple[float, float]:
+        """Utility range.
+
+        Args:
+            t: T.
+
+        Returns:
+            tuple[float, float]: The result.
+        """
         return self.utility_at(t), 1.0
 
 
@@ -48,6 +75,12 @@ class ExpAspiration(Aspiration):
         | Literal["linear"]
         | float,
     ):
+        """Initialize the instance.
+
+        Args:
+            max_aspiration: Max aspiration.
+            aspiration_type: Aspiration type.
+        """
         self.max_aspiration = max_aspiration
         self.aspiration_type = aspiration_type
         self.exponent = 1.0
@@ -104,6 +137,12 @@ class PolyAspiration(Aspiration):
         | Literal["hardheaded"]
         | float,
     ):
+        """Initialize the instance.
+
+        Args:
+            max_aspiration: Max aspiration.
+            aspiration_type: Aspiration type.
+        """
         self.max_aspiration = max_aspiration
         self.aspiration_type = aspiration_type
         self.exponent = 1.0

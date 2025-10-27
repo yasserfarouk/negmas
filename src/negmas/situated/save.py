@@ -1,4 +1,7 @@
+"""Situated negotiation."""
+
 from __future__ import annotations
+
 import json
 import os
 from os import PathLike
@@ -38,6 +41,11 @@ def save_stats(
     """
 
     def is_json_serializable(x):
+        """Check if json serializable.
+
+        Args:
+            x: X.
+        """
         try:
             json.dumps(x)
         except Exception:

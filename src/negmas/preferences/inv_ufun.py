@@ -1,4 +1,7 @@
+"""Utility function implementations."""
+
 from __future__ import annotations
+
 import math
 import random
 import warnings
@@ -72,19 +75,28 @@ class SamplingInverseUtilityFunction(InverseUFun):
     """
 
     def __init__(self, ufun: BaseUtilityFunction, max_samples_per_call: int = 10_000):
+        """Initialize the instance.
+
+        Args:
+            ufun: Ufun.
+            max_samples_per_call: Max samples per call.
+        """
         self._ufun = ufun
         self.max_samples_per_call = max_samples_per_call
         self._initialized = True
 
     @property
     def initialized(self):
+        """Initialized."""
         return self._initialized
 
     @property
     def ufun(self):
+        """Ufun."""
         return self._ufun
 
     def init(self):
+        """Init."""
         pass
 
     def all(self, rng: float | tuple[float, float]) -> list[Outcome]:
@@ -134,6 +146,15 @@ class SamplingInverseUtilityFunction(InverseUFun):
     def worst_in(
         self, rng: float | tuple[float, float], normalized: bool
     ) -> Outcome | None:
+        """Worst in.
+
+        Args:
+            rng: Rng.
+            normalized: Normalized.
+
+        Returns:
+            Outcome | None: The result.
+        """
         some = self.some(rng, normalized)
         if not isinstance(rng, Iterable):
             rng = (rng, rng)
@@ -147,6 +168,15 @@ class SamplingInverseUtilityFunction(InverseUFun):
     def best_in(
         self, rng: float | tuple[float, float], normalized: bool
     ) -> Outcome | None:
+        """Best in.
+
+        Args:
+            rng: Rng.
+            normalized: Normalized.
+
+        Returns:
+            Outcome | None: The result.
+        """
         some = self.some(rng, normalized)
         if not isinstance(rng, Iterable):
             rng = (rng, rng)
@@ -164,6 +194,17 @@ class SamplingInverseUtilityFunction(InverseUFun):
         fallback_to_higher: bool = True,
         fallback_to_best: bool = True,
     ) -> Outcome | None:
+        """One in.
+
+        Args:
+            rng: Rng.
+            normalized: Normalized.
+            fallback_to_higher: Fallback to higher.
+            fallback_to_best: Fallback to best.
+
+        Returns:
+            Outcome | None: The result.
+        """
         if not self._ufun.outcome_space:
             return None
         if not isinstance(rng, Iterable):
@@ -244,6 +285,17 @@ class PresortingInverseUtilityFunction(InverseUFun):
         eps: float = 1e-12,
         rel_eps: float = 1e-6,
     ):
+        """Initialize the instance.
+
+        Args:
+            ufun: Ufun.
+            levels: Levels.
+            max_cache_size: Max cache size.
+            rational_only: Rational only.
+            n_waypints: N waypints.
+            eps: Eps.
+            rel_eps: Rel eps.
+        """
         self._ufun = ufun
         self.max_cache_size = max_cache_size
         self.levels = levels
@@ -264,18 +316,22 @@ class PresortingInverseUtilityFunction(InverseUFun):
 
     @property
     def initialized(self):
+        """Initialized."""
         return self._initialized
 
     @property
     def ufun(self):
+        """Ufun."""
         return self._ufun
 
     def reset(self) -> None:
+        """Reset."""
         self._initialized = False
         self.outcomes, self.utils = [], []  # type: ignore
         self._waypoints, self._waypoint_values = [], []  # type: ignore
 
     def init(self):
+        """Init."""
         outcome_space = self._ufun.outcome_space
         if outcome_space is None:
             raise ValueError("Cannot find the outcome space.")
@@ -646,6 +702,7 @@ class PresortingInverseUtilityFunction(InverseUFun):
             mx = self._last_rational
 
         def recover_from_failure():
+            """Recover from failure."""
             if fallback_to_higher and rng[1] < 1 - EPS:
                 return self.one_in(
                     (rng[0], 1 if normalized else float(self._ufun.max())),
@@ -774,6 +831,14 @@ class PresortingInverseUtilityFunction(InverseUFun):
         return self.one_in(rng, normalized)
 
     def outcome_at(self, indx: int) -> Outcome | None:
+        """Outcome at.
+
+        Args:
+            indx: Indx.
+
+        Returns:
+            Outcome | None: The result.
+        """
         n = len(self.outcomes)
         if indx >= n:
             return None
@@ -782,6 +847,14 @@ class PresortingInverseUtilityFunction(InverseUFun):
         return self.outcomes[indx]
 
     def utility_at(self, indx: int) -> float:
+        """Utility at.
+
+        Args:
+            indx: Indx.
+
+        Returns:
+            float: The result.
+        """
         n = len(self.outcomes)
         if indx >= n:
             return float("-inf")
@@ -813,6 +886,14 @@ class PresortingInverseUtilityFunctionBruteForce(InverseUFun):
         max_cache_size: int = 10_000_000_000,
         rational_only: bool = False,
     ):
+        """Initialize the instance.
+
+        Args:
+            ufun: Ufun.
+            levels: Levels.
+            max_cache_size: Max cache size.
+            rational_only: Rational only.
+        """
         self._ufun = ufun
         self.max_cache_size = max_cache_size
         self.levels = levels
@@ -822,17 +903,21 @@ class PresortingInverseUtilityFunctionBruteForce(InverseUFun):
 
     @property
     def initialized(self):
+        """Initialized."""
         return self._initialized
 
     @property
     def ufun(self):
+        """Ufun."""
         return self._ufun
 
     def reset(self) -> None:
+        """Reset."""
         self._initialized = False
         self._orddered_outcomes = []
 
     def init(self):
+        """Init."""
         outcome_space = self._ufun.outcome_space
         if outcome_space is None:
             raise ValueError("Cannot find the outcome space.")
@@ -955,6 +1040,7 @@ class PresortingInverseUtilityFunctionBruteForce(InverseUFun):
         rmn = rng[0] if isinstance(rng, Iterable) else rng
 
         def recover_from_failure():
+            """Recover from failure."""
             if fallback_to_higher and rmx < 1 - EPS:
                 return self.some(
                     (rmn, 1 if normalized else float(self._ufun.max())),
@@ -1011,6 +1097,15 @@ class PresortingInverseUtilityFunctionBruteForce(InverseUFun):
     def worst_in(
         self, rng: float | tuple[float, float], normalized: bool
     ) -> Outcome | None:
+        """Worst in.
+
+        Args:
+            rng: Rng.
+            normalized: Normalized.
+
+        Returns:
+            Outcome | None: The result.
+        """
         if not self._ufun.is_stationary():
             self.init()
         rng = self._un_normalize_range(rng, normalized, False)
@@ -1029,6 +1124,15 @@ class PresortingInverseUtilityFunctionBruteForce(InverseUFun):
     def best_in(
         self, rng: float | tuple[float, float], normalized: bool
     ) -> Outcome | None:
+        """Best in.
+
+        Args:
+            rng: Rng.
+            normalized: Normalized.
+
+        Returns:
+            Outcome | None: The result.
+        """
         if not self._ufun.is_stationary():
             self.init()
         rng = self._un_normalize_range(rng, normalized, True)
@@ -1048,6 +1152,17 @@ class PresortingInverseUtilityFunctionBruteForce(InverseUFun):
         fallback_to_higher: bool = True,
         fallback_to_best: bool = True,
     ) -> Outcome | None:
+        """One in.
+
+        Args:
+            rng: Rng.
+            normalized: Normalized.
+            fallback_to_higher: Fallback to higher.
+            fallback_to_best: Fallback to best.
+
+        Returns:
+            Outcome | None: The result.
+        """
         lst = self.some(
             rng,
             normalized,
@@ -1161,11 +1276,27 @@ class PresortingInverseUtilityFunctionBruteForce(InverseUFun):
         return self.one_in(rng, normalized)
 
     def outcome_at(self, indx: int) -> Outcome | None:
+        """Outcome at.
+
+        Args:
+            indx: Indx.
+
+        Returns:
+            Outcome | None: The result.
+        """
         if indx >= len(self._ordered_outcomes):
             return None
         return self._ordered_outcomes[indx][1]
 
     def utility_at(self, indx: int) -> float:
+        """Utility at.
+
+        Args:
+            indx: Indx.
+
+        Returns:
+            float: The result.
+        """
         if indx >= len(self._ordered_outcomes):
             return float("-inf")
         return self._ordered_outcomes[indx][0]
