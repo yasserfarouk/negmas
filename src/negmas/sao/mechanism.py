@@ -152,6 +152,7 @@ class SAOMechanism(
                 **dict(
                     end_on_no_response=end_on_no_response,
                     one_offer_per_step=one_offer_per_step,
+                    offering_is_accepting=offering_is_accepting,
                 ),
             }
         )
@@ -193,7 +194,6 @@ class SAOMechanism(
         self._current_proposer = None
         self._frozen_neg_list = None
         self._no_responses = 0
-        self._offering_is_accepting = offering_is_accepting
         self._n_waits = 0
         self._waiting_time: dict[str, float] = defaultdict(float)
         self._waiting_start: dict[str, float] = defaultdict(return_inf)
@@ -347,7 +347,7 @@ class SAOMechanism(
             try:
                 if (
                     negotiator == self._current_proposer
-                ) and self._offering_is_accepting:
+                ) and self.nmi.offering_is_accepting:
                     self._current_state.n_acceptances = 0
                 try:
                     response = (
@@ -400,7 +400,7 @@ class SAOMechanism(
             try:
                 if (
                     negotiator == self._current_proposer
-                ) and self._offering_is_accepting:
+                ) and self.nmi.offering_is_accepting:
                     state.n_acceptances = 0
                     response = (
                         given_response
@@ -421,7 +421,7 @@ class SAOMechanism(
                 try:
                     if (
                         negotiator == self._current_proposer
-                    ) and self._offering_is_accepting:
+                    ) and self.nmi.offering_is_accepting:
                         state.n_acceptances = 0
                         response = (
                             given_response
@@ -628,7 +628,7 @@ class SAOMechanism(
                         )
                     state.n_acceptances = 0
                 else:
-                    state.n_acceptances = 1 if self._offering_is_accepting else 0
+                    state.n_acceptances = 1 if self.nmi.offering_is_accepting else 0
                     if self._extra_callbacks:
                         for other in self.negotiators:
                             if other is neg:
@@ -716,7 +716,7 @@ class SAOMechanism(
             """
             neg = state.current_proposer
             n_acceptances = state.n_acceptances
-            if self._offering_is_accepting:
+            if self.nmi.offering_is_accepting:
                 n_acceptances -= 1
             if neg is None:
                 indices = []

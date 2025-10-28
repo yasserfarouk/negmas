@@ -53,6 +53,9 @@ class SAONMI(NegotiatorMechanismInterface):
     one_offer_per_step: bool = False
     """If true, a step should be atomic with only one action from one negotiator"""
 
+    offering_is_accepting: bool = True
+    """If true, offering is considered an acceptance of that offer which means that the offerer need not accept the offer again to make it an agreement"""
+
     @property
     def state(self) -> SAOState:
         """State.
