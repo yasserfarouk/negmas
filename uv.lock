@@ -1,5 +1,5 @@
 version = 1
-revision = 2
+revision = 3
 requires-python = ">=3.11"
 resolution-markers = [
     "python_full_version < '3.12'",
@@ -1945,7 +1945,6 @@ dev = [
     { name = "pytest-sugar" },
     { name = "readme-renderer" },
     { name = "recommonmark" },
-    { name = "sphinx-rtd-theme" },
     { name = "tox" },
     { name = "twine" },
     { name = "wheel" },
@@ -1953,17 +1952,7 @@ dev = [
 distributed = [
     { name = "dask", extra = ["complete"] },
 ]
-gui = [
-    { name = "pyqt5" },
-]
-testing = [
-    { name = "pytest" },
-    { name = "pytest-check" },
-    { name = "pytest-timeout" },
-]
-
-[package.dev-dependencies]
-dev = [
+docs = [
     { name = "nbformat" },
     { name = "nbsphinx" },
     { name = "notebook" },
@@ -1972,10 +1961,19 @@ dev = [
     { name = "sphinx-autodoc-annotation" },
     { name = "sphinx-autodoc-typehints" },
     { name = "sphinx-automodapi" },
+    { name = "sphinx-rtd-theme" },
     { name = "sphinx-tabs" },
     { name = "sphinx-testing" },
     { name = "sphinxcontrib-fulltoc" },
     { name = "sphinxcontrib-websupport" },
+]
+gui = [
+    { name = "pyqt5" },
+]
+testing = [
+    { name = "pytest" },
+    { name = "pytest-check" },
+    { name = "pytest-timeout" },
 ]
 
 [package.metadata]
@@ -2000,11 +1998,15 @@ requires-dist = [
     { name = "jupyter", marker = "extra == 'dev'", specifier = ">=1.1.1" },
     { name = "markupsafe", marker = "extra == 'dev'", specifier = ">=3.0.2" },
     { name = "matplotlib", specifier = ">=3.9.2" },
+    { name = "nbformat", marker = "extra == 'docs'", specifier = ">=5.10.4" },
+    { name = "nbsphinx", marker = "extra == 'docs'", specifier = ">=0.9.6" },
     { name = "networkx", specifier = ">=3.4.2" },
+    { name = "notebook", marker = "extra == 'docs'", specifier = "==6.4.12" },
     { name = "numpy" },
     { name = "pandas", specifier = ">=2.2.3" },
     { name = "pandoc", marker = "extra == 'dev'", specifier = ">=2.4" },
     { name = "papermill", marker = "extra == 'dev'", specifier = ">=2.6.0" },
+    { name = "pillow", marker = "extra == 'docs'", specifier = ">=10.0.0" },
     { name = "pre-commit", marker = "extra == 'dev'", specifier = ">=4.0.1" },
     { name = "progressbar2", specifier = ">=4.5.0" },
     { name = "psutil", specifier = ">=6.1.0" },
@@ -2022,11 +2024,19 @@ requires-dist = [
     { name = "readme-renderer", marker = "extra == 'dev'", specifier = ">=44.0" },
     { name = "recommonmark", marker = "extra == 'dev'", specifier = ">=0.7.1" },
     { name = "rich", specifier = ">=13.9.4" },
+    { name = "ruff", marker = "extra == 'docs'", specifier = ">=0.11.0" },
     { name = "scikit-learn", specifier = ">=1.5.2" },
     { name = "scipy", specifier = ">=1.14.1" },
     { name = "seaborn", specifier = ">=0.13.2" },
     { name = "setuptools", specifier = ">=75.5.0" },
-    { name = "sphinx-rtd-theme", marker = "extra == 'dev'", specifier = ">=3.0.2" },
+    { name = "sphinx-autodoc-annotation", marker = "extra == 'docs'", specifier = ">=1.0.post1" },
+    { name = "sphinx-autodoc-typehints", marker = "extra == 'docs'", specifier = ">=3.1.0" },
+    { name = "sphinx-automodapi", marker = "extra == 'docs'", specifier = ">=0.18.0" },
+    { name = "sphinx-rtd-theme", marker = "extra == 'docs'", specifier = ">=3.0.2" },
+    { name = "sphinx-tabs", marker = "extra == 'docs'", specifier = ">=3.4.7" },
+    { name = "sphinx-testing", marker = "extra == 'docs'", specifier = ">=1.0.1" },
+    { name = "sphinxcontrib-fulltoc", marker = "extra == 'docs'", specifier = ">=1.2.0" },
+    { name = "sphinxcontrib-websupport", marker = "extra == 'docs'", specifier = ">=2.0.0" },
     { name = "stringcase", specifier = ">=1.2.0" },
     { name = "tabulate", specifier = ">=0.9.0" },
     { name = "tox", marker = "extra == 'dev'", specifier = ">=4.23.2" },
@@ -2035,23 +2045,7 @@ requires-dist = [
     { name = "typing-extensions", specifier = ">=4.12.2" },
     { name = "wheel", marker = "extra == 'dev'", specifier = ">=0.45.0" },
 ]
-provides-extras = ["gui", "distributed", "testing", "dev"]
-
-[package.metadata.requires-dev]
-dev = [
-    { name = "nbformat", specifier = ">=5.10.4" },
-    { name = "nbsphinx", specifier = ">=0.9.6" },
-    { name = "notebook", specifier = "==6.4.12" },
-    { name = "pillow", specifier = ">=10.0.0" },
-    { name = "ruff", specifier = ">=0.11.0" },
-    { name = "sphinx-autodoc-annotation", specifier = ">=1.0.post1" },
-    { name = "sphinx-autodoc-typehints", specifier = ">=3.1.0" },
-    { name = "sphinx-automodapi", specifier = ">=0.18.0" },
-    { name = "sphinx-tabs", specifier = ">=3.4.7" },
-    { name = "sphinx-testing", specifier = ">=1.0.1" },
-    { name = "sphinxcontrib-fulltoc", specifier = ">=1.2.0" },
-    { name = "sphinxcontrib-websupport", specifier = ">=2.0.0" },
-]
+provides-extras = ["gui", "distributed", "testing", "docs", "dev"]
 
 [[package]]
 name = "nest-asyncio"

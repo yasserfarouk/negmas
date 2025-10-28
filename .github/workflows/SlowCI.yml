@@ -11,7 +11,7 @@ jobs:
     timeout-minutes: 360
     strategy:
       matrix:
-        python-version: ["3.12"]
+        python-version: ["3.13"]
     steps:
       - uses: "actions/checkout@v4"
       - name: Install uv

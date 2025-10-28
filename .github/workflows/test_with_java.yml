@@ -10,10 +10,10 @@ jobs:
     runs-on: "ubuntu-latest"
     timeout-minutes: 120
     env:
-      USING_COVERAGE: "3.12"
+      USING_COVERAGE: "3.13"
     strategy:
       matrix:
-        python-version: ["3.12"]
+        python-version: ["3.13"]
     steps:
       - uses: "actions/checkout@v4"
       - name: Install uv
