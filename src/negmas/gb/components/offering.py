@@ -138,8 +138,8 @@ class HybridOfferingPolicy(OfferingPolicy):
         else:
             self.final_utility = 0.675
 
-        self._sent_utils = [ufun(_) for _ in self._sent_offers]
-        self._received_utils = [ufun(_) for _ in self._received_utils]
+        self._sent_utils = [float(ufun(_)) for _ in self._sent_offers]
+        self._received_utils = [float(ufun(_)) for _ in self._received_offers]
 
         self.final_utility = max(self.final_utility, float(ufun.reserved_value))
         os = ufun.outcome_space
@@ -152,7 +152,7 @@ class HybridOfferingPolicy(OfferingPolicy):
         r = float(ufun.reserved_value)
         outcome_util = sorted([(u, _) for _ in outcomes if (u := ufun(_)) >= r])
         self._outcomes = [_[1] for _ in outcome_util]
-        self._values = [_[0] for _ in outcome_util]
+        self._values = [float(_[0]) for _ in outcome_util]
 
     def on_preferences_changed(self, changes: list[PreferencesChange]):
         """On preferences changed.
@@ -236,7 +236,18 @@ class HybridOfferingPolicy(OfferingPolicy):
 
         # Find the closest bid to target utility
         indx = index_of_nearest_value(self._values, target_utility)
-        outcome = self._outcomes[indx]
+        n_outcomes = len(self._outcomes)
+        if n_outcomes < 1:
+            return None
+        if indx < 0:
+            indx = indx % n_outcomes
+        else:
+            indx = max(0, min(n_outcomes - 1, indx))
+
+        try:
+            outcome = self._outcomes[indx]
+        except Exception as e:
+            raise ValueError(f"{indx=}, {len(self._outcomes)=}\n{e=}")
 
         self._sent_offers.append(outcome)
         self._sent_utils.append(float(ufun(outcome)))

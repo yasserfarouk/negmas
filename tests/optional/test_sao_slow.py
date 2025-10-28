@@ -869,15 +869,71 @@ def test_can_create_all_negotiator_types(typ):
 @given(
     a=st.sampled_from(NEGTYPES),
     b=st.sampled_from(NEGTYPES),
-    w1p=st.floats(-1.0, 1.0),
-    w1q=st.floats(-1.0, 1.0),
-    w2p=st.floats(-1.0, 1.0),
-    w2q=st.floats(-1.0, 1.0),
-    r1=st.floats(-1.0, 1.0),
-    r2=st.floats(-1.0, 1.0),
+    w1p=st.floats(
+        -1.0, 1.0, allow_infinity=False, allow_subnormal=False, allow_nan=False
+    ),
+    w1q=st.floats(
+        -1.0, 1.0, allow_infinity=False, allow_subnormal=False, allow_nan=False
+    ),
+    w2p=st.floats(
+        -1.0, 1.0, allow_infinity=False, allow_subnormal=False, allow_nan=False
+    ),
+    w2q=st.floats(
+        -1.0, 1.0, allow_infinity=False, allow_subnormal=False, allow_nan=False
+    ),
+    r1=st.floats(
+        -1.0, 1.0, allow_infinity=False, allow_subnormal=False, allow_nan=False
+    ),
+    r2=st.floats(
+        -1.0, 1.0, allow_infinity=False, allow_subnormal=False, allow_nan=False
+    ),
 )
 @settings(deadline=100_000, max_examples=50)
 def test_can_run_all_negotiators(a, b, w1p, w1q, w2p, w2q, r1, r2):
+    issues = [make_issue((0.0, 1.0), name="price"), make_issue(10, name="quantity")]
+    u1 = LinearUtilityFunction(weights=[w1p, w1q], issues=issues, reserved_value=r1)
+    u2 = LinearUtilityFunction(weights=[w2p, w2q], issues=issues, reserved_value=r2)
+    m = SAOMechanism(n_steps=30, issues=issues)
+    m.add(a(preferences=u1))
+    m.add(b(), preferences=u2)
+    m.run()
+    assert m.state.started
+    assert not m.running
+
+
+def test_can_run_first_offer_oriented():
+    import negmas
+
+    a = negmas.gb.negotiators.timebased.FirstOfferOrientedTBNegotiator
+    b = negmas.gb.negotiators.war.WANNegotiator  # or any other generated value
+    w1p = 0.0
+    w1q = 5e-324
+    w2p = 0.0  # or any other generated value
+    w2q = 0.0  # or any other generated value
+    r1 = 0.0
+    r2 = 0.0  # or any other generated value
+    issues = [make_issue((0.0, 1.0), name="price"), make_issue(10, name="quantity")]
+    u1 = LinearUtilityFunction(weights=[w1p, w1q], issues=issues, reserved_value=r1)
+    u2 = LinearUtilityFunction(weights=[w2p, w2q], issues=issues, reserved_value=r2)
+    m = SAOMechanism(n_steps=30, issues=issues)
+    m.add(a(preferences=u1))
+    m.add(b(), preferences=u2)
+    m.run()
+    assert m.state.started
+    assert not m.running
+
+
+def test_can_run_rand_hybrid():
+    import negmas
+
+    a = negmas.gb.negotiators.randneg.RandomAlwaysAcceptingNegotiator
+    b = negmas.gb.negotiators.hybrid.HybridNegotiator
+    w1p = 0.0
+    w1q = 0.0
+    w2p = 0.0
+    w2q = 0.0
+    r1 = 0.0
+    r2 = 1.0
     issues = [make_issue((0.0, 1.0), name="price"), make_issue(10, name="quantity")]
     u1 = LinearUtilityFunction(weights=[w1p, w1q], issues=issues, reserved_value=r1)
     u2 = LinearUtilityFunction(weights=[w2p, w2q], issues=issues, reserved_value=r2)

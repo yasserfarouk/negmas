@@ -111,8 +111,18 @@ def all_negotiator_types() -> list[type[SAONegotiator]]:
     from negmas.sao import SAONegotiator
     from negmas.gb import GBNegotiator
     from negmas.gb.negotiators.utilbased import UtilBasedNegotiator
+    from negmas.gb.negotiators.cab import CABNegotiator, CARNegotiator, CANNegotiator
+    from negmas.gb.negotiators.war import WABNegotiator, WARNegotiator, WANNegotiator
 
-    excluded = {UtilBasedNegotiator}
+    excluded = {
+        UtilBasedNegotiator,
+        CABNegotiator,
+        CARNegotiator,
+        CANNegotiator,
+        WABNegotiator,
+        WARNegotiator,
+        WANNegotiator,
+    }
 
     results = []
     for _ in dir(negmas.sao.negotiators):

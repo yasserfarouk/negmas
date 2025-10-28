@@ -12,6 +12,7 @@ from .nice import *
 from .war import *
 from .cab import *
 from .micro import *
+from .hybrid import *
 
 
 __all__ = (
@@ -26,4 +27,5 @@ __all__ = (
     + cab.__all__
     + war.__all__
     + micro.__all__
+    + hybrid.__all__
 )

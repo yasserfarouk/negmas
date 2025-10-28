@@ -381,7 +381,10 @@ class PresortingInverseUtilityFunction(InverseUFun):
         indices = np.argsort(ur)
         ur_sorted = ur[indices]
         if len(ur_sorted) > 0:
-            eps = max(self._eps, self._rel_eps * (ur_sorted[-1] - ur_sorted[0]))
+            with np.errstate(under="ignore"):
+                relative_part = self._rel_eps * (ur_sorted[-1] - ur_sorted[0])
+
+            eps = max(self._eps, relative_part)
         else:
             eps = -1
         if eps > 0:
