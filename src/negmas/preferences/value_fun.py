@@ -797,7 +797,17 @@ class PolynomialFun(BaseFun):
 
 @define(frozen=True)
 class TriangularFun(BaseFun):
-    """TriangularFun implementation."""
+    """Triangular value function.
+
+    Returns bias at x <= start, rises linearly to bias + 1 at middle,
+    then falls linearly back to bias at x >= end.
+
+    Args:
+        start: x value where function starts rising from bias
+        middle: x value where function reaches maximum (bias + 1)
+        end: x value where function returns to bias
+        bias: offset added to all values (default 0)
+    """
 
     start: float
     middle: float
@@ -805,71 +815,44 @@ class TriangularFun(BaseFun):
     bias: float = 0
 
     def shift_by(self, offset: float) -> TriangularFun:
-        """Shift by.
-
-        Args:
-            offset: Offset.
-
-        Returns:
-            TriangularFun: The result.
-        """
         return TriangularFun(
             bias=self.bias + offset, start=self.start, middle=self.middle, end=self.end
         )
 
     def scale_by(self, scale: float) -> TriangularFun:
-        """Scale by.
-
-        Args:
-            scale: Scale.
-
-        Returns:
-            TriangularFun: The result.
-        """
+        # Scale the output amplitude, not the x-coordinates
         return TriangularFun(
-            bias=self.bias * scale,
-            start=self.start * scale,
-            middle=self.middle * scale,
-            end=self.end * scale,
+            bias=self.bias * scale, start=self.start, middle=self.middle, end=self.end
         )
 
     def minmax(self, input) -> tuple[float, float]:
-        # todo: implement this exactly without sampling
-        """Minmax.
-
-        Args:
-            input: Input.
-
-        Returns:
-            tuple[float, float]: The result.
-        """
+        # Triangular function ranges from bias (at edges) to bias + 1 (at middle)
+        if hasattr(input, "min_value") and hasattr(input, "max_value"):
+            input_min = input.min_value
+            input_max = input.max_value
+            # Check if middle is within input range
+            if input_min <= self.middle <= input_max:
+                max_val = self.bias + 1.0
+            else:
+                max_val = max(self(input_min), self(input_max))
+            min_val = min(self(input_min), self(input_max))
+            return (min_val, max_val)
         return self._minmax(input)
 
     @lru_cache
     def _minmax(self, input) -> tuple[float, float]:
-        # todo: implement this exactly without sampling
         return nonmonotonic_minmax(input, self)
 
     def xml(self, indx: int, issue: Issue, bias) -> str:
-        """Xml.
-
-        Args:
-            indx: Indx.
-            issue: Issue.
-            bias: Bias.
-
-        Returns:
-            str: The result.
-        """
         issue_name = issue.name
         if issue.is_continuous():
             assert abs(bias + self.bias) < 1e-6
             output = f'<issue index="{indx + 1}" etype="real" type="real" vtype="real" name="{issue_name}">\n'
-            output += f'    <evaluator ftype="triangular" parameter0="{self.start}" parameter1="{self.end} parameter2={self.middle}"></evaluator>\n'
+            output += f'    <evaluator ftype="triangular" parameter0="{self.start}" parameter1="{self.end}" parameter2="{self.middle}"></evaluator>\n'
         elif isinstance(issue, ContiguousIssue):
             assert abs(bias + self.bias) < 1e-6
             output = f'<issue index="{indx + 1}" etype="integer" type="integer" vtype="integer" name="{issue_name}">\n'
-            output += f'    <evaluator ftype="triangular" parameter0="{self.start}" parameter1="{self.end} parameter2={self.middle}"></evaluator>\n'
+            output += f'    <evaluator ftype="triangular" parameter0="{self.start}" parameter1="{self.end}" parameter2="{self.middle}"></evaluator>\n'
         else:
             vals = list(issue.all)
             return TableFun(dict(zip(vals, [self(_) for _ in vals]))).xml(
@@ -879,16 +862,21 @@ class TriangularFun(BaseFun):
         return output
 
     def __call__(self, x: float):
-        """Make instance callable.
-
-        Args:
-            x: X.
-        """
-        bias1, slope1 = self.start, (self.middle - self.start)
-        bias2, slope2 = self.middle, (self.middle - self.end)
-        return self.bias + (
-            bias1 + slope1 * float(x) if x < self.middle else bias2 + slope2 * float(x)
-        )
+        x = float(x)
+        if x <= self.start:
+            return self.bias
+        elif x >= self.end:
+            return self.bias
+        elif x <= self.middle:
+            # Linear interpolation from 0 at start to 1 at middle
+            if self.middle == self.start:
+                return self.bias + 1.0
+            return self.bias + (x - self.start) / (self.middle - self.start)
+        else:
+            # Linear interpolation from 1 at middle to 0 at end
+            if self.end == self.middle:
+                return self.bias + 1.0
+            return self.bias + (self.end - x) / (self.end - self.middle)
 
 
 @define(frozen=True)
