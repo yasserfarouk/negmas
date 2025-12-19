@@ -889,23 +889,21 @@ class Scenario:
                 d["outcome_space"] = domain
             return d
 
+        domain_dict = adjust_type(load(domain))
+        domain_dict["path"] = Path(domain)
         os = deserialize(
-            adjust_type(load(domain)),
+            domain_dict,
             base_module="negmas",
             python_class_identifier=python_class_identifier,
         )
-        os.path = Path(domain)
         utils = [
             deserialize(
-                adjust_type(load(fname), domain=os),
+                adjust_type(load(fname), domain=os) | {"path": path},
                 python_class_identifier=python_class_identifier,
                 base_module="negmas",
             )
-            for fname in ufuns
+            for fname, path in zip(ufuns, ufuns)
         ]
-        for u, path in zip(utils, ufuns):
-            u.outcome_space = os
-            u.path = path
 
         # d = load(domain)
         # type_ = d.pop("type", "")

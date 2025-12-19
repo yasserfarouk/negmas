@@ -467,8 +467,8 @@ class PresortingInverseUtilityFunction(InverseUFun):
         mn, mx = self._min, self._max
         d = mx - mn
         if d < EPS:
-            return tuple(0.0 if not for_best else 1.0 for _ in rng)
-        return tuple(_ * d + mn for _ in rng)
+            return tuple(0.0 if not for_best else 1.0 for _ in rng)  # type: ignore
+        return tuple(_ * d + mn for _ in rng)  # type: ignore
 
     def _get_limiting_waypoints(self, mn: float, mx: float) -> tuple[int, int]:
         """Returns indices of largest utility <= mn and the smallest utility >= mx in self._utils"""
@@ -487,7 +487,7 @@ class PresortingInverseUtilityFunction(InverseUFun):
                 lo = self._waypoints[max(0, j - 1)]
                 break
         else:
-            assert mn > self._waypoint_values[-1]
+            assert mn >= self._waypoint_values[-1]
             lo = n - 1
         for j in range(nw - 1, -1, -1):
             i, u = self._waypoints[j], self._waypoint_values[j]
