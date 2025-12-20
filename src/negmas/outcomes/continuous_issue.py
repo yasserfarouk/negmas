@@ -131,7 +131,7 @@ class ContinuousIssue(RangeIssue):
 
     def value_generator(
         self,
-        n: int | float | None = DEFAULT_LEVELS,
+        n: int | float | None = DEFAULT_LEVELS * 10,
         grid=True,
         compact=False,
         endpoints=True,

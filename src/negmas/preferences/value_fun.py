@@ -70,6 +70,18 @@ class BaseFun(ABC):
         """
         ...
 
+    @abstractmethod
+    def __call__(self, x) -> float:
+        """Make instance callable.
+
+        Args:
+            x: X.
+
+        Returns:
+            float: The result.
+        """
+        ...
+
     @classmethod
     def from_dict(cls, d: dict, python_class_identifier=PYTHON_CLASS_IDENTIFIER):
         """From dict.
@@ -119,6 +131,13 @@ class BaseFun(ABC):
         """
         _, mx = self.minmax(input)
         return mx
+
+    def to_table(self, issue: Issue) -> "TableFun":
+        """Converts the function to  a table"""
+        if not issue.is_finite():
+            issue = issue.to_discrete()
+        vals = list(issue.all)
+        return TableFun(mapping=dict(zip(vals, [self(_) for _ in vals])))
 
 
 @define(frozen=True)
@@ -813,16 +832,25 @@ class TriangularFun(BaseFun):
     middle: float
     end: float
     bias: float = 0
+    scale: float = 1
 
-    def shift_by(self, offset: float) -> TriangularFun:
+    def shift_by(self, offset: float) -> "TriangularFun":
         return TriangularFun(
-            bias=self.bias + offset, start=self.start, middle=self.middle, end=self.end
+            bias=self.bias + offset,
+            start=self.start,
+            middle=self.middle,
+            end=self.end,
+            scale=self.scale,
         )
 
-    def scale_by(self, scale: float) -> TriangularFun:
+    def scale_by(self, scale: float) -> "TriangularFun":
         # Scale the output amplitude, not the x-coordinates
         return TriangularFun(
-            bias=self.bias * scale, start=self.start, middle=self.middle, end=self.end
+            bias=self.bias * scale,
+            start=self.start,
+            middle=self.middle,
+            end=self.end,
+            scale=self.scale * scale,
         )
 
     def minmax(self, input) -> tuple[float, float]:
@@ -832,7 +860,7 @@ class TriangularFun(BaseFun):
             input_max = input.max_value
             # Check if middle is within input range
             if input_min <= self.middle <= input_max:
-                max_val = self.bias + 1.0
+                max_val = self.bias + self.scale
             else:
                 max_val = max(self(input_min), self(input_max))
             min_val = min(self(input_min), self(input_max))
@@ -865,18 +893,19 @@ class TriangularFun(BaseFun):
         x = float(x)
         if x <= self.start:
             return self.bias
-        elif x >= self.end:
+        if x >= self.end:
             return self.bias
-        elif x <= self.middle:
+        if x <= self.middle:
             # Linear interpolation from 0 at start to 1 at middle
             if self.middle == self.start:
-                return self.bias + 1.0
-            return self.bias + (x - self.start) / (self.middle - self.start)
-        else:
-            # Linear interpolation from 1 at middle to 0 at end
-            if self.end == self.middle:
-                return self.bias + 1.0
-            return self.bias + (self.end - x) / (self.end - self.middle)
+                return self.bias + self.scale
+            return self.bias + self.scale * (x - self.start) / (
+                self.middle - self.start
+            )
+        # Linear interpolation from 1 at middle to 0 at end
+        if self.end == self.middle:
+            return self.bias + self.scale
+        return self.bias + self.scale * (self.end - x) / (self.end - self.middle)
 
 
 @define(frozen=True)

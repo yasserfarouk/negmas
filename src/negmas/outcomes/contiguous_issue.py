@@ -100,7 +100,7 @@ class ContiguousIssue(RangeIssue, DiscreteIssue):
             yield self._values[0] + (i % m)
 
     def value_generator(
-        self, n: int | float | None = 10, grid=True, compact=False, endpoints=True
+        self, n: int | float | None = None, grid=True, compact=False, endpoints=True
     ) -> Generator[int, None, None]:
         """Value generator.
 

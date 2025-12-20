@@ -5,6 +5,7 @@ from math import isnan
 
 import hypothesis.strategies as st
 import numpy as np
+from negmas.outcomes.contiguous_issue import ContiguousIssue
 import pkg_resources
 import pytest
 from hypothesis import given, settings
@@ -901,6 +902,34 @@ def test_rank_only_ufun_no_randomize():
     ), f"{[(_, mapping(_)) for _ in outcomes]}"
     assert mapping((1, 1)) == mapping((0, 2))
     assert mapping((2, 1)) == mapping((1, 2)) == mapping((0, 3))
+
+
+def test_triangular():
+    from negmas.preferences.value_fun import TriangularFun
+
+    issue = ContiguousIssue(100)
+    bias, scale = -1, 3
+    f = TriangularFun(start=10, middle=20, end=30, bias=bias, scale=scale)
+    mn, mx = f.minmax(issue)
+    assert mn == bias
+    assert mx == bias + scale
+    for i in range(10):
+        assert f(i) == bias
+    for i in range(30, 100):
+        assert f(i) == bias
+    for i in range(10, 20):
+        assert f(i) < f(i + 1)
+    for i in range(20, 30):
+        assert f(i) > f(i + 1)
+    assert f(20) == bias + scale
+    t = f.to_table(issue)
+    mnt, mxt = t.minmax(issue)
+    assert mnt == mn, f"{t.mapping}"
+    assert mxt == mx, f"{t.mapping}"
+    assert bias + scale in list(t.mapping.values())
+    k = list(t.mapping.keys())
+    for i in range(100):
+        assert i in k
 
 
 # def test_calc_outcome_stats_example():

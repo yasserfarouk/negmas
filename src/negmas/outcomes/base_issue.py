@@ -351,7 +351,7 @@ class Issue(HasMinMax, Iterable, ABC):
 
     @abstractmethod
     def value_generator(
-        self, n: int | float | None = 10, grid=True, compact=True, endpoints=True
+        self, n: int | float | None = None, grid=True, compact=True, endpoints=True
     ) -> Generator[Any, None, None]:
         """
         A generator that generates at most `n` values (in any order)
@@ -450,7 +450,7 @@ class Issue(HasMinMax, Iterable, ABC):
 
     def __iter__(self):
         """iter  ."""
-        return self.value_generator().__iter__()
+        return self.ordered_value_generator().__iter__()
 
     def __contains__(self, item):
         """contains  .
@@ -550,7 +550,7 @@ class DiscreteIssue(Issue):
             yield self._values[i % m]
 
     def value_generator(
-        self, n: int | float | None = 10, grid=True, compact=True, endpoints=True
+        self, n: int | float | None = None, grid=True, compact=True, endpoints=True
     ) -> Generator[Any, None, None]:
         """Value generator.
 
