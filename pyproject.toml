@@ -56,9 +56,9 @@ build-backend = "setuptools.build_meta"
 gui = [
     "pyqt5>=5.15.11",
 ]
-distributed = [
-    "dask[complete]>=2024.11.2",
-]
+# distributed = [
+#     "dask[complete]>=2024.11.2",
+# ]
 testing = [
     "pytest-check>=2.4.1",
     "pytest-timeout>=2.3.1",
