@@ -118,21 +118,27 @@ class NonLinearAggregationUtilityFunction(StationaryMixin, UtilityFunction):
         self.f = f
 
     def xml(self, issues: list[Issue]) -> str:
-        """Xml.
+        """Generate an XML representation of the utility function.
 
         Args:
-            issues: Issues.
+            issues: The issues defining the outcome space.
 
         Returns:
-            str: The result.
+            XML string representation of the utility function.
+
+        Raises:
+            NotImplementedError: This function cannot be converted to XML.
         """
         raise NotImplementedError(f"Cannot convert {self.__class__.__name__} to xml")
 
     def to_dict(self, python_class_identifier=PYTHON_CLASS_IDENTIFIER):
-        """To dict.
+        """Convert to a dictionary for serialization.
 
         Args:
-            python_class_identifier: Python class identifier.
+            python_class_identifier: Key used to store the class type identifier.
+
+        Returns:
+            Dictionary representation suitable for JSON serialization.
         """
         d = {python_class_identifier: get_full_type_name(type(self))}
         return dict(
@@ -145,11 +151,14 @@ class NonLinearAggregationUtilityFunction(StationaryMixin, UtilityFunction):
 
     @classmethod
     def from_dict(cls, d, python_class_identifier=PYTHON_CLASS_IDENTIFIER):
-        """From dict.
+        """Create an instance from a dictionary.
 
         Args:
-            d: D.
-            python_class_identifier: Python class identifier.
+            d: Dictionary containing the serialized utility function.
+            python_class_identifier: Key used to identify the class type.
+
+        Returns:
+            A new NonLinearAggregationUtilityFunction instance.
         """
         d.pop(python_class_identifier, None)
         for k in ("values", "f"):
@@ -159,13 +168,18 @@ class NonLinearAggregationUtilityFunction(StationaryMixin, UtilityFunction):
         return cls(**d)
 
     def eval(self, offer: Outcome | None) -> float:
-        """Eval.
+        """Evaluate the utility of an outcome.
+
+        Computes u = f(u_0(omega_0), u_1(omega_1), ..., u_n(omega_n)).
 
         Args:
-            offer: Offer being considered.
+            offer: The outcome to evaluate. If None, returns the reserved value.
 
         Returns:
-            float: The result.
+            The utility value for the given outcome.
+
+        Raises:
+            ValueError: If no issue utilities (values) have been set.
         """
         if offer is None:
             return self.reserved_value
@@ -177,19 +191,31 @@ class NonLinearAggregationUtilityFunction(StationaryMixin, UtilityFunction):
 
 
 class HyperRectangleUtilityFunction(StationaryMixin, UtilityFunction):
-    """A utility function defined as a set of hyper-volumes.
+    r"""A utility function defined as a set of hyper-volumes.
 
     The utility function that is calulated by combining linearly a set of *probably nonlinear* functions applied in
     predefined hyper-volumes of the outcome space.
 
-     Args:
-          outcome_ranges: The outcome_ranges for which the `mappings` are defined
-          weights: The *optional* weights to use for combining the outputs of the `mappings`
-          ignore_issues_not_in_input: If a hyper-volumne local function is defined for some issue
-          that is not in the outcome being evaluated ignore it.
-          ignore_failing_range_utilities: If a hyper-volume local function fails, just assume it
-          did not exist for this outcome.
-          name: name of the utility function. If None a random name will be generated.
+    Args:
+         outcome_ranges: The outcome_ranges for which the `mappings` are defined
+         weights: The *optional* weights to use for combining the outputs of the `mappings`
+         ignore_issues_not_in_input: If a hyper-volumne local function is defined for some issue
+         that is not in the outcome being evaluated ignore it.
+         ignore_failing_range_utilities: If a hyper-volume local function fails, just assume it
+         did not exist for this outcome.
+         name: name of the utility function. If None a random name will be generated.
+
+    Notes:
+
+        The utility value is calculated as:
+
+        .. math::
+
+            u(\omega) = b + \sum_{k: \omega \in R_k} w_k \cdot f_k(\omega)
+
+        where :math:`b` is the bias term, :math:`R_k` are hyper-rectangular regions of the
+        outcome space, :math:`w_k` are the weights for each region, and :math:`f_k` is either
+        a constant or a function that maps outcomes to utility values within region :math:`R_k`.
 
      Examples:
          We will use the following issue space of cardinality :math:`10 \times 5 \times 4`:
@@ -270,7 +296,10 @@ class HyperRectangleUtilityFunction(StationaryMixin, UtilityFunction):
     """
 
     def adjust_params(self):
-        """Adjust params."""
+        """Initialize default weights if not provided.
+
+        Sets all weights to 1.0 if no weights were specified.
+        """
         if self.weights is None:
             self.weights = [1.0] * len(self.outcome_ranges)
 
@@ -400,21 +429,39 @@ class HyperRectangleUtilityFunction(StationaryMixin, UtilityFunction):
         return output
 
     def to_stationary(self):
-        """To stationary."""
+        """Return a stationary version of this utility function.
+
+        Returns:
+            Self, as HyperRectangleUtilityFunction is already stationary.
+        """
         return self
 
     @classmethod
     def random(
         cls, outcome_space, reserved_value, normalized=True, rectangles=(1, 4), **kwargs
     ) -> HyperRectangleUtilityFunction:
-        """Generates a random ufun of the given type"""
+        """Generate a random hyper-rectangle utility function.
+
+        Args:
+            outcome_space: The outcome space to generate the utility function for.
+            reserved_value: The reserved value (utility of disagreement).
+            normalized: Whether to normalize the utility values.
+            rectangles: Range (min, max) for the number of rectangles.
+            **kwargs: Additional arguments.
+
+        Raises:
+            NotImplementedError: Random generation is not yet implemented.
+        """
         raise NotImplementedError("random hyper-rectangle ufuns are not implemented")
 
     def to_dict(self, python_class_identifier=PYTHON_CLASS_IDENTIFIER):
-        """To dict.
+        """Convert to a dictionary for serialization.
 
         Args:
-            python_class_identifier: Python class identifier.
+            python_class_identifier: Key used to store the class type identifier.
+
+        Returns:
+            Dictionary representation suitable for JSON serialization.
         """
         d = {python_class_identifier: get_full_type_name(type(self))}
         d.update(super().to_dict(python_class_identifier=python_class_identifier))
@@ -433,11 +480,14 @@ class HyperRectangleUtilityFunction(StationaryMixin, UtilityFunction):
 
     @classmethod
     def from_dict(cls, d, python_class_identifier=PYTHON_CLASS_IDENTIFIER):
-        """From dict.
+        """Create an instance from a dictionary.
 
         Args:
-            d: D.
-            python_class_identifier: Python class identifier.
+            d: Dictionary containing the serialized utility function.
+            python_class_identifier: Key used to identify the class type.
+
+        Returns:
+            A new HyperRectangleUtilityFunction instance.
         """
         d.pop(python_class_identifier, None)
         for k in ("oucome_ranges", "utilities"):
@@ -447,13 +497,17 @@ class HyperRectangleUtilityFunction(StationaryMixin, UtilityFunction):
         return cls(**d)
 
     def eval(self, offer: Outcome | None) -> float:
-        """Eval.
+        """Evaluate the utility of an outcome.
+
+        Computes u = bias + sum(w_k * f_k(omega)) for all regions k containing omega.
 
         Args:
-            offer: Offer being considered.
+            offer: The outcome to evaluate. If None, returns the reserved value.
 
         Returns:
-            float: The result.
+            The utility value for the given outcome. Returns NaN if the outcome
+            contains issues not covered by hyper-rectangles and
+            ignore_issues_not_in_input is False.
         """
         if offer is None:
             return self.reserved_value
@@ -488,14 +542,29 @@ class HyperRectangleUtilityFunction(StationaryMixin, UtilityFunction):
 
 
 class NonlinearHyperRectangleUtilityFunction(StationaryMixin, UtilityFunction):
-    """A utility function defined as a set of outcome_ranges.
+    r"""A utility function combining hyper-rectangles with nonlinear aggregation.
 
+    Similar to HyperRectangleUtilityFunction, but uses a nonlinear function to combine
+    the utilities from each active hyper-rectangle region.
 
     Args:
-           hypervolumes: see `HyperRectangleUtilityFunction`
-           mappings: see `HyperRectangleUtilityFunction`
-           f: A nonlinear function to combine the results of `mappings`
-           name: name of the utility function. If None a random name will be generated
+        hypervolumes: The hyper-rectangular regions defining the outcome space partitions.
+        mappings: Functions mapping outcomes to utility values within each region.
+        f: A nonlinear function to aggregate the utilities from active regions.
+        name: Name of the utility function. If None, a random name will be generated.
+        reserved_value: The utility value for disagreement (None offer).
+
+    Notes:
+
+        The utility value is calculated as:
+
+        .. math::
+
+            u(\omega) = f\left(\left[g_k(\omega) : \omega \in H_k\right]\right)
+
+        where :math:`H_k` are hypervolumes (regions), :math:`g_k` is the mapping for region
+        :math:`k`, and :math:`f` is the nonlinear aggregation function that receives the
+        list of utilities from all regions containing :math:`\omega`.
     """
 
     def __init__(
@@ -523,21 +592,27 @@ class NonlinearHyperRectangleUtilityFunction(StationaryMixin, UtilityFunction):
         self.f = f
 
     def xml(self, issues: list[Issue]) -> str:
-        """Xml.
+        """Generate an XML representation of the utility function.
 
         Args:
-            issues: Issues.
+            issues: The issues defining the outcome space.
 
         Returns:
-            str: The result.
+            XML string representation of the utility function.
+
+        Raises:
+            NotImplementedError: This function cannot be converted to XML.
         """
         raise NotImplementedError(f"Cannot convert {self.__class__.__name__} to xml")
 
     def to_dict(self, python_class_identifier=PYTHON_CLASS_IDENTIFIER):
-        """To dict.
+        """Convert to a dictionary for serialization.
 
         Args:
-            python_class_identifier: Python class identifier.
+            python_class_identifier: Key used to store the class type identifier.
+
+        Returns:
+            Dictionary representation suitable for JSON serialization.
         """
         d = {python_class_identifier: get_full_type_name(type(self))}
         d.update(super().to_dict(python_class_identifier=python_class_identifier))
@@ -554,11 +629,14 @@ class NonlinearHyperRectangleUtilityFunction(StationaryMixin, UtilityFunction):
 
     @classmethod
     def from_dict(cls, d, python_class_identifier=PYTHON_CLASS_IDENTIFIER):
-        """From dict.
+        """Create an instance from a dictionary.
 
         Args:
-            d: D.
-            python_class_identifier: Python class identifier.
+            d: Dictionary containing the serialized utility function.
+            python_class_identifier: Key used to identify the class type.
+
+        Returns:
+            A new NonlinearHyperRectangleUtilityFunction instance.
         """
         d.pop(python_class_identifier, None)
         for k in ("hypervolumes", "mapoints", "f"):
@@ -568,13 +646,18 @@ class NonlinearHyperRectangleUtilityFunction(StationaryMixin, UtilityFunction):
         return cls(**d)
 
     def eval(self, offer: Outcome | None) -> float:
-        """Eval.
+        """Evaluate the utility of an outcome.
+
+        Computes u = f([g_k(omega) for all k where omega in H_k]).
 
         Args:
-            offer: Offer being considered.
+            offer: The outcome to evaluate. If None, returns the reserved value.
 
         Returns:
-            float: The result.
+            The utility value for the given outcome.
+
+        Raises:
+            ValueError: If hypervolumes have not been set.
         """
         if offer is None:
             return self.reserved_value

@@ -171,28 +171,30 @@ class AffineUtilityFunction(StationaryMixin, UtilityFunction):
         self._values = [IdentityFun() for _ in self.issues] if self.issues else []
 
     @property
-    def bias(self):
-        """Bias."""
+    def bias(self) -> float:
+        """The constant offset term added to the weighted sum."""
         return self._bias
 
     @property
-    def weights(self):
-        """Weights."""
+    def weights(self) -> list[float]:
+        """The weights for each issue in the linear combination."""
         return self._weights
 
     @property
-    def values(self):
-        """Values."""
+    def values(self) -> list:
+        """The value functions for each issue (identity functions for affine/linear)."""
         return self._values
 
     def eval(self, offer: Outcome | None) -> float:
-        """Eval.
+        """Evaluate the utility of an outcome.
+
+        Computes u = bias + sum(weights[i] * offer[i]) for all issues i.
 
         Args:
-            offer: Offer being considered.
+            offer: The outcome to evaluate. If None, returns the reserved value.
 
         Returns:
-            float: The result.
+            The utility value for the given outcome.
         """
         if offer is None:
             return self.reserved_value
@@ -266,13 +268,18 @@ class AffineUtilityFunction(StationaryMixin, UtilityFunction):
         reserved_value=(0.0, 1.0),
         normalized=True,
     ):
-        # from negmas.preferences.ops import normalize
-        """Random.
+        """Generate a random affine utility function.
 
         Args:
-            issues: Issues.
-            reserved_value: Reserved value.
-            normalized: Normalized.
+            issues: The issues to generate the utility function for. Must be numeric.
+            reserved_value: Range (min, max) for random reserved value selection.
+            normalized: If True, normalize weights to sum to 1 and scale by issue ranges.
+
+        Returns:
+            A random AffineUtilityFunction instance.
+
+        Raises:
+            ValueError: If any issue is not numeric.
         """
         for issue in issues:
             if not issue.is_numeric():
@@ -308,10 +315,13 @@ class AffineUtilityFunction(StationaryMixin, UtilityFunction):
         return ufun
 
     def to_dict(self, python_class_identifier=PYTHON_CLASS_IDENTIFIER):
-        """To dict.
+        """Convert to a dictionary for serialization.
 
         Args:
-            python_class_identifier: Python class identifier.
+            python_class_identifier: Key used to store the class type identifier.
+
+        Returns:
+            Dictionary representation suitable for JSON serialization.
         """
         d = {python_class_identifier: get_full_type_name(type(self))}
         d.update(super().to_dict(python_class_identifier=PYTHON_CLASS_IDENTIFIER))
@@ -319,11 +329,14 @@ class AffineUtilityFunction(StationaryMixin, UtilityFunction):
 
     @classmethod
     def from_dict(cls, d: dict, python_class_identifier=PYTHON_CLASS_IDENTIFIER):
-        """From dict.
+        """Create an instance from a dictionary.
 
         Args:
-            d: D.
-            python_class_identifier: Python class identifier.
+            d: Dictionary containing the serialized utility function.
+            python_class_identifier: Key used to identify the class type.
+
+        Returns:
+            A new AffineUtilityFunction instance.
         """
         if isinstance(d, cls):
             return d
@@ -340,14 +353,16 @@ class AffineUtilityFunction(StationaryMixin, UtilityFunction):
     def shift_by(
         self, offset: float, shift_reserved: bool = True
     ) -> AffineUtilityFunction:
-        """Shift by.
+        """Create a new utility function shifted by a constant offset.
+
+        Computes u'(x) = u(x) + offset.
 
         Args:
-            offset: Offset.
-            shift_reserved: Shift reserved.
+            offset: The amount to add to all utility values.
+            shift_reserved: If True, also shift the reserved value.
 
         Returns:
-            AffineUtilityFunction: The result.
+            A new AffineUtilityFunction with the shifted utility values.
         """
         return AffineUtilityFunction(
             self._weights,
@@ -362,14 +377,19 @@ class AffineUtilityFunction(StationaryMixin, UtilityFunction):
     def scale_by(
         self, scale: float, scale_reserved: bool = True
     ) -> AffineUtilityFunction:
-        """Scale by.
+        """Create a new utility function scaled by a constant factor.
+
+        Computes u'(x) = scale * u(x).
 
         Args:
-            scale: Scale.
-            scale_reserved: Scale reserved.
+            scale: The non-negative factor to multiply all utility values by.
+            scale_reserved: If True, also scale the reserved value.
 
         Returns:
-            AffineUtilityFunction: The result.
+            A new AffineUtilityFunction with the scaled utility values.
+
+        Raises:
+            ValueError: If scale is negative.
         """
         if scale < 0:
             raise ValueError(f"Cannot have a negative scale: {scale}")
@@ -440,14 +460,14 @@ class AffineUtilityFunction(StationaryMixin, UtilityFunction):
     def normalize(
         self, to: tuple[float, float] = (0.0, 1.0), normalize_weights: bool = False
     ) -> ConstUtilityFunction | AffineUtilityFunction | LinearUtilityFunction:
-        """Normalize.
+        """Normalize utility values to a specified range using the current outcome space.
 
         Args:
-            to: To.
-            normalize_weights: Normalize weights.
+            to: Target range (min, max) for the normalized utility values.
+            normalize_weights: Unused parameter (kept for API compatibility).
 
         Returns:
-            ConstUtilityFunction | AffineUtilityFunction | LinearUtilityFunction: The result.
+            A new utility function with values normalized to the target range.
         """
         return self.normalize_for(to, self.outcome_space)
 
@@ -458,16 +478,19 @@ class AffineUtilityFunction(StationaryMixin, UtilityFunction):
         outcomes: Iterable[Outcome] | None = None,
         max_cardinality=1000,
     ) -> tuple[Outcome, Outcome]:
-        """Extreme outcomes.
+        """Find the outcomes with minimum and maximum utility values.
+
+        For affine utility functions, exploits the linear structure to
+        efficiently find extremes without enumerating all outcomes.
 
         Args:
-            outcome_space: Outcome space.
-            issues: Issues.
-            outcomes: Outcomes.
-            max_cardinality: Max cardinality.
+            outcome_space: The outcome space to search within.
+            issues: Alternative way to specify the search space via issues.
+            outcomes: Explicit set of outcomes to search (slower).
+            max_cardinality: Maximum samples per issue when enumerating values.
 
         Returns:
-            tuple[Outcome, Outcome]: The result.
+            Tuple of (worst_outcome, best_outcome).
         """
         return self._extreme_outcomes(outcome_space, issues, outcomes, max_cardinality)
 
@@ -748,17 +771,19 @@ class LinearAdditiveUtilityFunction(  # type: ignore
 
     @property
     def weights(self):
-        """Weights."""
+        """The weights for each issue in the linear combination."""
         return self._weights
 
     def eval(self, offer: Outcome | None) -> float:
-        """Eval.
+        """Evaluate the utility of an outcome.
+
+        Computes u = bias + sum(weights[i] * values[i](offer[i])) for all issues i.
 
         Args:
-            offer: Offer being considered.
+            offer: The outcome to evaluate. If None, returns the reserved value.
 
         Returns:
-            float: The result.
+            The utility value for the given outcome, or NaN if evaluation fails.
         """
         if offer is None:
             return self.reserved_value
@@ -851,10 +876,13 @@ class LinearAdditiveUtilityFunction(  # type: ignore
         return output
 
     def to_dict(self, python_class_identifier=PYTHON_CLASS_IDENTIFIER):
-        """To dict.
+        """Convert to a dictionary for serialization.
 
         Args:
-            python_class_identifier: Python class identifier.
+            python_class_identifier: Key used to store the class type identifier.
+
+        Returns:
+            Dictionary representation suitable for JSON serialization.
         """
         d = {python_class_identifier: get_full_type_name(type(self))}
         d.update(super().to_dict(python_class_identifier=python_class_identifier))
@@ -868,11 +896,14 @@ class LinearAdditiveUtilityFunction(  # type: ignore
 
     @classmethod
     def from_dict(cls, d: dict, python_class_identifier=PYTHON_CLASS_IDENTIFIER):
-        """From dict.
+        """Create an instance from a dictionary.
 
         Args:
-            d: D.
-            python_class_identifier: Python class identifier.
+            d: Dictionary containing the serialized utility function.
+            python_class_identifier: Key used to identify the class type.
+
+        Returns:
+            A new LinearAdditiveUtilityFunction instance.
         """
         if isinstance(d, cls):
             return d
@@ -893,16 +924,19 @@ class LinearAdditiveUtilityFunction(  # type: ignore
         outcomes: Iterable[Outcome] | None = None,
         max_cardinality=1000,
     ) -> tuple[Outcome, Outcome]:
-        """Extreme outcomes.
+        """Find the outcomes with minimum and maximum utility values.
+
+        For linear additive utility functions, exploits the additive structure
+        to efficiently find extremes by optimizing each issue independently.
 
         Args:
-            outcome_space: Outcome space.
-            issues: Issues.
-            outcomes: Outcomes.
-            max_cardinality: Max cardinality.
+            outcome_space: The outcome space to search within.
+            issues: Alternative way to specify the search space via issues.
+            outcomes: Explicit set of outcomes to search (slower).
+            max_cardinality: Maximum samples per issue when enumerating values.
 
         Returns:
-            tuple[Outcome, Outcome]: The result.
+            Tuple of (worst_outcome, best_outcome).
         """
         return self._extreme_outcomes(outcome_space, issues, outcomes, max_cardinality)
 
@@ -990,15 +1024,20 @@ class LinearAdditiveUtilityFunction(  # type: ignore
         normalized=True,
         **kwargs,
     ):
-        # from negmas.preferences.ops import normalize
-        """Random.
+        """Generate a random linear additive utility function.
 
         Args:
-            outcome_space: Outcome space.
-            issues: Issues.
-            reserved_value: Reserved value.
-            normalized: Normalized.
-            **kwargs: Additional keyword arguments.
+            outcome_space: The outcome space to generate the utility function for.
+            issues: Alternative way to specify the issues (extracted from outcome_space if not provided).
+            reserved_value: Range (min, max) for random reserved value selection.
+            normalized: If True, normalize weights to sum to 1.
+            **kwargs: Additional arguments passed to the constructor.
+
+        Returns:
+            A random LinearAdditiveUtilityFunction instance.
+
+        Raises:
+            ValueError: If neither issues nor outcome_space is provided.
         """
         if not issues and outcome_space:
             issues = outcome_space.issues
@@ -1030,15 +1069,18 @@ class LinearAdditiveUtilityFunction(  # type: ignore
     def shift_by(
         self, offset: float, shift_reserved: bool = True, change_bias_only: bool = False
     ) -> LinearAdditiveUtilityFunction:
-        """Shift by.
+        """Create a new utility function shifted by a constant offset.
+
+        Computes u'(x) = u(x) + offset.
 
         Args:
-            offset: Offset.
-            shift_reserved: Shift reserved.
-            change_bias_only: Change bias only.
+            offset: The amount to add to all utility values.
+            shift_reserved: If True, also shift the reserved value.
+            change_bias_only: If True, only modify the bias term; otherwise
+                shift each value function independently.
 
         Returns:
-            LinearAdditiveUtilityFunction: The result.
+            A new LinearAdditiveUtilityFunction with shifted utility values.
         """
         if change_bias_only:
             return LinearAdditiveUtilityFunction(
@@ -1071,16 +1113,23 @@ class LinearAdditiveUtilityFunction(  # type: ignore
         change_weights_only: bool = False,
         normalize_weights: bool = True,
     ) -> LinearAdditiveUtilityFunction:
-        """Scale by.
+        """Create a new utility function scaled by a constant factor.
+
+        Computes u'(x) = scale * u(x).
 
         Args:
-            scale: Scale.
-            scale_reserved: Scale reserved.
-            change_weights_only: Change weights only.
-            normalize_weights: Normalize weights.
+            scale: The non-negative factor to multiply all utility values by.
+            scale_reserved: If True, also scale the reserved value.
+            change_weights_only: If True, only modify weights; otherwise scale
+                individual value functions.
+            normalize_weights: If True, normalize weights to sum to 1 before scaling.
 
         Returns:
-            LinearAdditiveUtilityFunction: The result.
+            A new LinearAdditiveUtilityFunction with scaled utility values.
+
+        Raises:
+            ValueError: If scale is negative or if both change_weights_only and
+                normalize_weights are True.
         """
         if scale < 0:
             raise ValueError(f"Cannot have a negative scale: {scale}")
