@@ -18,3 +18,4 @@ nbsphinx
 pillow>=10.0.0 # not directly required, pinned by Snyk to avoid a vulnerability
 ruff
 notebook==6.4.12
+requests>=2.32.4 # not directly required, pinned by Snyk to avoid a vulnerability
