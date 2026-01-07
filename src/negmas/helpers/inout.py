@@ -14,12 +14,11 @@ import os
 import pathlib
 from os import PathLike
 from pathlib import Path
-from typing import Any, Iterable
+from typing import TYPE_CHECKING, Any, Iterable
 
 import dill as pickle
 import inflect
 import numpy as np
-import pandas as pd
 import stringcase
 import yaml
 
@@ -27,6 +26,9 @@ from negmas import warnings
 from negmas.config import negmas_config
 
 from .types import TYPE_START, get_class, get_full_type_name, is_jsonable
+
+if TYPE_CHECKING:
+    pass
 
 __all__ = [
     "is_nonzero_file",
@@ -438,6 +440,8 @@ def dump(
         with open(file_name, "wb") as f:
             pickle.dump(d, f)
     elif file_name.suffix == ".csv":
+        import pandas as pd
+
         if not isinstance(d, pd.DataFrame):
             try:
                 d = pd.DataFrame(d)
@@ -477,6 +481,8 @@ def load(file_name: str | os.PathLike | pathlib.Path) -> Any:
         with open(file_name, "rb") as f:
             d = pickle.load(f)
     elif file_name.suffix == ".csv":
+        import pandas as pd
+
         d = pd.read_csv(file_name).to_dict()  # type: ignore
     else:
         raise ValueError(f"Unknown extension {file_name.suffix} for {file_name}")
@@ -507,6 +513,8 @@ def add_records(
         - If col_names are not given, the function will try to normalize the input data if it
           was a dict or a list of dicts
     """
+    import pandas as pd
+
     if col_names is None and (
         isinstance(data, dict)
         or (isinstance(data, list) and len(data) > 0 and isinstance(data[0], dict))

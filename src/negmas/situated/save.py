@@ -8,8 +8,6 @@ from os import PathLike
 from pathlib import Path
 from typing import TYPE_CHECKING, Any
 
-import pandas as pd
-
 from negmas.helpers.inout import dump
 from negmas.serialization import PYTHON_CLASS_IDENTIFIER, serialize
 
@@ -39,6 +37,7 @@ def save_stats(
     Returns:
 
     """
+    import pandas as pd
 
     def is_json_serializable(x):
         """Check if json serializable.

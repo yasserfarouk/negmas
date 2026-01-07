@@ -11,8 +11,6 @@ from typing import TYPE_CHECKING, Any, Iterable, Literal, Sequence, TypeVar, ove
 import numpy as np
 from attrs import define, field
 from numpy.typing import NDArray
-from scipy import spatial
-from scipy.stats import rankdata
 
 from negmas import warnings
 from negmas.helpers.numba_checks import jit  # type: ignore
@@ -513,6 +511,8 @@ def pareto_frontier_chatgpt(
     points = -points
     indices = np.arange(n_points, dtype=np.int32)
     points = np.asarray(points)
+    from scipy import spatial
+
     hull = spatial.ConvexHull(points)
     pareto_points = []
     pareto_indices = []
@@ -553,6 +553,7 @@ def pareto_frontier_convex_hull(
     Returns:
         indices of Pareto optimal outcomes
     """
+    from scipy import spatial
 
     points = np.asarray(points)
     n_points = points.shape[0]
@@ -2129,6 +2130,8 @@ def get_ranks(
     vals = np.asarray([ufun(_) for _ in alloutcomes + [None]])
     if changed:
         ufun.reserved_value = None  # type: ignore
+    from scipy.stats import rankdata
+
     ranks = rankdata(vals, method="dense") - 1.0
     if normalize:
         ranks = ranks / np.max(ranks)

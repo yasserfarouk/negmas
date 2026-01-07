@@ -8,11 +8,14 @@ from __future__ import annotations
 import copy
 import numbers
 import random
+from typing import TYPE_CHECKING
 
 import numpy as np
-import scipy.stats as stats
 
 from negmas.common import Distribution
+
+if TYPE_CHECKING:
+    pass
 
 __all__ = [
     "Distribution",  # THe interface of a distribution class
@@ -243,6 +246,8 @@ class ScipyDistribution(Distribution):
             type: Type.
             **kwargs: Additional keyword arguments.
         """
+        import scipy.stats as stats
+
         dist = getattr(stats, type.lower(), None)
         if dist is None:
             raise ValueError(f"Unknown distribution {type}")
@@ -283,6 +288,8 @@ class ScipyDistribution(Distribution):
         return self._type
 
     def _make_dist(self, type: str, loc: float, scale: float):
+        import scipy.stats as stats
+
         dist = getattr(stats, type.lower(), None)
         if dist is None:
             raise ValueError(f"Unknown distribution {type}")
