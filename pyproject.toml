@@ -94,6 +94,7 @@ dev = [
     "readme-renderer>=44.0",
     "recommonmark>=0.7.1",
     "ruff>=0.11.0",
+    "seaborn>=0.13.0",
     "tox>=4.23.2",
     "twine>=5.1.1",
     "wheel>=0.45.0",
