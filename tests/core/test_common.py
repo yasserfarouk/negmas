@@ -23,7 +23,9 @@ class MyEntity(NamedObject):
     pass
 
 
-@settings(suppress_health_check=[HealthCheck.function_scoped_fixture])
+@settings(
+    suppress_health_check=[HealthCheck.function_scoped_fixture, HealthCheck.too_slow]
+)
 @given(
     exist_ok=st.booleans(),
     single_checkpoint=st.booleans(),
