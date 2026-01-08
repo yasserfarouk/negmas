@@ -25,7 +25,6 @@ from typing import (
 from warnings import warn
 
 from attrs import define
-from rich.progress import Progress
 
 from negmas import warnings
 from negmas.checkpoints import CheckpointMixin
@@ -1520,6 +1519,8 @@ class Mechanism(
         Returns:
             TState: The result.
         """
+        from rich.progress import Progress
+
         if timeout is None:
             with Progress() as progress:
                 task = progress.add_task("Negotiating ...", total=100)
