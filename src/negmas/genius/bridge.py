@@ -43,22 +43,16 @@ import subprocess
 import time
 import traceback
 from pathlib import Path
-from typing import Any
-
-import psutil
-from py4j.java_gateway import (
-    CallbackServerParameters,
-    GatewayParameters,
-    JavaGateway,
-    JavaObject,
-)
-from py4j.protocol import Py4JNetworkError
+from typing import TYPE_CHECKING, Any
 
 import negmas.warnings as warnings
 
 from ..config import CONFIG_KEY_GENIUS_BRIDGE_JAR, negmas_config
 from ..helpers import TimeoutCaller, TimeoutError, unique_name
 from .common import DEFAULT_JAVA_PORT, get_free_tcp_port
+
+if TYPE_CHECKING:
+    from py4j.java_gateway import JavaGateway, JavaObject
 
 __all__ = [
     "GeniusBridge",
@@ -73,6 +67,8 @@ GENIUS_LOG_BASE = Path(
 
 
 def _kill_process(proc_pid):
+    import psutil
+
     process = psutil.Process(proc_pid)
     for proc in process.children(recursive=True):
         proc.kill()
@@ -92,6 +88,13 @@ def genius_bridge_is_running(port: int = DEFAULT_JAVA_PORT) -> bool:
         - execute `GeniusBridge.start()`
 
     """
+    from py4j.java_gateway import (
+        CallbackServerParameters,
+        GatewayParameters,
+        JavaGateway,
+    )
+    from py4j.protocol import Py4JNetworkError
+
     s = socket.socket()
     s.setsockopt(socket.SOL_SOCKET, socket.SO_REUSEADDR, 1)
     try:
@@ -234,7 +237,7 @@ def genius_bridge_is_installed() -> bool:
 class GeniusBridge:
     """GeniusBridge implementation."""
 
-    gateways: dict[int, JavaGateway] = dict()
+    gateways: dict[int, Any] = dict()
     java_processes: dict[int, Any] = dict()
     python_ports: dict[int, int] = dict()
 
@@ -272,6 +275,12 @@ class GeniusBridge:
             - this method does NOT start a bridge. It only connects to a
               running bridge.
         """
+        from py4j.java_gateway import (
+            CallbackServerParameters,
+            GatewayParameters,
+            JavaGateway,
+        )
+
         assert port > 0
         gateway = cls.gateways.get(port, None) if not force else None
         if gateway is not None:
