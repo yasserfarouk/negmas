@@ -21,7 +21,7 @@ jobs:
       - name: Set up Python ${{ matrix.python-version }}
         run: uv python install ${{ matrix.python-version }}
       - name: Install the project
-        run: uv sync --extra testing --dev
+        run: uv sync --extra testing --extra dev
       - name: "Install Jupyter Kernel"
         run: uv run -m ipykernel install --user --name=negmas
       - name: "Install Genius Bridge"
