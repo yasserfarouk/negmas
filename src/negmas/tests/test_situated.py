@@ -705,6 +705,7 @@ def test_config_reader_with_a_world_with_enum():
     assert world.negotiation_speed == 2
 
 
+@pytest.mark.slow
 def test_world_picklable(tmp_path):
     import dill as pickle
 
@@ -728,6 +729,7 @@ def test_world_picklable(tmp_path):
     w.run()
 
 
+@pytest.mark.slow
 def test_world_checkpoint(tmp_path):
     world = DummyWorld(
         n_steps=N_NEG_STEPS
@@ -857,6 +859,7 @@ def test_world_monitor():
     world.run()
 
 
+@pytest.mark.slow
 def test_neg_world_steps_serial_n_neg_steps_mode_all_requested_and_timeout():
     """Test serial negotiation stepping with one mechanism at a time.
 

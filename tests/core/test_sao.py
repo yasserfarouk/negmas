@@ -176,6 +176,7 @@ def test_has_correct_type_name(factory, name, short_name):
     assert x.short_type_name == short_name
 
 
+@mark.slow
 @mark.repeat(3)
 def test_pend_works():
     os = make_os(
@@ -499,6 +500,7 @@ class MyNeg(AspirationNegotiator):
         super().on_negotiation_end(*args, **kwargs)
 
 
+@mark.slow
 def test_hidden_time_works_and_no_call_repetitions():
     time, hidden = 18000, 3  # Reduced from 30 to 3 seconds for faster tests
     issues: list[Issue] = [
