@@ -24,10 +24,10 @@ jobs:
         run: uv python install ${{ matrix.python-version }}
       - name: Install the project
         run: uv sync --extra testing --dev
-      - name: "Install Genius Bridge"
-        run: uv run negmas genius-setup
       - name: "Install Jupyter Kernel"
         run: uv run -m ipykernel install --user --name=negmas
+      - name: "Install Genius Bridge"
+        run: uv run negmas genius-setup
       - uses: actions/setup-java@v4
         with:
           distribution: "zulu"
