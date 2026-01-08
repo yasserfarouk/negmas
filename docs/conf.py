@@ -92,13 +92,18 @@ author = "Yasser Mohammad"
 # for |version| and |release|, also used in various other places throughout
 # the built documents.
 #
-# Read version from VERSION file
-_version_file = os.path.join(os.path.dirname(__file__), "..", "VERSION")
-if os.path.exists(_version_file):
-    with open(_version_file) as f:
-        version = f.read().strip()
-else:
-    version = "0.11.6"
+# Read version from package metadata
+try:
+    from importlib.metadata import version as get_version
+except ImportError:
+    # Python < 3.8
+    from importlib_metadata import version as get_version
+
+try:
+    version = get_version("negmas")
+except Exception:
+    version = "0.12.0"
+
 # The full version, including alpha/cost/rc tags.
 release = version
 

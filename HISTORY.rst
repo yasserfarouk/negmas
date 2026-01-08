@@ -1,9 +1,10 @@
 History
 =======
 
-Release 0.11.6
+Release 0.12.0
 --------------
 
+* [license] Switch from GPL-2.0 to AGPL-3.0 for stronger copyleft protection
 * [performance] Implement lazy module loading in package ``__init__.py`` reducing ``import negmas`` time from ~0.43s to ~0.002s
 * [performance] Add lazy imports for heavy dependencies (scipy, pandas, networkx, matplotlib, rich, py4j, psutil, dill) throughout the codebase
 * [feature] Add new utility function classes: ``GLAUtilityFunction``, ``GPAUtilityFunction``, ``PAUtilityFunction``
@@ -12,18 +13,7 @@ Release 0.11.6
 * [bugfix] Fix missing ``LinearMultiFun`` import in ``gla.py``
 * [docs] Fix broken documentation references
 * [docs] Update copyright year to 2018-2025
-
-Release 0.11.5
---------------
-
-* Avoiding a build error with twine
-
-Release 0.11.4
---------------
-
-* Control of exceptions in runall()
-* get_all_negotiators() return SAO and GB based ones
-* Adding Hybrid Negotiator
+* [build] Add Python 3.10 and 3.14 support
 
 Release 0.11.3
 --------------
