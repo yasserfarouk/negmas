@@ -58,7 +58,7 @@ is scaled between 0 and 1.
     seller_utility = seller_utility.normalize()
     buyer_utility = buyer_utility.normalize()
 
-Then we add two agents with a boulware strategy. The negotiation ends
+Then we add two agents with a Boulware strategy. The negotiation ends
 with status overview. For example, you can see if the negotiation
 timed-out, what agreement was found, and how long the negotiation took.
 Moreover, we output the full negotiation history. For a more visual
