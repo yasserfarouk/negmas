@@ -16,8 +16,6 @@ from os import PathLike
 from pathlib import Path
 from typing import Any, Literal, overload
 
-import dill
-
 from ..helpers import get_full_type_name, shorten, unique_name
 from ..helpers.inout import dump, load
 
@@ -265,6 +263,8 @@ class NamedObject:
             )
 
         with open(full_file_name, "wb") as f:
+            import dill
+
             dill.dump(self, f)
 
         info_file_name = path / (base_name + ".json")
@@ -327,6 +327,8 @@ class NamedObject:
         """
         file_name = Path(file_name).absolute()
         with open(file_name, "rb") as f:
+            import dill
+
             obj = dill.load(f)
         if return_info:
             return obj, cls.checkpoint_info(file_name)

@@ -16,7 +16,6 @@ from os import PathLike
 from pathlib import Path
 from typing import TYPE_CHECKING, Any, Iterable
 
-import dill as pickle
 import inflect
 import numpy as np
 import stringcase
@@ -437,6 +436,8 @@ def dump(
                 convert_numpy(d), f, default_flow_style=compact, sort_keys=sort_keys
             )
     elif file_name.suffix == ".pickle":
+        import dill as pickle
+
         with open(file_name, "wb") as f:
             pickle.dump(d, f)
     elif file_name.suffix == ".csv":
@@ -478,6 +479,8 @@ def load(file_name: str | os.PathLike | pathlib.Path) -> Any:
         with open(file_name) as f:
             d = yaml.safe_load(f)
     elif file_name.suffix == ".pickle":
+        import dill as pickle
+
         with open(file_name, "rb") as f:
             d = pickle.load(f)
     elif file_name.suffix == ".csv":
