@@ -1,6 +1,18 @@
 History
 =======
 
+Release 0.11.6
+--------------
+
+* [performance] Implement lazy module loading in package ``__init__.py`` reducing ``import negmas`` time from ~0.43s to ~0.002s
+* [performance] Add lazy imports for heavy dependencies (scipy, pandas, networkx, matplotlib, rich, py4j, psutil, dill) throughout the codebase
+* [feature] Add new utility function classes: ``GLAUtilityFunction``, ``GPAUtilityFunction``, ``PAUtilityFunction``
+* [feature] Add new multi-issue value functions: ``LinearMultiFun``, ``QuadraticMultiFun``, ``BilinearMultiFun``, ``PolynomialMultiFun``, ``ProductMultiFun``
+* [bugfix] Fix doctest failures in ``value_fun.py`` (int vs float return values)
+* [bugfix] Fix missing ``LinearMultiFun`` import in ``gla.py``
+* [docs] Fix broken documentation references
+* [docs] Update copyright year to 2018-2025
+
 Release 0.11.5
 --------------
 
