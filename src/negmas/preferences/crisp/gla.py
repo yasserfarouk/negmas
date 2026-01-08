@@ -63,6 +63,7 @@ class GLAUtilityFunction(StationaryMixin, UtilityFunction):
 
     Examples:
         >>> from negmas.outcomes import make_issue
+        >>> from negmas.preferences.value_fun import LinearMultiFun
         >>> issues = [
         ...     make_issue(10, "A"),
         ...     make_issue(5, "B"),

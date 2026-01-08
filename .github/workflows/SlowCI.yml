@@ -19,24 +19,19 @@ jobs:
       - name: Set up Python ${{ matrix.python-version }}
         run: uv python install ${{ matrix.python-version }}
       - name: Install the project
-        run: |
-          uv sync --all-extras --dev
-          uv pip install -e "."
-      - name: "Activate the project"
-        run: source .venv/bin/activate
+        run: uv sync --extra testing --dev
       - name: "Install Jupyter Kernel"
         run: uv run -m ipykernel install --user --name=negmas
       - name: "Install Genius Bridge"
         run: uv run negmas genius-setup
       - uses: actions/setup-java@v4
         with:
-          distribution: "zulu" # See 'Supported distributions' for available options
-          java-version: "15"
+          distribution: "zulu"
+          java-version: "21"
       - name: "running genius bridge"
         run: "java -jar $HOME/negmas/files/geniusbridge.jar --silent --no-logs &"
-      - name: "Setting up environment"
-        run: |
-          export NEGMAS_IGNORE_TEST_NOTEBOOKS=True
-          export NEGMAS_SLOW_TEST=True
       - name: "Run pytest for ${{ matrix.python-version }}"
+        env:
+          NEGMAS_IGNORE_TEST_NOTEBOOKS: "True"
+          NEGMAS_SLOW_TEST: "True"
         run: "./run_with_timeout.sh 20000"

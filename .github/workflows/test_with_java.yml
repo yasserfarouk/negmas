@@ -23,22 +23,21 @@ jobs:
       - name: Set up Python ${{ matrix.python-version }}
         run: uv python install ${{ matrix.python-version }}
       - name: Install the project
-        run: |
-          uv sync --all-extras --dev
-          uv pip install -e "."
-      - name: "Activate the project"
-        run: source .venv/bin/activate
-      - name: "Install Genius Bridge"
-        run: uv run negmas genius-setup
+        run: uv sync --extra testing --dev
       - name: "Install Jupyter Kernel"
         run: uv run -m ipykernel install --user --name=negmas
+      - name: "Install Genius Bridge"
+        run: uv run negmas genius-setup
+      - uses: actions/setup-java@v4
+        with:
+          distribution: "zulu"
+          java-version: "21"
       - name: "running genius bridge"
         run: "java -jar $HOME/negmas/files/geniusbridge.jar --silent --no-logs &"
       - name: "Run pytest for ${{ matrix.python-version }}"
-        run: |
-          export NEGMAS_IGNORE_TEST_NOTEBOOKS=True
-          export NEGMAS_SLOW_TEST=True
-          export NEGMAS_BRIDGE_OPS=True
-          export NEGMAS_FAST_RUN=
-          export NEGMAS_RUN_GENIUS=True
-          uv run pytest tests/genius || uv run pytest --last-failed tests/genius
+        env:
+          NEGMAS_IGNORE_TEST_NOTEBOOKS: "True"
+          NEGMAS_SLOW_TEST: "True"
+          NEGMAS_BRIDGE_OPS: "True"
+          NEGMAS_RUN_GENIUS: "True"
+        run: uv run pytest tests/genius || uv run pytest --last-failed tests/genius

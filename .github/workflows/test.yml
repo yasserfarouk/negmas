@@ -11,7 +11,7 @@ jobs:
     timeout-minutes: 180
     strategy:
       matrix:
-        python-version: ["3.11", "3.12", "3.13", "3.14"]
+        python-version: ["3.10", "3.11", "3.12", "3.13", "3.14"]
     steps:
       - uses: "actions/checkout@v4"
       - name: Install uv
@@ -21,18 +21,13 @@ jobs:
       - name: Set up Python ${{ matrix.python-version }}
         run: uv python install ${{ matrix.python-version }}
       - name: Install the project
-        run: |
-          uv sync --all-extras --dev
-          uv pip install -e "."
-      - name: "Activate the project"
-        run: source .venv/bin/activate
+        run: uv sync --extra testing --dev
       - name: "Install Jupyter Kernel"
         run: uv run -m ipykernel install --user --name=negmas
       - name: "Install Genius Bridge"
         run: uv run negmas genius-setup
-      - name: "Setting up environment"
-        run: |
-          export NEGMAS_IGNORE_TEST_NOTEBOOKS=True
-          export NEGMAS_FASTRUN=True
       - name: "Run pytest for ${{ matrix.python-version }}"
+        env:
+          NEGMAS_IGNORE_TEST_NOTEBOOKS: "True"
+          NEGMAS_FASTRUN: "True"
         run: "uv run pytest src/negmas tests/core || uv run pytest --last-failed src/negmas tests/core"

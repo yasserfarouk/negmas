@@ -4,10 +4,15 @@
 from __future__ import annotations
 
 import importlib
+from importlib.metadata import PackageNotFoundError, version
 
 __author__ = """Yasser Mohammad"""
 __email__ = "yasserfarouk@gmail.com"
-__version__ = "0.11.4"
+try:
+    __version__ = version("negmas")
+except PackageNotFoundError:
+    # package is not installed
+    __version__ = "0.12.0"
 
 # Submodules that can be accessed as negmas.xxx
 _LAZY_SUBMODULES = frozenset(
