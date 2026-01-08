@@ -305,7 +305,7 @@ def get_cmap(n, name=DEFAULT_COLORMAP):
     RGB color; the keyword argument name must be a standard mpl colormap name."""
     import matplotlib.pyplot as plt
 
-    return plt.cm.get_cmap(name, n)
+    return plt.colormaps.get_cmap(name).resampled(n)
 
 
 def make_colors_and_markers(colors, markers, n: int, colormap=DEFAULT_COLORMAP):

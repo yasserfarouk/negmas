@@ -1,9 +1,9 @@
 from __future__ import annotations
 import pathlib
+from importlib.resources import files
 from math import isclose
 
 import numpy as np
-import pkg_resources
 import pytest
 from numpy.testing import assert_almost_equal
 
@@ -16,9 +16,7 @@ from negmas.genius import GeniusBridge
 from negmas.genius.gnegotiators import AgentK, AgentX, Atlas3, Caduceus, YXAgent
 
 DOMAIN_FOLDER = pathlib.Path(
-    pkg_resources.resource_filename(
-        "negmas", resource_name="tests/data/scenarios/anac/y2010/Travel"
-    )
+    str(files("negmas").joinpath("tests/data/scenarios/anac/y2010/Travel"))
 )
 DOMAIN_FILE = DOMAIN_FOLDER / "travel_domain.xml"
 UTIL1 = DOMAIN_FOLDER / "travel_chox.xml"
@@ -389,9 +387,7 @@ def test_genius_agent_same_utility():
 
 class TestGeniusAgentSessions:
     def prepare(self, utils=(0, 0), single_issue=True):
-        base_folder = pkg_resources.resource_filename(
-            "negmas", resource_name="tests/data/Laptop"
-        )
+        base_folder = str(files("negmas").joinpath("tests/data/Laptop"))
 
         domain = load_genius_domain_from_folder(base_folder).normalize()
         if single_issue:
@@ -516,9 +512,7 @@ class TestGeniusAgentSessions:
         agent_name2 = "agents.anac.y2015.Atlas3.Atlas3"
         single_issue = False
 
-        base_folder = pkg_resources.resource_filename(
-            "negmas", resource_name="tests/data/Laptop"
-        )
+        base_folder = str(files("negmas").joinpath("tests/data/Laptop"))
         domain = load_genius_domain_from_folder(base_folder)
         if single_issue:
             domain = domain.to_single_issue()

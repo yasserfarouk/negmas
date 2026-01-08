@@ -1,12 +1,12 @@
 from __future__ import annotations
 import math
 import random
+from importlib.resources import files
 from math import isnan
 
 import hypothesis.strategies as st
 import numpy as np
 from negmas.outcomes.contiguous_issue import ContiguousIssue
-import pkg_resources
 import pytest
 from hypothesis import given, settings
 from hypothesis.core import example
@@ -233,9 +233,7 @@ def test_calc_reserved(n_outcomes, r0, f):
 
 
 def test_calc_reserved_fifty_fifty():
-    folder_name = pkg_resources.resource_filename(
-        "negmas", resource_name="tests/data/FiftyFifty"
-    )
+    folder_name = str(files("negmas").joinpath("tests/data/FiftyFifty"))
 
     d = Scenario.from_genius_folder(folder_name, ignore_discount=True)
     assert d is not None and d.outcome_space is not None and d.ufuns is not None
@@ -636,15 +634,11 @@ def test_dict_conversion(utype):
 
 def test_inverse_genius_domain():
     with open(
-        pkg_resources.resource_filename(
-            "negmas", resource_name="tests/data/Laptop/Laptop-C-domain.xml"
-        )
+        str(files("negmas").joinpath("tests/data/Laptop/Laptop-C-domain.xml"))
     ) as ff:
         issues, _ = issues_from_xml_str(ff.read())
     with open(
-        pkg_resources.resource_filename(
-            "negmas", resource_name="tests/data/Laptop/Laptop-C-prof1.xml"
-        )
+        str(files("negmas").joinpath("tests/data/Laptop/Laptop-C-prof1.xml"))
     ) as ff:
         u, _ = UtilityFunction.from_xml_str(ff.read(), issues=issues)
     assert u is not None
@@ -769,17 +763,13 @@ def test_can_normalize_affine_and_linear_ufun(weights, bias, rng):
 
 def test_normalization():
     with open(
-        pkg_resources.resource_filename(
-            "negmas", resource_name="tests/data/Laptop/Laptop-C-domain.xml"
-        )
+        str(files("negmas").joinpath("tests/data/Laptop/Laptop-C-domain.xml"))
     ) as ff:
         os = CartesianOutcomeSpace.from_xml_str(ff.read())
     issues = os.issues
     outcomes = list(os.enumerate())
     with open(
-        pkg_resources.resource_filename(
-            "negmas", resource_name="tests/data/Laptop/Laptop-C-prof1.xml"
-        )
+        str(files("negmas").joinpath("tests/data/Laptop/Laptop-C-prof1.xml"))
     ) as ff:
         u, _ = UtilityFunction.from_xml_str(ff.read(), issues=issues)
     assert u is not None
@@ -793,9 +783,7 @@ def test_normalization():
     gt_max = dict(zip(outcomes, [_ / max_util for _ in utils]))
 
     with open(
-        pkg_resources.resource_filename(
-            "negmas", resource_name="tests/data/Laptop/Laptop-C-prof1.xml"
-        )
+        str(files("negmas").joinpath("tests/data/Laptop/Laptop-C-prof1.xml"))
     ) as ff:
         u, _ = UtilityFunction.from_xml_str(ff.read(), issues=issues)
     assert u is not None
@@ -809,9 +797,7 @@ def test_normalization():
         assert abs(float(u(k)) - v) < 1e-3, f"Failed for {k} got {(u(k))} expected {v}"
 
     with open(
-        pkg_resources.resource_filename(
-            "negmas", resource_name="tests/data/Laptop/Laptop-C-prof1.xml"
-        )
+        str(files("negmas").joinpath("tests/data/Laptop/Laptop-C-prof1.xml"))
     ) as ff:
         u, _ = UtilityFunction.from_xml_str(ff.read(), issues=issues)
     assert u is not None

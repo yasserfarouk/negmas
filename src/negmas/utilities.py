@@ -8,4 +8,4 @@ from negmas import warnings
 
 from .preferences import *
 
-warnings.deprecated("Module `utilities` is depricated. Use `preferences` instead")
+warnings.deprecated("Module `utilities` is deprecated. Use `preferences` instead")

@@ -1,9 +1,9 @@
 from __future__ import annotations
 import os
+from importlib.resources import files
 from os import walk
 from pathlib import Path
 
-import pkg_resources
 import pytest
 
 from negmas import load_genius_domain_from_folder
@@ -23,16 +23,12 @@ try:
 except Exception:
     pass
 
-GENIUSWEB_FOLDERS = Path(
-    pkg_resources.resource_filename("negmas", resource_name="tests/data/geniusweb")
-)
+GENIUSWEB_FOLDERS = Path(str(files("negmas").joinpath("tests/data/geniusweb")))
 
 
 @pytest.fixture
 def scenarios_folder():
-    return pkg_resources.resource_filename(
-        "negmas", resource_name="tests/data/scenarios"
-    )
+    return str(files("negmas").joinpath("tests/data/scenarios"))
 
 
 # todo: get these to work
@@ -83,8 +79,8 @@ SCENARIOS_TO_IGNORE = [
 def get_all_scenarios():
     base = Path(__file__).parent.parent / "data" / "scenarios"
     data = []
-    for root, dirs, files in walk(base):
-        if len(files) == 0 or len(dirs) != 0:
+    for root, dirs, filenames in walk(base):
+        if len(filenames) == 0 or len(dirs) != 0:
             continue
         if root.split("/")[-1] in SCENARIOS_TO_IGNORE:
             continue
@@ -95,9 +91,7 @@ def get_all_scenarios():
 def test_reading_writing_linear_preferences(tmp_path):
     from negmas.preferences import LinearAdditiveUtilityFunction, UtilityFunction
 
-    base_folder = pkg_resources.resource_filename(
-        "negmas", resource_name="tests/data/Laptop"
-    )
+    base_folder = str(files("negmas").joinpath("tests/data/Laptop"))
     domain = load_genius_domain_from_folder(base_folder)
     ufuns, issues = domain.ufuns, domain.issues
     for ufun in ufuns:
@@ -121,9 +115,7 @@ def test_importing_file_without_exceptions(scenarios_folder):
 
 
 def test_simple_run_with_aspiration_agents():
-    file_name = pkg_resources.resource_filename(
-        "negmas", resource_name="tests/data/Laptop"
-    )
+    file_name = str(files("negmas").joinpath("tests/data/Laptop"))
     assert os.path.exists(file_name)
     domain = Scenario.from_genius_folder(Path(file_name))
     assert domain

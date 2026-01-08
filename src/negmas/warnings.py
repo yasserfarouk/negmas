@@ -48,10 +48,10 @@ def warn(message, category=NegmasWarning, stacklevel=2, source=None):
     return warnings.warn(message, category, stacklevel, source)
 
 
-def deprecated(message):
+def deprecated(message, stacklevel=3):
     """Issues a deprecation warning"""
     return warnings.warn(
-        message, category=DeprecationWarning, stacklevel=2, source=None
+        message, category=DeprecationWarning, stacklevel=stacklevel, source=None
     )
 
 
