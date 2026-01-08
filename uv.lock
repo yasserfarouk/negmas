@@ -2529,7 +2529,7 @@ requires-dist = [
     { name = "gif", specifier = ">=23.3.0" },
     { name = "hypothesis", marker = "extra == 'testing'", specifier = ">=6.118.8" },
     { name = "inflect", specifier = ">=4.1.0,<6.0" },
-    { name = "ipykernel", marker = "extra == 'dev'", specifier = ">=6.29.0" },
+    { name = "ipykernel", marker = "extra == 'dev'", specifier = ">=6.29.5" },
     { name = "jupyter", marker = "extra == 'dev'", specifier = ">=1.1.1" },
     { name = "markupsafe", marker = "extra == 'dev'", specifier = ">=3.0.2" },
     { name = "matplotlib", specifier = ">=3.9.2" },
