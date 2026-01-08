@@ -11,7 +11,8 @@ def test_main():
     runner = CliRunner()
     result = runner.invoke(main, [])
     assert len(result.output) > 0
-    assert result.exit_code == 0
+    # Exit code 2 is expected when no subcommand is provided (shows usage)
+    assert result.exit_code == 2
 
 
 def test_negotiate_app_nstpes():
