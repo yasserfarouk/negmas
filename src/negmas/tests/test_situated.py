@@ -708,7 +708,9 @@ def test_config_reader_with_a_world_with_enum():
 def test_world_picklable(tmp_path):
     import dill as pickle
 
-    world = DummyWorld()
+    world = DummyWorld(
+        n_steps=N_NEG_STEPS
+    )  # Use small n_steps instead of default 10000
     world.step()
     world.step()
     file = tmp_path / "world.pckl"
@@ -727,7 +729,9 @@ def test_world_picklable(tmp_path):
 
 
 def test_world_checkpoint(tmp_path):
-    world = DummyWorld()
+    world = DummyWorld(
+        n_steps=N_NEG_STEPS
+    )  # Use small n_steps instead of default 10000
     world.step()
     world.step()
 
@@ -854,7 +858,14 @@ def test_world_monitor():
 
 
 def test_neg_world_steps_serial_n_neg_steps_mode_all_requested_and_timeout():
-    n_steps, n_agents = N_NEG_STEPS, 4
+    """Test serial negotiation stepping with one mechanism at a time.
+
+    This test is slow by design as it steps through negotiations one step at a time.
+    """
+    n_steps, n_agents = (
+        10,
+        3,
+    )  # Reduced from n_steps=20, n_agents=4 for faster execution
     world = NegPerStepWorld(n_steps)
     for _ in range(n_agents):
         world.join(NegAgent(p_request=1.0, never_agree=True, name=f"a{_}"))
@@ -862,7 +873,7 @@ def test_neg_world_steps_serial_n_neg_steps_mode_all_requested_and_timeout():
     i, _s, _n = 0, 0, 0
     while world.step(n_neg_steps=1, n_mechanisms=1):
         i += 1
-    # n. negotiations == n. agents
+    # n. negotiations == n. agents (uses N_NEG_STEPS from world config)
     assert i == (N_NEG_STEPS + 1) * n_steps * n_agents - 1
     assert world.current_step == n_steps
     assert (

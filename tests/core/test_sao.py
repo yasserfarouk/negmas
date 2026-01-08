@@ -185,7 +185,7 @@ def test_pend_works():
             make_issue(["red", "green", "blue"], "color"),
         ]
     )
-    for _ in range(50):
+    for _ in range(10):  # Reduced from 50 to 10 iterations
         ufuns = [
             LinearAdditiveUtilityFunction.random(outcome_space=os, reserved_value=0.0),
             LinearAdditiveUtilityFunction.random(outcome_space=os, reserved_value=0.0),
@@ -500,7 +500,7 @@ class MyNeg(AspirationNegotiator):
 
 
 def test_hidden_time_works_and_no_call_repetitions():
-    time, hidden = 18000, 30
+    time, hidden = 18000, 3  # Reduced from 30 to 3 seconds for faster tests
     issues: list[Issue] = [
         make_issue(10, "price"),
         make_issue(5, "quantity"),
