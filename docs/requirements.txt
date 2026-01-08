@@ -1,20 +1,15 @@
 -e .
-Sphinx
+Sphinx>=7.0.0
 sphinx-autodoc-annotation
 sphinx-autodoc-typehints
 sphinx-automodapi
 sphinxcontrib-fulltoc
 sphinxcontrib-websupport
-sphinx-tabs
+sphinx-tabs>=3.4.0
 sphinx-testing
 sphinx-rtd-theme
-# sphinx-press-theme
-# groundwork-sphinx-theme
-# python-docs-theme
-# sphinx-sizzle-theme
 nbformat
 nbsphinx
-# nb2plots
-pillow>=10.0.0 # not directly required, pinned by Snyk to avoid a vulnerability
-ruff
-notebook==6.4.12
+pillow>=10.0.0
+ipykernel>=6.29.0
+pandoc

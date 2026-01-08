@@ -78,7 +78,7 @@ templates_path = ["_templates"]
 #
 source_suffix = [".rst", ".md"]
 # source_suffix = '.rst'
-source_parsers = {".md": "recommonmark.parser.CommonMarkParser"}
+# source_parsers = {".md": "recommonmark.parser.CommonMarkParser"}  # deprecated, using myst_parser instead
 
 # The strategy toctree document.
 master_doc = "index"
