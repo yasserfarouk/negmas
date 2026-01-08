@@ -7,8 +7,6 @@ import pathlib
 import uuid
 from typing import TYPE_CHECKING, Callable, Protocol, TypeVar, Generic
 
-from matplotlib.markers import CARETDOWN, CARETLEFT, CARETRIGHT, CARETUP
-
 from negmas.common import MechanismState, NegotiatorMechanismInterface, TraceElement
 from negmas.gb import ResponseType
 from negmas.helpers.misc import make_callable
@@ -159,10 +157,32 @@ PARETO_ALPHA = 0.4
 NASH_ALPHA = 0.4
 KALAI_ALPHA = 0.4
 KS_ALPHA = 0.4
-KALAI_MARKER = CARETDOWN
-KS_MARKER = CARETUP
-WELFARE_MARKER = CARETRIGHT
-NASH_MARKER = CARETLEFT
+# Marker constants - will be set lazily when matplotlib is loaded
+KALAI_MARKER: int | None = None
+KS_MARKER: int | None = None
+WELFARE_MARKER: int | None = None
+NASH_MARKER: int | None = None
+_MATPLOTLIB_MARKERS_LOADED = False
+
+
+def _ensure_matplotlib_markers():
+    """Load matplotlib marker constants lazily."""
+    global \
+        _MATPLOTLIB_MARKERS_LOADED, \
+        KALAI_MARKER, \
+        KS_MARKER, \
+        WELFARE_MARKER, \
+        NASH_MARKER
+    if not _MATPLOTLIB_MARKERS_LOADED:
+        from matplotlib.markers import CARETDOWN, CARETLEFT, CARETRIGHT, CARETUP
+
+        KALAI_MARKER = CARETDOWN
+        KS_MARKER = CARETUP
+        WELFARE_MARKER = CARETRIGHT
+        NASH_MARKER = CARETLEFT
+        _MATPLOTLIB_MARKERS_LOADED = True
+
+
 KALAI_COLOR = "green"
 KS_COLOR = "cyan"
 WELFARE_COLOR = "blue"
@@ -583,6 +603,9 @@ def plot_2dutils(
     """
     import matplotlib.patches as mpatches
     import matplotlib.pyplot as plt
+
+    # Ensure matplotlib marker constants are loaded
+    _ensure_matplotlib_markers()
 
     if not colorizer:
         colorizer = default_colorizer
