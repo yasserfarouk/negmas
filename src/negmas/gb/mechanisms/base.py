@@ -13,7 +13,6 @@ from negmas.helpers import humanize_time
 from negmas.helpers.types import get_full_type_name, instantiate
 from negmas.mechanisms import Mechanism, MechanismStepResult
 from negmas.outcomes import Outcome
-from negmas.plots.util import default_colorizer
 from negmas.preferences import BaseUtilityFunction, Preferences
 
 from ..common import GBAction, GBResponse, GBState, ResponseType, ThreadState, GBNMI
@@ -365,7 +364,7 @@ class BaseGBMechanism(Mechanism[GBNMI, GBState, GBAction, GBNegotiator]):
         ylimits: tuple[float, float] | None = None,
         common_legend: bool = True,
         xdim: str = "step",
-        colorizer: Colorizer | None = default_colorizer,
+        colorizer: Colorizer | None = None,
         only2d: bool = False,
         fast=False,
         simple_offers_view=False,
@@ -404,7 +403,10 @@ class BaseGBMechanism(Mechanism[GBNMI, GBState, GBAction, GBNegotiator]):
             simple_offers_view: Simple offers view.
             **kwargs: Additional keyword arguments.
         """
-        from negmas.plots.util import plot_mechanism_run
+        from negmas.plots.util import default_colorizer, plot_mechanism_run
+
+        if colorizer is None:
+            colorizer = default_colorizer
 
         return plot_mechanism_run(
             mechanism=self,
@@ -814,7 +816,7 @@ class GBMechanism(BaseGBMechanism):
         ylimits: tuple[float, float] | None = None,
         common_legend: bool = True,
         xdim: str = "step",
-        colorizer: Colorizer | None = default_colorizer,
+        colorizer: Colorizer | None = None,
         only2d: bool = False,
         fast=False,
         simple_offers_view=False,
@@ -853,7 +855,10 @@ class GBMechanism(BaseGBMechanism):
             simple_offers_view: Simple offers view.
             **kwargs: Additional keyword arguments.
         """
-        from negmas.plots.util import plot_mechanism_run
+        from negmas.plots.util import default_colorizer, plot_mechanism_run
+
+        if colorizer is None:
+            colorizer = default_colorizer
 
         return plot_mechanism_run(
             mechanism=self,  #

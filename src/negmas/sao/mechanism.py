@@ -5,7 +5,6 @@ Implements Stacked Alternating Offers (SAO) mechanism.
 from __future__ import annotations
 
 import functools
-import pandas as pd
 import sys
 import time
 from collections import defaultdict
@@ -28,6 +27,8 @@ from .common import SAONMI, ResponseType, SAOResponse, SAOState
 from .negotiators import SAONegotiator
 
 if TYPE_CHECKING:
+    import pandas as pd
+
     from negmas.preferences import Preferences
 
 
@@ -684,6 +685,8 @@ class SAOMechanism(
             names = ufun_names
 
         names = TRACE_ELEMENT_MEMBERS + names
+        import pandas as pd
+
         return pd.DataFrame.from_records(self.full_trace_with_utils_df, columns=names)
 
     @property

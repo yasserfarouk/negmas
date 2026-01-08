@@ -9,10 +9,12 @@ least two versions
 from __future__ import annotations
 
 import random
-from typing import Iterable, TypeVar
+from typing import TYPE_CHECKING, Iterable, TypeVar
 
 import numpy as np
-from scipy.stats import tmean
+
+if TYPE_CHECKING:
+    pass
 
 T = TypeVar("T")
 
@@ -134,6 +136,8 @@ def truncated_mean(
               - median: simply returns the median (limits ignored)
         return_limits: If true, the method will also return the limiting scores used in its mean calculation.
     """
+
+    from scipy.stats import tmean
 
     scores = np.asarray(scores)
     scores = scores[~np.isnan(scores)]

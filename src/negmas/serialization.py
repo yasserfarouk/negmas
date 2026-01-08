@@ -13,7 +13,6 @@ from attr import has, asdict
 
 import cloudpickle
 import numpy as np
-from pandas import json_normalize
 
 from negmas import warnings
 
@@ -376,6 +375,8 @@ def to_flat_dict(
     for k, v in d.items():
         if isinstance(v, list) or isinstance(v, tuple):
             d[k] = str(v)
+    from pandas import json_normalize
+
     return json_normalize(d, errors="ignore", sep="_").to_dict(orient="records")[0]
 
 

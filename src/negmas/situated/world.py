@@ -17,8 +17,6 @@ from pathlib import Path
 from typing import TYPE_CHECKING, Any, Callable, Collection, Iterable, Generic, TypeVar
 
 import numpy as np
-import pandas as pd
-import scipy
 import yaml
 
 from negmas.checkpoints import CheckpointMixin
@@ -64,12 +62,15 @@ from .save import save_stats
 from .awi import AgentWorldInterface
 
 if TYPE_CHECKING:
+    import networkx as nx
+
     from matplotlib.axes import Axes
 
-try:
-    import networkx as nx
-except ImportError:
-    nx = None
+# Check if networkx is available (for optional graph functionality)
+# Use find_spec to avoid importing the heavy module at import time
+import importlib.util
+
+nx = importlib.util.find_spec("networkx") is not None
 
 __all__ = ["World"]
 
@@ -616,6 +617,8 @@ class World(
                 id=i, name=aid, type=self.type_name_for_logs(agent)
             ) | self.extra_agent_info(agent)
         if self._extra_folder is not None:
+            import pandas as pd
+
             df = pd.DataFrame.from_records(list(self._agent_info.values()))
             df.to_csv(self._extra_folder / "agents.csv", index=False)
 
@@ -1490,6 +1493,8 @@ class World(
         if len(record) < 1:
             return
         add_records(str(Path(self._log_folder) / "negotiations.csv"), [record])
+        import pandas as pd
+
         data = pd.DataFrame([to_flat_dict(_) for _ in mechanism.history])
         data.to_csv(os.path.join(negs_folder, f"{mechanism.id}.csv"), index=False)
 
@@ -2058,6 +2063,8 @@ class World(
             #         | {k: v[-1] for k, v in self._stats.items()}
             #         | self.extra_sim_step_info_pre()
             #     )
+            import pandas as pd
+
             df = pd.DataFrame.from_records(self._sim_info)
             assert self._extra_folder is not None
             df.to_csv(self._extra_folder / "simsteps.csv", index=False)
@@ -2646,6 +2653,8 @@ class World(
             id=len(self._agent_info) + 1, name=aid, type=self.type_name_for_logs(x)
         ) | self.extra_agent_info(x)
         if self._extra_folder is not None:
+            import pandas as pd
+
             df = pd.DataFrame.from_records(list(self._agent_info.values()))
             df.to_csv(self._extra_folder / "agents.csv", index=False)
 
@@ -3393,6 +3402,8 @@ class World(
                 A networkx graph representing the world if together==True else a list of graphs one for each item in what
 
             """
+            import networkx as nx
+
             if steps is None:
                 steps = self.current_step
             if isinstance(steps, int):
@@ -3467,6 +3478,7 @@ class World(
             """
 
             import matplotlib.pyplot as plt
+            import networkx as nx
 
             if not self.construct_graphs:
                 self.logwarning(
@@ -4026,6 +4038,9 @@ class World(
             means = cls.combine_stats(
                 worlds, stat=stat, pertype=pertype, method=np.mean, n_steps=n_steps
             )
+            # Lazy import scipy for sem
+            import scipy.stats
+
             sterrs = cls.combine_stats(
                 worlds,
                 stat=stat,
@@ -4366,6 +4381,8 @@ class World(
         try:
             if self._saved_details_level < 2:
                 return
+            import pandas as pd
+
             assert self._extra_folder is not None
             df = pd.DataFrame.from_records(list(self._neg_info.values()))
             df.to_csv(self._extra_folder / "negs.csv", index=False)
