@@ -276,7 +276,7 @@ class BaseMultiFun(ABC):
         >>> # Find min/max over issues
         >>> issues = [make_issue(10, "x"), make_issue(5, "y")]
         >>> f.minmax(tuple(issues))
-        (0.1, 6.3)
+        (0.1, 5.8)
     """
 
     @property
@@ -916,7 +916,7 @@ class LambdaFun(BaseFun):
 
         >>> f = LambdaFun(f=lambda x: x**2, bias=1.0)
         >>> f(3)  # 3^2 + 1 = 10
-        10
+        10.0
 
     Warning:
         Lambda functions can be serialized, but complex callables
@@ -1306,11 +1306,11 @@ class TriangularFun(BaseFun):
     Example:
         >>> f = TriangularFun(start=0.0, middle=5.0, end=10.0)
         >>> f(0)   # At start: bias = 0
-        0.0
+        0
         >>> f(5)   # At middle: bias + scale = 1
         1.0
         >>> f(10)  # At end: bias = 0
-        0.0
+        0
         >>> f(2.5) # Halfway up: 0.5
         0.5
     """
@@ -2229,7 +2229,7 @@ class LambdaMultiFun(BaseMultiFun):
         >>> # With bias
         >>> f = LambdaMultiFun(f=lambda x: x[0] * x[1], bias=1.0)
         >>> f((3, 4))  # 3 * 4 + 1 = 13
-        13
+        13.0
 
     Warning:
         Lambda functions can be serialized, but complex callables

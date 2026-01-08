@@ -8,7 +8,6 @@ Helper Modules
     modules/events
     modules/helpers
     modules/inout
-    modules/java
     modules/tournaments
     modules/serialization
     modules/checkpoints

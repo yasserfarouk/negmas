@@ -85,15 +85,20 @@ master_doc = "index"
 
 # General information about the project.
 project = "NegMAS"
-copyright = "2018, Yasser Mohammad"
+copyright = "2018-2025, Yasser Mohammad"
 author = "Yasser Mohammad"
 
 # The version info for the project you're documenting, acts as replacement
 # for |version| and |release|, also used in various other places throughout
 # the built documents.
 #
-# The short X.Y version.
-version = "0.11.5"
+# Read version from VERSION file
+_version_file = os.path.join(os.path.dirname(__file__), "..", "VERSION")
+if os.path.exists(_version_file):
+    with open(_version_file) as f:
+        version = f.read().strip()
+else:
+    version = "0.11.6"
 # The full version, including alpha/cost/rc tags.
 release = version
 

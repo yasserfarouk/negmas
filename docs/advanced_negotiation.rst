@@ -6,7 +6,7 @@ Advanced Negotiation
     :maxdepth: 2
 
     modules/situated
-    modules/models/utility
+    modules/models/preferences
     modules/models/strategy
     modules/models/future
     modules/models/acceptance
