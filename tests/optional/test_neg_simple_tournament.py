@@ -147,6 +147,7 @@ def test_can_run_cartesian_simple_tournament_n_reps():
     assert len(results.final_scores) == len(competitors)
 
 
+@mark.slow
 @mark.skipif(
     NEGMAS_FASTRUN, reason="Testing loading, saving and combining tournaments is slow"
 )

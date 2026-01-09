@@ -11,6 +11,7 @@ from collections import defaultdict
 from typing import TYPE_CHECKING, Any, Literal
 
 from negmas.gb.negotiators import AspirationNegotiator
+from negmas.gb.common import ExtendedResponseType
 from negmas.outcomes.common import ExtendedOutcome
 from negmas.preferences.base_ufun import BaseUtilityFunction
 
@@ -148,7 +149,7 @@ class SAOController(Controller[SAONMI, SAOState, ControlledSAONegotiator]):
 
     def respond(
         self, negotiator_id: str, state: SAOState, source: str | None = None
-    ) -> ResponseType:
+    ) -> ResponseType | ExtendedResponseType:
         """Respond.
 
         Args:
@@ -213,7 +214,7 @@ class SAORandomController(SAOController):
 
     def respond(
         self, negotiator_id: str, state: SAOState, source: str | None = None
-    ) -> ResponseType:
+    ) -> ResponseType | ExtendedResponseType:
         """Respond.
 
         Args:
@@ -412,7 +413,7 @@ class SAOSyncController(SAOController):
 
     def respond(
         self, negotiator_id: str, state: SAOState, source: str | None = None
-    ) -> ResponseType:
+    ) -> ResponseType | ExtendedResponseType:
         """Respond.
 
         Args:
@@ -543,7 +544,7 @@ class SAORandomSyncController(SAOSyncController):
 
         self.wheel = self.wheel[1:]
 
-    def make_response(self) -> ResponseType:
+    def make_response(self) -> ResponseType | ExtendedResponseType:
         """Make response.
 
         Returns:
@@ -971,7 +972,7 @@ class SAOMetaNegotiatorController(SAOController):
 
     def respond(
         self, negotiator_id: str, state: SAOState, source: str | None = None
-    ) -> ResponseType:
+    ) -> ResponseType | ExtendedResponseType:
         """Uses the meta negotiator to respond"""
         negotiator, _ = self._negotiators.get(negotiator_id, (None, None))
         if negotiator is None:

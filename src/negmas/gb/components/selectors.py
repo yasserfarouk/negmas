@@ -20,6 +20,7 @@ from negmas.preferences import (
 if TYPE_CHECKING:
     from negmas.gb import GBState
     from negmas.outcomes import Outcome
+    from negmas.outcomes.common import ExtendedOutcome
     from negmas.outcomes.outcome_space import DistanceFun
 
 
@@ -191,7 +192,9 @@ class OfferSelectorProtocol(Protocol):
     Can select *the best* offer in some  sense from a list of offers based on an inverter
     """
 
-    def __call__(self, outcomes: Sequence[Outcome], state: GBState) -> Outcome | None:
+    def __call__(
+        self, outcomes: Sequence[Outcome], state: GBState
+    ) -> Outcome | ExtendedOutcome | None:
         """Make instance callable.
 
         Args:
@@ -210,7 +213,9 @@ class OfferSelector(OfferSelectorProtocol, GBComponent):
     """
 
     @abstractmethod
-    def __call__(self, outcomes: Sequence[Outcome], state: GBState) -> Outcome | None:
+    def __call__(
+        self, outcomes: Sequence[Outcome], state: GBState
+    ) -> Outcome | ExtendedOutcome | None:
         """Make instance callable.
 
         Args:
@@ -226,7 +231,9 @@ class OfferSelector(OfferSelectorProtocol, GBComponent):
 class RandomOfferSelector(OfferSelector):
     """RandomOfferSelector implementation."""
 
-    def __call__(self, outcomes: Sequence[Outcome], state: GBState) -> Outcome | None:
+    def __call__(
+        self, outcomes: Sequence[Outcome], state: GBState
+    ) -> Outcome | ExtendedOutcome | None:
         """Make instance callable.
 
         Args:
@@ -244,7 +251,9 @@ class RandomOfferSelector(OfferSelector):
 class BestOfferSelector(OfferSelector):
     """BestOfferSelector implementation."""
 
-    def __call__(self, outcomes: Sequence[Outcome], state: GBState) -> Outcome | None:
+    def __call__(
+        self, outcomes: Sequence[Outcome], state: GBState
+    ) -> Outcome | ExtendedOutcome | None:
         """Make instance callable.
 
         Args:
@@ -276,7 +285,9 @@ class BestOfferSelector(OfferSelector):
 class MedianOfferSelector(OfferSelector):
     """MedianOfferSelector implementation."""
 
-    def __call__(self, outcomes: Sequence[Outcome], state: GBState) -> Outcome | None:
+    def __call__(
+        self, outcomes: Sequence[Outcome], state: GBState
+    ) -> Outcome | ExtendedOutcome | None:
         """Make instance callable.
 
         Args:
@@ -309,7 +320,9 @@ class MedianOfferSelector(OfferSelector):
 class WorstOfferSelector(OfferSelector):
     """WorstOfferSelector implementation."""
 
-    def __call__(self, outcomes: Sequence[Outcome], state: GBState) -> Outcome | None:
+    def __call__(
+        self, outcomes: Sequence[Outcome], state: GBState
+    ) -> Outcome | ExtendedOutcome | None:
         """Make instance callable.
 
         Args:
@@ -356,7 +369,9 @@ class OfferOrientedSelector(OfferSelector):
         self._distance_fun = distance_fun
         self._distance_fun_params = kwargs
 
-    def __call__(self, outcomes: Sequence[Outcome], state: GBState) -> Outcome | None:
+    def __call__(
+        self, outcomes: Sequence[Outcome], state: GBState
+    ) -> Outcome | ExtendedOutcome | None:
         """Make instance callable.
 
         Args:
@@ -493,7 +508,9 @@ class OutcomeSetOrientedSelector(OfferSelector):
         """
         ...
 
-    def __call__(self, outcomes: Sequence[Outcome], state: GBState) -> Outcome | None:
+    def __call__(
+        self, outcomes: Sequence[Outcome], state: GBState
+    ) -> Outcome | ExtendedOutcome | None:
         """Make instance callable.
 
         Args:

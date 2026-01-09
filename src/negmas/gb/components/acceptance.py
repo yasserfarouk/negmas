@@ -11,7 +11,7 @@ from attrs import define, field
 
 from negmas import warnings
 from negmas.common import PreferencesChange, PreferencesChangeType
-from negmas.gb.common import ResponseType, current_thread_id
+from negmas.gb.common import ExtendedResponseType, ResponseType, current_thread_id
 
 from .base import AcceptancePolicy, FilterResult
 from .concession import ConcessionRecommender
@@ -22,6 +22,7 @@ if TYPE_CHECKING:
     from negmas.gb import GBState
     from negmas.gb.negotiators.base import GBNegotiator
     from negmas.outcomes import Outcome
+    from negmas.outcomes.common import ExtendedOutcome
 
     from .offering import MiCROOfferingPolicy, OfferingPolicy
 
@@ -62,7 +63,7 @@ class AcceptAnyRational(AcceptancePolicy):
 
     def __call__(
         self, state: GBState, offer: Outcome | None, source: str | None
-    ) -> ResponseType:
+    ) -> ResponseType | ExtendedResponseType:
         """Make instance callable.
 
         Args:
@@ -91,7 +92,7 @@ class AcceptNotWorseRational(AcceptancePolicy):
 
     def __call__(
         self, state: GBState, offer: Outcome | None, source: str | None
-    ) -> ResponseType:
+    ) -> ResponseType | ExtendedResponseType:
         """Make instance callable.
 
         Args:
@@ -125,7 +126,7 @@ class AcceptBetterRational(AcceptancePolicy):
 
     def __call__(
         self, state: GBState, offer: Outcome | None, source: str | None
-    ) -> ResponseType:
+    ) -> ResponseType | ExtendedResponseType:
         """Make instance callable.
 
         Args:
@@ -325,7 +326,10 @@ class ACLast(AcceptancePolicy):
     beta: float = 0.0
 
     def after_proposing(
-        self, state: GBState, offer: Outcome | None, dest: str | None = None
+        self,
+        state: GBState,
+        offer: "Outcome | ExtendedOutcome | None",
+        dest: str | None = None,
     ):
         """After proposing.
 
@@ -529,7 +533,7 @@ class AcceptAround(AcceptancePolicy):
 
     def __call__(
         self, state: GBState, offer: Outcome | None, source: str | None
-    ) -> ResponseType:
+    ) -> ResponseType | ExtendedResponseType:
         """Make instance callable.
 
         Args:
@@ -567,7 +571,7 @@ class RandomAcceptancePolicy(AcceptancePolicy):
 
     def __call__(
         self, state: GBState, offer: Outcome | None, source: str | None
-    ) -> ResponseType:
+    ) -> ResponseType | ExtendedResponseType:
         """Make instance callable.
 
         Args:
@@ -610,7 +614,7 @@ class AcceptBest(AcceptancePolicy):
 
     def __call__(
         self, state: GBState, offer: Outcome | None, source: str | None
-    ) -> ResponseType:
+    ) -> ResponseType | ExtendedResponseType:
         """Make instance callable.
 
         Args:
@@ -662,7 +666,7 @@ class AcceptTop(AcceptancePolicy):
 
     def __call__(
         self, state: GBState, offer: Outcome | None, source: str | None
-    ) -> ResponseType:
+    ) -> ResponseType | ExtendedResponseType:
         """Make instance callable.
 
         Args:
@@ -704,7 +708,7 @@ class AcceptAbove(AcceptancePolicy):
 
     def __call__(
         self, state: GBState, offer: Outcome | None, source: str | None
-    ) -> ResponseType:
+    ) -> ResponseType | ExtendedResponseType:
         """Make instance callable.
 
         Args:
@@ -733,7 +737,7 @@ class EndImmediately(AcceptancePolicy):
 
     def __call__(
         self, state: GBState, offer: Outcome | None, source: str | None
-    ) -> ResponseType:
+    ) -> ResponseType | ExtendedResponseType:
         """Make instance callable.
 
         Args:
@@ -755,7 +759,7 @@ class RejectAlways(AcceptancePolicy):
 
     def __call__(
         self, state: GBState, offer: Outcome | None, source: str | None
-    ) -> ResponseType:
+    ) -> ResponseType | ExtendedResponseType:
         """Make instance callable.
 
         Args:
@@ -777,7 +781,7 @@ class AcceptImmediately(AcceptancePolicy):
 
     def __call__(
         self, state: GBState, offer: Outcome | None, source: str | None
-    ) -> ResponseType:
+    ) -> ResponseType | ExtendedResponseType:
         """Make instance callable.
 
         Args:
@@ -827,7 +831,7 @@ class LimitedOutcomesAcceptancePolicy(AcceptancePolicy):
 
     def __call__(
         self, state: GBState, offer: Outcome | None, source: str | None
-    ) -> ResponseType:
+    ) -> ResponseType | ExtendedResponseType:
         """Make instance callable.
 
         Args:
@@ -861,7 +865,7 @@ class NegotiatorAcceptancePolicy(AcceptancePolicy):
 
     def __call__(
         self, state: GBState, offer: Outcome | None, source: str | None
-    ) -> ResponseType:
+    ) -> ResponseType | ExtendedResponseType:
         """Make instance callable.
 
         Args:
@@ -870,7 +874,7 @@ class NegotiatorAcceptancePolicy(AcceptancePolicy):
             source: Source identifier.
 
         Returns:
-            ResponseType: The result.
+            ResponseType | ExtendedResponseType: The result.
         """
         return self.acceptor.respond(state, source)
 
@@ -896,7 +900,9 @@ class ConcensusAcceptancePolicy(AcceptancePolicy, ABC):
         self._set_child_negotiators()
         return super().on_negotiation_start(state)
 
-    def filter(self, indx: int, response: ResponseType) -> FilterResult:
+    def filter(
+        self, indx: int, response: ResponseType | ExtendedResponseType
+    ) -> FilterResult:
         """
         Called with the decision of each strategy in order.
 
@@ -910,14 +916,16 @@ class ConcensusAcceptancePolicy(AcceptancePolicy, ABC):
         return FilterResult(True, True)
 
     @abstractmethod
-    def decide(self, indices: list[int], responses: list[ResponseType]) -> ResponseType:
+    def decide(
+        self, indices: list[int], responses: list[ResponseType | ExtendedResponseType]
+    ) -> ResponseType | ExtendedResponseType:
         """
         Called to make a final decision given the decisions of the strategies with indices `indices` (see `filter` for filtering rules)
         """
 
     def __call__(
         self, state: GBState, offer: Outcome | None, source: str | None
-    ) -> ResponseType:
+    ) -> ResponseType | ExtendedResponseType:
         """Make instance callable.
 
         Args:
@@ -962,7 +970,9 @@ class AllAcceptanceStrategies(ConcensusAcceptancePolicy):
             return FilterResult(False, True)
         return FilterResult(True, False)
 
-    def decide(self, indices: list[int], responses: list[ResponseType]) -> ResponseType:
+    def decide(
+        self, indices: list[int], responses: list[ResponseType]
+    ) -> ResponseType | ExtendedResponseType:
         """Decide.
 
         Args:
@@ -998,7 +1008,9 @@ class AnyAcceptancePolicy(ConcensusAcceptancePolicy):
             return FilterResult(False, True)
         return FilterResult(True, False)
 
-    def decide(self, indices: list[int], responses: list[ResponseType]) -> ResponseType:
+    def decide(
+        self, indices: list[int], responses: list[ResponseType]
+    ) -> ResponseType | ExtendedResponseType:
         """Decide.
 
         Args:

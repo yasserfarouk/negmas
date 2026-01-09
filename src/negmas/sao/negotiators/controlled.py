@@ -3,7 +3,9 @@
 from __future__ import annotations
 
 from ...outcomes import Outcome
+from ...outcomes.common import ExtendedOutcome
 from ..common import ResponseType, SAOState
+from ...gb.common import ExtendedResponseType
 from .base import SAONegotiator
 from negmas.negotiators.controlled import ControlledNegotiator
 
@@ -17,12 +19,16 @@ class ControlledSAONegotiator(SAONegotiator, ControlledNegotiator):
     This negotiator simply calls its controler for everything.
     """
 
-    def propose(self, state: SAOState, dest: str | None = None) -> Outcome | None:
+    def propose(
+        self, state: SAOState, dest: str | None = None
+    ) -> Outcome | ExtendedOutcome | None:
         """Calls parent controller"""
         if self._Negotiator__parent:  # type: ignore
             return self._Negotiator__parent.propose(self.id, state)  # type: ignore
 
-    def respond(self, state, source: str | None = None) -> ResponseType:
+    def respond(
+        self, state, source: str | None = None
+    ) -> ResponseType | ExtendedResponseType:
         """Calls parent controller"""
         if self._Negotiator__parent:  # type: ignore
             try:

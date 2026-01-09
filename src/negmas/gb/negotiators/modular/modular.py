@@ -12,8 +12,9 @@ from ..base import GBNegotiator
 
 if TYPE_CHECKING:
     from ....outcomes import Outcome
-    from ...common import ResponseType
+    from ...common import ResponseType, ExtendedResponseType
     from ...components import GBComponent
+    from negmas.outcomes.common import ExtendedOutcome
 
 if TYPE_CHECKING:
     from negmas.gb import GBState
@@ -47,7 +48,7 @@ class GBModularNegotiator(ModularNegotiator, GBNegotiator):
     @abstractmethod
     def generate_response(
         self, state: GBState, offer: Outcome | None, source: str | None = None
-    ) -> ResponseType:
+    ) -> ResponseType | ExtendedResponseType:
         """Generate response.
 
         Args:
@@ -56,14 +57,14 @@ class GBModularNegotiator(ModularNegotiator, GBNegotiator):
             source: Source identifier.
 
         Returns:
-            ResponseType: The result.
+            ResponseType | ExtendedResponseType: The result.
         """
         ...
 
     @abstractmethod
     def generate_proposal(
         self, state: GBState, dest: str | None = None
-    ) -> Outcome | None:
+    ) -> Outcome | ExtendedOutcome | None:
         """Generate proposal.
 
         Args:
@@ -71,11 +72,13 @@ class GBModularNegotiator(ModularNegotiator, GBNegotiator):
             dest: Dest.
 
         Returns:
-            Outcome | None: The result.
+            Outcome | ExtendedOutcome | None: The result.
         """
         ...
 
-    def propose(self, state: GBState, dest: str | None = None) -> Outcome | None:
+    def propose(
+        self, state: GBState, dest: str | None = None
+    ) -> Outcome | ExtendedOutcome | None:
         """Propose.
 
         Args:
@@ -83,7 +86,7 @@ class GBModularNegotiator(ModularNegotiator, GBNegotiator):
             dest: Dest.
 
         Returns:
-            Outcome | None: The result.
+            Outcome | ExtendedOutcome | None: The result.
         """
         for c in self._components:
             c.before_proposing(state, dest=dest)
@@ -92,7 +95,9 @@ class GBModularNegotiator(ModularNegotiator, GBNegotiator):
             c.after_proposing(state, offer=offer, dest=dest)
         return offer
 
-    def respond(self, state: GBState, source: str | None = None) -> ResponseType:
+    def respond(
+        self, state: GBState, source: str | None = None
+    ) -> ResponseType | ExtendedResponseType:
         """Respond.
 
         Args:
@@ -100,7 +105,7 @@ class GBModularNegotiator(ModularNegotiator, GBNegotiator):
             source: Source identifier.
 
         Returns:
-            ResponseType: The result.
+            ResponseType | ExtendedResponseType: The result.
         """
         offer = get_offer(state, source)
         for c in self._components:

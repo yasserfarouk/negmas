@@ -24,6 +24,7 @@ from tests.switches import NEGMAS_FASTRUN
 SKIP_CONDITION = NEGMAS_FASTRUN
 
 
+@pytest.mark.slow
 @pytest.mark.skipif(condition=SKIP_CONDITION, reason="skipped for fast runs")
 def test_can_run_cartesian_tournament_n_reps():
     n = 2
@@ -59,6 +60,7 @@ def test_can_run_cartesian_tournament_n_reps():
     print(results)
 
 
+@pytest.mark.slow
 @pytest.mark.skipif(condition=SKIP_CONDITION, reason="skipped for fast runs")
 def test_can_run_cartesian_tournament():
     n = 2
@@ -94,6 +96,7 @@ def test_can_run_cartesian_tournament():
     print(results)
 
 
+@pytest.mark.slow
 @pytest.mark.skipif(condition=SKIP_CONDITION, reason="skipped for fast runs")
 def test_can_run_world_repeated_runs():
     issues = (make_issue(10, "quantity"), make_issue(5, "price"))
@@ -133,6 +136,7 @@ def test_can_run_world_repeated_runs():
     )
 
 
+@pytest.mark.slow
 @pytest.mark.skip(reason="no way of currently testing this")
 def test_can_run_tournament():
     issues = (make_issue(10, "quantity"), make_issue(5, "price"))
@@ -167,6 +171,7 @@ def test_can_run_tournament():
     )
 
 
+@pytest.mark.slow
 @pytest.mark.skip(reason="no way of currently testing this")
 def test_can_run_tournament_from_generator():
     from negmas.tournaments.neg import random_discrete_scenarios

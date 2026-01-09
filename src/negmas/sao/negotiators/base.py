@@ -17,6 +17,7 @@ from ...events import Notification
 from ...negotiators import Controller
 from ...outcomes import Outcome
 from ..common import SAONMI, ResponseType, SAOResponse, SAOState
+from negmas.gb.common import ExtendedResponseType
 
 if TYPE_CHECKING:
     from negmas.situated import Agent
@@ -162,7 +163,9 @@ class SAOPRNegotiator(GBNegotiator[SAONMI, SAOState]):
         """
         ...
 
-    def respond(self, state: SAOState, source: str | None = None) -> ResponseType:  # type: ignore
+    def respond(
+        self, state: SAOState, source: str | None = None
+    ) -> ResponseType | ExtendedResponseType:  # type: ignore
         """
         Called to respond to an offer. This is the method that should be overriden to provide an acceptance strategy.
 
@@ -171,7 +174,7 @@ class SAOPRNegotiator(GBNegotiator[SAONMI, SAOState]):
             source: The ID of the negotiator that gave this offer
 
         Returns:
-            ResponseType: The response to the offer
+            ResponseType | ExtendedResponseType: The response to the offer
 
         Remarks:
             - The default implementation never ends the negotiation
@@ -212,7 +215,9 @@ class SAOPRNegotiator(GBNegotiator[SAONMI, SAOState]):
             return ResponseType.ACCEPT_OFFER
         return ResponseType.REJECT_OFFER
 
-    def respond_(self, state: SAOState, source: str | None = None) -> ResponseType:
+    def respond_(
+        self, state: SAOState, source: str | None = None
+    ) -> ResponseType | ExtendedResponseType:
         """The method to be called directly by the mechanism (through `counter` ) to respond to an offer.
 
         Args:
@@ -220,7 +225,7 @@ class SAOPRNegotiator(GBNegotiator[SAONMI, SAOState]):
             source: The ID of the negotiator that gave the offer.
 
         Returns:
-            ResponseType: The response to the offer. Possible values are:
+            ResponseType | ExtendedResponseType: The response to the offer. Possible values are:
 
                 - NO_RESPONSE: refuse to offer. Depending on the mechanism settings this may be interpreted as ending
                                the negotiation.
@@ -275,21 +280,18 @@ class SAOPRNegotiator(GBNegotiator[SAONMI, SAOState]):
                 self.on_preferences_changed(changes)
         if offer is None:
             proposal = self.propose_(state=state, dest=dest)
-            if isinstance(proposal, ExtendedOutcome):
-                return SAOResponse(
-                    ResponseType.REJECT_OFFER, proposal.outcome, proposal.data
-                )
-            return SAOResponse(ResponseType.REJECT_OFFER, proposal)
+            return SAOResponse.from_extended(ResponseType.REJECT_OFFER, proposal)
         try:
             response = self.respond_(state=state, source=state.current_proposer)
         except TypeError:
             response = self.respond_(state=state)
-        if response != ResponseType.REJECT_OFFER:
-            return SAOResponse(response, offer)
+        if response != ResponseType.REJECT_OFFER and (
+            not isinstance(response, ExtendedResponseType)
+            or response.response != ResponseType.REJECT_OFFER
+        ):
+            return SAOResponse.from_extended(response, offer)
         proposal = self.propose_(state=state)
-        if isinstance(proposal, ExtendedOutcome):
-            return SAOResponse(response, proposal.outcome, proposal.data)
-        return SAOResponse(response, proposal)
+        return SAOResponse.from_extended(response, proposal)
 
 
 class SAOCallNegotiator(SAOPRNegotiator, ABC):

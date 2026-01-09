@@ -277,6 +277,7 @@ class TimeBasedOfferingPolicy(OfferingPolicy):
 
     curve: PolyAspiration = field(factory=lambda: PolyAspiration(1.0, "boulware"))
     stochastic: bool = False
+    sorter: PresortingInverseUtilityFunction | None = field(repr=False, default=None)
 
     def on_preferences_changed(self, changes: list[PreferencesChange]):
         """On preferences changed.
@@ -350,7 +351,7 @@ class MiCROOfferingPolicy(OfferingPolicy):
             self._received = set()
             self._sent = set()
 
-    def sample_sent(self) -> Outcome | None:
+    def sample_sent(self) -> Outcome | ExtendedOutcome | None:
         """Sample sent.
 
         Returns:
@@ -370,7 +371,7 @@ class MiCROOfferingPolicy(OfferingPolicy):
             self.sorter.init()
         return self.sorter
 
-    def next_offer(self) -> Outcome | None:
+    def next_offer(self) -> Outcome | ExtendedOutcome | None:
         """Next offer.
 
         Returns:
@@ -378,7 +379,7 @@ class MiCROOfferingPolicy(OfferingPolicy):
         """
         return self.ensure_sorter().outcome_at(self.next_indx)
 
-    def best_offer_so_far(self) -> Outcome | None:
+    def best_offer_so_far(self) -> Outcome | ExtendedOutcome | None:
         """Best offer so far.
 
         Returns:
@@ -396,7 +397,9 @@ class MiCROOfferingPolicy(OfferingPolicy):
         """
         return len(self._sent) <= len(self._received)
 
-    def __call__(self, state: GBState, dest: str | None = None) -> Outcome | None:
+    def __call__(
+        self, state: GBState, dest: str | None = None
+    ) -> Outcome | ExtendedOutcome | None:
         """Make instance callable.
 
         Args:
@@ -451,7 +454,9 @@ class FastMiCROOfferingPolicy(MiCROOfferingPolicy):
             or self.negotiator.nmi.state.relative_time > 0.95
         )
 
-    def __call__(self, state: GBState, dest: str | None = None) -> Outcome | None:
+    def __call__(
+        self, state: GBState, dest: str | None = None
+    ) -> Outcome | ExtendedOutcome | None:
         """Make instance callable.
 
         Args:
@@ -540,7 +545,9 @@ class CABOfferingPolicy(OfferingPolicy):
             self.next_indx = 0
             self._repeating = False
 
-    def __call__(self, state: GBState, dest: str | None = None) -> Outcome | None:
+    def __call__(
+        self, state: GBState, dest: str | None = None
+    ) -> Outcome | ExtendedOutcome | None:
         """Make instance callable.
 
         Args:
@@ -634,7 +641,9 @@ class WAROfferingPolicy(OfferingPolicy):
         self._irrational_index = self.negotiator.nmi.n_outcomes - 1  # type: ignore
         return super().on_negotiation_start(state)
 
-    def __call__(self, state: GBState, dest: str | None = None) -> Outcome | None:
+    def __call__(
+        self, state: GBState, dest: str | None = None
+    ) -> Outcome | ExtendedOutcome | None:
         """Make instance callable.
 
         Args:
@@ -771,7 +780,9 @@ class OfferBest(OfferingPolicy):
             return
         _, self._best = self.negotiator.ufun.extreme_outcomes()
 
-    def __call__(self, state: GBState, dest: str | None = None) -> Outcome | None:
+    def __call__(
+        self, state: GBState, dest: str | None = None
+    ) -> Outcome | ExtendedOutcome | None:
         """Make instance callable.
 
         Args:
@@ -820,7 +831,9 @@ class OfferTop(OfferingPolicy):
             top_f = inverter.within_fractions((0.0, self.fraction))
             self._top = list(set(top_k + top_f))
 
-    def __call__(self, state: GBState, dest: str | None = None) -> Outcome | None:
+    def __call__(
+        self, state: GBState, dest: str | None = None
+    ) -> Outcome | ExtendedOutcome | None:
         """Make instance callable.
 
         Args:
@@ -845,7 +858,9 @@ class NoneOfferingPolicy(OfferingPolicy):
     Always offers `None` which means it never gets an agreement.
     """
 
-    def __call__(self, state: GBState, dest: str | None = None) -> Outcome | None:
+    def __call__(
+        self, state: GBState, dest: str | None = None
+    ) -> Outcome | ExtendedOutcome | None:
         """Make instance callable.
 
         Args:
@@ -864,7 +879,9 @@ class RandomOfferingPolicy(OfferingPolicy):
     Always offers `None` which means it never gets an agreement.
     """
 
-    def __call__(self, state: GBState, dest: str | None = None) -> Outcome | None:
+    def __call__(
+        self, state: GBState, dest: str | None = None
+    ) -> Outcome | ExtendedOutcome | None:
         """Make instance callable.
 
         Args:
@@ -891,7 +908,7 @@ class LimitedOutcomesOfferingPolicy(OfferingPolicy):
 
     def _run(
         self, state: GBState, dest: str | None = None, second_trial: bool = False
-    ) -> Outcome | None:
+    ) -> Outcome | ExtendedOutcome | None:
         if not self.negotiator or not self.negotiator.nmi:
             return None
         if random.random() < self.p_ending - 1e-7:
@@ -914,7 +931,9 @@ class LimitedOutcomesOfferingPolicy(OfferingPolicy):
         self.prob = [_ / s for _ in self.prob]
         return self._run(state, dest, True)
 
-    def __call__(self, state: GBState, dest: str | None = None) -> Outcome | None:
+    def __call__(
+        self, state: GBState, dest: str | None = None
+    ) -> Outcome | ExtendedOutcome | None:
         """Make instance callable.
 
         Args:
@@ -935,7 +954,9 @@ class NegotiatorOfferingPolicy(OfferingPolicy):
 
     proposer: GBNegotiator = field(kw_only=True)
 
-    def __call__(self, state: GBState, dest: str | None = None) -> Outcome | None:
+    def __call__(
+        self, state: GBState, dest: str | None = None
+    ) -> Outcome | ExtendedOutcome | None:
         """Make instance callable.
 
         Args:
@@ -959,7 +980,9 @@ class ConcensusOfferingPolicy(OfferingPolicy, ABC):
 
     strategies: list[OfferingPolicy]
 
-    def filter(self, indx: int, offer: Outcome | None) -> FilterResult:
+    def filter(
+        self, indx: int, offer: Outcome | ExtendedOutcome | None
+    ) -> FilterResult:
         """
         Called with the decision of each strategy in order.
 
@@ -974,13 +997,15 @@ class ConcensusOfferingPolicy(OfferingPolicy, ABC):
 
     @abstractmethod
     def decide(
-        self, indices: list[int], responses: list[Outcome | None]
-    ) -> Outcome | None:
+        self, indices: list[int], responses: list[Outcome | ExtendedOutcome | None]
+    ) -> Outcome | ExtendedOutcome | None:
         """
         Called to make a final decsision given the decisions of the stratgeis with indices `indices` (see `filter` for filtering rules)
         """
 
-    def __call__(self, state: GBState, dest: str | None = None) -> Outcome | None:
+    def __call__(
+        self, state: GBState, dest: str | None = None
+    ) -> Outcome | ExtendedOutcome | None:
         """Make instance callable.
 
         Args:
@@ -988,7 +1013,7 @@ class ConcensusOfferingPolicy(OfferingPolicy, ABC):
             dest: Dest.
 
         Returns:
-            Outcome | None: The result.
+            Outcome | ExtendedOutcome | None: The result.
         """
         selected, selected_indices = [], []
         for i, s in enumerate(self.strategies):
@@ -1010,8 +1035,8 @@ class UnanimousConcensusOfferingPolicy(ConcensusOfferingPolicy):
     """
 
     def decide(
-        self, indices: list[int], responses: list[Outcome | None]
-    ) -> Outcome | None:
+        self, indices: list[int], responses: list[Outcome | ExtendedOutcome | None]
+    ) -> Outcome | ExtendedOutcome | None:
         """Decide.
 
         Args:
@@ -1019,7 +1044,7 @@ class UnanimousConcensusOfferingPolicy(ConcensusOfferingPolicy):
             responses: Responses.
 
         Returns:
-            Outcome | None: The result.
+            Outcome | ExtendedOutcome | None: The result.
         """
         outcomes = set(responses)
         if len(outcomes) != 1:
@@ -1043,8 +1068,8 @@ class RandomConcensusOfferingPolicy(ConcensusOfferingPolicy):
         self.prob = [_ / s for _ in self.prob]
 
     def decide(
-        self, indices: list[int], responses: list[Outcome | None]
-    ) -> Outcome | None:
+        self, indices: list[int], responses: list[Outcome | ExtendedOutcome | None]
+    ) -> Outcome | ExtendedOutcome | None:
         """Decide.
 
         Args:
@@ -1052,7 +1077,7 @@ class RandomConcensusOfferingPolicy(ConcensusOfferingPolicy):
             responses: Responses.
 
         Returns:
-            Outcome | None: The result.
+            Outcome | ExtendedOutcome | None: The result.
         """
         if not self.prob:
             return random.choice(responses)
@@ -1080,8 +1105,8 @@ class UtilBasedConcensusOfferingPolicy(ConcensusOfferingPolicy, ABC):
         """
 
     def decide(
-        self, indices: list[int], responses: list[Outcome | None]
-    ) -> Outcome | None:
+        self, indices: list[int], responses: list[Outcome | ExtendedOutcome | None]
+    ) -> Outcome | ExtendedOutcome | None:
         """Decide.
 
         Args:
@@ -1089,7 +1114,7 @@ class UtilBasedConcensusOfferingPolicy(ConcensusOfferingPolicy, ABC):
             responses: Responses.
 
         Returns:
-            Outcome | None: The result.
+            Outcome | ExtendedOutcome | None: The result.
         """
         if not self.negotiator.ufun:
             raise ValueError("Cannot decide because I have no ufun")

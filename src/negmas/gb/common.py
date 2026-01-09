@@ -6,7 +6,7 @@ from __future__ import annotations
 
 from enum import IntEnum
 from functools import lru_cache
-from typing import TYPE_CHECKING, Literal, Union
+from typing import TYPE_CHECKING, Any, Literal, Union
 
 from attrs import asdict, define, field
 
@@ -18,6 +18,7 @@ if TYPE_CHECKING:
 
 __all__ = [
     "ResponseType",
+    "ExtendedResponseType",
     "GBResponse",
     "GBState",
     "GBNMI",
@@ -43,6 +44,39 @@ class ResponseType(IntEnum):
     END_NEGOTIATION = 2
     NO_RESPONSE = 3
     WAIT = 4
+
+
+@define(frozen=True)
+class ExtendedResponseType:
+    """A response with optional data fields.
+
+    This class allows acceptance policies to return additional data alongside the
+    response decision, such as text explanations, reasoning, or metadata.
+
+    Attributes:
+        response: The actual response type (ACCEPT_OFFER, REJECT_OFFER, etc.).
+        data: Optional dictionary of additional data. Can contain:
+            - "text": A text message explaining the response or providing context.
+            - Any other key-value pairs for custom metadata.
+
+    Example:
+        >>> from negmas.gb.common import ResponseType, ExtendedResponseType
+        >>> extended = ExtendedResponseType(
+        ...     response=ResponseType.REJECT_OFFER,
+        ...     data={"text": "This price is too high", "counter_suggestion": 5},
+        ... )
+        >>> extended.response
+        <ResponseType.REJECT_OFFER: 1>
+        >>> extended.data["text"]
+        'This price is too high'
+
+    See Also:
+        - :class:`negmas.outcomes.common.ExtendedOutcome`: For extending offer outcomes.
+        - :meth:`negmas.sao.common.SAOResponse.from_extended`: For creating SAOResponse from extended types.
+    """
+
+    response: ResponseType
+    data: dict[str, Any] | None = None
 
 
 @define

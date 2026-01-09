@@ -13,7 +13,8 @@ from ...negotiators.components.component import Component
 if TYPE_CHECKING:
     from negmas import ResponseType
     from negmas.gb import GBNegotiator, GBState
-    from negmas.outcomes import Outcome
+    from negmas.gb.common import ExtendedResponseType
+    from negmas.outcomes import ExtendedOutcome, Outcome
 
 __all__ = [
     "GBComponent",
@@ -36,7 +37,10 @@ class GBComponent(Component):
         """
 
     def after_proposing(
-        self, state: GBState, offer: Outcome | None, dest: str | None = None
+        self,
+        state: GBState,
+        offer: Outcome | ExtendedOutcome | None,
+        dest: str | None = None,
     ):
         """
         Called after proposing
@@ -53,7 +57,7 @@ class GBComponent(Component):
         self,
         state: GBState,
         offer: Outcome | None,
-        response: ResponseType,
+        response: ResponseType | ExtendedResponseType,
         source: str | None = None,
     ):
         """
@@ -138,7 +142,7 @@ class AcceptancePolicy(GBComponent):
 
     def respond(
         self, state: GBState, offer: Outcome | None, source: str | None
-    ) -> ResponseType:
+    ) -> ResponseType | ExtendedResponseType:
         """Called to respond to an offer. This is the method that should be overriden to provide an acceptance strategy.
 
         Args:
@@ -146,7 +150,7 @@ class AcceptancePolicy(GBComponent):
             offer: offer being tested
 
         Returns:
-            ResponseType: The response to the offer
+            ResponseType | ExtendedResponseType: The response to the offer
 
         Remarks:
             - The default implementation never ends the negotiation
@@ -163,7 +167,7 @@ class AcceptancePolicy(GBComponent):
     @abstractmethod
     def __call__(
         self, state: GBState, offer: Outcome | None, source: str | None
-    ) -> ResponseType:
+    ) -> ResponseType | ExtendedResponseType:
         """Make instance callable.
 
         Args:
@@ -172,7 +176,7 @@ class AcceptancePolicy(GBComponent):
             source: Source identifier.
 
         Returns:
-            ResponseType: The result.
+            ResponseType | ExtendedResponseType: The result.
         """
         ...
 
@@ -221,7 +225,7 @@ class RejectionPolicy(AcceptancePolicy):
 
     def __call__(
         self, state: GBState, offer: Outcome | None, source: str | None
-    ) -> ResponseType:
+    ) -> ResponseType | ExtendedResponseType:
         """Make instance callable.
 
         Args:
@@ -230,7 +234,7 @@ class RejectionPolicy(AcceptancePolicy):
             source: Source identifier.
 
         Returns:
-            ResponseType: The result.
+            ResponseType | ExtendedResponseType: The result.
         """
         response = self.a(state, offer, source)
         if response == ResponseType.ACCEPT_OFFER:
@@ -242,11 +246,13 @@ class RejectionPolicy(AcceptancePolicy):
 class OfferingPolicy(GBComponent):
     """Offering policy implementation."""
 
-    _current_offer: tuple[int, str | None, Outcome | None] = field(
+    _current_offer: tuple[int, str | None, Outcome | ExtendedOutcome | None] = field(
         init=False, default=(-1, None, None)
     )
 
-    def propose(self, state: GBState, dest: str | None = None) -> Outcome | None:
+    def propose(
+        self, state: GBState, dest: str | None = None
+    ) -> Outcome | ExtendedOutcome | None:
         """Propose an offer or None to refuse.
 
         Args:
@@ -268,7 +274,9 @@ class OfferingPolicy(GBComponent):
         return self._current_offer[2]
 
     @abstractmethod
-    def __call__(self, state: GBState, dest: str | None = None) -> Outcome | None:
+    def __call__(
+        self, state: GBState, dest: str | None = None
+    ) -> Outcome | ExtendedOutcome | None:
         """Make instance callable.
 
         Args:
@@ -276,7 +284,7 @@ class OfferingPolicy(GBComponent):
             dest: Dest.
 
         Returns:
-            Outcome | None: The result.
+            Outcome | ExtendedOutcome | None: The result.
         """
         ...
 

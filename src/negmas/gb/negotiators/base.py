@@ -12,7 +12,7 @@ from negmas.preferences.preferences import Preferences
 
 from ...negotiators import Controller, Negotiator
 from ...outcomes import Outcome
-from ..common import GBNMI, GBState, ResponseType, ThreadState
+from ..common import GBNMI, GBState, ResponseType, ThreadState, ExtendedResponseType
 from ...common import NegotiatorMechanismInterface, MechanismState
 
 if TYPE_CHECKING:
@@ -105,14 +105,16 @@ class GBNegotiator(Negotiator[GBNMI, GBState], Generic[TNMI, TState]):
         """
 
     @abstractmethod
-    def respond(self, state: GBState, source: str | None) -> ResponseType:
+    def respond(
+        self, state: GBState, source: str | None
+    ) -> ResponseType | ExtendedResponseType:
         """Called to respond to an offer. This is the method that should be overriden to provide an acceptance strategy.
 
         Args:
             state: a `GBState` giving current state of the negotiation.
 
         Returns:
-            ResponseType: The response to the offer
+            ResponseType | ExtendedResponseType: The response to the offer
 
         Remarks:
             - The default implementation never ends the negotiation
@@ -187,24 +189,22 @@ class GBNegotiator(Negotiator[GBNMI, GBState], Generic[TNMI, TState]):
                 self.on_preferences_changed(changes)
         if offer is None:
             proposal = self.propose_(state=state)
-            if isinstance(proposal, ExtendedOutcome):
-                return SAOResponse(
-                    ResponseType.REJECT_OFFER, proposal.outcome, proposal.data
-                )
-            return SAOResponse(ResponseType.REJECT_OFFER, proposal)
+            return SAOResponse.from_extended(ResponseType.REJECT_OFFER, proposal)
         response = self.respond_(
             state=state, source=state.current_proposer if state.current_proposer else ""
         )
-        if response == ResponseType.ACCEPT_OFFER:
-            return SAOResponse(response, offer)
-        if response != ResponseType.REJECT_OFFER:
-            return SAOResponse(response, None)
+        # Check if response is ACCEPT or not REJECT
+        response_type = (
+            response.response
+            if isinstance(response, ExtendedResponseType)
+            else response
+        )
+        if response_type == ResponseType.ACCEPT_OFFER:
+            return SAOResponse.from_extended(response, offer)
+        if response_type != ResponseType.REJECT_OFFER:
+            return SAOResponse.from_extended(response, None)
         proposal = self.propose_(state=state, dest=dest)
-        if isinstance(proposal, ExtendedOutcome):
-            return SAOResponse(
-                ResponseType.REJECT_OFFER, proposal.outcome, proposal.data
-            )
-        return SAOResponse(response, proposal)
+        return SAOResponse.from_extended(response, proposal)
 
     def propose_(
         self, state: SAOState, dest: str | None = None
@@ -222,7 +222,9 @@ class GBNegotiator(Negotiator[GBNMI, GBState], Generic[TNMI, TState]):
             return None
         return self.propose(state=self._gb_state_from_sao_state(state), dest=dest)
 
-    def respond_(self, state: SAOState, source: str | None = None) -> ResponseType:
+    def respond_(
+        self, state: SAOState, source: str | None = None
+    ) -> ResponseType | ExtendedResponseType:
         """Respond .
 
         Args:
@@ -230,7 +232,7 @@ class GBNegotiator(Negotiator[GBNMI, GBState], Generic[TNMI, TState]):
             source: Source identifier.
 
         Returns:
-            ResponseType: The result.
+            ResponseType | ExtendedResponseType: The result.
         """
         offer = state.current_offer
         if self.__end_negotiation:

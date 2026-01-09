@@ -7,12 +7,13 @@ from typing import TYPE_CHECKING
 
 from negmas.warnings import warn
 
-from ...common import ResponseType
+from ...common import ResponseType, ExtendedResponseType
 from ...components import AcceptancePolicy, Model, OfferingPolicy
 from .modular import GBModularNegotiator
 
 if TYPE_CHECKING:
     from negmas.gb import GBState
+    from negmas.outcomes.common import ExtendedOutcome
 
     from ....outcomes import Outcome
     from ...components import GBComponent
@@ -108,7 +109,7 @@ class MAPNegotiator(GBModularNegotiator):
 
     def generate_response(
         self, state: GBState, offer: Outcome | None, source: str | None = None
-    ) -> ResponseType:
+    ) -> ResponseType | ExtendedResponseType:
         """Generate response.
 
         Args:
@@ -117,7 +118,7 @@ class MAPNegotiator(GBModularNegotiator):
             source: Source identifier.
 
         Returns:
-            ResponseType: The result.
+            ResponseType | ExtendedResponseType: The result.
         """
         if not self._acceptance:
             return ResponseType.REJECT_OFFER
@@ -125,7 +126,7 @@ class MAPNegotiator(GBModularNegotiator):
 
     def generate_proposal(
         self, state: GBState, dest: str | None = None
-    ) -> Outcome | None:
+    ) -> Outcome | ExtendedOutcome | None:
         """Generate proposal.
 
         Args:
@@ -133,7 +134,7 @@ class MAPNegotiator(GBModularNegotiator):
             dest: Dest.
 
         Returns:
-            Outcome | None: The result.
+            Outcome | ExtendedOutcome | None: The result.
         """
         if not self._offering:
             return None

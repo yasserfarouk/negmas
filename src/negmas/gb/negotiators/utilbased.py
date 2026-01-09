@@ -6,12 +6,11 @@ from abc import abstractmethod
 from typing import Callable
 
 from negmas import PreferencesChange, warnings
+from negmas.gb.common import ExtendedResponseType, ResponseType
 from negmas.gb.components.inverter import UtilityInverter
 from negmas.gb.components.selectors import OfferSelector
 from negmas.gb.negotiators.base import GBNegotiator
 from negmas.preferences import BaseUtilityFunction, InverseUFun
-
-from ..common import ResponseType
 
 __all__ = ["UtilBasedNegotiator"]
 
@@ -85,7 +84,9 @@ class UtilBasedNegotiator(GBNegotiator):
             "utility_range_to_accept not implemented by  UtilBasedNegotiator"
         )
 
-    def respond(self, state, source: str | None = None) -> ResponseType:
+    def respond(
+        self, state, source: str | None = None
+    ) -> ResponseType | ExtendedResponseType:
         """Respond.
 
         Args:

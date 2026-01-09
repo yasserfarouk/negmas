@@ -31,7 +31,33 @@ Outcome = tuple
 
 @define(frozen=True)
 class ExtendedOutcome:
-    """ExtendedOutcome implementation."""
+    """An outcome with optional data fields.
+
+    This class allows offering policies to return additional data alongside the
+    proposed outcome, such as text explanations, reasoning, or metadata.
+
+    Attributes:
+        outcome: The actual outcome tuple representing the proposed offer.
+        data: Optional dictionary of additional data. Can contain:
+            - "text": A text message explaining the offer or providing context.
+            - Any other key-value pairs for custom metadata.
+
+    Example:
+        >>> from negmas.outcomes.common import ExtendedOutcome
+        >>> outcome = (5, 10)  # price=5, quantity=10
+        >>> extended = ExtendedOutcome(
+        ...     outcome=outcome,
+        ...     data={"text": "I propose this fair price", "confidence": 0.9},
+        ... )
+        >>> extended.outcome
+        (5, 10)
+        >>> extended.data["text"]
+        'I propose this fair price'
+
+    See Also:
+        - :class:`negmas.gb.common.ExtendedResponseType`: For extending acceptance responses.
+        - :meth:`negmas.sao.common.SAOResponse.from_extended`: For creating SAOResponse from extended types.
+    """
 
     outcome: Outcome
     data: dict[str, Any] | None = None

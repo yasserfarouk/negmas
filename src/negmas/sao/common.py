@@ -10,7 +10,8 @@ from typing import TYPE_CHECKING, Any
 from attrs import define, field
 
 from negmas.common import NegotiatorMechanismInterface, MechanismAction
-from negmas.gb.common import GBState, ResponseType
+from negmas.gb.common import GBState, ResponseType, ExtendedResponseType
+from negmas.outcomes.common import ExtendedOutcome
 
 if TYPE_CHECKING:
     from negmas.outcomes import Outcome
@@ -21,11 +22,146 @@ __all__ = ["ResponseType", "SAOResponse", "SAOState", "SAONMI", "all_negotiator_
 
 @define
 class SAOResponse(MechanismAction):
-    """A response to an offer given by a negotiator in the alternating offers protocol"""
+    """A response to an offer given by a negotiator in the alternating offers protocol.
+
+    This class encapsulates both the response decision and an optional offer,
+    along with any additional data (such as text explanations).
+
+    Attributes:
+        response: The response type (ACCEPT_OFFER, REJECT_OFFER, END_NEGOTIATION, etc.).
+        outcome: The proposed outcome/offer, or None if not proposing.
+        data: Optional dictionary of additional data, such as text explanations.
+
+    Example:
+        Creating a simple response::
+
+            >>> from negmas.sao.common import SAOResponse
+            >>> from negmas.gb.common import ResponseType
+            >>> response = SAOResponse(ResponseType.REJECT_OFFER, (5, 10))
+            >>> response.response
+            <ResponseType.REJECT_OFFER: 1>
+
+        Creating a response from extended types with text::
+
+            >>> from negmas.outcomes.common import ExtendedOutcome
+            >>> from negmas.gb.common import ExtendedResponseType
+            >>> ext_response = ExtendedResponseType(
+            ...     ResponseType.REJECT_OFFER,
+            ...     data={"text": "Price too high"}
+            ... )
+            >>> ext_offer = ExtendedOutcome(
+            ...     outcome=(5, 10),
+            ...     data={"text": "Counter offer"}
+            ... )
+            >>> combined = SAOResponse.from_extended(ext_response, ext_offer)
+            >>> "Price too high" in combined.data["text"]
+            True
+
+    To customize how text is combined when both response and offer have text,
+    subclass SAOResponse and override the `text_combiner` class method.
+    """
 
     response: ResponseType = ResponseType.NO_RESPONSE
     outcome: Outcome | None = None
     data: dict[str, Any] | None = None
+
+    @classmethod
+    def text_combiner(cls, response_text: str, offer_text: str) -> str:
+        """Combine text from response and offer.
+
+        Override this method in subclasses to customize text combination behavior.
+
+        Args:
+            response_text: Text from the response.
+            offer_text: Text from the offer.
+
+        Returns:
+            Combined text string.
+        """
+        return f"{response_text}\n{offer_text}"
+
+    @classmethod
+    def from_extended(
+        cls,
+        response: ResponseType | ExtendedResponseType,
+        offer: Outcome | ExtendedOutcome | None,
+    ) -> SAOResponse:
+        """Create SAOResponse from extended response and offer types.
+
+        Args:
+            response: The response, either ResponseType or ExtendedResponseType.
+            offer: The offer, either Outcome, ExtendedOutcome, or None.
+
+        Returns:
+            SAOResponse with merged data from both response and offer.
+
+        Remarks:
+            - If both response and offer have data with the same key, the keys are
+              renamed with "_response" and "_offer" postfixes respectively.
+            - If "text" exists in only one of them, it is copied normally.
+            - If "text" exists in both, the `text_combiner` class method is used to combine them.
+            - To customize text combination, subclass SAOResponse and override `text_combiner`.
+        """
+        # Extract response type and response data
+        if isinstance(response, ExtendedResponseType):
+            response_type = response.response
+            response_data = response.data
+        else:
+            response_type = response
+            response_data = None
+
+        # Extract outcome and offer data
+        if isinstance(offer, ExtendedOutcome):
+            outcome = offer.outcome
+            offer_data = offer.data
+        else:
+            outcome = offer
+            offer_data = None
+
+        # Merge data
+        merged_data: dict[str, Any] | None = None
+
+        if response_data is not None or offer_data is not None:
+            merged_data = {}
+
+            response_data = response_data or {}
+            offer_data = offer_data or {}
+
+            # Handle text field specially
+            response_text = response_data.get("text")
+            offer_text = offer_data.get("text")
+
+            if response_text is not None and offer_text is not None:
+                # Both have text - combine them using the class method
+                merged_data["text"] = cls.text_combiner(response_text, offer_text)
+            elif response_text is not None:
+                merged_data["text"] = response_text
+            elif offer_text is not None:
+                merged_data["text"] = offer_text
+
+            # Merge other keys, handling conflicts
+            all_keys = set(response_data.keys()) | set(offer_data.keys())
+            for key in all_keys:
+                if key == "text":
+                    continue  # Already handled
+
+                in_response = key in response_data
+                in_offer = key in offer_data
+
+                if in_response and in_offer:
+                    # Conflict - rename both with postfixes
+                    merged_data[f"{key}_response"] = response_data[key]
+                    merged_data[f"{key}_offer"] = offer_data[key]
+                elif in_response:
+                    merged_data[key] = response_data[key]
+                else:
+                    merged_data[key] = offer_data[key]
+
+            # If merged_data is empty, set to None
+            if not merged_data:
+                merged_data = None
+
+        return cls(response=response_type, outcome=outcome, data=merged_data)
 
 
 @define
