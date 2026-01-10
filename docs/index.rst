@@ -1,4 +1,4 @@
-.. negmas documentation master file, created by
+..
    sphinx-quickstart on 2019-01-31 20:34:21.731194
    You can adapt this file completely to your liking, but it should at least
    contain the root `toctree` directive.
@@ -15,7 +15,7 @@ Nevertheless, it can; and was used; in modeling simpler bilateral and multi-late
 
 .. toctree::
     :caption: Introduction
-    :name: mastertoc
+    :name: toc-introduction
     :includehidden:
     :titlesonly:
     :hidden:
@@ -28,7 +28,7 @@ Nevertheless, it can; and was used; in modeling simpler bilateral and multi-late
 
 .. toctree::
     :caption: Tutorials
-    :name: mastertoc
+    :name: toc-tutorials
     :includehidden:
     :titlesonly:
     :hidden:
@@ -39,7 +39,7 @@ Nevertheless, it can; and was used; in modeling simpler bilateral and multi-late
 
 .. toctree::
     :caption: Modules
-    :name: mastertoc
+    :name: toc-modules
     :includehidden:
     :titlesonly:
     :hidden:
@@ -53,17 +53,18 @@ Nevertheless, it can; and was used; in modeling simpler bilateral and multi-late
 
 .. toctree::
     :caption: Interfaces
-    :name: mastertoc
+    :name: toc-interfaces
     :includehidden:
     :titlesonly:
     :hidden:
     :maxdepth: 1
 
-    scripts
+    cli_negmas
+    cli_negotiate
 
 .. toctree::
     :caption: Acknowledgements
-    :name: mastertoc
+    :name: toc-acknowledgements
     :includehidden:
     :titlesonly:
     :hidden:
@@ -75,7 +76,7 @@ Nevertheless, it can; and was used; in modeling simpler bilateral and multi-late
 
 .. toctree::
     :caption: References
-    :name: mastertoc
+    :name: toc-references
     :includehidden:
     :titlesonly:
     :hidden:
