@@ -111,10 +111,14 @@ negui = "negmas.gui.app:cli"
 [tool.flake8]
 exclude = ["docs"]
 
-[tool.pytest.ini_options]  # pytest config
-# addopts = "--doctest-modules"  # Example: If you use doctest
-# testpaths = ["tests"]         # Example: If you have a tests directory
-collect_ignore = ['setup.py']
+[tool.pytest.ini_options]
+norecursedirs = [".svn", "_build", "tmp*", "build", "docs", ".undodir", "scratch", "trash", ".hypothesis"]
+addopts = "--doctest-modules --hypothesis-show-statistics"
+markers = [
+    "slow: marks tests as slow (deselect with '-m \"not slow\"')",
+    "repeat(n): repeat test n times",
+]
+collect_ignore = ["setup.py"]
 
 [tool.mypy]
 warn_unused_configs = false
