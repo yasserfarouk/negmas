@@ -470,6 +470,164 @@ When no scenario is provided, these options control scenario generation:
 --raise-exceptions                Raise exceptions on failure [default: no-raise-exceptions]
 ================================ =================================================================
 
+Available Negotiators
+~~~~~~~~~~~~~~~~~~~~~
+
+The ``negotiate`` command supports three types of negotiators:
+
+1. **NegMAS Native Negotiators** - Pure Python implementations built into NegMAS
+2. **Python-Native Genius BOA Negotiators** - Transcompiled versions of classic Genius agents (G-prefixed)
+3. **Genius Bridge Negotiators** - Java Genius agents accessed through the JVM bridge
+
+NegMAS Native Negotiators
+^^^^^^^^^^^^^^^^^^^^^^^^^
+
+These are pure Python negotiators that work out of the box without any external dependencies.
+
+**Time-Based Negotiators**
+
+These negotiators follow a time-dependent concession strategy, offering decreasing utility over time.
+
+================================== ================================================================================
+ Negotiator                         Description
+================================== ================================================================================
+``AspirationNegotiator``            The default time-based negotiator with configurable aspiration curve
+``BoulwareTBNegotiator``            Concedes slowly (sub-linearly), making most concessions near the deadline
+``LinearTBNegotiator``              Concedes at a constant rate throughout the negotiation
+``ConcederTBNegotiator``            Concedes quickly (super-linearly), making most concessions early
+================================== ================================================================================
+
+**Tit-for-Tat Negotiators**
+
+These negotiators base their concessions on the opponent's behavior.
+
+================================== ================================================================================
+ Negotiator                         Description
+================================== ================================================================================
+``NaiveTitForTatNegotiator``        Mirrors opponent concessions without explicit opponent modeling
+``SimpleTitForTatNegotiator``       Alias for NaiveTitForTatNegotiator
+================================== ================================================================================
+
+**Other Native Negotiators**
+
+================================== ================================================================================
+ Negotiator                         Description
+================================== ================================================================================
+``ToughNegotiator``                 Only proposes and accepts the best outcome (hardliner strategy)
+``TopFractionNegotiator``           Proposes and accepts only top-fraction outcomes
+``NiceNegotiator``                  Offers randomly and accepts everything (maximally cooperative)
+``RandomNegotiator``                Makes random offers with configurable acceptance probability
+``RandomAlwaysAcceptingNegotiator`` Random offers but accepts near-optimal outcomes
+================================== ================================================================================
+
+**Offer-Oriented Negotiators**
+
+These negotiators consider partner offers when selecting their own offers.
+
+============================================ ================================================================================
+ Negotiator                                   Description
+============================================ ================================================================================
+``FirstOfferOrientedTBNegotiator``            Considers the partner's first offer
+``LastOfferOrientedTBNegotiator``             Considers the partner's most recent offer
+``BestOfferOrientedTBNegotiator``             Considers the partner's best offer so far
+``AdditiveParetoFollowingTBNegotiator``       Follows Pareto frontier using additive weights
+``MultiplicativeParetoFollowingTBNegotiator`` Follows Pareto frontier using multiplicative weights
+============================================ ================================================================================
+
+Python-Native Genius BOA Negotiators (G-Prefix)
+^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+
+These are Python implementations of classic Genius agents, transcompiled from the original Java code.
+They use the BOA (Bidding, Opponent modeling, Acceptance) architecture and do **NOT** require
+the Java Genius bridge. All names are prefixed with ``G`` to distinguish them from the Java versions.
+
+**Classic Time-Dependent Agents**
+
+============== ================================================================================
+ Negotiator     Description
+============== ================================================================================
+``GBoulware``   Conservative strategy (e=0.2), concedes slowly near deadline
+``GConceder``   Accommodating strategy (e=2.0), concedes quickly early on
+``GLinear``     Constant concession rate (e=1.0)
+``GHardliner``  Never concedes (e=0), always offers best outcome
+============== ================================================================================
+
+**ANAC Competition Winners and Notable Agents**
+
+=============== ========= ================================================================================
+ Negotiator      Year      Description
+=============== ========= ================================================================================
+``GHardHeaded``  2011      Winner. Boulware-style with frequency-based opponent modeling
+``GAgentK``      2010      Top performer. Time-dependent with combined acceptance conditions
+``GAgentSmith``  2010      Notable. Time-dependent with constant threshold acceptance
+``GNozomi``      2010      Competitive. Boulware-style with previous-offer acceptance
+``GFSEGA``       2010      Faculty of CS agent. Conceder with constant threshold
+``GCUHKAgent``   2012      Winner. Conservative time-dependent with frequency opponent model
+``GAgentLG``     2012      Notable. Time-dependent with max-based combined acceptance
+``GAgentX``      2015      Notable. Adaptive time-dependent with window-based acceptance
+=============== ========= ================================================================================
+
+**Utility Agents**
+
+============== ================================================================================
+ Negotiator     Description
+============== ================================================================================
+``GRandom``     Random offers and accepts everything (baseline agent)
+============== ================================================================================
+
+Genius Bridge Negotiators (Java)
+^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+
+These negotiators run actual Java Genius agents through a JVM bridge. They provide access to
+the full library of ~200 Genius agents but require additional setup.
+
+**Setup Requirements**
+
+Before using Genius bridge negotiators, you must:
+
+1. Install Java (JRE 8 or higher)
+2. Run the Genius setup command:
+
+.. code-block:: console
+
+    $ negmas genius-setup
+
+3. Start the Genius bridge (in a separate terminal or as a background process):
+
+.. code-block:: console
+
+    $ negmas genius
+
+The bridge must be running whenever you use Genius negotiators.
+
+**Using Genius Negotiators**
+
+Genius negotiators are specified with the ``genius:`` prefix:
+
+.. code-block:: console
+
+    $ negotiate -n genius:HardHeaded -n genius:AgentK --steps 100
+
+Some notable Genius negotiators include:
+
+========================= ========= ================================================================================
+ Negotiator                Year      Description
+========================= ========= ================================================================================
+``genius:HardHeaded``      2011      ANAC 2011 winner, frequency-based opponent modeling
+``genius:CUHKAgent``       2012      ANAC 2012 winner, handles discount factors well
+``genius:AgentK``          2010      Top ANAC 2010 performer
+``genius:AgentSmith``      2010      Frequency-based opponent modeling
+``genius:Nozomi``          2010      Boulware-style negotiation
+``genius:Atlas3``          2015      ANAC 2015 top performer
+``genius:ParsAgent``       2016      ANAC 2016 top performer
+``genius:Caduceus``        2016      Multi-party negotiation specialist
+========================= ========= ================================================================================
+
+For a complete list of available Genius agents, see the ``negmas.genius.gnegotiators`` module.
+
+**Note**: The G-prefixed negotiators (e.g., ``GHardHeaded``) are Python-native and do not require
+the Genius bridge. They are recommended for most use cases due to better performance and simpler setup.
+
 Examples
 ~~~~~~~~
 
@@ -484,6 +642,25 @@ Run with specific negotiators:
 .. code-block:: console
 
     $ negotiate -n AspirationNegotiator -n TitForTatNegotiator
+
+Run with Python-native Genius agents (no bridge required):
+
+.. code-block:: console
+
+    $ negotiate -n GBoulware -n GConceder --steps 50
+
+Run with ANAC competition winners:
+
+.. code-block:: console
+
+    $ negotiate -n GHardHeaded -n GCUHKAgent --steps 100
+
+Run with Java Genius agents (requires bridge):
+
+.. code-block:: console
+
+    $ negmas genius &  # Start bridge in background
+    $ negotiate -n genius:HardHeaded -n genius:AgentK --steps 100
 
 Run without plotting:
 

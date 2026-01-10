@@ -59,6 +59,7 @@ class BOANegotiator(MAPNegotiator):
     """
 
     def __init__(
+        self,
         *args,
         acceptance: AcceptancePolicy | None = None,
         offering: OfferingPolicy | None = None,

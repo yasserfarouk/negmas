@@ -43,6 +43,8 @@ app = typer.Typer()
 
 GENIUSMARKER = "genius"
 ANLMARKER = "anl"
+BOAMARKER = "boa"
+MAPMARKER = "map"
 
 
 def get_screen_resolution() -> tuple[int, int]:
@@ -92,6 +94,211 @@ def make_anl_negotiator(class_name: str, **kwargs):
     return instantiate(class_name, module_name="anl_agents", **kwargs)
 
 
+def parse_component_spec(spec: str) -> tuple[str, dict[str, Any]]:
+    """
+    Parse a component specification like 'GTimeDependentOffering(e=0.2, k=0.0)'.
+
+    Returns:
+        A tuple of (class_name, kwargs_dict)
+    """
+    spec = spec.strip()
+    if "(" not in spec:
+        return spec, {}
+
+    # Extract class name and params
+    paren_idx = spec.index("(")
+    class_name = spec[:paren_idx].strip()
+    params_str = spec[paren_idx + 1 : -1].strip()  # Remove ( and )
+
+    if not params_str:
+        return class_name, {}
+
+    # Parse key=value pairs
+    kwargs: dict[str, Any] = {}
+    # Handle nested parentheses by tracking depth
+    depth = 0
+    current_param = ""
+    for char in params_str + ",":
+        if char in "([{":
+            depth += 1
+            current_param += char
+        elif char in ")]}":
+            depth -= 1
+            current_param += char
+        elif char == "," and depth == 0:
+            if current_param.strip():
+                key, _, value = current_param.partition("=")
+                key = key.strip()
+                value = value.strip()
+                # Try to evaluate the value
+                try:
+                    kwargs[key] = eval(value)
+                except Exception:
+                    kwargs[key] = value
+            current_param = ""
+        else:
+            current_param += char
+
+    return class_name, kwargs
+
+
+def get_component(class_name: str, module_prefix: str = "negmas.gb.components") -> type:
+    """
+    Get a component class by name.
+
+    Args:
+        class_name: The class name (e.g., 'GTimeDependentOffering', 'ACNext')
+        module_prefix: The module prefix to search in
+
+    Returns:
+        The component class
+    """
+    # Try direct import from negmas first
+    try:
+        return get_class(f"negmas.{class_name}")
+    except Exception:
+        pass
+
+    # Try from gb.components
+    try:
+        return get_class(f"{module_prefix}.{class_name}")
+    except Exception:
+        pass
+
+    # Try from gb.components.genius
+    try:
+        return get_class(f"{module_prefix}.genius.{class_name}")
+    except Exception:
+        pass
+
+    # Try from sao.components
+    try:
+        return get_class(f"negmas.sao.components.{class_name}")
+    except Exception:
+        pass
+
+    raise ValueError(f"Cannot find component class: {class_name}")
+
+
+def make_boa_negotiator(spec: str, is_map: bool = False, **kwargs) -> Negotiator:
+    """
+    Create a BOA or MAP negotiator from a specification string.
+
+    Args:
+        spec: Component specification like 'offering=GTimeDependentOffering(e=0.2),acceptance=GACNext'
+        is_map: If True, create a MAPNegotiator, otherwise create a BOANegotiator
+        **kwargs: Additional arguments passed to the negotiator
+
+    Returns:
+        A configured BOA or MAP negotiator
+
+    Examples:
+        - 'offering=GTimeDependentOffering(e=0.2),acceptance=GACNext'
+        - 'offering=TimeBasedOfferingPolicy,acceptance=ACNext,model=GHardHeadedFrequencyModel'
+    """
+    from negmas.gb.negotiators.modular import MAPNegotiator, make_boa
+
+    # First pass: collect all component specs
+    component_specs: dict[str, tuple[str, dict[str, Any]]] = {}
+
+    # Parse comma-separated component specs
+    # Handle nested parentheses
+    depth = 0
+    current_spec = ""
+    specs = []
+    for char in spec + ",":
+        if char in "([{":
+            depth += 1
+            current_spec += char
+        elif char in ")]}":
+            depth -= 1
+            current_spec += char
+        elif char == "," and depth == 0:
+            if current_spec.strip():
+                specs.append(current_spec.strip())
+            current_spec = ""
+        else:
+            current_spec += char
+
+    for component_spec in specs:
+        if "=" not in component_spec:
+            raise ValueError(
+                f"Invalid component spec '{component_spec}'. Expected 'key=ComponentClass(args)'"
+            )
+
+        key, _, value = component_spec.partition("=")
+        key = key.strip().lower()
+        value = value.strip()
+
+        class_name, component_kwargs = parse_component_spec(value)
+        component_specs[key] = (class_name, component_kwargs)
+
+    # Second pass: instantiate components in the right order
+    # Offering policy first (acceptance may depend on it)
+    components: dict[str, Any] = {}
+
+    # Instantiate offering policy first
+    if "offering" in component_specs:
+        class_name, component_kwargs = component_specs["offering"]
+        component_class = get_component(class_name)
+        components["offering"] = component_class(**component_kwargs)
+
+    # Instantiate acceptance policy (may need offering policy)
+    if "acceptance" in component_specs:
+        class_name, component_kwargs = component_specs["acceptance"]
+        component_class = get_component(class_name)
+
+        # Check if acceptance policy needs offering_policy or offering_strategy parameter
+        import inspect
+
+        sig = inspect.signature(component_class.__init__)
+        if "offering" in components:
+            if "offering_policy" in sig.parameters:
+                component_kwargs["offering_policy"] = components["offering"]
+            elif "offering_strategy" in sig.parameters:
+                component_kwargs["offering_strategy"] = components["offering"]
+
+        components["acceptance"] = component_class(**component_kwargs)
+
+    # Instantiate model
+    if "model" in component_specs:
+        class_name, component_kwargs = component_specs["model"]
+        component_class = get_component(class_name)
+        components["model"] = component_class(**component_kwargs)
+
+    # Instantiate any other components
+    for key, (class_name, component_kwargs) in component_specs.items():
+        if key not in components:
+            component_class = get_component(class_name)
+            components[key] = component_class(**component_kwargs)
+
+    # Extract known component types
+    offering = components.pop("offering", None)
+    acceptance = components.pop("acceptance", None)
+    model = components.pop("model", None)
+
+    if is_map:
+        # For MAP, we may have multiple models and extra components
+        models = [model] if model else None
+        model_names = ["model"] if model else None
+
+        # Any remaining components go to extra_components
+        extra_components = list(components.values()) if components else None
+        extra_component_names = list(components.keys()) if components else None
+
+        return MAPNegotiator(
+            offering=offering,
+            acceptance=acceptance,
+            models=models,
+            model_names=model_names,
+            extra_components=extra_components,
+            extra_component_names=extra_component_names,
+            **kwargs,
+        )
+    else:
+        return make_boa(offering=offering, acceptance=acceptance, model=model, **kwargs)
+
+
 def get_negotiator(class_name: str) -> type[Negotiator] | Callable[[str], Negotiator]:
     if class_name.startswith(GENIUSMARKER):
         for sp in (".", ":"):
@@ -115,6 +322,17 @@ def get_negotiator(class_name: str) -> type[Negotiator] | Callable[[str], Negoti
         if class_name.startswith(f"{ANLMARKER}."):
             class_name = class_name[len(ANLMARKER) + 1 :]
         return functools.partial(make_anl_negotiator, class_name=class_name)
+
+    # Handle BOA negotiators: boa:offering=...,acceptance=...
+    if class_name.startswith(f"{BOAMARKER}:") or class_name.startswith(f"{BOAMARKER}."):
+        spec = class_name[len(BOAMARKER) + 1 :]
+        return functools.partial(make_boa_negotiator, spec=spec, is_map=False)
+
+    # Handle MAP negotiators: map:offering=...,acceptance=...
+    if class_name.startswith(f"{MAPMARKER}:") or class_name.startswith(f"{MAPMARKER}."):
+        spec = class_name[len(MAPMARKER) + 1 :]
+        return functools.partial(make_boa_negotiator, spec=spec, is_map=True)
+
     if "/" in class_name:
         adapter_name, _, negotiator_name = class_name.partition("/")
         adapter_type = get_adapter(adapter_name)
@@ -126,9 +344,15 @@ def get_negotiator(class_name: str) -> type[Negotiator] | Callable[[str], Negoti
         try:
             return get_class(f"negmas.{class_name}")
         except Exception:
-            if not class_name.endswith("Negotiator"):
-                class_name = f"{class_name}Negotiator"
-            class_name = f"negmas.{class_name}"
+            pass
+        # Try negmas.genius for G-prefixed negotiators (Python-native Genius BOA)
+        try:
+            return get_class(f"negmas.genius.{class_name}")
+        except Exception:
+            pass
+        if not class_name.endswith("Negotiator"):
+            class_name = f"{class_name}Negotiator"
+        class_name = f"negmas.{class_name}"
     return get_class(class_name)
 
 
