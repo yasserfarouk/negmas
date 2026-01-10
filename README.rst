@@ -1,5 +1,5 @@
-Overview
-========
+NegMAS: Negotiation Multi-Agent System
+======================================
 
 .. start-badges
 
@@ -35,172 +35,334 @@ Overview
     :target: https://codecov.io/gh/yasserfarouk/negmas
     :alt: Coverage Status
 
-.. image:: https://github.com/yasserfarouk/negmas/workflows/PyPI/badge.svg
-    :target: https://pypi.python.org/pypi/negmas
-    :alt: Published on Pypi
-
 .. image:: https://img.shields.io/badge/code%20style-black-000000.svg
     :target: https://github.com/ambv/black
     :alt: Coding style black
-
-.. image:: https://mybinder.org/badge_logo.svg
-    :target: https://mybinder.org/v2/gh/yasserfarouk/negmas/master
 
 .. image:: https://static.pepy.tech/personalized-badge/negmas?period=total&units=international_system&left_color=black&right_color=blue&left_text=Downloads
  :target: https://pepy.tech/projects/negmas
 
 .. end-badges
 
-.. container:: twocol
+NegMAS is a Python library for developing autonomous negotiation agents embedded in simulation
+environments. It supports bilateral and multilateral negotiations, multiple negotiation protocols,
+and complex multi-agent simulations with interconnected negotiations.
 
-   .. container:: leftside
+**Documentation:** https://negmas.readthedocs.io/
 
-      .. image:: https://yasserfarouk.github.io/images/negmas-small.png
-            :width: 200
-            :alt: Negmas Logo
+Installation
+------------
 
-   .. container:: rightside
+.. code-block:: bash
 
-      NegMAS is a python library for developing autonomous negotiation agents embedded in simulation environments.
-      The name ``negmas`` stands for either NEGotiation MultiAgent System or NEGotiations Managed by Agent Simulations
-      (your pick). The main goal of NegMAS is to advance the state of the art in situated simultaneous negotiations.
-      Nevertheless, it can; and is being used; for modeling simpler bilateral and multi-lateral negotiations, preference elicitation
-      , etc.
+    pip install negmas
 
-.. note::
+For additional features:
 
-    * A YouTube playlist to help you use NegMAS for ANAC2020_ SCM_ league can be found here_
+.. code-block:: bash
 
-    .. _ANAC2020: http://web.tuat.ac.jp/~katfuji/ANAC2020
-    .. _SCM: http://web.tuat.ac.jp/~katfuji/ANAC2020/#scm
-    .. _here: https://www.youtube.com/playlist?list=PLqvs51K2Mb8IJe5Yz5jmYrRAwvIpGU2nF
+    # With Genius bridge support (Java-based agents)
+    pip install negmas[genius]
 
-Introduction
-============
+    # With visualization support
+    pip install negmas[plots]
 
-This package was designed to help advance the state-of-art in negotiation research by providing an easy-to-use yet
-powerful platform for autonomous negotiation targeting situated simultaneous negotiations.
-It grew out of the NEC-AIST collaborative laboratory project.
+    # All optional dependencies
+    pip install negmas[all]
 
-By *situated* negotiations, we mean those for which utility functions are not pre-ordained by fiat but are a natural
-result of a simulated business-like process.
+Quick Start
+-----------
 
-By *simultaneous* negotiations, we mean sessions of dependent negotiations for which the utility value of an agreement
-of one session is affected by what happens in other sessions.
-
-The documentation is available at: documentation_  (Automatically built versions are available on readthedocs_ )
-
-.. _documentation: https://negmas.readthedocs.io/en/latest/
-.. _readthedocs: https://negmas.readthedocs.io/en/latest/
-
-Main Features
-=============
-
-This platform was designed with both flexibility and scalability in mind. The key features of the NegMAS package are:
-
-#. The public API is decoupled from internal details allowing for scalable implementations of the same interaction
-   protocols.
-#. Supports agents engaging in multiple concurrent negotiations.
-#. Provides support for inter-negotiation synchronization either through coupled utility functions or through central
-   *controllers*.
-#. Provides sample negotiators that can be used as templates for more complex negotiators.
-#. Supports both mediated and unmediated negotiations.
-#. Supports both bilateral and multilateral negotiations.
-#. Novel negotiation protocols and simulated *worlds* can be added to the package as easily as adding novel negotiators.
-#. Allows for non-traditional negotiation scenarios including dynamic entry/exit from the negotiation.
-#. A large variety of built in utility functions.
-#. Utility functions can be active dynamic entities which allows the system to model a much wider range of dynamic ufuns
-   compared with existing packages.
-#. A distributed system with the same interface and industrial-strength implementation is being created allowing agents
-   developed for NegMAS to be seemingly employed in real-world business operations.
-
-To use negmas in a project
+**Run a simple negotiation in 10 lines:**
 
 .. code-block:: python
 
-    import negmas
+    from negmas import SAOMechanism, TimeBasedConcedingNegotiator, make_issue
+    from negmas.preferences import LinearAdditiveUtilityFunction as LUFun
 
-The package was designed for many uses cases. On one extreme, it can be used by an end user who is interested in running
-one of the built-in negotiation protocols. On the other extreme, it can be used to develop novel kinds of negotiation
-agents, negotiation protocols, multi-agent simulations (usually involving situated negotiations), etc.
+    # Define what we're negotiating about
+    issues = [make_issue(name="price", values=100)]
 
-Running existing negotiators/negotiation protocols
-==================================================
+    # Create negotiation session (Stacked Alternating Offers)
+    session = SAOMechanism(issues=issues, n_steps=50)
 
-Using the package for negotiation can be as simple as the following code snippet:
+    # Add buyer (prefers low price) and seller (prefers high price)
+    session.add(
+        TimeBasedConcedingNegotiator(name="buyer"),
+        ufun=LUFun.random(issues, reserved_value=0.0),
+    )
+    session.add(
+        TimeBasedConcedingNegotiator(name="seller"),
+        ufun=LUFun.random(issues, reserved_value=0.0),
+    )
+
+    # Run and get result
+    result = session.run()
+    print(f"Agreement: {result.agreement}, Rounds: {result.step}")
+
+**Multi-issue negotiation with custom preferences:**
 
 .. code-block:: python
 
-    import random
-    from negmas import SAOMechanism, AspirationNegotiator, MappingUtilityFunction
+    from negmas import SAOMechanism, AspirationNegotiator, make_issue
+    from negmas.preferences import LinearAdditiveUtilityFunction
 
-    session = SAOMechanism(outcomes=10, n_steps=100)
-    negotiators = [AspirationNegotiator(name=f"a{_}") for _ in range(5)]
-    for negotiator in negotiators:
-        session.add(
-            negotiator, preferences=MappingUtilityFunction(lambda x: random.random() * x[0])
-        )
+    # Create a 2-issue negotiation domain
+    issues = [
+        make_issue(name="price", values=10),
+        make_issue(name="quantity", values=5),
+    ]
+
+    # Define utility functions
+    buyer_ufun = LinearAdditiveUtilityFunction(
+        values={
+            "price": lambda x: 1.0 - x / 10.0,  # lower price = better
+            "quantity": lambda x: x / 5.0,  # more quantity = better
+        },
+        issues=issues,
+    )
+    seller_ufun = LinearAdditiveUtilityFunction(
+        values={
+            "price": lambda x: x / 10.0,  # higher price = better
+            "quantity": lambda x: 1.0 - x / 5.0,  # less quantity = better
+        },
+        issues=issues,
+    )
+
+    # Run negotiation
+    session = SAOMechanism(issues=issues, n_steps=100)
+    session.add(AspirationNegotiator(name="buyer"), ufun=buyer_ufun)
+    session.add(AspirationNegotiator(name="seller"), ufun=seller_ufun)
     session.run()
 
-In this snippet, we created a mechanism session with an outcome-space of *10* discrete outcomes that would run for *10*
-steps. Five agents with random utility functions are then created and *added* to the session. Finally the session is
-*run* to completion. The agreement (if any) can then be accessed through the *state* member of the session. The library
-provides several analytic and visualization tools to inspect negotiations. See the first tutorial on
-*Running a Negotiation* for more details.
+    # Visualize
+    session.plot()
 
-Developing a negotiator
-=======================
+Architecture Overview
+---------------------
 
-Developing a novel negotiator slightly more difficult by is still doable in few lines of code:
+NegMAS is built around four core concepts:
+
+.. code-block:: text
+
+    ┌─────────────────────────────────────────────────────────────────┐
+    │                           WORLD                                 │
+    │  (Simulation environment where agents interact)                 │
+    │                                                                 │
+    │   ┌─────────┐     ┌─────────┐         ┌─────────────────────┐  │
+    │   │  Agent  │     │  Agent  │   ...   │  BulletinBoard      │  │
+    │   │         │     │         │         │  (Public info)      │  │
+    │   └────┬────┘     └────┬────┘         └─────────────────────┘  │
+    │        │               │                                        │
+    │        │ creates       │ creates                                │
+    │        ▼               ▼                                        │
+    │   ┌─────────────────────────────────────────────────────────┐  │
+    │   │                    MECHANISM                             │  │
+    │   │  (Negotiation protocol: SAO, SingleText, Auction, etc.) │  │
+    │   │                                                          │  │
+    │   │   ┌────────────┐  ┌────────────┐  ┌────────────┐        │  │
+    │   │   │ Negotiator │  │ Negotiator │  │ Negotiator │        │  │
+    │   │   │  + UFun    │  │  + UFun    │  │  + UFun    │        │  │
+    │   │   └────────────┘  └────────────┘  └────────────┘        │  │
+    │   └─────────────────────────────────────────────────────────┘  │
+    └─────────────────────────────────────────────────────────────────┘
+
+**Core Components:**
+
+1. **Outcome Space** (``outcomes`` module)
+   - **Issues**: Variables being negotiated (price, quantity, delivery date, etc.)
+   - **Outcomes**: Specific assignments of values to issues
+   - Supports discrete, continuous, and categorical issues
+
+2. **Preferences** (``preferences`` module)
+   - **UtilityFunction**: Maps outcomes to utility values
+   - Built-in types: ``LinearAdditiveUtilityFunction``, ``MappingUtilityFunction``, ``NonLinearAggregationUtilityFunction``, and more
+   - Supports probabilistic and dynamic utility functions
+
+3. **Negotiators** (``negotiators``, ``sao`` modules)
+   - Implement negotiation strategies
+   - Built-in: ``AspirationNegotiator``, ``TitForTatNegotiator``, ``NaiveTitForTatNegotiator``, ``BoulwareTBNegotiator``, etc.
+   - Easy to create custom negotiators
+
+4. **Mechanisms** (``mechanisms``, ``sao`` modules)
+   - Implement negotiation protocols
+   - ``SAOMechanism``: Stacked Alternating Offers (most common)
+   - Also: Single-text protocols, auction mechanisms, etc.
+
+**For Situated Negotiations (World Simulations):**
+
+5. **Worlds** (``situated`` module)
+   - Simulate environments where agents negotiate
+   - Agents can run multiple concurrent negotiations
+   - Example: Supply chain simulations (SCML)
+
+6. **Controllers** (``sao.controllers`` module)
+   - Coordinate multiple negotiators
+   - Useful when negotiations are interdependent
+
+Key Features
+------------
+
+- **Multiple Protocols**: SAO (Alternating Offers), Single-Text, Auctions, and custom protocols
+- **Rich Utility Functions**: Linear, nonlinear, constraint-based, probabilistic, dynamic
+- **Bilateral & Multilateral**: Support for 2+ party negotiations
+- **Concurrent Negotiations**: Agents can participate in multiple negotiations simultaneously
+- **World Simulations**: Build complex multi-agent simulations with situated negotiations
+- **Genius Integration**: Run Java-based Genius agents via the built-in bridge
+- **Visualization**: Built-in plotting for negotiation analysis
+- **Extensible**: Easy to add new protocols, negotiators, and utility functions
+
+Creating Custom Negotiators
+---------------------------
+
+**Minimal SAO negotiator:**
 
 .. code-block:: python
 
-    from negmas.sao import SAONegotiator
+    from negmas.sao import SAONegotiator, SAOResponse, ResponseType
 
 
-    class MyAwsomeNegotiator(SAONegotiator):
-        def propose(self, state, dest=None):
-            """Your code to create a proposal goes here"""
+    class MyNegotiator(SAONegotiator):
+        def __call__(self, state, offer=None):
+            # Accept any offer with utility > 0.8
+            if offer is not None and self.ufun(offer) > 0.8:
+                return SAOResponse(ResponseType.ACCEPT_OFFER, offer)
+            # Otherwise, propose a random outcome
+            return SAOResponse(ResponseType.REJECT_OFFER, self.nmi.random_outcome())
 
-By just implementing `propose()`, this negotiator is now capable of engaging in alternating offers
-negotiations. See the documentation of `Negotiator` and `SAONegotiator` for a full description of available functionality out of the box.
-
-Developing a negotiation protocol
-=================================
-
-Developing a novel negotiation protocol is actually even simpler:
+**Using the negotiator:**
 
 .. code-block:: python
 
-    from negmas import Mechanism, MechanismState
+    session = SAOMechanism(issues=issues, n_steps=100)
+    session.add(MyNegotiator(name="custom"), ufun=my_ufun)
+    session.add(AspirationNegotiator(name="opponent"), ufun=opponent_ufun)
+    session.run()
+
+Creating Custom Protocols
+-------------------------
+
+.. code-block:: python
+
+    from negmas import Mechanism, MechanismStepResult
 
 
-    class MyNovelProtocol(Mechanism):
-        def __call__(self, state: MechanismState, action=None):
-            """One round of the protocol"""
+    class MyProtocol(Mechanism):
+        def __call__(self, state, action=None):
+            # Implement one round of your protocol
+            # Return MechanismStepResult with updated state
+            ...
+            return MechanismStepResult(state=state)
 
-By implementing the single `__call__()` function, a new protocol is created. New negotiators can be added to the
-negotiation using `add()` and removed using `remove()`. See the documentation for a full description of
-`Mechanism` available functionality out of the box.
+Running World Simulations
+-------------------------
 
+For complex scenarios with multiple agents and concurrent negotiations:
 
-Running a world simulation
-==========================
+.. code-block:: python
 
-The *raison d'être* for NegMAS is to allow you to develop negotiation agents capable of behaving in realistic
-*business like* simulated environments. These simulations are called *worlds* in NegMAS. Agents interact with each other
-within these simulated environments trying to maximize some intrinsic utility function of the agent through several
-*possibly simultaneous* negotiations.
-
-The `situated` module provides all that you need to create such worlds. An example can be found in the `scml` package.
-This package implements a supply chain management system in which factory managers compete to maximize their profits in
-a market with only negotiations as the means of securing contracts.
+    from negmas.situated import World, Agent
 
 
-Acknowledgement
-===============
+    class MyAgent(Agent):
+        def step(self):
+            # Called each simulation step
+            # Request negotiations, respond to events, etc.
+            pass
 
-.. _Genius: http://ii.tudelft.nl/genius
 
-NegMAS tests use scenarios used in ANAC 2010 to ANAC 2018 competitions obtained from the Genius_ Platform. These domains
-can be found in the tests/data and notebooks/data folders.
+    # See SCML package for a complete example
+    # pip install scml
+
+Citation
+--------
+
+If you use NegMAS in your research, please cite:
+
+.. code-block:: bibtex
+
+    @inproceedings{mohammad2021negmas,
+      title={NegMAS: A Platform for Automated Negotiations},
+      author={Mohammad, Yasser and Nakadai, Shinji and Greenwald, Amy},
+      booktitle={PRIMA 2020: Principles and Practice of Multi-Agent Systems},
+      pages={343--351},
+      year={2021},
+      publisher={Springer},
+      doi={10.1007/978-3-030-69322-0_23}
+    }
+
+**Reference:**
+
+    Mohammad, Y., Nakadai, S., Greenwald, A. (2021). NegMAS: A Platform for Automated Negotiations.
+    In: *PRIMA 2020*. LNCS, vol 12568. Springer. https://doi.org/10.1007/978-3-030-69322-0_23
+
+The NegMAS Ecosystem
+--------------------
+
+NegMAS is the core of a broader ecosystem for automated negotiation research:
+
+**Competition Frameworks**
+
+- `anl <https://github.com/autoneg/anl>`_ - Automated Negotiation League (ANAC negotiation track)
+- `scml <https://github.com/yasserfarouk/scml>`_ - Supply Chain Management League
+
+**Agent Repositories**
+
+- `anl-agents <https://github.com/autoneg/anl-agents>`_ - ANL competition agents
+- `scml-agents <https://github.com/yasserfarouk/scml-agents>`_ - SCML competition agents
+
+**Bridges & Extensions**
+
+- `negmas-geniusweb-bridge <https://github.com/autoneg/negmas-geniusweb-bridge>`_ - Run GeniusWeb agents
+- `negmas-llm <https://github.com/autoneg/negmas-llm>`_ - LLM-powered negotiation agents
+- `geniusbridge <https://github.com/yasserfarouk/geniusbridge>`_ - Java Genius bridge
+
+**Visualization & Tools**
+
+- `scml-vis <https://github.com/yasserfarouk/scml-vis>`_ - SCML visualization
+- `jnegmas <https://github.com/yasserfarouk/jnegmas>`_ - Java interface
+
+More Resources
+--------------
+
+- **Tutorials**: https://negmas.readthedocs.io/en/latest/tutorials.html
+- **API Reference**: https://negmas.readthedocs.io/en/latest/api.html
+- **YouTube Playlist**: https://www.youtube.com/playlist?list=PLqvs51K2Mb8IJe5Yz5jmYrRAwvIpGU2nF
+- **Publications**: https://negmas.readthedocs.io/en/latest/publications.html
+
+Papers Using NegMAS
+-------------------
+
+Selected papers (see `full list <https://negmas.readthedocs.io/en/latest/publications.html>`_):
+
+**Competition & Benchmarks**
+
+- Aydoğan et al. (2020). `Challenges and Main Results of ANAC 2019 <https://doi.org/10.1007/978-3-030-66412-1_23>`_. EUMAS/AT. *Cited by 51*
+- Mohammad et al. (2019). `Supply Chain Management World <https://doi.org/10.1007/978-3-030-33792-6_10>`_. PRIMA. *Cited by 38*
+
+**Negotiation Strategies**
+
+- Sengupta et al. (2021). `RL-Based Negotiating Agent Framework <https://arxiv.org/abs/2102.03588>`_. arXiv. *Cited by 48*
+- Higa et al. (2023). `Reward-based Negotiating Agent Strategies <https://ojs.aaai.org/index.php/AAAI/article/view/26831>`_. AAAI. *Cited by 16*
+
+**Applications**
+
+- Inotsume et al. (2020). `Path Negotiation for Multirobot Vehicles <https://doi.org/10.1109/IROS45743.2020.9340819>`_. IROS. *Cited by 17*
+
+*Last updated: January 2026*
+
+Contributing
+------------
+
+Contributions are welcome! Please see the `contributing guide <https://negmas.readthedocs.io/en/latest/contributing.html>`_.
+
+License
+-------
+
+NegMAS is released under the BSD 3-Clause License.
+
+Acknowledgements
+----------------
+
+NegMAS was developed at the NEC-AIST collaborative laboratory. It uses scenarios from
+ANAC 2010-2018 competitions obtained from the `Genius Platform <http://ii.tudelft.nl/genius>`_.

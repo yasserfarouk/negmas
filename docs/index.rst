@@ -81,5 +81,6 @@ Nevertheless, it can; and was used; in modeling simpler bilateral and multi-late
     :hidden:
     :maxdepth: 1
 
+    publications
     api
     indices
