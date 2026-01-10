@@ -8,6 +8,8 @@ Helper Modules
     modules/events
     modules/helpers
     modules/inout
+    modules/generics
     modules/tournaments
     modules/serialization
     modules/checkpoints
+    modules/plots

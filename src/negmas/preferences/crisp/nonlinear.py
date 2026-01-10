@@ -251,7 +251,8 @@ class HyperRectangleUtilityFunction(StationaryMixin, UtilityFunction):
 
          We can now calcualte the utility_function of some outcomes:
 
-         * An outcome that belongs to the both outcome_ranges:
+         An outcome that belongs to the both outcome_ranges:
+
          >>> [
          ...     f({0: 1.5, 1: 1.5, 2: 2.5}),
          ...     g({0: 1.5, 1: 1.5, 2: 2.5}),
@@ -259,7 +260,8 @@ class HyperRectangleUtilityFunction(StationaryMixin, UtilityFunction):
          ... ]
          [8.5, 8.5, 8.5]
 
-         * An outcome that belongs to the first hypervolume only:
+         An outcome that belongs to the first hypervolume only:
+
          >>> [
          ...     f({0: 1.5, 1: 1.5, 2: 1.0}),
          ...     g({0: 1.5, 1: 1.5, 2: 1.0}),
@@ -267,19 +269,23 @@ class HyperRectangleUtilityFunction(StationaryMixin, UtilityFunction):
          ... ]
          [2.0, 2.0, 2.0]
 
-         * An outcome that belongs to and has the first hypervolume only:
+         An outcome that belongs to and has the first hypervolume only:
+
          >>> [f({0: 1.5}), g({0: 1.5}), h({0: 1.5})]
          [nan, 0.0, nan]
 
-         * An outcome that belongs to the second hypervolume only:
+         An outcome that belongs to the second hypervolume only:
+
          >>> [f({0: 1.5, 2: 2.5}), g({0: 1.5, 2: 2.5}), h({0: 1.5, 2: 2.5})]
          [nan, 6.5, nan]
 
-         * An outcome that has and belongs to the second hypervolume only:
+         An outcome that has and belongs to the second hypervolume only:
+
          >>> [f({2: 2.5}), g({2: 2.5}), h({2: 2.5})]
          [nan, 0.0, nan]
 
-         * An outcome that belongs to no outcome_ranges:
+         An outcome that belongs to no outcome_ranges:
+
          >>> [
          ...     f({0: 11.5, 1: 11.5, 2: 12.5}),
          ...     g({0: 11.5, 1: 11.5, 2: 12.5}),

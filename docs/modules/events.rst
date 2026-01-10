@@ -1,3 +1,3 @@
-.. automodapi:: negmas.events
-      :members:
-      :show-inheritance:
+.. automodule:: negmas.events
+   :members:
+   :show-inheritance:

@@ -26,8 +26,8 @@ class ProbMappingUtilityFunction(StationaryMixin, ProbUtilityFunction):
     """
     Outcome mapping utility function.
 
-    This is the simplest possible utility function and it just maps a set of `Outcome`s to a set of
-    `Value`(s). It is only usable with single-issue negotiations. It can be constructed with wither a mapping
+    This is the simplest possible utility function and it just maps a set of ``Outcome``s to a set of
+    ``Value``s. It is only usable with single-issue negotiations. It can be constructed with either a mapping
     (e.g. a dict) or a callable function.
 
     Args:

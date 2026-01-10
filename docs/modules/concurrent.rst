@@ -1,3 +1,3 @@
-.. automodapi:: negmas.concurrent
-      :members:
-      :show-inheritance:
+.. automodule:: negmas.concurrent
+   :members:
+   :show-inheritance:

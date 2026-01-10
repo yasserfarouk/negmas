@@ -241,8 +241,7 @@ class AgentWorldInterface:
         Remarks:
 
             - The function will create a request ID that will be used in callbacks `on_neg_request_accepted` and
-            `on_neg_request_rejected`
-
+                `on_neg_request_rejected`
 
         """
         partner_agents = [

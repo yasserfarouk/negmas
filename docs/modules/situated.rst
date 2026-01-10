@@ -1,3 +1,3 @@
-.. automodapi:: negmas.situated
-      :members:
-      :show-inheritance:
+.. automodule:: negmas.situated
+   :members:
+   :show-inheritance:

@@ -163,7 +163,7 @@ for nonlinear nonconvex utility functions).
                 result = minimize(objective, x0=[random()], bounds=[(0.0, 1.0)])
                 if result.success:
                     break
-            return float(result.x) if my_indx == 0 else 1.0 - float(result.x)
+            return float(result.x[0]) if my_indx == 0 else 1.0 - float(result.x[0])
 
 Now let’s try our brand new mechanism and negotiator
 
@@ -697,16 +697,3 @@ What if we tried our boulware here:
 The behavior did not change from the case with equal time pressure.
 There is no mystry here. The boulware agent does not take its own
 time-pressure (discount) into account. Can you fix that?
-
-
-
-Download :download:`Notebook<notebooks/04.develop_new_mechanism.ipynb>`.
-
-
-Download :download:`Notebook<notebooks/04.develop_new_mechanism.ipynb>`.
-
-
-Download :download:`Notebook<notebooks/04.develop_new_mechanism.ipynb>`.
-
-
-Download :download:`Notebook<notebooks/04.develop_new_mechanism.ipynb>`.

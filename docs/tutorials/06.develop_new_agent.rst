@@ -96,16 +96,11 @@ as a pandas dataframe.
     plt.bar(range(world.n_steps), stats_df(world)["step_time"])
     plt.xlabel("Simulation Step")
     plt.ylabel("Time (s)")
-    print()
-
-
-.. parsed-literal::
 
 
 
 
-
-.. image:: 06.develop_new_agent_files/06.develop_new_agent_7_1.png
+.. image:: 06.develop_new_agent_files/06.develop_new_agent_7_0.png
 
 
 We can for example check the welfare (activity level) of this world
@@ -287,16 +282,3 @@ Let’s check how did our agent do
 
 
 Better.
-
-
-
-Download :download:`Notebook<notebooks/06.develop_new_agent.ipynb>`.
-
-
-Download :download:`Notebook<notebooks/06.develop_new_agent.ipynb>`.
-
-
-Download :download:`Notebook<notebooks/06.develop_new_agent.ipynb>`.
-
-
-Download :download:`Notebook<notebooks/06.develop_new_agent.ipynb>`.

@@ -1,6 +1,6 @@
 # negmas documentation build configuration file
 # Originally created by sphinx-quickstart on Fri Jun  9 13:47:02 2017.
-# Modernized configuration for Furo theme.
+# Modernized configuration for Furo theme - optimized for build speed.
 
 from __future__ import annotations
 
@@ -9,21 +9,17 @@ from pathlib import Path
 
 # -- General configuration ---------------------------------------------
 
-# Add any Sphinx extension module names here, as strings.
+# Extensions - minimal set for speed
 extensions = [
     "sphinx.ext.autodoc",
-    "sphinx.ext.viewcode",
-    "sphinx.ext.coverage",
     "sphinx.ext.napoleon",
-    "sphinx.ext.githubpages",
-    "sphinx.ext.graphviz",
-    "sphinx.ext.autosummary",
-    "sphinx_automodapi.automodapi",
     "sphinx.ext.intersphinx",
-    "sphinx_automodapi.smart_resolver",
-    "sphinx.ext.mathjax",
+    # "sphinx.ext.viewcode",  # Disabled for speed - adds source code to docs
+    "sphinx.ext.linkcode",  # Lightweight alternative - links to GitHub
     "nbsphinx",
     "sphinx_tabs.tabs",
+    "sphinx_click",  # Auto-generate docs for Click CLIs
+    "sphinxcontrib.typer",  # Auto-generate docs for Typer CLIs
 ]
 
 # Try to load optional extensions
@@ -36,6 +32,7 @@ try:
 except ImportError:
     pass
 
+# Intersphinx - external documentation links
 intersphinx_mapping = {
     "python": ("https://docs.python.org/3", None),
     "numpy": ("https://numpy.org/doc/stable/", None),
@@ -72,7 +69,14 @@ language = "en"
 
 # List of patterns, relative to source directory, that match files and
 # directories to ignore when looking for source files.
-exclude_patterns = ["_build", "Thumbs.db", ".DS_Store", "**.ipynb_checkpoints"]
+exclude_patterns = [
+    "_build",
+    "Thumbs.db",
+    ".DS_Store",
+    "**.ipynb_checkpoints",
+    "**/test_*",
+    "**/tests/**",
+]
 
 # The name of the Pygments (syntax highlighting) style to use.
 pygments_style = "friendly"
@@ -117,15 +121,10 @@ if _static_dir.exists():
 else:
     html_static_path = []
 
-# The name of an image file (relative to this directory) to place at the top
-# of the sidebar.
-# html_logo = "_static/logo.png"
-
-# The name of an image file to use as favicon.
-# html_favicon = "_static/favicon.ico"
-
-# If true, links to the reST sources are added to the pages.
-html_show_sourcelink = True
+# Speed optimizations for HTML output
+html_domain_indices = False  # Don't generate domain indices
+html_copy_source = False  # Don't copy source files
+html_show_sourcelink = False  # Don't show source links (using linkcode instead)
 
 # -- Options for HTMLHelp output ---------------------------------------
 
@@ -140,11 +139,6 @@ latex_elements = {"papersize": "a4paper", "pointsize": "10pt", "figure_align": "
 latex_documents = [
     (root_doc, "negmas.tex", "NegMAS Documentation", "Yasser Mohammad", "manual")
 ]
-
-# -- Options for graphviz used in inheritance diagrams -----------------
-
-inheritance_graph_attrs = dict(rankdir="TB", fontsize=11, size='""')
-inheritance_node_attrs = dict(fontsize=11)
 
 # -- Options for manual page output ------------------------------------
 
@@ -168,22 +162,46 @@ texinfo_documents = [
 
 default_role = "any"
 
-imgmath_image_format = "png"
-
-# If false, no module index is generated.
-html_domain_indices = True
-
-automodsumm_inherited_members = True
-
+# Autodoc settings - optimized for speed
 autodoc_typehints = "signature"
-set_type_checking_flag = True
+autodoc_typehints_format = "short"  # Don't include full module paths
+autodoc_inherit_docstrings = False  # Don't inherit docstrings (faster)
+autodoc_default_options = {
+    "members": True,
+    "undoc-members": False,
+    "private-members": False,
+    "inherited-members": False,
+    "show-inheritance": True,
+}
+
+# Mock heavy imports that aren't needed for doc generation
+autodoc_mock_imports = ["py4j", "java"]
+
+# Don't set TYPE_CHECKING flag (can cause import issues)
+set_type_checking_flag = False
+
+# Autosummary settings
+autosummary_generate = False  # Don't auto-generate stub files
+
+
+# Linkcode extension - link to GitHub instead of embedding source
+def linkcode_resolve(domain, info):
+    """Generate GitHub links for source code."""
+    if domain != "py":
+        return None
+    if not info["module"]:
+        return None
+
+    filename = info["module"].replace(".", "/")
+    return f"https://github.com/yasserfarouk/negmas/blob/main/src/{filename}.py"
+
 
 # Napoleon settings for docstrings
 napoleon_google_docstring = True
 napoleon_numpy_docstring = True
 napoleon_include_init_with_doc = False
 napoleon_include_private_with_doc = False
-napoleon_include_special_with_doc = True
+napoleon_include_special_with_doc = False
 napoleon_use_admonition_for_examples = False
 napoleon_use_admonition_for_notes = False
 napoleon_use_admonition_for_references = False
@@ -202,3 +220,9 @@ if _has_copybutton:
 # nbsphinx configuration
 nbsphinx_execute = "never"
 nbsphinx_allow_errors = True
+
+# Suppress warnings for cleaner output
+suppress_warnings = ["ref.any", "toc.excluded"]
+
+# Nitpicky mode off (faster, fewer checks)
+nitpicky = False

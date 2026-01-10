@@ -138,6 +138,30 @@ Quick Start
     # Visualize
     session.plot()
 
+Command Line Interface
+----------------------
+
+NegMAS includes a ``negotiate`` CLI for quick experimentation:
+
+.. code-block:: bash
+
+    # Run with default negotiators
+    negotiate -s 50
+
+    # Specify negotiators and steps
+    negotiate -n AspirationNegotiator -n NaiveTitForTatNegotiator -s 100
+
+    # Use Python-native Genius agents (no Java required)
+    negotiate -n GBoulware -n GConceder -s 50
+
+    # Use custom BOA components
+    negotiate -n "boa:offering=GTimeDependentOffering(e=0.2),acceptance=GACNext" -n AspirationNegotiator
+
+    # Save results and plot
+    negotiate -s 100 --save-path ./results
+
+See ``negotiate --help`` for all options, or the `CLI documentation <https://negmas.readthedocs.io/en/latest/scripts.html>`_.
+
 Architecture Overview
 ---------------------
 

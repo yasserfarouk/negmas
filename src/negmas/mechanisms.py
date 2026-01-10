@@ -845,8 +845,7 @@ class Mechanism(
                 self.state.erred_negotiator = negotiator.id if negotiator else ""
                 a = negotiator.owner if negotiator else None
                 self.state.erred_agent = a.id if a else ""
-        finally:
-            return result
+        return result
 
     def remove(self, negotiator: TNegotiator) -> bool | None:
         """Remove the negotiator from the negotiation.

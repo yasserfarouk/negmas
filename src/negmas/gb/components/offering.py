@@ -164,10 +164,13 @@ class HybridOfferingPolicy(OfferingPolicy):
         return super().on_preferences_changed(changes)
 
     def time_based(self, t: float) -> float:
-        """
-            Target utility calculation of Time-Based strategy
-        :param t: Negotiation time
-        :return: Target utility
+        """Target utility calculation of Time-Based strategy.
+
+        Args:
+            t: Negotiation time.
+
+        Returns:
+            Target utility.
         """
         return (
             (1 - t) * (1 - t) * self.initial_utility
@@ -176,10 +179,13 @@ class HybridOfferingPolicy(OfferingPolicy):
         )
 
     def behaviour_based(self, t: float) -> float:
-        """
-            Target utility calculation of Behavior-Based strategy
-        :param t: Negotiation time
-        :return: Target utility
+        """Target utility calculation of Behavior-Based strategy.
+
+        Args:
+            t: Negotiation time.
+
+        Returns:
+            Target utility.
         """
 
         # Utility differences of consecutive offers of opponent

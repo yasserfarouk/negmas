@@ -112,7 +112,7 @@ Now we are ready to try the bridge from the command line:
 
 You should get something like:
 
-.. figure:: negexample.jpg
+.. figure:: ../figs/negexample.jpg
    :alt: negexample
 
    negexample
@@ -123,7 +123,7 @@ You can also visualize the negotiation using:
 
    negotiate $HOME/negmas/scenarios/CameraB --plot -p sao -n AspirationNegotiator -n genius.BoulwareNegotiationParty --steps=100
 
-.. figure:: negplot.jpg
+.. figure:: ../figs/negplot.jpg
    :alt: negplot
 
    negplot
@@ -250,17 +250,3 @@ Let’s try to run the same negotiation above without using
 
 
 .. image:: 02.integrating_with_genius_files/02.integrating_with_genius_6_0.png
-
-
-
-
-Download :download:`Notebook<notebooks/02.integrating_with_genius.ipynb>`.
-
-
-Download :download:`Notebook<notebooks/02.integrating_with_genius.ipynb>`.
-
-
-Download :download:`Notebook<notebooks/02.integrating_with_genius.ipynb>`.
-
-
-Download :download:`Notebook<notebooks/02.integrating_with_genius.ipynb>`.

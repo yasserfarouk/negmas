@@ -1,3 +1,3 @@
-.. automodapi:: negmas.mechanisms
-      :members:
-      :show-inheritance:
+.. automodule:: negmas.mechanisms
+   :members:
+   :show-inheritance:

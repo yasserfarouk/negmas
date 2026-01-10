@@ -1,3 +1,3 @@
-.. automodapi:: negmas.st
-      :members:
-      :show-inheritance:
+.. automodule:: negmas.st
+   :members:
+   :show-inheritance:

@@ -1,3 +1,3 @@
-.. automodapi:: negmas.outcomes
-      :members:
-      :show-inheritance:
+.. automodule:: negmas.outcomes
+   :members:
+   :show-inheritance:

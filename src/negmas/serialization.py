@@ -408,7 +408,7 @@ def deserialize(
         deep: If true, decode recursively
         remove_type_field: If true the field called `PYTHON_CLASS_IDENTIFIER` will be removed if found.
         keep_private: If given, private fields (starting with _) will be kept
-        fallback_class_name: If given, it is used as the fall-back  type if ``PYTHON_CLASS_IDENTIFIER` is not in the dict.
+        fallback_class_name: If given, it is used as the fall-back type if ``PYTHON_CLASS_IDENTIFIER`` is not in the dict.
         ignored_keys: Keys to ignore
         deep_ignore: if given, ignored keys are ignored in all components recusrively when deep is specified
 

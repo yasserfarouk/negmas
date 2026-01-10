@@ -101,16 +101,16 @@ class RealComparatorNegotiator(Negotiator):
 
     def is_better(self, first: Outcome | None, second: Outcome | None) -> bool | None:
         """
-        Compares two offers using the `ufun` returning whether the first is better than the second
+        Compares two offers using the `ufun` returning whether the first is better than the second.
 
         Args:
             first: First outcome to be compared
             second: Second outcome to be compared
 
         Returns:
-            True if utility(first) > utility(second) + epsilon
-            None if |utility(first) - utility(second)| <= epsilon or the utun is not defined
-            False if utility(first) < utility(second) - epsilon
+            True if utility(first) > utility(second) + epsilon,
+            None if the absolute difference is <= epsilon or the ufun is not defined,
+            False if utility(first) < utility(second) - epsilon.
         """
         if not self.preferences:
             return None
@@ -149,9 +149,9 @@ class BinaryComparatorNegotiator(Negotiator):
                      outcomes are assumed to be compatible
 
         Returns:
-            True if utility(first) > utility(second) + epsilon
-            None if |utility(first) - utility(second)| <= epsilon or the utun is not defined
-            False if utility(first) < utility(second) - epsilon
+            True if utility(first) > utility(second) + epsilon,
+            None if the absolute difference is <= epsilon or the ufun is not defined,
+            False if utility(first) < utility(second) - epsilon.
         """
         if not self.has_preferences:
             raise ValueError("Cannot compare outcomes without a ufun")
@@ -273,9 +273,9 @@ class NLevelsComparatorNegotiator(Negotiator):
         Returns:
 
             - None if either there is no ufun defined or the number of thresholds required cannot be satisfied
-            - 0 iff |u(first) - u(second)| <= thresholds[0]
-            - -i if  - thresholds[i-1] < u(first) - u(second) <= -thresholds[i]
-            - +i if  thresholds[i-1] > u(first) - u(second) >= thresholds[i]
+            - 0 if abs(u(first) - u(second)) <= thresholds[0]
+            - -i if -thresholds[i-1] < u(first) - u(second) <= -thresholds[i]
+            - +i if thresholds[i-1] > u(first) - u(second) >= thresholds[i]
 
         Remarks:
 
@@ -309,7 +309,7 @@ class NLevelsComparatorNegotiator(Negotiator):
         self, first: Outcome | None, second: Outcome | None, epsilon: float = 1e-10
     ) -> bool | None:
         """
-        Compares two offers using the `ufun` returning whether the first is better than the second
+        Compares two offers using the `ufun` returning whether the first is better than the second.
 
         Args:
             first: First outcome to be compared
@@ -318,9 +318,9 @@ class NLevelsComparatorNegotiator(Negotiator):
                      outcomes are assumed to be compatible
 
         Returns:
-            True if utility(first) > utility(second) + epsilon
-            None if |utility(first) - utility(second)| <= epsilon or the utun is not defined
-            False if utility(first) < utility(second) - epsilon
+            True if utility(first) > utility(second) + epsilon,
+            None if the absolute difference is <= epsilon or the ufun is not defined,
+            False if utility(first) < utility(second) - epsilon.
         """
         if self._preferences is None:
             return None
@@ -370,7 +370,7 @@ class RankerWithWeightsNegotiator(Negotiator):
         self, first: Outcome | None, second: Outcome | None, epsilon: float = 1e-10
     ) -> bool | None:
         """
-        Compares two offers using the `ufun` returning whether the first is better than the second
+        Compares two offers using the `ufun` returning whether the first is better than the second.
 
         Args:
             first: First outcome to be compared
@@ -379,9 +379,9 @@ class RankerWithWeightsNegotiator(Negotiator):
                      outcomes are assumed to be compatible
 
         Returns:
-            True if utility(first) > utility(second) + epsilon
-            None if |utility(first) - utility(second)| <= epsilon or the utun is not defined
-            False if utility(first) < utility(second) - epsilon
+            True if utility(first) > utility(second) + epsilon,
+            None if the absolute difference is <= epsilon or the ufun is not defined,
+            False if utility(first) < utility(second) - epsilon.
         """
         if not self.has_preferences:
             return None
@@ -425,7 +425,7 @@ class RankerNegotiator(Negotiator):
         self, first: Outcome | None, second: Outcome | None, epsilon: float = 1e-10
     ) -> bool | None:
         """
-        Compares two offers using the `ufun` returning whether the first is better than the second
+        Compares two offers using the `ufun` returning whether the first is better than the second.
 
         Args:
             first: First outcome to be compared
@@ -434,9 +434,9 @@ class RankerNegotiator(Negotiator):
                      outcomes are assumed to be compatible
 
         Returns:
-            True if utility(first) > utility(second) + epsilon
-            None if |utility(first) - utility(second)| <= epsilon or the utun is not defined
-            False if utility(first) < utility(second) - epsilon
+            True if utility(first) > utility(second) + epsilon,
+            None if the absolute difference is <= epsilon or the ufun is not defined,
+            False if utility(first) < utility(second) - epsilon.
         """
         if self._preferences is None:
             return None

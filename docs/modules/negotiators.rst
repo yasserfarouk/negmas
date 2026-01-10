@@ -1,3 +1,3 @@
-.. automodapi:: negmas.negotiators
-    :members:
-    :show-inheritance:
+.. automodule:: negmas.negotiators
+   :members:
+   :show-inheritance:

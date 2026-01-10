@@ -10,4 +10,3 @@ Negotiation Mechanisms
     modules/st
     modules/mt
     modules/ga
-    modules/concurrent

@@ -6,70 +6,6 @@ special emphasis on supporting multi-strand multilateral multi-issue
 negotiations with complex utility functions. This section gives an
 introduction to the main concepts of the public interface.
 
-The NegMAS Ecosystem
---------------------
-
-NegMAS is the core library of a broader ecosystem of packages for automated negotiation
-research and competitions. The following related projects extend NegMAS functionality:
-
-**Competition Frameworks**
-
-- `anl <https://github.com/autoneg/anl>`_ - Automated Negotiation League (ANL), the
-  negotiation track of the Automated Negotiating Agents Competition (ANAC). Provides
-  the framework for bilateral negotiation competitions.
-
-- `anl2025 <https://github.com/autoneg/anl2025>`_ - ANL 2025 competition framework,
-  featuring the latest rules and scenarios for the upcoming ANAC negotiation track.
-
-- `scml <https://github.com/yasserfarouk/scml>`_ - Supply Chain Management League (SCML),
-  a simulation environment for multi-agent supply chain negotiations where factory
-  managers compete to maximize profits through concurrent negotiations.
-
-**Agent Repositories**
-
-- `anl-agents <https://github.com/autoneg/anl-agents>`_ - Repository containing all
-  agents submitted to the ANL track of ANAC starting from 2024.
-
-- `scml-agents <https://github.com/yasserfarouk/scml-agents>`_ - Contributed agents
-  for the SCML competition, including winners and notable entries from past competitions.
-
-**Bridges & Adapters**
-
-- `negmas-geniusweb-bridge <https://github.com/autoneg/negmas-geniusweb-bridge>`_ -
-  A wrapper that allows GeniusWeb agents to run in NegMAS negotiations, enabling
-  interoperability with the GeniusWeb platform.
-
-- `negmas-negolog <https://github.com/autoneg/negmas-negolog>`_ - A wrapper that
-  allows NegoLog negotiators (logic-based negotiation agents) to run under NegMAS.
-
-- `geniusbridge <https://github.com/yasserfarouk/geniusbridge>`_ - The Java bridge
-  enabling NegMAS to run Genius agents. This is the backend for NegMAS's built-in
-  ``negmas.genius`` module.
-
-**Extensions**
-
-- `negmas-llm <https://github.com/autoneg/negmas-llm>`_ - LLM (Large Language Model)
-  support for NegMAS, enabling the development of negotiation agents powered by
-  language models.
-
-- `negmas-rl-tutorial <https://github.com/yasserfarouk/negmas-rl-tutorial>`_ -
-  Tutorial and examples for developing reinforcement learning agents for automated
-  negotiation using NegMAS.
-
-**Visualization**
-
-- `scml-vis <https://github.com/yasserfarouk/scml-vis>`_ - Visualization tools for
-  SCML simulations, providing interactive dashboards and analysis capabilities.
-
-**Language Bindings**
-
-- `jnegmas <https://github.com/yasserfarouk/jnegmas>`_ - Java interface to NegMAS,
-  allowing Java developers to create negotiation agents that interact with NegMAS
-  simulations.
-
-All ecosystem packages are designed to work seamlessly with NegMAS and follow
-compatible APIs and conventions.
-
 In order to use the library you will need to import it as follows
 (assuming that you followed the instructions in the installation section
 of this document):
@@ -486,7 +422,7 @@ You can pick random valid or invalid values for the issue:
 
 .. parsed-literal::
 
-    [['to be', '20250315H165549399269jJTGt6qBto be20250315H165549399295XtRgNy0I'],
+    [['to be', '20250316H062020000663jJTGt6qBto be20250316H062020000683XtRgNy0I'],
      [6, 10],
      [0.6118970848141451, 1.928063278403899]]
 
@@ -1753,7 +1689,9 @@ respond to every offer in parallel.
             current = self.negotiators[nxt]
             offer = None
             self.state.current_offer = (
-                current.propose(self.state) if offer is None else offer
+                current.propose(self.state, self.current_offerer)
+                if offer is None
+                else offer
             )
 
             def get_response(negotiator, state=self.state):

@@ -1,3 +1,3 @@
-.. automodapi:: negmas.checkpoints
-      :members:
-      :show-inheritance:
+.. automodule:: negmas.checkpoints
+   :members:
+   :show-inheritance:

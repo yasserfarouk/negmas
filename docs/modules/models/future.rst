@@ -1,3 +1,3 @@
-.. automodapi:: negmas.models.future
-          :members:
-          :show-inheritance:
+.. automodule:: negmas.models.future
+   :members:
+   :show-inheritance:

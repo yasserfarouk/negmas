@@ -134,12 +134,12 @@ class User(Rational):
         return cost + sum(a.cost for a in q.answers) / len(q.answers)
 
     def is_satisfied(self, constraint: Constraint, outcomes=list[Outcome]) -> bool:
-        """Checks if the given consgtraint is satisfied for the user
-        utility fun and the given outocmes.
+        """Checks if the given constraint is satisfied for the user
+        utility function and the given outcomes.
 
         Args:
-            constraint: The `Constraint`
-            outcome: A list of `Outcome`s to be passed to the constraint along
+            constraint: The ``Constraint``.
+            outcomes: A list of ``Outcome`` objects to be passed to the constraint along
                      with the user's ufun.
         """
         return constraint.is_satisfied(self.ufun, outcomes=outcomes)

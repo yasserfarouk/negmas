@@ -4411,9 +4411,9 @@ class World(
         self, info: NegotiationInfo, contract: Contract | None
     ):
         """
-        Called whenever a negotiation is ended **after** calling on_negotiation_failure_/on_negotiation_success_
+        Called whenever a negotiation is ended after calling ``on_negotiation_failure`` or ``on_negotiation_success``.
 
         Remarks:
-            If contract is `None`, the negotiation ended in failure otherwise it ended in success.
+            If contract is ``None``, the negotiation ended in failure otherwise it ended in success.
         """
         _ = info, contract

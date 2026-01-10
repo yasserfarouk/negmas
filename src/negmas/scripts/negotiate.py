@@ -20,6 +20,8 @@ from stringcase import titlecase
 
 from negmas.genius.ginfo import get_java_class
 from negmas.genius.negotiator import GeniusNegotiator
+from negmas.genius.bridge import genius_bridge_is_running, init_genius_bridge
+from negmas.genius.common import DEFAULT_JAVA_PORT
 from negmas.helpers import get_class, instantiate
 from negmas.helpers.inout import dump
 from negmas.helpers.strings import camel_case, humanize_time, shortest_unique_names
@@ -45,6 +47,9 @@ GENIUSMARKER = "genius"
 ANLMARKER = "anl"
 BOAMARKER = "boa"
 MAPMARKER = "map"
+LLMMARKER = "llm"
+NEGOLOGMARKER = "negolog"
+GAMARKER = "ga"
 
 
 def get_screen_resolution() -> tuple[int, int]:
@@ -92,6 +97,51 @@ def make_genius_negotiator(*args, java_class_name: str, **kwargs):
 
 def make_anl_negotiator(class_name: str, **kwargs):
     return instantiate(class_name, module_name="anl_agents", **kwargs)
+
+
+def make_llm_negotiator(class_name: str, **kwargs):
+    """Create a negotiator from negmas-llm package."""
+    try:
+        from importlib import import_module
+
+        import_module("negmas_llm")
+    except ImportError:
+        print("[red]Error: negmas-llm package is not installed.[/red]")
+        print("[yellow]To use LLM negotiators, install the package:[/yellow]")
+        print("  pip install negmas-llm")
+        print("  or: uv add negmas-llm")
+        raise SystemExit(1)
+    return instantiate(class_name, module_name="negmas_llm", **kwargs)
+
+
+def make_negolog_negotiator(class_name: str, **kwargs):
+    """Create a negotiator from negmas-negolog package."""
+    try:
+        from importlib import import_module
+
+        import_module("negmas_negolog")
+    except ImportError:
+        print("[red]Error: negmas-negolog package is not installed.[/red]")
+        print("[yellow]To use Negolog negotiators, install the package:[/yellow]")
+        print("  pip install negmas-negolog")
+        print("  or: uv add negmas-negolog")
+        raise SystemExit(1)
+    return instantiate(class_name, module_name="negmas_negolog", **kwargs)
+
+
+def make_ga_negotiator(class_name: str, **kwargs):
+    """Create a negotiator from negmas-genius-agents package."""
+    try:
+        from importlib import import_module
+
+        import_module("genius_agents")
+    except ImportError:
+        print("[red]Error: negmas-genius-agents package is not installed.[/red]")
+        print("[yellow]To use Genius Agents negotiators, install the package:[/yellow]")
+        print("  pip install negmas-genius-agents")
+        print("  or: uv add negmas-genius-agents")
+        raise SystemExit(1)
+    return instantiate(class_name, module_name="genius_agents", **kwargs)
 
 
 def parse_component_spec(spec: str) -> tuple[str, dict[str, Any]]:
@@ -299,8 +349,75 @@ def make_boa_negotiator(spec: str, is_map: bool = False, **kwargs) -> Negotiator
         return make_boa(offering=offering, acceptance=acceptance, model=model, **kwargs)
 
 
+# Track whether we started the genius bridge ourselves
+_genius_bridge_started_by_cli = False
+
+
+def ensure_genius_bridge_running() -> bool:
+    """
+    Ensures the Genius bridge is running, starting it if necessary.
+
+    Returns:
+        True if the bridge is running, False otherwise.
+
+    Side effects:
+        Sets _genius_bridge_started_by_cli to True if we started the bridge.
+    """
+    global _genius_bridge_started_by_cli
+
+    if genius_bridge_is_running(DEFAULT_JAVA_PORT):
+        return True
+
+    # Try to start the bridge
+    print("[yellow]Genius bridge not running. Attempting to start...[/yellow]")
+    port = init_genius_bridge(port=DEFAULT_JAVA_PORT, die_on_exit=True)
+
+    if port > 0:
+        print(f"[green]Genius bridge started on port {port}[/green]")
+        _genius_bridge_started_by_cli = True
+        return True
+    elif port == -1:
+        # Bridge was already running (race condition)
+        return True
+    else:
+        print("[red]Failed to start Genius bridge.[/red]")
+        print(
+            "[yellow]To use Genius negotiators, you need to have the Genius bridge JAR installed.[/yellow]"
+        )
+        print("[yellow]You can:[/yellow]")
+        print(
+            "  1. Download geniusbridge.jar from https://yasserfarouk.github.io/files/geniusbridge.jar"
+        )
+        print("  2. Place it in ~/negmas/files/geniusbridge.jar")
+        print(
+            "  3. Or run 'negmas genius' in a separate terminal to start the bridge manually"
+        )
+        return False
+
+
+def shutdown_genius_bridge_if_started() -> None:
+    """
+    Shuts down the Genius bridge if we started it.
+    """
+    global _genius_bridge_started_by_cli
+
+    if _genius_bridge_started_by_cli:
+        from negmas.genius.bridge import GeniusBridge
+
+        print("[yellow]Shutting down Genius bridge...[/yellow]")
+        GeniusBridge.stop(DEFAULT_JAVA_PORT)
+        _genius_bridge_started_by_cli = False
+
+
 def get_negotiator(class_name: str) -> type[Negotiator] | Callable[[str], Negotiator]:
     if class_name.startswith(GENIUSMARKER):
+        # Ensure Genius bridge is running before creating Genius negotiators
+        if not ensure_genius_bridge_running():
+            raise RuntimeError(
+                "Cannot create Genius negotiator: Genius bridge is not running and could not be started. "
+                "See the instructions above to set up the Genius bridge."
+            )
+
         for sp in (".", ":"):
             x = sp.join(class_name.split(sp)[1:])
             if x:
@@ -332,6 +449,35 @@ def get_negotiator(class_name: str) -> type[Negotiator] | Callable[[str], Negoti
     if class_name.startswith(f"{MAPMARKER}:") or class_name.startswith(f"{MAPMARKER}."):
         spec = class_name[len(MAPMARKER) + 1 :]
         return functools.partial(make_boa_negotiator, spec=spec, is_map=True)
+
+    # Handle LLM negotiators: llm:ClassName
+    if class_name.startswith(f"{LLMMARKER}:") or class_name.startswith(f"{LLMMARKER}."):
+        for sp in (".", ":"):
+            x = sp.join(class_name.split(sp)[1:])
+            if x:
+                class_name = x
+                break
+        return functools.partial(make_llm_negotiator, class_name=class_name)
+
+    # Handle Negolog negotiators: negolog:ClassName
+    if class_name.startswith(f"{NEGOLOGMARKER}:") or class_name.startswith(
+        f"{NEGOLOGMARKER}."
+    ):
+        for sp in (".", ":"):
+            x = sp.join(class_name.split(sp)[1:])
+            if x:
+                class_name = x
+                break
+        return functools.partial(make_negolog_negotiator, class_name=class_name)
+
+    # Handle Genius Agents negotiators: ga:ClassName
+    if class_name.startswith(f"{GAMARKER}:") or class_name.startswith(f"{GAMARKER}."):
+        for sp in (".", ":"):
+            x = sp.join(class_name.split(sp)[1:])
+            if x:
+                class_name = x
+                break
+        return functools.partial(make_ga_negotiator, class_name=class_name)
 
     if "/" in class_name:
         adapter_name, _, negotiator_name = class_name.partition("/")
@@ -408,7 +554,18 @@ def run(
         "--negotiator",
         "-n",
         "-a",
-        help="Negotiator (agent) type. To use an adapter type, put the adapter name first separated from the negotiator name by a slash (e.g. TAUAdapter/AspirationNegotiator)",
+        help=(
+            "Negotiator (agent) type. Supports the following prefixes: "
+            "genius: (Genius negotiators via bridge), "
+            "anl: (ANL agents), "
+            "boa: (BOA negotiators), "
+            "map: (MAP negotiators), "
+            "llm: (LLM negotiators from negmas-llm), "
+            "negolog: (Negolog negotiators from negmas-negolog), "
+            "ga: (Genius Agents from negmas-genius-agents). "
+            "To use an adapter, put the adapter name first separated by a slash "
+            "(e.g. TAUAdapter/AspirationNegotiator)"
+        ),
         rich_help_panel="Basic Options",
     ),
     extend_negotiators: bool = typer.Option(
@@ -793,252 +950,266 @@ def run(
                 u.reserved_value = float("nan")
     else:
         opp_ufuns = [None] * len(negotiators)
-    agents = [
-        get_negotiator(_)(name=name)  # type: ignore
-        if ou is None
-        else get_negotiator(_)(name=name, private_info=dict(opponent_ufun=ou))  # type: ignore
-        for _, name, ou in zip(negotiators, negotiator_names, opp_ufuns, strict=True)  # type: ignore
-    ]
-    if len(agents) < 2:
-        print(
-            f"At least 2 negotiators are needed: found {[_.__class__.__name__ for _ in agents]}"
-        )
-        return
-    if reserved and not extend_negotiators:
-        assert len(reserved) == len(negotiators), f"{reserved=} but {negotiators=}"
-    if reserved:
-        for u, r in zip(current_scenario.ufuns, reserved):
-            u.reserved_value = r
-    if fraction:
-        if len(fraction) < len(negotiators):
-            fraction += [1.0] * (len(negotiators) - len(fraction))
-        for u, f in zip(current_scenario.ufuns, fraction):
-            u.reserved_value = calc_reserved_value(u, f)
-    if (
-        not extend_negotiators
-        and len(agents) > 0
-        and len(agents) != len(current_scenario.ufuns)
-    ):
-        print(
-            f"You passed {len(agents)} agents for a negotiation with {len(current_scenario.ufuns)} ufuns. pass --extend-negotiators to adjust the agent number"
-        )
-        exit(1)
-    if save_path:
-        current_scenario.dumpas(save_path, save_type, save_compact)
-
-    session = current_scenario.make_session(
-        agents,
-        n_steps=steps,
-        time_limit=timelimit,
-        verbosity=verbosity - 1,
-        share_ufuns=share_ufuns,
-        share_reserved_values=share_reserved_values,
-        **dict(ignore_negotiator_exceptions=not raise_exceptions),
-        **kwargs,
-    )
-    if len(session.negotiators) < 2:
-        print(
-            f"At least 2 negotiators are needed: Only the following could join {[_.__class__.__name__ for _ in session.negotiators]}"
-        )
-        return
-    if verbosity > 0:
-        print(f"Adapters: {', '.join(adapter_names)}")
-    if verbosity > 1:
-        print(f"Negotiators: {', '.join(negotiator_names)}")
-    results = dict()
-    runner = session.run_with_progress if progress else session.run
-    _start = perf_counter()
-    state = runner()
-    duration = perf_counter() - _start
-    current_scenario = saved_scenario
-    if verbosity > 1:
-        print(f"Time: {humanize_time(duration, show_ms=True, show_us=True)}")
-        print(f"Steps: {session.current_step}")
-        print(state)
-    print(f"Agreement: {state.agreement}")
-    advantages = [
-        u(state.agreement)
-        - (u.reserved_value if u.reserved_value is not None else float("inf"))
-        for u in current_scenario.ufuns
-    ]
-    utilities_final = [u(state.agreement) for u in current_scenario.ufuns]
-    print(f"Utilities: {utilities_final}")
-    print(f"Advantages: {advantages}")
-    fast = fast or fast is None and current_scenario.outcome_space.cardinality > 10_000
-    if fast:
-        if simple_offers_view is None:
-            simple_offers_view = True
-    stats = (
-        stats or stats is None and current_scenario.outcome_space.cardinality <= 10_000
-    )
-    rank_stats = (
-        rank_stats
-        or rank_stats is None
-        and current_scenario.outcome_space.cardinality <= 1000
-    )
-
-    if stats or rank_stats:
-        pareto, pareto_outcomes = session.pareto_frontier()
-    else:
-        pareto, pareto_outcomes = tuple(), list()
-    results["negotiators"] = [get_full_type_name(type(x)) for x in session.negotiators]
-    results["agreement"] = state.agreement
-    results["utilities"] = utilities_final
-    results["advantages"] = advantages
-    results["negotiator_names"] = [x.name for x in session.negotiators]
-    results["negotiator_ids"] = [x.id for x in session.negotiators]
-    results["final_state"] = serialize(
-        session.state, python_class_identifier=python_class_identifier
-    )
-    results["step"] = session.current_step
-    results["relative_time"] = session.relative_time
-    results["n_steps"] = session.n_steps
-    results["time_limit"] = session.time_limit
-    results["negotiator_times"] = session.negotiator_times
-    results["time"] = str(datetime.now())
-    stats_dict = dict()
-    if not compact_stats:
-        stats_dict["pareto"] = pareto
-        stats_dict["pareto_outcomes"] = pareto_outcomes
-
-    if stats:
-        utils = tuple(u(state.agreement) for u in current_scenario.ufuns)
-
-        def find_stats(name, f, utils=utils):
-            pts = f(frontier=pareto, frontier_outcomes=pareto_outcomes)
-            val = dist(utils, list(a for a, _ in pts))
-            if not compact_stats:
-                stats_dict[f"{name} Points"] = pts
-            stats_dict[f"{name} Distance"] = val
-            if verbosity > 0:
-                print(f"{name} Points: {pts}")
-            print(f"{name} Distance: {val}")
-
-        for name, f in (
-            ("Nash", session.nash_points),
-            ("Kalai", session.kalai_points),
-            ("Modified Kalai", session.modified_kalai_points),
-            ("Max Welfare", session.max_welfare_points),
-            # ("Max Relative Welfare", session.max_relative_welfare_points),
-        ):
-            find_stats(name, f)
-    if rank_stats:
-        ranks_ufuns = tuple(make_rank_ufun(_) for _ in current_scenario.ufuns)
-        ranks = tuple(_(state.agreement) for _ in ranks_ufuns)
-        print(f"Agreement Relative Ranks: {ranks}")
-        pareto_save = pareto_outcomes
-        alloutcomes = session.discrete_outcomes()
-        pareto, pareto_indices = pareto_frontier(
-            ranks_ufuns, outcomes=alloutcomes, sort_by_welfare=True
-        )
-        pareto_outcomes = [alloutcomes[_] for _ in pareto_indices]
-        if len(pareto_save) != len(pareto_outcomes) or any(
-            a != b
-            for a, b in zip(sorted(pareto_save), sorted(pareto_outcomes), strict=True)
+    try:
+        agents = [
+            get_negotiator(_)(name=name)  # type: ignore
+            if ou is None
+            else get_negotiator(_)(name=name, private_info=dict(opponent_ufun=ou))  # type: ignore
+            for _, name, ou in zip(
+                negotiators, negotiator_names, opp_ufuns, strict=True
+            )  # type: ignore
+        ]
+        if len(agents) < 2:
+            print(
+                f"At least 2 negotiators are needed: found {[_.__class__.__name__ for _ in agents]}"
+            )
+            return
+        if reserved and not extend_negotiators:
+            assert len(reserved) == len(negotiators), f"{reserved=} but {negotiators=}"
+        if reserved:
+            for u, r in zip(current_scenario.ufuns, reserved):
+                u.reserved_value = r
+        if fraction:
+            if len(fraction) < len(negotiators):
+                fraction += [1.0] * (len(negotiators) - len(fraction))
+            for u, f in zip(current_scenario.ufuns, fraction):
+                u.reserved_value = calc_reserved_value(u, f)
+        if (
+            not extend_negotiators
+            and len(agents) > 0
+            and len(agents) != len(current_scenario.ufuns)
         ):
             print(
-                f"[bold red]Ordinal pareto outcomes do not match cardinal pareto outcomes[/bold red]\nOrdinal: {pareto_outcomes}\nCardinal: {pareto_save}"
+                f"You passed {len(agents)} agents for a negotiation with {len(current_scenario.ufuns)} ufuns. pass --extend-negotiators to adjust the agent number"
             )
+            exit(1)
+        if save_path:
+            current_scenario.dumpas(save_path, save_type, save_compact)
 
-        def find_rank_stats(name, f, ranks=ranks, **kwargs):
-            utils_indices = f(
-                frontier=pareto,
-                ufuns=ranks_ufuns,
-                outcome_space=current_scenario.outcome_space,
-                **kwargs,
-            )
-            pts = tuple((a, pareto_outcomes[b]) for a, b in utils_indices)
-            nutils = list(a for a, _ in utils_indices)
-            val = dist(ranks, nutils)
-            if not compact_stats:
-                stats_dict[f"{name} Points"] = pts
-            stats_dict[f"{name} Distance"] = val
-            if verbosity > 0:
-                print(f"{name} Points: {pts}")
-            print(f"{name} Distance: {val}")
-
-        for name, f, kwargs in (
-            ("Ordinal Nash", nash_points, dict()),
-            ("Ordinal Kalai", kalai_points, dict(subtract_reserved_value=True)),
-            (
-                "Ordinal Modified Kalai",
-                kalai_points,
-                dict(subtract_reserved_value=False),
-            ),
-            ("Ordinal Max Welfare", max_welfare_points, dict()),
-            # ("Ordinal Max Relative Welfare", max_relative_welfare_points),
-        ):
-            find_rank_stats(name, f, **kwargs)
-    if save_path:
-        save_path.mkdir(exist_ok=True, parents=True)
-        dump(results, save_path / "session.json")
-    if save_path and save_stats and (stats or rank_stats):
-        save_path.mkdir(exist_ok=True, parents=True)
-        dump(stats_dict, save_path / "stats.json")
-
-    if history:
-        if hasattr(session, "full_trace"):
-            hist = session.full_trace  # type: ignore full_trace is defined for SAO and GBM
-        else:
-            hist = session.history
-        print(hist)
-    if plot_path:
-        plot_path = Path(plot_path).absolute()
-        plot_path.parent.mkdir(parents=True, exist_ok=True)
-    elif save_path:
-        plot_path = save_path / "session.png"
-        plot_path.parent.mkdir(parents=True, exist_ok=True)
-    if plot:
-        if plot_backend:
-            matplotlib.use(plot_backend)
-            matplotlib.interactive(plot_interactive)
-        session.plot(
-            save_fig=plot_path is not None,
-            path=plot_path.parent if plot_path else None,
-            fig_name=plot_path.name if plot_path else None,
-            only2d=only2d,
-            show_agreement=agreement,
-            show_pareto_distance=pareto_dist,
-            show_nash_distance=nash_dist,
-            show_kalai_distance=kalai_dist,
-            show_max_welfare_distance=max_welfare_dist,
-            show_max_relative_welfare_distance=max_rel_welfare_dist,
-            show_end_reason=end_reason,
-            show_annotations=annotations,
-            show_reserved=show_reserved,
-            show_total_time=total_time,
-            show_relative_time=relative_time,
-            show_n_steps=show_n_steps,
-            fast=fast,
-            simple_offers_view=simple_offers_view,
+        session = current_scenario.make_session(
+            agents,
+            n_steps=steps,
+            time_limit=timelimit,
+            verbosity=verbosity - 1,
+            share_ufuns=share_ufuns,
+            share_reserved_values=share_reserved_values,
+            **dict(ignore_negotiator_exceptions=not raise_exceptions),
+            **kwargs,
         )
-        if plot_show:
-            mng = plt.get_current_fig_manager()
-            mng.resize(1024, 860)  # type: ignore
-            mng.full_screen_toggle()  # type: ignore
-            plt.show()
-    if save_path and save_history:
-        if hasattr(session, "full_trace"):
-            hist = pd.DataFrame(
-                session.full_trace,  # type: ignore
-                columns=[  # type: ignore
-                    "time",
-                    "relative_time",
-                    "step",
-                    "negotiator",
-                    "offer",
-                    "responses",
-                    "state",
-                ],
+        if len(session.negotiators) < 2:
+            print(
+                f"At least 2 negotiators are needed: Only the following could join {[_.__class__.__name__ for _ in session.negotiators]}"
             )
+            return
+        if verbosity > 0:
+            print(f"Adapters: {', '.join(adapter_names)}")
+        if verbosity > 1:
+            print(f"Negotiators: {', '.join(negotiator_names)}")
+        results = dict()
+        runner = session.run_with_progress if progress else session.run
+        _start = perf_counter()
+        state = runner()
+        duration = perf_counter() - _start
+        current_scenario = saved_scenario
+        if verbosity > 1:
+            print(f"Time: {humanize_time(duration, show_ms=True, show_us=True)}")
+            print(f"Steps: {session.current_step}")
+            print(state)
+        print(f"Agreement: {state.agreement}")
+        advantages = [
+            u(state.agreement)
+            - (u.reserved_value if u.reserved_value is not None else float("inf"))
+            for u in current_scenario.ufuns
+        ]
+        utilities_final = [u(state.agreement) for u in current_scenario.ufuns]
+        print(f"Utilities: {utilities_final}")
+        print(f"Advantages: {advantages}")
+        fast = (
+            fast or fast is None and current_scenario.outcome_space.cardinality > 10_000
+        )
+        if fast:
+            if simple_offers_view is None:
+                simple_offers_view = True
+        stats = (
+            stats
+            or stats is None
+            and current_scenario.outcome_space.cardinality <= 10_000
+        )
+        rank_stats = (
+            rank_stats
+            or rank_stats is None
+            and current_scenario.outcome_space.cardinality <= 1000
+        )
+
+        if stats or rank_stats:
+            pareto, pareto_outcomes = session.pareto_frontier()
         else:
-            hist = pd.DataFrame.from_records(
-                [
-                    serialize(_, python_class_identifier=python_class_identifier)
-                    for _ in session.history
-                ]
+            pareto, pareto_outcomes = tuple(), list()
+        results["negotiators"] = [
+            get_full_type_name(type(x)) for x in session.negotiators
+        ]
+        results["agreement"] = state.agreement
+        results["utilities"] = utilities_final
+        results["advantages"] = advantages
+        results["negotiator_names"] = [x.name for x in session.negotiators]
+        results["negotiator_ids"] = [x.id for x in session.negotiators]
+        results["final_state"] = serialize(
+            session.state, python_class_identifier=python_class_identifier
+        )
+        results["step"] = session.current_step
+        results["relative_time"] = session.relative_time
+        results["n_steps"] = session.n_steps
+        results["time_limit"] = session.time_limit
+        results["negotiator_times"] = session.negotiator_times
+        results["time"] = str(datetime.now())
+        stats_dict = dict()
+        if not compact_stats:
+            stats_dict["pareto"] = pareto
+            stats_dict["pareto_outcomes"] = pareto_outcomes
+
+        if stats:
+            utils = tuple(u(state.agreement) for u in current_scenario.ufuns)
+
+            def find_stats(name, f, utils=utils):
+                pts = f(frontier=pareto, frontier_outcomes=pareto_outcomes)
+                val = dist(utils, list(a for a, _ in pts))
+                if not compact_stats:
+                    stats_dict[f"{name} Points"] = pts
+                stats_dict[f"{name} Distance"] = val
+                if verbosity > 0:
+                    print(f"{name} Points: {pts}")
+                print(f"{name} Distance: {val}")
+
+            for name, f in (
+                ("Nash", session.nash_points),
+                ("Kalai", session.kalai_points),
+                ("Modified Kalai", session.modified_kalai_points),
+                ("Max Welfare", session.max_welfare_points),
+                # ("Max Relative Welfare", session.max_relative_welfare_points),
+            ):
+                find_stats(name, f)
+        if rank_stats:
+            ranks_ufuns = tuple(make_rank_ufun(_) for _ in current_scenario.ufuns)
+            ranks = tuple(_(state.agreement) for _ in ranks_ufuns)
+            print(f"Agreement Relative Ranks: {ranks}")
+            pareto_save = pareto_outcomes
+            alloutcomes = session.discrete_outcomes()
+            pareto, pareto_indices = pareto_frontier(
+                ranks_ufuns, outcomes=alloutcomes, sort_by_welfare=True
             )
-        dump(hist, save_path / "history.csv", compact=True, sort_keys=False)
+            pareto_outcomes = [alloutcomes[_] for _ in pareto_indices]
+            if len(pareto_save) != len(pareto_outcomes) or any(
+                a != b
+                for a, b in zip(
+                    sorted(pareto_save), sorted(pareto_outcomes), strict=True
+                )
+            ):
+                print(
+                    f"[bold red]Ordinal pareto outcomes do not match cardinal pareto outcomes[/bold red]\nOrdinal: {pareto_outcomes}\nCardinal: {pareto_save}"
+                )
+
+            def find_rank_stats(name, f, ranks=ranks, **kwargs):
+                utils_indices = f(
+                    frontier=pareto,
+                    ufuns=ranks_ufuns,
+                    outcome_space=current_scenario.outcome_space,
+                    **kwargs,
+                )
+                pts = tuple((a, pareto_outcomes[b]) for a, b in utils_indices)
+                nutils = list(a for a, _ in utils_indices)
+                val = dist(ranks, nutils)
+                if not compact_stats:
+                    stats_dict[f"{name} Points"] = pts
+                stats_dict[f"{name} Distance"] = val
+                if verbosity > 0:
+                    print(f"{name} Points: {pts}")
+                print(f"{name} Distance: {val}")
+
+            for name, f, kwargs in (
+                ("Ordinal Nash", nash_points, dict()),
+                ("Ordinal Kalai", kalai_points, dict(subtract_reserved_value=True)),
+                (
+                    "Ordinal Modified Kalai",
+                    kalai_points,
+                    dict(subtract_reserved_value=False),
+                ),
+                ("Ordinal Max Welfare", max_welfare_points, dict()),
+                # ("Ordinal Max Relative Welfare", max_relative_welfare_points),
+            ):
+                find_rank_stats(name, f, **kwargs)
+        if save_path:
+            save_path.mkdir(exist_ok=True, parents=True)
+            dump(results, save_path / "session.json")
+        if save_path and save_stats and (stats or rank_stats):
+            save_path.mkdir(exist_ok=True, parents=True)
+            dump(stats_dict, save_path / "stats.json")
+
+        if history:
+            if hasattr(session, "full_trace"):
+                hist = session.full_trace  # type: ignore full_trace is defined for SAO and GBM
+            else:
+                hist = session.history
+            print(hist)
+        if plot_path:
+            plot_path = Path(plot_path).absolute()
+            plot_path.parent.mkdir(parents=True, exist_ok=True)
+        elif save_path:
+            plot_path = save_path / "session.png"
+            plot_path.parent.mkdir(parents=True, exist_ok=True)
+        if plot:
+            if plot_backend:
+                matplotlib.use(plot_backend)
+                matplotlib.interactive(plot_interactive)
+            session.plot(
+                save_fig=plot_path is not None,
+                path=plot_path.parent if plot_path else None,
+                fig_name=plot_path.name if plot_path else None,
+                only2d=only2d,
+                show_agreement=agreement,
+                show_pareto_distance=pareto_dist,
+                show_nash_distance=nash_dist,
+                show_kalai_distance=kalai_dist,
+                show_max_welfare_distance=max_welfare_dist,
+                show_max_relative_welfare_distance=max_rel_welfare_dist,
+                show_end_reason=end_reason,
+                show_annotations=annotations,
+                show_reserved=show_reserved,
+                show_total_time=total_time,
+                show_relative_time=relative_time,
+                show_n_steps=show_n_steps,
+                fast=fast,
+                simple_offers_view=simple_offers_view,
+            )
+            if plot_show:
+                mng = plt.get_current_fig_manager()
+                mng.resize(1024, 860)  # type: ignore
+                mng.full_screen_toggle()  # type: ignore
+                plt.show()
+        if save_path and save_history:
+            if hasattr(session, "full_trace"):
+                hist = pd.DataFrame(
+                    session.full_trace,  # type: ignore
+                    columns=[  # type: ignore
+                        "time",
+                        "relative_time",
+                        "step",
+                        "negotiator",
+                        "offer",
+                        "responses",
+                        "state",
+                    ],
+                )
+            else:
+                hist = pd.DataFrame.from_records(
+                    [
+                        serialize(_, python_class_identifier=python_class_identifier)
+                        for _ in session.history
+                    ]
+                )
+            dump(hist, save_path / "history.csv", compact=True, sort_keys=False)
+    finally:
+        # Shutdown the Genius bridge if we started it
+        shutdown_genius_bridge_if_started()
 
 
 if __name__ == "__main__":

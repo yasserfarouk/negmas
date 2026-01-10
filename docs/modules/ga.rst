@@ -1,3 +1,3 @@
-.. automodapi:: negmas.ga
-      :members:
-      :show-inheritance:
+.. automodule:: negmas.ga
+   :members:
+   :show-inheritance:

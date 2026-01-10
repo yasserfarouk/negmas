@@ -1,3 +1,3 @@
-.. automodapi:: negmas.tournaments
-      :members:
-      :show-inheritance:
+.. automodule:: negmas.tournaments
+   :members:
+   :show-inheritance:

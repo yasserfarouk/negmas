@@ -16,7 +16,7 @@ In windows machines::
 
 $ where python
 
-In *nix/macos machines::
+In Unix/macOS machines::
 
 $ which python
 

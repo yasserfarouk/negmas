@@ -1,3 +1,3 @@
-.. automodapi:: negmas.serialization
-      :members:
-      :show-inheritance:
+.. automodule:: negmas.serialization
+   :members:
+   :show-inheritance:
