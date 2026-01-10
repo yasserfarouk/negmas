@@ -139,7 +139,8 @@ notebooks/tutorials/logs/*
 docs/api
 docs/api/*
 
-docs/_static/
+docs/_static/*
+!docs/_static/custom.css
 docs/_templates/
 notebooks/tutorials/logs/tournaments/*/
 venv/*

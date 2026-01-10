@@ -68,15 +68,17 @@ docs = [
     "nbsphinx>=0.9.6",
     "notebook==6.4.12",
     "pillow>=12.1.0",
+    "sphinx>=7.0.0",
     "sphinx-autodoc-annotation>=1.0.post1",
     "sphinx-autodoc-typehints>=2.0.0,<3.0.0; python_version < '3.11'",
     "sphinx-autodoc-typehints>=3.0.0; python_version >= '3.11'",
     "sphinx-automodapi>=0.18.0",
     "sphinx-tabs>=3.4.7",
     "sphinx-testing>=1.0.1",
+    "sphinx-copybutton>=0.5.2",
     "sphinxcontrib-fulltoc>=1.2.0",
     "sphinxcontrib-websupport>=2.0.0",
-    "sphinx-rtd-theme>=3.0.2",
+    "furo>=2024.1.29",
 ]
 dev = [
     "bumpversion>=0.6.0",
