@@ -1,3 +1,5 @@
+negmas.serialization
+====================
+
 .. automodule:: negmas.serialization
    :members:
-   :show-inheritance:

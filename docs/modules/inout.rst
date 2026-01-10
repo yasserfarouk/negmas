@@ -1,3 +1,5 @@
+negmas.inout
+============
+
 .. automodule:: negmas.inout
    :members:
-   :show-inheritance:

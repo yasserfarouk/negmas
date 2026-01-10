@@ -1,3 +1,5 @@
+negmas.gb
+=========
+
 .. automodule:: negmas.gb
    :members:
-   :show-inheritance:

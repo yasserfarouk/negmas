@@ -1,3 +1,5 @@
+negmas.tournaments
+==================
+
 .. automodule:: negmas.tournaments
    :members:
-   :show-inheritance:

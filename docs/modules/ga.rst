@@ -1,3 +1,5 @@
+negmas.ga
+=========
+
 .. automodule:: negmas.ga
    :members:
-   :show-inheritance:

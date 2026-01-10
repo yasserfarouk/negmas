@@ -175,7 +175,18 @@ autodoc_default_options = {
 }
 
 # Mock heavy imports that aren't needed for doc generation
-autodoc_mock_imports = ["py4j", "java"]
+autodoc_mock_imports = [
+    "py4j",
+    "java",
+    "torch",
+    "tensorflow",
+    "sklearn",
+    "joblib",
+    "dill",
+    "cloudpickle",
+    "ray",
+    "distributed",
+]
 
 # Don't set TYPE_CHECKING flag (can cause import issues)
 set_type_checking_flag = False

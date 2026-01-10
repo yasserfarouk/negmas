@@ -1,3 +1,5 @@
+negmas.helpers
+==============
+
 .. automodule:: negmas.helpers
    :members:
-   :show-inheritance:

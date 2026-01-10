@@ -1,3 +1,5 @@
+negmas.generics
+===============
+
 .. automodule:: negmas.generics
    :members:
-   :show-inheritance:

@@ -1,3 +1,5 @@
+negmas.preferences
+==================
+
 .. automodule:: negmas.preferences
    :members:
-   :show-inheritance:
