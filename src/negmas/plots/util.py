@@ -7,6 +7,9 @@ import pathlib
 import uuid
 from typing import TYPE_CHECKING, Callable, Protocol, TypeVar, Generic
 
+import plotly.graph_objects as go
+from plotly.subplots import make_subplots
+
 from negmas.common import MechanismState, NegotiatorMechanismInterface, TraceElement
 from negmas.gb import ResponseType
 from negmas.helpers.misc import make_callable
@@ -28,7 +31,7 @@ from negmas.preferences.ops import (
 )
 
 if TYPE_CHECKING:
-    from matplotlib.axes import Axes
+    pass
 
 __all__ = [
     "plot_offer_utilities",
@@ -71,134 +74,105 @@ def default_colorizer(t: TraceElement):
     )
 
 
-def scatter_with_transparency(x, y, color, alpha_arr, ax, **kwarg):
-    """Scatter with transparency.
+def hex_to_rgba(hex_color: str, alpha: float = 1.0) -> str:
+    """Convert hex color to rgba string.
 
     Args:
-        x: X.
-        y: Y.
-        color: Color.
-        alpha_arr: Alpha arr.
-        ax: Ax.
-        **kwarg: Additional keyword arguments.
+        hex_color: Hex color string (e.g., '#FF0000' or 'FF0000').
+        alpha: Alpha value (0.0 to 1.0).
+
+    Returns:
+        RGBA string for plotly.
     """
-    from matplotlib.colors import to_rgb  # , to_rgba
+    hex_color = hex_color.lstrip("#")
+    if len(hex_color) == 3:
+        hex_color = "".join([c * 2 for c in hex_color])
+    r, g, b = tuple(int(hex_color[i : i + 2], 16) for i in (0, 2, 4))
+    return f"rgba({r},{g},{b},{alpha})"
 
-    r, g, b = to_rgb(color)
-    # r, g, b, _ = to_rgba(color)
-    color = [(r, g, b, alpha) for alpha in alpha_arr]
-    ax.scatter(x, y, c=color, **kwarg)
 
-
-def make_transparent(color, alpha):
-    """Make transparent.
+def color_to_rgba(color, alpha: float = 1.0) -> str:
+    """Convert various color formats to rgba string.
 
     Args:
-        color: Color.
-        alpha: Alpha.
+        color: Color in various formats (hex, rgb tuple, rgba tuple, named color).
+        alpha: Alpha value (0.0 to 1.0).
+
+    Returns:
+        RGBA string for plotly.
     """
-    if alpha is None:
-        return color
-    from matplotlib.colors import to_rgb  # , to_rgba
-
-    r, g, b = to_rgb(color)
-    # r, g, b, _ = to_rgba(color)
-    return (r, g, b, alpha)
-
-
-def plot_with_trancparency(
-    x,
-    y,
-    alpha,
-    color,
-    marker,
-    ax,
-    label,
-    with_lines=False,
-    alpha_global=None,
-    linewidth: float | int = 1,
-    linestyle="solid",
-):
-    """Plot with trancparency.
-
-    Args:
-        x: X.
-        y: Y.
-        alpha: Alpha.
-        color: Color.
-        marker: Marker.
-        ax: Ax.
-        label: Label.
-        with_lines: With lines.
-        alpha_global: Alpha global.
-        linewidth: Linewidth.
-        linestyle: Linestyle.
-    """
-    if alpha_global is not None:
-        alpha = [alpha_global * _ for _ in alpha]
-    scatter_with_transparency(
-        x, y, label=label, color=color, alpha_arr=alpha, ax=ax, marker=marker
-    )
-    if with_lines:
-        ax.plot(
-            x,
-            y,
-            color=make_transparent(color, alpha_global),
-            marker=None,
-            linewidth=linewidth,
-            linestyle=linestyle,
-        )
+    if isinstance(color, str):
+        if color.startswith("#"):
+            return hex_to_rgba(color, alpha)
+        elif color.startswith("rgb"):
+            # Already in rgb/rgba format
+            if color.startswith("rgba"):
+                return color
+            # Convert rgb to rgba
+            values = color[4:-1].split(",")
+            return f"rgba({values[0]},{values[1]},{values[2]},{alpha})"
+        else:
+            # Named color - return as is with opacity
+            return color
+    elif isinstance(color, (tuple, list)):
+        if len(color) == 3:
+            # RGB tuple (0-1 range or 0-255 range)
+            r, g, b = color
+            if all(0 <= c <= 1 for c in color):
+                r, g, b = int(r * 255), int(g * 255), int(b * 255)
+            return f"rgba({r},{g},{b},{alpha})"
+        elif len(color) == 4:
+            # RGBA tuple
+            r, g, b, a = color
+            if all(0 <= c <= 1 for c in color):
+                r, g, b = int(r * 255), int(g * 255), int(b * 255)
+            return f"rgba({r},{g},{b},{a})"
+    return f"rgba(0,0,0,{alpha})"
 
 
-ALL_MARKERS = ["s", "o", "v", "^", "<", ">", "p", "P", "h", "H", "1", "2", "3", "4"]
+ALL_MARKERS = [
+    "square",
+    "circle",
+    "triangle-down",
+    "triangle-up",
+    "triangle-left",
+    "triangle-right",
+    "pentagon",
+    "hexagon",
+    "star",
+    "diamond",
+    "cross",
+    "x",
+    "hourglass",
+    "bowtie",
+]
 PROPOSALS_ALPHA = 0.7
 AGREEMENT_ALPHA = 0.9
 PARETO_ALPHA = 0.4
-NASH_ALPHA = 0.4
-KALAI_ALPHA = 0.4
-KS_ALPHA = 0.4
-# Marker constants - will be set lazily when matplotlib is loaded
-KALAI_MARKER: int | None = None
-KS_MARKER: int | None = None
-WELFARE_MARKER: int | None = None
-NASH_MARKER: int | None = None
-_MATPLOTLIB_MARKERS_LOADED = False
+NASH_ALPHA = 0.6
+KALAI_ALPHA = 0.6
+KS_ALPHA = 0.6
+RESERVED_ALPHA = 0.08
+WELFARE_ALPHA = 0.6
 
-
-def _ensure_matplotlib_markers():
-    """Load matplotlib marker constants lazily."""
-    global \
-        _MATPLOTLIB_MARKERS_LOADED, \
-        KALAI_MARKER, \
-        KS_MARKER, \
-        WELFARE_MARKER, \
-        NASH_MARKER
-    if not _MATPLOTLIB_MARKERS_LOADED:
-        from matplotlib.markers import CARETDOWN, CARETLEFT, CARETRIGHT, CARETUP
-
-        KALAI_MARKER = CARETDOWN
-        KS_MARKER = CARETUP
-        WELFARE_MARKER = CARETRIGHT
-        NASH_MARKER = CARETLEFT
-        _MATPLOTLIB_MARKERS_LOADED = True
-
+# Marker symbols for special points
+KALAI_MARKER = "triangle-down"
+KS_MARKER = "triangle-up"
+WELFARE_MARKER = "triangle-right"
+NASH_MARKER = "triangle-left"
 
 KALAI_COLOR = "green"
 KS_COLOR = "cyan"
 WELFARE_COLOR = "blue"
 NASH_COLOR = "brown"
-RESERVED_ALPHA = 0.08
-WELFARE_ALPHA = 0.6
-NASH_ALPHA = 0.6
-KALAI_ALPHA = 0.6
-KS_ALPHA = 0.6
-AGREEMENT_SCALE = 7
-NASH_SCALE = 3
-KALAI_SCALE = 3
-KS_SCALE = 3
-WELFARE_SCALE = 3
-OUTCOMES_SCALE = 0.5
-PARETO_SCALE = 1.0
+
+AGREEMENT_SCALE = 20
+NASH_SCALE = 12
+KALAI_SCALE = 12
+KS_SCALE = 12
+WELFARE_SCALE = 12
+OUTCOMES_SCALE = 6
+PARETO_SCALE = 8
 
 TNegotiator = TypeVar("TNegotiator", bound=Negotiator)
 TNMI = TypeVar("TNMI", bound=NegotiatorMechanismInterface, covariant=True)
@@ -297,15 +271,49 @@ class PlottableMechanism(Protocol, Generic[TNMI, TNegotiator]):
         ...
 
 
-DEFAULT_COLORMAP = "jet"
+DEFAULT_COLORMAP = "Jet"
+
+# Plotly color scales
+PLOTLY_COLORMAPS = {
+    "jet": "Jet",
+    "viridis": "Viridis",
+    "plasma": "Plasma",
+    "inferno": "Inferno",
+    "magma": "Magma",
+    "cividis": "Cividis",
+    "turbo": "Turbo",
+}
 
 
-def get_cmap(n, name=DEFAULT_COLORMAP):
-    """Returns a function that maps each index in 0, 1, ..., n-1 to a distinct
-    RGB color; the keyword argument name must be a standard mpl colormap name."""
-    import matplotlib.pyplot as plt
+def get_cmap_colors(n: int, name: str = DEFAULT_COLORMAP) -> list[str]:
+    """Returns a list of n distinct colors from a colormap.
 
-    return plt.colormaps.get_cmap(name).resampled(n)
+    Args:
+        n: Number of colors to generate.
+        name: Colormap name.
+
+    Returns:
+        List of color strings.
+    """
+    import plotly.express as px
+
+    # Map common matplotlib colormap names to plotly equivalents
+    name_lower = name.lower()
+    if name_lower in PLOTLY_COLORMAPS:
+        name = PLOTLY_COLORMAPS[name_lower]
+
+    # Get colors from plotly's color scales
+    try:
+        colors = px.colors.sample_colorscale(
+            name, [i / (n - 1) if n > 1 else 0.5 for i in range(n)]
+        )
+    except Exception:
+        # Fallback to qualitative colors
+        colors = px.colors.qualitative.Plotly[:n]
+        if len(colors) < n:
+            # Cycle through if not enough colors
+            colors = [colors[i % len(colors)] for i in range(n)]
+    return colors
 
 
 def make_colors_and_markers(colors, markers, n: int, colormap=DEFAULT_COLORMAP):
@@ -318,8 +326,7 @@ def make_colors_and_markers(colors, markers, n: int, colormap=DEFAULT_COLORMAP):
         colormap: Colormap.
     """
     if not colors:
-        cmap = get_cmap(n, colormap)
-        colors = [cmap(i) for i in range(n)]
+        colors = get_cmap_colors(n, colormap)
     if not markers:
         markers = [ALL_MARKERS[i % len(ALL_MARKERS)] for i in range(n)]
     return colors, markers
@@ -335,19 +342,21 @@ def plot_offer_utilities(
     colors: list | None = None,
     markers: list | None = None,
     colormap: str = DEFAULT_COLORMAP,
-    ax: Axes | None = None,  # type: ignore
-    sharey=False,
+    fig: go.Figure | None = None,
+    row: int = 1,
+    col: int = 1,
+    sharey: bool = False,
     xdim: str = "relative_time",
     ylimits: tuple[float, float] | None = None,
-    show_legend=True,
-    show_x_label=True,
-    ignore_markers_limit=200,
-    show_reserved=True,
+    show_legend: bool = True,
+    show_x_label: bool = True,
+    ignore_markers_limit: int = 200,
+    show_reserved: bool = True,
     colorizer: Colorizer | None = None,
     first_color_index: int = 0,
     mark_offers_view: bool = True,
 ):
-    """Plot offer utilities.
+    """Plot offer utilities using plotly.
 
     Args:
         trace: Trace.
@@ -359,10 +368,12 @@ def plot_offer_utilities(
         colors: Colors.
         markers: Markers.
         colormap: Colormap.
-        ax: Ax.
-        sharey: Sharey.
-        xdim: Xdim.
-        ylimits: Ylimits.
+        fig: Plotly figure (if None, creates new one).
+        row: Row in subplot grid.
+        col: Column in subplot grid.
+        sharey: Share y axis.
+        xdim: X dimension.
+        ylimits: Y limits.
         show_legend: Show legend.
         show_x_label: Show x label.
         ignore_markers_limit: Ignore markers limit.
@@ -371,20 +382,12 @@ def plot_offer_utilities(
         first_color_index: First color index.
         mark_offers_view: Mark offers view.
     """
-    import matplotlib.pyplot as plt
-
     if colorizer is None:
         colorizer = default_colorizer
 
     map_ = make_callable(name_map)
-    if ax is None:
-        _, ax = plt.subplots()  # type: ignore
-    ax: Axes
-    one_y = True
-    axes = [ax] * len(plotting_negotiators)
-    if not sharey and len(plotting_negotiators) == 2:
-        axes = [ax, ax.twinx()]
-        one_y = False
+    if fig is None:
+        fig = go.Figure()
 
     colors, markers = make_colors_and_markers(
         colors, markers, len(plotting_negotiators), colormap
@@ -411,21 +414,8 @@ def plot_offer_utilities(
     simple_offers_view = (
         len(plotting_negotiators) == 1 and plotting_negotiators[0] == negotiator
     )
-    # reorder to plot the negotiator last if it was in the plotting-negotiators
-    # if negotiator in plotting_negotiators:
-    #     indx = plotting_negotiators.index(negotiator)
-    #     plotting_negotiators = (
-    #         plotting_negotiators[:indx]
-    #         + plotting_negotiators[indx + 1 :]
-    #         + [plotting_negotiators[indx]]
-    #     )
-    #     axes = axes[:indx] + axes[indx + 1 :] + [axes[indx]]
-    #     plotting_ufuns = (
-    #         plotting_ufuns[:indx] + plotting_ufuns[indx + 1 :] + [plotting_ufuns[indx]]
-    #     )
-    #     markers = markers[:indx] + markers[indx + 1 :] + [markers[indx]]
-    #     colors = colors[:indx] + colors[indx + 1 :] + [colors[indx]]
-    for i, (u, neg, a) in enumerate(zip(plotting_ufuns, plotting_negotiators, axes)):
+
+    for i, (u, neg) in enumerate(zip(plotting_ufuns, plotting_negotiators)):
         if u is None:
             continue
         name = map_(neg)
@@ -439,39 +429,41 @@ def plot_offer_utilities(
         if not ignore_none_offers:
             xx, aa = x, alphas
         else:
-            good_indices = [i for i, _ in enumerate(y) if _ is not None]
+            good_indices = [j for j, _ in enumerate(y) if _ is not None]
             xx = [x[_] for _ in good_indices]
             aa = [alphas[_] for _ in good_indices]
             y = [y[_] for _ in good_indices]
         thecolor = colors[i % len(colors)]
-        # a.plot(
-        #     xx,
-        #     y,
-        #     label=f"{name} ({i})",
-        #     color=thecolor,
-        #     linestyle="solid" if neg == negotiator else "dotted",
-        #     linewidth=2 if neg == negotiator else 1,
-        #     marker=None,
-        # )
-        plot_with_trancparency(
-            x=xx,
-            y=y,
-            alpha=aa,
-            color=thecolor,
-            marker=markers[i % len(markers)]
-            if len(trace_info) < ignore_markers_limit and neg == negotiator
-            else "",
-            label="Utility" if simple_offers_view else name,
-            ax=a,
-            with_lines=True,
-            linestyle="solid" if neg == negotiator else ":",
-            linewidth=1 if neg == negotiator else 0.5,
+
+        # Add line trace
+        line_style = "solid" if neg == negotiator else "dot"
+        line_width = 1 if neg == negotiator else 0.5
+        fig.add_trace(
+            go.Scatter(
+                x=xx,
+                y=y,
+                mode="lines+markers"
+                if len(trace_info) < ignore_markers_limit and neg == negotiator
+                else "lines",
+                name="Utility" if simple_offers_view else name,
+                line=dict(color=thecolor, width=line_width, dash=line_style),
+                marker=dict(
+                    symbol=markers[i % len(markers)],
+                    size=6,
+                    color=[color_to_rgba(thecolor, a) for a in aa],
+                ),
+                legendgroup=f"group_{i}",
+                showlegend=show_legend,
+            ),
+            row=row,
+            col=col,
         )
+
         if mark_offers_view and neg == negotiator:
             mark_map = dict(
-                errors=dict(marker="x", s=110, color="red"),
-                agreement=dict(marker="*", s=110, color="black"),
-                timedout=dict(marker="o", s=110, color="black"),
+                errors=dict(marker="x", size=15, color="red"),
+                agreement=dict(marker="star", size=15, color="black"),
+                timedout=dict(marker="circle", size=15, color="black"),
             )
             for state, plotinfo in mark_map.items():
                 elements = [
@@ -480,47 +472,52 @@ def plot_offer_utilities(
                 if not elements:
                     continue
                 elements = list(set(elements))
-                a.scatter(
-                    [_[0] for _ in elements],
-                    [float(_[1]) for _ in elements],
-                    color=plotinfo.get("color", thecolor),
-                    marker=plotinfo["marker"],  # type: ignore
-                    s=plotinfo["s"],
+                fig.add_trace(
+                    go.Scatter(
+                        x=[_[0] for _ in elements],
+                        y=[float(_[1]) if _[1] is not None else 0 for _ in elements],
+                        mode="markers",
+                        marker=dict(
+                            symbol=plotinfo["marker"],
+                            size=plotinfo["size"],
+                            color=plotinfo.get("color", thecolor),
+                        ),
+                        showlegend=False,
+                    ),
+                    row=row,
+                    col=col,
                 )
+
         if reserved:
-            a.plot(
-                xx,
-                reserved,
-                # label=f"{name} ({i})",
-                color=colors[i % len(colors)],
-                linestyle="solid" if neg == negotiator else "dotted",
-                linewidth=0.5,
-            )
-        if ylimits is not None:
-            a.set_ylim(ylimits)
-        a.set_ylabel(f"{name} ({i})" if not one_y or simple_offers_view else "utility")
-        if show_legend and len(plotting_negotiators) == 2:
-            a.legend(
-                loc=f"upper {'left' if not i else 'right'}",
-                bbox_to_anchor=(0.0, 1.4, 1.0, 0.12),
+            fig.add_trace(
+                go.Scatter(
+                    x=xx,
+                    y=reserved,
+                    mode="lines",
+                    line=dict(
+                        color=thecolor,
+                        width=0.5,
+                        dash="solid" if neg == negotiator else "dot",
+                    ),
+                    showlegend=False,
+                ),
+                row=row,
+                col=col,
             )
 
-    axes[0].set_title(f"{map_(negotiator)} Offers")
-    if show_legend and len(plotting_negotiators) != 2:
-        ax.legend(
-            bbox_to_anchor=(0.0, 1.22, 1.0, 0.102),
-            loc="upper center",
-            ncol=2,
-            mode="expand",
-            borderaxespad=0.0,
-            labelcolor=colors,
-            # labelcolor="linecolor",
-            # draggablebool=True,
-        )
+    # Update axes
+    ylabel = (
+        f"{map_(negotiator)} ({plotting_negotiators.index(negotiator)})"
+        if negotiator in plotting_negotiators and not simple_offers_view
+        else "utility"
+    )
+    fig.update_yaxes(title_text=ylabel, row=row, col=col)
+    if ylimits is not None:
+        fig.update_yaxes(range=ylimits, row=row, col=col)
     if show_x_label:
-        ax.set_xlabel(xdim)
+        fig.update_xaxes(title_text=xdim, row=row, col=col)
 
-    plt.tight_layout(w_pad=1.08, h_pad=1.12)
+    return fig
 
 
 def plot_2dutils(
@@ -548,20 +545,22 @@ def plot_2dutils(
     mark_max_welfare_points: bool = True,
     show_max_relative_welfare_distance: bool = True,
     show_reserved: bool = True,
-    show_total_time=True,
-    show_relative_time=True,
-    show_n_steps=True,
+    show_total_time: bool = True,
+    show_relative_time: bool = True,
+    show_n_steps: bool = True,
     end_reason: str | None = None,
     extra_annotation: str | None = None,
     name_map: dict[str, str] | Callable[[str], str] | None = None,
     colors: list | None = None,
     markers: list[str] | None = None,
     colormap: str = DEFAULT_COLORMAP,
-    ax: Axes | None = None,  # type: ignore
+    fig: go.Figure | None = None,
+    row: int = 1,
+    col: int = 1,
     colorizer: Colorizer | None = None,
     fast: bool = False,
 ):
-    """Plot 2dutils.
+    """Plot 2D utilities using plotly.
 
     Args:
         trace: Trace.
@@ -597,22 +596,18 @@ def plot_2dutils(
         colors: Colors.
         markers: Markers.
         colormap: Colormap.
-        ax: Ax.
+        fig: Plotly figure.
+        row: Row in subplot.
+        col: Column in subplot.
         colorizer: Colorizer.
-        fast: Fast.
+        fast: Fast mode.
     """
-    import matplotlib.patches as mpatches
-    import matplotlib.pyplot as plt
-
-    # Ensure matplotlib marker constants are loaded
-    _ensure_matplotlib_markers()
-
     if not colorizer:
         colorizer = default_colorizer
 
-    if ax is None:
-        _, ax = plt.subplots()  # type: ignore
-    ax: Axes
+    if fig is None:
+        fig = go.Figure()
+
     map_ = make_callable(name_map)
     if not outcomes:
         outcome_space = os_or_none(outcome_space, issues, outcomes)
@@ -626,7 +621,6 @@ def plot_2dutils(
         offering_negotiators = list({_.negotiator for _ in trace})
 
     utils = [tuple(f(o) for f in plotting_ufuns) for o in outcomes]
-    yrange = max(_[1] for _ in utils) - min(_[1] for _ in utils)
     colors, markers = make_colors_and_markers(
         colors, markers, len(offering_negotiators), colormap
     )
@@ -635,20 +629,25 @@ def plot_2dutils(
     unknown_agreement_utility = None in agreement_utility
     if unknown_agreement_utility:
         show_pareto_distance = show_nash_distance = False
-    default_marker_size = plt.rcParams.get("lines.markersize", 20) ** 2
+
     if mark_all_outcomes:
-        ax.scatter(
-            [_[0] for _ in utils],
-            [_[1] for _ in utils],
-            color="gray",
-            marker=".",
-            s=int(default_marker_size * OUTCOMES_SCALE),
+        fig.add_trace(
+            go.Scatter(
+                x=[_[0] for _ in utils],
+                y=[_[1] for _ in utils],
+                mode="markers",
+                marker=dict(color="gray", symbol="circle", size=OUTCOMES_SCALE),
+                name="Outcomes",
+                showlegend=True,
+            ),
+            row=row,
+            col=col,
         )
+
     agent_names = [map_(_) for _ in plotting_negotiators]
     if fast:
         frontier, frontier_outcome = [], []
         frontier_indices = []
-        frontier_outcome = [frontier_outcome[i] for i in frontier_indices]
         nash_pts = []
         kalai_pts = []
         ks_pts = []
@@ -692,23 +691,32 @@ def plot_2dutils(
         show_max_welfare_distance = False
     if not mrwelfare_pts:
         show_max_relative_welfare_distance = False
+
     pareto_distance = float("inf")
     nash_distance, kalai_distance = float("inf"), float("inf")
     ks_distance = float("inf")
     max_welfare_distance, max_relative_welfare_distance = float("inf"), float("inf")
+
     f1, f2 = [_[0] for _ in frontier], [_[1] for _ in frontier]
     if mark_pareto_points:
-        ax.scatter(
-            f1,
-            f2,
-            c=[(238 / 255.0, 232 / 255.0, 170 / 255.0)] * len(f1),
-            marker="o",
-            s=int(default_marker_size * PARETO_SCALE),
-            alpha=PARETO_ALPHA,
-            label="Pareto",
+        fig.add_trace(
+            go.Scatter(
+                x=f1,
+                y=f2,
+                mode="markers",
+                marker=dict(
+                    color="rgb(238,232,170)",
+                    symbol="circle",
+                    size=PARETO_SCALE,
+                    opacity=PARETO_ALPHA,
+                ),
+                name="Pareto",
+                showlegend=True,
+            ),
+            row=row,
+            col=col,
         )
-    ax.set_xlabel(agent_names[0] + "(0) utility")
-    ax.set_ylabel(agent_names[1] + "(1) utility")
+
     cu = agreement_utility
     if not unknown_agreement_utility and not fast:
         for nash, _ in nash_pts:
@@ -739,47 +747,60 @@ def plot_2dutils(
             dist = math.sqrt((pu[0] - cu[0]) ** 2 + (pu[1] - cu[1]) ** 2)
             if dist < pareto_distance:
                 pareto_distance = dist
+
     if trace:
         n_steps = trace[-1].step + 1
         relative_time = trace[-1].relative_time
         total_time = trace[-1].time
     else:
         n_steps = relative_time = total_time = 0
-    txt = ""
+
+    # Build annotation text
+    txt_lines = []
     if show_agreement:
-        txt += f"Agreement:{agreement}\n"
+        txt_lines.append(f"Agreement:{agreement}")
     if not fast and show_pareto_distance and agreement is not None:
-        txt += f"Pareto-distance={pareto_distance:5.2}\n"
+        txt_lines.append(f"Pareto-distance={pareto_distance:5.2f}")
     if not fast and show_nash_distance and agreement is not None:
-        txt += f"Nash-distance={nash_distance:5.2}\n"
+        txt_lines.append(f"Nash-distance={nash_distance:5.2f}")
     if not fast and show_kalai_distance and agreement is not None:
-        txt += f"Kalai-distance={kalai_distance:5.2}\n"
+        txt_lines.append(f"Kalai-distance={kalai_distance:5.2f}")
     if not fast and show_ks_distance and agreement is not None:
-        txt += f"KS-distance={ks_distance:5.2}\n"
+        txt_lines.append(f"KS-distance={ks_distance:5.2f}")
     if not fast and show_max_welfare_distance and agreement is not None:
-        txt += f"MaxWelfare-distance={max_welfare_distance:5.2}\n"
+        txt_lines.append(f"MaxWelfare-distance={max_welfare_distance:5.2f}")
     if not fast and show_max_relative_welfare_distance and agreement is not None:
-        txt += f"MaxRelativeWelfare-distance={max_relative_welfare_distance:5.2}\n"
+        txt_lines.append(
+            f"MaxRelativeWelfare-distance={max_relative_welfare_distance:5.2f}"
+        )
     if show_relative_time and relative_time:
-        txt += f"Relative Time={relative_time:5.2}\n"
+        txt_lines.append(f"Relative Time={relative_time:5.2f}")
     if show_total_time:
-        txt += f"Total Time={humanize_time(total_time, show_ms=True)}\n"
+        txt_lines.append(f"Total Time={humanize_time(total_time, show_ms=True)}")
     if show_n_steps:
-        txt += f"N. Steps={n_steps}\n"
+        txt_lines.append(f"N. Steps={n_steps}")
     if end_reason:
-        txt += f"{end_reason}\n"
+        txt_lines.append(f"{end_reason}")
     if extra_annotation:
-        txt += f"{extra_annotation}\n"
+        txt_lines.append(f"{extra_annotation}")
 
-    ax.text(
-        0.05,
-        0.05,
-        txt,
-        verticalalignment="bottom",
-        transform=ax.transAxes,
-        weight="bold",
-    )
+    if txt_lines:
+        fig.add_annotation(
+            x=0.05,
+            y=0.05,
+            xref="x domain",
+            yref="y domain",
+            text="<br>".join(txt_lines),
+            showarrow=False,
+            font=dict(size=10, color="black"),
+            align="left",
+            xanchor="left",
+            yanchor="bottom",
+            row=row,
+            col=col,
+        )
 
+    # Draw reserved value regions
     if show_reserved:
         ranges = [
             plotting_ufuns[_].minmax(outcome_space=outcome_space)
@@ -787,202 +808,185 @@ def plot_2dutils(
         ]
         for i, (mn, mx) in enumerate(ranges):
             if any(_ is None or not math.isfinite(_) for _ in (mn, mx)):
-                x = []
+                x_vals = []
                 for a, neg in enumerate(offering_negotiators):
                     negtrace = [_ for _ in trace if _.negotiator == neg]
-                    x += [plotting_ufuns[i](_.offer) for _ in negtrace]
-                ranges[i] = (min(x), max(x))
+                    x_vals += [plotting_ufuns[i](_.offer) for _ in negtrace]
+                if x_vals:
+                    ranges[i] = (min(x_vals), max(x_vals))
+                else:
+                    ranges[i] = (0, 1)
+
         for i, (mn, mx) in enumerate(ranges):
             r = plotting_ufuns[i].reserved_value
             if r is None or not math.isfinite(r):
                 r = mn
             if i == 0:
-                pt = (r, ranges[1 - i][0])
-                width = mx - r
-                height = ranges[1 - i][1] - ranges[1 - i][0]
+                x0, x1 = r, mx
+                y0, y1 = ranges[1 - i][0], ranges[1 - i][1]
             else:
-                pt = (ranges[1 - i][0], r)
-                height = mx - r
-                width = ranges[1 - i][1] - ranges[1 - i][0]
+                x0, x1 = ranges[1 - i][0], ranges[1 - i][1]
+                y0, y1 = r, mx
 
-            ax.add_patch(
-                mpatches.Rectangle(
-                    pt,
-                    width=width,
-                    height=height,
-                    fill=True,
-                    color=colors[i % len(colors)],
-                    alpha=RESERVED_ALPHA,
-                    linewidth=0,
-                )
+            fig.add_shape(
+                type="rect",
+                x0=x0,
+                y0=y0,
+                x1=x1,
+                y1=y1,
+                fillcolor=color_to_rgba(colors[i % len(colors)], RESERVED_ALPHA),
+                line=dict(width=0),
+                layer="below",
+                row=row,
+                col=col,
             )
+
+    # Plot offers from each negotiator
     for a, neg in enumerate(offering_negotiators):
         negtrace = [_ for _ in trace if _.negotiator == neg]
-        x = [plotting_ufuns[0](_.offer) for _ in negtrace]  # type: ignore
-        y = [plotting_ufuns[1](_.offer) for _ in negtrace]  # type: ignore
+        x = [plotting_ufuns[0](_.offer) for _ in negtrace]
+        y = [plotting_ufuns[1](_.offer) for _ in negtrace]
         alphas = [colorizer(_) for _ in negtrace]
-        # (ax.scatter if not with_lines else ax.plot)(
-        plot_with_trancparency(
-            x=x,
-            y=y,
-            alpha=alphas,
-            color=colors[a % len(colors)],
-            alpha_global=PROPOSALS_ALPHA,
-            label=f"{map_(neg)}",
-            ax=ax,
-            marker=markers[a % len(markers)],
-            with_lines=with_lines,
-            linestyle=":",
+
+        marker_colors = [
+            color_to_rgba(colors[a % len(colors)], PROPOSALS_ALPHA * alpha)
+            for alpha in alphas
+        ]
+
+        mode = "lines+markers" if with_lines else "markers"
+        fig.add_trace(
+            go.Scatter(
+                x=x,
+                y=y,
+                mode=mode,
+                name=f"{map_(neg)}",
+                marker=dict(
+                    symbol=markers[a % len(markers)], size=8, color=marker_colors
+                ),
+                line=dict(color=colors[a % len(colors)], width=1, dash="dot")
+                if with_lines
+                else None,
+                showlegend=True,
+            ),
+            row=row,
+            col=col,
         )
-    # if not fast and frontier:
-    #     welfare, mx = [frontier[0]], sum(frontier[0])
-    #     for u in frontier[1:]:
-    #         if sum(u) < mx - 1e-12:
-    #             break
-    #         welfare.append(u)
-    #     ax.scatter(
-    #         [_[0] for _ in welfare],
-    #         [_[1] for _ in welfare],
-    #         color="magenta",
-    #         label=f"Max. Welfare",
-    #         marker="s",
-    #         alpha=WELFARE_ALPHA,
-    #         s=int(default_marker_size * WELFARE_SCALE),
-    #     )
-    #     if show_annotations:
-    #         for f in welfare:
-    #             ax.annotate(
-    #                 "Max. Welfare",
-    #                 xy=f,  # type: ignore (theta, radius)
-    #                 xytext=(
-    #                     f[0] + 0.02,
-    #                     f[1] + 0.02 * yrange,
-    #                 ),
-    #                 horizontalalignment="left",
-    #                 verticalalignment="bottom",
-    #             )
-    #
+
+    # Plot special points
     if not fast:
         if mwelfare_pts and mark_max_welfare_points:
-            ax.scatter(
-                [mwelfare[0] for mwelfare, _ in mwelfare_pts],
-                [mwelfare[1] for mwelfare, _ in mwelfare_pts],
-                color=WELFARE_COLOR,
-                label="Max Welfare Points",
-                marker=WELFARE_MARKER,
-                alpha=NASH_ALPHA,
-                s=int(default_marker_size * WELFARE_SCALE),
+            fig.add_trace(
+                go.Scatter(
+                    x=[mwelfare[0] for mwelfare, _ in mwelfare_pts],
+                    y=[mwelfare[1] for mwelfare, _ in mwelfare_pts],
+                    mode="markers+text" if show_annotations else "markers",
+                    marker=dict(
+                        color=WELFARE_COLOR,
+                        symbol=WELFARE_MARKER,
+                        size=WELFARE_SCALE,
+                        opacity=WELFARE_ALPHA,
+                    ),
+                    text=["Max Welfare Point"] * len(mwelfare_pts)
+                    if show_annotations
+                    else None,
+                    textposition="top right",
+                    name="Max Welfare Points",
+                    showlegend=True,
+                ),
+                row=row,
+                col=col,
             )
-            if show_annotations:
-                for mwelfare, _ in mwelfare_pts:
-                    ax.annotate(
-                        "Max Welfare Point",
-                        xy=mwelfare,  # type: ignore (theta, radius)
-                        xytext=(
-                            mwelfare[0] + 0.02,
-                            mwelfare[1] - 0.02 * yrange,
-                        ),  # fraction, fraction
-                        horizontalalignment="left",
-                        verticalalignment="bottom",
-                    )
+
         if kalai_pts and mark_kalai_points:
-            ax.scatter(
-                [kalai[0] for kalai, _ in kalai_pts],
-                [kalai[1] for kalai, _ in kalai_pts],
-                color=KALAI_COLOR,
-                label="Kalai Point",
-                marker=KALAI_MARKER,
-                alpha=KALAI_ALPHA,
-                s=int(default_marker_size * KALAI_SCALE),
+            fig.add_trace(
+                go.Scatter(
+                    x=[kalai[0] for kalai, _ in kalai_pts],
+                    y=[kalai[1] for kalai, _ in kalai_pts],
+                    mode="markers+text" if show_annotations else "markers",
+                    marker=dict(
+                        color=KALAI_COLOR,
+                        symbol=KALAI_MARKER,
+                        size=KALAI_SCALE,
+                        opacity=KALAI_ALPHA,
+                    ),
+                    text=["Kalai Point"] * len(kalai_pts) if show_annotations else None,
+                    textposition="top right",
+                    name="Kalai Point",
+                    showlegend=True,
+                ),
+                row=row,
+                col=col,
             )
-            if show_annotations:
-                for kalai, _ in kalai_pts:
-                    ax.annotate(
-                        "Kalai Point",
-                        xy=kalai,  # type: ignore (theta, radius)
-                        xytext=(
-                            kalai[0] + 0.02,
-                            kalai[1] - 0.02 * yrange,
-                        ),  # fraction, fraction
-                        horizontalalignment="left",
-                        verticalalignment="bottom",
-                    )
 
         if ks_pts and mark_ks_points:
-            ax.scatter(
-                [ks[0] for ks, _ in ks_pts],
-                [ks[1] for ks, _ in ks_pts],
-                color=KS_COLOR,
-                label="KS Point",
-                marker=KS_MARKER,
-                alpha=KS_ALPHA,
-                s=int(default_marker_size * KS_SCALE),
+            fig.add_trace(
+                go.Scatter(
+                    x=[ks[0] for ks, _ in ks_pts],
+                    y=[ks[1] for ks, _ in ks_pts],
+                    mode="markers+text" if show_annotations else "markers",
+                    marker=dict(
+                        color=KS_COLOR,
+                        symbol=KS_MARKER,
+                        size=KS_SCALE,
+                        opacity=KS_ALPHA,
+                    ),
+                    text=["KS Point"] * len(ks_pts) if show_annotations else None,
+                    textposition="top right",
+                    name="KS Point",
+                    showlegend=True,
+                ),
+                row=row,
+                col=col,
             )
-            if show_annotations:
-                for ks, _ in ks_pts:
-                    ax.annotate(
-                        "KS Point",
-                        xy=ks,  # type: ignore (theta, radius)
-                        xytext=(
-                            ks[0] + 0.02,
-                            ks[1] - 0.02 * yrange,
-                        ),  # fraction, fraction
-                        horizontalalignment="left",
-                        verticalalignment="bottom",
-                    )
+
         if nash_pts and mark_nash_points:
-            ax.scatter(
-                [nash[0] for nash, _ in nash_pts],
-                [nash[1] for nash, _ in nash_pts],
-                color=NASH_COLOR,
-                label="Nash Point",
-                marker=NASH_MARKER,
-                alpha=NASH_ALPHA,
-                s=int(default_marker_size * NASH_SCALE),
+            fig.add_trace(
+                go.Scatter(
+                    x=[nash[0] for nash, _ in nash_pts],
+                    y=[nash[1] for nash, _ in nash_pts],
+                    mode="markers+text" if show_annotations else "markers",
+                    marker=dict(
+                        color=NASH_COLOR,
+                        symbol=NASH_MARKER,
+                        size=NASH_SCALE,
+                        opacity=NASH_ALPHA,
+                    ),
+                    text=["Nash Point"] * len(nash_pts) if show_annotations else None,
+                    textposition="top right",
+                    name="Nash Point",
+                    showlegend=True,
+                ),
+                row=row,
+                col=col,
             )
-            if show_annotations:
-                for nash, _ in nash_pts:
-                    ax.annotate(
-                        "Nash Point",
-                        xy=nash,  # type: ignore (theta, radius)
-                        xytext=(
-                            nash[0] + 0.02,
-                            nash[1] - 0.02 * yrange,
-                        ),  # fraction, fraction
-                        horizontalalignment="left",
-                        verticalalignment="bottom",
-                    )
 
+    # Plot agreement
     if agreement is not None:
-        ax.scatter(
-            [plotting_ufuns[0](agreement)],
-            [plotting_ufuns[1](agreement)],  # type: ignore
-            color="black",
-            marker="*",
-            s=int(default_marker_size * AGREEMENT_SCALE),
-            alpha=AGREEMENT_ALPHA,
-            label="Agreement",
+        fig.add_trace(
+            go.Scatter(
+                x=[plotting_ufuns[0](agreement)],
+                y=[plotting_ufuns[1](agreement)],
+                mode="markers+text" if show_annotations else "markers",
+                marker=dict(
+                    color="black",
+                    symbol="star",
+                    size=AGREEMENT_SCALE,
+                    opacity=AGREEMENT_ALPHA,
+                ),
+                text=["Agreement"] if show_annotations else None,
+                textposition="top right",
+                name="Agreement",
+                showlegend=True,
+            ),
+            row=row,
+            col=col,
         )
-        if show_annotations:
-            ax.annotate(
-                "Agreement",
-                xy=agreement_utility,  # type: ignore
-                xytext=(
-                    agreement_utility[0] + 0.02,
-                    agreement_utility[1] + 0.02,
-                ),  # fraction, fraction
-                horizontalalignment="left",
-                verticalalignment="bottom",
-            )
 
-    if not fast:
-        ax.legend(
-            bbox_to_anchor=(0.0, 1.02, 1.0, 0.102),
-            loc="lower left",
-            ncol=2,
-            mode="expand",
-            borderaxespad=0.0,
-        )
+    # Update axes
+    fig.update_xaxes(title_text=agent_names[0] + "(0) utility", row=row, col=col)
+    fig.update_yaxes(title_text=agent_names[1] + "(1) utility", row=row, col=col)
+
+    return fig
 
 
 def plot_offline_run(
@@ -1012,14 +1016,14 @@ def plot_offline_run(
     show_end_reason: bool = True,
     show_annotations: bool = False,
     show_reserved: bool = True,
-    show_total_time=True,
-    show_relative_time=True,
-    show_n_steps=True,
+    show_total_time: bool = True,
+    show_relative_time: bool = True,
+    show_n_steps: bool = True,
     colors: list | None = None,
     markers: list[str] | None = None,
     colormap: str = DEFAULT_COLORMAP,
     ylimits: tuple[float, float] | None = None,
-    common_legend=True,
+    common_legend: bool = True,
     extra_annotation: str = "",
     xdim: str = "relative_time",
     colorizer: Colorizer | None = None,
@@ -1034,8 +1038,9 @@ def plot_offline_run(
     mark_kalai_points: bool = True,
     mark_ks_points: bool = True,
     mark_max_welfare_points: bool = True,
+    show: bool = True,
 ):
-    """Plot offline run.
+    """Plot offline run using plotly.
 
     Args:
         trace: Trace.
@@ -1045,12 +1050,9 @@ def plot_offline_run(
         timedout: Timedout.
         broken: Broken.
         has_error: Has error.
-        errstr: Errstr.
+        errstr: Error string.
         names: Names.
     """
-    import matplotlib.gridspec as gridspec
-    import matplotlib.pyplot as plt
-
     if names is None:
         names = [_ for _ in ids]
 
@@ -1075,27 +1077,41 @@ def plot_offline_run(
         plotting_ufuns.append(ufuns[i])
 
     name_map = dict(zip(ids, names))
-    fig = plt.figure(figsize=(12.8, 4.8) if not only2d and not no2d else None)
-    extra_col = int(not no2d)
-    if only2d:
-        axu = fig.subplots()
-    else:
-        gs = gridspec.GridSpec(len(ids), 1 + extra_col)
-        axs = []
-        colors, markers = make_colors_and_markers(colors, markers, len(ids), colormap)
+    colors, markers = make_colors_and_markers(colors, markers, len(ids), colormap)
 
+    # Create figure with subplots
+    if only2d:
+        fig = go.Figure()
+    elif no2d:
+        fig = make_subplots(rows=len(ids), cols=1, shared_xaxes=True)
+    else:
+        # Create subplot layout: 2D plot on left, offer plots on right
+        fig = make_subplots(
+            rows=len(ids),
+            cols=2,
+            column_widths=[0.5, 0.5],
+            specs=[
+                [{"rowspan": len(ids)}, {}] if i == 0 else [None, {}]
+                for i in range(len(ids))
+            ],
+            horizontal_spacing=0.1,
+            vertical_spacing=0.05,
+        )
+
+    # Plot offer utilities
+    if not only2d:
         all_ufuns = ufuns
         for a, neg in enumerate(ids):
-            if a == 0:
-                axs.append(fig.add_subplot(gs[a, extra_col]))
-            else:
-                axs.append(fig.add_subplot(gs[a, extra_col], sharex=axs[0]))
             plot_offer_utilities(
                 trace=trace,
                 negotiator=neg,
-                plotting_ufuns=[all_ufuns[a]] if simple_offers_view else all_ufuns,  # type: ignore
+                plotting_ufuns=[all_ufuns[a]]
+                if simple_offers_view
+                else list(all_ufuns),
                 plotting_negotiators=[neg] if simple_offers_view else ids,
-                ax=axs[-1],
+                fig=fig,
+                row=a + 1,
+                col=2 if not no2d else 1,
                 name_map=name_map,
                 colors=colors,
                 markers=markers,
@@ -1109,11 +1125,9 @@ def plot_offline_run(
                 first_color_index=a if simple_offers_view else 0,
                 mark_offers_view=mark_offers_view,
             )
-        if not no2d:
-            axu = fig.add_subplot(gs[:, 0])
+
+    # Plot 2D utilities
     if not no2d:
-        # agreement = state.agreement
-        # state = state
         if not show_end_reason:
             reason = None
         else:
@@ -1140,7 +1154,9 @@ def plot_offline_run(
             offering_negotiators=ids,
             outcome_space=ufuns[0].outcome_space,
             outcomes=list(ufuns[0].outcome_space.enumerate_or_sample(levels=10)),
-            ax=axu,  # type: ignore
+            fig=fig,
+            row=1,
+            col=1,
             name_map=name_map,
             with_lines=with_lines,
             show_agreement=show_agreement,
@@ -1169,6 +1185,15 @@ def plot_offline_run(
             mark_ks_points=mark_ks_points,
             mark_max_welfare_points=mark_max_welfare_points,
         )
+
+    # Update layout
+    fig.update_layout(
+        width=1280 if not only2d and not no2d else None,
+        height=480 if not only2d and not no2d else None,
+        showlegend=True,
+        legend=dict(orientation="h", yanchor="bottom", y=1.02, xanchor="center", x=0.5),
+    )
+
     if save_fig:
         if fig_name is None:
             fig_name = str(uuid.uuid4()) + ".png"
@@ -1177,12 +1202,11 @@ def plot_offline_run(
         else:
             path_ = pathlib.Path(path)
         path_.mkdir(parents=True, exist_ok=True)
-        plt.savefig(
-            str(path_ / fig_name),
-            bbox_inches="tight",
-            transparent=False,
-            pad_inches=0.05,
-        )  # type: ignore
+        fig.write_image(str(path_ / fig_name))
+
+    if show:
+        fig.show()
+
     return fig
 
 
@@ -1205,14 +1229,14 @@ def plot_mechanism_run(
     show_end_reason: bool = True,
     show_annotations: bool = False,
     show_reserved: bool = True,
-    show_total_time=True,
-    show_relative_time=True,
-    show_n_steps=True,
+    show_total_time: bool = True,
+    show_relative_time: bool = True,
+    show_n_steps: bool = True,
     colors: list | None = None,
     markers: list[str] | None = None,
     colormap: str = DEFAULT_COLORMAP,
     ylimits: tuple[float, float] | None = None,
-    common_legend=True,
+    common_legend: bool = True,
     extra_annotation: str = "",
     xdim: str = "relative_time",
     colorizer: Colorizer | None = None,
@@ -1227,15 +1251,13 @@ def plot_mechanism_run(
     mark_kalai_points: bool = True,
     mark_ks_points: bool = True,
     mark_max_welfare_points: bool = True,
+    show: bool = True,
 ):
-    """Plot mechanism run.
+    """Plot mechanism run using plotly.
 
     Args:
         mechanism: Mechanism.
     """
-    import matplotlib.gridspec as gridspec
-    import matplotlib.pyplot as plt
-
     assert not (no2d and only2d), "Cannot specify no2d and only2d together"
 
     if negotiators is None:
@@ -1257,23 +1279,34 @@ def plot_mechanism_run(
         plotting_ufuns.append(mechanism.negotiators[i].ufun)
 
     name_map = dict(zip(mechanism.negotiator_ids, mechanism.negotiator_names))
-    fig = plt.figure(figsize=(12.8, 4.8) if not only2d and not no2d else None)
-    extra_col = int(not no2d)
+    colors, markers = make_colors_and_markers(
+        colors, markers, len(mechanism.negotiators), colormap
+    )
+
+    # Create figure with subplots
+    n_negotiators = mechanism.nmi.n_negotiators
     if only2d:
-        axu = fig.subplots()
+        fig = go.Figure()
+    elif no2d:
+        fig = make_subplots(rows=n_negotiators, cols=1, shared_xaxes=True)
     else:
-        gs = gridspec.GridSpec(mechanism.nmi.n_negotiators, 1 + extra_col)
-        axs = []
-        colors, markers = make_colors_and_markers(
-            colors, markers, len(mechanism.negotiators), colormap
+        # Create subplot layout: 2D plot on left, offer plots on right
+        fig = make_subplots(
+            rows=n_negotiators,
+            cols=2,
+            column_widths=[0.5, 0.5],
+            specs=[
+                [{"rowspan": n_negotiators}, {}] if i == 0 else [None, {}]
+                for i in range(n_negotiators)
+            ],
+            horizontal_spacing=0.1,
+            vertical_spacing=0.05,
         )
 
+    # Plot offer utilities
+    if not only2d:
         all_ufuns = [_.ufun for _ in mechanism.negotiators]
         for a, neg in enumerate(mechanism.negotiator_ids):
-            if a == 0:
-                axs.append(fig.add_subplot(gs[a, extra_col]))
-            else:
-                axs.append(fig.add_subplot(gs[a, extra_col], sharex=axs[0]))
             plot_offer_utilities(
                 trace=mechanism.full_trace,
                 negotiator=neg,
@@ -1281,7 +1314,9 @@ def plot_mechanism_run(
                 plotting_negotiators=[neg]
                 if simple_offers_view
                 else mechanism.negotiator_ids,
-                ax=axs[-1],
+                fig=fig,
+                row=a + 1,
+                col=2 if not no2d else 1,
                 name_map=name_map,
                 colors=colors,
                 markers=markers,
@@ -1295,15 +1330,14 @@ def plot_mechanism_run(
                 first_color_index=a if simple_offers_view else 0,
                 mark_offers_view=mark_offers_view,
             )
-        if not no2d:
-            axu = fig.add_subplot(gs[:, 0])
+
+    # Plot 2D utilities
     if not no2d:
         agreement = mechanism.agreement
         state = mechanism.state
         if not state.erred_negotiator:
             erredneg = errdetails = ""
         else:
-            state = mechanism.state
             try:
                 ids = mechanism.negotiator_ids
                 names = mechanism.negotiator_names
@@ -1311,6 +1345,7 @@ def plot_mechanism_run(
                 errdetails = state.error_details.split("\n")[-1][-30:]
             except Exception:
                 erredneg = errdetails = ""
+
         if not show_end_reason:
             reason = None
         else:
@@ -1336,7 +1371,9 @@ def plot_mechanism_run(
             offering_negotiators=mechanism.negotiator_ids,
             outcome_space=mechanism.outcome_space,
             outcomes=mechanism.discrete_outcomes(),
-            ax=axu,  # type: ignore
+            fig=fig,
+            row=1,
+            col=1,
             name_map=name_map,
             with_lines=with_lines,
             show_agreement=show_agreement,
@@ -1365,6 +1402,15 @@ def plot_mechanism_run(
             mark_ks_points=mark_ks_points,
             mark_max_welfare_points=mark_max_welfare_points,
         )
+
+    # Update layout
+    fig.update_layout(
+        width=1280 if not only2d and not no2d else None,
+        height=480 if not only2d and not no2d else None,
+        showlegend=True,
+        legend=dict(orientation="h", yanchor="bottom", y=1.02, xanchor="center", x=0.5),
+    )
+
     if save_fig:
         if fig_name is None:
             fig_name = str(uuid.uuid4()) + ".png"
@@ -1373,10 +1419,8 @@ def plot_mechanism_run(
         else:
             path_ = pathlib.Path(path)
         path_.mkdir(parents=True, exist_ok=True)
-        plt.savefig(
-            str(path_ / fig_name),
-            bbox_inches="tight",
-            transparent=False,
-            pad_inches=0.05,
-        )  # type: ignore
+        fig.write_image(str(path_ / fig_name))
+
+    if show:
+        fig.show()
     return fig

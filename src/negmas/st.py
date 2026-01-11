@@ -135,6 +135,7 @@ class VetoSTMechanism(
         self,
         visible_negotiators: tuple[int, int] | tuple[str, str] = (0, 1),
         show_all_offers=False,
+        show: bool = True,
         **kwargs,
     ):
         """Plot.
@@ -142,18 +143,22 @@ class VetoSTMechanism(
         Args:
             visible_negotiators: Visible negotiators.
             show_all_offers: Show all offers.
+            show: Whether to display the figure immediately.
             **kwargs: Additional keyword arguments.
+
+        Returns:
+            The plotly Figure object.
         """
-        import matplotlib.gridspec as gridspec
-        import matplotlib.pyplot as plt
         import pandas as pd
+        import plotly.graph_objects as go
+        from plotly.subplots import make_subplots
 
         if len(self.negotiators) < 2:
             print("Cannot visualize negotiations with more less than 2 negotiators")
-            return
+            return None
         if len(visible_negotiators) > 2:
             print("Cannot visualize more than 2 agents")
-            return
+            return None
         vnegs = [
             self.negotiators[_] if isinstance(_, int) else self.get_negotiator_raise(_)
             for _ in visible_negotiators
@@ -175,7 +180,7 @@ class VetoSTMechanism(
             )
         history = pd.DataFrame(data=history)
         has_history = len(history) > 0
-        has_front = 1
+        has_front = True
         # n_negotiators = len(self.negotiators)
         n_agents = len(vnegs)
         ufuns = self._get_preferences()
@@ -196,42 +201,72 @@ class VetoSTMechanism(
         frontier_outcome = [frontier_outcome[i] for i in frontier_indices]
         # frontier_outcome_indices = [outcomes.index(_) for _ in frontier_outcome]
 
-        fig_util = plt.figure()
-        gs_util = gridspec.GridSpec(n_agents, has_front + 1)
-        axs_util = []
+        # Create subplot layout: n_agents rows, 2 columns (front + utility plots)
+        # Column 1: Pareto frontier (spans all rows)
+        # Column 2: Individual utility plots per agent
+        fig = make_subplots(
+            rows=n_agents,
+            cols=2,
+            column_widths=[0.5, 0.5],
+            specs=[
+                [{"rowspan": n_agents}, {}] if i == 0 else [None, {}]
+                for i in range(n_agents)
+            ],
+            subplot_titles=["Utility Space"]
+            + [f"{agent_names[a]} Utility" for a in range(n_agents)],
+        )
 
+        # Plot utility over time for each agent (right column)
         for a in range(n_agents):
-            if a == 0:
-                axs_util.append(fig_util.add_subplot(gs_util[a, has_front]))
-            else:
-                axs_util.append(
-                    fig_util.add_subplot(gs_util[a, has_front], sharex=axs_util[0])
-                )
-            axs_util[-1].set_ylabel(agent_names[a])
-        for a, au in enumerate(axs_util):
-            if au is None:
-                break
             if has_history:
                 h = history.loc[:, ["step", "current_offer", "u0", "u1"]]
                 h["utility"] = h[f"u{a}"]
-                au.plot(h.step, h.utility)
-                au.set_ylim(0.0, 1.0)
+                fig.add_trace(
+                    go.Scatter(
+                        x=h["step"],
+                        y=h["utility"],
+                        mode="lines",
+                        name=f"{agent_names[a]} utility over time",
+                        showlegend=False,
+                    ),
+                    row=a + 1,
+                    col=2,
+                )
+            fig.update_yaxes(range=[0.0, 1.0], title_text="Utility", row=a + 1, col=2)
+            fig.update_xaxes(title_text="Step", row=a + 1, col=2)
 
+        # Plot Pareto frontier and utility space (left column, spanning all rows)
         if has_front:
-            axu = fig_util.add_subplot(gs_util[:, 0])
-            axu.scatter(
-                [_[0] for _ in utils],
-                [_[1] for _ in utils],
-                label="outcomes",
-                color="gray",
-                marker="s",
-                s=20,
+            # All outcomes
+            fig.add_trace(
+                go.Scatter(
+                    x=[_[0] for _ in utils],
+                    y=[_[1] for _ in utils],
+                    mode="markers",
+                    name="Outcomes",
+                    marker=dict(color="gray", symbol="square", size=8),
+                ),
+                row=1,
+                col=1,
             )
+
+            # Pareto frontier
             f1, f2 = [_[0] for _ in frontier], [_[1] for _ in frontier]
-            axu.scatter(f1, f2, label="frontier", color="red", marker="x")
-            # axu.legend()
-            axu.set_xlabel(agent_names[0] + " utility")
-            axu.set_ylabel(agent_names[1] + " utility")
+            fig.add_trace(
+                go.Scatter(
+                    x=f1,
+                    y=f2,
+                    mode="markers",
+                    name="Frontier",
+                    marker=dict(color="red", symbol="x", size=10),
+                ),
+                row=1,
+                col=1,
+            )
+
+            fig.update_xaxes(title_text=f"{agent_names[0]} utility", row=1, col=1)
+            fig.update_yaxes(title_text=f"{agent_names[1]} utility", row=1, col=1)
+
             if self.agreement is not None:
                 pareto_distance = 1e9
                 cu = (ufuns[0](self.agreement), ufuns[1](self.agreement))
@@ -239,45 +274,65 @@ class VetoSTMechanism(
                     dist = math.sqrt((pu[0] - cu[0]) ** 2 + (pu[1] - cu[1]) ** 2)
                     if dist < pareto_distance:
                         pareto_distance = dist
-                axu.text(
-                    0.05,
-                    0.05,
-                    f"Pareto-distance={pareto_distance:5.2}",
-                    verticalalignment="top",
-                    transform=axu.transAxes,
+                fig.add_annotation(
+                    x=0.05,
+                    y=0.05,
+                    xref="x domain",
+                    yref="y domain",
+                    text=f"Pareto-distance={pareto_distance:5.2f}",
+                    showarrow=False,
+                    xanchor="left",
+                    yanchor="bottom",
+                    row=1,
+                    col=1,
                 )
 
             if has_history:
                 h = history.loc[:, ["step", "current_offer", "u0", "u1"]]
-                axu.scatter(h.u0, h.u1, color="green", label="Mediator's Offer")
-                axu.scatter(
-                    [frontier[0][0]],
-                    [frontier[0][1]],
-                    color="blue",
-                    label="Max Welfare",
+                fig.add_trace(
+                    go.Scatter(
+                        x=h["u0"],
+                        y=h["u1"],
+                        mode="markers",
+                        name="Mediator's Offer",
+                        marker=dict(color="green", size=8),
+                    ),
+                    row=1,
+                    col=1,
                 )
-                # axu.annotate(
-                #     "Max. Welfare",
-                #     xy=frontier[0],  # theta, radius
-                #     xytext=(
-                #         frontier[0][0] + 0.1,
-                #         frontier[0][1] + 0.02,
-                #     ),  # fraction, fraction
-                #     arrowprops=dict(facecolor="black", shrink=0.05),
-                #     horizontalalignment="left",
-                #     verticalalignment="bottom",
-                # )
-            if self.state.agreement is not None:
-                axu.scatter(
-                    [ufuns[0](self.state.agreement)],
-                    [ufuns[1](self.state.agreement)],
-                    color="black",
-                    marker="*",
-                    s=120,
-                    label="Agreement",
+                fig.add_trace(
+                    go.Scatter(
+                        x=[frontier[0][0]],
+                        y=[frontier[0][1]],
+                        mode="markers",
+                        name="Max Welfare",
+                        marker=dict(color="blue", size=10),
+                    ),
+                    row=1,
+                    col=1,
                 )
 
-        plt.show()
+            if self.state.agreement is not None:
+                fig.add_trace(
+                    go.Scatter(
+                        x=[ufuns[0](self.state.agreement)],
+                        y=[ufuns[1](self.state.agreement)],
+                        mode="markers",
+                        name="Agreement",
+                        marker=dict(color="black", symbol="star", size=14),
+                    ),
+                    row=1,
+                    col=1,
+                )
+
+        fig.update_layout(
+            title="Single Text Negotiation", showlegend=True, height=300 * n_agents
+        )
+
+        if show:
+            fig.show()
+
+        return fig
 
     @property
     def current_offer(self):

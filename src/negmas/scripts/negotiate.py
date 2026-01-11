@@ -10,10 +10,8 @@ from pathlib import Path
 from time import perf_counter
 from negmas.inout import serialize
 
-import matplotlib
 import typer
 import functools
-from matplotlib import pyplot as plt
 from pandas.core.window.numba_ import Callable
 from rich import print
 from stringcase import titlecase
@@ -756,11 +754,13 @@ def run(
     ),
     plot_backend: str = typer.Option(
         "",
-        help="Backend used for plotting. See matplotlib backends.",
+        help="[Deprecated] Backend used for plotting. Now uses plotly.",
         rich_help_panel="Plotting",
     ),
     plot_interactive: bool = typer.Option(
-        True, help="Make the plot interactive", rich_help_panel="Plotting"
+        True,
+        help="[Deprecated] Plotly is always interactive.",
+        rich_help_panel="Plotting",
     ),
     plot_show: bool = typer.Option(
         True, help="Show the plot", rich_help_panel="Plotting"
@@ -1157,9 +1157,8 @@ def run(
             plot_path = save_path / "session.png"
             plot_path.parent.mkdir(parents=True, exist_ok=True)
         if plot:
-            if plot_backend:
-                matplotlib.use(plot_backend)
-                matplotlib.interactive(plot_interactive)
+            # Note: plot_backend and plot_interactive are deprecated (matplotlib-specific)
+            # Plotly handles interactive display natively
             session.plot(
                 save_fig=plot_path is not None,
                 path=plot_path.parent if plot_path else None,
@@ -1179,12 +1178,8 @@ def run(
                 show_n_steps=show_n_steps,
                 fast=fast,
                 simple_offers_view=simple_offers_view,
+                show=plot_show,
             )
-            if plot_show:
-                mng = plt.get_current_fig_manager()
-                mng.resize(1024, 860)  # type: ignore
-                mng.full_screen_toggle()  # type: ignore
-                plt.show()
         if save_path and save_history:
             if hasattr(session, "full_trace"):
                 hist = pd.DataFrame(

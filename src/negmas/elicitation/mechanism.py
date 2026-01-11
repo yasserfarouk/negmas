@@ -638,24 +638,29 @@ class SAOElicitingMechanism(SAOMechanism):
         self.elicitation_state["n_queries"] = 0
         return True
 
-    def plot(self, visible_negotiators=(0, 1), consider_costs=False):
+    def plot(self, visible_negotiators=(0, 1), consider_costs=False, show: bool = True):
         """Plot.
 
         Args:
             visible_negotiators: Visible negotiators.
             consider_costs: Consider costs.
+            show: Whether to display the figures immediately.
+
+        Returns:
+            A tuple of two plotly Figure objects (utility figure, outcome figure).
         """
         try:
-            import matplotlib.gridspec as gridspec
-            import matplotlib.pyplot as plt
+            import plotly.graph_objects as go
+            from plotly.subplots import make_subplots
 
             if len(self.negotiators) > 2:
                 warnings.warn(
                     "Cannot visualize negotiations with more than 2 negotiators"
                 )
+                return None, None
             else:
                 # has_front = int(len(self.outcomes[0]) <2)
-                has_front = 1
+                has_front = True
                 n_agents = len(self.negotiators)
                 history = pd.DataFrame(data=[_[1] for _ in self.history])
                 history["time"] = [_[0].time for _ in self.history]
@@ -674,10 +679,6 @@ class SAOElicitingMechanism(SAOMechanism):
                 history["offer_index"] = [outcomes.index(_) for _ in history.offer]
                 frontier, frontier_outcome = self.pareto_frontier(sort_by_welfare=True)
                 frontier_outcome_indices = [outcomes.index(_) for _ in frontier_outcome]
-                fig_util, fig_outcome = plt.figure(), plt.figure()
-                gs_util = gridspec.GridSpec(n_agents, has_front + 1)
-                gs_outcome = gridspec.GridSpec(n_agents, has_front + 1)
-                axs_util, axs_outcome = [], []
 
                 agent_names_for_legends = [
                     agent_names[a]
@@ -696,72 +697,173 @@ class SAOElicitingMechanism(SAOMechanism):
                         for a in range(n_agents)
                     ]
 
+                # Create utility figure with subplots
+                # Column 1: Utility space (spans all rows)
+                # Column 2: Individual utility plots per agent
+                fig_util = make_subplots(
+                    rows=n_agents,
+                    cols=2,
+                    column_widths=[0.5, 0.5],
+                    specs=[
+                        [{"rowspan": n_agents}, {}] if i == 0 else [None, {}]
+                        for i in range(n_agents)
+                    ],
+                    subplot_titles=["Utility Space"]
+                    + [
+                        f"{agent_names_for_legends[a]} Utility" for a in range(n_agents)
+                    ],
+                )
+
+                # Create outcome figure with subplots
+                fig_outcome = make_subplots(
+                    rows=n_agents,
+                    cols=2,
+                    column_widths=[0.5, 0.5],
+                    specs=[
+                        [{"rowspan": n_agents}, {}] if i == 0 else [None, {}]
+                        for i in range(n_agents)
+                    ],
+                    subplot_titles=["Outcome Space"]
+                    + [f"{agent_names_for_legends[a]} Offers" for a in range(n_agents)],
+                )
+
+                # Plot utility and outcome over time for each agent (right column)
                 for a in range(n_agents):
-                    if a == 0:
-                        axs_util.append(fig_util.add_subplot(gs_util[a, has_front]))
-                        axs_outcome.append(
-                            fig_outcome.add_subplot(gs_outcome[a, has_front])
-                        )
-                    else:
-                        axs_util.append(
-                            fig_util.add_subplot(
-                                gs_util[a, has_front], sharex=axs_util[0]
-                            )
-                        )
-                        axs_outcome.append(
-                            fig_outcome.add_subplot(
-                                gs_outcome[a, has_front], sharex=axs_outcome[0]
-                            )
-                        )
-                    axs_util[-1].set_ylabel(agent_names_for_legends[a])
-                    axs_outcome[-1].set_ylabel(agent_names_for_legends[a])
-                for a, (au, ao) in enumerate(zip(axs_util, axs_outcome)):
                     h = history.loc[
                         history.offerer == agent_names[a],
                         ["relative_time", "offer_index", "offer"],
-                    ]
+                    ].copy()
                     h["utility"] = h.offer.apply(ufuns[a])
-                    ao.plot(h.relative_time, h.offer_index)
-                    au.plot(h.relative_time, h.utility)
-                    # if a == 1:
+
+                    # Outcome plot (right column)
+                    fig_outcome.add_trace(
+                        go.Scatter(
+                            x=h["relative_time"],
+                            y=h["offer_index"],
+                            mode="lines",
+                            name=f"{agent_names_for_legends[a]} offers",
+                            showlegend=False,
+                        ),
+                        row=a + 1,
+                        col=2,
+                    )
+
+                    # Utility plot (right column)
+                    fig_util.add_trace(
+                        go.Scatter(
+                            x=h["relative_time"],
+                            y=h["utility"],
+                            mode="lines",
+                            name=f"{agent_names_for_legends[a]} utility",
+                            showlegend=False,
+                        ),
+                        row=a + 1,
+                        col=2,
+                    )
+
+                    # Additional elicitor-specific plots
                     h["dist"] = h.offer.apply(elicitor_dist)
                     h["beg"] = h.dist.apply(_beg)
                     h["end"] = h.dist.apply(_end)
                     h["p_acceptance"] = h.offer.apply(
                         self.negotiators[1].opponent_model.probability_of_acceptance
                     )
-                    au.plot(h.relative_time, h.end, color="r")
-                    au.plot(h.relative_time, h.beg, color="r")
-                    au.plot(h.relative_time, h.p_acceptance, color="g")
-                    au.set_ylim(-0.1, 1.1)
+
+                    fig_util.add_trace(
+                        go.Scatter(
+                            x=h["relative_time"],
+                            y=h["end"],
+                            mode="lines",
+                            name="End",
+                            line=dict(color="red"),
+                            showlegend=False,
+                        ),
+                        row=a + 1,
+                        col=2,
+                    )
+                    fig_util.add_trace(
+                        go.Scatter(
+                            x=h["relative_time"],
+                            y=h["beg"],
+                            mode="lines",
+                            name="Beg",
+                            line=dict(color="red"),
+                            showlegend=False,
+                        ),
+                        row=a + 1,
+                        col=2,
+                    )
+                    fig_util.add_trace(
+                        go.Scatter(
+                            x=h["relative_time"],
+                            y=h["p_acceptance"],
+                            mode="lines",
+                            name="P(acceptance)",
+                            line=dict(color="green"),
+                            showlegend=False,
+                        ),
+                        row=a + 1,
+                        col=2,
+                    )
+
+                    fig_util.update_yaxes(
+                        range=[-0.1, 1.1], title_text="Utility", row=a + 1, col=2
+                    )
+                    fig_util.update_xaxes(title_text="Relative Time", row=a + 1, col=2)
+                    fig_outcome.update_yaxes(title_text="Offer Index", row=a + 1, col=2)
+                    fig_outcome.update_xaxes(
+                        title_text="Relative Time", row=a + 1, col=2
+                    )
 
                 if has_front:
-                    axu = fig_util.add_subplot(gs_util[:, 0])
-                    axu.plot([0, 1], [0, 1], "g--")
-                    axu.scatter(
-                        [_[0] for _ in utils],
-                        [_[1] for _ in utils],
-                        label="outcomes",
-                        color="yellow",
-                        marker="s",
-                        s=20,
+                    # Diagonal reference line
+                    fig_util.add_trace(
+                        go.Scatter(
+                            x=[0, 1],
+                            y=[0, 1],
+                            mode="lines",
+                            line=dict(color="green", dash="dash"),
+                            name="Reference",
+                            showlegend=False,
+                        ),
+                        row=1,
+                        col=1,
                     )
-                    axo = fig_outcome.add_subplot(gs_outcome[:, 0])
-                    clrs = ("blue", "green")
+
+                    # All outcomes
+                    fig_util.add_trace(
+                        go.Scatter(
+                            x=[_[0] for _ in utils],
+                            y=[_[1] for _ in utils],
+                            mode="markers",
+                            name="Outcomes",
+                            marker=dict(color="yellow", symbol="square", size=8),
+                        ),
+                        row=1,
+                        col=1,
+                    )
+
+                    clrs = ["blue", "green"]
                     for a in range(n_agents):
                         h = history.loc[
                             history.offerer == agent_names[a],
                             ["relative_time", "offer_index", "offer"],
-                        ]
+                        ].copy()
                         h["u0"] = h.offer.apply(ufuns[0])
                         h["u1"] = h.offer.apply(ufuns[1])
 
-                        axu.scatter(
-                            h.u0,
-                            h.u1,
-                            color=clrs[a],
-                            label=f"{agent_names_for_legends[a]}",
+                        fig_util.add_trace(
+                            go.Scatter(
+                                x=h["u0"],
+                                y=h["u1"],
+                                mode="markers",
+                                name=f"{agent_names_for_legends[a]}",
+                                marker=dict(color=clrs[a], size=8),
+                            ),
+                            row=1,
+                            col=1,
                         )
+
                     steps = sorted(history.step.unique().tolist())
                     aoffers = [[], []]
                     for step in steps[::2]:
@@ -777,41 +879,81 @@ class SAOElicitingMechanism(SAOMechanism):
                         if len(offrs) == 2:
                             aoffers[0].append(offrs[0])
                             aoffers[1].append(offrs[1])
-                    axo.scatter(aoffers[0], aoffers[1], color=clrs[0], label="offers")
+
+                    fig_outcome.add_trace(
+                        go.Scatter(
+                            x=aoffers[0],
+                            y=aoffers[1],
+                            mode="markers",
+                            name="Offers",
+                            marker=dict(color=clrs[0], size=8),
+                        ),
+                        row=1,
+                        col=1,
+                    )
 
                     if self.state.agreement is not None:
-                        axu.scatter(
-                            [ufuns[0](self.state.agreement)],
-                            [ufuns[1](self.state.agreement)],
-                            color="black",
-                            marker="*",
-                            s=120,
-                            label="SCMLAgreement",
+                        fig_util.add_trace(
+                            go.Scatter(
+                                x=[ufuns[0](self.state.agreement)],
+                                y=[ufuns[1](self.state.agreement)],
+                                mode="markers",
+                                name="Agreement",
+                                marker=dict(color="black", symbol="star", size=14),
+                            ),
+                            row=1,
+                            col=1,
                         )
-                        axo.scatter(
-                            [outcomes.index(self.state.agreement)],
-                            [outcomes.index(self.state.agreement)],
-                            color="black",
-                            marker="*",
-                            s=120,
-                            label="SCMLAgreement",
+                        fig_outcome.add_trace(
+                            go.Scatter(
+                                x=[outcomes.index(self.state.agreement)],
+                                y=[outcomes.index(self.state.agreement)],
+                                mode="markers",
+                                name="Agreement",
+                                marker=dict(color="black", symbol="star", size=14),
+                            ),
+                            row=1,
+                            col=1,
                         )
-                    f1, f2 = [_[0] for _ in frontier], [_[1] for _ in frontier]
-                    axu.scatter(f1, f2, label="frontier", color="red", marker="x")
-                    axo.scatter(
-                        frontier_outcome_indices,
-                        frontier_outcome_indices,
-                        color="red",
-                        marker="x",
-                        label="frontier",
-                    )
-                    axu.legend()
-                    axo.legend()
-                    axo.set_xlabel(agent_names_for_legends[0])
-                    axo.set_ylabel(agent_names_for_legends[1])
 
-                    axu.set_xlabel(agent_names_for_legends[0] + " utility")
-                    axu.set_ylabel(agent_names_for_legends[1] + " utility")
+                    # Pareto frontier
+                    f1, f2 = [_[0] for _ in frontier], [_[1] for _ in frontier]
+                    fig_util.add_trace(
+                        go.Scatter(
+                            x=f1,
+                            y=f2,
+                            mode="markers",
+                            name="Frontier",
+                            marker=dict(color="red", symbol="x", size=10),
+                        ),
+                        row=1,
+                        col=1,
+                    )
+                    fig_outcome.add_trace(
+                        go.Scatter(
+                            x=frontier_outcome_indices,
+                            y=frontier_outcome_indices,
+                            mode="markers",
+                            name="Frontier",
+                            marker=dict(color="red", symbol="x", size=10),
+                        ),
+                        row=1,
+                        col=1,
+                    )
+
+                    fig_util.update_xaxes(
+                        title_text=f"{agent_names_for_legends[0]} utility", row=1, col=1
+                    )
+                    fig_util.update_yaxes(
+                        title_text=f"{agent_names_for_legends[1]} utility", row=1, col=1
+                    )
+                    fig_outcome.update_xaxes(
+                        title_text=agent_names_for_legends[0], row=1, col=1
+                    )
+                    fig_outcome.update_yaxes(
+                        title_text=agent_names_for_legends[1], row=1, col=1
+                    )
+
                     if self.agreement is not None:
                         pareto_distance = 1e9
                         cu = (ufuns[0](self.agreement), ufuns[1](self.agreement))
@@ -821,18 +963,37 @@ class SAOElicitingMechanism(SAOMechanism):
                             )
                             if dist < pareto_distance:
                                 pareto_distance = dist
-                        axu.text(
-                            0,
-                            0.95,
-                            f"Pareto-distance={pareto_distance:5.2}",
-                            verticalalignment="top",
-                            transform=axu.transAxes,
+                        fig_util.add_annotation(
+                            x=0,
+                            y=0.95,
+                            xref="x domain",
+                            yref="y domain",
+                            text=f"Pareto-distance={pareto_distance:5.2f}",
+                            showarrow=False,
+                            xanchor="left",
+                            yanchor="top",
+                            row=1,
+                            col=1,
                         )
 
-                fig_util.show()
-                fig_outcome.show()
+                fig_util.update_layout(
+                    title="Elicitation Negotiation - Utility",
+                    showlegend=True,
+                    height=300 * n_agents,
+                )
+                fig_outcome.update_layout(
+                    title="Elicitation Negotiation - Outcomes",
+                    showlegend=True,
+                    height=300 * n_agents,
+                )
+
+                if show:
+                    fig_util.show()
+                    fig_outcome.show()
+
+                return fig_util, fig_outcome
         except Exception:
-            pass
+            return None, None
 
     def on_negotiation_end(self):
         """On negotiation end."""
