@@ -47,6 +47,8 @@ Nevertheless, it can; and was used; in modeling simpler bilateral and multi-late
 
     base_modules
     negotiation_mechanisms
+    negotiators
+    components
     advanced_negotiation
     helper_modules
 
