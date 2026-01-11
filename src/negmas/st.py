@@ -331,6 +331,7 @@ class VetoSTMechanism(
 
         if show:
             fig.show()
+            return None
 
         return fig
 

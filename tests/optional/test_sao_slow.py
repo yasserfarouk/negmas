@@ -1500,11 +1500,6 @@ def _run_neg(agents, utils, outcome_space):
         if isinstance(a, AspirationNegotiator):
             for i, offer in enumerate(_ for _ in offers):
                 assert i == 0 or u(offer) <= u(offers[i - 1]), "Not always conceding"
-                # if not(i == 0 or u(offer) <= u(offers[i - 1])):
-                #     import matplotlib.pyplot as plt
-                #     neg.plot()
-                #     plt.show()
-                #     raise AssertionError("Not always conceding")
     return neg
 
 
@@ -1630,8 +1625,6 @@ def try_negotiator(
 @settings(deadline=100_000)
 def test_specific_negotiator_buy_selling(negotiator):
     try_negotiator(negotiator, plot=False)
-    # import matplotlib.pyplot as plt
-    # plt.show(block=True)
 
 
 if __name__ == "__main__":

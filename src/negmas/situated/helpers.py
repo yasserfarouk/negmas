@@ -23,8 +23,15 @@ def deflistdict():
     return defaultdict(list)
 
 
-def show_edge_colors():
-    """Plots the edge colors used with their meaning"""
+def show_edge_colors(show: bool = True):
+    """Plots the edge colors used with their meaning
+
+    Args:
+        show: If True, displays the figure. If False, returns the figure without displaying.
+
+    Returns:
+        The plotly figure if show=False, None otherwise.
+    """
     import plotly.graph_objects as go
 
     colors = {}
@@ -85,4 +92,8 @@ def show_edge_colors():
         plot_bgcolor="white",
     )
 
-    fig.show()
+    if show:
+        fig.show()
+        return None
+
+    return fig

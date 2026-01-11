@@ -798,14 +798,16 @@ def generate_ufuns_for(
 
 
 if __name__ == "__main__":
-    import matplotlib.pyplot as plt
+    import plotly.graph_objects as go
+    from plotly.subplots import make_subplots
     from rich import print
 
-    fig, subplots = plt.subplots(4, 4, sharex=True, sharey=True, squeeze=True)
-    subplots = subplots.flatten()
+    fig = make_subplots(rows=4, cols=4, shared_xaxes=True, shared_yaxes=True)
     choices = list(GENERATOR_MAP.keys())
 
-    for ax in subplots:
+    for idx in range(16):
+        row = idx // 4 + 1
+        col = idx % 4 + 1
         if random.random() > 0.33:
             n_pareto = random.randint(30, 100)
             n_outcomes = 400
@@ -834,12 +836,39 @@ if __name__ == "__main__":
         print(
             f"Generated {len(set(points))=} unique outcomes for: {n_outcomes=}, {n_pareto=}, {method=}, {params=}"
         )
-        ax.scatter([_[0] for _ in points], [_[1] for _ in points], color="b")
-        ax.plot(
-            [_[0] for _ in points[:n_pareto]],
-            [_[1] for _ in points[:n_pareto]],
-            color="r",
-            marker="x",
+        fig.add_trace(
+            go.Scatter(
+                x=[_[0] for _ in points],
+                y=[_[1] for _ in points],
+                mode="markers",
+                marker=dict(color="blue"),
+                name=f"{method}",
+                showlegend=False,
+            ),
+            row=row,
+            col=col,
         )
-        ax.set_title(f"{method}: {str(params)}")
-    plt.show()
+        fig.add_trace(
+            go.Scatter(
+                x=[_[0] for _ in points[:n_pareto]],
+                y=[_[1] for _ in points[:n_pareto]],
+                mode="lines+markers",
+                marker=dict(color="red", symbol="x"),
+                line=dict(color="red"),
+                name=f"{method} pareto",
+                showlegend=False,
+            ),
+            row=row,
+            col=col,
+        )
+        fig.add_annotation(
+            text=f"{method}: {str(params)}",
+            xref=f"x{idx + 1 if idx > 0 else ''} domain",
+            yref=f"y{idx + 1 if idx > 0 else ''} domain",
+            x=0.5,
+            y=1.1,
+            showarrow=False,
+            row=row,
+            col=col,
+        )
+    fig.show()

@@ -47,6 +47,68 @@ __all__ = [
 Colorizer = Callable[[TraceElement], float]
 
 
+def _is_subplot_figure(fig: go.Figure) -> bool:
+    """Check if a figure was created with make_subplots."""
+    try:
+        grid_ref = fig._grid_ref
+        return grid_ref is not None
+    except AttributeError:
+        return False
+
+
+def _add_trace_safe(
+    fig: go.Figure,
+    trace: go.Scatter | go.Bar,
+    row: int | None = None,
+    col: int | None = None,
+) -> None:
+    """Add a trace to a figure, handling both subplot and non-subplot figures."""
+    if _is_subplot_figure(fig) and row is not None and col is not None:
+        fig.add_trace(trace, row=row, col=col)
+    else:
+        fig.add_trace(trace)
+
+
+def _add_annotation_safe(
+    fig: go.Figure, row: int | None = None, col: int | None = None, **kwargs
+) -> None:
+    """Add an annotation to a figure, handling both subplot and non-subplot figures."""
+    if _is_subplot_figure(fig) and row is not None and col is not None:
+        fig.add_annotation(row=row, col=col, **kwargs)
+    else:
+        fig.add_annotation(**kwargs)
+
+
+def _add_shape_safe(
+    fig: go.Figure, row: int | None = None, col: int | None = None, **kwargs
+) -> None:
+    """Add a shape to a figure, handling both subplot and non-subplot figures."""
+    if _is_subplot_figure(fig) and row is not None and col is not None:
+        fig.add_shape(row=row, col=col, **kwargs)
+    else:
+        fig.add_shape(**kwargs)
+
+
+def _update_xaxes_safe(
+    fig: go.Figure, row: int | None = None, col: int | None = None, **kwargs
+) -> None:
+    """Update x-axes, handling both subplot and non-subplot figures."""
+    if _is_subplot_figure(fig) and row is not None and col is not None:
+        fig.update_xaxes(row=row, col=col, **kwargs)
+    else:
+        fig.update_xaxes(**kwargs)
+
+
+def _update_yaxes_safe(
+    fig: go.Figure, row: int | None = None, col: int | None = None, **kwargs
+) -> None:
+    """Update y-axes, handling both subplot and non-subplot figures."""
+    if _is_subplot_figure(fig) and row is not None and col is not None:
+        fig.update_yaxes(row=row, col=col, **kwargs)
+    else:
+        fig.update_yaxes(**kwargs)
+
+
 def opacity_colorizer(t: TraceElement, alpha: float = 1.0):
     """Opacity colorizer.
 
@@ -438,7 +500,8 @@ def plot_offer_utilities(
         # Add line trace
         line_style = "solid" if neg == negotiator else "dot"
         line_width = 1 if neg == negotiator else 0.5
-        fig.add_trace(
+        _add_trace_safe(
+            fig,
             go.Scatter(
                 x=xx,
                 y=y,
@@ -472,7 +535,8 @@ def plot_offer_utilities(
                 if not elements:
                     continue
                 elements = list(set(elements))
-                fig.add_trace(
+                _add_trace_safe(
+                    fig,
                     go.Scatter(
                         x=[_[0] for _ in elements],
                         y=[float(_[1]) if _[1] is not None else 0 for _ in elements],
@@ -489,7 +553,8 @@ def plot_offer_utilities(
                 )
 
         if reserved:
-            fig.add_trace(
+            _add_trace_safe(
+                fig,
                 go.Scatter(
                     x=xx,
                     y=reserved,
@@ -511,11 +576,11 @@ def plot_offer_utilities(
         if negotiator in plotting_negotiators and not simple_offers_view
         else "utility"
     )
-    fig.update_yaxes(title_text=ylabel, row=row, col=col)
+    _update_yaxes_safe(fig, title_text=ylabel, row=row, col=col)
     if ylimits is not None:
-        fig.update_yaxes(range=ylimits, row=row, col=col)
+        _update_yaxes_safe(fig, range=ylimits, row=row, col=col)
     if show_x_label:
-        fig.update_xaxes(title_text=xdim, row=row, col=col)
+        _update_xaxes_safe(fig, title_text=xdim, row=row, col=col)
 
     return fig
 
@@ -631,7 +696,8 @@ def plot_2dutils(
         show_pareto_distance = show_nash_distance = False
 
     if mark_all_outcomes:
-        fig.add_trace(
+        _add_trace_safe(
+            fig,
             go.Scatter(
                 x=[_[0] for _ in utils],
                 y=[_[1] for _ in utils],
@@ -699,7 +765,8 @@ def plot_2dutils(
 
     f1, f2 = [_[0] for _ in frontier], [_[1] for _ in frontier]
     if mark_pareto_points:
-        fig.add_trace(
+        _add_trace_safe(
+            fig,
             go.Scatter(
                 x=f1,
                 y=f2,
@@ -785,7 +852,8 @@ def plot_2dutils(
         txt_lines.append(f"{extra_annotation}")
 
     if txt_lines:
-        fig.add_annotation(
+        _add_annotation_safe(
+            fig,
             x=0.05,
             y=0.05,
             xref="x domain",
@@ -828,7 +896,8 @@ def plot_2dutils(
                 x0, x1 = ranges[1 - i][0], ranges[1 - i][1]
                 y0, y1 = r, mx
 
-            fig.add_shape(
+            _add_shape_safe(
+                fig,
                 type="rect",
                 x0=x0,
                 y0=y0,
@@ -854,7 +923,8 @@ def plot_2dutils(
         ]
 
         mode = "lines+markers" if with_lines else "markers"
-        fig.add_trace(
+        _add_trace_safe(
+            fig,
             go.Scatter(
                 x=x,
                 y=y,
@@ -875,7 +945,8 @@ def plot_2dutils(
     # Plot special points
     if not fast:
         if mwelfare_pts and mark_max_welfare_points:
-            fig.add_trace(
+            _add_trace_safe(
+                fig,
                 go.Scatter(
                     x=[mwelfare[0] for mwelfare, _ in mwelfare_pts],
                     y=[mwelfare[1] for mwelfare, _ in mwelfare_pts],
@@ -898,7 +969,8 @@ def plot_2dutils(
             )
 
         if kalai_pts and mark_kalai_points:
-            fig.add_trace(
+            _add_trace_safe(
+                fig,
                 go.Scatter(
                     x=[kalai[0] for kalai, _ in kalai_pts],
                     y=[kalai[1] for kalai, _ in kalai_pts],
@@ -919,7 +991,8 @@ def plot_2dutils(
             )
 
         if ks_pts and mark_ks_points:
-            fig.add_trace(
+            _add_trace_safe(
+                fig,
                 go.Scatter(
                     x=[ks[0] for ks, _ in ks_pts],
                     y=[ks[1] for ks, _ in ks_pts],
@@ -940,7 +1013,8 @@ def plot_2dutils(
             )
 
         if nash_pts and mark_nash_points:
-            fig.add_trace(
+            _add_trace_safe(
+                fig,
                 go.Scatter(
                     x=[nash[0] for nash, _ in nash_pts],
                     y=[nash[1] for nash, _ in nash_pts],
@@ -962,7 +1036,8 @@ def plot_2dutils(
 
     # Plot agreement
     if agreement is not None:
-        fig.add_trace(
+        _add_trace_safe(
+            fig,
             go.Scatter(
                 x=[plotting_ufuns[0](agreement)],
                 y=[plotting_ufuns[1](agreement)],
@@ -983,8 +1058,8 @@ def plot_2dutils(
         )
 
     # Update axes
-    fig.update_xaxes(title_text=agent_names[0] + "(0) utility", row=row, col=col)
-    fig.update_yaxes(title_text=agent_names[1] + "(1) utility", row=row, col=col)
+    _update_xaxes_safe(fig, title_text=agent_names[0] + "(0) utility", row=row, col=col)
+    _update_yaxes_safe(fig, title_text=agent_names[1] + "(1) utility", row=row, col=col)
 
     return fig
 
@@ -1206,6 +1281,7 @@ def plot_offline_run(
 
     if show:
         fig.show()
+        return None
 
     return fig
 
@@ -1307,6 +1383,15 @@ def plot_mechanism_run(
     if not only2d:
         all_ufuns = [_.ufun for _ in mechanism.negotiators]
         for a, neg in enumerate(mechanism.negotiator_ids):
+            # Only show legend in offer utilities if 2D plot is not shown (to avoid duplicate legends)
+            # When both 2D and offer utilities are shown, the 2D plot provides the legend
+            show_offer_legend = (
+                no2d  # Only show legend when 2D plot is hidden
+                and (
+                    not common_legend or a == 0
+                )  # Show for first negotiator when common_legend
+                and not simple_offers_view
+            )
             plot_offer_utilities(
                 trace=mechanism.full_trace,
                 negotiator=neg,
@@ -1322,7 +1407,7 @@ def plot_mechanism_run(
                 markers=markers,
                 ignore_none_offers=ignore_none_offers,
                 ylimits=ylimits,
-                show_legend=(not common_legend or a == 0) and not simple_offers_view,
+                show_legend=show_offer_legend,
                 show_x_label=a == len(mechanism.negotiator_ids) - 1,
                 show_reserved=show_reserved,
                 xdim=xdim,
@@ -1423,4 +1508,5 @@ def plot_mechanism_run(
 
     if show:
         fig.show()
+        return None
     return fig

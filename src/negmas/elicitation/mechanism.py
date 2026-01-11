@@ -990,6 +990,7 @@ class SAOElicitingMechanism(SAOMechanism):
                 if show:
                     fig_util.show()
                     fig_outcome.show()
+                    return None, None
 
                 return fig_util, fig_outcome
         except Exception:

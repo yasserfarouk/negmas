@@ -3693,6 +3693,7 @@ class World(
 
             if show:
                 fig.show()
+                return (None, graph) if together else (None, graphs)
 
             return (fig, graph) if together else (fig, graphs)
 
@@ -4189,6 +4190,7 @@ class World(
 
         if show:
             fig.show()
+            return None
 
         return fig
 
@@ -4338,6 +4340,7 @@ class World(
 
         if show:
             fig.show()
+            return None
 
         return fig
 
