@@ -5,10 +5,6 @@ NegMAS provides modular components that can be combined to build custom negotiat
 These components implement specific aspects of negotiation behavior such as
 acceptance strategies, offering strategies, and opponent modeling.
 
-.. contents:: Table of Contents
-   :local:
-   :depth: 2
-
 Overview
 --------
 

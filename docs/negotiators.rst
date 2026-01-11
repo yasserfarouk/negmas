@@ -4,10 +4,6 @@ Available Negotiators
 NegMAS provides a rich set of negotiation agents for different mechanisms.
 This page lists all available negotiators organized by category.
 
-.. contents:: Table of Contents
-   :local:
-   :depth: 2
-
 Native SAO Negotiators
 ----------------------
 
