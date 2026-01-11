@@ -59,13 +59,11 @@ negotiators is less than or equal to one:
 
     class NashBargainingGame(Mechanism):
         """A mechanism representing the nash bargaining game"""
-
         def __init__(self, **kwargs):
             kwargs.update(dict(n_steps=1, max_n_negotiators=2, dynamic_entry=False))
             super().__init__(**kwargs, issues=[make_issue((0.0, 1.0))])
             self.add_requirements(dict(propose_for_self=True))
             self.ufuns: List[UtilityFunction] = []
-
         def add(
             self,
             negotiator: Negotiator,
@@ -76,14 +74,11 @@ negotiators is less than or equal to one:
             added = super().add(negotiator, preferences=preferences, role=None, **kwargs)
             if added:
                 self.ufuns.append(self.negotiators[-1].ufun)
-
         def is_feasible(self, outcome: Tuple[float]):
             """Tests feasibility of outcomes.
-
             The default implementation tests that the of all utilities assigned to all negotiators is less than 1.0.
             """
             return sum(u(outcome) for u in self.ufuns) <= (1.0 + 1e-3)
-
         def __call__(self, state, action=None) -> MechanismStepResult:
             """One round of the mechanism"""
             if len(self.negotiators) != 2:
@@ -109,11 +104,9 @@ mechanism.
 
     class NashBargainingNegotiator(Negotiator, ABC):
         """Base class of all negotiators capable of negotiating in the nash bargaining game"""
-
         def __init__(self, *args, **kwargs):
             super().__init__(*args, **kwargs)
             self.add_capabilities(dict(propose_for_self=True))
-
         @abstractmethod
         def propose_for_self(self, ufuns: List[UtilityFunction], my_indx: int) -> float:
             """Propose some outcome which is just a real number"""
@@ -154,7 +147,6 @@ for nonlinear nonconvex utility functions).
 
     class NashNegotiator(NashBargainingNegotiator):
         """Implements Nash solution to the bargaining game"""
-
         def propose_for_self(self, ufuns: List[UtilityFunction], my_indx: int) -> float:
             objective = lambda f0: -(ufuns[0]((f0, 1.0 - f0)) - ufuns[0].reserved_value) * (
                 ufuns[1]((f0, 1.0 - f0)) - ufuns[1].reserved_value
@@ -206,22 +198,22 @@ example, how does the reservation value affect the outcome:
         u1values[i] = u1(result.agreement)
         u2values[i] = u2(result.agreement)
         a1values[i], a2values[i] = result.agreement
-    plt.subplot(211)
-    plt.plot(values, u1values, label="First negotiator")
-    plt.plot(values, u2values, label="Second negotiator")
-    plt.plot(values, u1values + u2values, label="Welfare")
-    plt.ylabel("Utility received")
-    plt.legend()
-    plt.xlabel("Reservation value for first negotiator")
-    plt.show()
 
-    plt.subplot(212)
-    plt.plot(values, a1values, label="First negotiator")
-    plt.plot(values, a2values, label="Second negotiator")
-    plt.ylabel("Agreement Reached")
-    plt.legend()
-    plt.xlabel("Slope value for first negotiator")
-    plt.show()
+    import plotly.graph_objects as go
+    from plotly.subplots import make_subplots
+
+    fig = make_subplots(rows=2, cols=1, subplot_titles=("Utility Received", "Agreement Reached"))
+    fig.add_trace(go.Scatter(x=values, y=u1values, mode='lines', name="First negotiator"), row=1, col=1)
+    fig.add_trace(go.Scatter(x=values, y=u2values, mode='lines', name="Second negotiator"), row=1, col=1)
+    fig.add_trace(go.Scatter(x=values, y=u1values + u2values, mode='lines', name="Welfare"), row=1, col=1)
+    fig.add_trace(go.Scatter(x=values, y=a1values, mode='lines', name="First negotiator", showlegend=False), row=2, col=1)
+    fig.add_trace(go.Scatter(x=values, y=a2values, mode='lines', name="Second negotiator", showlegend=False), row=2, col=1)
+    fig.update_xaxes(title_text="Reservation value for first negotiator", row=1, col=1)
+    fig.update_xaxes(title_text="Reservation value for first negotiator", row=2, col=1)
+    fig.update_yaxes(title_text="Utility received", row=1, col=1)
+    fig.update_yaxes(title_text="Agreement Reached", row=2, col=1)
+    fig.update_layout(height=600)
+    fig.show()
 
 
 
@@ -257,22 +249,18 @@ What happens if the utility value of a negotiator had a different slope:
         u1values[i], u2values[i] = u1(result.agreement), u2(result.agreement)
         a1values[i], a2values[i] = result.agreement
 
-    plt.subplot(211)
-    plt.plot(slopes, u1values, label="First negotiator")
-    plt.plot(slopes, u2values, label="Second negotiator")
-    plt.plot(slopes, u1values + u2values, label="Welfare")
-    plt.ylabel("Utility received")
-    plt.legend()
-    plt.xlabel("Slope value for first negotiator")
-    plt.show()
-
-    plt.subplot(212)
-    plt.plot(slopes, a1values, label="First negotiator")
-    plt.plot(slopes, a2values, label="Second negotiator")
-    plt.ylabel("Agreement Reached")
-    plt.legend()
-    plt.xlabel("Slope value for first negotiator")
-    plt.show()
+    fig = make_subplots(rows=2, cols=1, subplot_titles=("Utility Received", "Agreement Reached"))
+    fig.add_trace(go.Scatter(x=slopes, y=u1values, mode='lines', name="First negotiator"), row=1, col=1)
+    fig.add_trace(go.Scatter(x=slopes, y=u2values, mode='lines', name="Second negotiator"), row=1, col=1)
+    fig.add_trace(go.Scatter(x=slopes, y=u1values + u2values, mode='lines', name="Welfare"), row=1, col=1)
+    fig.add_trace(go.Scatter(x=slopes, y=a1values, mode='lines', name="First negotiator", showlegend=False), row=2, col=1)
+    fig.add_trace(go.Scatter(x=slopes, y=a2values, mode='lines', name="Second negotiator", showlegend=False), row=2, col=1)
+    fig.update_xaxes(title_text="Slope value for first negotiator", row=1, col=1)
+    fig.update_xaxes(title_text="Slope value for first negotiator", row=2, col=1)
+    fig.update_yaxes(title_text="Utility received", row=1, col=1)
+    fig.update_yaxes(title_text="Agreement Reached", row=2, col=1)
+    fig.update_layout(height=600)
+    fig.show()
 
 
 
@@ -325,7 +313,6 @@ We can then define the mechanism class itself:
 
     class RubinsteinMechanism(Mechanism):
         """Simplified Rubinstein's Mechanism with Exponential discounting"""
-
         def __init__(self, extended=False, **kwargs):
             kwargs.update(
                 dict(
@@ -343,7 +330,6 @@ We can then define the mechanism class itself:
             self.state.discounts = []
             self.proposals = []
             self.extended = extended
-
         def add(
             self, negotiator: "Negotiator", *, discount: float = 0.95, **kwargs
         ) -> Optional[bool]:
@@ -356,7 +342,6 @@ We can then define the mechanism class itself:
             added = super().add(negotiator, ufun=ufun, role=None, **kwargs)
             if added:
                 self.state.discounts.append(discount)
-
         def __call__(self, state, action=None) -> MechanismStepResult:
             """One round of the mechanism"""
             if state.step == 0:
@@ -397,7 +382,6 @@ We can then define the mechanism class itself:
                         0.5 * (outcomes[0][i] + outcomes[1][i]) for i in range(2)
                     )
                     return MechanismStepResult(state=state)
-
             return MechanismStepResult(state=state)
 
 The mechanism is very similar to the Nash Bargaining Game with few
@@ -423,10 +407,8 @@ We can now develop the base negotiator type for this mechanism:
             super().__init__(*args, **kwargs)
             self.add_capabilities(dict(propose=True, set_index=True))
             self.my_index = -1
-
         def set_index(self, indx: i) -> None:
             self.my_index = indx
-
         @abstractmethod
         def propose(
             self, state: RubinsteinMechanismState, dest: str | None = None
@@ -443,29 +425,23 @@ negotiation
 .. code:: ipython3
 
     def plot_a_run(mechanism: RubinsteinMechanism) -> None:
+        import plotly.graph_objects as go
         result = mechanism.state
         x = np.linspace(0.0, 1.0, 101, endpoint=True)
         first = np.array([_[0] for _ in mechanism.proposals])
         second = np.array([_[1] for _ in mechanism.proposals])
-        plt.plot(x, 1 - x, color="gray", label="Pareto-front")
-        plt.xlabel("Agent 1's utility")
-        plt.ylabel("Agent 2's utility")
-        plt.scatter(
-            first[:, 0], first[:, 1], marker="x", color="green", label="Proposals from 1"
-        )
-        plt.scatter(
-            second[:, 0], second[:, 1], marker="+", color="blue", label="Proposals from 2"
-        )
+
+        fig = go.Figure()
+        fig.add_trace(go.Scatter(x=x, y=1-x, mode='lines', line=dict(color='gray'), name='Pareto-front'))
+        fig.add_trace(go.Scatter(x=first[:, 0], y=first[:, 1], mode='markers',
+                                 marker=dict(symbol='x', color='green', size=10), name='Proposals from 1'))
+        fig.add_trace(go.Scatter(x=second[:, 0], y=second[:, 1], mode='markers',
+                                 marker=dict(symbol='cross', color='blue', size=10), name='Proposals from 2'))
         if result.agreement is not None:
-            plt.scatter(
-                [result.agreement[0]],
-                [result.agreement[1]],
-                marker="o",
-                color="red",
-                label="Agreement",
-            )
-        plt.legend()
-        plt.show()
+            fig.add_trace(go.Scatter(x=[result.agreement[0]], y=[result.agreement[1]], mode='markers',
+                                     marker=dict(symbol='circle', color='red', size=12), name='Agreement'))
+        fig.update_layout(xaxis_title="Agent 1's utility", yaxis_title="Agent 2's utility")
+        fig.show()
 
 Let’s implement a random negotiator that ends the negotiation if it
 finds that it is impossible to get a positive utility anymore (due to
@@ -517,8 +493,6 @@ We can implement the optimal negotiator for this mechanism as follows:
         ) -> Outcome:
             first = (1 - state.discounts[1]) / (1 - state.discounts[1] * state.discounts[0])
             return first, 1 - first
-
-
     mechanism = RubinsteinMechanism()
     mechanism.add(OptimalRubinsteinNegotiator())
     mechanism.add(OptimalRubinsteinNegotiator())
@@ -548,7 +522,6 @@ other agent’s
         def __init__(self, *args, aspiration_type="linear", max_aspiration=1.0, **kwargs):
             super().__init__(*args, **kwargs)
             self._asp = PolyAspiration(max_aspiration, aspiration_type)
-
         def propose(
             self, state: RubinsteinMechanismState, dest: str | None = None
         ) -> Outcome:
@@ -556,8 +529,6 @@ other agent’s
                 return None
             r = self._asp.utility_at(state.relative_time)
             return (r, 1.0 - r) if self.my_index == 0 else (1.0 - r, r)
-
-
     mechanism = RubinsteinMechanism(n_steps=100)
     mechanism.add(AspirationRubinsteinNegotiator())
     mechanism.add(AspirationRubinsteinNegotiator())

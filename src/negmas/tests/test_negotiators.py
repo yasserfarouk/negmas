@@ -1,7 +1,6 @@
 from __future__ import annotations
 import random
 
-import matplotlib.pyplot as plt
 import numpy as np
 import pytest
 
@@ -122,18 +121,16 @@ def test_tit_for_tat_negotiators_agree_in_the_middle():
     a2offers = neg.negotiator_offers(a2.id)
     # print(a1offers)
     # print(a2offers)
-    assert a1offers[0] == (99,), f"{neg.plot()}{plt.show()}{neg.extended_trace}"
-    assert a2offers[0] == (0,), f"{neg.plot()}{plt.show()}{neg.extended_trace}"
-    assert (
-        neg.state.agreement is not None
-    ), f"{neg.plot()}{plt.show()}{neg.extended_trace}"
+    assert a1offers[0] == (99,), f"{neg.plot(show=True)}{neg.extended_trace}"
+    assert a2offers[0] == (0,), f"{neg.plot(show=True)}{neg.extended_trace}"
+    assert neg.state.agreement is not None, f"{neg.plot(show=True)}{neg.extended_trace}"
     assert (
         40 <= neg.state.agreement[0] <= 60
-    ), f"{neg.plot()}{plt.show()}{neg.extended_trace}"
+    ), f"{neg.plot(show=True)}{neg.extended_trace}"
     # for i, offer in enumerate(_[0] for _ in a1offers):
-    #     assert i == 0 or offer <= a1offers[i - 1][0] + 2, f"{neg.plot()}{plt.show()}{neg.extended_trace}"
+    #     assert i == 0 or offer <= a1offers[i - 1][0] + 2, f"{neg.plot(show=True)}{neg.extended_trace}"
     # for i, offer in enumerate(_[0] for _ in a2offers):
-    #     assert i == 0 or offer >= a2offers[i - 1][0] + 2, f"{neg.plot()}{plt.show()}{neg.extended_trace}"
+    #     assert i == 0 or offer >= a2offers[i - 1][0] + 2, f"{neg.plot(show=True)}{neg.extended_trace}"
 
 
 def test_top_only_negotiator():
@@ -234,15 +231,13 @@ def test_tit_for_tat_against_asp_negotiators():
     neg.run()
     a1offers = neg.negotiator_offers(a1.id)
     a2offers = neg.negotiator_offers(a2.id)
-    assert a1offers[0] == (9,), f"{neg.plot()}{plt.show()}{neg.extended_trace}"
+    assert a1offers[0] == (9,), f"{neg.plot(show=True)}{neg.extended_trace}"
     # assert a2offers[0] == (0,)
     for i, offer in enumerate(_[0] for _ in a2offers):
         assert (
             i == 0 or offer >= a2offers[i - 1][0]
-        ), f"{neg.plot()}{plt.show()}{neg.extended_trace}"
-    assert (
-        neg.state.agreement is not None
-    ), f"{neg.plot()}{plt.show()}{neg.extended_trace}"
+        ), f"{neg.plot(show=True)}{neg.extended_trace}"
+    assert neg.state.agreement is not None, f"{neg.plot(show=True)}{neg.extended_trace}"
     assert neg.state.agreement in (
         (1,),
         (2,),
@@ -250,11 +245,11 @@ def test_tit_for_tat_against_asp_negotiators():
         (4,),
         (5,),
         (6,),
-    ), f"{neg.plot()}{plt.show()}{neg.extended_trace}"
+    ), f"{neg.plot(show=True)}{neg.extended_trace}"
     for i, offer in enumerate(_[0] for _ in a1offers):
         assert (
             i == 0 or offer <= a1offers[i - 1][0] + 2
-        ), f"{neg.plot()}{plt.show()}{neg.extended_trace}"
+        ), f"{neg.plot(show=True)}{neg.extended_trace}"
 
 
 def test_best_only_asp_negotiator():

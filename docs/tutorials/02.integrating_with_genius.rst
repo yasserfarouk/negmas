@@ -147,14 +147,12 @@ NegMAS negotiators. Here is an example using the scenario we just saved:
     from negmas.scenarios import load_scenario
     from negmas.sao.negotiators import AspirationNegotiator
     from negmas.genius.gnegotiators import BoulwareNegotiationParty
-
     scenario = load_scenario("CameraB")
     session = scenario.make_session(time_limit=10)
     session.add(AspirationNegotiator(preferences=scenario.ufuns[0], name="aspiration"))
     session.add(BoulwareNegotiationParty(preferences=scenario.ufuns[1], name="boulware"))
     session.run()
     session.plot()
-    plt.show()
 
 
 
@@ -172,13 +170,11 @@ You can even run a negotiation between two Genius negotiators directly:
 .. code:: ipython3
 
     from negmas.genius.gnegotiators import Atlas3, AgentK
-
     session = scenario.make_session(time_limit=10)
     session.add(Atlas3(preferences=scenario.ufuns[0], name="Atlas3"))
     session.add(AgentK(preferences=scenario.ufuns[1], name="AgentK"))
     session.run()
     session.plot()
-    plt.show()
 
 
 
@@ -227,7 +223,6 @@ Let’s try to run the same negotiation above without using
 .. code:: ipython3
 
     from negmas.genius import GeniusNegotiator
-
     session = scenario.make_session(time_limit=10)
     session.add(
         GeniusNegotiator(
@@ -245,7 +240,6 @@ Let’s try to run the same negotiation above without using
     )
     session.run()
     session.plot()
-    plt.show()
 
 
 

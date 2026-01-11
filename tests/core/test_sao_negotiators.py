@@ -53,10 +53,7 @@ def run_buyer_seller(buyer, seller, normalized=False, callbacks=False, n_steps=1
 
     session.run()
     if SHOW_PLOTS:
-        session.plot()
-        from matplotlib import pyplot as plt
-
-        plt.show()
+        session.plot(show=True)
     return session
 
 

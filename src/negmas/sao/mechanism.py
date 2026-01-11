@@ -970,6 +970,7 @@ class SAOMechanism(
         mark_kalai_points: bool = True,
         mark_ks_points: bool = True,
         mark_max_welfare_points: bool = True,
+        show: bool = True,
         **kwargs,
     ):
         """Plot.
@@ -1012,6 +1013,7 @@ class SAOMechanism(
             mark_kalai_points: Mark kalai points.
             mark_ks_points: Mark ks points.
             mark_max_welfare_points: Mark max welfare points.
+            show: Whether to display the figure immediately.
             **kwargs: Additional keyword arguments.
         """
         from negmas.plots.util import plot_mechanism_run
@@ -1061,6 +1063,7 @@ class SAOMechanism(
             mark_kalai_points=mark_kalai_points,
             mark_ks_points=mark_ks_points,
             mark_max_welfare_points=mark_max_welfare_points,
+            show=show,
             **kwargs,
         )
 

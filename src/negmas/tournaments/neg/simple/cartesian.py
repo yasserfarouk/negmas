@@ -19,7 +19,6 @@ from random import randint, random, shuffle
 from time import perf_counter
 from typing import Any, Iterable, Sequence
 
-import matplotlib.pyplot as plt
 import pandas as pd
 from attr import asdict, define
 from rich.progress import track
@@ -904,11 +903,7 @@ def _plot_run(
         plot_params = dict()
     plot_params["save_fig"] = (True,)
     full_name = path / PLOTS_DIR_NAME / f"{file_name}.png"
-    m.plot(path=path, fig_name=full_name, **plot_params)
-    try:
-        plt.close(plt.gcf())
-    except Exception:
-        pass
+    m.plot(path=path, fig_name=full_name, show=False, **plot_params)
 
 
 def run_negotiation(
@@ -1419,8 +1414,8 @@ def cartesian_tournament(
                         show_total_time=False,
                         show_relative_time=False,
                         show_n_steps=False,
+                        show=False,
                     )
-            plt.close()
             if save_stats:
                 stats = calc_scenario_stats(scenario.ufuns)
                 if this_path:

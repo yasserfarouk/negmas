@@ -422,7 +422,7 @@ You can pick random valid or invalid values for the issue:
 
 .. parsed-literal::
 
-    [['to be', '20250316H062020000663jJTGt6qBto be20250316H062020000683XtRgNy0I'],
+    [['to be', '20260111H131727183466jJTGt6qBto be20260111H131727183493XtRgNy0I'],
      [6, 10],
      [0.6118970848141451, 1.928063278403899]]
 
@@ -1436,6 +1436,8 @@ module for more details
         <span style="color: #008000; text-decoration-color: #008000">'SamplingInverseUtilityFunction'</span>,
         <span style="color: #008000; text-decoration-color: #008000">'DiscountedUtilityFunction'</span>,
         <span style="color: #008000; text-decoration-color: #008000">'ConstUtilityFunction'</span>,
+        <span style="color: #008000; text-decoration-color: #008000">'GLAUtilityFunction'</span>,
+        <span style="color: #008000; text-decoration-color: #008000">'GPAUtilityFunction'</span>,
         <span style="color: #008000; text-decoration-color: #008000">'LinearUtilityAggregationFunction'</span>,
         <span style="color: #008000; text-decoration-color: #008000">'LinearAdditiveUtilityFunction'</span>,
         <span style="color: #008000; text-decoration-color: #008000">'LinearUtilityFunction'</span>,
@@ -1444,6 +1446,7 @@ module for more details
         <span style="color: #008000; text-decoration-color: #008000">'NonLinearAggregationUtilityFunction'</span>,
         <span style="color: #008000; text-decoration-color: #008000">'HyperRectangleUtilityFunction'</span>,
         <span style="color: #008000; text-decoration-color: #008000">'NonlinearHyperRectangleUtilityFunction'</span>,
+        <span style="color: #008000; text-decoration-color: #008000">'PAUtilityFunction'</span>,
         <span style="color: #008000; text-decoration-color: #008000">'RandomUtilityFunction'</span>,
         <span style="color: #008000; text-decoration-color: #008000">'RankOnlyUtilityFunction'</span>,
         <span style="color: #008000; text-decoration-color: #008000">'ProbMappingUtilityFunction'</span>,

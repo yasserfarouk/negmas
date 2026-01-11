@@ -64,7 +64,6 @@ from .awi import AgentWorldInterface
 if TYPE_CHECKING:
     import networkx as nx
 
-    from matplotlib.axes import Axes
 
 # Check if networkx is available (for optional graph functionality)
 # Use find_spec to avoid importing the heavy module at import time
@@ -3447,13 +3446,13 @@ class World(
             who: Callable[[TAgent], bool] | None = None,
             where: Callable[[TAgent], int | tuple[float, float]] | None = None,
             together: bool = True,
-            axs: Collection[Axes] | None = None,
             ncols: int = 4,
             figsize: tuple[int, int] = (15, 15),
             show_node_labels=True,
             show_edge_labels=True,
+            show: bool = True,
             **kwargs,
-        ) -> tuple[Axes, nx.Graph] | tuple[Axes, list[nx.Graph]]:
+        ):
             """
             Generates a graph showing some aspect of the simulation
 
@@ -3466,19 +3465,21 @@ class World(
                        specifying the column in which to draw the column or a tuple of two floats specifying the position
                        within the drawing area of the agent. If None, the default Networkx layout will be used.
                 together: IF specified all edge types are put in the same graph.
-                axs: The axes used for drawing. If together is true, it should be a single `Axes` object otherwise it should
-                     be a list of `Axes` objects with the same length as what.
+                ncols: Number of columns for subplot grid when together=False.
+                figsize: Figure size as (width, height).
                 show_node_labels: show node labels!
                 show_edge_labels: show edge labels!
-                kwargs: passed to networx.draw_networkx
+                show: Whether to display the figure immediately.
+                kwargs: Additional keyword arguments.
 
             Returns:
-                A networkx graph representing the world if together==True else a list of graphs one for each item in what
+                A tuple of (figure, networkx graph) if together==True else (figure, list of graphs)
 
             """
 
-            import matplotlib.pyplot as plt
             import networkx as nx
+            import plotly.graph_objects as go
+            from plotly.subplots import make_subplots
 
             if not self.construct_graphs:
                 self.logwarning(
@@ -3504,19 +3505,12 @@ class World(
             if together:
                 titles = [""]
             else:
-                titles = what
-            if axs is None:
-                if together:
-                    fig, axs = plt.subplots()
-                else:
-                    nrows = int(math.ceil(len(what) / ncols))
-                    fig, axs = plt.subplots(nrows, ncols, figsize=figsize)
-                    axs = axs.flatten().tolist()
-            if together:
-                axs = [axs]
+                titles = list(what)
             graphs = self.graph(steps, what, who, together)
             graph = graphs[0] if not together else graphs
             graphs = [graphs] if together else graphs
+
+            # Calculate positions
             if where is None:
                 pos = nx.spring_layout(graph, iterations=200)
             else:
@@ -3533,66 +3527,175 @@ class World(
                             pos[agent] = ((1 + c) * deltay, r * deltax)
                 else:
                     pos = dict(zip(graph.nodes, pos))
+
+            def draw_graph_plotly(
+                g, pos, title, show_node_labels, show_edge_labels, edge_color=None
+            ):
+                """Helper to draw a single graph using plotly."""
+                traces = []
+
+                # Draw edges
+                if len(g.edges) > 0:
+                    if edge_color is None:
+                        # Group edges by color
+                        edge_colors_data = {}
+                        for u, v, data in g.edges(data=True):
+                            clr = data.get("color", "gray")
+                            if clr not in edge_colors_data:
+                                edge_colors_data[clr] = {
+                                    "x": [],
+                                    "y": [],
+                                    "weights": [],
+                                }
+                            x0, y0 = pos[u]
+                            x1, y1 = pos[v]
+                            edge_colors_data[clr]["x"].extend([x0, x1, None])
+                            edge_colors_data[clr]["y"].extend([y0, y1, None])
+                            weight = data.get("weight", 1)
+                            if weight > 1:
+                                edge_colors_data[clr]["weights"].append(
+                                    {
+                                        "x": (x0 + x1) / 2,
+                                        "y": (y0 + y1) / 2,
+                                        "text": str(weight),
+                                    }
+                                )
+
+                        for clr, data in edge_colors_data.items():
+                            traces.append(
+                                go.Scatter(
+                                    x=data["x"],
+                                    y=data["y"],
+                                    mode="lines",
+                                    line=dict(color=clr, width=1),
+                                    hoverinfo="none",
+                                    showlegend=False,
+                                )
+                            )
+                            if show_edge_labels:
+                                for w in data["weights"]:
+                                    traces.append(
+                                        go.Scatter(
+                                            x=[w["x"]],
+                                            y=[w["y"]],
+                                            mode="text",
+                                            text=[w["text"]],
+                                            textposition="middle center",
+                                            showlegend=False,
+                                        )
+                                    )
+                    else:
+                        # All edges same color
+                        edge_x, edge_y = [], []
+                        edge_labels = []
+                        for u, v, data in g.edges(data=True):
+                            x0, y0 = pos[u]
+                            x1, y1 = pos[v]
+                            edge_x.extend([x0, x1, None])
+                            edge_y.extend([y0, y1, None])
+                            weight = data.get("weight", 1)
+                            if weight > 1:
+                                edge_labels.append(
+                                    {
+                                        "x": (x0 + x1) / 2,
+                                        "y": (y0 + y1) / 2,
+                                        "text": str(weight),
+                                    }
+                                )
+
+                        traces.append(
+                            go.Scatter(
+                                x=edge_x,
+                                y=edge_y,
+                                mode="lines",
+                                line=dict(color=edge_color, width=1),
+                                hoverinfo="none",
+                                showlegend=False,
+                            )
+                        )
+                        if show_edge_labels:
+                            for w in edge_labels:
+                                traces.append(
+                                    go.Scatter(
+                                        x=[w["x"]],
+                                        y=[w["y"]],
+                                        mode="text",
+                                        text=[w["text"]],
+                                        textposition="middle center",
+                                        showlegend=False,
+                                    )
+                                )
+
+                # Draw nodes
+                node_x = [pos[node][0] for node in g.nodes]
+                node_y = [pos[node][1] for node in g.nodes]
+                node_text = list(g.nodes) if show_node_labels else None
+
+                traces.append(
+                    go.Scatter(
+                        x=node_x,
+                        y=node_y,
+                        mode="markers+text" if show_node_labels else "markers",
+                        marker=dict(
+                            size=15,
+                            color="lightblue",
+                            line=dict(width=1, color="black"),
+                        ),
+                        text=node_text,
+                        textposition="top center",
+                        hoverinfo="text",
+                        hovertext=list(g.nodes),
+                        showlegend=False,
+                    )
+                )
+
+                return traces
+
+            # Create figure
             if together:
-                g = graph
-                nx.draw_networkx_nodes(g, pos, ax=axs[0])
-                edges = [_ for _ in g.edges]
-                if len(edges) > 0:
-                    info = [_ for _ in g.edges.data("color")]
-                    colors = [_[2] for _ in info]
-                    edges = [(_[0], _[1]) for _ in info]
-                    clist = list(set(colors))
-                    edgelists = [list() for _ in range(len(clist))]
-                    for c, lst in zip(clist, edgelists):
-                        for i, clr in enumerate(colors):
-                            if clr == c:
-                                lst.append(edges[i])
-                    for lst, clr in zip(edgelists, clist):
-                        nx.draw_networkx_edges(
-                            g, pos, edgelist=g.edges, edge_color=clr, ax=axs[0]
-                        )
-                    if show_edge_labels:
-                        info = [_ for _ in g.edges.data("weight")]
-                        weights = [str(_[2]) for _ in info if _[2] > 1]
-                        edges = [(_[0], _[1]) for _ in info if _[2] > 1]
-                        nx.draw_networkx_edge_labels(
-                            g, pos, dict(zip(edges, weights)), ax=axs[0]
-                        )
-                if show_node_labels:
-                    nx.draw_networkx_labels(
-                        g, pos, dict(zip(g.nodes, g.nodes)), ax=axs[0]
-                    )
+                fig = go.Figure()
+                traces = draw_graph_plotly(
+                    graph, pos, "", show_node_labels, show_edge_labels
+                )
+                for trace in traces:
+                    fig.add_trace(trace)
             else:
-                for g, ax, title in zip(graphs, axs, titles):
-                    nx.draw_networkx_nodes(g, pos, ax=ax)
-                    nx.draw_networkx_edges(
-                        g, pos, edgelist=g.edges, edge_color=EDGE_COLORS[title], ax=ax
+                nrows = int(math.ceil(len(what) / ncols))
+                fig = make_subplots(rows=nrows, cols=ncols, subplot_titles=titles)
+                for i, (g, title) in enumerate(zip(graphs, titles)):
+                    row = i // ncols + 1
+                    col = i % ncols + 1
+                    edge_color = EDGE_COLORS.get(title, "gray")
+                    traces = draw_graph_plotly(
+                        g, pos, title, show_node_labels, show_edge_labels, edge_color
                     )
-                    if show_edge_labels:
-                        info = [_ for _ in g.edges.data("weight")]
-                        weights = [str(_[2]) for _ in info if _[2] > 1]
-                        edges = [(_[0], _[1]) for _ in info if _[2] > 1]
-                        nx.draw_networkx_edge_labels(
-                            g, pos, dict(zip(edges, weights)), ax=ax
-                        )
-                    if show_node_labels:
-                        nx.draw_networkx_labels(
-                            g, pos, dict(zip(g.nodes, g.nodes)), ax=ax
-                        )
-                    ax.set_ylabel(title)
+                    for trace in traces:
+                        fig.add_trace(trace, row=row, col=col)
+
+            # Calculate timing info for title
             total_time = time.perf_counter() - self._sim_start
             step = max(steps)
             remaining = (self.n_steps - step - 1) * total_time / (step + 1)
-            title = (
+            title_text = (
                 f"Step: {step + 1}/{self.n_steps} [{humanize_time(total_time)} rem "
                 f"{humanize_time(remaining)}] {total_time / (remaining + total_time):04.2%}"
             )
-            if together:
-                axs[0].set_title(title)
-            else:
-                f = plt.gcf()
-                f.suptitle(title)
-            return (axs[0], graph) if together else (axs, graphs)
+
+            fig.update_layout(
+                title=title_text,
+                showlegend=False,
+                hovermode="closest",
+                xaxis=dict(showgrid=False, zeroline=False, showticklabels=False),
+                yaxis=dict(showgrid=False, zeroline=False, showticklabels=False),
+                width=figsize[0] * 60,
+                height=figsize[1] * 60,
+            )
+
+            if show:
+                fig.show()
+                return (None, graph) if together else (None, graphs)
+
+            return (fig, graph) if together else (fig, graphs)
 
     def save_gif(
         self,
@@ -3982,7 +4085,6 @@ class World(
         n_steps: int | None = -1,
         pertype=False,
         use_sum=False,
-        makefig=False,
         title=True,
         ylabel=False,
         xlabel=False,
@@ -3990,6 +4092,7 @@ class World(
         figsize=None,
         ylegend=2.0,
         legend_ncols=8,
+        show: bool = True,
     ):
         """Plots combined statistics of multiple worlds in a single plot
 
@@ -4001,39 +4104,25 @@ class World(
             ylabel: If given, the ylabel will be added to each subplot
             xlabel: If given The xlabel will be added (Simulation Step)
             legend: If given, a legend will be displayed
-            makefig: If given a new figure will be started
             figsize: Size of the figure to host the plot
             ylegend: y-axis of legend for cases with large number of labels
             legend_n_cols: number of columns in the legend
-        """
-        import matplotlib.pyplot as plt
+            show: Whether to display the figure immediately.
 
-        if makefig:
-            plt.figure(figsize=figsize)
-        n_plots = 0
+        Returns:
+            The plotly Figure object.
+        """
+        import plotly.graph_objects as go
+
+        fig = go.Figure()
+
         if isinstance(stats, str):
             stats = (stats,)
 
-        styles = [
-            ("solid", "solid"),  # same as (0, ()) or '-'
-            ("dotted", "dotted"),  # same as (0, (1, 1)) or ':'
-            ("dashed", "dashed"),  # same as '--'
-            ("dashdot", "dashdot"),
-            ("loosely dotted", (0, (1, 10))),
-            ("dotted", (0, (1, 1))),
-            ("densely dotted", (0, (1, 1))),
-            ("long dash with offset", (5, (10, 3))),
-            ("loosely dashed", (0, (5, 10))),
-            ("dashed", (0, (5, 5))),
-            ("densely dashed", (0, (5, 1))),
-            ("loosely dashdotted", (0, (3, 10, 1, 10))),
-            ("dashdotted", (0, (3, 5, 1, 5))),
-            ("densely dashdotted", (0, (3, 1, 1, 1))),
-            ("dashdotdotted", (0, (3, 5, 1, 5, 1, 5))),
-            ("loosely dashdotdotted", (0, (3, 10, 1, 10, 1, 10))),
-            ("densely dashdotdotted", (0, (3, 1, 1, 1, 1, 1))),
-        ]
-        n_per_style = 5
+        # Line styles for plotly (dash patterns)
+        dash_styles = ["solid", "dot", "dash", "dashdot", "longdash", "longdashdot"]
+
+        n_plots = 0
         for stat in stats:
             means = cls.combine_stats(
                 worlds, stat=stat, pertype=pertype, method=np.mean, n_steps=n_steps
@@ -4051,48 +4140,65 @@ class World(
             for k, mean in means.items():
                 sterr = np.maximum(sterrs.get(k, np.zeros_like(mean)), 0)
                 no_err = np.all(sterr < 1e-10)
-                linestyle = styles[n_plots // n_per_style][1]
+                dash_style = dash_styles[n_plots % len(dash_styles)]
                 n_plots += 1
-                if no_err:
-                    plt.plot(mean, label=k, linestyle=linestyle)
-                else:
-                    if np.any(sterr < 0):
-                        pass
-                    plt.errorbar(
-                        range(mean.size)
-                        if n_steps is None or n_steps > 0
-                        else np.linspace(0, 1, len(mean)),
-                        mean,
-                        sterr,
-                        linestyle=linestyle,
-                        label=k,
-                    )
-                if title:
-                    plt.title(stat)
-                if ylabel:
-                    plt.ylabel(stat)
-                if xlabel:
-                    plt.xlabel(
-                        "Simulation Step" if n_steps is not None else "Relative Time"
-                    )
-        if legend:
-            if n_plots < 4:
-                plt.legend()
-            else:
-                plt.legend(
-                    loc="upper left",
-                    bbox_to_anchor=(-0.02, ylegend),
-                    ncol=legend_ncols,
-                    fancybox=True,
-                    shadow=True,
+
+                x_vals = (
+                    list(range(mean.size))
+                    if n_steps is None or n_steps > 0
+                    else np.linspace(0, 1, len(mean)).tolist()
                 )
+
+                if no_err:
+                    fig.add_trace(
+                        go.Scatter(
+                            x=x_vals,
+                            y=mean.tolist(),
+                            mode="lines",
+                            name=k,
+                            line=dict(dash=dash_style),
+                        )
+                    )
+                else:
+                    fig.add_trace(
+                        go.Scatter(
+                            x=x_vals,
+                            y=mean.tolist(),
+                            mode="lines",
+                            name=k,
+                            line=dict(dash=dash_style),
+                            error_y=dict(
+                                type="data", array=sterr.tolist(), visible=True
+                            ),
+                        )
+                    )
+
+        layout_updates = dict(showlegend=legend)
+        if title and len(stats) == 1:
+            layout_updates["title"] = stats[0]
+        if ylabel and len(stats) == 1:
+            layout_updates["yaxis_title"] = stats[0]
+        if xlabel:
+            layout_updates["xaxis_title"] = (
+                "Simulation Step" if n_steps is not None else "Relative Time"
+            )
+        if figsize:
+            layout_updates["width"] = figsize[0] * 80
+            layout_updates["height"] = figsize[1] * 80
+
+        fig.update_layout(**layout_updates)
+
+        if show:
+            fig.show()
+            return None
+
+        return fig
 
     def plot_stats(
         self,
         stats: str | tuple[str, ...],
         pertype=False,
         use_sum=False,
-        makefig=False,
         title=True,
         ylabel=False,
         xlabel=False,
@@ -4100,6 +4206,7 @@ class World(
         figsize=None,
         ylegend=2.0,
         legend_ncols=8,
+        show: bool = True,
     ):
         """Plots statistics of the world in a single plot
 
@@ -4111,40 +4218,27 @@ class World(
             ylabel: If given, the ylabel will be added to each subplot
             xlabel: If given The xlabel will be added (Simulation Step)
             legend: If given, a legend will be displayed
-            makefig: If given a new figure will be started
             figsize: Size of the figure to host the plot
             ylegend: y-axis of legend for cases with large number of labels
             legend_n_cols: number of columns in the legend
-        """
-        import matplotlib.pyplot as plt
+            show: Whether to display the figure immediately.
 
-        if makefig:
-            plt.figure(figsize=figsize)
+        Returns:
+            The plotly Figure object.
+        """
+        import plotly.graph_objects as go
+
+        fig = go.Figure()
+
         n_plots = 0
         suffixes = tuple()
         if isinstance(stats, str):
             stats = (stats,)
 
-        styles = [
-            ("solid", "solid"),  # same as (0, ()) or '-'
-            ("dotted", "dotted"),  # same as (0, (1, 1)) or ':'
-            ("dashed", "dashed"),  # same as '--'
-            ("dashdot", "dashdot"),
-            ("loosely dotted", (0, (1, 10))),
-            ("dotted", (0, (1, 1))),
-            ("densely dotted", (0, (1, 1))),
-            ("long dash with offset", (5, (10, 3))),
-            ("loosely dashed", (0, (5, 10))),
-            ("dashed", (0, (5, 5))),
-            ("densely dashed", (0, (5, 1))),
-            ("loosely dashdotted", (0, (3, 10, 1, 10))),
-            ("dashdotted", (0, (3, 5, 1, 5))),
-            ("densely dashdotted", (0, (3, 1, 1, 1))),
-            ("dashdotdotted", (0, (3, 5, 1, 5, 1, 5))),
-            ("loosely dashdotdotted", (0, (3, 10, 1, 10, 1, 10))),
-            ("densely dashdotdotted", (0, (3, 1, 1, 1, 1, 1))),
-        ]
-        n_per_style = 5
+        # Line styles for plotly (dash patterns)
+        dash_styles = ["solid", "dot", "dash", "dashdot", "longdash", "longdashdot"]
+
+        base = ""
         for stat in stats:
             suffix = (
                 stat.split("_")[-1] if any(stat.endswith(_) for _ in suffixes) else ""
@@ -4162,22 +4256,20 @@ class World(
             if len(world_stats) == 0:
                 continue
             if len(world_stats) == 1:
-                linestyle = styles[n_plots // n_per_style][1]
+                dash_style = dash_styles[n_plots % len(dash_styles)]
                 n_plots += 1
-                plt.plot(
-                    self.stats[world_stats[0]],
-                    label=world_stats[0],
-                    linestyle=linestyle,
+                y_data = self.stats[world_stats[0]]
+                fig.add_trace(
+                    go.Scatter(
+                        x=list(range(len(y_data))),
+                        y=list(y_data),
+                        mode="lines",
+                        name=world_stats[0],
+                        line=dict(dash=dash_style),
+                    )
                 )
-                if title:
-                    plt.title(stat)
-                if ylabel:
-                    plt.ylabel(stat)
-                if xlabel:
-                    plt.xlabel("Simulation Step")
                 continue
             type_world_stats = defaultdict(list)
-            base = ""
             for s in world_stats:
                 parts = s.split("_")
                 base, aid = "_".join(parts[:-1]), parts[-1]
@@ -4191,15 +4283,18 @@ class World(
                     type_world_stats[type_].append(self.stats[s])
                     continue
                 n_plots += 1
-                linestyle = styles[n_plots // n_per_style][1]
-                plt.plot(self.stats[s], label=aid, linestyle=linestyle)
+                dash_style = dash_styles[n_plots % len(dash_styles)]
+                y_data = self.stats[s]
+                fig.add_trace(
+                    go.Scatter(
+                        x=list(range(len(y_data))),
+                        y=list(y_data),
+                        mode="lines",
+                        name=aid,
+                        line=dict(dash=dash_style),
+                    )
+                )
             if not pertype:
-                if title:
-                    plt.title(base)
-                if ylabel:
-                    plt.ylabel(base)
-                if xlabel:
-                    plt.xlabel("Simulation Step")
                 continue
             for t, s in type_world_stats.items():
                 if not s:
@@ -4213,31 +4308,41 @@ class World(
                     yerr = np.std(s, axis=0) / np.sqrt(n)
                     assert len(yerr) == len(y), f"{yerr=}\n{y=}\n{s=}"
                 n_plots += 1
-                linestyle = styles[n_plots // n_per_style][1]
-                plt.errorbar(
-                    range(len(y)),
-                    y,
-                    yerr,
-                    linestyle=linestyle,
-                    label=t if len(stats) == 1 else f"{t} ({base})",
+                dash_style = dash_styles[n_plots % len(dash_styles)]
+
+                trace_kwargs = dict(
+                    x=list(range(len(y))),
+                    y=y.tolist() if hasattr(y, "tolist") else list(y),
+                    mode="lines",
+                    name=t if len(stats) == 1 else f"{t} ({base})",
+                    line=dict(dash=dash_style),
                 )
-            if len(stats) == 1 and title:
-                plt.title(base)
-            if len(stats) == 1 and ylabel:
-                plt.ylabel(base)
-            if len(stats) == 1 and xlabel:
-                plt.xlabel("Simulation Step")
-        if n_plots > 1 and legend:
-            if n_plots < 4:
-                plt.legend()
-            else:
-                plt.legend(
-                    loc="upper left",
-                    bbox_to_anchor=(-0.02, ylegend),
-                    ncol=legend_ncols,
-                    fancybox=True,
-                    shadow=True,
-                )
+                if yerr is not None:
+                    trace_kwargs["error_y"] = dict(
+                        type="data",
+                        array=yerr.tolist() if hasattr(yerr, "tolist") else list(yerr),
+                        visible=True,
+                    )
+                fig.add_trace(go.Scatter(**trace_kwargs))
+
+        layout_updates = dict(showlegend=legend if n_plots > 1 else False)
+        if title and len(stats) == 1:
+            layout_updates["title"] = base if base else stats[0]
+        if ylabel and len(stats) == 1:
+            layout_updates["yaxis_title"] = base if base else stats[0]
+        if xlabel:
+            layout_updates["xaxis_title"] = "Simulation Step"
+        if figsize:
+            layout_updates["width"] = figsize[0] * 80
+            layout_updates["height"] = figsize[1] * 80
+
+        fig.update_layout(**layout_updates)
+
+        if show:
+            fig.show()
+            return None
+
+        return fig
 
     def on_negotiation_start(self, info: NegotiationInfo):
         """On negotiation start.

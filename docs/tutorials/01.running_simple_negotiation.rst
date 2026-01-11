@@ -9,9 +9,7 @@ to run negotiations as follows:
 
     from negmas import SAOMechanism, TimeBasedConcedingNegotiator, MappingUtilityFunction
     import random  # for generating random ufuns
-
     random.seed(0)  # for reproducibility
-
     session = SAOMechanism(outcomes=10, n_steps=100)
     negotiators = [TimeBasedConcedingNegotiator(name=f"a{_}") for _ in range(5)]
     for negotiator in negotiators:
@@ -21,7 +19,6 @@ to run negotiations as follows:
                 lambda x: random.random() * x[0], outcome_space=session.outcome_space
             ),
         )
-
     print(session.run())
 
 
@@ -33,7 +30,7 @@ to run negotiations as follows:
         <span style="color: #808000; text-decoration-color: #808000">waiting</span>=<span style="color: #ff0000; text-decoration-color: #ff0000; font-style: italic">False</span>,
         <span style="color: #808000; text-decoration-color: #808000">started</span>=<span style="color: #00ff00; text-decoration-color: #00ff00; font-style: italic">True</span>,
         <span style="color: #808000; text-decoration-color: #808000">step</span>=<span style="color: #008080; text-decoration-color: #008080; font-weight: bold">95</span>,
-        <span style="color: #808000; text-decoration-color: #808000">time</span>=<span style="color: #008080; text-decoration-color: #008080; font-weight: bold">0.021065915992949158</span>,
+        <span style="color: #808000; text-decoration-color: #808000">time</span>=<span style="color: #008080; text-decoration-color: #008080; font-weight: bold">0.013536290993215516</span>,
         <span style="color: #808000; text-decoration-color: #808000">relative_time</span>=<span style="color: #008080; text-decoration-color: #008080; font-weight: bold">0.9504950495049505</span>,
         <span style="color: #808000; text-decoration-color: #808000">broken</span>=<span style="color: #ff0000; text-decoration-color: #ff0000; font-style: italic">False</span>,
         <span style="color: #808000; text-decoration-color: #808000">timedout</span>=<span style="color: #ff0000; text-decoration-color: #ff0000; font-style: italic">False</span>,
@@ -47,7 +44,7 @@ to run negotiations as follows:
         <span style="color: #808000; text-decoration-color: #808000">threads</span>=<span style="font-weight: bold">{}</span>,
         <span style="color: #808000; text-decoration-color: #808000">last_thread</span>=<span style="color: #008000; text-decoration-color: #008000">''</span>,
         <span style="color: #808000; text-decoration-color: #808000">current_offer</span>=<span style="font-weight: bold">(</span><span style="color: #008080; text-decoration-color: #008080; font-weight: bold">2</span>,<span style="font-weight: bold">)</span>,
-        <span style="color: #808000; text-decoration-color: #808000">current_proposer</span>=<span style="color: #008000; text-decoration-color: #008000">'a1-0c64f66e-a435-48c3-9ae7-2b1fc1f961d9'</span>,
+        <span style="color: #808000; text-decoration-color: #808000">current_proposer</span>=<span style="color: #008000; text-decoration-color: #008000">'a1-d4f1ff42-0b99-4eb4-a7b1-90efdbcda594'</span>,
         <span style="color: #808000; text-decoration-color: #808000">current_proposer_agent</span>=<span style="color: #800080; text-decoration-color: #800080; font-style: italic">None</span>,
         <span style="color: #808000; text-decoration-color: #808000">n_acceptances</span>=<span style="color: #008080; text-decoration-color: #008080; font-weight: bold">5</span>,
         <span style="color: #808000; text-decoration-color: #808000">new_offers</span>=<span style="font-weight: bold">[]</span>,
@@ -159,23 +156,19 @@ This can be modeled in the following negotiation:
     )
     from negmas.preferences import LinearAdditiveUtilityFunction as LUFun
     from negmas.preferences.value_fun import LinearFun, IdentityFun, AffineFun
-
     # create negotiation agenda (issues)
     issues = [
         make_issue(name="price", values=10),
         make_issue(name="quantity", values=(1, 11)),
         make_issue(name="delivery_time", values=10),
     ]
-
     # create the mechanism
     session = SAOMechanism(issues=issues, n_steps=20)
-
     # define buyer and seller utilities
     seller_utility = LUFun(
         values=[IdentityFun(), LinearFun(0.2), AffineFun(-1, bias=9.0)],
         outcome_space=session.outcome_space,
     )
-
     buyer_utility = LUFun(
         values={
             "price": AffineFun(-1, bias=9.0),
@@ -184,11 +177,9 @@ This can be modeled in the following negotiation:
         },
         outcome_space=session.outcome_space,
     )
-
     # create and add buyer and seller negotiators
     session.add(TimeBasedConcedingNegotiator(name="buyer"), preferences=buyer_utility)
     session.add(TimeBasedConcedingNegotiator(name="seller"), ufun=seller_utility)
-
     # run the negotiation and show the results
     print(session.run())
 
@@ -201,7 +192,7 @@ This can be modeled in the following negotiation:
         <span style="color: #808000; text-decoration-color: #808000">waiting</span>=<span style="color: #ff0000; text-decoration-color: #ff0000; font-style: italic">False</span>,
         <span style="color: #808000; text-decoration-color: #808000">started</span>=<span style="color: #00ff00; text-decoration-color: #00ff00; font-style: italic">True</span>,
         <span style="color: #808000; text-decoration-color: #808000">step</span>=<span style="color: #008080; text-decoration-color: #008080; font-weight: bold">18</span>,
-        <span style="color: #808000; text-decoration-color: #808000">time</span>=<span style="color: #008080; text-decoration-color: #008080; font-weight: bold">0.012747249988024123</span>,
+        <span style="color: #808000; text-decoration-color: #808000">time</span>=<span style="color: #008080; text-decoration-color: #008080; font-weight: bold">0.008247250007116236</span>,
         <span style="color: #808000; text-decoration-color: #808000">relative_time</span>=<span style="color: #008080; text-decoration-color: #008080; font-weight: bold">0.9047619047619048</span>,
         <span style="color: #808000; text-decoration-color: #808000">broken</span>=<span style="color: #ff0000; text-decoration-color: #ff0000; font-style: italic">False</span>,
         <span style="color: #808000; text-decoration-color: #808000">timedout</span>=<span style="color: #ff0000; text-decoration-color: #ff0000; font-style: italic">False</span>,
@@ -215,7 +206,7 @@ This can be modeled in the following negotiation:
         <span style="color: #808000; text-decoration-color: #808000">threads</span>=<span style="font-weight: bold">{}</span>,
         <span style="color: #808000; text-decoration-color: #808000">last_thread</span>=<span style="color: #008000; text-decoration-color: #008000">''</span>,
         <span style="color: #808000; text-decoration-color: #808000">current_offer</span>=<span style="font-weight: bold">(</span><span style="color: #008080; text-decoration-color: #008080; font-weight: bold">1</span>, <span style="color: #008080; text-decoration-color: #008080; font-weight: bold">9</span>, <span style="color: #008080; text-decoration-color: #008080; font-weight: bold">0</span><span style="font-weight: bold">)</span>,
-        <span style="color: #808000; text-decoration-color: #808000">current_proposer</span>=<span style="color: #008000; text-decoration-color: #008000">'seller-d5d50fb8-209f-4d68-a994-a59881fe4c6c'</span>,
+        <span style="color: #808000; text-decoration-color: #808000">current_proposer</span>=<span style="color: #008000; text-decoration-color: #008000">'seller-321a4e0e-e73d-497c-9119-dead383f6029'</span>,
         <span style="color: #808000; text-decoration-color: #808000">current_proposer_agent</span>=<span style="color: #800080; text-decoration-color: #800080; font-style: italic">None</span>,
         <span style="color: #808000; text-decoration-color: #808000">n_acceptances</span>=<span style="color: #008080; text-decoration-color: #008080; font-weight: bold">2</span>,
         <span style="color: #808000; text-decoration-color: #808000">new_offers</span>=<span style="font-weight: bold">[]</span>,
@@ -246,40 +237,40 @@ s tep of the negotiation:
 
 .. parsed-literal::
 
-    [(0, 'buyer-19434e01-7f9c-41a5-88b8-e74428e2e788', (0, 11, 9)),
-     (0, 'seller-d5d50fb8-209f-4d68-a994-a59881fe4c6c', (9, 11, 0)),
-     (1, 'buyer-19434e01-7f9c-41a5-88b8-e74428e2e788', (0, 11, 9)),
-     (1, 'seller-d5d50fb8-209f-4d68-a994-a59881fe4c6c', (9, 11, 0)),
-     (2, 'buyer-19434e01-7f9c-41a5-88b8-e74428e2e788', (0, 11, 9)),
-     (2, 'seller-d5d50fb8-209f-4d68-a994-a59881fe4c6c', (9, 11, 0)),
-     (3, 'buyer-19434e01-7f9c-41a5-88b8-e74428e2e788', (0, 11, 9)),
-     (3, 'seller-d5d50fb8-209f-4d68-a994-a59881fe4c6c', (9, 11, 0)),
-     (4, 'buyer-19434e01-7f9c-41a5-88b8-e74428e2e788', (0, 11, 9)),
-     (4, 'seller-d5d50fb8-209f-4d68-a994-a59881fe4c6c', (9, 11, 0)),
-     (5, 'buyer-19434e01-7f9c-41a5-88b8-e74428e2e788', (0, 11, 9)),
-     (5, 'seller-d5d50fb8-209f-4d68-a994-a59881fe4c6c', (9, 11, 0)),
-     (6, 'buyer-19434e01-7f9c-41a5-88b8-e74428e2e788', (0, 10, 9)),
-     (6, 'seller-d5d50fb8-209f-4d68-a994-a59881fe4c6c', (9, 10, 0)),
-     (7, 'buyer-19434e01-7f9c-41a5-88b8-e74428e2e788', (0, 9, 9)),
-     (7, 'seller-d5d50fb8-209f-4d68-a994-a59881fe4c6c', (9, 9, 0)),
-     (8, 'buyer-19434e01-7f9c-41a5-88b8-e74428e2e788', (0, 8, 9)),
-     (8, 'seller-d5d50fb8-209f-4d68-a994-a59881fe4c6c', (9, 8, 0)),
-     (9, 'buyer-19434e01-7f9c-41a5-88b8-e74428e2e788', (0, 11, 8)),
-     (9, 'seller-d5d50fb8-209f-4d68-a994-a59881fe4c6c', (9, 11, 1)),
-     (10, 'buyer-19434e01-7f9c-41a5-88b8-e74428e2e788', (0, 9, 8)),
-     (10, 'seller-d5d50fb8-209f-4d68-a994-a59881fe4c6c', (9, 4, 0)),
-     (11, 'buyer-19434e01-7f9c-41a5-88b8-e74428e2e788', (0, 1, 9)),
-     (11, 'seller-d5d50fb8-209f-4d68-a994-a59881fe4c6c', (8, 6, 0)),
-     (12, 'buyer-19434e01-7f9c-41a5-88b8-e74428e2e788', (0, 2, 8)),
-     (12, 'seller-d5d50fb8-209f-4d68-a994-a59881fe4c6c', (9, 7, 2)),
-     (13, 'buyer-19434e01-7f9c-41a5-88b8-e74428e2e788', (2, 2, 9)),
-     (13, 'seller-d5d50fb8-209f-4d68-a994-a59881fe4c6c', (9, 7, 3)),
-     (14, 'buyer-19434e01-7f9c-41a5-88b8-e74428e2e788', (0, 10, 4)),
-     (14, 'seller-d5d50fb8-209f-4d68-a994-a59881fe4c6c', (4, 10, 0)),
-     (15, 'buyer-19434e01-7f9c-41a5-88b8-e74428e2e788', (1, 8, 4)),
-     (15, 'seller-d5d50fb8-209f-4d68-a994-a59881fe4c6c', (8, 3, 4)),
-     (16, 'buyer-19434e01-7f9c-41a5-88b8-e74428e2e788', (6, 9, 7)),
-     (16, 'seller-d5d50fb8-209f-4d68-a994-a59881fe4c6c', (1, 9, 0))]
+    [(0, 'buyer-79979628-da20-487a-a920-55611ffec78b', (0, 11, 9)),
+     (0, 'seller-321a4e0e-e73d-497c-9119-dead383f6029', (9, 11, 0)),
+     (1, 'buyer-79979628-da20-487a-a920-55611ffec78b', (0, 11, 9)),
+     (1, 'seller-321a4e0e-e73d-497c-9119-dead383f6029', (9, 11, 0)),
+     (2, 'buyer-79979628-da20-487a-a920-55611ffec78b', (0, 11, 9)),
+     (2, 'seller-321a4e0e-e73d-497c-9119-dead383f6029', (9, 11, 0)),
+     (3, 'buyer-79979628-da20-487a-a920-55611ffec78b', (0, 11, 9)),
+     (3, 'seller-321a4e0e-e73d-497c-9119-dead383f6029', (9, 11, 0)),
+     (4, 'buyer-79979628-da20-487a-a920-55611ffec78b', (0, 11, 9)),
+     (4, 'seller-321a4e0e-e73d-497c-9119-dead383f6029', (9, 11, 0)),
+     (5, 'buyer-79979628-da20-487a-a920-55611ffec78b', (0, 11, 9)),
+     (5, 'seller-321a4e0e-e73d-497c-9119-dead383f6029', (9, 11, 0)),
+     (6, 'buyer-79979628-da20-487a-a920-55611ffec78b', (0, 10, 9)),
+     (6, 'seller-321a4e0e-e73d-497c-9119-dead383f6029', (9, 10, 0)),
+     (7, 'buyer-79979628-da20-487a-a920-55611ffec78b', (0, 9, 9)),
+     (7, 'seller-321a4e0e-e73d-497c-9119-dead383f6029', (9, 9, 0)),
+     (8, 'buyer-79979628-da20-487a-a920-55611ffec78b', (0, 8, 9)),
+     (8, 'seller-321a4e0e-e73d-497c-9119-dead383f6029', (9, 8, 0)),
+     (9, 'buyer-79979628-da20-487a-a920-55611ffec78b', (0, 11, 8)),
+     (9, 'seller-321a4e0e-e73d-497c-9119-dead383f6029', (9, 11, 1)),
+     (10, 'buyer-79979628-da20-487a-a920-55611ffec78b', (0, 9, 8)),
+     (10, 'seller-321a4e0e-e73d-497c-9119-dead383f6029', (9, 4, 0)),
+     (11, 'buyer-79979628-da20-487a-a920-55611ffec78b', (0, 1, 9)),
+     (11, 'seller-321a4e0e-e73d-497c-9119-dead383f6029', (8, 6, 0)),
+     (12, 'buyer-79979628-da20-487a-a920-55611ffec78b', (0, 2, 8)),
+     (12, 'seller-321a4e0e-e73d-497c-9119-dead383f6029', (9, 7, 2)),
+     (13, 'buyer-79979628-da20-487a-a920-55611ffec78b', (2, 2, 9)),
+     (13, 'seller-321a4e0e-e73d-497c-9119-dead383f6029', (9, 7, 3)),
+     (14, 'buyer-79979628-da20-487a-a920-55611ffec78b', (0, 10, 4)),
+     (14, 'seller-321a4e0e-e73d-497c-9119-dead383f6029', (4, 10, 0)),
+     (15, 'buyer-79979628-da20-487a-a920-55611ffec78b', (1, 8, 4)),
+     (15, 'seller-321a4e0e-e73d-497c-9119-dead383f6029', (8, 3, 4)),
+     (16, 'buyer-79979628-da20-487a-a920-55611ffec78b', (6, 9, 7)),
+     (16, 'seller-321a4e0e-e73d-497c-9119-dead383f6029', (1, 9, 0))]
 
 
 
@@ -290,7 +281,6 @@ far from it).
 .. code:: ipython3
 
     session.plot(show_reserved=False)
-    plt.show()
 
 
 
@@ -317,7 +307,6 @@ the delivery time and price to go down. Let’s see what happens:
         weights={"price": 1.0, "quantity": 1.0, "delivery_time": 10.0},
         outcome_space=session.outcome_space,
     )
-
     session = SAOMechanism(issues=issues, n_steps=50)
     session.add(TimeBasedConcedingNegotiator(name="buyer"), ufun=buyer_utility)
     session.add(TimeBasedConcedingNegotiator(name="seller"), ufun=seller_utility)
@@ -332,7 +321,7 @@ the delivery time and price to go down. Let’s see what happens:
         <span style="color: #808000; text-decoration-color: #808000">waiting</span>=<span style="color: #ff0000; text-decoration-color: #ff0000; font-style: italic">False</span>,
         <span style="color: #808000; text-decoration-color: #808000">started</span>=<span style="color: #00ff00; text-decoration-color: #00ff00; font-style: italic">True</span>,
         <span style="color: #808000; text-decoration-color: #808000">step</span>=<span style="color: #008080; text-decoration-color: #008080; font-weight: bold">41</span>,
-        <span style="color: #808000; text-decoration-color: #808000">time</span>=<span style="color: #008080; text-decoration-color: #008080; font-weight: bold">0.02594933299405966</span>,
+        <span style="color: #808000; text-decoration-color: #808000">time</span>=<span style="color: #008080; text-decoration-color: #008080; font-weight: bold">0.023557624997920357</span>,
         <span style="color: #808000; text-decoration-color: #808000">relative_time</span>=<span style="color: #008080; text-decoration-color: #008080; font-weight: bold">0.8235294117647058</span>,
         <span style="color: #808000; text-decoration-color: #808000">broken</span>=<span style="color: #ff0000; text-decoration-color: #ff0000; font-style: italic">False</span>,
         <span style="color: #808000; text-decoration-color: #808000">timedout</span>=<span style="color: #ff0000; text-decoration-color: #ff0000; font-style: italic">False</span>,
@@ -346,7 +335,7 @@ the delivery time and price to go down. Let’s see what happens:
         <span style="color: #808000; text-decoration-color: #808000">threads</span>=<span style="font-weight: bold">{}</span>,
         <span style="color: #808000; text-decoration-color: #808000">last_thread</span>=<span style="color: #008000; text-decoration-color: #008000">''</span>,
         <span style="color: #808000; text-decoration-color: #808000">current_offer</span>=<span style="font-weight: bold">(</span><span style="color: #008080; text-decoration-color: #008080; font-weight: bold">1</span>, <span style="color: #008080; text-decoration-color: #008080; font-weight: bold">10</span>, <span style="color: #008080; text-decoration-color: #008080; font-weight: bold">3</span><span style="font-weight: bold">)</span>,
-        <span style="color: #808000; text-decoration-color: #808000">current_proposer</span>=<span style="color: #008000; text-decoration-color: #008000">'seller-c8481a48-5e76-4f38-84b0-9cd3a041375c'</span>,
+        <span style="color: #808000; text-decoration-color: #808000">current_proposer</span>=<span style="color: #008000; text-decoration-color: #008000">'seller-13488df8-5df3-4fa7-adc0-913bd447da54'</span>,
         <span style="color: #808000; text-decoration-color: #808000">current_proposer_agent</span>=<span style="color: #800080; text-decoration-color: #800080; font-style: italic">None</span>,
         <span style="color: #808000; text-decoration-color: #808000">n_acceptances</span>=<span style="color: #008080; text-decoration-color: #008080; font-weight: bold">2</span>,
         <span style="color: #808000; text-decoration-color: #808000">new_offers</span>=<span style="font-weight: bold">[]</span>,
@@ -364,7 +353,6 @@ We can check it visually as well:
 .. code:: ipython3
 
     session.plot(show_reserved=False)
-    plt.show()
 
 
 
@@ -390,7 +378,6 @@ this difference by normalizing both ufuns and trying again:
     session.add(TimeBasedConcedingNegotiator(name="seller"), ufun=seller_utility)
     session.run()
     session.plot(ylimits=(0.0, 1.01), show_reserved=False)
-    plt.show()
 
 
 
@@ -402,12 +389,10 @@ What happens if we give them more time to negotiate:
 .. code:: ipython3
 
     session = SAOMechanism(issues=issues, n_steps=5000)
-
     session.add(TimeBasedConcedingNegotiator(name="buyer"), ufun=buyer_utility)
     session.add(TimeBasedConcedingNegotiator(name="seller"), ufun=seller_utility)
     session.run()
     session.plot(ylimits=(0.0, 1.01), show_reserved=False)
-    plt.show()
 
 
 
@@ -433,7 +418,6 @@ to *linear* instead of the default *boulware*:
     )
     session.run()
     session.plot(ylimits=(0.0, 1.01), show_reserved=False)
-    plt.show()
 
 
 
@@ -459,7 +443,6 @@ the other?
     )
     session.run()
     session.plot(ylimits=(0.0, 1.01), show_reserved=False)
-    plt.show()
 
 
 

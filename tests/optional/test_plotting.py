@@ -19,10 +19,7 @@ def test_mechanism_plot():
         u.outcome_space = os
         m.add(AspirationNegotiator(id=f"a{i}", name=f"n{i}", ufun=u))
     m.run()
-    m.plot()
-    # import matplotlib.pyplot as plt
-    #
-    # plt.show()
+    m.plot(show=False)
 
 
 @pytest.mark.skip(reason="A test added for manually testing plotting")
@@ -60,7 +57,5 @@ def test_offline_plot():
         state.has_error,
         names=names,
         errstr=errstr,
+        show=False,
     )
-    # import matplotlib.pyplot as plt
-    #
-    # plt.show()
