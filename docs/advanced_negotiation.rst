@@ -1,6 +1,6 @@
 Advanced Negotiation
 ====================
-    Advanced negotiation support including elicitation, concurrent negotiation, opponent modeling, etc.
+    Advanced negotiation support including concurrent negotiation, opponent modeling, etc.
 
 .. toctree::
     :maxdepth: 2
@@ -10,5 +10,4 @@ Advanced Negotiation
     modules/models/strategy
     modules/models/future
     modules/models/acceptance
-    modules/elicitation
     modules/concurrent

@@ -339,6 +339,7 @@ NegMAS is the core of a broader ecosystem for automated negotiation research:
 
 - `negmas-geniusweb-bridge <https://github.com/autoneg/negmas-geniusweb-bridge>`_ - Run GeniusWeb agents
 - `negmas-llm <https://github.com/autoneg/negmas-llm>`_ - LLM-powered negotiation agents
+- `negmas-elicit <https://github.com/autoneg/negmas-elicit>`_ - Preference elicitation during negotiation
 - `geniusbridge <https://github.com/yasserfarouk/geniusbridge>`_ - Java Genius bridge
 
 **Visualization & Tools**
@@ -368,6 +369,11 @@ Selected papers (see `full list <https://negmas.readthedocs.io/en/latest/publica
 
 - Sengupta et al. (2021). `RL-Based Negotiating Agent Framework <https://arxiv.org/abs/2102.03588>`_. arXiv. *Cited by 48*
 - Higa et al. (2023). `Reward-based Negotiating Agent Strategies <https://ojs.aaai.org/index.php/AAAI/article/view/26831>`_. AAAI. *Cited by 16*
+
+**Preference Elicitation**
+
+- Mohammad, Y., Nakadai, S. (2019). `Optimal Value of Information Based Elicitation <https://dl.acm.org/doi/10.5555/3306127.3331698>`_. AAMAS.
+- Mohammad, Y., Nakadai, S. (2018). `FastVOI: Efficient Utility Elicitation <https://doi.org/10.1007/978-3-030-03098-8_34>`_. PRIMA.
 
 **Applications**
 

@@ -95,11 +95,9 @@ specific modules, advanced and helper modules.
      module for the goals of this library. The ``Agent`` and ``World``
      classes described in details later belong to this module
   2. **modeling** This is a set of submodules implementing modeling of
-     opponent utility, opponent strategy, opponent’s future offers and
-     opponent’s probability of accepting offers.
-  3. **elicitation** Implements several preference elicitation during
-     negotiation methods.
-  4. **concurrent** Implements mechanism types, and other computational
+     opponent utility, opponent strategy, opponent's future offers and
+     opponent's probability of accepting offers.
+  3. **concurrent** Implements mechanism types, and other computational
      resources to support concurrent negotiation.
 
 - **Helper Modules** These modules provide basic activities that is not
