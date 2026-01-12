@@ -1015,5 +1015,360 @@ def version():
     print(negmas.__version__)
 
 
+# ============================================================================
+# Registry commands
+# ============================================================================
+
+
+@cli.group()
+def registry():
+    """Query the NegMAS registry for mechanisms, negotiators, and components."""
+    pass
+
+
+def _get_registry(registry_type: str):
+    """Get the appropriate registry based on type."""
+    from negmas import mechanism_registry, negotiator_registry, component_registry
+
+    registries = {
+        "mechanism": mechanism_registry,
+        "mechanisms": mechanism_registry,
+        "negotiator": negotiator_registry,
+        "negotiators": negotiator_registry,
+        "component": component_registry,
+        "components": component_registry,
+    }
+    return registries.get(registry_type.lower())
+
+
+def _format_info(name: str, info, verbose: bool = False) -> dict:
+    """Format registry info for display."""
+    result = {"name": name, "type": info.full_type_name}
+
+    # Add type-specific fields
+    if hasattr(info, "requires_deadline"):
+        result["requires_deadline"] = info.requires_deadline
+    if hasattr(info, "bilateral_only"):
+        result["bilateral_only"] = info.bilateral_only
+    if hasattr(info, "requires_opponent_ufun"):
+        result["requires_opponent_ufun"] = info.requires_opponent_ufun
+    if hasattr(info, "learns"):
+        result["learns"] = info.learns
+    if hasattr(info, "anac_year") and info.anac_year is not None:
+        result["anac_year"] = info.anac_year
+    if hasattr(info, "supports_uncertainty"):
+        result["supports_uncertainty"] = info.supports_uncertainty
+    if hasattr(info, "supports_discounting"):
+        result["supports_discounting"] = info.supports_discounting
+    if hasattr(info, "component_type"):
+        result["component_type"] = info.component_type
+
+    if verbose and info.extra:
+        result["extra"] = info.extra
+
+    return result
+
+
+def _parse_filter(filter_str: str) -> dict:
+    """Parse filter string into a dictionary.
+
+    Accepts formats like:
+        - "anac_year=2019"
+        - "component_type=acceptance"
+        - "bilateral_only=true"
+        - "requires_deadline=false"
+    """
+    filters = {}
+    if not filter_str:
+        return filters
+
+    for part in filter_str.split(","):
+        part = part.strip()
+        if "=" not in part:
+            continue
+        key, value = part.split("=", 1)
+        key = key.strip()
+        value = value.strip()
+
+        # Convert value to appropriate type
+        if value.lower() == "true":
+            value = True
+        elif value.lower() == "false":
+            value = False
+        elif value.lower() in ("none", "null"):
+            value = None
+        else:
+            try:
+                value = int(value)
+            except ValueError:
+                try:
+                    value = float(value)
+                except ValueError:
+                    pass  # Keep as string
+
+        filters[key] = value
+
+    return filters
+
+
+@registry.command(name="list", help="List all registered items of a given type")
+@click.argument(
+    "registry_type",
+    type=click.Choice(
+        ["mechanisms", "negotiators", "components"], case_sensitive=False
+    ),
+)
+@click.option(
+    "--filter",
+    "-f",
+    "filter_str",
+    default="",
+    help="Filter by attributes (e.g., 'anac_year=2019,bilateral_only=true')",
+)
+@click.option(
+    "--format",
+    "-o",
+    "output_format",
+    type=click.Choice(["table", "json", "names"], case_sensitive=False),
+    default="table",
+    help="Output format",
+)
+@click.option("--verbose", "-v", is_flag=True, help="Show extra details")
+@click.option("--count", "-c", is_flag=True, help="Only show count of matching items")
+def list_registry(registry_type, filter_str, output_format, verbose, count):
+    """List all registered mechanisms, negotiators, or components."""
+    reg = _get_registry(registry_type)
+    if reg is None:
+        print(f"Unknown registry type: {registry_type}")
+        return
+
+    # Parse and apply filters
+    filters = _parse_filter(filter_str)
+    if filters:
+        items = reg.query(**filters)
+    else:
+        items = dict(reg)
+
+    if count:
+        print(len(items))
+        return
+
+    if not items:
+        print(f"No {registry_type} found matching the criteria.")
+        return
+
+    if output_format == "names":
+        for name in sorted(items.keys()):
+            print(name)
+    elif output_format == "json":
+        result = {
+            name: _format_info(name, info, verbose) for name, info in items.items()
+        }
+        print(json.dumps(result, indent=2, default=str))
+    else:  # table
+        rows = [
+            _format_info(name, info, verbose) for name, info in sorted(items.items())
+        ]
+        print(tabulate(rows, headers="keys", tablefmt="psql"))
+
+
+@registry.command(help="Get details about a specific registered item")
+@click.argument("name")
+@click.option(
+    "--type",
+    "-t",
+    "registry_type",
+    type=click.Choice(
+        ["mechanism", "negotiator", "component", "auto"], case_sensitive=False
+    ),
+    default="auto",
+    help="Registry type to search (default: auto-detect)",
+)
+@click.option(
+    "--format",
+    "-o",
+    "output_format",
+    type=click.Choice(["table", "json"], case_sensitive=False),
+    default="table",
+    help="Output format",
+)
+def get(name, registry_type, output_format):
+    """Get details about a specific registered item by name."""
+    from negmas import mechanism_registry, negotiator_registry, component_registry
+
+    registries = [
+        ("mechanism", mechanism_registry),
+        ("negotiator", negotiator_registry),
+        ("component", component_registry),
+    ]
+
+    if registry_type != "auto":
+        registries = [(registry_type, _get_registry(registry_type))]
+
+    found = None
+    found_type = None
+    for reg_type, reg in registries:
+        if reg is None:
+            continue
+        info = reg.get(name)
+        if info is not None:
+            found = info
+            found_type = reg_type
+            break
+
+    if found is None:
+        print(f"'{name}' not found in any registry.")
+        return
+
+    result = _format_info(name, found, verbose=True)
+    result["registry"] = found_type
+
+    if output_format == "json":
+        print(json.dumps(result, indent=2, default=str))
+    else:
+        # Display as key-value pairs
+        for key, value in result.items():
+            print(f"{key}: {value}")
+
+
+@registry.command(help="Search for registered items by name pattern")
+@click.argument("pattern")
+@click.option(
+    "--type",
+    "-t",
+    "registry_type",
+    type=click.Choice(
+        ["mechanisms", "negotiators", "components", "all"], case_sensitive=False
+    ),
+    default="all",
+    help="Registry type to search",
+)
+@click.option(
+    "--format",
+    "-o",
+    "output_format",
+    type=click.Choice(["table", "json", "names"], case_sensitive=False),
+    default="table",
+    help="Output format",
+)
+@click.option("--case-sensitive", "-s", is_flag=True, help="Case-sensitive search")
+def search(pattern, registry_type, output_format, case_sensitive):
+    """Search for registered items by name pattern (supports wildcards)."""
+    import fnmatch
+    from negmas import mechanism_registry, negotiator_registry, component_registry
+
+    registries = []
+    if registry_type == "all":
+        registries = [
+            ("mechanism", mechanism_registry),
+            ("negotiator", negotiator_registry),
+            ("component", component_registry),
+        ]
+    else:
+        reg = _get_registry(registry_type)
+        if reg:
+            registries = [(registry_type.rstrip("s"), reg)]
+
+    results = []
+    for reg_type, reg in registries:
+        for name, info in reg.items():
+            match_name = name if case_sensitive else name.lower()
+            match_pattern = pattern if case_sensitive else pattern.lower()
+            if fnmatch.fnmatch(match_name, match_pattern):
+                result = _format_info(name, info)
+                result["registry"] = reg_type
+                results.append(result)
+
+    if not results:
+        print(f"No items found matching pattern '{pattern}'")
+        return
+
+    if output_format == "names":
+        for r in sorted(results, key=lambda x: x["name"]):
+            print(r["name"])
+    elif output_format == "json":
+        print(json.dumps(results, indent=2, default=str))
+    else:
+        print(tabulate(results, headers="keys", tablefmt="psql"))
+
+
+@registry.command(help="Show summary statistics for all registries")
+def stats():
+    """Show summary statistics for all registries."""
+    from negmas import mechanism_registry, negotiator_registry, component_registry
+
+    print("Registry Statistics")
+    print("=" * 40)
+
+    # Mechanisms
+    print(f"\nMechanisms: {len(mechanism_registry)}")
+    deadline_required = sum(
+        1 for info in mechanism_registry.values() if info.requires_deadline
+    )
+    print(f"  - Requires deadline: {deadline_required}")
+    print(f"  - No deadline required: {len(mechanism_registry) - deadline_required}")
+
+    # Negotiators
+    print(f"\nNegotiators: {len(negotiator_registry)}")
+
+    # Count by ANAC year
+    anac_years = {}
+    non_anac = 0
+    for info in negotiator_registry.values():
+        if info.anac_year:
+            anac_years[info.anac_year] = anac_years.get(info.anac_year, 0) + 1
+        else:
+            non_anac += 1
+
+    print(f"  - Non-ANAC: {non_anac}")
+    for year in sorted(anac_years.keys()):
+        print(f"  - ANAC {year}: {anac_years[year]}")
+
+    # Components
+    print(f"\nComponents: {len(component_registry)}")
+    component_types = {}
+    for info in component_registry.values():
+        ct = info.component_type
+        component_types[ct] = component_types.get(ct, 0) + 1
+
+    for ct in sorted(component_types.keys()):
+        print(f"  - {ct}: {component_types[ct]}")
+
+
+@registry.command(help="List available filter attributes for a registry type")
+@click.argument(
+    "registry_type",
+    type=click.Choice(["mechanism", "negotiator", "component"], case_sensitive=False),
+)
+def filters(registry_type):
+    """List available filter attributes for a registry type."""
+    if registry_type == "mechanism":
+        print("Available filters for mechanisms:")
+        print("  - requires_deadline (bool): Whether the mechanism requires a deadline")
+        print(
+            "\nExample: negmas registry list mechanisms --filter 'requires_deadline=false'"
+        )
+    elif registry_type == "negotiator":
+        print("Available filters for negotiators:")
+        print("  - bilateral_only (bool): Only works in bilateral negotiations")
+        print("  - requires_opponent_ufun (bool): Needs opponent's utility function")
+        print("  - learns (bool): Learns from repeated negotiations")
+        print("  - anac_year (int): ANAC competition year (e.g., 2019)")
+        print("  - supports_uncertainty (bool): Supports uncertain preferences")
+        print("  - supports_discounting (bool): Supports time-discounted utilities")
+        print("\nExample: negmas registry list negotiators --filter 'anac_year=2019'")
+        print(
+            "Example: negmas registry list negotiators --filter 'learns=true,bilateral_only=false'"
+        )
+    elif registry_type == "component":
+        print("Available filters for components:")
+        print(
+            "  - component_type (str): Type of component (acceptance, offering, model)"
+        )
+        print(
+            "\nExample: negmas registry list components --filter 'component_type=acceptance'"
+        )
+
+
 if __name__ == "__main__":
     cli()

@@ -39,6 +39,7 @@ Helpers & Utilities
 * :doc:`modules/serialization` - Serialization support
 * :doc:`modules/checkpoints` - Checkpointing support
 * :doc:`modules/plots` - Plotting utilities
+* :doc:`modules/registry` - Registration system for mechanisms, negotiators, and components
 
 Models
 ------

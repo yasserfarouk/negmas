@@ -13,3 +13,4 @@ Helper Modules
     modules/serialization
     modules/checkpoints
     modules/plots
+    modules/registry

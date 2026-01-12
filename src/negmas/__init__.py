@@ -30,6 +30,7 @@ _LAZY_SUBMODULES = frozenset(
         "st",
         "preferences",
         "genius",
+        "registry",
     }
 )
 
@@ -506,6 +507,19 @@ _EXPORT_TO_MODULE = {
     "genius_bridge_is_running": "genius",
     "get_free_tcp_port": "genius",
     "init_genius_bridge": "genius",
+    # registry (12 exports)
+    "ComponentInfo": "registry",
+    "MechanismInfo": "registry",
+    "NegotiatorInfo": "registry",
+    "Registry": "registry",
+    "RegistryInfo": "registry",
+    "component_registry": "registry",
+    "get_registered_class": "registry",
+    "mechanism_registry": "registry",
+    "negotiator_registry": "registry",
+    "register_component": "registry",
+    "register_mechanism": "registry",
+    "register_negotiator": "registry",
 }
 
 # Cache for loaded modules
@@ -963,4 +977,17 @@ __all__ = [
     "genius_bridge_is_running",
     "get_free_tcp_port",
     "init_genius_bridge",
+    # registry
+    "ComponentInfo",
+    "MechanismInfo",
+    "NegotiatorInfo",
+    "Registry",
+    "RegistryInfo",
+    "component_registry",
+    "get_registered_class",
+    "mechanism_registry",
+    "negotiator_registry",
+    "register_component",
+    "register_mechanism",
+    "register_negotiator",
 ]
