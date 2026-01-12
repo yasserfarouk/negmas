@@ -8,7 +8,14 @@ Note: Only concrete, usable classes are registered - not base classes.
 
 from __future__ import annotations
 
-from negmas.registry import mechanism_registry, negotiator_registry, component_registry
+from pathlib import Path
+
+from negmas.registry import (
+    mechanism_registry,
+    negotiator_registry,
+    component_registry,
+    scenario_registry,
+)
 
 __all__: list[str] = []
 
@@ -17,6 +24,16 @@ def _register_mechanisms() -> None:
     """Register all built-in mechanisms.
 
     Note: Only concrete mechanisms are registered, not base classes like Mechanism.
+
+    Mechanism tags indicate their type and requirements:
+    - "builtin": Built into negmas
+    - "sao": Single Agreement Only protocol
+    - "gb": General Bargaining protocol
+    - "tau": TAU protocol (no deadline required)
+    - "st": Single Text protocol
+    - "requires-deadline": Requires n_steps or time_limit
+    - "propose": Requires negotiators to have propose capability
+    - "respond": Requires negotiators to have respond capability
     """
     from negmas.sao.mechanism import SAOMechanism
     from negmas.gb.mechanisms.base import ParallelGBMechanism, SerialGBMechanism
@@ -26,23 +43,38 @@ def _register_mechanisms() -> None:
 
     # Register SAO mechanisms
     mechanism_registry.register(
-        SAOMechanism, short_name="SAOMechanism", requires_deadline=True
+        SAOMechanism,
+        short_name="SAOMechanism",
+        requires_deadline=True,
+        tags={"builtin", "sao", "requires-deadline", "propose", "respond"},
     )
 
     # Register GB mechanisms (concrete implementations)
     mechanism_registry.register(
-        ParallelGBMechanism, short_name="ParallelGBMechanism", requires_deadline=True
+        ParallelGBMechanism,
+        short_name="ParallelGBMechanism",
+        requires_deadline=True,
+        tags={"builtin", "gb", "requires-deadline", "propose", "respond"},
     )
     mechanism_registry.register(
-        SerialGBMechanism, short_name="SerialGBMechanism", requires_deadline=True
+        SerialGBMechanism,
+        short_name="SerialGBMechanism",
+        requires_deadline=True,
+        tags={"builtin", "gb", "requires-deadline", "propose", "respond"},
     )
 
     # Register TAU mechanisms - they don't require a deadline
     mechanism_registry.register(
-        TAUMechanism, short_name="TAUMechanism", requires_deadline=False
+        TAUMechanism,
+        short_name="TAUMechanism",
+        requires_deadline=False,
+        tags={"builtin", "gb", "tau", "propose", "respond"},
     )
     mechanism_registry.register(
-        SerialTAUMechanism, short_name="SerialTAUMechanism", requires_deadline=False
+        SerialTAUMechanism,
+        short_name="SerialTAUMechanism",
+        requires_deadline=False,
+        tags={"builtin", "gb", "tau", "propose", "respond"},
     )
 
     # Register ST mechanisms
@@ -50,9 +82,13 @@ def _register_mechanisms() -> None:
         HillClimbingSTMechanism,
         short_name="HillClimbingSTMechanism",
         requires_deadline=True,
+        tags={"builtin", "st", "requires-deadline"},
     )
     mechanism_registry.register(
-        VetoSTMechanism, short_name="VetoSTMechanism", requires_deadline=True
+        VetoSTMechanism,
+        short_name="VetoSTMechanism",
+        requires_deadline=True,
+        tags={"builtin", "st", "requires-deadline"},
     )
 
 
@@ -60,6 +96,18 @@ def _register_sao_negotiators() -> None:
     """Register SAO negotiators.
 
     Note: Base classes like SAONegotiator are not registered.
+
+    Negotiator tags indicate their capabilities and characteristics:
+    - "builtin": Built into negmas (not from Genius)
+    - "sao": Works with SAO protocol
+    - "propose": Can propose offers
+    - "respond": Can respond to offers
+    - "aspiration": Uses aspiration-based strategy
+    - "random": Uses random strategy
+    - "tit-for-tat": Uses tit-for-tat strategy
+    - "time-based": Uses time-based concession
+    - "utility-based": Uses utility-based strategy
+    - "learning": Learns from interaction
     """
     from negmas.sao.negotiators import (
         AspirationNegotiator,
@@ -87,70 +135,151 @@ def _register_sao_negotiators() -> None:
         FastMiCRONegotiator,
     )
 
+    # Base tags for all builtin SAO negotiators
+    base_tags = {"builtin", "sao", "propose", "respond"}
+
     # Aspiration negotiators
     negotiator_registry.register(
-        AspirationNegotiator, short_name="AspirationNegotiator"
+        AspirationNegotiator,
+        short_name="AspirationNegotiator",
+        tags=base_tags | {"aspiration", "time-based"},
     )
-    negotiator_registry.register(ToughNegotiator, short_name="ToughNegotiator")
-    negotiator_registry.register(NiceNegotiator, short_name="NiceNegotiator")
+    negotiator_registry.register(
+        ToughNegotiator, short_name="ToughNegotiator", tags=base_tags | {"aspiration"}
+    )
+    negotiator_registry.register(
+        NiceNegotiator, short_name="NiceNegotiator", tags=base_tags | {"aspiration"}
+    )
 
     # Random negotiators
-    negotiator_registry.register(RandomNegotiator, short_name="RandomNegotiator")
     negotiator_registry.register(
-        RandomAlwaysAcceptingNegotiator, short_name="RandomAlwaysAcceptingNegotiator"
+        RandomNegotiator, short_name="RandomNegotiator", tags=base_tags | {"random"}
+    )
+    negotiator_registry.register(
+        RandomAlwaysAcceptingNegotiator,
+        short_name="RandomAlwaysAcceptingNegotiator",
+        tags=base_tags | {"random"},
     )
 
     # Limited outcomes negotiators
     negotiator_registry.register(
-        LimitedOutcomesNegotiator, short_name="LimitedOutcomesNegotiator"
+        LimitedOutcomesNegotiator,
+        short_name="LimitedOutcomesNegotiator",
+        tags=base_tags | {"limited-outcomes"},
     )
     negotiator_registry.register(
-        LimitedOutcomesAcceptor, short_name="LimitedOutcomesAcceptor"
+        LimitedOutcomesAcceptor,
+        short_name="LimitedOutcomesAcceptor",
+        tags=base_tags | {"limited-outcomes"},
     )
 
     # Tit-for-tat negotiators
     negotiator_registry.register(
-        NaiveTitForTatNegotiator, short_name="NaiveTitForTatNegotiator"
+        NaiveTitForTatNegotiator,
+        short_name="NaiveTitForTatNegotiator",
+        tags=base_tags | {"tit-for-tat"},
     )
     negotiator_registry.register(
-        SimpleTitForTatNegotiator, short_name="SimpleTitForTatNegotiator"
+        SimpleTitForTatNegotiator,
+        short_name="SimpleTitForTatNegotiator",
+        tags=base_tags | {"tit-for-tat"},
     )
 
     # Time-based negotiators
-    negotiator_registry.register(TimeBasedNegotiator, short_name="TimeBasedNegotiator")
     negotiator_registry.register(
-        TimeBasedConcedingNegotiator, short_name="TimeBasedConcedingNegotiator"
+        TimeBasedNegotiator,
+        short_name="TimeBasedNegotiator",
+        tags=base_tags | {"time-based"},
     )
     negotiator_registry.register(
-        BoulwareTBNegotiator, short_name="BoulwareTBNegotiator"
+        TimeBasedConcedingNegotiator,
+        short_name="TimeBasedConcedingNegotiator",
+        tags=base_tags | {"time-based"},
     )
     negotiator_registry.register(
-        ConcederTBNegotiator, short_name="ConcederTBNegotiator"
+        BoulwareTBNegotiator,
+        short_name="BoulwareTBNegotiator",
+        tags=base_tags | {"time-based", "boulware"},
     )
-    negotiator_registry.register(LinearTBNegotiator, short_name="LinearTBNegotiator")
+    negotiator_registry.register(
+        ConcederTBNegotiator,
+        short_name="ConcederTBNegotiator",
+        tags=base_tags | {"time-based", "conceder"},
+    )
+    negotiator_registry.register(
+        LinearTBNegotiator,
+        short_name="LinearTBNegotiator",
+        tags=base_tags | {"time-based", "linear"},
+    )
 
     # Utility-based negotiators
-    negotiator_registry.register(UtilBasedNegotiator, short_name="UtilBasedNegotiator")
+    negotiator_registry.register(
+        UtilBasedNegotiator,
+        short_name="UtilBasedNegotiator",
+        tags=base_tags | {"utility-based"},
+    )
 
     # CAB family negotiators (Concede-to-Agreement-Based)
-    negotiator_registry.register(CABNegotiator, short_name="CABNegotiator")
-    negotiator_registry.register(CANNegotiator, short_name="CANNegotiator")
-    negotiator_registry.register(CARNegotiator, short_name="CARNegotiator")
+    negotiator_registry.register(
+        CABNegotiator,
+        short_name="CABNegotiator",
+        tags=base_tags | {"cab-family", "learning"},
+    )
+    negotiator_registry.register(
+        CANNegotiator,
+        short_name="CANNegotiator",
+        tags=base_tags | {"cab-family", "learning"},
+    )
+    negotiator_registry.register(
+        CARNegotiator,
+        short_name="CARNegotiator",
+        tags=base_tags | {"cab-family", "learning"},
+    )
 
     # WAB family negotiators (Walk-Away-Based)
-    negotiator_registry.register(WABNegotiator, short_name="WABNegotiator")
-    negotiator_registry.register(WANNegotiator, short_name="WANNegotiator")
-    negotiator_registry.register(WARNegotiator, short_name="WARNegotiator")
+    negotiator_registry.register(
+        WABNegotiator,
+        short_name="WABNegotiator",
+        tags=base_tags | {"wab-family", "learning"},
+    )
+    negotiator_registry.register(
+        WANNegotiator,
+        short_name="WANNegotiator",
+        tags=base_tags | {"wab-family", "learning"},
+    )
+    negotiator_registry.register(
+        WARNegotiator,
+        short_name="WARNegotiator",
+        tags=base_tags | {"wab-family", "learning"},
+    )
 
     # MiCRO negotiators
-    negotiator_registry.register(MiCRONegotiator, short_name="MiCRONegotiator")
-    negotiator_registry.register(FastMiCRONegotiator, short_name="FastMiCRONegotiator")
+    negotiator_registry.register(
+        MiCRONegotiator,
+        short_name="MiCRONegotiator",
+        tags=base_tags | {"micro", "learning"},
+    )
+    negotiator_registry.register(
+        FastMiCRONegotiator,
+        short_name="FastMiCRONegotiator",
+        tags=base_tags | {"micro", "learning"},
+    )
 
 
 def _register_sao_components() -> None:
     """Register SAO components (acceptance policies, offering policies, models).
 
     Note: Base classes like AcceptancePolicy and OfferingPolicy are not registered.
+
+    Component tags indicate their type and characteristics:
+    - "builtin": Built into negmas
+    - "sao": For SAO protocol
+    - "acceptance": Acceptance policy
+    - "offering": Offering policy
+    - "model": Opponent model
+    - "rational": Uses rational/utility-based decisions
+    - "random": Uses random decisions
+    - "time-based": Uses time-based logic
     """
     # Import specific acceptance policies from sao.components.acceptance
     from negmas.sao.components.acceptance import (
@@ -175,29 +304,35 @@ def _register_sao_components() -> None:
         ACLastFractionReceived,
     )
 
-    for cls in [
-        AcceptImmediately,
-        RejectAlways,
-        AcceptAnyRational,
-        AcceptBetterRational,
-        AcceptNotWorseRational,
-        AcceptAbove,
-        AcceptBetween,
-        AcceptAround,
-        AcceptBest,
-        AcceptTop,
-        AcceptAfter,
-        RandomAcceptancePolicy,
-        EndImmediately,
-        ACConst,
-        ACNext,
-        ACLast,
-        ACTime,
-        ACLastKReceived,
-        ACLastFractionReceived,
-    ]:
+    # Acceptance policies with appropriate tags
+    acceptance_base = {"builtin", "sao"}
+    acceptance_policies = [
+        (AcceptImmediately, {"simple"}),
+        (RejectAlways, {"simple"}),
+        (AcceptAnyRational, {"rational"}),
+        (AcceptBetterRational, {"rational"}),
+        (AcceptNotWorseRational, {"rational"}),
+        (AcceptAbove, {"threshold"}),
+        (AcceptBetween, {"threshold"}),
+        (AcceptAround, {"threshold"}),
+        (AcceptBest, {"optimal"}),
+        (AcceptTop, {"optimal"}),
+        (AcceptAfter, {"time-based"}),
+        (RandomAcceptancePolicy, {"random"}),
+        (EndImmediately, {"simple"}),
+        (ACConst, {"threshold"}),
+        (ACNext, {"adaptive"}),
+        (ACLast, {"adaptive"}),
+        (ACTime, {"time-based"}),
+        (ACLastKReceived, {"adaptive"}),
+        (ACLastFractionReceived, {"adaptive"}),
+    ]
+    for cls, extra_tags in acceptance_policies:
         component_registry.register(
-            cls, short_name=cls.__name__, component_type="acceptance"
+            cls,
+            short_name=cls.__name__,
+            component_type="acceptance",
+            tags=acceptance_base | extra_tags,
         )
 
     # Import offering policies from sao.components.offering
@@ -209,15 +344,20 @@ def _register_sao_components() -> None:
         TimeBasedOfferingPolicy,
     )
 
-    for cls in [
-        RandomOfferingPolicy,
-        NoneOfferingPolicy,
-        OfferBest,
-        OfferTop,
-        TimeBasedOfferingPolicy,
-    ]:
+    offering_base = {"builtin", "sao"}
+    offering_policies = [
+        (RandomOfferingPolicy, {"random"}),
+        (NoneOfferingPolicy, {"simple"}),
+        (OfferBest, {"optimal"}),
+        (OfferTop, {"optimal"}),
+        (TimeBasedOfferingPolicy, {"time-based"}),
+    ]
+    for cls, extra_tags in offering_policies:
         component_registry.register(
-            cls, short_name=cls.__name__, component_type="offering"
+            cls,
+            short_name=cls.__name__,
+            component_type="offering",
+            tags=offering_base | extra_tags,
         )
 
     # Import models from sao.components.models
@@ -227,9 +367,18 @@ def _register_sao_components() -> None:
         FrequencyLinearUFunModel,
     )
 
-    for cls in [ZeroSumModel, FrequencyUFunModel, FrequencyLinearUFunModel]:
+    model_base = {"builtin", "sao"}
+    models = [
+        (ZeroSumModel, {"zero-sum"}),
+        (FrequencyUFunModel, {"frequency", "learning"}),
+        (FrequencyLinearUFunModel, {"frequency", "learning", "linear"}),
+    ]
+    for cls, extra_tags in models:
         component_registry.register(
-            cls, short_name=cls.__name__, component_type="model"
+            cls,
+            short_name=cls.__name__,
+            component_type="model",
+            tags=model_base | extra_tags,
         )
 
 
@@ -238,9 +387,16 @@ def _register_genius_boa_components() -> None:
 
     These are acceptance policies, offering policies, and opponent models
     from the Genius negotiation framework.
+
+    Component tags:
+    - "genius": From Genius framework
+    - "boa": Part of Genius BOA architecture
+    - "ai-generated": Transcompiled with AI assistance
+    - "genius-translated": Direct translation from Java source
     """
     # Import Genius acceptance policies
     from negmas.gb.components.genius.acceptance import (
+        # Base acceptance strategies
         GACNext,
         GACConst,
         GACTime,
@@ -261,36 +417,115 @@ def _register_genius_boa_components() -> None:
         GACCombiMaxInWindowDiscounted,
         GACCombiProb,
         GACCombiProbDiscounted,
+        # ANAC 2010 acceptance strategies
+        GACABMP,
+        GACAgentK,
+        GACAgentFSEGA,
+        GACIAMCrazyHaggler,
+        GACYushu,
+        GACNozomi,
+        GACIAMHaggler2010,
+        GACAgentSmith,
+        # ANAC 2011 acceptance strategies
+        GACHardHeaded,
+        GACAgentK2,
+        GACBRAMAgent,
+        GACGahboninho,
+        GACNiceTitForTat,
+        GACTheNegotiator,
+        GACValueModelAgent,
+        GACIAMHaggler2011,
+        # ANAC 2012 acceptance strategies
+        GACCUHKAgent,
+        GACOMACagent,
+        GACAgentLG,
+        GACAgentMR,
+        GACBRAMAgent2,
+        GACIAMHaggler2012,
+        GACTheNegotiatorReloaded,
+        # ANAC 2013 acceptance strategies
+        GACTheFawkes,
+        GACInoxAgent,
+        GACInoxAgentOneIssue,
+        # Other acceptance strategies
+        GACUncertain,
+        GACMAC,
     )
 
-    for cls in [
-        GACNext,
-        GACConst,
-        GACTime,
-        GACPrevious,
-        GACGap,
-        GACCombi,
-        GACCombiMaxInWindow,
-        GACTrue,
-        GACFalse,
-        GACConstDiscounted,
-        GACCombiAvg,
-        GACCombiBestAvg,
-        GACCombiMax,
-        GACCombiV2,
-        GACCombiV3,
-        GACCombiV4,
-        GACCombiBestAvgDiscounted,
-        GACCombiMaxInWindowDiscounted,
-        GACCombiProb,
-        GACCombiProbDiscounted,
-    ]:
+    genius_acceptance_base = {
+        "genius",
+        "boa",
+        "gb",
+        "ai-generated",
+        "genius-translated",
+    }
+    genius_acceptance = [
+        # Base acceptance strategies
+        (GACNext, {"adaptive"}),
+        (GACConst, {"threshold"}),
+        (GACTime, {"time-based"}),
+        (GACPrevious, {"adaptive"}),
+        (GACGap, {"adaptive"}),
+        (GACCombi, {"combined"}),
+        (GACCombiMaxInWindow, {"combined", "windowed"}),
+        (GACTrue, {"simple"}),
+        (GACFalse, {"simple"}),
+        (GACConstDiscounted, {"threshold", "discounted"}),
+        (GACCombiAvg, {"combined"}),
+        (GACCombiBestAvg, {"combined"}),
+        (GACCombiMax, {"combined"}),
+        (GACCombiV2, {"combined"}),
+        (GACCombiV3, {"combined"}),
+        (GACCombiV4, {"combined"}),
+        (GACCombiBestAvgDiscounted, {"combined", "discounted"}),
+        (GACCombiMaxInWindowDiscounted, {"combined", "windowed", "discounted"}),
+        (GACCombiProb, {"combined", "probabilistic"}),
+        (GACCombiProbDiscounted, {"combined", "probabilistic", "discounted"}),
+        # ANAC 2010
+        (GACABMP, {"anac2010"}),
+        (GACAgentK, {"anac2010"}),
+        (GACAgentFSEGA, {"anac2010"}),
+        (GACIAMCrazyHaggler, {"anac2010"}),
+        (GACYushu, {"anac2010"}),
+        (GACNozomi, {"anac2010"}),
+        (GACIAMHaggler2010, {"anac2010"}),
+        (GACAgentSmith, {"anac2010"}),
+        # ANAC 2011
+        (GACHardHeaded, {"anac2011"}),
+        (GACAgentK2, {"anac2011"}),
+        (GACBRAMAgent, {"anac2011"}),
+        (GACGahboninho, {"anac2011"}),
+        (GACNiceTitForTat, {"anac2011", "tit-for-tat"}),
+        (GACTheNegotiator, {"anac2011"}),
+        (GACValueModelAgent, {"anac2011"}),
+        (GACIAMHaggler2011, {"anac2011"}),
+        # ANAC 2012
+        (GACCUHKAgent, {"anac2012"}),
+        (GACOMACagent, {"anac2012"}),
+        (GACAgentLG, {"anac2012"}),
+        (GACAgentMR, {"anac2012"}),
+        (GACBRAMAgent2, {"anac2012"}),
+        (GACIAMHaggler2012, {"anac2012"}),
+        (GACTheNegotiatorReloaded, {"anac2012"}),
+        # ANAC 2013
+        (GACTheFawkes, {"anac2013"}),
+        (GACInoxAgent, {"anac2013"}),
+        (GACInoxAgentOneIssue, {"anac2013"}),
+        # Other
+        (GACUncertain, {"uncertainty"}),
+        (GACMAC, {"multi-attribute"}),
+    ]
+    for cls, extra_tags in genius_acceptance:
         component_registry.register(
-            cls, short_name=cls.__name__, component_type="acceptance"
+            cls,
+            short_name=cls.__name__,
+            component_type="acceptance",
+            tags=genius_acceptance_base | extra_tags,
         )
 
     # Import Genius offering policies
     from negmas.gb.components.genius.offering import (
+        # Base offering strategies
         GTimeDependentOffering,
         GRandomOffering,
         GBoulwareOffering,
@@ -298,23 +533,86 @@ def _register_genius_boa_components() -> None:
         GLinearOffering,
         GHardlinerOffering,
         GChoosingAllBids,
+        # ANAC 2010 offering strategies
+        GIAMCrazyHagglerOffering,
+        GAgentKOffering,
+        GAgentFSEGAOffering,
+        GAgentSmithOffering,
+        GNozomiOffering,
+        GYushuOffering,
+        GIAMhaggler2010Offering,
+        # ANAC 2011 offering strategies
+        GHardHeadedOffering,
+        GAgentK2Offering,
+        GBRAMAgentOffering,
+        GGahboninhoOffering,
+        GNiceTitForTatOffering,
+        GTheNegotiatorOffering,
+        GValueModelAgentOffering,
+        GIAMhaggler2011Offering,
+        # ANAC 2012 offering strategies
+        GCUHKAgentOffering,
+        GOMACagentOffering,
+        GAgentLGOffering,
+        GAgentMROffering,
+        GBRAMAgent2Offering,
+        GIAMHaggler2012Offering,
+        GTheNegotiatorReloadedOffering,
+        # ANAC 2013 offering strategies
+        GFawkesOffering,
+        GInoxAgentOffering,
     )
 
-    for cls in [
-        GTimeDependentOffering,
-        GRandomOffering,
-        GBoulwareOffering,
-        GConcederOffering,
-        GLinearOffering,
-        GHardlinerOffering,
-        GChoosingAllBids,
-    ]:
+    genius_offering_base = {"genius", "boa", "gb", "ai-generated", "genius-translated"}
+    genius_offering = [
+        # Base offering strategies
+        (GTimeDependentOffering, {"time-based"}),
+        (GRandomOffering, {"random"}),
+        (GBoulwareOffering, {"time-based", "boulware"}),
+        (GConcederOffering, {"time-based", "conceder"}),
+        (GLinearOffering, {"time-based", "linear"}),
+        (GHardlinerOffering, {"hardliner"}),
+        (GChoosingAllBids, {"exhaustive"}),
+        # ANAC 2010
+        (GIAMCrazyHagglerOffering, {"anac2010", "hardliner"}),
+        (GAgentKOffering, {"anac2010", "adaptive"}),
+        (GAgentFSEGAOffering, {"anac2010", "adaptive"}),
+        (GAgentSmithOffering, {"anac2010", "time-based"}),
+        (GNozomiOffering, {"anac2010", "adaptive"}),
+        (GYushuOffering, {"anac2010", "sigmoid"}),
+        (GIAMhaggler2010Offering, {"anac2010", "conservative"}),
+        # ANAC 2011
+        (GHardHeadedOffering, {"anac2011", "conservative"}),
+        (GAgentK2Offering, {"anac2011", "adaptive"}),
+        (GBRAMAgentOffering, {"anac2011", "opponent-modeling"}),
+        (GGahboninhoOffering, {"anac2011", "adaptive"}),
+        (GNiceTitForTatOffering, {"anac2011", "tit-for-tat"}),
+        (GTheNegotiatorOffering, {"anac2011", "piecewise"}),
+        (GValueModelAgentOffering, {"anac2011", "value-modeling"}),
+        (GIAMhaggler2011Offering, {"anac2011", "conservative"}),
+        # ANAC 2012
+        (GCUHKAgentOffering, {"anac2012", "adaptive"}),
+        (GOMACagentOffering, {"anac2012", "prediction"}),
+        (GAgentLGOffering, {"anac2012", "learning"}),
+        (GAgentMROffering, {"anac2012", "risk-based"}),
+        (GBRAMAgent2Offering, {"anac2012", "opponent-modeling"}),
+        (GIAMHaggler2012Offering, {"anac2012", "conservative"}),
+        (GTheNegotiatorReloadedOffering, {"anac2012", "piecewise"}),
+        # ANAC 2013
+        (GFawkesOffering, {"anac2013", "prediction"}),
+        (GInoxAgentOffering, {"anac2013", "adaptive"}),
+    ]
+    for cls, extra_tags in genius_offering:
         component_registry.register(
-            cls, short_name=cls.__name__, component_type="offering"
+            cls,
+            short_name=cls.__name__,
+            component_type="offering",
+            tags=genius_offering_base | extra_tags,
         )
 
     # Import Genius opponent models
     from negmas.gb.components.genius.models import (
+        # Base opponent models
         GHardHeadedFrequencyModel,
         GDefaultModel,
         GUniformModel,
@@ -324,21 +622,45 @@ def _register_genius_boa_components() -> None:
         GNashFrequencyModel,
         GBayesianModel,
         GScalableBayesianModel,
+        # Additional opponent models
+        GFSEGABayesianModel,
+        GIAMhagglerBayesianModel,
+        GCUHKFrequencyModel,
+        GAgentLGModel,
+        GTheFawkesModel,
+        GInoxAgentModel,
+        GWorstModel,
+        GPerfectModel,
     )
 
-    for cls in [
-        GHardHeadedFrequencyModel,
-        GDefaultModel,
-        GUniformModel,
-        GOppositeModel,
-        GSmithFrequencyModel,
-        GAgentXFrequencyModel,
-        GNashFrequencyModel,
-        GBayesianModel,
-        GScalableBayesianModel,
-    ]:
+    genius_model_base = {"genius", "boa", "gb", "ai-generated", "genius-translated"}
+    genius_models = [
+        # Base opponent models
+        (GHardHeadedFrequencyModel, {"frequency", "learning"}),
+        (GDefaultModel, {"simple"}),
+        (GUniformModel, {"simple"}),
+        (GOppositeModel, {"simple"}),
+        (GSmithFrequencyModel, {"frequency", "learning"}),
+        (GAgentXFrequencyModel, {"frequency", "learning"}),
+        (GNashFrequencyModel, {"frequency", "nash", "learning"}),
+        (GBayesianModel, {"bayesian", "learning"}),
+        (GScalableBayesianModel, {"bayesian", "learning", "scalable"}),
+        # Additional opponent models
+        (GFSEGABayesianModel, {"bayesian", "learning", "anac2010"}),
+        (GIAMhagglerBayesianModel, {"bayesian", "learning"}),
+        (GCUHKFrequencyModel, {"frequency", "learning", "anac2012"}),
+        (GAgentLGModel, {"learning", "anac2012"}),
+        (GTheFawkesModel, {"learning", "anac2013"}),
+        (GInoxAgentModel, {"learning", "anac2013"}),
+        (GWorstModel, {"simple", "pessimistic"}),
+        (GPerfectModel, {"oracle", "testing"}),
+    ]
+    for cls, extra_tags in genius_models:
         component_registry.register(
-            cls, short_name=cls.__name__, component_type="model"
+            cls,
+            short_name=cls.__name__,
+            component_type="model",
+            tags=genius_model_base | extra_tags,
         )
 
 
@@ -347,6 +669,13 @@ def _register_genius_negotiators() -> None:
 
     Registers all Python wrappers for Genius Java negotiation agents.
     These are organized by ANAC competition year.
+
+    Negotiator tags:
+    - "genius": From Genius framework (requires Java bridge)
+    - "anac": Competed in ANAC competition
+    - "anac-YYYY": Year-specific tag (e.g., "anac-2019")
+    - "propose": Can propose offers
+    - "respond": Can respond to offers
     """
     try:
         # Import basic agents
@@ -596,6 +925,9 @@ def _register_genius_negotiators() -> None:
         # Genius support not available
         return
 
+    # Base tags for all Genius negotiators
+    genius_base = {"genius", "propose", "respond"}
+
     # Register basic agents (no specific ANAC year)
     basic_agents = [
         ABMPAgent2,
@@ -618,7 +950,9 @@ def _register_genius_negotiators() -> None:
         UtilityBasedAcceptor,
     ]
     for cls in basic_agents:
-        negotiator_registry.register(cls, short_name=cls.__name__)
+        negotiator_registry.register(
+            cls, short_name=cls.__name__, tags=genius_base | {"basic"}
+        )
 
     # Register TU Delft course agents (no specific ANAC year)
     other_agents = [
@@ -647,7 +981,9 @@ def _register_genius_negotiators() -> None:
         Q12015Group2,
     ]
     for cls in other_agents:
-        negotiator_registry.register(cls, short_name=cls.__name__)
+        negotiator_registry.register(
+            cls, short_name=cls.__name__, tags=genius_base | {"tudelft"}
+        )
 
     # Register ANAC 2010 agents
     anac_2010 = [
@@ -661,7 +997,12 @@ def _register_genius_negotiators() -> None:
         Yushu,
     ]
     for cls in anac_2010:
-        negotiator_registry.register(cls, short_name=cls.__name__, anac_year=2010)
+        negotiator_registry.register(
+            cls,
+            short_name=cls.__name__,
+            anac_year=2010,
+            tags=genius_base | {"anac", "anac-2010"},
+        )
 
     # Register ANAC 2011 agents
     anac_2011 = [
@@ -676,7 +1017,12 @@ def _register_genius_negotiators() -> None:
         ValueModelAgent,
     ]
     for cls in anac_2011:
-        negotiator_registry.register(cls, short_name=cls.__name__, anac_year=2011)
+        negotiator_registry.register(
+            cls,
+            short_name=cls.__name__,
+            anac_year=2011,
+            tags=genius_base | {"anac", "anac-2011"},
+        )
 
     # Register ANAC 2012 agents
     anac_2012 = [
@@ -690,7 +1036,12 @@ def _register_genius_negotiators() -> None:
         TheNegotiatorReloaded,
     ]
     for cls in anac_2012:
-        negotiator_registry.register(cls, short_name=cls.__name__, anac_year=2012)
+        negotiator_registry.register(
+            cls,
+            short_name=cls.__name__,
+            anac_year=2012,
+            tags=genius_base | {"anac", "anac-2012"},
+        )
 
     # Register ANAC 2013 agents
     anac_2013 = [
@@ -704,7 +1055,12 @@ def _register_genius_negotiators() -> None:
         TheFawkes,
     ]
     for cls in anac_2013:
-        negotiator_registry.register(cls, short_name=cls.__name__, anac_year=2013)
+        negotiator_registry.register(
+            cls,
+            short_name=cls.__name__,
+            anac_year=2013,
+            tags=genius_base | {"anac", "anac-2013"},
+        )
 
     # Register ANAC 2014 agents
     anac_2014 = [
@@ -730,7 +1086,12 @@ def _register_genius_negotiators() -> None:
         WhaleAgent,
     ]
     for cls in anac_2014:
-        negotiator_registry.register(cls, short_name=cls.__name__, anac_year=2014)
+        negotiator_registry.register(
+            cls,
+            short_name=cls.__name__,
+            anac_year=2014,
+            tags=genius_base | {"anac", "anac-2014"},
+        )
 
     # Register ANAC 2015 agents
     anac_2015 = [
@@ -760,7 +1121,12 @@ def _register_genius_negotiators() -> None:
         Y2015Group2,
     ]
     for cls in anac_2015:
-        negotiator_registry.register(cls, short_name=cls.__name__, anac_year=2015)
+        negotiator_registry.register(
+            cls,
+            short_name=cls.__name__,
+            anac_year=2015,
+            tags=genius_base | {"anac", "anac-2015"},
+        )
 
     # Register ANAC 2016 agents
     anac_2016 = [
@@ -783,7 +1149,12 @@ def _register_genius_negotiators() -> None:
         YXAgent,
     ]
     for cls in anac_2016:
-        negotiator_registry.register(cls, short_name=cls.__name__, anac_year=2016)
+        negotiator_registry.register(
+            cls,
+            short_name=cls.__name__,
+            anac_year=2016,
+            tags=genius_base | {"anac", "anac-2016"},
+        )
 
     # Register ANAC 2017 agents
     anac_2017 = [
@@ -808,7 +1179,12 @@ def _register_genius_negotiators() -> None:
         TucAgent,
     ]
     for cls in anac_2017:
-        negotiator_registry.register(cls, short_name=cls.__name__, anac_year=2017)
+        negotiator_registry.register(
+            cls,
+            short_name=cls.__name__,
+            anac_year=2017,
+            tags=genius_base | {"anac", "anac-2017"},
+        )
 
     # Register ANAC 2018 agents
     anac_2018 = [
@@ -837,7 +1213,12 @@ def _register_genius_negotiators() -> None:
         Yeela,
     ]
     for cls in anac_2018:
-        negotiator_registry.register(cls, short_name=cls.__name__, anac_year=2018)
+        negotiator_registry.register(
+            cls,
+            short_name=cls.__name__,
+            anac_year=2018,
+            tags=genius_base | {"anac", "anac-2018"},
+        )
 
     # Register ANAC 2019 agents
     anac_2019 = [
@@ -862,7 +1243,93 @@ def _register_genius_negotiators() -> None:
         WinkyAgent,
     ]
     for cls in anac_2019:
-        negotiator_registry.register(cls, short_name=cls.__name__, anac_year=2019)
+        negotiator_registry.register(
+            cls,
+            short_name=cls.__name__,
+            anac_year=2019,
+            tags=genius_base | {"anac", "anac-2019"},
+        )
+
+
+def _register_scenarios() -> None:
+    """Register all built-in scenarios shipped with negmas.
+
+    These are negotiation scenarios (domain + utility files) that are included
+    in the negmas package distribution.
+
+    Scenario tags indicate their source and characteristics:
+    - "builtin": Shipped with negmas
+    - "xml": XML format (Genius)
+    - "json": JSON format (GeniusWeb)
+    - "yaml": YAML format
+    - "bilateral": 2 negotiators
+    - "multilateral": 3+ negotiators
+    """
+    # Get the path to the scenarios directory (shipped with negmas)
+    scenarios_dir = Path(__file__).parent / "scenarios"
+
+    if not scenarios_dir.exists():
+        return
+
+    # Register each scenario folder
+    for scenario_path in scenarios_dir.iterdir():
+        if scenario_path.is_dir() and not scenario_path.name.startswith("_"):
+            # Determine number of negotiators by counting utility/profile files
+            n_negotiators = _count_ufuns_in_scenario(scenario_path)
+
+            # Determine if bilateral or multilateral based on ufun count
+            extra_tags: set[str] = set()
+            if n_negotiators == 2:
+                extra_tags.add("bilateral")
+            elif n_negotiators is not None and n_negotiators > 2:
+                extra_tags.add("multilateral")
+
+            scenario_registry.register(
+                path=scenario_path,
+                name=scenario_path.name,
+                tags={"builtin"} | extra_tags,
+                n_negotiators=n_negotiators,
+            )
+
+
+def _count_ufuns_in_scenario(scenario_path: Path) -> int | None:
+    """Count the number of utility function files in a scenario folder.
+
+    Looks for profile/utility files in XML, JSON, and YAML formats.
+
+    Args:
+        scenario_path: Path to the scenario folder.
+
+    Returns:
+        The number of utility files found, or None if detection failed.
+    """
+    # Try XML format (Genius style): *prof*.xml, *profile*.xml, *util*.xml
+    xml_profiles = (
+        list(scenario_path.glob("*prof*.xml"))
+        or list(scenario_path.glob("*profile*.xml"))
+        or list(scenario_path.glob("*util*.xml"))
+    )
+    if xml_profiles:
+        return len(xml_profiles)
+
+    # Try JSON format (GeniusWeb style): *profile*.json, *util*.json
+    json_profiles = list(scenario_path.glob("*profile*.json")) or list(
+        scenario_path.glob("*util*.json")
+    )
+    if json_profiles:
+        return len(json_profiles)
+
+    # Try YAML format: *profile*.yaml, *profile*.yml, *util*.yaml, *util*.yml
+    yaml_profiles = (
+        list(scenario_path.glob("*profile*.yaml"))
+        or list(scenario_path.glob("*profile*.yml"))
+        or list(scenario_path.glob("*util*.yaml"))
+        or list(scenario_path.glob("*util*.yml"))
+    )
+    if yaml_profiles:
+        return len(yaml_profiles)
+
+    return None
 
 
 def _register_all() -> None:
@@ -872,6 +1339,7 @@ def _register_all() -> None:
     _register_sao_components()
     _register_genius_boa_components()
     _register_genius_negotiators()
+    _register_scenarios()
 
 
 # Auto-register when this module is imported

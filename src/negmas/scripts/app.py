@@ -1028,7 +1028,12 @@ def registry():
 
 def _get_registry(registry_type: str):
     """Get the appropriate registry based on type."""
-    from negmas import mechanism_registry, negotiator_registry, component_registry
+    from negmas import (
+        mechanism_registry,
+        negotiator_registry,
+        component_registry,
+        scenario_registry,
+    )
 
     registries = {
         "mechanism": mechanism_registry,
@@ -1037,12 +1042,41 @@ def _get_registry(registry_type: str):
         "negotiators": negotiator_registry,
         "component": component_registry,
         "components": component_registry,
+        "scenario": scenario_registry,
+        "scenarios": scenario_registry,
     }
     return registries.get(registry_type.lower())
 
 
-def _format_info(name: str, info, verbose: bool = False) -> dict:
+def _format_info(
+    name: str, info, verbose: bool = False, include_tags: bool = False
+) -> dict:
     """Format registry info for display."""
+    from negmas.registry import ScenarioInfo
+
+    # Handle ScenarioInfo differently (no full_type_name or cls)
+    if isinstance(info, ScenarioInfo):
+        result = {
+            "name": name,
+            "path": str(info.path),
+            "format": info.format,
+            "file": info.file,
+        }
+        if info.n_negotiators is not None:
+            result["n_negotiators"] = info.n_negotiators
+        if info.n_outcomes is not None:
+            result["n_outcomes"] = info.n_outcomes
+        if info.normalized is not None:
+            result["normalized"] = info.normalized
+        if info.anac is not None:
+            result["anac"] = info.anac
+        if include_tags and info.tags:
+            result["tags"] = ",".join(sorted(info.tags))
+        if verbose and info.extra:
+            result["extra"] = info.extra
+        return result
+
+    # Handle regular RegistryInfo subclasses
     result = {"name": name, "type": info.full_type_name}
 
     # Add type-specific fields
@@ -1063,10 +1097,56 @@ def _format_info(name: str, info, verbose: bool = False) -> dict:
     if hasattr(info, "component_type"):
         result["component_type"] = info.component_type
 
+    if include_tags and info.tags:
+        result["tags"] = ",".join(sorted(info.tags))
+
     if verbose and info.extra:
         result["extra"] = info.extra
 
     return result
+
+
+def _parse_tags(tag_str: str) -> set[str]:
+    """Parse a comma-separated tag string into a set of tags."""
+    if not tag_str:
+        return set()
+    return {t.strip() for t in tag_str.split(",") if t.strip()}
+
+
+def _format_output(
+    items: list[dict] | dict, output_format: str, headers: list[str] | None = None
+) -> None:
+    """Format and print output in the requested format.
+
+    Args:
+        items: List of dicts (for tables) or dict (for key-value display)
+        output_format: One of 'free', 'txt', 'json'
+        headers: Optional headers for table format
+    """
+    if output_format == "json":
+        print(json.dumps(items, indent=2, default=str))
+    elif output_format == "txt":
+        # Plain text format suitable for piping to fzf, grep, etc.
+        if isinstance(items, dict):
+            for key, value in items.items():
+                print(f"{key}\t{value}")
+        elif isinstance(items, list):
+            for item in items:
+                if isinstance(item, dict):
+                    # Tab-separated values for easy parsing
+                    print("\t".join(str(v) for v in item.values()))
+                else:
+                    print(item)
+    else:  # free - nicely formatted output (default)
+        if isinstance(items, dict):
+            for key, value in items.items():
+                print(f"{key}: {value}")
+        elif isinstance(items, list) and items:
+            if isinstance(items[0], dict):
+                print(tabulate(items, headers="keys", tablefmt="psql"))
+            else:
+                for item in items:
+                    print(item)
 
 
 def _parse_filter(filter_str: str) -> dict:
@@ -1115,7 +1195,7 @@ def _parse_filter(filter_str: str) -> dict:
 @click.argument(
     "registry_type",
     type=click.Choice(
-        ["mechanisms", "negotiators", "components"], case_sensitive=False
+        ["mechanisms", "negotiators", "components", "scenarios"], case_sensitive=False
     ),
 )
 @click.option(
@@ -1126,26 +1206,72 @@ def _parse_filter(filter_str: str) -> dict:
     help="Filter by attributes (e.g., 'anac_year=2019,bilateral_only=true')",
 )
 @click.option(
+    "--tag",
+    "-t",
+    "tags_str",
+    default="",
+    help="Filter by tags - items must have ALL specified tags (comma-separated, e.g., 'genius,anac2019')",
+)
+@click.option(
+    "--any-tag",
+    "-a",
+    "any_tags_str",
+    default="",
+    help="Filter by tags - items must have ANY of the specified tags (comma-separated)",
+)
+@click.option(
+    "--exclude-tag",
+    "-x",
+    "exclude_tags_str",
+    default="",
+    help="Exclude items with ANY of these tags (comma-separated)",
+)
+@click.option(
     "--format",
     "-o",
     "output_format",
-    type=click.Choice(["table", "json", "names"], case_sensitive=False),
-    default="table",
-    help="Output format",
+    type=click.Choice(["free", "txt", "json"], case_sensitive=False),
+    default="free",
+    help="Output format: 'free' (nicely formatted), 'txt' (plain text for piping), 'json'",
 )
 @click.option("--verbose", "-v", is_flag=True, help="Show extra details")
+@click.option("--show-tags", is_flag=True, help="Include tags in output")
 @click.option("--count", "-c", is_flag=True, help="Only show count of matching items")
-def list_registry(registry_type, filter_str, output_format, verbose, count):
+def list_registry(
+    registry_type,
+    filter_str,
+    tags_str,
+    any_tags_str,
+    exclude_tags_str,
+    output_format,
+    verbose,
+    show_tags,
+    count,
+):
     """List all registered mechanisms, negotiators, or components."""
     reg = _get_registry(registry_type)
     if reg is None:
         print(f"Unknown registry type: {registry_type}")
         return
 
-    # Parse and apply filters
+    # Parse filters
     filters = _parse_filter(filter_str)
-    if filters:
-        items = reg.query(**filters)
+    tags = _parse_tags(tags_str)
+    any_tags = _parse_tags(any_tags_str)
+    exclude_tags = _parse_tags(exclude_tags_str)
+
+    # Apply query with all filters
+    query_kwargs = {}
+    if tags:
+        query_kwargs["tags"] = tags
+    if any_tags:
+        query_kwargs["any_tags"] = any_tags
+    if exclude_tags:
+        query_kwargs["exclude_tags"] = exclude_tags
+    query_kwargs.update(filters)
+
+    if query_kwargs:
+        items = reg.query(**query_kwargs)
     else:
         items = dict(reg)
 
@@ -1157,17 +1283,20 @@ def list_registry(registry_type, filter_str, output_format, verbose, count):
         print(f"No {registry_type} found matching the criteria.")
         return
 
-    if output_format == "names":
+    if output_format == "txt":
+        # Plain text - just names, one per line (ideal for piping to fzf)
         for name in sorted(items.keys()):
             print(name)
     elif output_format == "json":
         result = {
-            name: _format_info(name, info, verbose) for name, info in items.items()
+            name: _format_info(name, info, verbose, show_tags)
+            for name, info in items.items()
         }
         print(json.dumps(result, indent=2, default=str))
-    else:  # table
+    else:  # free - nicely formatted table
         rows = [
-            _format_info(name, info, verbose) for name, info in sorted(items.items())
+            _format_info(name, info, verbose, show_tags)
+            for name, info in sorted(items.items())
         ]
         print(tabulate(rows, headers="keys", tablefmt="psql"))
 
@@ -1179,7 +1308,8 @@ def list_registry(registry_type, filter_str, output_format, verbose, count):
     "-t",
     "registry_type",
     type=click.Choice(
-        ["mechanism", "negotiator", "component", "auto"], case_sensitive=False
+        ["mechanism", "negotiator", "component", "scenario", "auto"],
+        case_sensitive=False,
     ),
     default="auto",
     help="Registry type to search (default: auto-detect)",
@@ -1188,18 +1318,24 @@ def list_registry(registry_type, filter_str, output_format, verbose, count):
     "--format",
     "-o",
     "output_format",
-    type=click.Choice(["table", "json"], case_sensitive=False),
-    default="table",
-    help="Output format",
+    type=click.Choice(["free", "txt", "json"], case_sensitive=False),
+    default="free",
+    help="Output format: 'free' (nicely formatted), 'txt' (plain text for piping), 'json'",
 )
 def get(name, registry_type, output_format):
     """Get details about a specific registered item by name."""
-    from negmas import mechanism_registry, negotiator_registry, component_registry
+    from negmas import (
+        mechanism_registry,
+        negotiator_registry,
+        component_registry,
+        scenario_registry,
+    )
 
     registries = [
         ("mechanism", mechanism_registry),
         ("negotiator", negotiator_registry),
         ("component", component_registry),
+        ("scenario", scenario_registry),
     ]
 
     if registry_type != "auto":
@@ -1220,13 +1356,16 @@ def get(name, registry_type, output_format):
         print(f"'{name}' not found in any registry.")
         return
 
-    result = _format_info(name, found, verbose=True)
+    result = _format_info(name, found, verbose=True, include_tags=True)
     result["registry"] = found_type
 
     if output_format == "json":
         print(json.dumps(result, indent=2, default=str))
-    else:
-        # Display as key-value pairs
+    elif output_format == "txt":
+        # Tab-separated key-value pairs for easy parsing
+        for key, value in result.items():
+            print(f"{key}\t{value}")
+    else:  # free - nicely formatted
         for key, value in result.items():
             print(f"{key}: {value}")
 
@@ -1238,24 +1377,65 @@ def get(name, registry_type, output_format):
     "-t",
     "registry_type",
     type=click.Choice(
-        ["mechanisms", "negotiators", "components", "all"], case_sensitive=False
+        ["mechanisms", "negotiators", "components", "scenarios", "all"],
+        case_sensitive=False,
     ),
     default="all",
     help="Registry type to search",
 )
 @click.option(
+    "--tag",
+    "tags_str",
+    default="",
+    help="Filter by tags - items must have ALL specified tags (comma-separated)",
+)
+@click.option(
+    "--any-tag",
+    "-a",
+    "any_tags_str",
+    default="",
+    help="Filter by tags - items must have ANY of the specified tags (comma-separated)",
+)
+@click.option(
+    "--exclude-tag",
+    "-x",
+    "exclude_tags_str",
+    default="",
+    help="Exclude items with ANY of these tags (comma-separated)",
+)
+@click.option(
     "--format",
     "-o",
     "output_format",
-    type=click.Choice(["table", "json", "names"], case_sensitive=False),
-    default="table",
-    help="Output format",
+    type=click.Choice(["free", "txt", "json"], case_sensitive=False),
+    default="free",
+    help="Output format: 'free' (nicely formatted), 'txt' (plain text for piping), 'json'",
 )
 @click.option("--case-sensitive", "-s", is_flag=True, help="Case-sensitive search")
-def search(pattern, registry_type, output_format, case_sensitive):
+@click.option("--show-tags", is_flag=True, help="Include tags in output")
+def search(
+    pattern,
+    registry_type,
+    tags_str,
+    any_tags_str,
+    exclude_tags_str,
+    output_format,
+    case_sensitive,
+    show_tags,
+):
     """Search for registered items by name pattern (supports wildcards)."""
     import fnmatch
-    from negmas import mechanism_registry, negotiator_registry, component_registry
+    from negmas import (
+        mechanism_registry,
+        negotiator_registry,
+        component_registry,
+        scenario_registry,
+    )
+
+    # Parse tag filters
+    tags = _parse_tags(tags_str)
+    any_tags = _parse_tags(any_tags_str)
+    exclude_tags = _parse_tags(exclude_tags_str)
 
     registries = []
     if registry_type == "all":
@@ -1263,6 +1443,7 @@ def search(pattern, registry_type, output_format, case_sensitive):
             ("mechanism", mechanism_registry),
             ("negotiator", negotiator_registry),
             ("component", component_registry),
+            ("scenario", scenario_registry),
         ]
     else:
         reg = _get_registry(registry_type)
@@ -1272,67 +1453,346 @@ def search(pattern, registry_type, output_format, case_sensitive):
     results = []
     for reg_type, reg in registries:
         for name, info in reg.items():
-            match_name = name if case_sensitive else name.lower()
+            # For scenarios, match against the scenario name, not the path
+            if reg_type == "scenario":
+                match_name = info.name if case_sensitive else info.name.lower()
+            else:
+                match_name = name if case_sensitive else name.lower()
             match_pattern = pattern if case_sensitive else pattern.lower()
-            if fnmatch.fnmatch(match_name, match_pattern):
-                result = _format_info(name, info)
-                result["registry"] = reg_type
-                results.append(result)
+            if not fnmatch.fnmatch(match_name, match_pattern):
+                continue
+
+            # Check tag filters
+            if tags and not info.has_all_tags(tags):
+                continue
+            if any_tags and not info.has_any_tag(any_tags):
+                continue
+            if exclude_tags and info.has_any_tag(exclude_tags):
+                continue
+
+            result = _format_info(name, info, include_tags=show_tags)
+            result["registry"] = reg_type
+            results.append(result)
 
     if not results:
         print(f"No items found matching pattern '{pattern}'")
         return
 
-    if output_format == "names":
+    if output_format == "txt":
+        # Plain text - just names, one per line
         for r in sorted(results, key=lambda x: x["name"]):
             print(r["name"])
     elif output_format == "json":
         print(json.dumps(results, indent=2, default=str))
-    else:
+    else:  # free - nicely formatted table
         print(tabulate(results, headers="keys", tablefmt="psql"))
 
 
 @registry.command(help="Show summary statistics for all registries")
-def stats():
+@click.option(
+    "--tag",
+    "-t",
+    "tags_str",
+    default="",
+    help="Filter by tags - only count items with ALL specified tags (comma-separated)",
+)
+@click.option(
+    "--any-tag",
+    "-a",
+    "any_tags_str",
+    default="",
+    help="Filter by tags - only count items with ANY of the specified tags (comma-separated)",
+)
+@click.option(
+    "--exclude-tag",
+    "-x",
+    "exclude_tags_str",
+    default="",
+    help="Exclude items with ANY of these tags (comma-separated)",
+)
+@click.option(
+    "--format",
+    "-o",
+    "output_format",
+    type=click.Choice(["free", "txt", "json"], case_sensitive=False),
+    default="free",
+    help="Output format: 'free' (nicely formatted), 'txt' (plain text), 'json'",
+)
+def stats(tags_str, any_tags_str, exclude_tags_str, output_format):
     """Show summary statistics for all registries."""
-    from negmas import mechanism_registry, negotiator_registry, component_registry
-
-    print("Registry Statistics")
-    print("=" * 40)
-
-    # Mechanisms
-    print(f"\nMechanisms: {len(mechanism_registry)}")
-    deadline_required = sum(
-        1 for info in mechanism_registry.values() if info.requires_deadline
+    from negmas import (
+        mechanism_registry,
+        negotiator_registry,
+        component_registry,
+        scenario_registry,
     )
-    print(f"  - Requires deadline: {deadline_required}")
-    print(f"  - No deadline required: {len(mechanism_registry) - deadline_required}")
 
-    # Negotiators
-    print(f"\nNegotiators: {len(negotiator_registry)}")
+    # Parse tag filters
+    tags = _parse_tags(tags_str)
+    any_tags = _parse_tags(any_tags_str)
+    exclude_tags = _parse_tags(exclude_tags_str)
 
-    # Count by ANAC year
-    anac_years = {}
-    non_anac = 0
-    for info in negotiator_registry.values():
+    def filter_items(registry):
+        """Apply tag filters to a registry and return matching items."""
+        query_kwargs = {}
+        if tags:
+            query_kwargs["tags"] = tags
+        if any_tags:
+            query_kwargs["any_tags"] = any_tags
+        if exclude_tags:
+            query_kwargs["exclude_tags"] = exclude_tags
+
+        if query_kwargs:
+            return registry.query(**query_kwargs)
+        return dict(registry)
+
+    # Get filtered items for each registry
+    mechanisms = filter_items(mechanism_registry)
+    negotiators = filter_items(negotiator_registry)
+    components = filter_items(component_registry)
+    scenarios = filter_items(scenario_registry)
+
+    # Compute statistics
+    stats_data = {
+        "mechanisms": {
+            "total": len(mechanisms),
+            "requires_deadline": sum(
+                1 for info in mechanisms.values() if info.requires_deadline
+            ),
+            "no_deadline_required": sum(
+                1 for info in mechanisms.values() if not info.requires_deadline
+            ),
+        },
+        "negotiators": {"total": len(negotiators), "by_anac_year": {}, "non_anac": 0},
+        "components": {"total": len(components), "by_type": {}},
+        "scenarios": {"total": len(scenarios), "by_format": {}, "by_n_negotiators": {}},
+    }
+
+    # Count negotiators by ANAC year
+    for info in negotiators.values():
         if info.anac_year:
-            anac_years[info.anac_year] = anac_years.get(info.anac_year, 0) + 1
+            year_key = f"anac_{info.anac_year}"
+            stats_data["negotiators"]["by_anac_year"][year_key] = (
+                stats_data["negotiators"]["by_anac_year"].get(year_key, 0) + 1
+            )
         else:
-            non_anac += 1
+            stats_data["negotiators"]["non_anac"] += 1
 
-    print(f"  - Non-ANAC: {non_anac}")
-    for year in sorted(anac_years.keys()):
-        print(f"  - ANAC {year}: {anac_years[year]}")
-
-    # Components
-    print(f"\nComponents: {len(component_registry)}")
-    component_types = {}
-    for info in component_registry.values():
+    # Count components by type
+    for info in components.values():
         ct = info.component_type
-        component_types[ct] = component_types.get(ct, 0) + 1
+        stats_data["components"]["by_type"][ct] = (
+            stats_data["components"]["by_type"].get(ct, 0) + 1
+        )
 
-    for ct in sorted(component_types.keys()):
-        print(f"  - {ct}: {component_types[ct]}")
+    # Count scenarios by format and n_negotiators
+    for info in scenarios.values():
+        fmt = info.format
+        stats_data["scenarios"]["by_format"][fmt] = (
+            stats_data["scenarios"]["by_format"].get(fmt, 0) + 1
+        )
+        if info.n_negotiators is not None:
+            n_key = f"{info.n_negotiators}_party"
+            stats_data["scenarios"]["by_n_negotiators"][n_key] = (
+                stats_data["scenarios"]["by_n_negotiators"].get(n_key, 0) + 1
+            )
+
+    # Output based on format
+    if output_format == "json":
+        print(json.dumps(stats_data, indent=2))
+    elif output_format == "txt":
+        # Tab-separated format for easy parsing
+        print(f"mechanisms_total\t{stats_data['mechanisms']['total']}")
+        print(
+            f"mechanisms_requires_deadline\t{stats_data['mechanisms']['requires_deadline']}"
+        )
+        print(
+            f"mechanisms_no_deadline\t{stats_data['mechanisms']['no_deadline_required']}"
+        )
+        print(f"negotiators_total\t{stats_data['negotiators']['total']}")
+        print(f"negotiators_non_anac\t{stats_data['negotiators']['non_anac']}")
+        for year, count in sorted(stats_data["negotiators"]["by_anac_year"].items()):
+            print(f"negotiators_{year}\t{count}")
+        print(f"components_total\t{stats_data['components']['total']}")
+        for ct, count in sorted(stats_data["components"]["by_type"].items()):
+            print(f"components_{ct}\t{count}")
+        print(f"scenarios_total\t{stats_data['scenarios']['total']}")
+        for fmt, count in sorted(stats_data["scenarios"]["by_format"].items()):
+            print(f"scenarios_{fmt}\t{count}")
+        for n_key, count in sorted(stats_data["scenarios"]["by_n_negotiators"].items()):
+            print(f"scenarios_{n_key}\t{count}")
+    else:  # free - nicely formatted output
+        filter_desc = ""
+        if tags or any_tags or exclude_tags:
+            parts = []
+            if tags:
+                parts.append(f"all of \\[{', '.join(tags)}]")
+            if any_tags:
+                parts.append(f"any of \\[{', '.join(any_tags)}]")
+            if exclude_tags:
+                parts.append(f"excluding \\[{', '.join(exclude_tags)}]")
+            filter_desc = f" (filtered: {', '.join(parts)})"
+
+        print(f"Registry Statistics{filter_desc}")
+        print("=" * 40)
+
+        # Mechanisms
+        print(f"\nMechanisms: {stats_data['mechanisms']['total']}")
+        print(f"  - Requires deadline: {stats_data['mechanisms']['requires_deadline']}")
+        print(
+            f"  - No deadline required: {stats_data['mechanisms']['no_deadline_required']}"
+        )
+
+        # Negotiators
+        print(f"\nNegotiators: {stats_data['negotiators']['total']}")
+        print(f"  - Non-ANAC: {stats_data['negotiators']['non_anac']}")
+        for year_key in sorted(stats_data["negotiators"]["by_anac_year"].keys()):
+            year = year_key.replace("anac_", "ANAC ")
+            print(f"  - {year}: {stats_data['negotiators']['by_anac_year'][year_key]}")
+
+        # Components
+        print(f"\nComponents: {stats_data['components']['total']}")
+        for ct in sorted(stats_data["components"]["by_type"].keys()):
+            print(f"  - {ct}: {stats_data['components']['by_type'][ct]}")
+
+        # Scenarios
+        print(f"\nScenarios: {stats_data['scenarios']['total']}")
+        for fmt in sorted(stats_data["scenarios"]["by_format"].keys()):
+            print(f"  - {fmt}: {stats_data['scenarios']['by_format'][fmt]}")
+        for n_key in sorted(stats_data["scenarios"]["by_n_negotiators"].keys()):
+            print(f"  - {n_key}: {stats_data['scenarios']['by_n_negotiators'][n_key]}")
+
+
+@registry.command(help="List all tags used in the registries")
+@click.option(
+    "--type",
+    "-t",
+    "registry_type",
+    type=click.Choice(
+        [
+            "all",
+            "any",
+            "mechanisms",
+            "negotiators",
+            "components",
+            "scenarios",
+            "acceptance",
+            "offering",
+            "model",
+        ],
+        case_sensitive=False,
+    ),
+    default="all",
+    help="Registry/item type to list tags from. 'all'/'any' for all registries, or filter by specific type including component subtypes (acceptance, offering, model)",
+)
+@click.option(
+    "--format",
+    "-o",
+    "output_format",
+    type=click.Choice(["free", "txt", "json"], case_sensitive=False),
+    default="free",
+    help="Output format: 'free' (nicely formatted), 'txt' (plain text), 'json'",
+)
+@click.option("--count", "-c", is_flag=True, help="Show count of items per tag")
+def tags(registry_type, output_format, count):
+    """List all tags used in the registries."""
+    from negmas import (
+        mechanism_registry,
+        negotiator_registry,
+        component_registry,
+        scenario_registry,
+    )
+
+    # Component subtypes filter components by component_type
+    component_subtypes = {"acceptance", "offering", "model"}
+
+    registries = []
+    component_filter = None  # For filtering component subtypes
+
+    if registry_type in ("all", "any"):
+        registries = [
+            ("mechanisms", mechanism_registry),
+            ("negotiators", negotiator_registry),
+            ("components", component_registry),
+            ("scenarios", scenario_registry),
+        ]
+    elif registry_type in component_subtypes:
+        # Filter components by component_type
+        registries = [(registry_type, component_registry)]
+        component_filter = registry_type
+    else:
+        reg = _get_registry(registry_type)
+        if reg:
+            registries = [(registry_type, reg)]
+
+    if count:
+        # Count items per tag, grouped by registry
+        tag_counts: dict[str, dict[str, int]] = {}
+        for reg_name, reg in registries:
+            for info in reg.values():
+                # Apply component subtype filter if needed
+                if component_filter is not None:
+                    if (
+                        not hasattr(info, "component_type")
+                        or info.component_type != component_filter
+                    ):
+                        continue
+                for tag in info.tags:
+                    if tag not in tag_counts:
+                        tag_counts[tag] = {}
+                    tag_counts[tag][reg_name] = tag_counts[tag].get(reg_name, 0) + 1
+
+        if output_format == "json":
+            print(json.dumps(tag_counts, indent=2))
+        elif output_format == "txt":
+            # Tab-separated: tag, registry, count
+            for tag in sorted(tag_counts.keys()):
+                total = sum(tag_counts[tag].values())
+                print(f"{tag}\t{total}")
+        else:  # free
+            rows = []
+            # Determine which columns to show based on registry types
+            if registry_type in ("all", "any"):
+                columns = ["mechanisms", "negotiators", "components", "scenarios"]
+            elif registry_type in component_subtypes:
+                columns = [registry_type]
+            else:
+                columns = [registry_type]
+
+            for tag in sorted(tag_counts.keys()):
+                row = {"tag": tag}
+                total = 0
+                for col in columns:
+                    c = tag_counts[tag].get(col, 0)
+                    row[col] = c if c > 0 else ""
+                    total += c
+                row["total"] = total
+                rows.append(row)
+            print(tabulate(rows, headers="keys", tablefmt="psql"))
+    else:
+        # Just list unique tags
+        all_tags: set[str] = set()
+        for _, reg in registries:
+            if component_filter is not None:
+                # Filter by component subtype
+                for info in reg.values():
+                    if (
+                        hasattr(info, "component_type")
+                        and info.component_type == component_filter
+                    ):
+                        all_tags |= info.tags
+            else:
+                all_tags |= reg.list_tags()
+
+        if output_format == "json":
+            print(json.dumps(sorted(all_tags), indent=2))
+        elif output_format == "txt":
+            for tag in sorted(all_tags):
+                print(tag)
+        else:  # free
+            print(f"Tags ({len(all_tags)} total):")
+            for tag in sorted(all_tags):
+                print(f"  - {tag}")
 
 
 @registry.command(help="List available filter attributes for a registry type")
