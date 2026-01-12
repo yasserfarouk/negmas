@@ -102,6 +102,9 @@ class ExpDiscountedUFun(DiscountedUtilityFunction):
         Returns:
             tuple[float, float]: The result.
         """
+        # Fix: use self.outcome_space as fallback when outcome_space is None
+        if outcome_space is None:
+            outcome_space = self.outcome_space
         return self.ufun.minmax(
             outcome_space,
             issues,
@@ -512,6 +515,9 @@ class LinDiscountedUFun(DiscountedUtilityFunction):
         Returns:
             tuple[float, float]: The result.
         """
+        # Fix: use self.outcome_space as fallback when outcome_space is None
+        if outcome_space is None:
+            outcome_space = self.outcome_space
         return self.ufun.minmax(
             outcome_space,
             issues,

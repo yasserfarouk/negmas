@@ -1043,5 +1043,38 @@ def test_triangular():
 #                 )
 
 
+@mark.parametrize("discounted_class", ["ExpDiscountedUFun", "LinDiscountedUFun"])
+def test_discounted_ufun_minmax_uses_outcome_space_fallback(discounted_class):
+    """Test that minmax() works without explicit outcome_space when the ufun has one set."""
+    from negmas.preferences.discounted import ExpDiscountedUFun, LinDiscountedUFun
+
+    issues = [make_issue(10), make_issue(5)]
+    os = make_os(issues)
+
+    # Create a base ufun with outcome_space set
+    base_ufun = LinearUtilityFunction.random(issues=issues, normalized=True)
+    base_ufun.outcome_space = os
+
+    # Create the discounted ufun with outcome_space set
+    if discounted_class == "ExpDiscountedUFun":
+        discounted_ufun = ExpDiscountedUFun(
+            ufun=base_ufun, discount=0.9, outcome_space=os
+        )
+    else:
+        discounted_ufun = LinDiscountedUFun(ufun=base_ufun, cost=0.1, outcome_space=os)
+
+    # This should work without passing outcome_space explicitly (the fix)
+    minmax_result = discounted_ufun.minmax()
+
+    # Verify we get valid results
+    assert isinstance(minmax_result, tuple)
+    assert len(minmax_result) == 2
+    assert minmax_result[0] <= minmax_result[1]
+
+    # Should match calling with explicit outcome_space
+    minmax_explicit = discounted_ufun.minmax(outcome_space=os)
+    assert minmax_result == minmax_explicit
+
+
 if __name__ == "__main__":
     pytest.main(args=[__file__])

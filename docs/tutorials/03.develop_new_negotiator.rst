@@ -106,6 +106,8 @@ try to do that
 
     class RandomNegotiator(SAONegotiator):
         ...
+
+
     try:
         RandomNegotiator()
     except Exception as e:
@@ -256,6 +258,7 @@ negotiation ended.
         try_negotiator(RandomNegotiator, plot=False).state.step for _ in range(1000)
     ]
     import plotly.express as px
+
     fig = px.histogram(x=ended_at, nbins=20, title="Distribution of Negotiation End Steps")
     fig.update_layout(xaxis_title="End Step", yaxis_title="Count")
     fig.show()
@@ -432,6 +435,7 @@ default parameters of all negotiators as follows:
         def __init__(self, *args, acceptance_threshold=0.8, **kwargs):
             super().__init__(*args, **kwargs)
             self._th = acceptance_threshold
+
         def respond(self, state, source: str | None = None):
             offer = state.current_offer
             if self.ufun(offer) > self._th:
@@ -463,17 +467,21 @@ explain it:
 
     from random import choice
     from negmas import PolyAspiration, PresortingInverseUtilityFunction
+
+
     class SmartAspirationNegotiator(SAONegotiator):
         _inv = None  # The ufun invertor (finds outcomes in a utility range)
         _partner_first = None  # The best offer of the partner (assumed best for it)
         _min = None  # The minimum of my utility function
         _max = None  # The maximum of my utility function
         _best = None  # The best outcome for me
+
         def __init__(self, *args, **kwargs):
             # initialize the base SAONegoiator (MUST be done)
             super().__init__(*args, **kwargs)
             # Initialize the aspiration mixin to start at 1.0 and concede slowly
             self._asp = PolyAspiration(1.0, "boulware")
+
         def on_preferences_changed(self, changes):
             # create an initialize an invertor for my ufun
             changes = [_ for _ in changes if _.type not in (PreferencesChangeType.Scale,)]
@@ -487,6 +495,7 @@ explain it:
             self._min, self._max = self.ufun(worest), self.ufun(self._best)
             # MUST call parent to avoid being called again for no reason
             super().on_preferences_changed(changes)
+
         def respond(self, state, source: str | None = None):
             offer = state.current_offer
             if offer is None:
@@ -496,6 +505,7 @@ explain it:
                 self._partner_first = offer
             # accept if the offer is not worse for me than what I would have offered
             return super().respond(state, source)
+
         def propose(self, state, dest: str | None = None):
             # calculate my current aspiration level (utility level at which I will offer and accept)
             a = (self._max - self._min) * self._asp.utility_at(
@@ -590,19 +600,28 @@ with ``AspriationNegotiator`` on multiple negotiations:
 .. code:: ipython3
 
     from collections import defaultdict
+
     # find the pareto-frontier (it is the same for all negotiations)
     frontier_utils, frontier_outcomes = s.pareto_frontier()
     nash_utils, nash_outcome = s.nash_points()[0]
     nash_welfare = sum(nash_utils)
+
+
     # define the distance (Euclidean) to pareto frontier
     def ed(a, b):
         return math.sqrt(sum((x - y) ** 2 for x, y in zip(a, b)))
+
+
     def pareto_dist(a, frontier):
         # find the distance to the pareto-front (in outcome-space units)
         return min(ed(a, b) for b in frontier)
+
+
     def nash_diff(a, nash_welfare):
         # find the difference in total welfare between the agreement and nash-agreement
         return nash_welfare - sum(_.ufun(a) for _ in s.negotiators)
+
+
     # collect data about distance of the agreement to the pareto frontier
     n, pdist, ndiff = 100, defaultdict(float), defaultdict(float)
     for _ in range(n):
@@ -689,6 +708,8 @@ scenarios with two issues each:
     from negmas.tournaments.neg import cartesian_tournament
     from negmas.helpers import humanize_time
     import time
+
+
     def get_scenarios(n=2) -> list[Scenario]:
         # generates/reads the set of scenarios to be used in the tournament
         # Negotiation Issues
@@ -718,6 +739,7 @@ We can now run a simple Cartesian tournament as follows:
     #  each negotiator combination.
     from negmas.helpers.strings import unique_name
     from pathlib import Path
+
     tic = time.perf_counter()
     path = Path.home() / "negmas" / unique_name("test")
     results = cartesian_tournament(
@@ -890,12 +912,22 @@ type.
     fig = go.Figure()
     strategies = results.scores["strategy"].unique()
     for strategy in strategies:
-        data = results.scores[results.scores["strategy"] == strategy]["advantage"].dropna().values
+        data = (
+            results.scores[results.scores["strategy"] == strategy]["advantage"]
+            .dropna()
+            .values
+        )
         if len(data) > 1:
             kde = stats.gaussian_kde(data)
             x_range = np.linspace(data.min() - 0.5, data.max() + 0.5, 200)
-            fig.add_trace(go.Scatter(x=x_range, y=kde(x_range), mode='lines', name=str(strategy)))
-    fig.update_layout(title="Advantage Distribution by Strategy", xaxis_title="Advantage", yaxis_title="Density")
+            fig.add_trace(
+                go.Scatter(x=x_range, y=kde(x_range), mode="lines", name=str(strategy))
+            )
+    fig.update_layout(
+        title="Advantage Distribution by Strategy",
+        xaxis_title="Advantage",
+        yaxis_title="Density",
+    )
     fig.show()
 
 

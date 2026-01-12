@@ -110,10 +110,12 @@ as an AWI class
         def n_negs(self):
             """Number of negotiations an agent can start in a step (holiday season)"""
             return self._world.neg_quota_step
+
         @property
         def agents(self):
             """List of all other agent IDs"""
             return list(_ for _ in self._world.agents.keys() if _ != self.agent.id)
+
         def request_negotiation(
             self, partners: List[str], negotiator: SAONegotiator
         ) -> bool:
@@ -203,6 +205,7 @@ specific information you need to keep. Here is the full implementation:
             make_issue(2, "active"),
             make_issue((1, 7), "duration"),
         ]
+
         def __init__(self, *args, **kwargs):
             """Initialize the world"""
             kwargs["awi_type"] = AWI
@@ -216,6 +219,7 @@ specific information you need to keep. Here is the full implementation:
             self._total_utility: Dict[str, float] = defaultdict(float)
             self._ufuns: Dict[str, UtilityFunction] = dict()
             self._breach_prob: Dict[str, float] = dict()
+
         def join(
             self,
             x: Agent,
@@ -231,31 +235,38 @@ specific information you need to keep. Here is the full implementation:
             )
             self._ufuns[x.id] = x.ufun
             self._breach_prob[x.id] = random() * 0.1 if breach_prob is None else breach_prob
+
         def simulation_step(self, stage: int = 0):
             """What happens in this world? Nothing"""
             pass
+
         def get_private_state(self, agent: Agent) -> dict:
             """What is the information available to agents? total utility points"""
             return dict(total_utility=self._total_utility[agent.id])
+
         def execute_action(
             self, action: Action, agent: Agent, callback: Callable | None = None
         ) -> bool:
             """Executing actions by agents? No actions available"""
             pass
+
         def on_contract_signed(self, contract: Contract) -> None:
             """Save the contract to be executed in the following hoiday season (step)"""
             super().on_contract_signed(contract)
             self._contracts[self.current_step + 1].append(contract)
+
         def executable_contracts(self):
             """What contracts are to be executed in the current step?
             Ones that were signed the previous step"""
             return self._contracts[self.current_step]
+
         def order_contracts_for_execution(
             self, contracts: Collection[Contract]
         ) -> Collection[Contract]:
             """What should be the order of contract execution? Random"""
             shuffle(contracts)
             return contracts
+
         def start_contract_execution(self, contract: Contract) -> Optional[Set[Breach]]:
             """What should happen when a contract comes due?
             1. Find out if it will be breached
@@ -277,26 +288,32 @@ specific information you need to keep. Here is the full implementation:
             for aid in contract.partners:
                 self._total_utility[aid] += self._ufuns[aid](contract.agreement)
             return set()
+
         def complete_contract_execution(
             self, contract: Contract, breaches: List[Breach], resolution: Contract
         ) -> None:
             """What happens if a breach was resolved? Nothing. They cannot"""
             pass
+
         def delete_executed_contracts(self) -> None:
             """Removes all contracts for the current step"""
             if self._current_step in self._contracts.keys():
                 del self._contracts[self.current_step]
+
         def contract_record(self, contract: Contract) -> Dict[str, Any]:
             """Convert the contract into a dictionary for saving"""
             return to_flat_dict(contract)
+
         def breach_record(self, breach: Breach) -> Dict[str, Any]:
             """Convert the breach into a dictionary for saving"""
             return to_flat_dict(breach)
+
         def contract_size(self, contract: Contract) -> float:
             """How good is a contract? Welfare"""
             if contract.agreement is None:
                 return 0.0
             return sum(self._ufuns[aid](contract.agreement) for aid in contract.partners)
+
         def post_step_stats(self):
             for aid, agent in self.agents.items():
                 self._stats[f"total_utility_{agent.name}"].append(self._total_utility[aid])
@@ -606,9 +623,11 @@ unnecessary details from developers of agents targeting our
         @abstractmethod
         def step(self):
             ...
+
         @abstractmethod
         def init(self):
             ...
+
         @abstractmethod
         def respond_to_negotiation_request(
             self,
@@ -617,6 +636,7 @@ unnecessary details from developers of agents targeting our
             mechanism: NegotiatorMechanismInterface,
         ) -> Optional[Negotiator]:
             ...
+
         def _respond_to_negotiation_request(
             self,
             initiator: str,
@@ -628,12 +648,15 @@ unnecessary details from developers of agents targeting our
             req_id: Optional[str],
         ) -> Optional[Negotiator]:
             return self.respond_to_negotiation_request(initiator, partners, mechanism)
+
         def on_neg_request_rejected(self, req_id: str, by: Optional[List[str]]):
             pass
+
         def on_neg_request_accepted(
             self, req_id: str, mechanism: NegotiatorMechanismInterface
         ):
             pass
+
         def on_negotiation_failure(
             self,
             partners: List[str],
@@ -642,20 +665,25 @@ unnecessary details from developers of agents targeting our
             state: MechanismState,
         ) -> None:
             pass
+
         def on_negotiation_success(
             self, contract: Contract, mechanism: NegotiatorMechanismInterface
         ) -> None:
             pass
+
         def set_renegotiation_agenda(
             self, contract: Contract, breaches: List[Breach]
         ) -> Optional[RenegotiationRequest]:
             pass
+
         def respond_to_renegotiation_request(
             self, contract: Contract, breaches: List[Breach], agenda: RenegotiationRequest
         ) -> Optional[Negotiator]:
             pass
+
         def on_contract_executed(self, contract: Contract) -> None:
             pass
+
         def on_contract_breached(
             self, contract: Contract, breaches: List[Breach], resolution: Optional[Contract]
         ) -> None:

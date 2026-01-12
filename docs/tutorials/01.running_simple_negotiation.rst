@@ -9,6 +9,7 @@ to run negotiations as follows:
 
     from negmas import SAOMechanism, TimeBasedConcedingNegotiator, MappingUtilityFunction
     import random  # for generating random ufuns
+
     random.seed(0)  # for reproducibility
     session = SAOMechanism(outcomes=10, n_steps=100)
     negotiators = [TimeBasedConcedingNegotiator(name=f"a{_}") for _ in range(5)]
@@ -156,6 +157,7 @@ This can be modeled in the following negotiation:
     )
     from negmas.preferences import LinearAdditiveUtilityFunction as LUFun
     from negmas.preferences.value_fun import LinearFun, IdentityFun, AffineFun
+
     # create negotiation agenda (issues)
     issues = [
         make_issue(name="price", values=10),

@@ -26,9 +26,11 @@ code which is self explanatory this time.
                     partners=sample(agents, k=randint(1, len(agents) - 1)),
                     negotiator=RandomNegotiator(),
                 )
+
         def init(self):
             # we need no initialization
             pass
+
         def respond_to_negotiation_request(
             self,
             initiator: str,
@@ -72,8 +74,9 @@ expect :math:`40` negotiations at every step.
 .. code:: ipython3
 
     import plotly.graph_objects as go
+
     fig = go.Figure()
-    fig.add_trace(go.Scatter(y=world.stats["n_negotiations"], mode='lines'))
+    fig.add_trace(go.Scatter(y=world.stats["n_negotiations"], mode="lines"))
     fig.update_layout(xaxis_title="Simulation Step", yaxis_title="N. Negotiations")
     fig.show()
 
@@ -90,7 +93,10 @@ as a pandas dataframe.
 
     def stats_df(world):
         return pd.DataFrame(world.stats)
+
+
     import plotly.graph_objects as go
+
     fig = go.Figure()
     fig.add_trace(go.Bar(x=list(range(world.n_steps)), y=stats_df(world)["step_time"]))
     fig.update_layout(xaxis_title="Simulation Step", yaxis_title="Time (s)")
@@ -108,9 +114,12 @@ correspond to the total welfare)
 .. code:: ipython3
 
     import plotly.graph_objects as go
+
     fig = go.Figure()
-    fig.add_trace(go.Scatter(y=world.stats["activity_level"], mode='lines'))
-    fig.update_layout(xaxis_title="Simulation Step", yaxis_title="Activity Level ($)\nTotal Welfare")
+    fig.add_trace(go.Scatter(y=world.stats["activity_level"], mode="lines"))
+    fig.update_layout(
+        xaxis_title="Simulation Step", yaxis_title="Activity Level ($)\nTotal Welfare"
+    )
     fig.show()
 
 
@@ -123,9 +132,18 @@ We can see a picture of contracting in this world as follows:
 .. code:: ipython3
 
     import plotly.graph_objects as go
+
     fig = go.Figure()
-    fig.add_trace(go.Scatter(y=world.stats["n_contracts_signed"], mode='lines', name="Signed Contracts"))
-    fig.add_trace(go.Scatter(y=world.stats["n_contracts_executed"], mode='lines', name="Executed Contracts"))
+    fig.add_trace(
+        go.Scatter(
+            y=world.stats["n_contracts_signed"], mode="lines", name="Signed Contracts"
+        )
+    )
+    fig.add_trace(
+        go.Scatter(
+            y=world.stats["n_contracts_executed"], mode="lines", name="Executed Contracts"
+        )
+    )
     fig.update_layout(xaxis_title="Simulation Step", yaxis_title="N. Contracts")
     fig.show()
 
@@ -139,8 +157,9 @@ We can also check the breaches that happened
 .. code:: ipython3
 
     import plotly.graph_objects as go
+
     fig = go.Figure()
-    fig.add_trace(go.Scatter(y=world.stats["breach_level"], mode='lines'))
+    fig.add_trace(go.Scatter(y=world.stats["breach_level"], mode="lines"))
     fig.update_layout(xaxis_title="Simulation Step", yaxis_title="Total Breach Level")
     fig.show()
 
@@ -154,11 +173,20 @@ We can actually check what happens to ALL agents
 .. code:: ipython3
 
     import plotly.graph_objects as go
+
     fig = go.Figure()
     snames = sorted(_.name for _ in world.agents.values())
     for name in snames:
-        fig.add_trace(go.Scatter(y=np.asarray(world.stats[f"total_utility_{name}"]), mode='lines', name=name))
-    fig.update_layout(xaxis_title="Simulation Step", yaxis_title="Player Total Utility", legend=dict(x=0, y=0))
+        fig.add_trace(
+            go.Scatter(
+                y=np.asarray(world.stats[f"total_utility_{name}"]), mode="lines", name=name
+            )
+        )
+    fig.update_layout(
+        xaxis_title="Simulation Step",
+        yaxis_title="Player Total Utility",
+        legend=dict(x=0, y=0),
+    )
     fig.show()
 
 
@@ -194,6 +222,7 @@ attempt:
 
     class SanePerson(Person):
         """An agent that uses a predefined negotiator instead of a random negotiator"""
+
         def __init__(
             self,
             *args,
@@ -206,6 +235,7 @@ attempt:
             self.negotiator_params = (
                 negotiator_params if negotiator_params is not None else dict()
             )
+
         def step(self):
             # get IDs of all ogher agents from the AWI
             agents = self.awi.agents
@@ -218,8 +248,10 @@ attempt:
                         ufun=self.ufun, **self.negotiator_params
                     ),
                 )
+
         def init(self):
             pass
+
         def respond_to_negotiation_request(
             self, initiator: str, partners: List[str], mechanism
         ) -> Optional[Negotiator]:
@@ -263,6 +295,7 @@ Let’s check how did our agent do
 .. code:: ipython3
 
     import plotly.graph_objects as go
+
     fig = go.Figure()
     snames = sorted(_.name for _ in world.agents.values())
     utils = dict(sane=np.zeros(world.n_steps), rand=np.zeros(world.n_steps))
@@ -271,8 +304,12 @@ Let’s check how did our agent do
             world.stats[f"total_utility_{agent_name}"]
         )
     for name in utils.keys():
-        fig.add_trace(go.Scatter(y=utils[name], mode='lines', name=name))
-    fig.update_layout(xaxis_title="Simulation Step", yaxis_title="Player Total Utility", legend=dict(x=0, y=0))
+        fig.add_trace(go.Scatter(y=utils[name], mode="lines", name=name))
+    fig.update_layout(
+        xaxis_title="Simulation Step",
+        yaxis_title="Player Total Utility",
+        legend=dict(x=0, y=0),
+    )
     fig.show()
 
 
