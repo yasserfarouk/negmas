@@ -6,6 +6,8 @@ The complete API documentation is organized by module. See the following section
 Core Modules
 ------------
 
+* :doc:`modules/types` - Base types (NamedObject, Rational, Runnable)
+* :doc:`modules/config` - Configuration management
 * :doc:`modules/common` - Common types and utilities
 * :doc:`modules/outcomes` - Outcome spaces and issues
 * :doc:`modules/preferences` - Utility functions and preferences

@@ -9,9 +9,9 @@ NegMAS Documentation
 
 NegMAS is a python library for developing autonomous negotiation agents embedded in simulation environments.
 The name ``negmas`` stands for either NEGotiation MultiAgent System or NEGotiations Managed by Agent Simulations
-(your pick). The main goald of NegMAS is to advance the state of the art in situated simultaneous negotiations.
-Nevertheless, it can; and was used; in modeling simpler bilateral and multi-lateral negotiations, preference elicitation
-, etc.
+(your pick). The main goal of NegMAS is to advance the state of the art in situated simultaneous negotiations.
+Nevertheless, it can be, and has been, used for modeling simpler bilateral and multi-lateral negotiations, preference elicitation,
+etc.
 
 .. toctree::
     :caption: Introduction

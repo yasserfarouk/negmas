@@ -24,7 +24,7 @@ The algorithm for creating a new mechanism in ``NegMAS`` is simple:
    and override the ``extra_state()`` method of your mechanism class to
    return a dict representation of this extra state (you will see an
    example later in this tutorial). Moreover, you will need to change
-   the ``state_factory`` argument passed to the ``Mechechanism``
+   the ``state_factory`` argument passed to the ``Mechanism``
    constructor to use this newly created state type. This step is
    optional and is only needed if extra-state needs to be passed to
    negotiators through the ``state`` method. It t is recommended to keep
@@ -663,7 +663,7 @@ Now we can see when the first negotiator is a ``conceder`` :
 
 As expected, the agreement shifted toward the second agent.
 
-Now we can see when the first negotiator is a ``bolware`` (i.e. it
+Now we can see when the first negotiator is a ``boulware`` (i.e. it
 concedes slowly in the beginning then fast near the end):
 
 .. code:: ipython3

@@ -17,7 +17,7 @@ code which is self explanatory this time.
 
     class RandomPerson(Person):
         def step(self):
-            # get IDs of all ogher agents from the AWI
+            # get IDs of all other agents from the AWI
             agents = self.awi.agents
             # request the maximum number of negotiations possible
             for _ in range(self.awi.n_negs):
@@ -237,7 +237,7 @@ attempt:
             )
 
         def step(self):
-            # get IDs of all ogher agents from the AWI
+            # get IDs of all other agents from the AWI
             agents = self.awi.agents
             # request the maximum number of negotiations possible
             for _ in range(self.awi.n_negs):

@@ -6,7 +6,7 @@ represented in NegMAS by a ``World``. This tutorial will take you
 through the process of developing a simple simulation (world).
 
 A ``World`` in NegMAS is not just a multi-agent world simulation. It was
-designed from the bottom up to simply the common tasks involved in
+designed from the bottom up to simplify the common tasks involved in
 constructing negotiation driven simulations.
 
 The simulation is divided into simulation steps (not to be confused with
@@ -577,7 +577,7 @@ breaches are stored and the *value* of a contract
 
 - **contract_size** Used to specify some sense of size for contracts.
   This is only used for statistics and does not affect the operation of
-  the simulation. We define the contract size here as the welfar (total
+  the simulation. We define the contract size here as the welfare (total
   utility of all partners):
 
 .. code:: python
@@ -589,7 +589,7 @@ breaches are stored and the *value* of a contract
 This complete the world and agent-world-interface design. We can now
 develop our base agent class.
 
-Statisitcs
+Statistics
 ^^^^^^^^^^
 
 The base ``World`` keeps track of negotiation related statistics
@@ -719,7 +719,7 @@ We then add a third method for responding to negotiation requests:
            self,
            initiator: str,
            partners: List[str],
-           mechanism: AgentMechanismInterface,
+           mechanism: NegotiatorMechanismInterface,
        ) -> Optional[Negotiator]:
            ...
 
@@ -746,7 +746,7 @@ during the simulation. These are:
            ...
 
 
-       def on_neg_request_accepted(self, req_id: str, mechanism: AgentMechanismInterface):
+       def on_neg_request_accepted(self, req_id: str, mechanism: NegotiatorMechanismInterface):
            ...
 
 
@@ -754,14 +754,14 @@ during the simulation. These are:
            self,
            partners: List[str],
            annotation: Dict[str, Any],
-           mechanism: AgentMechanismInterface,
+           mechanism: NegotiatorMechanismInterface,
            state: MechanismState,
        ):
            ...
 
 
        def on_negotiation_success(
-           self, contract: Contract, mechanism: AgentMechanismInterface
+           self, contract: Contract, mechanism: NegotiatorMechanismInterface
        ):
            ...
 
@@ -919,7 +919,7 @@ is done through these parameters.
   conclusion and signing it. Only takes effect if ``force_signing`` is
   ``False``
 - force_signing: If true, agents are not asked to sign contracts. They
-  are forced to do so. In this case, ``default_singing_delay`` is not
+  are forced to do so. In this case, ``default_signing_delay`` is not
   effective and signature is immediate
 - batch_signing: If true, contracts are signed in batches not
   individually

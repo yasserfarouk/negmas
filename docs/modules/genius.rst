@@ -188,7 +188,7 @@ See Also
 
 - :mod:`negmas.gb.components.genius` - BOA components used by these negotiators
 - :mod:`negmas.sao` - SAO mechanism for running negotiations
-- :doc:`/scripts` - CLI documentation for ``negotiate`` command
+- :doc:`/cli_negotiate` - CLI documentation for ``negotiate`` command
 
 BOA Components
 --------------

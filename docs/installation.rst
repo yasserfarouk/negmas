@@ -5,7 +5,7 @@ Installation
 ============
 
 It is always a good idea to install your packages to a virtual environment. This is a reminder of how to create one
-using the standard `venv` module in python 3 (inside a folder alled workspace)::
+using the standard `venv` module in python 3 (inside a folder called workspace)::
 
 $ mkdir workspace; cd workspace
 $ python -m venv venv
@@ -67,7 +67,7 @@ $ curl  -OL https://github.com/yasserfarouk/negmas/tarball/master
 
 Once you have a copy of the source, you can install it with::
 
-$ python setup.py install
+$ pip install -e .
 
 .. _Github repo: https://github.com/yasserfarouk/negmas
 .. _tarball: https://github.com/yasserfarouk/negmas/tarball/master

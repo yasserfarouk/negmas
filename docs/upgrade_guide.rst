@@ -167,7 +167,7 @@ with thousands of lines.
 In NegMAS 0.9, the `utilities` module was renamed `preferences` and we replaced
 the monolithic `UtiltiyFunction` class with multiple classes implementing
 different types of preferences. You can check the new hierarchy in the
-`preferences.protocols` and `preferences.ufun` modules. Now `UtilityFunction`
+`preferences.protocols` and `preferences.base_ufun` modules. Now `UtilityFunction`
 is reserved for crisp utility functions that define a real value for each outcome.
 
 **If you are using `UtilityFunction` in that  sense (which is likely), you do not need
