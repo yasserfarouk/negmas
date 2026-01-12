@@ -392,6 +392,20 @@ License
 
 NegMAS is released under the BSD 3-Clause License.
 
+AI Assistance Disclosure
+------------------------
+
+This project uses AI assistance for specific, limited tasks while remaining predominantly human-developed:
+
+- **Publications list**: AI assisted in compiling and formatting the publications list
+- **Documentation polishing**: AI assisted in proofreading and improving documentation clarity
+- **gb.components.genius module**: AI assisted in reimplementing Genius BOA components in NegMAS
+- **Registry feature**: AI assisted in developing the negotiator/mechanism registry system
+- **Some tests**: AI assisted in writing tests, particularly for new features like the registry
+
+All AI-assisted contributions are reviewed and approved by human maintainers. The core architecture,
+algorithms, and research direction of NegMAS are human-driven and will remain so.
+
 Acknowledgements
 ----------------
 
