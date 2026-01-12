@@ -204,14 +204,6 @@ Papers on preference elicitation during negotiation:
   `FastVOI: Efficient Utility Elicitation During Negotiations <https://doi.org/10.1007/978-3-030-03098-8_34>`_.
   In: *PRIMA 2018*. LNCS, vol 11224. Springer. pp. 560-567.
 
-- Baarslag, T., Kaisers, M. (2017).
-  `The Value of Information in Automated Negotiation: A Decision Model for Eliciting User Preferences <https://dl.acm.org/doi/10.5555/3091125.3091181>`_.
-  In: *Proceedings of AAMAS 2017*. IFAAMAS. pp. 391-400.
-
-- Baarslag, T., Gerding, E.H. (2015).
-  `Optimal Incremental Preference Elicitation During Negotiation <https://dl.acm.org/doi/10.5555/2832249.2832251>`_.
-  In: *Proceedings of IJCAI 2015*. AAAI Press. pp. 3-9.
-
 
 Platforms & Frameworks
 ----------------------
