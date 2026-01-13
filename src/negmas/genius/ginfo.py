@@ -69,7 +69,10 @@ GENIUS_INFO = {
         "uncertainty": False,
         "elicitation": False,
         "geniusweb": False,
-        "java": False,
+        "java": True,
+        "multideal": False,
+        "known_opponent_ufun": False,
+        "known_opponent_reserved_value": False,
     },
     2011: {
         "winners": [
@@ -106,7 +109,10 @@ GENIUS_INFO = {
         "uncertainty": False,
         "elicitation": False,
         "geniusweb": False,
-        "java": False,
+        "java": True,
+        "multideal": False,
+        "known_opponent_ufun": False,
+        "known_opponent_reserved_value": False,
     },
     2012: {
         "winners": [
@@ -176,7 +182,10 @@ GENIUS_INFO = {
         "uncertainty": False,
         "elicitation": False,
         "geniusweb": False,
-        "java": False,
+        "java": True,
+        "multideal": False,
+        "known_opponent_ufun": False,
+        "known_opponent_reserved_value": False,
     },
     2013: {
         "winners": [
@@ -211,7 +220,10 @@ GENIUS_INFO = {
         "uncertainty": False,
         "elicitation": False,
         "geniusweb": False,
-        "java": False,
+        "java": True,
+        "multideal": False,
+        "known_opponent_ufun": False,
+        "known_opponent_reserved_value": False,
     },
     2014: {
         "winners": [
@@ -264,7 +276,10 @@ GENIUS_INFO = {
         "uncertainty": False,
         "elicitation": False,
         "geniusweb": False,
-        "java": False,
+        "java": True,
+        "multideal": False,
+        "known_opponent_ufun": False,
+        "known_opponent_reserved_value": False,
     },
     2015: {
         "winners": [
@@ -322,7 +337,10 @@ GENIUS_INFO = {
         "uncertainty": False,
         "elicitation": False,
         "geniusweb": False,
-        "java": False,
+        "java": True,
+        "multideal": False,
+        "known_opponent_ufun": False,
+        "known_opponent_reserved_value": False,
     },
     2016: {
         "winners": [
@@ -371,7 +389,10 @@ GENIUS_INFO = {
         "uncertainty": False,
         "elicitation": False,
         "geniusweb": False,
-        "java": False,
+        "java": True,
+        "multideal": False,
+        "known_opponent_ufun": False,
+        "known_opponent_reserved_value": False,
     },
     2017: {
         "winners": [
@@ -426,7 +447,10 @@ GENIUS_INFO = {
         "uncertainty": False,
         "elicitation": False,
         "geniusweb": False,
-        "java": False,
+        "java": True,
+        "multideal": False,
+        "known_opponent_ufun": False,
+        "known_opponent_reserved_value": False,
     },
     2018: {
         "winners": [
@@ -501,7 +525,10 @@ GENIUS_INFO = {
         "uncertainty": False,
         "elicitation": False,
         "geniusweb": False,
-        "java": False,
+        "java": True,
+        "multideal": False,
+        "known_opponent_ufun": False,
+        "known_opponent_reserved_value": False,
     },
     2019: {
         "winners": [
@@ -550,8 +577,11 @@ GENIUS_INFO = {
         "discounting": False,
         "uncertainty": True,
         "elicitation": False,
-        "geniusweb": True,
-        "java": False,
+        "geniusweb": False,
+        "java": True,
+        "multideal": False,
+        "known_opponent_ufun": False,
+        "known_opponent_reserved_value": False,
     },
     2020: {
         # ANAC 2020 - Finalists listed alphabetically (no official ranking)
@@ -714,6 +744,9 @@ GENIUS_INFO = {
         "elicitation": True,
         "geniusweb": True,
         "java": True,
+        "multideal": False,
+        "known_opponent_ufun": False,
+        "known_opponent_reserved_value": False,
     },
     2021: {
         # ANAC 2021 - Winners: AlphaBIU, MatrixAlienAgent, TripleAgent
@@ -744,6 +777,9 @@ GENIUS_INFO = {
         "elicitation": True,
         "geniusweb": True,
         "java": True,
+        "multideal": False,
+        "known_opponent_ufun": False,
+        "known_opponent_reserved_value": False,
     },
     2022: {
         # ANL 2022 - Winners: DreamTeam109Agent, ChargingBoul (Individual Utility)
@@ -974,6 +1010,9 @@ GENIUS_INFO = {
         "elicitation": True,
         "geniusweb": True,
         "java": False,
+        "multideal": False,
+        "known_opponent_ufun": False,
+        "known_opponent_reserved_value": False,
     },
     2023: {
         # ANL 2023 - Winners: ExploitAgent, MiCRO2023 (Individual Utility)
@@ -1180,6 +1219,9 @@ GENIUS_INFO = {
         "elicitation": True,
         "geniusweb": True,
         "java": False,
+        "multideal": False,
+        "known_opponent_ufun": False,
+        "known_opponent_reserved_value": False,
     },
     2024: {
         "winners": [
@@ -1258,6 +1300,9 @@ GENIUS_INFO = {
         "elicitation": False,
         "geniusweb": False,
         "java": False,
+        "multideal": False,
+        "known_opponent_ufun": True,
+        "known_opponent_reserved_value": False,
     },
     2025: {
         "winners": [
@@ -1343,6 +1388,9 @@ GENIUS_INFO = {
         "elicitation": False,
         "geniusweb": False,
         "java": False,
+        "multideal": True,
+        "known_opponent_ufun": False,
+        "known_opponent_reserved_value": False,
     },
 }
 
@@ -2190,7 +2238,7 @@ def get_anac_agents(
                     finalists_only=finalists_only,
                 )
             )
-        return list(agents)
+        return list(agents)  # type: ignore
 
     d = GENIUS_INFO.get(year, None)
     if not d:

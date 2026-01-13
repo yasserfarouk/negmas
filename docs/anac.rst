@@ -6,33 +6,35 @@ that has been running since 2010 to bring together researchers from the negotiat
 community. The competition challenges participants to design autonomous negotiation
 agents that can effectively negotiate with other agents in various scenarios.
 
-NegMAS provides comprehensive support for ANAC competitions through the ``GENIUS_INFO``
-(also available as ``ANAC_INFO``) dictionary, which contains metadata about all ANAC
-competition years from 2010 to present.
+NegMAS provides comprehensive support for ANAC competitions through the
+``ANAC_INFO`` (also available as ``GENIUS_INFO``) dictionary, which contains
+metadata about all ANAC competition years from 2010 to present. The ANAC
+community is committed to advancing he field through open-sourcing ALL
+strategies.
 
 .. note::
 
-    The competition was originally called the **Genius Negotiation League** and ran on the
-    Java-based `Genius platform <http://ii.tudelft.nl/genius/>`_. Starting in 2019, some
-    leagues began using the GeniusWeb platform, and from 2024, the **Automated Negotiation
-    League (ANL)** runs natively on NegMAS.
+    The competition had one **League** and ran on the Java-based `Genius
+    platform <http://ii.tudelft.nl/genius/>`_. Starting in 2020, the main league
+    began using the GeniusWeb platform, and from 2024, it was named the **Automated
+    Negotiation League (ANL)** and runs natively on NegMAS.
 
 
 Accessing Competition Data
 --------------------------
 
-You can access information about any competition year using the ``GENIUS_INFO`` or
+You can access information about any competition year using the ``ANAC_INFO`` or
 ``ANAC_INFO`` dictionaries:
 
 .. code-block:: python
 
-    from negmas.genius.ginfo import GENIUS_INFO, ANAC_INFO, get_anac_agents
+    from negmas.genius.ginfo import ANAC_INFO, ANAC_INFO, get_anac_agents
 
-    # ANAC_INFO is an alias for GENIUS_INFO
-    assert ANAC_INFO is GENIUS_INFO
+    # ANAC_INFO is an alias for ANAC_INFO
+    assert ANAC_INFO is ANAC_INFO
 
     # Get information about a specific year
-    info_2024 = GENIUS_INFO[2024]
+    info_2024 = ANAC_INFO[2024]
     print(info_2024["winners"])  # List of winners
     print(info_2024["finalists"])  # List of finalists
     print(info_2024["participants"])  # All participants
@@ -47,27 +49,70 @@ Agent Availability
 
 Agents from different competition years are available through different libraries:
 
-**Java/Genius Agents (2010-2018)**
+**Java/Genius Agents (2010-2019)**
     These agents were written in Java for the Genius platform. To use them, you need:
 
     1. **GeniusBridge**: A Java bridge that must be running to communicate with Java agents.
        See the :doc:`tutorials/02.integrating_with_genius` tutorial for setup instructions.
 
-    2. **negmas-genius-agents** (optional): A library that re-implements many of these agents
+    2. `negmas-genius-agents <https://autoneg.github.io/negmas-genius-agents/>`_ (optional): A library that re-implements many of these agents
        in pure Python using AI-based conversion. This allows running them without the Java bridge.
        Install with: ``pip install negmas-genius-agents``
 
-**GeniusWeb Agents (2019-2023)**
-    These agents were written for the GeniusWeb platform (Python/Java hybrid). To use them:
+**GeniusWeb Java Agents (2020-2021)**
+    These agents were written in Java for the GeniusWeb platform. To use them:
 
-    - Install the `negmas-geniusweb-bridge <https://github.com/yasserfarouk/negmas-geniusweb-bridge>`_:
+    - Install `negmas-geniusweb-bridge <https://github.com/autoneg/negmas-geniusweb-bridge>`_:
+      ``pip install negmas-geniusweb-bridge``
+    - The bridge provides AI-translated Python implementations of the Java agents.
+
+**GeniusWeb Python Agents (2022-2023)**
+    These agents were written in Python for the GeniusWeb platform. To use them:
+
+    - Install `negmas-geniusweb-bridge <https://github.com/autoneg/negmas-geniusweb-bridge>`_:
       ``pip install negmas-geniusweb-bridge``
 
 **ANL Agents (2024+)**
     These agents are written in pure Python for NegMAS. To use them:
 
-    - Install the `anl-agents <https://github.com/yasserfarouk/anl-agents>`_ package:
+    - Install `anl-agents <https://github.com/autoneg/anl-agents>`_:
       ``pip install anl-agents``
+
+
+Platform Compatibility
+----------------------
+
+The following table shows which platforms were used for each competition year and
+how to access the agents in NegMAS:
+
+.. list-table::
+   :header-rows: 1
+   :widths: 10 20 30 40
+
+   * - Years
+     - Official Platform
+     - NegMAS Compatible Implementation
+     - Notes
+   * - 2010-2019
+     - Genius (Java)
+     - GeniusBridge + ``negmas.genius``
+     - Requires Java runtime and GeniusBridge running. See :doc:`tutorials/02.integrating_with_genius`.
+   * - 2010-2019
+     - Genius (Java)
+     - `negmas-genius-agents <https://autoneg.github.io/negmas-genius-agents/>`_
+     - AI-translated Python implementations. Install: ``pip install negmas-genius-agents``
+   * - 2020-2021
+     - GeniusWeb (Java)
+     - `negmas-geniusweb-bridge <https://github.com/autoneg/negmas-geniusweb-bridge>`_
+     - AI-translated from Java. 2021 agents partially translated. Install: ``pip install negmas-geniusweb-bridge``
+   * - 2022-2023
+     - GeniusWeb (Python)
+     - `negmas-geniusweb-bridge <https://github.com/autoneg/negmas-geniusweb-bridge>`_
+     - Native Python agents wrapped for NegMAS. Install: ``pip install negmas-geniusweb-bridge``
+   * - 2024+
+     - NegMAS (Python)
+     - `anl-agents <https://github.com/autoneg/anl-agents>`_
+     - Native NegMAS agents. Install: ``pip install anl-agents``
 
 
 Competition Years
@@ -154,7 +199,7 @@ and agent availability.
 
 **Finalists** (9 agents): AgentM, DoNA, Gangster, AgentYK, BraveCat, E2Agent, Atlas3, AgentTRP, WhaleAgent
 
-**Participants** (18 agents): Full list in ``GENIUS_INFO[2014]["participants"]``
+**Participants** (18 agents): Full list in ``ANAC_INFO[2014]["participants"]``
 
 **Agent Access**: Java/Genius (requires GeniusBridge)
 
@@ -172,7 +217,7 @@ and agent availability.
 
 **Finalists** (8 agents): Atlas3, ParsAgent, RandomDance, AgentX, Kawaii, Mercury, PhoenixParty, PokerFace
 
-**Participants** (24 agents): Full list in ``GENIUS_INFO[2015]["participants"]``
+**Participants** (24 agents): Full list in ``ANAC_INFO[2015]["participants"]``
 
 **Agent Access**: Java/Genius (requires GeniusBridge)
 
@@ -189,7 +234,7 @@ and agent availability.
 
 **Finalists** (10 agents): Caduceus, YXAgent, ParsCat, Farma, Atlas32016, MyAgent, Ngent, GrandmaAgent, AgentHP2, Terra
 
-**Participants** (16 agents): Full list in ``GENIUS_INFO[2016]["participants"]``
+**Participants** (16 agents): Full list in ``ANAC_INFO[2016]["participants"]``
 
 **Agent Access**: Java/Genius (requires GeniusBridge)
 
@@ -207,7 +252,7 @@ and agent availability.
 
 **Finalists** (10 agents): PonPokoAgent, CaduceusDC16, Rubick, AgentF, AgentKN, GeneKing, Mamenchis, ParsCat2, TucAgent, SimpleAgent2017
 
-**Participants** (18 agents): Full list in ``GENIUS_INFO[2017]["participants"]``
+**Participants** (18 agents): Full list in ``ANAC_INFO[2017]["participants"]``
 
 **Agent Access**: Java/Genius (requires GeniusBridge)
 
@@ -225,7 +270,7 @@ and agent availability.
 
 **Finalists** (13 agents): MengWan, BetaOne, AgentHerb, ConDAgent, ExpRubick, FullAgent, IQSun2018, Libra, PonPokoRampage, Seto, Shiboy, SMAC_Agent, Yeela
 
-**Participants** (20 agents): Full list in ``GENIUS_INFO[2018]["participants"]``
+**Participants** (20 agents): Full list in ``ANAC_INFO[2018]["participants"]``
 
 **Agent Access**: Java/Genius (requires GeniusBridge)
 
@@ -235,7 +280,7 @@ and agent availability.
 
 **Settings**: Bilateral, Linear utilities, Reservation value, Uncertainty
 
-**Platform**: GeniusWeb
+**Platform**: Genius (Java)
 
 **Winners**:
 
@@ -245,9 +290,9 @@ and agent availability.
 
 **Finalists** (6 agents): AgentGG, KakeSoba, SAGA, DandikAgent, GaravelAgent, MINF
 
-**Participants** (18 agents): Full list in ``GENIUS_INFO[2019]["participants"]``
+**Participants** (18 agents): Full list in ``ANAC_INFO[2019]["participants"]``
 
-**Agent Access**: Java/Genius (requires GeniusBridge) or `negmas-geniusweb-bridge <https://github.com/yasserfarouk/negmas-geniusweb-bridge>`_
+**Agent Access**: Java/Genius (requires GeniusBridge)
 
 
 2020
@@ -267,7 +312,7 @@ and agent availability.
 
 **Participants** (13 agents): AgentKT, AgentP1DAMO, AgentXX, AhBuNeAgent, Anaconda, Angel, AzarAgent, BlingBling, DUOAgent, ForArisa, HammingAgent, NiceAgent, ShineAgent
 
-**Agent Access**: `negmas-geniusweb-bridge <https://github.com/yasserfarouk/negmas-geniusweb-bridge>`_
+**Agent Access**: `negmas-geniusweb-bridge <https://github.com/autoneg/negmas-geniusweb-bridge>`_
 
 
 2021
@@ -283,7 +328,7 @@ and agent availability.
 2. **MatrixAlienAgent** (University of Tulsa, USA)
 3. **TripleAgent** (Utrecht University, Netherlands)
 
-**Agent Access**: `negmas-geniusweb-bridge <https://github.com/yasserfarouk/negmas-geniusweb-bridge>`_
+**Agent Access**: `negmas-geniusweb-bridge <https://github.com/autoneg/negmas-geniusweb-bridge>`_
 
 .. note::
 
@@ -311,7 +356,7 @@ and agent availability.
 
 **Participants** (19 agents): Agent007, Agent4410, AgentFish, AgentFO2, BIU_agent, ChargingBoul, CompromisingAgent, DreamTeam109Agent, GEAAgent, LearningAgent, LuckyAgent2022, MiCROAgent, Pinar_Agent, ProcrastinAgent, RGAgent, SmartAgent, SuperAgent, ThirdAgent, Tjaronchery10Agent
 
-**Agent Access**: `negmas-geniusweb-bridge <https://github.com/yasserfarouk/negmas-geniusweb-bridge>`_
+**Agent Access**: `negmas-geniusweb-bridge <https://github.com/autoneg/negmas-geniusweb-bridge>`_
 
 
 2023
@@ -335,13 +380,13 @@ and agent availability.
 
 **Participants** (15 agents): AgentFO3, AmbitiousAgent, AntAllianceAgent, AntHeartAgent, ColmanAnacondotAgent2, ExploitAgent, GotAgent, HybridAgent2023, KBTimeDiffAgent, MiCRO2023, MSCAgent, PopularAgent, SmartAgent, SpaghettiAgent, TripleEAgent
 
-**Agent Access**: `negmas-geniusweb-bridge <https://github.com/yasserfarouk/negmas-geniusweb-bridge>`_
+**Agent Access**: `negmas-geniusweb-bridge <https://github.com/autoneg/negmas-geniusweb-bridge>`_
 
 
 2024 (ANL)
 ^^^^^^^^^^
 
-**Settings**: Bilateral, Linear utilities, Reservation value
+**Settings**: Bilateral, Linear utilities, Reservation value, **Known opponent utility function**
 
 **Platform**: NegMAS (Native Python)
 
@@ -357,9 +402,9 @@ and agent availability.
 
 **Finalists** (10 agents): Shochan, UOAgent, AgentRenting2024, AntiAgent, HardChaosNegotiator, KosAgent, Nayesian2, CARCAgent, BidBot, AgentNyan
 
-**Participants** (19 agents): Full list in ``GENIUS_INFO[2024]["participants"]``
+**Participants** (19 agents): Full list in ``ANAC_INFO[2024]["participants"]``
 
-**Agent Access**: `anl-agents <https://github.com/yasserfarouk/anl-agents>`_ (``pip install anl-agents``)
+**Agent Access**: `anl-agents <https://github.com/autoneg/anl-agents>`_ (``pip install anl-agents``)
 
 **More Information**: `ANL 2024 Results <https://scml.cs.brown.edu/anl2024>`_
 
@@ -367,7 +412,7 @@ and agent availability.
 2025 (ANL)
 ^^^^^^^^^^
 
-**Settings**: Bilateral, Linear utilities, Reservation value
+**Settings**: Bilateral, Linear utilities, Reservation value, **Multi-deal**
 
 **Platform**: NegMAS (Native Python)
 
@@ -392,9 +437,9 @@ and agent availability.
 11. UfunATAgent (TUAT)
 12. Wagent (Chongqing Jiaotong University)
 
-**Participants** (17 agents): Full list in ``GENIUS_INFO[2025]["participants"]``
+**Participants** (17 agents): Full list in ``ANAC_INFO[2025]["participants"]``
 
-**Agent Access**: `anl-agents <https://github.com/yasserfarouk/anl-agents>`_ (``pip install anl-agents``)
+**Agent Access**: `anl-agents <https://github.com/autoneg/anl-agents>`_ (``pip install anl-agents``)
 
 **More Information**: `ANL 2025 Results <https://scml.cs.brown.edu/anl2025>`_
 
@@ -406,7 +451,7 @@ The following table summarizes the settings for each competition year:
 
 .. list-table::
    :header-rows: 1
-   :widths: 10 15 10 10 10 10 10 10 15
+   :widths: 8 12 8 8 8 8 8 8 8 10 10 12
 
    * - Year
      - Type
@@ -416,6 +461,9 @@ The following table summarizes the settings for each competition year:
      - Discount
      - Uncertainty
      - Elicitation
+     - Multi-deal
+     - Known Opp. Ufun
+     - Known Opp. RV
      - Platform
    * - 2010
      - Bilateral
@@ -423,6 +471,9 @@ The following table summarizes the settings for each competition year:
      - No
      - No
      - Yes
+     - No
+     - No
+     - No
      - No
      - No
      - Genius
@@ -434,6 +485,9 @@ The following table summarizes the settings for each competition year:
      - Yes
      - No
      - No
+     - No
+     - No
+     - No
      - Genius
    * - 2012
      - Bilateral
@@ -441,6 +495,9 @@ The following table summarizes the settings for each competition year:
      - No
      - Yes
      - Yes
+     - No
+     - No
+     - No
      - No
      - No
      - Genius
@@ -452,12 +509,18 @@ The following table summarizes the settings for each competition year:
      - Yes
      - No
      - No
+     - No
+     - No
+     - No
      - Genius
    * - 2014
      - Bilateral
      - No
      - No
      - Yes
+     - No
+     - No
+     - No
      - No
      - No
      - No
@@ -470,12 +533,18 @@ The following table summarizes the settings for each competition year:
      - No
      - No
      - No
+     - No
+     - No
+     - No
      - Genius
    * - 2016
      - Multilateral
      - Yes
      - No
      - Yes
+     - No
+     - No
+     - No
      - No
      - No
      - No
@@ -488,6 +557,9 @@ The following table summarizes the settings for each competition year:
      - No
      - No
      - No
+     - No
+     - No
+     - No
      - Genius
    * - 2018
      - Multilateral
@@ -495,6 +567,9 @@ The following table summarizes the settings for each competition year:
      - Yes
      - Yes
      - Yes
+     - No
+     - No
+     - No
      - No
      - No
      - Genius
@@ -506,7 +581,10 @@ The following table summarizes the settings for each competition year:
      - No
      - Yes
      - No
-     - GeniusWeb
+     - No
+     - No
+     - No
+     - Genius
    * - 2020
      - Mixed
      - Yes
@@ -515,7 +593,10 @@ The following table summarizes the settings for each competition year:
      - No
      - Yes
      - Yes
-     - GeniusWeb
+     - No
+     - No
+     - No
+     - GeniusWeb (Java)
    * - 2021
      - Mixed
      - Yes
@@ -524,7 +605,10 @@ The following table summarizes the settings for each competition year:
      - No
      - Yes
      - Yes
-     - GeniusWeb
+     - No
+     - No
+     - No
+     - GeniusWeb (Java)
    * - 2022
      - Mixed
      - Yes
@@ -533,7 +617,10 @@ The following table summarizes the settings for each competition year:
      - No
      - No
      - Yes
-     - GeniusWeb
+     - No
+     - No
+     - No
+     - GeniusWeb (Python)
    * - 2023
      - Mixed
      - Yes
@@ -542,7 +629,10 @@ The following table summarizes the settings for each competition year:
      - No
      - No
      - Yes
-     - GeniusWeb
+     - No
+     - No
+     - No
+     - GeniusWeb (Python)
    * - 2024
      - Bilateral
      - Yes
@@ -550,6 +640,9 @@ The following table summarizes the settings for each competition year:
      - Yes
      - No
      - No
+     - No
+     - No
+     - Yes
      - No
      - NegMAS
    * - 2025
@@ -560,8 +653,29 @@ The following table summarizes the settings for each competition year:
      - No
      - No
      - No
+     - Yes
+     - No
+     - No
      - NegMAS
 
+**Legend:**
+
+- **Multi-deal**: Whether agents negotiate multiple deals simultaneously (introduced in ANL 2025)
+- **Known Opp. Ufun**: Whether agents have access to their opponent's utility function (ANL 2024 only)
+- **Known Opp. RV**: Whether agents know their opponent's reserved value (not used in any year so far)
+
+Acknowledgements
+----------------
+
+Compiling the complete list of agents for ANAC since 2010 would have been impossible without the support of many people including:
+
+- `Catholijn Jonker <https://www.tudelft.nl/staff/c.m.jonker/>`_ (TU Delft)
+- `Tim Baarslag <https://www.cwi.nl/en/people/tim-baarslag/>`_ (CWI / TU Eindhoven)
+- `Reyhan Aydogan <https://www.linkedin.com/in/reyhan-aydogan-0b10curved/>`_ (Ozyegin University / TU Delft)
+- `Mehmet Onur Keskin <https://www.linkedin.com/in/mehmet-onur-keskin/>`_ (Ozyegin University)
+- `Bram Renting <https://www.universiteitleiden.nl/en/staffmembers/bram-renting>`_ (Leiden University)
+- `Wouter Pasman <https://www.tudelft.nl/staff/w.pasman/>`_ (TU Delft)
+- `Tamara Florijn <https://www.linkedin.com/in/tamara-florijn/>`_ (TU Delft)
 
 External Resources
 ------------------
@@ -570,5 +684,6 @@ External Resources
 - `ANL Competition Portal <https://scml.cs.brown.edu/anl>`_
 - `Genius Platform <http://ii.tudelft.nl/genius/>`_
 - `GeniusWeb Platform <https://tracinsy.ewi.tudelft.nl/pubtrac/GeniusWeb>`_
-- `anl-agents Repository <https://github.com/yasserfarouk/anl-agents>`_
-- `negmas-geniusweb-bridge Repository <https://github.com/yasserfarouk/negmas-geniusweb-bridge>`_
+- `anl-agents <https://github.com/autoneg/anl-agents>`_ - ANL competition agents (2024+)
+- `negmas-geniusweb-bridge <https://github.com/autoneg/negmas-geniusweb-bridge>`_ - GeniusWeb agents wrapper (2020-2023)
+- `negmas-genius-agents <https://autoneg.github.io/negmas-genius-agents/>`_ - Genius agents reimplemented in Python (2010-2019)
