@@ -723,7 +723,7 @@ class Scenario:
         ):
             domain, _ = finder(folder)
             if domain is None:
-                return None
+                continue
             s = loader(
                 folder,
                 safe_parsing=safe_parsing,
