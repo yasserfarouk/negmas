@@ -7,10 +7,11 @@ from pathlib import Path
 import pytest
 
 from negmas import load_genius_domain_from_folder
-from negmas.inout import Scenario
+from negmas.inout import Scenario, STATS_FILE_NAME
 from negmas.outcomes import enumerate_issues
 from negmas.outcomes.outcome_space import DiscreteCartesianOutcomeSpace
 from negmas.preferences.crisp.linear import LinearAdditiveUtilityFunction
+from negmas.preferences.ops import ScenarioStats
 from negmas.sao import AspirationNegotiator
 
 MAX_CARDINALITY = 10_000
@@ -246,3 +247,142 @@ def test_load_geniusweb_example_reserved_value():
 #     if n < 10_000:
 #         d2.to_single_issue()
 #         assert d2.outcome_space.cardinality == n or d2.outcome_space.cardinality == float("inf")
+
+
+def test_scenario_calc_stats():
+    """Test that calc_stats computes and stores stats correctly."""
+    file_name = str(files("negmas").joinpath("tests/data/Laptop"))
+    scenario = Scenario.from_genius_folder(Path(file_name))
+    assert scenario is not None
+    assert scenario.stats is None
+
+    stats = scenario.calc_stats()
+
+    assert stats is not None
+    assert isinstance(stats, ScenarioStats)
+    assert scenario.stats is stats
+    assert stats.opposition is not None
+    assert len(stats.utility_ranges) == len(scenario.ufuns)
+    assert len(stats.pareto_utils) > 0
+    assert len(stats.pareto_outcomes) > 0
+
+
+def test_scenario_save_and_load_stats(tmp_path):
+    """Test that stats can be saved via dumpas and loaded back."""
+    file_name = str(files("negmas").joinpath("tests/data/Laptop"))
+    scenario = Scenario.from_genius_folder(Path(file_name))
+    assert scenario is not None
+
+    # Calculate stats
+    stats = scenario.calc_stats()
+    assert stats is not None
+
+    # Save the scenario with stats
+    scenario.dumpas(tmp_path, type="yml")
+
+    # Verify stats file was created with correct name
+    stats_file = tmp_path / STATS_FILE_NAME
+    assert stats_file.exists(), f"Stats file {stats_file} should exist"
+
+    # Load stats back
+    scenario2 = Scenario.from_genius_folder(Path(file_name))
+    assert scenario2 is not None
+    assert scenario2.stats is None
+
+    scenario2.load_stats(tmp_path)
+    assert scenario2.stats is not None
+
+    # Verify loaded stats match original
+    assert scenario2.stats["opposition"] == pytest.approx(stats.opposition, rel=1e-6)
+    assert len(scenario2.stats["pareto_utils"]) == len(stats.pareto_utils)
+
+
+def test_scenario_load_stats_file(tmp_path):
+    """Test load_stats_file method."""
+    file_name = str(files("negmas").joinpath("tests/data/Laptop"))
+    scenario = Scenario.from_genius_folder(Path(file_name))
+    assert scenario is not None
+
+    # Calculate and save stats
+    stats = scenario.calc_stats()
+    scenario.dumpas(tmp_path, type="yml")
+
+    stats_file = tmp_path / STATS_FILE_NAME
+    assert stats_file.exists()
+
+    # Load stats from specific file
+    scenario2 = Scenario.from_genius_folder(Path(file_name))
+    assert scenario2.stats is None
+
+    scenario2.load_stats_file(stats_file)
+    assert scenario2.stats is not None
+    assert scenario2.stats["opposition"] == pytest.approx(stats.opposition, rel=1e-6)
+
+
+def test_scenario_load_stats_nonexistent(tmp_path):
+    """Test that load_stats handles missing files gracefully."""
+    file_name = str(files("negmas").joinpath("tests/data/Laptop"))
+    scenario = Scenario.from_genius_folder(Path(file_name))
+    assert scenario is not None
+    assert scenario.stats is None
+
+    # Load from folder without stats file
+    scenario.load_stats(tmp_path)
+    assert scenario.stats is None
+
+    # Load from nonexistent file
+    scenario.load_stats_file(tmp_path / "nonexistent.yaml")
+    assert scenario.stats is None
+
+
+def test_scenario_load_with_stats(tmp_path):
+    """Test that Scenario.load loads stats when available."""
+    file_name = str(files("negmas").joinpath("tests/data/Laptop"))
+
+    # First create a scenario with stats and save it
+    scenario = Scenario.from_genius_folder(Path(file_name))
+    assert scenario is not None
+    scenario.calc_stats()
+    scenario.dumpas(tmp_path, type="yml")
+
+    # Now load from the saved location (which has stats)
+    scenario_with_stats = Scenario.from_genius_folder(Path(file_name))
+    assert scenario_with_stats is not None
+    scenario_with_stats.load_stats(tmp_path)
+    assert scenario_with_stats.stats is not None
+
+    # Load without loading stats
+    scenario_no_stats = Scenario.from_genius_folder(Path(file_name))
+    assert scenario_no_stats is not None
+    assert scenario_no_stats.stats is None
+
+
+def test_scenario_calc_stats_attributes():
+    """Test that calc_stats computes all expected attributes."""
+    file_name = str(files("negmas").joinpath("tests/data/Laptop"))
+    scenario = Scenario.from_genius_folder(Path(file_name))
+    assert scenario is not None
+
+    stats = scenario.calc_stats()
+
+    # Check all ScenarioStats attributes are populated
+    assert isinstance(stats.opposition, float)
+    assert 0.0 <= stats.opposition <= 1.0
+
+    assert isinstance(stats.utility_ranges, list)
+    for r in stats.utility_ranges:
+        assert len(r) == 2
+        assert r[0] <= r[1]
+
+    assert isinstance(stats.pareto_utils, tuple)
+    assert isinstance(stats.pareto_outcomes, list)
+    assert len(stats.pareto_utils) == len(stats.pareto_outcomes)
+
+    assert isinstance(stats.nash_utils, list)
+    assert isinstance(stats.nash_outcomes, list)
+
+    assert isinstance(stats.kalai_utils, list)
+    assert isinstance(stats.kalai_outcomes, list)
+
+    assert isinstance(stats.max_welfare_utils, list)
+    assert isinstance(stats.max_welfare_outcomes, list)

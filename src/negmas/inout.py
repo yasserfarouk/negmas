@@ -11,7 +11,7 @@ from pathlib import Path
 from random import shuffle
 from typing import Any, Callable, Iterable, Sequence
 
-from attrs import define, field
+from attrs import asdict, define, field
 
 from negmas.helpers.inout import dump, load
 from negmas.helpers.strings import unique_name
@@ -57,6 +57,7 @@ __all__ = [
 STATS_MAX_CARDINALITY = 10_000_000_000
 GENIUSWEB_UFUN_TYPES = ("LinearAdditiveUtilitySpace",)
 INFO_FILE_NAME = "_info"
+STATS_FILE_NAME = "_stats.yaml"
 
 
 def scenario_size(self: Scenario):
@@ -82,6 +83,7 @@ class Scenario:
     mechanism_type: type[Mechanism] | None = SAOMechanism
     mechanism_params: dict = field(factory=dict)
     info: dict[str, Any] = field(factory=dict)
+    stats: ScenarioStats | None = None
 
     def __lt__(self, other: Scenario):
         """lt  .
@@ -397,12 +399,13 @@ class Scenario:
         return self
 
     def calc_stats(self) -> ScenarioStats:
-        """Calc stats.
+        """Calc stats and save them.
 
         Returns:
             ScenarioStats: The result.
         """
-        return calc_scenario_stats(self.ufuns)
+        self.stats = calc_scenario_stats(self.ufuns)
+        return self.stats
 
     def calc_extra_stats(
         self, max_cardinality: int = STATS_MAX_CARDINALITY
@@ -591,7 +594,14 @@ class Scenario:
         """
         self.dumpas(folder, "json")
 
-    def dumpas(self, folder: Path | str, type="yml", compact: bool = False) -> None:
+    def dumpas(
+        self,
+        folder: Path | str,
+        type="yml",
+        compact: bool = False,
+        save_stats=True,
+        save_info=True,
+    ) -> None:
         """
         Dumps the scenario in the given file format.
         """
@@ -606,8 +616,10 @@ class Scenario:
         dump(serialized["domain"], folder / f"{serialized['domain']['name']}.{type}")
         for u in serialized["ufuns"]:
             dump(u, folder / f"{u['name']}.{type}", sort_keys=True, compact=compact)
-        if self.info:
+        if self.info and save_info:
             dump(self.info, folder / f"{INFO_FILE_NAME}.{type}")
+        if self.stats and save_stats:
+            dump(asdict(self.stats), folder / STATS_FILE_NAME)
 
     def load_info_file(self, file: Path):
         """Load info file.
@@ -632,6 +644,28 @@ class Scenario:
                 continue
             self.info = load(path)
             break
+        return self
+
+    def load_stats_file(self, file: Path):
+        """Load stats file.
+
+        Args:
+            file: File.
+        """
+        if not file.is_file():
+            return self
+        self.stats = load(file)
+        return self
+
+    def load_stats(self, folder: PathLike | str):
+        """Load stats.
+
+        Args:
+            folder: Folder.
+        """
+        path = Path(folder) / STATS_FILE_NAME
+        if path.is_file():
+            self.stats = load(path)
         return self
 
     @staticmethod
@@ -664,7 +698,13 @@ class Scenario:
 
     @classmethod
     def load(
-        cls, folder: Path | str, safe_parsing=False, ignore_discount=False, **kwargs
+        cls,
+        folder: Path | str,
+        safe_parsing=False,
+        ignore_discount=False,
+        load_stats=True,
+        load_info=True,
+        **kwargs,
     ) -> Scenario | None:
         """
         Loads the scenario from a folder with supported formats: XML, YML
@@ -675,15 +715,19 @@ class Scenario:
             (find_domain_and_utility_files_geniusweb, cls.from_geniusweb_folder),
         ):
             domain, _ = finder(folder)
-            if domain is not None:
-                s = loader(
-                    folder,
-                    safe_parsing=safe_parsing,
-                    ignore_discount=ignore_discount,
-                    **kwargs,
-                )
-                if s is not None:
-                    return s.load_info(folder)
+            if domain is None:
+                return None
+            s = loader(
+                folder,
+                safe_parsing=safe_parsing,
+                ignore_discount=ignore_discount,
+                **kwargs,
+            )
+            if s is not None and load_info:
+                s.load_info(folder)
+            if s is not None and load_stats:
+                s.load_stats(folder)
+            return s
 
     @classmethod
     def is_loadable(cls, path: PathLike | str):

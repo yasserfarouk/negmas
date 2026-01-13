@@ -59,6 +59,8 @@ def convert_numpy(obj):
         return {k: convert_numpy(v) for k, v in obj.items()}
     elif isinstance(obj, list):
         return [convert_numpy(v) for v in obj]
+    elif isinstance(obj, tuple):
+        return tuple(convert_numpy(v) for v in obj)
     else:
         return obj  # for all other types, return the object.
 
