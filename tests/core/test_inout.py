@@ -293,8 +293,8 @@ def test_scenario_save_and_load_stats(tmp_path):
     assert scenario2.stats is not None
 
     # Verify loaded stats match original
-    assert scenario2.stats["opposition"] == pytest.approx(stats.opposition, rel=1e-6)
-    assert len(scenario2.stats["pareto_utils"]) == len(stats.pareto_utils)
+    assert scenario2.stats.opposition == pytest.approx(stats.opposition, rel=1e-6)
+    assert len(scenario2.stats.pareto_utils) == len(stats.pareto_utils)
 
 
 def test_scenario_load_stats_file(tmp_path):
@@ -316,7 +316,7 @@ def test_scenario_load_stats_file(tmp_path):
 
     scenario2.load_stats_file(stats_file)
     assert scenario2.stats is not None
-    assert scenario2.stats["opposition"] == pytest.approx(stats.opposition, rel=1e-6)
+    assert scenario2.stats.opposition == pytest.approx(stats.opposition, rel=1e-6)
 
 
 def test_scenario_load_stats_nonexistent(tmp_path):
