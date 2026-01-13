@@ -159,6 +159,78 @@ GB negotiators share most implementations with SAO negotiators. The same
 negotiator types (time-based, MiCRO, tit-for-tat, etc.) are available
 with identical interfaces.
 
+Python-Native Genius Negotiators
+--------------------------------
+
+NegMAS provides Python-native implementations of classic Genius negotiation agents.
+These implementations use transcompiled Genius BOA (Bidding-Opponent modeling-Acceptance)
+components and **do NOT require the Java Genius bridge**.
+
+The naming convention uses a ``G`` prefix to distinguish these from Java-bridge versions.
+
+.. note::
+   These negotiators are fully implemented in Python and can be used without
+   any external Java dependencies. They are recommended for most use cases
+   where Genius-style strategies are needed.
+
+Classic Time-Dependent Agents
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+
+.. list-table::
+   :header-rows: 1
+   :widths: 30 70
+
+   * - Class
+     - Description
+   * - ``GBoulware``
+     - Boulware strategy (e=0.2): concedes slowly, tough early
+   * - ``GConceder``
+     - Conceder strategy (e=2.0): concedes quickly early
+   * - ``GLinear``
+     - Linear strategy (e=1.0): constant concession rate
+   * - ``GHardliner``
+     - Hardliner strategy (e=0): never concedes
+
+ANAC Competition Agents
+~~~~~~~~~~~~~~~~~~~~~~~
+
+Python-native implementations of notable ANAC competition agents.
+
+.. list-table::
+   :header-rows: 1
+   :widths: 30 70
+
+   * - Class
+     - Description
+   * - ``GHardHeaded``
+     - ANAC 2011 Winner: Boulware offering with frequency-based opponent modeling
+   * - ``GAgentK``
+     - ANAC 2010: Time-dependent with combined acceptance conditions
+   * - ``GAgentSmith``
+     - ANAC 2010: Time-dependent with Smith-style frequency model
+   * - ``GNozomi``
+     - ANAC 2010: Boulware with previous-offer acceptance
+   * - ``GFSEGA``
+     - ANAC 2010: Conceder with constant threshold acceptance
+   * - ``GCUHKAgent``
+     - ANAC 2012 Winner: Conservative time-dependent with frequency modeling
+   * - ``GAgentLG``
+     - ANAC 2012: Time-dependent with CombiMax acceptance
+   * - ``GAgentX``
+     - ANAC 2015: Adaptive with window-based acceptance and exponential smoothing
+
+Utility Agents
+~~~~~~~~~~~~~~
+
+.. list-table::
+   :header-rows: 1
+   :widths: 30 70
+
+   * - Class
+     - Description
+   * - ``GRandom``
+     - Random offers with always-accept policy (baseline/testing)
+
 Genius Bridge Negotiators
 -------------------------
 
@@ -668,8 +740,35 @@ Using Native Negotiators
    mechanism.add(negotiator2, ufun=U.random(issues))
    mechanism.run()
 
-Using Genius Negotiators
-~~~~~~~~~~~~~~~~~~~~~~~~
+Using Python-Native Genius Negotiators (Recommended)
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+
+These negotiators don't require Java or the Genius bridge.
+
+.. code-block:: python
+
+   from negmas.genius import GHardHeaded, GCUHKAgent, GBoulware
+   from negmas.sao import SAOMechanism
+   from negmas.preferences import LinearAdditiveUtilityFunction as U
+   from negmas.outcomes import make_issue
+
+   # Create a simple negotiation scenario
+   issues = [make_issue(10, "price"), make_issue(5, "quantity")]
+
+   # Create Python-native Genius negotiators - NO bridge needed!
+   negotiator1 = GHardHeaded(name="hardheaded")  # ANAC 2011 winner
+   negotiator2 = GCUHKAgent(name="cuhk")  # ANAC 2012 winner
+
+   # Run negotiation
+   mechanism = SAOMechanism(issues=issues, n_steps=100)
+   mechanism.add(negotiator1, ufun=U.random(issues))
+   mechanism.add(negotiator2, ufun=U.random(issues))
+   mechanism.run()
+
+Using Genius Bridge Negotiators
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+
+For access to all 196 Genius agents (requires Java).
 
 .. code-block:: python
 

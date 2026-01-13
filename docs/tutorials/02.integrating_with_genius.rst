@@ -31,9 +31,9 @@ Direct Download
 ^^^^^^^^^^^^^^^
 
 You can also just download the bridge
-`here <https://yasserfarouk.github.io/files/geniusbridge.jar>`__ and
+`here <https://yasserfarouk.github.io/files/geniusbdidge.jar>`__ and
 copy it to a folder ``files`` under ``negmas`` in your home directory.
-For Linux and macOS, you can just run:
+For Linx and macOS, you can just run:
 
 .. code:: bash
 
@@ -75,7 +75,7 @@ Getting an example scenario
 
 You can create any scenario as described in the previous tutorial. For
 this tutorial, we want to showcase the use of ``Scenario.load`` to load
-a scenario from secondary storage.
+a scenario from the secondry storage.
 
 Firstly, let’s get a negotiation scenario into your machine to use for
 this experiment. You can download an example domain
@@ -84,7 +84,7 @@ it to some place in your hard-disk to use later for the negotiation. Or
 just run the following command to download it to
 ``negmas/scenarios/CameraB`` under your home directory:
 
-- On Linux and macOS:
+- On Linux and
 
   .. code:: bash
 

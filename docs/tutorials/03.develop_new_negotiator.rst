@@ -70,10 +70,10 @@ are *leaving money on the table*.
 Could the buyer have done better? Yes. By the time it gave this offer,
 it already have received several offers from the seller which could have
 been used to *estimate* the utility of different outcomes the buyer is
-considering offering for the seller (highlighted in red).
+cosidering offering for the seller (highlighted in red).
 
 | The ideas we want to implement is pretty simple:
-| **Use a time-based concession strategy but always offer the outcome
+| **Use a time-based consession strategy but always offer the outcome
   nearest to the first offer of the partner**
 
 The intuition behind this simple strategy relies on two assumptions:
@@ -373,7 +373,7 @@ Negotiation execution state:
 - **started** Did the negotiation start?
 - **running** Is the negotiation still running?
 - **waiting** Is the negotiation waiting for some response from one of
-  the negotiators?
+  the negtiators?
 - **has_errors** Does the negotiation have any exceptions?
 
 Negotiation end state:
@@ -451,8 +451,7 @@ given utility level to the opponent’s first offer*
 
 To do that, we need to be able to find all outcomes above some utility
 threshold. To do that, we will use a class defined by NegMAS called
-``PresortingInverseUtilityFunction`` (or ``SamplingInverseUtilityFunction``
-for large outcome spaces). In general, negotiators in NegMAS should
+``InverseUtilityFunction``. In general, negotiators in NegMAS should
 expect that the ufun may change at any time during the negotiation. Our
 negotiator will need to re-calculate the utility value associated with
 each outcome at every ufun change. It can do that in the
@@ -490,10 +489,10 @@ explain it:
                 return
             self._inv = PresortingInverseUtilityFunction(self.ufun)
             self._inv.init()
-        # find worst and best outcomes for me
-        worst, self._best = self.ufun.extreme_outcomes()
+            # find worst and best outcomes for me
+            worest, self._best = self.ufun.extreme_outcomes()
             # and the corresponding utility values
-            self._min, self._max = self.ufun(worst), self.ufun(self._best)
+            self._min, self._max = self.ufun(worest), self.ufun(self._best)
             # MUST call parent to avoid being called again for no reason
             super().on_preferences_changed(changes)
 
@@ -596,7 +595,7 @@ money left on the table (i.e. it is impossible to increase the utility
 of one partner without decreasing the utility of the other).
 
 That is a single negotiation though. Let’s compare our new negotiator
-with ``AspirationNegotiator`` on multiple negotiations:
+with ``AspriationNegotiator`` on multiple negotiations:
 
 .. code:: ipython3
 

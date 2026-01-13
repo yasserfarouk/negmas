@@ -42,9 +42,9 @@ specific modules, advanced and helper modules.
 - **Base Modules** Implements basic automated negotiation functionality:
 
   1. **outcomes** This module represents issues, outcome and responses
-     and provides basic functions and methods to operate with and on
+     and provides basic functions and methods to operator with and on
      them.
-  2. **preferences** This module represents the base type of all
+  2. **preferences** This modules represents the base type of all
      preferences and different widely used utility function types
      including linear and nonlinear utilities and constraint-based
      utilities. This module also implements basic analysis tools like
@@ -95,9 +95,11 @@ specific modules, advanced and helper modules.
      module for the goals of this library. The ``Agent`` and ``World``
      classes described in details later belong to this module
   2. **modeling** This is a set of submodules implementing modeling of
-     opponent utility, opponent strategy, opponent's future offers and
-     opponent's probability of accepting offers.
-  3. **concurrent** Implements mechanism types, and other computational
+     opponent utility, opponent strategy, opponent’s future offers and
+     opponent’s probability of accepting offers.
+  3. **elicitation** Implements several preference elicitation during
+     negotiation methods.
+  4. **concurrent** Implements mechanism types, and other computational
      resources to support concurrent negotiation.
 
 - **Helper Modules** These modules provide basic activities that is not
@@ -198,7 +200,7 @@ You can find more details about the general NegMAS NMI
 `here <https://negmas.readthedocs.io/en/latest/api/negmas.common.NegotiatorMechanismInterface.html>`__.
 
 Each specific **Mechanism** defines a corresponding specific
-**NegotiatorMechanismInterface** class (in the same way that **World**
+**AgentMechanismInterface** class (in the same way that **World**
 classes define their own AWI).
 
 To negotiate effectively, negotiators employ a **UtilityFunction** (or
@@ -704,7 +706,7 @@ Utilities and Preferences
 Agents engage in negotiations to maximize their utility. That is the
 central dogma in negotiation research. ``negmas`` allows the user to
 define their own utility functions based on a set of predefined base
-classes that can be found in the ``preferences`` module.
+classes that can be found in the ``utilities`` module.
 
 Utility Values
 ~~~~~~~~~~~~~~
@@ -796,7 +798,7 @@ much* is the difference between two outcomes. A crisp version
 ``float`` indicating *exactly* the difference in value for the entity
 between two outcomes.
 
-Every ``CardinalCrisp`` object is a ``CardinalProb`` which is also an
+Every ``CadrinalCrisp`` object is a ``CardinalProb`` which is also an
 ``Ordinal`` object.
 
 Crisp and Prob Preferences
@@ -830,9 +832,9 @@ Utility Functions
 
 Utility functions are entities that take an ``Outcome`` and return its
 ``Value``. There are many types of utility functions defined in the
-literature. In this package, the base of all utility functions is the
+literature. In this package, the base of all utiliy functions is the
 ``BaseUtilityFunction`` class which is defined in the
-``preferences.base_ufun`` module. It behaves like a standard python
+``preferences.ufun`` module. It behaves like a standard python
 ``Callable`` which can be called with a single ``Outcome`` object
 (i.e. a dictionary, list, tuple etc representing an outcome) and returns
 a ``Value``. This allows utility functions to return a distribution
@@ -845,7 +847,7 @@ Utility functions in ``negmas`` have a helper ``property`` called
 ``type`` which returns the type of the utility function and a helper
 function ``eu`` for returning the expected utility of a given outcome
 which is guaranteed to return a real number (``float``) even if the
-utility function itself is returning a utility distribution.
+utiliy function itself is returning a utility distribution.
 
 To implement a specific utility function, you need to override the
 single ``eval`` function provided in the
@@ -880,7 +882,7 @@ a simple example:
 
 
 
-Note that we used ``UtilityFunction`` as the base class to
+Note that we used ``StationaryUtilityFunction`` as the base class to
 inform users of the ``ConstUtilityFunction`` class that it represents a
 stationary ufun which means that it is OK to cache results of calls to
 the ufun for example.
@@ -1034,7 +1036,7 @@ assigned in outcome :math:`o` to issue :math:`i`, and :math:`g` is a
 vector of functions each mapping one issue of the outcome to some
 real-valued number (utility of this issue).
 
-Notice that despite the name, this type of utility functions can
+Notice that despite the name, this type of utiliy functions can
 represent nonlinear relation between issue values and utility values.
 The linearity is in how these possibly nonlinear mappings are being
 combined to generate a utility value for the outcome.
@@ -1231,7 +1233,7 @@ Hyper Rectangle Utility Functions
 
 In many cases, it is not possible to define a utility mapping for every
 issue independently. We provide the utility function
-``HyperRectangleUtilityFunction`` to handle this situation by allowing for
+``HyperVolumeUtilityFunction`` to handle this situation by allowing for
 representation of a set of nonlinear functions defined on arbitrary
 hyper-volumes of the space of outcomes.
 
@@ -1239,7 +1241,7 @@ The simplest example is a nonlinear-function that is defined over the
 whole space but that nonlinearly combines several issues to calculate
 the utility.
 
-For example the previous ``NonLinearAggregationUtilityFunction`` for the ``seller``
+For example the previous ``NonLinearUtilityFunction`` for the ``seller``
 can be represented as follows:
 
 .. code:: ipython3
@@ -1284,9 +1286,9 @@ This function recovered exactly the same values as the
 ``NonlinearUtilityFuction`` defined earlier by defining a single
 hyper-volume with the special value of ``None`` which applies the
 function to the whole space and then defining a single nonlinear
-function over the whole space to implement the required utility mapping.
+function over the whole space to implement the required utiltiy mapping.
 
-``HyperRectangleUtilityFunction`` was designed to a more complex situation
+``HyperVolumeUtilityFunction`` was designed to a more complex situation
 in which you can have multiple nonlinear functions defined over
 different parts of the space of possible outcomes.
 
@@ -1370,7 +1372,7 @@ constraints:
 Notice that in this case, no utility is calculated because we do not
 know if the outcome falls within the range of the second local function
 or not. To allow such cases, the initializer of
-``HyperRectangleUtilityFunction`` allows you to ignore such cases:
+``HyperVolumeUtilityFunction`` allows you to ignore such cases:
 
 .. code:: ipython3
 
@@ -1398,14 +1400,14 @@ or not. To allow such cases, the initializer of
 Nonlinear Hyper Rectangle Utility Functions
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
-``HyperRectangleUtilityFunction`` should be able to handle most complex
+``HyperVolumeUtilityFunction`` should be able to handle most complex
 multi-issue utility evaluations but we provide a more general class
-called ``NonlinearHyperRectangleUtilityFunction`` which replaces the
+called ``NoneLinearHyperVolumeUtilityFunction`` which replaces the
 simple weighted summation of local/global functions implemented in
-``HyperRectangleUtilityFunction`` with a more general nonlinear mapping.
+``HyperVolumeUtilityFunction`` with a more general nonlinar mapping.
 
-The relation between ``NonlinearHyperRectangleUtilityFunction`` and
-``HyperRectangleUtilityFunction`` is exactly the same as that between
+The relation between ``NoneLinearHyperVolumeUtilityFunction`` and
+``HyperVolumeUtilityFunction`` is exactly the same as that between
 ``NonLinearAdditiveUtilityFunction`` and
 ``LinearAdditiveUtilityFunction``
 
@@ -1513,11 +1515,11 @@ defined in the library:
 
 - **Negotiator** represents a negotiation agent that can interact with
   ``Mechanism`` objects (representing negotiation protocols) using a
-  dedicated ``NegotiatorMechanismInterface`` that defines public information
+  dedicated ``AgentMechanismInterface`` the defines public information
   of the mechanism. A negotiator is tied to a single negotiation.
 - **Agent** represents a more complex entity than a negotiation agent.
-It does not interact directly with negotiation protocols (i.e. it does
-  not have a ``NegotiatorMechanismInterface``) and is needed when there is a
+  It does not interact directly with negotiation protocols (i.e. it does
+  not have an ``AgentMechanismInterface``) and is needed when there is a
   need to adjust behavior in multiple negotiations and/or when there is
   a need to interact with a simulation or the real world (represented in
   negmas by a ``World`` object) through an ``AgentWorldInterface``.
@@ -1555,8 +1557,8 @@ callbacks that are called by ``Mechanism``\ s to implement the
 *negotiation protocol*.
 
 The base ``Negotiator`` class defines basic functionality including the
-ability to access the ``Mechanism`` settings in the form of a
-``NegotiatorMechanismInterface`` accessible through the ``nmi`` attribute of
+ability to access the ``Mechanism`` settings in the form of an
+``AgentMechanismInterface`` accessible through the ``ami`` attribute of
 the ``Negotiator``.
 
 Genius Negotiator
@@ -1626,7 +1628,7 @@ The most important points to notice about this figure are the following:
   to negotiate for them.
 - A ``UtilityFunction`` in negmas is an active entity, it is not just a
   mathematical function but it can have state, access the mechanism
-  state or settings (through its own ``NegotiatorMechanismInterface``) and
+  state or settings (through its own ``AgentMechanismInterface``) and
   can change its returned value for the same output during the
   negotiation. Ufuns need not be dynamic in this sense but they can be.
 

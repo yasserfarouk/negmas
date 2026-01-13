@@ -207,10 +207,18 @@ Genius BOA Components
 ---------------------
 
 NegMAS provides Python implementations of Genius BOA (Bidding, Opponent modeling,
-Acceptance) framework components.
+Acceptance) framework components. These are **fully implemented in Python** and
+do NOT require the Java Genius bridge.
+
+.. note::
+   These components can be used standalone or combined with the Python-native
+   Genius negotiators (``GBoulware``, ``GHardHeaded``, etc.) documented in
+   :doc:`negotiators`.
 
 Genius Acceptance Policies
 ~~~~~~~~~~~~~~~~~~~~~~~~~~
+
+**Basic Acceptance Policies**
 
 .. list-table::
    :header-rows: 1
@@ -218,40 +226,54 @@ Genius Acceptance Policies
 
    * - Class
      - Description
-   * - ``GeniusAcceptancePolicy``
-     - Base class for Genius acceptance policies
    * - ``GACNext``
-     - Accept if better than next offer
+     - Accept if offer ≥ next planned offer (AC_Next)
    * - ``GACConst``
-     - Accept above constant threshold
+     - Accept if utility > constant threshold
    * - ``GACTime``
-     - Time-based acceptance
+     - Time-based acceptance (after time threshold)
    * - ``GACPrevious``
-     - Accept based on previous offers
+     - Accept if better than opponent's previous offer
    * - ``GACGap``
-     - Gap-based acceptance
+     - Gap-based acceptance (utility gap analysis)
    * - ``GACTrue``
-     - Always accept
+     - Always accept (baseline)
    * - ``GACFalse``
-     - Always reject
+     - Always reject (baseline)
+
+**Combined Acceptance Policies**
+
+.. list-table::
+   :header-rows: 1
+   :widths: 35 65
+
+   * - Class
+     - Description
    * - ``GACCombi``
-     - Combined acceptance strategy
+     - Combined acceptance (AC_Next OR AC_Const)
    * - ``GACCombiMax``
      - Combined with max aggregation
    * - ``GACCombiAvg``
      - Combined with average aggregation
    * - ``GACCombiBestAvg``
      - Combined with best average
-   * - ``GACCombiV2``
-     - Combined version 2
-   * - ``GACCombiV3``
-     - Combined version 3
-   * - ``GACCombiV4``
-     - Combined version 4
+   * - ``GACCombiV2``, ``GACCombiV3``, ``GACCombiV4``
+     - Combined acceptance variants
    * - ``GACCombiMaxInWindow``
      - Combined max in sliding window
    * - ``GACCombiProb``
      - Probabilistic combined acceptance
+
+**Discounted Acceptance Policies**
+
+For domains with time discounts:
+
+.. list-table::
+   :header-rows: 1
+   :widths: 35 65
+
+   * - Class
+     - Description
    * - ``GACConstDiscounted``
      - Discounted constant threshold
    * - ``GACCombiBestAvgDiscounted``
@@ -261,8 +283,9 @@ Genius Acceptance Policies
    * - ``GACCombiProbDiscounted``
      - Discounted probabilistic
 
-Genius Offering Policies
-~~~~~~~~~~~~~~~~~~~~~~~~
+**ANAC Agent-Specific Acceptance**
+
+Acceptance strategies derived from ANAC competition agents:
 
 .. list-table::
    :header-rows: 1
@@ -270,52 +293,125 @@ Genius Offering Policies
 
    * - Class
      - Description
-   * - ``GeniusOfferingPolicy``
-     - Base class for Genius offering policies
+   * - ``GACHardHeaded``
+     - HardHeaded (ANAC 2011 winner) acceptance
+   * - ``GACCUHKAgent``
+     - CUHKAgent (ANAC 2012 winner) acceptance
+   * - ``GACAgentK``, ``GACAgentK2``
+     - AgentK series acceptance
+   * - ``GACAgentLG``
+     - AgentLG (ANAC 2012) acceptance
+   * - ``GACNozomi``
+     - Nozomi (ANAC 2010) acceptance
+   * - ``GACAgentSmith``
+     - AgentSmith (ANAC 2010) acceptance
+   * - ``GACTheFawkes``
+     - TheFawkes (ANAC 2013) acceptance
+   * - ``GACGahboninho``
+     - Gahboninho (ANAC 2011) acceptance
+   * - ``GACABMP``
+     - ABMP-style acceptance
+   * - ``GACUncertain``
+     - Uncertainty-aware acceptance
+   * - ``GACMAC``
+     - MAC acceptance strategy
+
+Genius Offering Policies
+~~~~~~~~~~~~~~~~~~~~~~~~
+
+.. list-table::
+   :header-rows: 1
+   :widths: 35 65
+
+   * - Class
+     - Description
    * - ``GTimeDependentOffering``
-     - Time-dependent bidding strategy
-   * - ``GRandomOffering``
-     - Random bidding
+     - Time-dependent bidding with configurable e parameter
    * - ``GBoulwareOffering``
-     - Boulware (tough) bidding
+     - Boulware (e=0.2): concedes slowly
    * - ``GConcederOffering``
-     - Conceder (soft) bidding
+     - Conceder (e=2.0): concedes quickly
    * - ``GLinearOffering``
-     - Linear concession bidding
+     - Linear (e=1.0): constant concession
    * - ``GHardlinerOffering``
-     - Hardliner (no concession) bidding
+     - Hardliner (e=0): never concedes
+   * - ``GRandomOffering``
+     - Random bid selection
    * - ``GChoosingAllBids``
      - Chooses from all possible bids
 
 Genius Opponent Models
 ~~~~~~~~~~~~~~~~~~~~~~
 
+**Basic Models**
+
+.. list-table::
+   :header-rows: 1
+   :widths: 35 65
+
+   * - Class
+     - Description
+   * - ``GDefaultModel``
+     - Default opponent model (no modeling)
+   * - ``GUniformModel``
+     - Assumes uniform preferences
+   * - ``GOppositeModel``
+     - Assumes opposite preferences to self
+   * - ``GWorstModel``
+     - Assumes worst-case opponent
+   * - ``GPerfectModel``
+     - Perfect knowledge (for testing)
+
+**Frequency-Based Models**
+
+.. list-table::
+   :header-rows: 1
+   :widths: 35 65
+
+   * - Class
+     - Description
+   * - ``GHardHeadedFrequencyModel``
+     - HardHeaded frequency model (tracks unchanged issues)
+   * - ``GSmithFrequencyModel``
+     - AgentSmith frequency model
+   * - ``GAgentXFrequencyModel``
+     - AgentX exponential smoothing model
+   * - ``GNashFrequencyModel``
+     - Nash-based frequency model
+   * - ``GCUHKFrequencyModel``
+     - CUHKAgent frequency model
+   * - ``GAgentLGModel``
+     - AgentLG opponent model
+
+**Bayesian Models**
+
+.. list-table::
+   :header-rows: 1
+   :widths: 35 65
+
+   * - Class
+     - Description
+   * - ``GBayesianModel``
+     - Bayesian opponent model
+   * - ``GScalableBayesianModel``
+     - Scalable Bayesian model for large spaces
+   * - ``GFSEGABayesianModel``
+     - FSEGA Bayesian model
+   * - ``GIAMhagglerBayesianModel``
+     - IAMhaggler Bayesian model
+
+**Agent-Specific Models**
+
 .. list-table::
    :header-rows: 1
    :widths: 30 70
 
    * - Class
      - Description
-   * - ``GeniusOpponentModel``
-     - Base class for opponent models
-   * - ``GDefaultModel``
-     - Default opponent model
-   * - ``GUniformModel``
-     - Assumes uniform preferences
-   * - ``GOppositeModel``
-     - Assumes opposite preferences
-   * - ``GHardHeadedFrequencyModel``
-     - HardHeaded frequency-based model
-   * - ``GSmithFrequencyModel``
-     - Smith frequency-based model
-   * - ``GAgentXFrequencyModel``
-     - AgentX frequency-based model
-   * - ``GNashFrequencyModel``
-     - Nash-based frequency model
-   * - ``GBayesianModel``
-     - Bayesian opponent model
-   * - ``GScalableBayesianModel``
-     - Scalable Bayesian model
+   * - ``GTheFawkesModel``
+     - TheFawkes opponent model
+   * - ``GInoxAgentModel``
+     - InoxAgent opponent model
 
 Usage Examples
 --------------
@@ -345,18 +441,26 @@ Building a Custom Negotiator
 Using Genius BOA Components
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
+Genius BOA components can be used to build custom negotiators without Java.
+
 .. code-block:: python
 
-   from negmas.sao.components import (
+   from negmas.gb.negotiators.modular.boa import BOANegotiator
+   from negmas.gb.components.genius import (
        GBoulwareOffering,
        GACCombi,
        GHardHeadedFrequencyModel,
    )
 
-   # Genius-style components
-   offering = GBoulwareOffering()
-   acceptance = GACCombi()
-   opponent_model = GHardHeadedFrequencyModel()
+   # Create a custom HardHeaded-style negotiator
+   class MyHardHeadedAgent(BOANegotiator):
+       def __init__(self, **kwargs):
+           offering = GBoulwareOffering()
+           acceptance = GACCombi(offering_policy=offering)
+           model = GHardHeadedFrequencyModel()
+           super().__init__(
+               offering=offering, acceptance=acceptance, model=model, **kwargs
+           )
 
 Combining Multiple Acceptance Strategies
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
