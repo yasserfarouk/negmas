@@ -654,7 +654,7 @@ class Scenario:
         """
         if not file.is_file():
             return self
-        self.stats = load(file)
+        self.stats = ScenarioStats(**load(file))
         return self
 
     def load_stats(self, folder: PathLike | str):
@@ -665,7 +665,7 @@ class Scenario:
         """
         path = Path(folder) / STATS_FILE_NAME
         if path.is_file():
-            self.stats = load(path)
+            self.stats = ScenarioStats(**load(path))
         return self
 
     @staticmethod
