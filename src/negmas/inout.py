@@ -423,16 +423,29 @@ class Scenario:
         outcomes = tuple(
             outcome_space.enumerate_or_sample(max_cardinality=max_cardinality)
         )
-        frontier_utils, frontier_indices = pareto_frontier(
-            ufuns, outcomes=outcomes, sort_by_welfare=True
-        )
-        frontier_outcomes = tuple(
-            outcomes[_] for _ in frontier_indices if _ is not None
-        )
-        pts = nash_points(ufuns, frontier_utils, outcome_space=outcome_space)
-        nash_utils, nash_indx = pts[0] if pts else (None, None)
-        nash_outcome = frontier_outcomes[nash_indx] if nash_indx else None
         minmax = [u.minmax() for u in ufuns]
+        if self.stats is None:
+            frontier_utils, frontier_indices = pareto_frontier(
+                ufuns, outcomes=outcomes, sort_by_welfare=True
+            )
+            frontier_outcomes = tuple(
+                outcomes[_] for _ in frontier_indices if _ is not None
+            )
+            pts = nash_points(ufuns, frontier_utils, outcome_space=outcome_space)
+            nash_utils, nash_indx = pts[0] if pts else (None, None)
+            nash_outcome = frontier_outcomes[nash_indx] if nash_indx else None
+            opposition = opposition_level(
+                ufuns,
+                max_utils=tuple(_[1] for _ in minmax),  #
+                outcomes=outcomes,
+                max_tests=max_cardinality,
+            )
+        else:
+            frontier_utils = self.stats.pareto_utils
+            frontier_outcomes = self.stats.pareto_outcomes
+            nash_utils = self.stats.nash_outcomes
+            nash_outcome = self.stats.nash_outcomes
+            opposition = self.stats.opposition
         nu, no, ol, cl, wl, fu, fo = (
             dict(),
             dict(),
@@ -441,12 +454,6 @@ class Scenario:
             dict(),
             dict(),
             dict(),
-        )
-        opposition = opposition_level(
-            ufuns,
-            max_utils=tuple(_[1] for _ in minmax),  #
-            outcomes=outcomes,
-            max_tests=max_cardinality,
         )
         for i, u1 in enumerate(ufuns):
             if not u1:
