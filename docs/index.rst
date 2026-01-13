@@ -84,6 +84,7 @@ etc.
     :hidden:
     :maxdepth: 1
 
+    anac
     publications
     api
     indices
