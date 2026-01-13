@@ -3,11 +3,13 @@
 from __future__ import annotations
 
 import itertools
+from importlib.util import find_spec
 
 from negmas.helpers.strings import shortest_unique_names
 
 __all__ = [
     "GENIUS_INFO",
+    "ANAC_INFO",
     "AGENT_BASED_NEGOTIATORS",
     "PARTY_BASED_NEGOTIATORS",
     "ALL_NEGOTIATORS",
@@ -19,6 +21,22 @@ __all__ = [
     "ALL_GENIUS_NEGOTIATORS",
     "get_anac_agents",
 ]
+
+# Check if optional agent libraries are installed
+_HAS_ANL_AGENTS = find_spec("anl_agents") is not None
+_HAS_GENIUSWEB_BRIDGE = find_spec("negmas_geniusweb_bridge") is not None
+
+
+def _anl_path(path: str) -> str | None:
+    """Return the path if anl_agents is installed, otherwise None."""
+    return path if _HAS_ANL_AGENTS else None
+
+
+def _geniusweb_path(path: str) -> str | None:
+    """Return the path if negmas_geniusweb_bridge is installed, otherwise None."""
+    return path if _HAS_GENIUSWEB_BRIDGE else None
+
+
 GENIUS_INFO = {
     2010: {
         "winners": [
@@ -33,7 +51,7 @@ GENIUS_INFO = {
             [("Nozomi", "agents.anac.y2010.Nozomi.Nozomi")],
             [("IAMhaggler", "agents.anac.y2010.Southampton.IAMhaggler")],
         ],
-        "genius10": [
+        "participants": [
             [("AgentFSEGA", "agents.anac.y2010.AgentFSEGA.AgentFSEGA")],
             [("AgentK", "agents.anac.y2010.AgentK.Agent_K")],
             [("AgentSmith", "agents.anac.y2010.AgentSmith.AgentSmith")],
@@ -51,6 +69,7 @@ GENIUS_INFO = {
         "uncertainty": False,
         "elicitation": False,
         "geniusweb": False,
+        "java": False,
     },
     2011: {
         "winners": [
@@ -68,7 +87,7 @@ GENIUS_INFO = {
             [("NiceTitForTat", "agents.anac.y2011.Nice_Tit_for_Tat.NiceTitForTat")],
             [("ValueModelAgent", "agents.anac.y2011.ValueModelAgent.ValueModelAgent")],
         ],
-        "genius10": [
+        "participants": [
             [("AgentK2", "agents.anac.y2011.AgentK2.Agent_K2")],
             [("BramAgent", "agents.anac.y2011.BramAgent.BRAMAgent")],
             [("Gahboninho", "agents.anac.y2011.Gahboninho.Gahboninho")],
@@ -87,6 +106,7 @@ GENIUS_INFO = {
         "uncertainty": False,
         "elicitation": False,
         "geniusweb": False,
+        "java": False,
     },
     2012: {
         "winners": [
@@ -115,7 +135,7 @@ GENIUS_INFO = {
             [("IAMhaggler2012", "agents.anac.y2012.IAMhaggler2012.IAMhaggler2012")],
             [("AgentMR", "agents.anac.y2012.AgentMR.AgentMR")],
         ],
-        "genius10": [
+        "participants": [
             [("AgentLG", "agents.anac.y2012.AgentLG.AgentLG")],
             [("AgentMR", "agents.anac.y2012.AgentMR.AgentMR")],
             [("BramAgent2", "agents.anac.y2011.BramAgent.BRAMAgent")],
@@ -156,6 +176,7 @@ GENIUS_INFO = {
         "uncertainty": False,
         "elicitation": False,
         "geniusweb": False,
+        "java": False,
     },
     2013: {
         "winners": [
@@ -172,7 +193,7 @@ GENIUS_INFO = {
             [("InoxAgent", "agents.anac.y2013.InoxAgent.InoxAgent")],
             [("SlavaAgent", "agents.anac.y2013.SlavaAgent.SlavaAgent")],
         ],
-        "genius10": [
+        "participants": [
             [("AgentKF", "agents.anac.y2013.AgentKF.AgentKF")],
             [("GAgent", "agents.anac.y2013.GAgent.AgentI")],
             [("InoxAgent", "agents.anac.y2013.InoxAgent.InoxAgent")],
@@ -190,6 +211,7 @@ GENIUS_INFO = {
         "uncertainty": False,
         "elicitation": False,
         "geniusweb": False,
+        "java": False,
     },
     2014: {
         "winners": [
@@ -213,7 +235,7 @@ GENIUS_INFO = {
             [("AgentYK", "agents.anac.y2014.AgentYK.AgentYK")],
             [("BraveCat", "agents.anac.y2014.BraveCat.BraveCat")],
         ],
-        "genius10": [
+        "participants": [
             [("AgentM", "agents.anac.y2014.AgentM.AgentM")],
             [("DoNA", "agents.anac.y2014.DoNA.DoNA")],
             [("Gangester", "agents.anac.y2014.Gangster.Gangster")],
@@ -242,6 +264,7 @@ GENIUS_INFO = {
         "uncertainty": False,
         "elicitation": False,
         "geniusweb": False,
+        "java": False,
     },
     2015: {
         "winners": [
@@ -259,7 +282,7 @@ GENIUS_INFO = {
             [("XianFaAgent", "agents.anac.y2015.xianfa.XianFaAgent")],
             [("PokerFace", "agents.anac.y2015.pokerface.PokerFace")],
         ],
-        "genius10": [
+        "participants": [
             [("Atlas3", "agents.anac.y2015.Atlas3.Atlas3")],
             [("ParsAgent", "agents.anac.y2015.ParsAgent.ParsAgent")],
             [("RandomDance", "agents.anac.y2015.RandomDance.RandomDance")],
@@ -299,6 +322,7 @@ GENIUS_INFO = {
         "uncertainty": False,
         "elicitation": False,
         "geniusweb": False,
+        "java": False,
     },
     2016: {
         "winners": [
@@ -320,7 +344,7 @@ GENIUS_INFO = {
             [("AgentHP2", "agents.anac.y2016.agenthp2.AgentHP2_main")],
             [("Terra", "agents.anac.y2016.terra.Terra")],
         ],
-        "genius10": [
+        "participants": [
             [("Caduceus", "agents.anac.y2016.caduceus.Caduceus")],
             [("YXAgent", "agents.anac.y2016.yxagent.YXAgent")],
             [("ParsCat", "agents.anac.y2016.parscat.ParsCat")],
@@ -347,6 +371,7 @@ GENIUS_INFO = {
         "uncertainty": False,
         "elicitation": False,
         "geniusweb": False,
+        "java": False,
     },
     2017: {
         "winners": [
@@ -366,7 +391,7 @@ GENIUS_INFO = {
             [("SimpleAgent2017", "agents.anac.y2017.simpleagent.SimpleAgent")],
             [("Mamenchis", "agents.anac.y2017.mamenchis.Mamenchis")],
         ],
-        "genius10": [
+        "participants": [
             [("PonPokoAgent", "agents.anac.y2017.ponpokoagent.PonPokoAgent")],
             [("CaduceusDC16", "agents.anac.y2017.caduceusdc16.CaduceusDC16")],
             [("ParsCat2", "agents.anac.y2016.parscat.ParsCat")],
@@ -401,6 +426,7 @@ GENIUS_INFO = {
         "uncertainty": False,
         "elicitation": False,
         "geniusweb": False,
+        "java": False,
     },
     2018: {
         "winners": [
@@ -433,7 +459,7 @@ GENIUS_INFO = {
             [("Agent33", "agents.anac.y2018.agent33.Agent33")],
             [("AgentNP1", "agents.anac.y2018.agentnp1.AgentNP1")],
         ],
-        "genius10": [
+        "participants": [
             [("MengWan", "agents.anac.y2018.meng_wan.Agent36")],
             [("IQSun2018", "agents.anac.y2018.iqson.IQSun2018")],
             [("PonpokoRampage", "agents.anac.y2018.ponpokorampage.PonPokoRampage")],
@@ -475,6 +501,7 @@ GENIUS_INFO = {
         "uncertainty": False,
         "elicitation": False,
         "geniusweb": False,
+        "java": False,
     },
     2019: {
         "winners": [
@@ -495,7 +522,7 @@ GENIUS_INFO = {
             [("FSEGA2019", "agents.anac.y2019.fsega2019.agent.FSEGA2019")],
             [("AgentGP", "agents.anac.y2019.agentgp.AgentGP")],
         ],
-        "genius10": [
+        "participants": [
             [("AgentGG", "agents.anac.y2019.agentgg.AgentGG")],
             [("KakeSoba", "agents.anac.y2019.kakesoba.KakeSoba")],
             [("SAGA", "agents.anac.y2019.saga.SAGA")],
@@ -524,17 +551,159 @@ GENIUS_INFO = {
         "uncertainty": True,
         "elicitation": False,
         "geniusweb": True,
+        "java": False,
     },
     2020: {
-        "winners": [],
+        # ANAC 2020 - Finalists listed alphabetically (no official ranking)
+        "winners": [],  # No official ranking published
         "finalists": [
-            [("Agentkt", None)],
-            [("AhBuNeAgent", None)],
-            [("ANGELParty", None)],
-            [("HammingAgent", None)],
-            [("ShineAgent", None)],
+            [
+                (
+                    "AgentKT",
+                    _geniusweb_path(
+                        "negmas_geniusweb_bridge.anac2020.agent_kt.agent_kt.AgentKT"
+                    ),
+                )
+            ],
+            [
+                (
+                    "AhBuNeAgent",
+                    _geniusweb_path(
+                        "negmas_geniusweb_bridge.anac2020.ahbune_agent.ahbune_agent.AhBuNeAgent"
+                    ),
+                )
+            ],
+            [
+                (
+                    "Angel",
+                    _geniusweb_path(
+                        "negmas_geniusweb_bridge.anac2020.angel.angel.Angel"
+                    ),
+                )
+            ],
+            [
+                (
+                    "HammingAgent",
+                    _geniusweb_path(
+                        "negmas_geniusweb_bridge.anac2020.hamming_agent.hamming_agent.HammingAgent"
+                    ),
+                )
+            ],
+            [
+                (
+                    "ShineAgent",
+                    _geniusweb_path(
+                        "negmas_geniusweb_bridge.anac2020.shine_agent.shine_agent.ShineAgent"
+                    ),
+                )
+            ],
         ],
-        "genius10": [],
+        "participants": [
+            [
+                (
+                    "AgentKT",
+                    _geniusweb_path(
+                        "negmas_geniusweb_bridge.anac2020.agent_kt.agent_kt.AgentKT"
+                    ),
+                )
+            ],
+            [
+                (
+                    "AgentP1DAMO",
+                    _geniusweb_path(
+                        "negmas_geniusweb_bridge.anac2020.agent_p1_damo.agent_p1_damo.AgentP1DAMO"
+                    ),
+                )
+            ],
+            [
+                (
+                    "AgentXX",
+                    _geniusweb_path(
+                        "negmas_geniusweb_bridge.anac2020.agent_xx.agent_xx.AgentXX"
+                    ),
+                )
+            ],
+            [
+                (
+                    "AhBuNeAgent",
+                    _geniusweb_path(
+                        "negmas_geniusweb_bridge.anac2020.ahbune_agent.ahbune_agent.AhBuNeAgent"
+                    ),
+                )
+            ],
+            [
+                (
+                    "Anaconda",
+                    _geniusweb_path(
+                        "negmas_geniusweb_bridge.anac2020.anaconda.anaconda.Anaconda"
+                    ),
+                )
+            ],
+            [
+                (
+                    "Angel",
+                    _geniusweb_path(
+                        "negmas_geniusweb_bridge.anac2020.angel.angel.Angel"
+                    ),
+                )
+            ],
+            [
+                (
+                    "AzarAgent",
+                    _geniusweb_path(
+                        "negmas_geniusweb_bridge.anac2020.azar_agent.azar_agent.AzarAgent"
+                    ),
+                )
+            ],
+            [
+                (
+                    "BlingBling",
+                    _geniusweb_path(
+                        "negmas_geniusweb_bridge.anac2020.bling_bling.bling_bling.BlingBling"
+                    ),
+                )
+            ],
+            [
+                (
+                    "DUOAgent",
+                    _geniusweb_path(
+                        "negmas_geniusweb_bridge.anac2020.duo_agent.duo_agent.DUOAgent"
+                    ),
+                )
+            ],
+            [
+                (
+                    "ForArisa",
+                    _geniusweb_path(
+                        "negmas_geniusweb_bridge.anac2020.for_arisa.for_arisa.ForArisa"
+                    ),
+                )
+            ],
+            [
+                (
+                    "HammingAgent",
+                    _geniusweb_path(
+                        "negmas_geniusweb_bridge.anac2020.hamming_agent.hamming_agent.HammingAgent"
+                    ),
+                )
+            ],
+            [
+                (
+                    "NiceAgent",
+                    _geniusweb_path(
+                        "negmas_geniusweb_bridge.anac2020.nice_agent.nice_agent.NiceAgent"
+                    ),
+                )
+            ],
+            [
+                (
+                    "ShineAgent",
+                    _geniusweb_path(
+                        "negmas_geniusweb_bridge.anac2020.shine_agent.shine_agent.ShineAgent"
+                    ),
+                )
+            ],
+        ],
         "linear": True,
         "learning": False,
         "multilateral": False,
@@ -543,8 +712,12 @@ GENIUS_INFO = {
         "discounting": False,
         "uncertainty": True,
         "elicitation": True,
+        "geniusweb": True,
+        "java": True,
     },
     2021: {
+        # ANAC 2021 - Winners: AlphaBIU, MatrixAlienAgent, TripleAgent
+        # Note: 2021 agents not yet available in negmas_geniusweb_bridge
         "winners": [
             [("AlphaBIU", None)],
             [("MatrixAlienAgent", None)],
@@ -555,7 +728,12 @@ GENIUS_INFO = {
             [("MatrixAlienAgent", None)],
             [("TripleAgent", None)],
         ],
-        "genius10": [],
+        "participants": [
+            [("AlphaBIU", None)],
+            [("MatrixAlienAgent", None)],
+            [("TripleAgent", None)],
+            [("AgentFO", None)],  # From directory listing
+        ],
         "linear": True,
         "learning": True,
         "multilateral": False,
@@ -564,15 +742,228 @@ GENIUS_INFO = {
         "discounting": False,
         "uncertainty": True,
         "elicitation": True,
+        "geniusweb": True,
+        "java": True,
     },
     2022: {
-        "winners": [],
-        "finalists": [
-            [("Agent007", None)],
-            [("ChargingBoul", None)],
-            [("DreamTeam109", None)],
+        # ANL 2022 - Winners: DreamTeam109Agent, ChargingBoul (Individual Utility)
+        #                     DreamTeam109Agent, Agent007 (Social Welfare)
+        "winners": [
+            [
+                (
+                    "DreamTeam109Agent",
+                    _geniusweb_path(
+                        "negmas_geniusweb_bridge.anl2022.dreamteam109_agent.dreamteam109_agent.DreamTeam109Agent"
+                    ),
+                )
+            ],
+            [
+                (
+                    "ChargingBoul",
+                    _geniusweb_path(
+                        "negmas_geniusweb_bridge.anl2022.charging_boul.charging_boul.ChargingBoul"
+                    ),
+                )
+            ],
         ],
-        "genius10": [],
+        "winners_welfare": [
+            [
+                (
+                    "DreamTeam109Agent",
+                    _geniusweb_path(
+                        "negmas_geniusweb_bridge.anl2022.dreamteam109_agent.dreamteam109_agent.DreamTeam109Agent"
+                    ),
+                )
+            ],
+            [
+                (
+                    "Agent007",
+                    _geniusweb_path(
+                        "negmas_geniusweb_bridge.anl2022.agent007.agent007.Agent007"
+                    ),
+                )
+            ],
+        ],
+        "finalists": [
+            [
+                (
+                    "Agent007",
+                    _geniusweb_path(
+                        "negmas_geniusweb_bridge.anl2022.agent007.agent007.Agent007"
+                    ),
+                )
+            ],
+            [
+                (
+                    "ChargingBoul",
+                    _geniusweb_path(
+                        "negmas_geniusweb_bridge.anl2022.charging_boul.charging_boul.ChargingBoul"
+                    ),
+                )
+            ],
+            [
+                (
+                    "DreamTeam109Agent",
+                    _geniusweb_path(
+                        "negmas_geniusweb_bridge.anl2022.dreamteam109_agent.dreamteam109_agent.DreamTeam109Agent"
+                    ),
+                )
+            ],
+        ],
+        "participants": [
+            [
+                (
+                    "Agent007",
+                    _geniusweb_path(
+                        "negmas_geniusweb_bridge.anl2022.agent007.agent007.Agent007"
+                    ),
+                )
+            ],
+            [
+                (
+                    "Agent4410",
+                    _geniusweb_path(
+                        "negmas_geniusweb_bridge.anl2022.agent4410.agent_4410.Agent4410"
+                    ),
+                )
+            ],
+            [
+                (
+                    "AgentFish",
+                    _geniusweb_path(
+                        "negmas_geniusweb_bridge.anl2022.agentfish.agentfish.AgentFish"
+                    ),
+                )
+            ],
+            [
+                (
+                    "AgentFO2",
+                    _geniusweb_path(
+                        "negmas_geniusweb_bridge.anl2022.AgentFO2.AgentFO2.AgentFO2"
+                    ),
+                )
+            ],
+            [
+                (
+                    "BIU_agent",
+                    _geniusweb_path(
+                        "negmas_geniusweb_bridge.anl2022.BIU_agent.BIU_agent.BIU_agent"
+                    ),
+                )
+            ],
+            [
+                (
+                    "ChargingBoul",
+                    _geniusweb_path(
+                        "negmas_geniusweb_bridge.anl2022.charging_boul.charging_boul.ChargingBoul"
+                    ),
+                )
+            ],
+            [
+                (
+                    "CompromisingAgent",
+                    _geniusweb_path(
+                        "negmas_geniusweb_bridge.anl2022.compromising_agent.compromising_agent.CompromisingAgent"
+                    ),
+                )
+            ],
+            [
+                (
+                    "DreamTeam109Agent",
+                    _geniusweb_path(
+                        "negmas_geniusweb_bridge.anl2022.dreamteam109_agent.dreamteam109_agent.DreamTeam109Agent"
+                    ),
+                )
+            ],
+            [
+                (
+                    "GEAAgent",
+                    _geniusweb_path(
+                        "negmas_geniusweb_bridge.anl2022.gea_agent.gea_agent.GEAAgent"
+                    ),
+                )
+            ],
+            [
+                (
+                    "LearningAgent",
+                    _geniusweb_path(
+                        "negmas_geniusweb_bridge.anl2022.learning_agent.learning_agent.LearningAgent"
+                    ),
+                )
+            ],
+            [
+                (
+                    "LuckyAgent2022",
+                    _geniusweb_path(
+                        "negmas_geniusweb_bridge.anl2022.LuckyAgent2022.LuckyAgent2022.LuckyAgent2022"
+                    ),
+                )
+            ],
+            [
+                (
+                    "MiCROAgent",
+                    _geniusweb_path(
+                        "negmas_geniusweb_bridge.anl2022.micro_agent.micro_agent.micro_agent.MiCROAgent"
+                    ),
+                )
+            ],
+            [
+                (
+                    "Pinar_Agent",
+                    _geniusweb_path(
+                        "negmas_geniusweb_bridge.anl2022.Pinar_Agent.Pinar_Agent.Pinar_Agent"
+                    ),
+                )
+            ],
+            [
+                (
+                    "ProcrastinAgent",
+                    _geniusweb_path(
+                        "negmas_geniusweb_bridge.anl2022.procrastin_agent.procrastin_agent.ProcrastinAgent"
+                    ),
+                )
+            ],
+            [
+                (
+                    "RGAgent",
+                    _geniusweb_path(
+                        "negmas_geniusweb_bridge.anl2022.rg_agent.rg_agent.RGAgent"
+                    ),
+                )
+            ],
+            [
+                (
+                    "SmartAgent",
+                    _geniusweb_path(
+                        "negmas_geniusweb_bridge.anl2022.smart_agent.smart_agent.SmartAgent"
+                    ),
+                )
+            ],
+            [
+                (
+                    "SuperAgent",
+                    _geniusweb_path(
+                        "negmas_geniusweb_bridge.anl2022.super_agent.super_agent.SuperAgent"
+                    ),
+                )
+            ],
+            [
+                (
+                    "ThirdAgent",
+                    _geniusweb_path(
+                        "negmas_geniusweb_bridge.anl2022.thirdagent.third_agent.ThirdAgent"
+                    ),
+                )
+            ],
+            [
+                (
+                    "Tjaronchery10Agent",
+                    _geniusweb_path(
+                        "negmas_geniusweb_bridge.anl2022.tjaronchery10_agent.tjaronchery10_agent.Tjaronchery10Agent"
+                    ),
+                )
+            ],
+        ],
         "linear": True,
         "learning": True,
         "multilateral": False,
@@ -581,11 +972,204 @@ GENIUS_INFO = {
         "discounting": False,
         "uncertainty": False,
         "elicitation": True,
+        "geniusweb": True,
+        "java": False,
     },
     2023: {
-        "winners": [],
-        "finalists": [],
-        "genius10": [],
+        # ANL 2023 - Winners: ExploitAgent, MiCRO2023 (Individual Utility)
+        #                     AntHeartAgent, SmartAgent (Social Welfare)
+        "winners": [
+            [
+                (
+                    "ExploitAgent",
+                    _geniusweb_path(
+                        "negmas_geniusweb_bridge.anl2023.exploit_agent.exploit_agent.ExploitAgent"
+                    ),
+                )
+            ],
+            [
+                (
+                    "MiCRO2023",
+                    _geniusweb_path(
+                        "negmas_geniusweb_bridge.anl2023.micro_2023.micro_2023.MiCRO2023"
+                    ),
+                )
+            ],
+        ],
+        "winners_welfare": [
+            [
+                (
+                    "AntHeartAgent",
+                    _geniusweb_path(
+                        "negmas_geniusweb_bridge.anl2023.ant_heart.antHeart_agent.AntHeartAgent"
+                    ),
+                )
+            ],
+            [
+                (
+                    "SmartAgent",
+                    _geniusweb_path(
+                        "negmas_geniusweb_bridge.anl2023.smart_agent.smart_agent.SmartAgent"
+                    ),
+                )
+            ],
+        ],
+        "finalists": [
+            [
+                (
+                    "ExploitAgent",
+                    _geniusweb_path(
+                        "negmas_geniusweb_bridge.anl2023.exploit_agent.exploit_agent.ExploitAgent"
+                    ),
+                )
+            ],
+            [
+                (
+                    "MiCRO2023",
+                    _geniusweb_path(
+                        "negmas_geniusweb_bridge.anl2023.micro_2023.micro_2023.MiCRO2023"
+                    ),
+                )
+            ],
+            [
+                (
+                    "AntHeartAgent",
+                    _geniusweb_path(
+                        "negmas_geniusweb_bridge.anl2023.ant_heart.antHeart_agent.AntHeartAgent"
+                    ),
+                )
+            ],
+            [
+                (
+                    "SmartAgent",
+                    _geniusweb_path(
+                        "negmas_geniusweb_bridge.anl2023.smart_agent.smart_agent.SmartAgent"
+                    ),
+                )
+            ],
+        ],
+        "participants": [
+            [
+                (
+                    "AgentFO3",
+                    _geniusweb_path(
+                        "negmas_geniusweb_bridge.anl2023.agent_fo3.AgentFO3.AgentFO3"
+                    ),
+                )
+            ],
+            [
+                (
+                    "AmbitiousAgent",
+                    _geniusweb_path(
+                        "negmas_geniusweb_bridge.anl2023.ambitious_agent.AmbitiousAgent.AmbitiousAgent"
+                    ),
+                )
+            ],
+            [
+                (
+                    "AntAllianceAgent",
+                    _geniusweb_path(
+                        "negmas_geniusweb_bridge.anl2023.ant_alliance.antAlliance_agent.AntAllianceAgent"
+                    ),
+                )
+            ],
+            [
+                (
+                    "AntHeartAgent",
+                    _geniusweb_path(
+                        "negmas_geniusweb_bridge.anl2023.ant_heart.antHeart_agent.AntHeartAgent"
+                    ),
+                )
+            ],
+            [
+                (
+                    "ColmanAnacondotAgent2",
+                    _geniusweb_path(
+                        "negmas_geniusweb_bridge.anl2023.colman_anacondot_agent2.colman_anacondot_agent2.ColmanAnacondotAgent2"
+                    ),
+                )
+            ],
+            [
+                (
+                    "ExploitAgent",
+                    _geniusweb_path(
+                        "negmas_geniusweb_bridge.anl2023.exploit_agent.exploit_agent.ExploitAgent"
+                    ),
+                )
+            ],
+            [
+                (
+                    "GotAgent",
+                    _geniusweb_path(
+                        "negmas_geniusweb_bridge.anl2023.got_agent.got_agent.GotAgent"
+                    ),
+                )
+            ],
+            [
+                (
+                    "HybridAgent2023",
+                    _geniusweb_path(
+                        "negmas_geniusweb_bridge.anl2023.hybrid_agent2023.HybridAgent2023.HybridAgent2023"
+                    ),
+                )
+            ],
+            [
+                (
+                    "KBTimeDiffAgent",
+                    _geniusweb_path(
+                        "negmas_geniusweb_bridge.anl2023.kb_time_diff_agent.kb_time_diff_agent.KB_time_diff_Agent"
+                    ),
+                )
+            ],
+            [
+                (
+                    "MiCRO2023",
+                    _geniusweb_path(
+                        "negmas_geniusweb_bridge.anl2023.micro_2023.micro_2023.MiCRO2023"
+                    ),
+                )
+            ],
+            [
+                (
+                    "MSCAgent",
+                    _geniusweb_path(
+                        "negmas_geniusweb_bridge.anl2023.msc_agent.MSC_agent.MSCAgent"
+                    ),
+                )
+            ],
+            [
+                (
+                    "PopularAgent",
+                    _geniusweb_path(
+                        "negmas_geniusweb_bridge.anl2023.popular_agent.popular_agent.PopularAgent"
+                    ),
+                )
+            ],
+            [
+                (
+                    "SmartAgent",
+                    _geniusweb_path(
+                        "negmas_geniusweb_bridge.anl2023.smart_agent.smart_agent.SmartAgent"
+                    ),
+                )
+            ],
+            [
+                (
+                    "SpaghettiAgent",
+                    _geniusweb_path(
+                        "negmas_geniusweb_bridge.anl2023.spaghetti_agent.spaghetti_agent.Agent37"
+                    ),
+                )
+            ],
+            [
+                (
+                    "TripleEAgent",
+                    _geniusweb_path(
+                        "negmas_geniusweb_bridge.anl2023.TripleE_agent.TripleE_agent.TripleE"
+                    ),
+                )
+            ],
+        ],
         "linear": True,
         "learning": True,
         "multilateral": False,
@@ -594,8 +1178,181 @@ GENIUS_INFO = {
         "discounting": False,
         "uncertainty": False,
         "elicitation": True,
+        "geniusweb": True,
+        "java": False,
+    },
+    2024: {
+        "winners": [
+            [("Shochan", _anl_path("anl_agents.anl2024.takafam.Shochan"))],
+            [("UOAgent", _anl_path("anl_agents.anl2024.team_moto.UOAgent"))],
+            [
+                (
+                    "AgentRenting2024",
+                    _anl_path("anl_agents.anl2024.team_renting.AgentRenting2024"),
+                )
+            ],
+        ],
+        "winners_nash": [
+            [("Shochan", _anl_path("anl_agents.anl2024.takafam.Shochan"))]
+        ],
+        "finalists": [
+            [("Shochan", _anl_path("anl_agents.anl2024.takafam.Shochan"))],
+            [("UOAgent", _anl_path("anl_agents.anl2024.team_moto.UOAgent"))],
+            [
+                (
+                    "AgentRenting2024",
+                    _anl_path("anl_agents.anl2024.team_renting.AgentRenting2024"),
+                )
+            ],
+            [("AntiAgent", _anl_path("anl_agents.anl2024.antiagents.AntiAgent"))],
+            [
+                (
+                    "HardChaosNegotiator",
+                    _anl_path("anl_agents.anl2024.team_199.HardChaosNegotiator"),
+                )
+            ],
+            [("KosAgent", _anl_path("anl_agents.anl2024.team_205.KosAgent"))],
+            [("Nayesian2", _anl_path("anl_agents.anl2024.susumu.Nayesian2"))],
+            [("CARCAgent", _anl_path("anl_agents.anl2024.carc.CARCAgent"))],
+            [("BidBot", _anl_path("anl_agents.anl2024.team_240.BidBot"))],
+            [("AgentNyan", _anl_path("anl_agents.anl2024.team_123.AgentNyan"))],
+        ],
+        "participants": [
+            [("Shochan", _anl_path("anl_agents.anl2024.takafam.Shochan"))],
+            [("UOAgent", _anl_path("anl_agents.anl2024.team_moto.UOAgent"))],
+            [
+                (
+                    "AgentRenting2024",
+                    _anl_path("anl_agents.anl2024.team_renting.AgentRenting2024"),
+                )
+            ],
+            [("AntiAgent", _anl_path("anl_agents.anl2024.antiagents.AntiAgent"))],
+            [
+                (
+                    "HardChaosNegotiator",
+                    _anl_path("anl_agents.anl2024.team_199.HardChaosNegotiator"),
+                )
+            ],
+            [("KosAgent", _anl_path("anl_agents.anl2024.team_205.KosAgent"))],
+            [("Nayesian2", _anl_path("anl_agents.anl2024.susumu.Nayesian2"))],
+            [("CARCAgent", _anl_path("anl_agents.anl2024.carc.CARCAgent"))],
+            [("BidBot", _anl_path("anl_agents.anl2024.team_240.BidBot"))],
+            [("AgentNyan", _anl_path("anl_agents.anl2024.team_123.AgentNyan"))],
+            [("TAKAgent", _anl_path("anl_agents.anl2024.team_232.TAKAgent"))],
+            [("Ardabot", _anl_path("anl_agents.anl2024.team_234.Ardabot"))],
+            [("Group6", _anl_path("anl_agents.anl2024.team_235.Group6"))],
+            [("Group7", _anl_path("anl_agents.anl2024.team_236.Group7"))],
+            [("Goldie", _anl_path("anl_agents.anl2024.tulsa_eulers.Goldie"))],
+            [("Ilan", _anl_path("anl_agents.anl2024.team_186.Ilan"))],
+            [("AgentKB", _anl_path("anl_agents.anl2024.teamkb.AgentKB"))],
+            [("KatlaNirAgent", _anl_path("anl_agents.anl2024.tipsonly.KatlaNirAgent"))],
+            [("group5", _anl_path("anl_agents.anl2024.team_twistin.group5"))],
+        ],
+        "linear": True,
+        "learning": False,
+        "multilateral": False,
+        "bilateral": True,
+        "reservation": True,
+        "discounting": False,
+        "uncertainty": False,
+        "elicitation": False,
+        "geniusweb": False,
+        "java": False,
+    },
+    2025: {
+        "winners": [
+            [
+                ("RUFL", _anl_path("anl_agents.anl2025.team_271.RUFL")),
+                (
+                    "SacAgent",
+                    _anl_path("anl_agents.anl2025.university_of_tehran.SacAgent"),
+                ),
+            ],
+            [("UfunATAgent", _anl_path("anl_agents.anl2025.team_305.UfunATAgent"))],
+        ],
+        "finalists": [
+            [
+                (
+                    "SacAgent",
+                    _anl_path("anl_agents.anl2025.university_of_tehran.SacAgent"),
+                )
+            ],
+            [("ProbaBot", _anl_path("anl_agents.anl2025.team_273.ProbaBot"))],
+            [("RUFL", _anl_path("anl_agents.anl2025.team_271.RUFL"))],
+            [("KDY", _anl_path("anl_agents.anl2025.tema_kdy.KDY"))],
+            [
+                (
+                    "JeemNegotiator",
+                    _anl_path("anl_agents.anl2025.team_291.JeemNegotiator"),
+                )
+            ],
+            [("Astrat3m", _anl_path("anl_agents.anl2025.chongqingagent.Astrat3m"))],
+            [("A4E", _anl_path("anl_agents.anl2025.team_298.A4E"))],
+            [("OzUAgent", _anl_path("anl_agents.anl2025.team_156.OzUAgent"))],
+            [
+                (
+                    "SmartNegotiator",
+                    _anl_path("anl_agents.anl2025.team_278.SmartNegotiator"),
+                )
+            ],
+            [("CARC2025", _anl_path("anl_agents.anl2025.carc.CARC2025"))],
+            [("UfunATAgent", _anl_path("anl_agents.anl2025.team_305.UfunATAgent"))],
+            [("Wagent", _anl_path("anl_agents.anl2025.team_300.Wagent"))],
+        ],
+        "participants": [
+            [
+                (
+                    "SacAgent",
+                    _anl_path("anl_agents.anl2025.university_of_tehran.SacAgent"),
+                )
+            ],
+            [("ProbaBot", _anl_path("anl_agents.anl2025.team_273.ProbaBot"))],
+            [("RUFL", _anl_path("anl_agents.anl2025.team_271.RUFL"))],
+            [("KDY", _anl_path("anl_agents.anl2025.tema_kdy.KDY"))],
+            [
+                (
+                    "JeemNegotiator",
+                    _anl_path("anl_agents.anl2025.team_291.JeemNegotiator"),
+                )
+            ],
+            [("Astrat3m", _anl_path("anl_agents.anl2025.chongqingagent.Astrat3m"))],
+            [("A4E", _anl_path("anl_agents.anl2025.team_298.A4E"))],
+            [("OzUAgent", _anl_path("anl_agents.anl2025.team_156.OzUAgent"))],
+            [
+                (
+                    "SmartNegotiator",
+                    _anl_path("anl_agents.anl2025.team_278.SmartNegotiator"),
+                )
+            ],
+            [("CARC2025", _anl_path("anl_agents.anl2025.carc.CARC2025"))],
+            [("UfunATAgent", _anl_path("anl_agents.anl2025.team_305.UfunATAgent"))],
+            [("Wagent", _anl_path("anl_agents.anl2025.team_300.Wagent"))],
+            [("EOHAgent", _anl_path("anl_agents.anl2025.eoh.EOHAgent"))],
+            [("TheMemorizer", _anl_path("anl_agents.anl2025.team_307.TheMemorizer"))],
+            [("RivAgent", _anl_path("anl_agents.anl2025.natures.RivAgent"))],
+            [("KAgent", _anl_path("anl_agents.anl2025.team_309.KAgent"))],
+            [("StarGold15", _anl_path("anl_agents.anl2025.team_287.StarGold15"))],
+        ],
+        "linear": True,
+        "learning": False,
+        "multilateral": False,
+        "bilateral": True,
+        "reservation": True,
+        "discounting": False,
+        "uncertainty": False,
+        "elicitation": False,
+        "geniusweb": False,
+        "java": False,
     },
 }
+
+# Add backwards compatibility alias: genius10 -> participants
+for _year_data in GENIUS_INFO.values():
+    if "participants" in _year_data and "genius10" not in _year_data:
+        _year_data["genius10"] = _year_data["participants"]
+
+# Alias for GENIUS_INFO
+ANAC_INFO = GENIUS_INFO
 
 
 ALL_GENIUS_INVALID_NEGOTIATORS = [
@@ -1093,6 +1850,19 @@ GENIUS10_NEGOTIATORS = list(
 )
 """All agents supported by the Genius10 library"""
 
+PARTICIPANT_NEGOTIATORS = list(
+    set(
+        list(
+            itertools.chain(
+                *(
+                    list(_[1] for _ in itertools.chain(*v["participants"]))
+                    for _, v in GENIUS_INFO.items()
+                )
+            )
+        )
+    )
+)
+"""All agents supported by the Genius10 library"""
 TESTED_NEGOTIATORS = list(
     set(
         ["agents.anac.y2015.AgentX.AgentX"]
