@@ -579,7 +579,7 @@ GENIUS_INFO = {
         "bilateral": False,
         "reservation": True,
         "discounting": False,
-        "uncertainty": True,
+        "uncertainty": False,
         "elicitation": True,
     },
     2023: {
@@ -592,7 +592,7 @@ GENIUS_INFO = {
         "bilateral": False,
         "reservation": True,
         "discounting": False,
-        "uncertainty": True,
+        "uncertainty": False,
         "elicitation": True,
     },
 }
