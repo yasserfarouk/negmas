@@ -443,16 +443,18 @@ def combine_tournaments(
         SimpleTournamentResults containing the merged data from all source tournaments.
 
     Examples:
-        Combine two tournament runs:
-        >>> results = combine_tournaments(
-        ...     srcs=[Path("run1"), Path("run2")], dst=Path("combined"), copy=True
-        ... )
-        >>> print(results.final_scores)
+        Combine two tournament runs::
 
-        Merge all tournaments in a directory:
-        >>> results = combine_tournaments(
-        ...     srcs=Path("tournaments"), recursive=True, must_have_details=True
-        ... )
+            results = combine_tournaments(
+                srcs=[Path("run1"), Path("run2")], dst=Path("combined"), copy=True
+            )
+            print(results.final_scores)
+
+        Merge all tournaments in a directory::
+
+            results = combine_tournaments(
+                srcs=Path("tournaments"), recursive=True, must_have_details=True
+            )
     """
     results, paths = SimpleTournamentResults.combine(
         srcs,
