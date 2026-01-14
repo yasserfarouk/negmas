@@ -590,41 +590,26 @@ GENIUS_INFO = {
             [
                 (
                     "AgentKT",
-                    _geniusweb_path(
-                        "negmas_geniusweb_bridge.anac2020.agent_kt.agent_kt.AgentKT"
-                    ),
+                    _geniusweb_path("negmas_geniusweb_bridge.anac2020.GWAgentKT"),
                 )
             ],
             [
                 (
                     "AhBuNeAgent",
-                    _geniusweb_path(
-                        "negmas_geniusweb_bridge.anac2020.ahbune_agent.ahbune_agent.AhBuNeAgent"
-                    ),
+                    _geniusweb_path("negmas_geniusweb_bridge.anac2020.GWAhBuNeAgent"),
                 )
             ],
-            [
-                (
-                    "Angel",
-                    _geniusweb_path(
-                        "negmas_geniusweb_bridge.anac2020.angel.angel.Angel"
-                    ),
-                )
-            ],
+            [("Angel", _geniusweb_path("negmas_geniusweb_bridge.anac2020.GWAngel"))],
             [
                 (
                     "HammingAgent",
-                    _geniusweb_path(
-                        "negmas_geniusweb_bridge.anac2020.hamming_agent.hamming_agent.HammingAgent"
-                    ),
+                    _geniusweb_path("negmas_geniusweb_bridge.anac2020.GWHammingAgent"),
                 )
             ],
             [
                 (
                     "ShineAgent",
-                    _geniusweb_path(
-                        "negmas_geniusweb_bridge.anac2020.shine_agent.shine_agent.ShineAgent"
-                    ),
+                    _geniusweb_path("negmas_geniusweb_bridge.anac2020.GWShineAgent"),
                 )
             ],
         ],
@@ -632,105 +617,74 @@ GENIUS_INFO = {
             [
                 (
                     "AgentKT",
-                    _geniusweb_path(
-                        "negmas_geniusweb_bridge.anac2020.agent_kt.agent_kt.AgentKT"
-                    ),
+                    _geniusweb_path("negmas_geniusweb_bridge.anac2020.GWAgentKT"),
                 )
             ],
             [
                 (
                     "AgentP1DAMO",
-                    _geniusweb_path(
-                        "negmas_geniusweb_bridge.anac2020.agent_p1_damo.agent_p1_damo.AgentP1DAMO"
-                    ),
+                    _geniusweb_path("negmas_geniusweb_bridge.anac2020.GWAgentP1DAMO"),
                 )
             ],
             [
                 (
                     "AgentXX",
-                    _geniusweb_path(
-                        "negmas_geniusweb_bridge.anac2020.agent_xx.agent_xx.AgentXX"
-                    ),
+                    _geniusweb_path("negmas_geniusweb_bridge.anac2020.GWAgentXX"),
                 )
             ],
             [
                 (
                     "AhBuNeAgent",
-                    _geniusweb_path(
-                        "negmas_geniusweb_bridge.anac2020.ahbune_agent.ahbune_agent.AhBuNeAgent"
-                    ),
+                    _geniusweb_path("negmas_geniusweb_bridge.anac2020.GWAhBuNeAgent"),
                 )
             ],
             [
                 (
                     "Anaconda",
-                    _geniusweb_path(
-                        "negmas_geniusweb_bridge.anac2020.anaconda.anaconda.Anaconda"
-                    ),
+                    _geniusweb_path("negmas_geniusweb_bridge.anac2020.GWAnaconda"),
                 )
             ],
-            [
-                (
-                    "Angel",
-                    _geniusweb_path(
-                        "negmas_geniusweb_bridge.anac2020.angel.angel.Angel"
-                    ),
-                )
-            ],
+            [("Angel", _geniusweb_path("negmas_geniusweb_bridge.anac2020.GWAngel"))],
             [
                 (
                     "AzarAgent",
-                    _geniusweb_path(
-                        "negmas_geniusweb_bridge.anac2020.azar_agent.azar_agent.AzarAgent"
-                    ),
+                    _geniusweb_path("negmas_geniusweb_bridge.anac2020.GWAzarAgent"),
                 )
             ],
             [
                 (
                     "BlingBling",
-                    _geniusweb_path(
-                        "negmas_geniusweb_bridge.anac2020.bling_bling.bling_bling.BlingBling"
-                    ),
+                    _geniusweb_path("negmas_geniusweb_bridge.anac2020.GWBlingBling"),
                 )
             ],
             [
                 (
                     "DUOAgent",
-                    _geniusweb_path(
-                        "negmas_geniusweb_bridge.anac2020.duo_agent.duo_agent.DUOAgent"
-                    ),
+                    _geniusweb_path("negmas_geniusweb_bridge.anac2020.GWDUOAgent"),
                 )
             ],
             [
                 (
                     "ForArisa",
-                    _geniusweb_path(
-                        "negmas_geniusweb_bridge.anac2020.for_arisa.for_arisa.ForArisa"
-                    ),
+                    _geniusweb_path("negmas_geniusweb_bridge.anac2020.GWForArisa"),
                 )
             ],
             [
                 (
                     "HammingAgent",
-                    _geniusweb_path(
-                        "negmas_geniusweb_bridge.anac2020.hamming_agent.hamming_agent.HammingAgent"
-                    ),
+                    _geniusweb_path("negmas_geniusweb_bridge.anac2020.GWHammingAgent"),
                 )
             ],
             [
                 (
                     "NiceAgent",
-                    _geniusweb_path(
-                        "negmas_geniusweb_bridge.anac2020.nice_agent.nice_agent.NiceAgent"
-                    ),
+                    _geniusweb_path("negmas_geniusweb_bridge.anac2020.GWNiceAgent"),
                 )
             ],
             [
                 (
                     "ShineAgent",
-                    _geniusweb_path(
-                        "negmas_geniusweb_bridge.anac2020.shine_agent.shine_agent.ShineAgent"
-                    ),
+                    _geniusweb_path("negmas_geniusweb_bridge.anac2020.GWShineAgent"),
                 )
             ],
         ],
@@ -750,22 +704,91 @@ GENIUS_INFO = {
     },
     2021: {
         # ANAC 2021 - Winners: AlphaBIU, MatrixAlienAgent, TripleAgent
-        # Note: 2021 agents not yet available in negmas_geniusweb_bridge
         "winners": [
-            [("AlphaBIU", None)],
-            [("MatrixAlienAgent", None)],
-            [("TripleAgent", None)],
+            [
+                (
+                    "AlphaBIU",
+                    _geniusweb_path("negmas_geniusweb_bridge.anac2021.GWAlphaBIU"),
+                )
+            ],
+            [
+                (
+                    "MatrixAlienAgent",
+                    _geniusweb_path(
+                        "negmas_geniusweb_bridge.anac2021.GWMatrixAlienAgent"
+                    ),
+                )
+            ],
+            [
+                (
+                    "TripleAgent",
+                    _geniusweb_path("negmas_geniusweb_bridge.anac2021.GWTripleAgent"),
+                )
+            ],
         ],
         "finalists": [
-            [("AlphaBIU", None)],
-            [("MatrixAlienAgent", None)],
-            [("TripleAgent", None)],
+            [
+                (
+                    "AlphaBIU",
+                    _geniusweb_path("negmas_geniusweb_bridge.anac2021.GWAlphaBIU"),
+                )
+            ],
+            [
+                (
+                    "MatrixAlienAgent",
+                    _geniusweb_path(
+                        "negmas_geniusweb_bridge.anac2021.GWMatrixAlienAgent"
+                    ),
+                )
+            ],
+            [
+                (
+                    "TripleAgent",
+                    _geniusweb_path("negmas_geniusweb_bridge.anac2021.GWTripleAgent"),
+                )
+            ],
         ],
         "participants": [
-            [("AlphaBIU", None)],
-            [("MatrixAlienAgent", None)],
-            [("TripleAgent", None)],
-            [("AgentFO", None)],  # From directory listing
+            [
+                (
+                    "AgentFO2021",
+                    _geniusweb_path("negmas_geniusweb_bridge.anac2021.GWAgentFO2021"),
+                )
+            ],
+            [
+                (
+                    "AlphaBIU",
+                    _geniusweb_path("negmas_geniusweb_bridge.anac2021.GWAlphaBIU"),
+                )
+            ],
+            [
+                (
+                    "GamblerAgent",
+                    _geniusweb_path("negmas_geniusweb_bridge.anac2021.GWGamblerAgent"),
+                )
+            ],
+            [
+                (
+                    "MatrixAlienAgent",
+                    _geniusweb_path(
+                        "negmas_geniusweb_bridge.anac2021.GWMatrixAlienAgent"
+                    ),
+                )
+            ],
+            [
+                (
+                    "TheDiceHaggler2021",
+                    _geniusweb_path(
+                        "negmas_geniusweb_bridge.anac2021.GWTheDiceHaggler2021"
+                    ),
+                )
+            ],
+            [
+                (
+                    "TripleAgent",
+                    _geniusweb_path("negmas_geniusweb_bridge.anac2021.GWTripleAgent"),
+                )
+            ],
         ],
         "linear": True,
         "learning": True,
@@ -789,16 +812,14 @@ GENIUS_INFO = {
                 (
                     "DreamTeam109Agent",
                     _geniusweb_path(
-                        "negmas_geniusweb_bridge.anl2022.dreamteam109_agent.dreamteam109_agent.DreamTeam109Agent"
+                        "negmas_geniusweb_bridge.anl2022.GWDreamTeam109Agent"
                     ),
                 )
             ],
             [
                 (
                     "ChargingBoul",
-                    _geniusweb_path(
-                        "negmas_geniusweb_bridge.anl2022.charging_boul.charging_boul.ChargingBoul"
-                    ),
+                    _geniusweb_path("negmas_geniusweb_bridge.anl2022.GWChargingBoul"),
                 )
             ],
         ],
@@ -807,16 +828,14 @@ GENIUS_INFO = {
                 (
                     "DreamTeam109Agent",
                     _geniusweb_path(
-                        "negmas_geniusweb_bridge.anl2022.dreamteam109_agent.dreamteam109_agent.DreamTeam109Agent"
+                        "negmas_geniusweb_bridge.anl2022.GWDreamTeam109Agent"
                     ),
                 )
             ],
             [
                 (
                     "Agent007",
-                    _geniusweb_path(
-                        "negmas_geniusweb_bridge.anl2022.agent007.agent007.Agent007"
-                    ),
+                    _geniusweb_path("negmas_geniusweb_bridge.anl2022.GWAgent007"),
                 )
             ],
         ],
@@ -824,24 +843,20 @@ GENIUS_INFO = {
             [
                 (
                     "Agent007",
-                    _geniusweb_path(
-                        "negmas_geniusweb_bridge.anl2022.agent007.agent007.Agent007"
-                    ),
+                    _geniusweb_path("negmas_geniusweb_bridge.anl2022.GWAgent007"),
                 )
             ],
             [
                 (
                     "ChargingBoul",
-                    _geniusweb_path(
-                        "negmas_geniusweb_bridge.anl2022.charging_boul.charging_boul.ChargingBoul"
-                    ),
+                    _geniusweb_path("negmas_geniusweb_bridge.anl2022.GWChargingBoul"),
                 )
             ],
             [
                 (
                     "DreamTeam109Agent",
                     _geniusweb_path(
-                        "negmas_geniusweb_bridge.anl2022.dreamteam109_agent.dreamteam109_agent.DreamTeam109Agent"
+                        "negmas_geniusweb_bridge.anl2022.GWDreamTeam109Agent"
                     ),
                 )
             ],
@@ -850,56 +865,44 @@ GENIUS_INFO = {
             [
                 (
                     "Agent007",
-                    _geniusweb_path(
-                        "negmas_geniusweb_bridge.anl2022.agent007.agent007.Agent007"
-                    ),
+                    _geniusweb_path("negmas_geniusweb_bridge.anl2022.GWAgent007"),
                 )
             ],
             [
                 (
                     "Agent4410",
-                    _geniusweb_path(
-                        "negmas_geniusweb_bridge.anl2022.agent4410.agent_4410.Agent4410"
-                    ),
+                    _geniusweb_path("negmas_geniusweb_bridge.anl2022.GWAgent4410"),
                 )
             ],
             [
                 (
                     "AgentFish",
-                    _geniusweb_path(
-                        "negmas_geniusweb_bridge.anl2022.agentfish.agentfish.AgentFish"
-                    ),
+                    _geniusweb_path("negmas_geniusweb_bridge.anl2022.GWAgentFish"),
                 )
             ],
             [
                 (
                     "AgentFO2",
-                    _geniusweb_path(
-                        "negmas_geniusweb_bridge.anl2022.AgentFO2.AgentFO2.AgentFO2"
-                    ),
+                    _geniusweb_path("negmas_geniusweb_bridge.anl2022.GWAgentFO2"),
                 )
             ],
             [
                 (
                     "BIU_agent",
-                    _geniusweb_path(
-                        "negmas_geniusweb_bridge.anl2022.BIU_agent.BIU_agent.BIU_agent"
-                    ),
+                    _geniusweb_path("negmas_geniusweb_bridge.anl2022.GWBIUAgent"),
                 )
             ],
             [
                 (
                     "ChargingBoul",
-                    _geniusweb_path(
-                        "negmas_geniusweb_bridge.anl2022.charging_boul.charging_boul.ChargingBoul"
-                    ),
+                    _geniusweb_path("negmas_geniusweb_bridge.anl2022.GWChargingBoul"),
                 )
             ],
             [
                 (
                     "CompromisingAgent",
                     _geniusweb_path(
-                        "negmas_geniusweb_bridge.anl2022.compromising_agent.compromising_agent.CompromisingAgent"
+                        "negmas_geniusweb_bridge.anl2022.GWCompromisingAgent"
                     ),
                 )
             ],
@@ -907,95 +910,72 @@ GENIUS_INFO = {
                 (
                     "DreamTeam109Agent",
                     _geniusweb_path(
-                        "negmas_geniusweb_bridge.anl2022.dreamteam109_agent.dreamteam109_agent.DreamTeam109Agent"
+                        "negmas_geniusweb_bridge.anl2022.GWDreamTeam109Agent"
                     ),
                 )
             ],
             [
                 (
                     "GEAAgent",
-                    _geniusweb_path(
-                        "negmas_geniusweb_bridge.anl2022.gea_agent.gea_agent.GEAAgent"
-                    ),
+                    _geniusweb_path("negmas_geniusweb_bridge.anl2022.GWGEAAgent"),
                 )
             ],
             [
                 (
                     "LearningAgent",
-                    _geniusweb_path(
-                        "negmas_geniusweb_bridge.anl2022.learning_agent.learning_agent.LearningAgent"
-                    ),
+                    _geniusweb_path("negmas_geniusweb_bridge.anl2022.GWLearningAgent"),
                 )
             ],
             [
                 (
                     "LuckyAgent2022",
-                    _geniusweb_path(
-                        "negmas_geniusweb_bridge.anl2022.LuckyAgent2022.LuckyAgent2022.LuckyAgent2022"
-                    ),
+                    _geniusweb_path("negmas_geniusweb_bridge.anl2022.GWLuckyAgent2022"),
                 )
             ],
             [
                 (
                     "MiCROAgent",
-                    _geniusweb_path(
-                        "negmas_geniusweb_bridge.anl2022.micro_agent.micro_agent.micro_agent.MiCROAgent"
-                    ),
+                    _geniusweb_path("negmas_geniusweb_bridge.anl2022.GWMiCROAgent"),
                 )
             ],
             [
                 (
                     "Pinar_Agent",
-                    _geniusweb_path(
-                        "negmas_geniusweb_bridge.anl2022.Pinar_Agent.Pinar_Agent.Pinar_Agent"
-                    ),
+                    _geniusweb_path("negmas_geniusweb_bridge.anl2022.GWPinarAgent"),
                 )
             ],
             [
                 (
                     "ProcrastinAgent",
                     _geniusweb_path(
-                        "negmas_geniusweb_bridge.anl2022.procrastin_agent.procrastin_agent.ProcrastinAgent"
+                        "negmas_geniusweb_bridge.anl2022.GWProcrastinAgent"
                     ),
                 )
             ],
-            [
-                (
-                    "RGAgent",
-                    _geniusweb_path(
-                        "negmas_geniusweb_bridge.anl2022.rg_agent.rg_agent.RGAgent"
-                    ),
-                )
-            ],
+            [("RGAgent", _geniusweb_path("negmas_geniusweb_bridge.anl2022.GWRGAgent"))],
             [
                 (
                     "SmartAgent",
-                    _geniusweb_path(
-                        "negmas_geniusweb_bridge.anl2022.smart_agent.smart_agent.SmartAgent"
-                    ),
+                    _geniusweb_path("negmas_geniusweb_bridge.anl2022.GWSmartAgent"),
                 )
             ],
             [
                 (
                     "SuperAgent",
-                    _geniusweb_path(
-                        "negmas_geniusweb_bridge.anl2022.super_agent.super_agent.SuperAgent"
-                    ),
+                    _geniusweb_path("negmas_geniusweb_bridge.anl2022.GWSuperAgent"),
                 )
             ],
             [
                 (
                     "ThirdAgent",
-                    _geniusweb_path(
-                        "negmas_geniusweb_bridge.anl2022.thirdagent.third_agent.ThirdAgent"
-                    ),
+                    _geniusweb_path("negmas_geniusweb_bridge.anl2022.GWThirdAgent"),
                 )
             ],
             [
                 (
                     "Tjaronchery10Agent",
                     _geniusweb_path(
-                        "negmas_geniusweb_bridge.anl2022.tjaronchery10_agent.tjaronchery10_agent.Tjaronchery10Agent"
+                        "negmas_geniusweb_bridge.anl2022.GWTjaronchery10Agent"
                     ),
                 )
             ],
@@ -1021,17 +1001,13 @@ GENIUS_INFO = {
             [
                 (
                     "ExploitAgent",
-                    _geniusweb_path(
-                        "negmas_geniusweb_bridge.anl2023.exploit_agent.exploit_agent.ExploitAgent"
-                    ),
+                    _geniusweb_path("negmas_geniusweb_bridge.anl2023.GWExploitAgent"),
                 )
             ],
             [
                 (
                     "MiCRO2023",
-                    _geniusweb_path(
-                        "negmas_geniusweb_bridge.anl2023.micro_2023.micro_2023.MiCRO2023"
-                    ),
+                    _geniusweb_path("negmas_geniusweb_bridge.anl2023.GWMiCRO2023"),
                 )
             ],
         ],
@@ -1039,17 +1015,13 @@ GENIUS_INFO = {
             [
                 (
                     "AntHeartAgent",
-                    _geniusweb_path(
-                        "negmas_geniusweb_bridge.anl2023.ant_heart.antHeart_agent.AntHeartAgent"
-                    ),
+                    _geniusweb_path("negmas_geniusweb_bridge.anl2023.GWAntHeartAgent"),
                 )
             ],
             [
                 (
                     "SmartAgent",
-                    _geniusweb_path(
-                        "negmas_geniusweb_bridge.anl2023.smart_agent.smart_agent.SmartAgent"
-                    ),
+                    _geniusweb_path("negmas_geniusweb_bridge.anl2023.GWSmartAgent"),
                 )
             ],
         ],
@@ -1057,33 +1029,25 @@ GENIUS_INFO = {
             [
                 (
                     "ExploitAgent",
-                    _geniusweb_path(
-                        "negmas_geniusweb_bridge.anl2023.exploit_agent.exploit_agent.ExploitAgent"
-                    ),
+                    _geniusweb_path("negmas_geniusweb_bridge.anl2023.GWExploitAgent"),
                 )
             ],
             [
                 (
                     "MiCRO2023",
-                    _geniusweb_path(
-                        "negmas_geniusweb_bridge.anl2023.micro_2023.micro_2023.MiCRO2023"
-                    ),
+                    _geniusweb_path("negmas_geniusweb_bridge.anl2023.GWMiCRO2023"),
                 )
             ],
             [
                 (
                     "AntHeartAgent",
-                    _geniusweb_path(
-                        "negmas_geniusweb_bridge.anl2023.ant_heart.antHeart_agent.AntHeartAgent"
-                    ),
+                    _geniusweb_path("negmas_geniusweb_bridge.anl2023.GWAntHeartAgent"),
                 )
             ],
             [
                 (
                     "SmartAgent",
-                    _geniusweb_path(
-                        "negmas_geniusweb_bridge.anl2023.smart_agent.smart_agent.SmartAgent"
-                    ),
+                    _geniusweb_path("negmas_geniusweb_bridge.anl2023.GWSmartAgent"),
                 )
             ],
         ],
@@ -1091,64 +1055,54 @@ GENIUS_INFO = {
             [
                 (
                     "AgentFO3",
-                    _geniusweb_path(
-                        "negmas_geniusweb_bridge.anl2023.agent_fo3.AgentFO3.AgentFO3"
-                    ),
+                    _geniusweb_path("negmas_geniusweb_bridge.anl2023.GWAgentFO3"),
                 )
             ],
             [
                 (
                     "AmbitiousAgent",
-                    _geniusweb_path(
-                        "negmas_geniusweb_bridge.anl2023.ambitious_agent.AmbitiousAgent.AmbitiousAgent"
-                    ),
+                    _geniusweb_path("negmas_geniusweb_bridge.anl2023.GWAmbitiousAgent"),
                 )
             ],
             [
                 (
                     "AntAllianceAgent",
                     _geniusweb_path(
-                        "negmas_geniusweb_bridge.anl2023.ant_alliance.antAlliance_agent.AntAllianceAgent"
+                        "negmas_geniusweb_bridge.anl2023.GWAntAllianceAgent"
                     ),
                 )
             ],
             [
                 (
                     "AntHeartAgent",
-                    _geniusweb_path(
-                        "negmas_geniusweb_bridge.anl2023.ant_heart.antHeart_agent.AntHeartAgent"
-                    ),
+                    _geniusweb_path("negmas_geniusweb_bridge.anl2023.GWAntHeartAgent"),
                 )
             ],
             [
                 (
                     "ColmanAnacondotAgent2",
                     _geniusweb_path(
-                        "negmas_geniusweb_bridge.anl2023.colman_anacondot_agent2.colman_anacondot_agent2.ColmanAnacondotAgent2"
+                        "negmas_geniusweb_bridge.anl2023.GWColmanAnacondotAgent2"
                     ),
                 )
             ],
             [
                 (
                     "ExploitAgent",
-                    _geniusweb_path(
-                        "negmas_geniusweb_bridge.anl2023.exploit_agent.exploit_agent.ExploitAgent"
-                    ),
+                    _geniusweb_path("negmas_geniusweb_bridge.anl2023.GWExploitAgent"),
                 )
             ],
             [
                 (
                     "GotAgent",
-                    _geniusweb_path(
-                        "negmas_geniusweb_bridge.anl2023.got_agent.got_agent.GotAgent"
-                    ),
+                    _geniusweb_path("negmas_geniusweb_bridge.anl2023.GWGotAgent"),
                 )
             ],
             [
                 (
                     "HybridAgent2023",
                     _geniusweb_path(
-                        "negmas_geniusweb_bridge.anl2023.hybrid_agent2023.HybridAgent2023.HybridAgent2023"
+                        "negmas_geniusweb_bridge.anl2023.GWHybridAgent2023"
                     ),
                 )
             ],
@@ -1156,56 +1110,44 @@ GENIUS_INFO = {
                 (
                     "KBTimeDiffAgent",
                     _geniusweb_path(
-                        "negmas_geniusweb_bridge.anl2023.kb_time_diff_agent.kb_time_diff_agent.KB_time_diff_Agent"
+                        "negmas_geniusweb_bridge.anl2023.GWKBTimeDiffAgent"
                     ),
                 )
             ],
             [
                 (
                     "MiCRO2023",
-                    _geniusweb_path(
-                        "negmas_geniusweb_bridge.anl2023.micro_2023.micro_2023.MiCRO2023"
-                    ),
+                    _geniusweb_path("negmas_geniusweb_bridge.anl2023.GWMiCRO2023"),
                 )
             ],
             [
                 (
                     "MSCAgent",
-                    _geniusweb_path(
-                        "negmas_geniusweb_bridge.anl2023.msc_agent.MSC_agent.MSCAgent"
-                    ),
+                    _geniusweb_path("negmas_geniusweb_bridge.anl2023.GWMSCAgent"),
                 )
             ],
             [
                 (
                     "PopularAgent",
-                    _geniusweb_path(
-                        "negmas_geniusweb_bridge.anl2023.popular_agent.popular_agent.PopularAgent"
-                    ),
+                    _geniusweb_path("negmas_geniusweb_bridge.anl2023.GWPopularAgent"),
                 )
             ],
             [
                 (
                     "SmartAgent",
-                    _geniusweb_path(
-                        "negmas_geniusweb_bridge.anl2023.smart_agent.smart_agent.SmartAgent"
-                    ),
+                    _geniusweb_path("negmas_geniusweb_bridge.anl2023.GWSmartAgent"),
                 )
             ],
             [
                 (
                     "SpaghettiAgent",
-                    _geniusweb_path(
-                        "negmas_geniusweb_bridge.anl2023.spaghetti_agent.spaghetti_agent.Agent37"
-                    ),
+                    _geniusweb_path("negmas_geniusweb_bridge.anl2023.GWSpaghettiAgent"),
                 )
             ],
             [
                 (
                     "TripleEAgent",
-                    _geniusweb_path(
-                        "negmas_geniusweb_bridge.anl2023.TripleE_agent.TripleE_agent.TripleE"
-                    ),
+                    _geniusweb_path("negmas_geniusweb_bridge.anl2023.GWTripleEAgent"),
                 )
             ],
         ],

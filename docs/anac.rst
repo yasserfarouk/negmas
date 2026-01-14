@@ -65,12 +65,14 @@ Agents from different competition years are available through different librarie
     - Install `negmas-geniusweb-bridge <https://github.com/autoneg/negmas-geniusweb-bridge>`_:
       ``pip install negmas-geniusweb-bridge``
     - The bridge provides AI-translated Python implementations of the Java agents.
+    - All agents are available as GW-prefixed wrapped classes (e.g., ``GWAlphaBIU``)
 
 **GeniusWeb Python Agents (2022-2023)**
     These agents were written in Python for the GeniusWeb platform. To use them:
 
     - Install `negmas-geniusweb-bridge <https://github.com/autoneg/negmas-geniusweb-bridge>`_:
       ``pip install negmas-geniusweb-bridge``
+    - All agents are available as GW-prefixed wrapped classes (e.g., ``GWExploitAgent``)
 
 **ANL Agents (2024+)**
     These agents are written in pure Python for NegMAS. To use them:
@@ -104,7 +106,7 @@ how to access the agents in NegMAS:
    * - 2020-2021
      - GeniusWeb (Java)
      - `negmas-geniusweb-bridge <https://github.com/autoneg/negmas-geniusweb-bridge>`_
-     - AI-translated from Java. 2021 agents partially translated. Install: ``pip install negmas-geniusweb-bridge``
+     - AI-translated from Java. 6 agents from 2021 are available. Install: ``pip install negmas-geniusweb-bridge``
    * - 2022-2023
      - GeniusWeb (Python)
      - `negmas-geniusweb-bridge <https://github.com/autoneg/negmas-geniusweb-bridge>`_
@@ -330,9 +332,14 @@ and agent availability.
 
 **Agent Access**: `negmas-geniusweb-bridge <https://github.com/autoneg/negmas-geniusweb-bridge>`_
 
+**Participants** (6 agents): AgentFO2021, AlphaBIU, GamblerAgent, MatrixAlienAgent, TheDiceHaggler2021, TripleAgent
+
+**Agent Access**: `negmas-geniusweb-bridge <https://github.com/autoneg/negmas-geniusweb-bridge>`_
+
 .. note::
 
-    The 2021 agents in the bridge package are not yet fully translated from Java.
+    Six ANAC 2021 agents have been AI-translated from Java and are available in the bridge package.
+    Additional agents may be added in future releases.
 
 
 2022
