@@ -144,7 +144,9 @@ class SimpleTournamentResults:
                 else results
             )
             assert rd is not None
-            scores = pd.DataFrame.from_records([make_scores(_) for _ in (rd)])
+            scores = pd.DataFrame.from_records(
+                [make_scores(_, scored_indices=_.get("scored_indices")) for _ in (rd)]
+            )
         if results is None:
             results = pd.DataFrame()
 
@@ -327,7 +329,10 @@ class SimpleTournamentResults:
                         )
                     continue
                 s = pd.DataFrame.from_records(
-                    [make_scores(_) for _ in d.to_dict("records")]
+                    [
+                        make_scores(_, scored_indices=_.get("scored_indices"))
+                        for _ in d.to_dict("records")
+                    ]
                 )
             else:
                 s = pd.read_csv(path / ALL_SCORES_FILE_NAME, index_col=0)
@@ -409,14 +414,45 @@ def combine_tournaments(
     add_tournament_column: bool = True,
     complete_only: bool = False,
 ) -> SimpleTournamentResults:
-    """Combine tournaments.
+    """Combine results from multiple tournament runs into a single unified result set.
+
+    Useful for merging tournaments that were run in parallel or sequentially,
+    allowing comprehensive analysis across all runs. Can optionally copy logs
+    and other artifacts to a destination directory.
 
     Args:
-        srcs: Srcs.
-        dst: Dst.
+        srcs: Source path(s) containing tournament results. Can be a single Path
+            or an iterable of Paths to multiple tournament directories.
+        dst: Destination path to save combined results. If None, results are not saved.
+        recursive: If True, recursively search for tournaments in subdirectories.
+        recalc_details: If True, recalculate negotiation details from saved records.
+        recalc_scores: If True, recalculate scores from negotiation details.
+        must_have_details: If True, only include tournaments with complete detail records.
+        verbosity: Logging verbosity level (0=silent, 1=basic, 2+=detailed).
+        final_score_stat: Tuple of (measure, statistic) for computing final scores.
+            Default is ("advantage", "mean") for mean advantage across negotiations.
+        copy: If True, copy all tournament artifacts (logs, plots, etc.) to dst.
+        rename_scenarios: If True, rename scenarios to avoid collisions across tournaments.
+        rename_short: If True, use shortened names when renaming scenarios.
+        add_tournament_folders: If True, preserve tournament folder structure in dst.
+        override_existing: If True, overwrite existing files in dst.
+        add_tournament_column: If True, add a column identifying source tournament.
+        complete_only: If True, only include tournaments that completed successfully.
 
     Returns:
-        SimpleTournamentResults: The result.
+        SimpleTournamentResults containing the merged data from all source tournaments.
+
+    Examples:
+        Combine two tournament runs:
+        >>> results = combine_tournaments(
+        ...     srcs=[Path("run1"), Path("run2")], dst=Path("combined"), copy=True
+        ... )
+        >>> print(results.final_scores)
+
+        Merge all tournaments in a directory:
+        >>> results = combine_tournaments(
+        ...     srcs=Path("tournaments"), recursive=True, must_have_details=True
+        ... )
     """
     results, paths = SimpleTournamentResults.combine(
         srcs,
@@ -542,33 +578,15 @@ def _make_mechanism(
     mask_scenario_name: bool = True,
     ignore_exceptions: bool = False,
 ) -> tuple[Mechanism, dict, Scenario, str | None]:
-    """
-    Run a single negotiation with fully specified parameters
+    """Create and configure a mechanism with negotiators for a single negotiation.
 
-    Args:
-        s: The `Scenario` representing the negotiation (outcome space and preferences).
-        partners: The partners running the negotiation in order of addition to the mechanism.
-        real_scenario_name: The real name of the scenario (used when saving logs).
-        partner_names: Names of partners. Either `None` for defaults or a tuple of the same length as `partners`
-        partner_params: Parameters used to create the partners. Either `None` for defaults or a tuple of the same length as `partners`
-        rep: The repetition number for this run of the negotiation
-        path: A folder to save the logs into. If not given, no logs will be saved.
-        mechanism_type: the type of the `Mechanism` to use for this negotiation
-        mechanism_params: The parameters used to create the `Mechanism` or `None` for defaults
-        full_names: Use full names for partner names (only used if `partner_names` is None)
-        verbosity: Verbosity level as an integer
-        plot: If true, save a plot of the negotiation (only if `path` is given)
-        plot_params: Parameters to pass to the plotting function
-        run_id: A unique ID for this run. If not given one is generated based on date and time
-        stats: statistics of the scenario. If not given or `path` is `None`, statistics are not saved
-        annotation: Common information saved in the mechanism's annotation (accessible by negotiators using `self.nmi.annotation`). `None` for nothing
-        private_infos: Private information saved in the negotiator's `private_info` attribute (accessible by negotiators as `self.private_info`). `None` for nothing
-        id_reveals_type: Each negotiator ID will reveal its type.
-        name_reveals_type: Each negotiator name will reveal its type.
-
+    Instantiates negotiator objects, adds them to a mechanism, and prepares everything
+    for running a negotiation session. Handles name generation, parameter passing,
+    and error handling during negotiator initialization.
 
     Returns:
-        A dictionary of negotiation results that contains the final state of the negotiation alongside other information
+        Tuple of (mechanism, param_dump, scenario, real_scenario_name) where param_dump
+        contains the parameters used to create each negotiator.
     """
     if path:
         path = Path(path)
@@ -668,6 +686,7 @@ def _make_failure_record(
     mechanism_params,
     partners,
 ):
+    """Create a record for a failed negotiation with null/error values."""
     if not partner_names:
         partner_names = [get_full_type_name(_) for _ in partners]
     if all(_ is None for _ in param_dump):
@@ -739,7 +758,13 @@ def _make_record(
     execution_time,
     real_scenario_name,
     stats,
+    scored_indices: list[int] | None = None,
 ):
+    """Create a detailed record dictionary from a completed negotiation.
+
+    Extracts information from the mechanism state and scenario, calculates utilities
+    and optimality measures, and bundles everything into a comprehensive record dict.
+    """
     state = m.state
     if all(_ is None for _ in param_dump):
         param_dump = None
@@ -783,6 +808,7 @@ def _make_record(
     run_record["has_error"] = state.has_error
     run_record["erred_negotiator"] = state.erred_negotiator
     run_record["error_details"] = state.error_details
+    run_record["scored_indices"] = scored_indices
 
     if m.nmi.annotation:
         run_record.update(m.nmi.annotation)
@@ -807,6 +833,7 @@ def _save_record(
     path,
     python_class_identifier=PYTHON_CLASS_IDENTIFIER,
 ):
+    """Save negotiation record to disk as JSON and/or pickle."""
     file_name = f"{real_scenario_name}_{'_'.join(partner_names)}_{rep}_{run_id}"
     if not path:
         return
@@ -896,6 +923,7 @@ def _save_record(
 def _plot_run(
     m, partner_names, real_scenario_name, rep, run_id, path, plot, plot_params
 ):
+    """Save a plot of the negotiation mechanism to disk."""
     file_name = f"{real_scenario_name}_{'_'.join(partner_names)}_{rep}_{run_id}"
     if not path or not plot:
         return
@@ -927,34 +955,61 @@ def run_negotiation(
     name_reveals_type: bool = True,
     mask_scenario_name: bool = True,
     ignore_exceptions: bool = False,
+    scored_indices: list[int] | None = None,
 ) -> dict[str, Any]:
-    """
-    Run a single negotiation with fully specified parameters
+    """Run a single negotiation session and return comprehensive results.
+
+    Creates negotiator instances, runs them through a negotiation mechanism, and returns
+    detailed results including agreement, utilities, timing, and error information.
 
     Args:
-        s: The `Scenario` representing the negotiation (outcome space and preferences).
-        partners: The partners running the negotiation in order of addition to the mechanism.
-        real_scenario_name: The real name of the scenario (used when saving logs).
-        partner_names: Names of partners. Either `None` for defaults or a tuple of the same length as `partners`
-        partner_params: Parameters used to create the partners. Either `None` for defaults or a tuple of the same length as `partners`
-        rep: The repetition number for this run of the negotiation
-        path: A folder to save the logs into. If not given, no logs will be saved.
-        mechanism_type: the type of the `Mechanism` to use for this negotiation
-        mechanism_params: The parameters used to create the `Mechanism` or `None` for defaults
-        full_names: Use full names for partner names (only used if `partner_names` is None)
-        verbosity: Verbosity level as an integer
-        plot: If true, save a plot of the negotiation (only if `path` is given)
-        plot_params: Parameters to pass to the plotting function
-        run_id: A unique ID for this run. If not given one is generated based on date and time
-        stats: statistics of the scenario. If not given or `path` is `None`, statistics are not saved
-        annotation: Common information saved in the mechanism's annotation (accessible by negotiators using `self.nmi.annotation`). `None` for nothing
-        private_infos: Private information saved in the negotiator's `private_info` attribute (accessible by negotiators as `self.private_info`). `None` for nothing
-        id_reveals_type: Each negotiator ID will reveal its type.
-        name_reveals_type: Each negotiator name will reveal its type.
-
+        s: Scenario containing the outcome space and utility functions for all parties.
+        partners: Negotiator types/classes to instantiate for this negotiation, in order.
+        partner_names: Display names for negotiators. If None, generated from class names.
+        partner_params: Initialization parameters for each negotiator. If None, use defaults.
+        rep: Repetition number for this negotiation (for tracking in tournament context).
+        path: Directory to save logs and plots. If None, nothing is saved to disk.
+        mechanism_type: Negotiation protocol/mechanism class (default: SAOMechanism).
+        mechanism_params: Parameters passed to mechanism constructor.
+        full_names: If True and partner_names is None, use full class names instead of shortened.
+        verbosity: Logging verbosity level (0 for silent).
+        plot: If True and path is provided, save a plot of the negotiation.
+        plot_params: Parameters passed to plotting function.
+        run_id: Unique identifier for this run. If None, generated from timestamp.
+        stats: Pre-calculated scenario statistics. If None, calculated if needed.
+        annotation: Dictionary stored in mechanism.nmi.annotation (accessible to negotiators via self.nmi.annotation).
+        private_infos: Tuple of private info dicts, one per negotiator (accessible via self.private_info).
+        id_reveals_type: If True, negotiator IDs reveal their type.
+        name_reveals_type: If True, negotiator names reveal their type.
+        mask_scenario_name: If True, scenario name is masked from negotiators.
+        ignore_exceptions: If True, catch and log exceptions instead of propagating.
+        scored_indices: Positions of negotiators to score. None means score all (used internally by tournament).
 
     Returns:
-        A dictionary of negotiation results that contains the final state of the negotiation alongside other information
+        Dictionary containing complete negotiation results:
+        - agreement: Final agreed outcome or None
+        - utilities: Utility of agreement for each negotiator
+        - reserved_values: Reservation values for each negotiator
+        - max_utils: Maximum possible utility for each negotiator
+        - partners: Negotiator class names
+        - negotiator_ids: Unique IDs of negotiator instances
+        - negotiator_times: Time spent by each negotiator
+        - scenario: Scenario name
+        - timedout/broken/has_error: Status flags
+        - step/time/relative_time: Negotiation progress metrics
+        - Plus optimality statistics if stats is provided
+
+    Examples:
+        Basic usage:
+        ```python
+        record = run_negotiation(
+            s=scenario,
+            partners=(AspirationNegotiator, RandomNegotiator),
+            mechanism_params=dict(n_steps=100),
+        )
+        print(f"Agreement: {record['agreement']}")
+        print(f"Utilities: {record['utilities']}")
+        ```
     """
     m, failures, s, real_scenario_name = _make_mechanism(
         s=s,
@@ -1023,6 +1078,7 @@ def run_negotiation(
         execution_time=execution_time,
         real_scenario_name=real_scenario_name,
         stats=stats,
+        scored_indices=scored_indices,
     )
     _save_record(run_record, m, partner_names, real_scenario_name, rep, run_id, path)
     _plot_run(
@@ -1051,29 +1107,17 @@ def failed_run_record(
     mask_scenario_name: bool = True,
     ignore_exceptions: bool = False,
     stats: ScenarioStats | None = None,
+    scored_indices: list[int] | None = None,
 ):
-    """Failed run record.
+    """Create a record for a negotiation that failed to complete (timeout or exception).
 
-    Args:
-        s: S.
-        partners: Partners.
-        timeout: Timeout.
-        partner_names: Partner names.
-        partner_params: Partner params.
-        error: Error.
-        rep: Rep.
-        path: Path.
-        mechanism_type: Mechanism type.
-        mechanism_params: Mechanism params.
-        full_names: Full names.
-        run_id: Run id.
-        annotation: Annotation.
-        private_infos: Private infos.
-        id_reveals_type: Id reveals type.
-        name_reveals_type: Name reveals type.
-        mask_scenario_name: Mask scenario name.
-        ignore_exceptions: Ignore exceptions.
-        stats: Stats.
+    Attempts to create a mechanism and extract as much state as possible, then generates
+    a record with error flags set and null/zero values for results. Used when run_negotiation
+    times out or encounters an unrecoverable error.
+
+    Returns:
+        Dictionary with same structure as successful negotiation records but with has_error=True
+        and null/zero values for agreement, utilities, etc.
     """
     if partner_params is None:
         partner_params = tuple(dict() for _ in partners)  # type: ignore
@@ -1113,6 +1157,7 @@ def failed_run_record(
             execution_time=execution_time,
             real_scenario_name=real_scenario_name,
             stats=stats,
+            scored_indices=scored_indices,
         )
     except Exception as e:
         real_scenario_name = s.outcome_space.name
@@ -1154,14 +1199,37 @@ def failed_run_record(
 #         pass
 
 
-def make_scores(record: dict[str, Any]) -> list[dict[str, float]]:
-    """Make scores.
+def make_scores(
+    record: dict[str, Any], scored_indices: list[int] | None = None
+) -> list[dict[str, float]]:
+    """Convert a negotiation run record into score dictionaries for each negotiator.
+
+    Extracts utilities, reserved values, and other metrics from the negotiation record
+    and creates a score entry for each negotiator (or only for negotiators at specified indices).
 
     Args:
-        record: Record.
+        record: Dictionary containing complete negotiation results including utilities, agreement,
+               partners, times, errors, and optimality statistics.
+        scored_indices: If provided, only create scores for negotiators at these position indices.
+                       If None, score all negotiators. Used in explicit opponent mode to score
+                       only competitors (not opponents).
 
     Returns:
-        list[dict[str, float]]: The result.
+        List of dictionaries, one per scored negotiator, each containing:
+        - strategy: Negotiator class name
+        - utility: Utility achieved from the agreement
+        - reserved_value: Negotiator's reservation value
+        - advantage: Normalized utility gain (utility - reserved) / (max - reserved), 0.0 if max == reserved
+        - partner_welfare: Average utility of other negotiators
+        - welfare: Average utility of all negotiators
+        - scenario: Scenario name
+        - partners: Names of other negotiators
+        - time: Time taken by this negotiator
+        - negotiator_id: Unique ID of the negotiator instance
+        - has_error: Whether any error occurred
+        - self_error: Whether this negotiator caused an error
+        - mechanism_error: Whether the mechanism caused an error
+        - Plus any optional columns and optimality metrics (if save_stats was True)
     """
     utils, partners = record["utilities"], record["partners"]
     reserved_values = record["reserved_values"]
@@ -1178,13 +1246,16 @@ def make_scores(record: dict[str, Any]) -> list[dict[str, float]]:
     for i, (u, r, a, m, t, nid) in enumerate(
         zip(utils, reserved_values, partners, max_utils, times, negids)
     ):
+        # Only score negotiators at specified indices
+        if scored_indices is not None and i not in scored_indices:
+            continue
         n_p = len(partners)
         bilateral = n_p == 2
         basic = dict(
             strategy=a,
             utility=u,
             reserved_value=r,
-            advantage=(u - r) / (m - r),
+            advantage=(u - r) / (m - r) if m != r else 0.0,
             partner_welfare=sum(_ for j, _ in enumerate(utils) if j != i) / (n_p - 1),
             welfare=sum(_ for _ in utils) / n_p,
             scenario=record["scenario"],
@@ -1212,6 +1283,9 @@ def make_scores(record: dict[str, Any]) -> list[dict[str, float]]:
 def cartesian_tournament(
     competitors: list[type[Negotiator] | str] | tuple[type[Negotiator] | str, ...],
     scenarios: list[Scenario] | tuple[Scenario, ...],
+    opponents: list[type[Negotiator] | str]
+    | tuple[type[Negotiator] | str, ...] = tuple(),
+    opponent_params: Sequence[dict | None] | None = None,
     private_infos: list[None | tuple[dict, ...]] | None = None,
     competitor_params: Sequence[dict | None] | None = None,
     rotate_ufuns: bool = True,
@@ -1248,61 +1322,108 @@ def cartesian_tournament(
     only_failures_on_self_play: bool = False,
     python_class_identifier=PYTHON_CLASS_IDENTIFIER,
 ) -> SimpleTournamentResults:
-    """A simplified version of Cartesian tournaments not using the internal machinay of NegMAS  tournaments
+    """Run a Cartesian tournament where negotiators compete across multiple scenarios.
+
+    This function runs negotiations between all combinations of competitors across all scenarios,
+    optionally with rotated utility functions. When opponents are provided, competitors only play
+    against opponents (not each other) and only competitor scores are recorded.
 
     Args:
-        competitors: A tuple of the competing negotiator types.
-        scenarios: A tuple of base scenarios to use for the tournament.
-        competitor_params: Either None for no-parameters or a tuple of dictionaries with parameters to initialize the competitors (in order).
-        private_infos: If given, a list of the same length as scenarios. Each item is a tuple giving the private information to be passed to every negotiator in every scenario.
-        rotate_ufuns: If `True`, the ufuns will be rotated over negotiator positions (for bilateral negotiation this leads to two scenarios for each input scenario with reversed ufun order).
-        rotate_private_infos: If `True` and `rotate_ufuns` is also `True`, private information will be rotated with the utility functions.
-        n_repetitions: Number of times to repeat each scenario/partner combination
-        path: Path on disk to save the results and details of this tournament. Pass None to disable logging
-        n_jobs: Number of parallel jobs to run. -1 means running serially (useful for debugging) and 0 means using all cores.
-        mechanism_type: The mechanism (protocol) used for all negotiations.
-        n_steps: Number of steps/rounds allowed for the each negotiation (None for no-limit and a 2-valued tuple for sampling from a range)
-        time_limit: Number of seconds allowed for the each negotiation (None for no-limit and a 2-valued tuple for sampling from a range)
-        pend: Probability of ending the negotiation every step/round (None for no-limit and a 2-valued tuple for sampling from a range)
-        pend_per_second: Probability of ending the negotiation every second (None for no-limit and a 2-valued tuple for sampling from a range)
-        step_time_limit: Time limit for every negotiation step (None for no-limit and a 2-valued tuple for sampling from a range)
-        negotiator_time_limit: Time limit for all actions of every negotiator (None for no-limit and a 2-valued tuple for sampling from a range)
-        hidden_time_limit: Time limit for negotiations that is not known to the negotiators
-        external_timeout: A timeout applied directly to reception of results from negotiations in parallel runs only.
-        mechanism_params: Parameters of the mechanism (protocol). Usually you need to pass one or more of the following:
-                          time_limit (in seconds), n_steps (in rounds), p_ending (probability of ending the negotiation every step).
-        plot_fraction: fraction of negotiations for which plots are to be saved (only if `path` is not `None`)
-        plot_params: Parameters to pass to the plotting function
-        verbosity: Verbosity level (minimum is 0)
-        self_play: Allow negotiations in which all partners are of the same type
-        only_failures_on_self_play: If given, self-play runs will only be recorded if they fail to reach agreement. This is useful if you want to keep self-play but still penalize strategies for
-                                    failing to reach agreements in self-play
-        randomize_runs: If `True` negotiations will be run in random order, otherwise each scenario/partner combination will be finished before starting on the next
-        save_every: Number of negotiations after which we dump details and scores
-        save_stats: Whether to calculate and save extra statistics like pareto_optimality, nash_optimality, kalai-smorodinsky optimality (ks_optimality), kalai_optimality, etc
-        save_scenario_figs: Whether to save a png of the scenario represented in the utility domain for every scenario.
-        final_score: A tuple of two strings giving the metric used for ordering the negotiators for the final score:
-                     First string can be one of the following (advantage, utility,
-                     partner_welfare, welfare) or any statistic from the set calculated if `save_stats` is `True`.
-                     The second string can be mean, median, min, max, or std. The default is ('advantage', 'mean')
-        id_reveals_type: Each negotiator ID will reveal its type.
-        name_reveals_type: Each negotiator name will reveal its type.
-        shorten_names: If True, shorter versions of names will be used for results
-        raise_exceptions: When given, negotiators and mechanisms are allowed to raise exceptions stopping the tournament
-        mask_scenario_names: If given, scenario names will be masked so that the negotiators do not know the original scenario name
+        competitors: Negotiator types or class names to compete in the tournament.
+        scenarios: Negotiation scenarios, each with an outcome space and utility functions.
+        opponents: Optional negotiator types to use as opponents. If provided, competitors only
+                  play against opponents (not each other) and only competitors are scored.
+                  Competitors will be tested in both first and last positions to evaluate
+                  different roles (e.g., buyer vs seller).
+        opponent_params: Parameters for initializing opponents (one dict per opponent type).
+        private_infos: Private information passed to negotiators via their `private_info` attribute.
+                      Must be a list of tuples, one tuple per scenario.
+        competitor_params: Parameters for initializing competitors (one dict per competitor type).
+        rotate_ufuns: If True, utility functions are rotated across negotiator positions.
+                     For bilateral negotiations, this creates scenarios with reversed preferences.
+                     Not recommended when using explicit opponents as roles become ambiguous.
+        rotate_private_infos: If True and rotate_ufuns is True, rotate private information with ufuns.
+        n_repetitions: Number of times to repeat each scenario/partner combination.
+        path: Directory path to save tournament results. If None, results are not saved to disk.
+        njobs: Parallelization level. -1 for serial execution (good for debugging),
+              0 for all available cores, positive integer for specific number of processes.
+        mechanism_type: The negotiation protocol/mechanism class to use (default: SAOMechanism).
+        mechanism_params: Additional parameters passed to the mechanism constructor.
+        n_steps: Maximum rounds per negotiation. Can be int, (min, max) tuple for random sampling, or None for unlimited.
+        time_limit: Maximum seconds per negotiation. Can be float, (min, max) tuple, or None.
+        pend: Probability of ending negotiation each step. Can be float, (min, max) tuple, or 0.0.
+        pend_per_second: Probability of ending negotiation each second. Can be float, (min, max) tuple, or 0.0.
+        step_time_limit: Maximum seconds per negotiation step. Can be float, (min, max) tuple, or None.
+        negotiator_time_limit: Maximum total seconds for all actions by each negotiator.
+        hidden_time_limit: Time limit not revealed to negotiators.
+        external_timeout: Timeout in seconds for receiving results from parallel negotiations.
+        plot_fraction: Fraction of negotiations to plot (0.0 to 1.0). Only used if path is provided.
+        plot_params: Parameters passed to plotting functions.
+        verbosity: Logging level (0 for silent, higher for more verbose).
+        self_play: If True, allow negotiations where all parties are the same type.
+        only_failures_on_self_play: If True, only record self-play negotiations that fail to reach agreement.
+        randomize_runs: If True, run negotiations in random order instead of sequentially.
+        sort_runs: If True, sort runs by scenario size before execution.
+        save_every: Save results to disk after this many negotiations (0 to disable periodic saving).
+        save_stats: If True, calculate optimality statistics (Pareto, Nash, Kalai-Smorodinsky, etc.).
+        save_scenario_figs: If True, save PNG visualizations of scenarios in utility space.
+        final_score: Tuple of (metric, statistic) for ranking. Metric can be 'advantage', 'utility',
+                    'partner_welfare', 'welfare', or any calculated statistic. Statistic can be
+                    'mean', 'median', 'min', 'max', or 'std'. Default: ('advantage', 'mean').
+        id_reveals_type: If True, negotiator IDs reveal their type (for analysis).
+        name_reveals_type: If True, negotiator names reveal their type.
+        shorten_names: If True, use shortened class names in results.
+        raise_exceptions: If True, exceptions from negotiators/mechanisms stop the tournament.
+                         If False, exceptions are logged but tournament continues.
+        mask_scenario_names: If True, mask scenario names from negotiators.
+        only_failures_on_self_play: If True, only record self-play runs that fail to reach agreement.
+        python_class_identifier: Function to convert classes to string identifiers.
 
     Returns:
-        A pandas DataFrame with all negotiation results.
+        SimpleTournamentResults containing scores, detailed results, score summaries, and final rankings.
+
+    Notes:
+        - In explicit opponent mode (opponents provided), competitors appear at both first and last
+          positions to test different roles, but only their scores are recorded.
+        - Rotation with explicit opponents is not recommended as it can create role ambiguity.
+        - Use njobs=-1 for debugging to run serially and see full tracebacks.
+
+    Examples:
+        Normal tournament between two negotiators:
+        ```python
+        results = cartesian_tournament(
+            competitors=[MyNegotiator, TheirNegotiator],
+            scenarios=[scenario1, scenario2],
+            n_steps=100,
+            path=Path("results/"),
+        )
+        ```
+
+        Testing a negotiator against fixed opponents:
+        ```python
+        results = cartesian_tournament(
+            competitors=[MyNegotiator],
+            opponents=[RandomNegotiator, AspirationNegotiator],
+            scenarios=[scenario1],
+            rotate_ufuns=False,  # Keep roles fixed
+        )
+        ```
     """
     if mechanism_params is None:
         mechanism_params = dict()
     mechanism_params["ignore_negotiator_exceptions"] = not raise_exceptions
 
     competitors = [get_class(_) for _ in competitors]
+    opponents = [get_class(_) for _ in opponents] if opponents else []
     if competitor_params is None:
         competitor_params = [dict() for _ in competitors]
+    if opponent_params is None:
+        opponent_params = [dict() for _ in opponents]
     if private_infos is None:
         private_infos = [tuple(dict() for _ in s.ufuns) for s in scenarios]
+
+    # Determine if we're in explicit opponent mode
+    explicit_opponents = len(opponents) > 0
 
     runs = []
     scenarios_path = path if path is None else Path(path) / SCENARIOS_DIR_NAME
@@ -1328,15 +1449,53 @@ def cartesian_tournament(
             shorten(_)
             for _ in shortest_unique_names([get_full_type_name(_) for _ in competitors])
         ]
+        opponent_names = (
+            [
+                shorten(_)
+                for _ in shortest_unique_names(
+                    [get_full_type_name(_) for _ in opponents]
+                )
+            ]
+            if opponents
+            else []
+        )
     else:
         competitor_names = [get_full_type_name(_) for _ in competitors]
+        opponent_names = [get_full_type_name(_) for _ in opponents] if opponents else []
     competitor_info = list(
         zip(competitors, competitor_params, competitor_names, strict=True)
+    )
+    opponent_info = (
+        list(zip(opponents, opponent_params, opponent_names, strict=True))
+        if opponents
+        else []
     )
     for s, pinfo in zip(scenarios, private_infos):
         pinfolst = list(pinfo) if pinfo else [dict() for _ in s.ufuns]
         n = len(s.ufuns)
-        partners_list = list(product(*tuple([competitor_info] * n)))
+
+        # Generate partners_list based on whether we have explicit opponents
+        if explicit_opponents:
+            # In explicit opponent mode, create combinations where:
+            # - Competitor at position 0, opponents fill remaining positions
+            # - Competitor at position n-1, opponents fill other positions
+            # This allows testing competitors in different roles (e.g., buyer vs seller)
+            # scored_indices will track which position(s) have competitors
+            if n < 2:
+                continue
+            partners_list = []
+            # Competitor at position 0
+            for comp_info in competitor_info:
+                for opp_combo in product(*[opponent_info] * (n - 1)):
+                    partners_list.append((comp_info,) + opp_combo)
+            # Competitor at position n-1
+            for comp_info in competitor_info:
+                for opp_combo in product(*[opponent_info] * (n - 1)):
+                    partners_list.append(opp_combo + (comp_info,))
+        else:
+            # Normal mode: all competitors play all positions
+            partners_list = list(product(*tuple([competitor_info] * n)))
+
         if not self_play:
             partners_list = [
                 _
@@ -1447,6 +1606,16 @@ def cartesian_tournament(
                 pdict = dict(type=get_full_type_name(mechanism_type)) | mparams
                 dump(pdict, params_path)
             for partners in partners_list:
+                # Determine which positions should be scored
+                if explicit_opponents:
+                    # Find which position(s) contain competitors
+                    scored_indices = [
+                        i for i, p in enumerate(partners) if p in competitor_info
+                    ]
+                else:
+                    # Score all positions in normal mode
+                    scored_indices = None
+
                 runs += [
                     dict(
                         s=scenario,
@@ -1467,6 +1636,7 @@ def cartesian_tournament(
                         plot_params=plot_params,
                         mask_scenario_name=mask_scenario_names,
                         private_infos=pinfo_tuple,
+                        scored_indices=scored_indices,
                     )
                     for i in range(n_repetitions)
                 ]
@@ -1496,7 +1666,7 @@ def cartesian_tournament(
             if is_self_play and record["agreement"] is not None:
                 return results, scores
         results.append(record)
-        scores += make_scores(record)
+        scores += make_scores(record, scored_indices=record.get("scored_indices"))
         if results_path and save_every and i % save_every == 0:
             pd.DataFrame.from_records(results).to_csv(results_path, index_label="index")
             pd.DataFrame.from_records(scores).to_csv(scores_path, index_label="index")
