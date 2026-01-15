@@ -451,10 +451,10 @@ class NegotiatorMechanismInterface:
 
     @property
     def issues(self) -> tuple[Issue, ...]:
-        """Issues.
+        """The negotiation issues defining the outcome space dimensions.
 
         Returns:
-            tuple[Issue, ...]: The result.
+            tuple[Issue, ...]: Tuple of Issue objects (e.g., price, quantity, delivery time)
         """
         os = self._mechanism.outcome_space
         if hasattr(os, "issues"):
@@ -476,10 +476,10 @@ class NegotiatorMechanismInterface:
 
     @property
     def participants(self) -> list[NegotiatorInfo]:
-        """Participants.
+        """Information about all negotiators participating in this negotiation.
 
         Returns:
-            list[NegotiatorInfo]: The result.
+            list[NegotiatorInfo]: List of participant information including IDs and preferences
         """
         return self._mechanism.participants
 
@@ -498,10 +498,10 @@ class NegotiatorMechanismInterface:
 
     @property
     def history(self) -> list:
-        """History.
+        """The full negotiation history of actions, offers, and responses.
 
         Returns:
-            list: The result.
+            list: Chronological list of all negotiation events and actions
         """
         return self._mechanism.history
 

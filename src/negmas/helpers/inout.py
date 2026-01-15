@@ -171,10 +171,10 @@ class ConfigReader:
         if isinstance(config, str):
             # If config is a string, assume it is a file and read it from the appropriate location
             def exists(nm):
-                """Exists.
+                """Check if a path exists and is not a directory.
 
                 Args:
-                    nm: Nm.
+                    nm: Path string to check for existence as a file
                 """
                 return os.path.exists(nm) and not os.path.isdir(nm)
 
@@ -343,10 +343,10 @@ class NpEncoder(json.JSONEncoder):
     """NpEncoder implementation."""
 
     def default(self, obj):
-        """Default.
+        """Encode NumPy types, bytes, Paths, and custom types to JSON-compatible format.
 
         Args:
-            obj: Obj.
+            obj: Object to encode (numpy types, bytes, Path, or any other type)
         """
         if isinstance(obj, np.integer):
             return int(obj)
@@ -376,10 +376,10 @@ class NpDecorder(json.JSONDecoder):
     """NpDecorder implementation."""
 
     def default(self, obj):
-        """Default.
+        """Decode JSON strings back to bytes, Paths, or types.
 
         Args:
-            obj: Obj.
+            obj: Object to decode (typically a string with special prefixes)
         """
         if isinstance(obj, str):
             if obj.startswith(BYTES_START):

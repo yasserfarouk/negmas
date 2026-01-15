@@ -46,36 +46,36 @@ class ReturnCause(Enum):
 
 @overload
 def get_full_type_name(t: None) -> None:
-    """Get full type name.
+    """Get the fully qualified name of a type or None if input is None.
 
     Args:
-        t: T.
+        t: None value
     """
     ...
 
 
 @overload
 def get_full_type_name(t: str) -> str:
-    """Get full type name.
+    """Get the fully qualified name of a type, returning string input as-is.
 
     Args:
-        t: T.
+        t: String type name to return unchanged
 
     Returns:
-        str: The result.
+        str: The same string that was passed in
     """
     ...
 
 
 @overload
 def get_full_type_name(t: type[Any] | Callable) -> str:
-    """Get full type name.
+    """Get the fully qualified name of a type or callable (module.ClassName).
 
     Args:
-        t: T.
+        t: Type or callable to get the full name of
 
     Returns:
-        str: The result.
+        str: Fully qualified type name in format 'module.name'
     """
     ...
 
@@ -220,10 +220,13 @@ def is_not_lambda_nor_partial_function(obj):
 
 
 def is_jsonable(x):
-    """Check if jsonable.
+    """Check if an object can be serialized to JSON.
 
     Args:
-        x: X.
+        x: Object to test for JSON compatibility
+
+    Returns:
+        bool: True if the object can be serialized to JSON, False otherwise
     """
     try:
         json.dumps(x)
