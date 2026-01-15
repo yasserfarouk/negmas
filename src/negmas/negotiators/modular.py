@@ -1,4 +1,4 @@
-"""Negotiator implementations."""
+"""Modular negotiator that combines multiple negotiation components."""
 
 from __future__ import annotations
 

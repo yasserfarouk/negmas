@@ -1,4 +1,4 @@
-"""Negotiator implementations."""
+"""Controller-driven SAO negotiator implementation."""
 
 from __future__ import annotations
 

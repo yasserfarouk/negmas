@@ -1,4 +1,4 @@
-"""Preference representations."""
+"""Base class and core functionality for preference representations."""
 
 from __future__ import annotations
 

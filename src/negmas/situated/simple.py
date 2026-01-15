@@ -1,4 +1,4 @@
-"""Situated negotiation."""
+"""Simplified World implementation with common defaults."""
 
 from __future__ import annotations
 

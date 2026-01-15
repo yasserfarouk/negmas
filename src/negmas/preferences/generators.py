@@ -1,4 +1,4 @@
-"""Preference representations."""
+"""Utility function generators for creating scenarios with specific Pareto properties."""
 
 from __future__ import annotations
 

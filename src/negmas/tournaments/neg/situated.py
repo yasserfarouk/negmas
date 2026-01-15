@@ -422,7 +422,7 @@ def random_discrete_scenarios(
         ]
 
         def partners_generator():
-            """Partners generator."""
+            """Yields partner combinations based on the extraction method."""
             if partner_extraction_method.startswith("permutation"):
                 yield from permutations(partners, n_negotiators - 1)
             if partner_extraction_method.startswith("combination"):

@@ -1,4 +1,4 @@
-"""Situated negotiation."""
+"""Mixins providing optional behaviors for World and Agent implementations."""
 
 from __future__ import annotations
 

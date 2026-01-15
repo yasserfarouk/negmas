@@ -1,4 +1,4 @@
-"""Outcome representations."""
+"""Outcome space implementations for representing negotiation domains."""
 
 from __future__ import annotations
 
@@ -535,7 +535,7 @@ class CartesianOutcomeSpace(XmlSerializable):
         )
 
     def random_outcome(self):
-        """Random outcome."""
+        """Generates a single random outcome by sampling one value from each issue."""
         return tuple(_.rand() for _ in self.issues)
 
     def cardinality_if_discretized(

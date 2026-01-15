@@ -1,4 +1,4 @@
-"""Situated negotiation."""
+"""Base Entity class for non-participating world components."""
 
 from __future__ import annotations
 
@@ -53,7 +53,7 @@ class Entity:
 
     @property
     def type_postfix(self):
-        """Type postfix."""
+        """Returns the type postfix used to distinguish entity subtypes."""
         return self.__type_postfix
 
     def init(self):

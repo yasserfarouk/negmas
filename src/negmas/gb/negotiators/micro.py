@@ -1,4 +1,4 @@
-"""Negotiator implementations."""
+"""MiCRO (Monotonic Concession with Rational Offers) negotiator implementations."""
 
 from __future__ import annotations
 

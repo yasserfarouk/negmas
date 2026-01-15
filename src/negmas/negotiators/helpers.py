@@ -1,4 +1,4 @@
-"""Negotiator implementations."""
+"""Time-based aspiration and utility curve helper classes for negotiators."""
 
 from __future__ import annotations
 

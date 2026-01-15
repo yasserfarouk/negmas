@@ -1,4 +1,4 @@
-"""Situated negotiation."""
+"""Bulletin board for public information sharing between agents."""
 
 from __future__ import annotations
 

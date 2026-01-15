@@ -114,7 +114,7 @@ class NegotiationInfo:
 
 
 class Operations(Enum):
-    """Operations implementation."""
+    """Enumeration of world operation phases during each simulation step."""
 
     Negotiations = 1
     ContractSigning = 2

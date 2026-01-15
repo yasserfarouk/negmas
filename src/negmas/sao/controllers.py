@@ -575,7 +575,7 @@ class SAORandomSyncController(SAOSyncController):
         return result
 
     def first_proposals(self):
-        """First proposals."""
+        """Generates initial random proposals for all controlled negotiators."""
         return dict(
             zip(
                 self.negotiators.keys(),

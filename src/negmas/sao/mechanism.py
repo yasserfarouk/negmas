@@ -38,7 +38,7 @@ DEFAULT_COLORMAP = "jet"
 
 
 def return_inf():
-    """Return inf."""
+    """A helper function that returns positive infinity."""
     return float("inf")
 
 

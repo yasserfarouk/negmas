@@ -1,4 +1,4 @@
-"""Situated negotiation."""
+"""Monitor classes for observing and recording world statistics."""
 
 from __future__ import annotations
 

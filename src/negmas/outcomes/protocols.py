@@ -1,4 +1,4 @@
-"""Protocol definitions."""
+"""Protocol definitions for outcome spaces and issue abstractions."""
 
 from __future__ import annotations
 

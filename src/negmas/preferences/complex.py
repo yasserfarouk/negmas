@@ -1,4 +1,4 @@
-"""Preference representations."""
+"""Composite utility functions that combine multiple utility functions."""
 
 from __future__ import annotations
 
@@ -79,7 +79,7 @@ class WeightedUtilityFunction(_DependenceMixin, BaseUtilityFunction):
         self.weights = list(weights)
 
     def to_stationary(self):
-        """To stationary."""
+        """Returns a stationary version with all component utility functions converted to stationary."""
         return WeightedUtilityFunction(
             ufuns=[_.to_stationary() for _ in self.values],
             weights=self.weights,
@@ -208,7 +208,7 @@ class ComplexNonlinearUtilityFunction(_DependenceMixin, BaseUtilityFunction):
         self.combination_function = combination_function
 
     def to_stationary(self):
-        """To stationary."""
+        """Returns a stationary version with all component utility functions converted to stationary."""
         return ComplexNonlinearUtilityFunction(
             ufuns=[_.to_stationary() for _ in self.ufuns],
             combination_function=self.combination_function,

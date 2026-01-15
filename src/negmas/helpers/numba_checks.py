@@ -1,4 +1,4 @@
-"""Helper utilities."""
+"""Numba JIT compilation utilities with graceful fallback when unavailable."""
 
 from __future__ import annotations
 

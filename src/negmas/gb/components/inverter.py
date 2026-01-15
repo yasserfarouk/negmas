@@ -201,12 +201,12 @@ class UtilityBasedOutcomeSetRecommender(GBComponent):
 
     @property
     def ufun_max(self):
-        """Ufun max."""
+        """Returns the maximum utility value from the utility function."""
         return self.max
 
     @property
     def ufun_min(self):
-        """Ufun min."""
+        """Returns the minimum utility value from the utility function."""
         return self.min
 
     def __call__(
@@ -306,12 +306,12 @@ class UtilityInverter(GBComponent):
 
     @property
     def ufun_max(self):
-        """Ufun max."""
+        """Returns the maximum utility value from the recommender."""
         return self.recommender.max
 
     @property
     def ufun_min(self):
-        """Ufun min."""
+        """Returns the minimum utility value from the recommender."""
         return self.recommender.min
 
     def __call__(self, urange: tuple[float, float], state: GBState) -> Outcome | None:

@@ -1,4 +1,4 @@
-"""Utility function implementations."""
+"""Probabilistic utility function implementations that return probability distributions."""
 
 from __future__ import annotations
 
@@ -294,5 +294,5 @@ class ProbAdapter(ProbUtilityFunction):
         return v  # type: ignore
 
     def to_stationary(self):
-        """To stationary."""
+        """Returns a stationary version of the adapted utility function."""
         return ProbAdapter(self._ufun.to_stationary())

@@ -300,7 +300,7 @@ class GeniusNegotiator(SAONegotiator):
 
     @property
     def java_name(self):
-        """Java name."""
+        """Returns the name of the underlying Java negotiator agent."""
         if not self.java:
             return None
         return self.java.get_name(self.java_uuid)  # type: ignore

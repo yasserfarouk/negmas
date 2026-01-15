@@ -17,7 +17,7 @@ from os import cpu_count
 from pathlib import Path
 from random import randint, random, shuffle
 from time import perf_counter
-from typing import Any, Iterable, Sequence
+from typing import Any, Callable, Iterable, Sequence
 
 import pandas as pd
 from attr import asdict, define
@@ -42,6 +42,7 @@ from negmas.preferences.ops import (
 from negmas.sao.common import SAOState
 from negmas.sao.mechanism import SAOMechanism
 from negmas.serialization import serialize, to_flat_dict, PYTHON_CLASS_IDENTIFIER
+from negmas.preferences.discounted import DiscountedUtilityFunction
 import signal
 import os
 import time
@@ -51,6 +52,11 @@ __all__ = [
     "cartesian_tournament",
     "SimpleTournamentResults",
     "combine_tournaments",
+    "RunInfo",
+    "ProgressCallback",
+    "BeforeStartCallback",
+    "AfterEndCallback",
+    "AfterConstructionCallback",
 ]
 MAX_TASKS_PER_CHILD = 10
 LOG_UNIFORM_LIMIT = 10
@@ -90,6 +96,65 @@ TOURNAMENT_FILES = [
     FINAL_SCORES_FILE_NAME,
 ]
 MECHANISM_FILE_NAME = "mechanism.json"
+
+
+@define
+class RunInfo:
+    """Information about a negotiation run before it starts.
+
+    Passed to before_start_callback in cartesian_tournament to allow inspection
+    and logging of negotiation parameters before execution.
+
+    Attributes:
+        s: The scenario containing outcome space and utility functions
+        partners: Tuple of negotiator classes that will participate
+        mechanism_type: The mechanism class that will be instantiated
+        mechanism_params: Parameters that will be passed to the mechanism
+        n_repetitions: Total number of repetitions for this scenario/partner combination
+        rep: Current repetition index (0-based)
+        scenario_index: Index of this scenario in the tournament
+        negotiation_id: Unique identifier for this negotiation run
+        scored_indices: Indices of negotiators whose scores will be recorded (None means all)
+    """
+
+    s: Scenario
+    partners: tuple[type[Negotiator]]
+    partner_names: tuple[str] | None = None
+    partner_params: tuple[dict[str, Any]] | None = None
+    rep: int = 0
+    path: Path | None = None
+    mechanism_type: type[Mechanism] = SAOMechanism
+    mechanism_params: dict[str, Any] | None = None
+    full_names: bool = True
+    verbosity: int = 0
+    plot: bool = False
+    plot_params: dict[str, Any] | None = None
+    run_id: int | str | None = None
+    stats: ScenarioStats | None = None
+    annotation: dict[str, Any] | None = None
+    private_infos: tuple[dict[str, Any] | None] | None = None
+    id_reveals_type: bool = False
+    name_reveals_type: bool = True
+    mask_scenario_name: bool = True
+    ignore_exceptions: bool = False
+    scored_indices: list[int] | None = None
+    n_repetitions: int = 1
+    scenario_index: int = 0
+
+
+@define
+class ConstructedNegInfo:
+    run_id: int | str | None
+    mechanism: Mechanism
+    failures: dict
+    scenario: Scenario
+    real_scenario_name: str | None
+
+
+BeforeStartCallback = Callable[[RunInfo], None]
+AfterConstructionCallback = Callable[[ConstructedNegInfo], None]
+AfterEndCallback = Callable[[dict[str, Any]], None]
+ProgressCallback = Callable[[str, int, int], None]  # (message, current, total)
 
 
 @define
@@ -761,7 +826,7 @@ def _make_record(
     real_scenario_name,
     stats,
     scored_indices: list[int] | None = None,
-):
+) -> dict[str, Any]:
     """Create a detailed record dictionary from a completed negotiation.
 
     Extracts information from the mechanism state and scenario, calculates utilities
@@ -958,6 +1023,11 @@ def run_negotiation(
     mask_scenario_name: bool = True,
     ignore_exceptions: bool = False,
     scored_indices: list[int] | None = None,
+    n_repetitions: int = 1,
+    scenario_index: int = 0,
+    before_start_callback: BeforeStartCallback | None = None,
+    after_construction_callback: AfterConstructionCallback | None = None,
+    after_end_callback: AfterEndCallback | None = None,
 ) -> dict[str, Any]:
     """Run a single negotiation session and return comprehensive results.
 
@@ -986,6 +1056,11 @@ def run_negotiation(
         mask_scenario_name: If True, scenario name is masked from negotiators.
         ignore_exceptions: If True, catch and log exceptions instead of propagating.
         scored_indices: Positions of negotiators to score. None means score all (used internally by tournament).
+        n_repetitions: Total number of repetitions for this scenario/partner combo (for RunInfo).
+        scenario_index: Index of this scenario in the tournament (for RunInfo).
+        before_start_callback: Optional callback invoked before negotiation starts. Receives RunInfo object.
+        after_construction_callback: Optional callback invoked after mechanism construction. Receives ConstructedNegInfo object.
+        after_end_callback: Optional callback invoked after negotiation ends. Receives the record dictionary.
 
     Returns:
         Dictionary containing complete negotiation results:
@@ -1013,6 +1088,38 @@ def run_negotiation(
         print(f"Utilities: {record['utilities']}")
         ```
     """
+    if before_start_callback:
+        try:
+            before_start_callback(
+                RunInfo(
+                    s=s,
+                    partners=partners,
+                    partner_names=partner_names,
+                    partner_params=partner_params,
+                    rep=rep,
+                    path=path,
+                    mechanism_type=mechanism_type,
+                    mechanism_params=mechanism_params,
+                    full_names=full_names,
+                    verbosity=verbosity,
+                    plot=plot,
+                    plot_params=plot_params,
+                    run_id=run_id,
+                    stats=stats,
+                    annotation=annotation,
+                    private_infos=private_infos,
+                    id_reveals_type=id_reveals_type,
+                    name_reveals_type=name_reveals_type,
+                    mask_scenario_name=mask_scenario_name,
+                    ignore_exceptions=ignore_exceptions,
+                    scored_indices=scored_indices,
+                    n_repetitions=n_repetitions,
+                    scenario_index=scenario_index,
+                )
+            )
+        except Exception as e:
+            if verbosity > 0:
+                print(f"Before start callback failed for {run_id} with exception: {e}")
     m, failures, s, real_scenario_name = _make_mechanism(
         s=s,
         partners=partners,
@@ -1031,6 +1138,16 @@ def run_negotiation(
         mask_scenario_name=mask_scenario_name,
         ignore_exceptions=ignore_exceptions,
     )
+    if after_construction_callback:
+        try:
+            after_construction_callback(
+                ConstructedNegInfo(run_id, m, failures, s, real_scenario_name)
+            )
+        except Exception as e:
+            if verbosity > 0:
+                print(
+                    f"After construction callback failed for {run_id} with exception: {e}"
+                )
     reservations = tuple(u.reserved_value for u in s.ufuns)
     if partner_params is None:
         partner_params = tuple(dict() for _ in partners)  # type: ignore
@@ -1082,6 +1199,12 @@ def run_negotiation(
         stats=stats,
         scored_indices=scored_indices,
     )
+    if after_end_callback:
+        try:
+            after_end_callback(run_record)
+        except Exception as e:
+            if verbosity > 0:
+                print(f"After end callback failed for {run_id}: {e}")
     _save_record(run_record, m, partner_names, real_scenario_name, rep, run_id, path)
     _plot_run(
         m, partner_names, real_scenario_name, rep, run_id, path, plot, plot_params
@@ -1322,7 +1445,13 @@ def cartesian_tournament(
     raise_exceptions: bool = True,
     mask_scenario_names: bool = True,
     only_failures_on_self_play: bool = False,
+    ignore_discount: bool = False,
+    ignore_reserved: bool = False,
     python_class_identifier=PYTHON_CLASS_IDENTIFIER,
+    before_start_callback: BeforeStartCallback | None = None,
+    after_construction_callback: AfterConstructionCallback | None = None,
+    after_end_callback: AfterEndCallback | None = None,
+    progress_callback: ProgressCallback | None = None,
 ) -> SimpleTournamentResults:
     """Run a Cartesian tournament where negotiators compete across multiple scenarios.
 
@@ -1379,7 +1508,29 @@ def cartesian_tournament(
                          If False, exceptions are logged but tournament continues.
         mask_scenario_names: If True, mask scenario names from negotiators.
         only_failures_on_self_play: If True, only record self-play runs that fail to reach agreement.
+        ignore_discount: If True, ignore discounting in utility functions (use base ufun).
+        ignore_reserved: If True, ignore reserved values in utility functions.
         python_class_identifier: Function to convert classes to string identifiers.
+        before_start_callback: Optional callback invoked before each negotiation starts.
+                              Receives a RunInfo object with all negotiation parameters.
+                              Useful for logging, monitoring, or custom setup. Exceptions are caught
+                              and logged (if verbosity > 0) but don't stop the tournament.
+        after_construction_callback: Optional callback invoked after mechanism construction but before
+                                    negotiation starts. Receives a ConstructedNegInfo object with the
+                                    constructed mechanism and scenario details. Useful for inspecting
+                                    or modifying the mechanism before negotiation. Exceptions are caught
+                                    and logged (if verbosity > 0) but don't stop the tournament.
+        after_end_callback: Optional callback invoked after each negotiation completes.
+                           Receives the complete negotiation record dictionary with agreement,
+                           utilities, and all result metadata. Useful for custom analysis or
+                           logging. Exceptions are caught and logged (if verbosity > 0) but
+                           don't stop the tournament.
+        progress_callback: Optional callback invoked during tournament setup to report progress.
+                          Receives (message: str, current: int, total: int) where message describes
+                          the current phase, current is the progress index, and total is the
+                          expected count. Useful for showing setup progress in UIs before
+                          negotiations start. Called during competitor validation, scenario
+                          processing, and run configuration building.
 
     Returns:
         SimpleTournamentResults containing scores, detailed results, score summaries, and final rankings.
@@ -1409,6 +1560,24 @@ def cartesian_tournament(
             rotate_ufuns=False,  # Keep roles fixed
         )
         ```
+
+        Using callbacks for monitoring:
+        ```python
+        def log_start(info: RunInfo):
+            print(f"Starting negotiation {info.rep} with {info.partners}")
+
+
+        def log_end(record: dict):
+            print(f"Ended with agreement: {record['agreement']}")
+
+
+        results = cartesian_tournament(
+            competitors=[MyNegotiator, TheirNegotiator],
+            scenarios=[scenario1],
+            before_start_callback=log_start,
+            after_end_callback=log_end,
+        )
+        ```
     """
     if mechanism_params is None:
         mechanism_params = dict()
@@ -1422,6 +1591,13 @@ def cartesian_tournament(
         opponent_params = [dict() for _ in opponents]
     if private_infos is None:
         private_infos = [tuple(dict() for _ in s.ufuns) for s in scenarios]
+
+    # Report progress: competitors loaded
+    if progress_callback:
+        try:
+            progress_callback(f"Loaded {len(competitors)} competitors", 1, 3)
+        except Exception:
+            pass
 
     # Determine if we're in explicit opponent mode
     explicit_opponents = len(opponents) > 0
@@ -1471,7 +1647,17 @@ def cartesian_tournament(
         if opponents
         else []
     )
-    for s, pinfo in zip(scenarios, private_infos):
+    n_scenarios = len(scenarios)
+    for scenario_idx, (s, pinfo) in enumerate(zip(scenarios, private_infos)):
+        # Report progress: processing scenarios
+        if progress_callback:
+            try:
+                progress_callback(
+                    f"Processing scenario {scenario_idx + 1}/{n_scenarios}", 2, 3
+                )
+            except Exception:
+                pass
+
         pinfolst = list(pinfo) if pinfo else [dict() for _ in s.ufuns]
         n = len(s.ufuns)
 
@@ -1508,9 +1694,25 @@ def cartesian_tournament(
                 > 1
             ]
 
-        ufun_sets = [[copy.deepcopy(_) for _ in s.ufuns]]
+        # Helper function to process ufuns based on ignore_discount and ignore_reserved
+        def process_ufun(ufun):
+            """Process a utility function, optionally removing discounting and/or reserved value."""
+            result = ufun
+            # Strip discounting if requested
+            if ignore_discount:
+                while isinstance(result, DiscountedUtilityFunction):
+                    result = result.ufun
+            # Clear reserved value if requested
+            if ignore_reserved and hasattr(result, "reserved_value"):
+                result = copy.deepcopy(result)
+                result.reserved_value = float("-inf")
+            return result
+
+        # Process ufuns before deepcopy
+        processed_ufuns = [process_ufun(u) for u in s.ufuns]
+        ufun_sets = [[copy.deepcopy(_) for _ in processed_ufuns]]
         pinfo_sets = [pinfo]
-        for i, u in enumerate(s.ufuns):
+        for i, u in enumerate(processed_ufuns):
             u.name = f"{i}_{u.name}"
         if rotate_ufuns:
             for _ in range(len(ufun_sets)):
@@ -1639,6 +1841,14 @@ def cartesian_tournament(
         shuffle(runs)
     if sort_runs:
         runs = sorted(runs, key=lambda x: scenario_size(x["s"]))
+
+    # Report progress: setup complete, ready to start negotiations
+    if progress_callback:
+        try:
+            progress_callback(f"Starting {len(runs)} negotiations", 3, 3)
+        except Exception:
+            pass
+
     if verbosity > 0:
         print(
             f"Will run {len(runs)} negotiations on {len(scenarios)} scenarios between {len(competitors)} competitors",
@@ -1681,7 +1891,15 @@ def cartesian_tournament(
         for i, info in enumerate(
             track(runs, total=len(runs), description=NEGOTIATIONS_DIR_NAME)
         ):
-            process_record(run_negotiation(**info, run_id=get_run_id(info)))
+            process_record(
+                run_negotiation(
+                    **info,
+                    before_start_callback=before_start_callback,
+                    after_construction_callback=after_construction_callback,
+                    after_end_callback=after_end_callback,
+                    run_id=get_run_id(info),
+                )
+            )
 
     else:
         timeout = external_timeout if external_timeout else float("inf")
@@ -1728,7 +1946,14 @@ def cartesian_tournament(
         with ProcessPoolExecutor(**kwargs_) as pool:  # type: ignore
             for info in runs:
                 futures[
-                    pool.submit(run_negotiation, **info, run_id=get_run_id(info))
+                    pool.submit(
+                        run_negotiation,
+                        **info,
+                        before_start_callback=before_start_callback,
+                        after_construction_callback=after_construction_callback,
+                        after_end_callback=after_end_callback,
+                        run_id=get_run_id(info),
+                    )
                 ] = info
             for i, f in enumerate(
                 track(
@@ -1748,6 +1973,14 @@ def cartesian_tournament(
                     )
                     if len(info) > 1:
                         result = failed_run_record(**info)
+                        if after_end_callback:
+                            try:
+                                after_end_callback(result)
+                            except Exception as e:
+                                if verbosity > 0:
+                                    print(
+                                        f"After end callback failed on a failed run {get_run_id(info)}: {e}"
+                                    )
                         process_record(result)
 
                     f.cancel()

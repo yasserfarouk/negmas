@@ -1,5 +1,5 @@
 # ruff: noqa: F403
-"""Negotiator implementations."""
+"""Re-exports random negotiators from the GB module for SAO compatibility."""
 
 import negmas.gb.negotiators.randneg as _n
 from negmas.gb.negotiators.randneg import *

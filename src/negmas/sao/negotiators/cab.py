@@ -1,5 +1,5 @@
 # ruff: noqa: F403
-"""Negotiator implementations."""
+"""Re-exports concession-based negotiators from the GB module for SAO compatibility."""
 
 import negmas.gb.negotiators.cab as _n
 from negmas.gb.negotiators.cab import *

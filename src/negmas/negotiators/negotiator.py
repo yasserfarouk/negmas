@@ -1,4 +1,4 @@
-"""Negotiator implementations."""
+"""Base negotiator class defining the core negotiation agent interface."""
 
 from __future__ import annotations
 

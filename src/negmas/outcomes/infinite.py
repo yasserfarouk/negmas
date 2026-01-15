@@ -1,4 +1,4 @@
-"""Outcome representations."""
+"""Infinite issue implementations for unbounded integer and continuous ranges."""
 
 from __future__ import annotations
 
@@ -78,7 +78,7 @@ class CountableInfiniteIssue(ContiguousIssue, InfiniteIssue):
         return float("inf")
 
     def rand_invalid(self):
-        """Rand invalid."""
+        """Returns a random value outside the valid range, or None if the range is unbounded."""
         if self._values[0] == -INFINITE_INT and self._values[1] == INFINITE_INT:
             return None
         if self._values[0] == -INFINITE_INT:

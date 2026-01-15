@@ -1,4 +1,4 @@
-"""Outcome representations."""
+"""Contiguous integer issue implementation for discrete integer ranges."""
 
 from __future__ import annotations
 

@@ -1,4 +1,4 @@
-"""Situated negotiation."""
+"""Adapter class for wrapping objects as agents in a simulation."""
 
 from __future__ import annotations
 

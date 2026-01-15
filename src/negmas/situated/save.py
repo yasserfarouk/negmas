@@ -1,4 +1,4 @@
-"""Situated negotiation."""
+"""World state saving and statistics persistence utilities."""
 
 from __future__ import annotations
 

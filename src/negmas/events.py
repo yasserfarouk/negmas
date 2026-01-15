@@ -68,20 +68,20 @@ class EventSink:
     """An object capable of receiving events"""
 
     def on_event(self, event: Event, sender: EventSource):
-        """On event.
+        """Called when an event is received from a source.
 
         Args:
-            event: Event.
-            sender: Sender.
+            event: The event that was raised.
+            sender: The object that raised the event.
         """
         pass
 
 
 def myvars(x):
-    """Myvars.
+    """Extracts non-private instance variables from an object.
 
     Args:
-        x: X.
+        x: Object to extract variables from.
     """
     if not x:
         return x
@@ -115,7 +115,7 @@ class EventLogger(EventSink):
         self._start = time.perf_counter()
 
     def reset_timer(self):
-        """Reset timer."""
+        """Resets the internal timer used for timestamp calculation."""
         self._start = time.perf_counter()
 
     def on_event(
@@ -175,7 +175,7 @@ class EventLogger(EventSink):
 
 @dataclass
 class Notification:
-    """Notification implementation."""
+    """A notification message with a type identifier and associated data."""
 
     __slots__ = ["type", "data"]
     type: str

@@ -1,4 +1,4 @@
-"""Outcome representations."""
+"""Callable issue implementation that generates values via a callable."""
 
 from __future__ import annotations
 

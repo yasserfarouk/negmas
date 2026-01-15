@@ -1,4 +1,4 @@
-"""Situated negotiation."""
+"""Agent-World Interface providing agents controlled access to world information."""
 
 from __future__ import annotations
 

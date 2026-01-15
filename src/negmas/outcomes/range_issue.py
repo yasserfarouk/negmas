@@ -1,4 +1,4 @@
-"""Outcome representations."""
+"""Range issue implementation for continuous or discrete value ranges."""
 
 from __future__ import annotations
 

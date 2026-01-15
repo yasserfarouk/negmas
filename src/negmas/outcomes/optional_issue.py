@@ -1,4 +1,4 @@
-"""Outcome representations."""
+"""Optional issue wrapper that allows None as a valid value."""
 
 from __future__ import annotations
 

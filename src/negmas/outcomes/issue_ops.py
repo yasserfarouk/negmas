@@ -1,4 +1,4 @@
-"""Outcome representations."""
+"""Operations on issues including enumeration, sampling, and XML serialization."""
 
 from __future__ import annotations
 

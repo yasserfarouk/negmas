@@ -1,4 +1,4 @@
-"""Preference representations."""
+"""Mixins for utility function behavior classification (volatility, stationarity, state-dependence)."""
 
 from __future__ import annotations
 

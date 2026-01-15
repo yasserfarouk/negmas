@@ -1,4 +1,4 @@
-"""Custom exceptions."""
+"""Exception classes for the NegMAS library."""
 
 __all__ = ["NegMASException"]
 

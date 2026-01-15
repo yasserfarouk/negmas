@@ -337,7 +337,7 @@ class VetoSTMechanism(
 
     @property
     def current_offer(self):
-        """Current offer."""
+        """Returns the current offer being considered in the negotiation."""
         return self._current_state.current_offer
 
 
@@ -437,5 +437,5 @@ class HillClimbingSTMechanism(VetoSTMechanism):
 
     @property
     def current_offer(self):
-        """Current offer."""
+        """Returns the current offer being considered in the negotiation."""
         return self._current_state.current_offer

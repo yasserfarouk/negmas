@@ -103,7 +103,7 @@ class GAMechanism(
         return self.population
 
     def update_ranks(self):
-        """Update ranks."""
+        """Recalculates negotiator rankings for all outcomes in the population."""
         self.ranks.clear()
         outcomes = {}
         for outcome in self.population:

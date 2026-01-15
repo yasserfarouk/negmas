@@ -1,4 +1,4 @@
-"""Protocol definitions."""
+"""Protocol definitions for XML and dictionary serialization."""
 
 from __future__ import annotations
 

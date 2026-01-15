@@ -1,4 +1,4 @@
-"""Negotiator implementations."""
+"""Tough negotiator implementations that only accept top offers."""
 
 from __future__ import annotations
 

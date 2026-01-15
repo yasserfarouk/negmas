@@ -1,4 +1,4 @@
-"""Negotiator implementations."""
+"""Controller for managing multiple negotiators across concurrent negotiations."""
 
 from __future__ import annotations
 

@@ -1,4 +1,4 @@
-"""Negotiator implementations."""
+"""Limited outcomes negotiator implementations with fixed proposal/acceptance sets."""
 
 from __future__ import annotations
 

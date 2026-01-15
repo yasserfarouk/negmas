@@ -1,4 +1,4 @@
-"""Negotiator implementations."""
+"""Concession-based negotiator implementations (CAN, CAB, CAR)."""
 
 from __future__ import annotations
 

@@ -1,4 +1,4 @@
-"""Negotiator implementations."""
+"""Random negotiator implementations with probabilistic responses."""
 
 from __future__ import annotations
 

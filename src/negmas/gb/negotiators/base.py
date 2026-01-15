@@ -26,7 +26,7 @@ TState = TypeVar("TState", bound=MechanismState)
 
 
 def none_return():
-    """None return."""
+    """A helper function that always returns None."""
     return None
 
 

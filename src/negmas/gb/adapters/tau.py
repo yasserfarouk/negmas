@@ -320,7 +320,7 @@ class TAUNegotiatorAdapter(GBNegotiator):
 
     @property
     def java_uuid(self):
-        """Java uuid."""
+        """Returns the Java UUID of the underlying base negotiator."""
         return self.base.java_uuid  # type: ignore
 
     def _sao_stat_from_gb_state(
@@ -596,7 +596,7 @@ class TAUNegotiatorAdapter(GBNegotiator):
 
     @property
     def capabilities(self) -> dict[str, Any]:
-        """Agent capabilities."""
+        """Returns the capabilities dictionary of the underlying base negotiator."""
         return self.base.capabilities
 
     @property

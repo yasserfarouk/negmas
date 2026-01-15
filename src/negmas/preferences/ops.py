@@ -1,4 +1,4 @@
-"""Preference representations."""
+"""Operations on utility functions including Pareto frontier, Nash points, and normalization."""
 
 from __future__ import annotations
 

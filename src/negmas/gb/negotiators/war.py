@@ -1,4 +1,4 @@
-"""Negotiator implementations."""
+"""WAR (Wasting Accepting) negotiator implementations."""
 
 from __future__ import annotations
 

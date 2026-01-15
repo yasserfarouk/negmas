@@ -31,7 +31,7 @@ def force_single_thread(on: bool = True):
 
 @contextmanager
 def single_thread():
-    """Single thread."""
+    """Context manager that temporarily forces single-threaded execution."""
     force_single_thread(True)
     yield None
     force_single_thread(False)
@@ -53,7 +53,7 @@ class TimeoutCaller:
 
     @classmethod
     def get_pool(cls):
-        """Get pool."""
+        """Returns the shared thread pool, creating it if necessary."""
         if cls.pool is None:
             cls.pool = ThreadPoolExecutor()
         return cls.pool

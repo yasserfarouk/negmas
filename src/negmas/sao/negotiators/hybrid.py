@@ -1,5 +1,5 @@
 # ruff: noqa: F403
-"""Negotiator implementations."""
+"""Re-exports hybrid negotiators from the GB module for SAO compatibility."""
 
 import negmas.gb.negotiators.hybrid as _n
 from negmas.gb.negotiators.hybrid import *

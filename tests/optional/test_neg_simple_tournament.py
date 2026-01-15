@@ -23,6 +23,7 @@ from negmas.tournaments.neg.simple.cartesian import (
     TOURNAMENT_DIRS,
     TOURNAMENT_FILES,
     SimpleTournamentResults,
+    RunInfo,
 )
 
 

@@ -1,4 +1,4 @@
-"""Situated negotiation."""
+"""Contract breach representation and processing types."""
 
 from __future__ import annotations
 
@@ -25,7 +25,7 @@ class BreachProcessing(Enum):
 
 @define
 class Breach:
-    """Breach implementation."""
+    """Represents a contract breach by an agent in the simulation."""
 
     contract: Contract
     """The agreement being breached"""
@@ -44,7 +44,7 @@ class Breach:
     """Object name"""
 
     def as_dict(self):
-        """As dict."""
+        """Converts the breach to a dictionary representation for serialization."""
         return {
             "contract": str(self.contract),
             "contract_id": self.contract.id,

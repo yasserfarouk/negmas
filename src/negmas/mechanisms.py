@@ -89,7 +89,7 @@ class MechanismStepResult(Generic[TState]):
     error: bool = False
     """True if an error occurred in the mechanism."""
     error_details: str = ""
-    """Error message."""
+    """Detailed description of any error that occurred during the step."""
     waiting: bool = False
     """Whether to consider that the round is still running and call the round
     method again without increasing the step number."""
@@ -871,7 +871,11 @@ class Mechanism(
         return True
 
     def add_requirements(self, requirements: dict) -> None:
-        """Adds requirements."""
+        """Merges new requirements into the existing mechanism requirements.
+
+        Args:
+            requirements: Dict mapping requirement names to acceptable values
+        """
         requirements = {
             k: set(v) if isinstance(v, list) else v for k, v in requirements.items()
         }
@@ -881,7 +885,11 @@ class Mechanism(
             self._requirements = requirements
 
     def remove_requirements(self, requirements: Iterable) -> None:
-        """Adds requirements."""
+        """Removes specified requirements from the mechanism.
+
+        Args:
+            requirements: Iterable of requirement names to remove
+        """
         for r in requirements:
             if r in self._requirements.keys():
                 self._requirements.pop(r, None)
@@ -967,7 +975,7 @@ class Mechanism(
 
     @property
     def n_outcomes(self):
-        """N outcomes."""
+        """Returns the total number of possible outcomes in the outcome space."""
         return self.nmi.n_outcomes
 
     @property
@@ -991,12 +999,12 @@ class Mechanism(
 
     @property
     def n_steps(self):
-        """N steps."""
+        """Returns the maximum number of negotiation steps allowed, or None if unlimited."""
         return self.nmi.n_steps
 
     @property
     def time_limit(self):
-        """Time limit."""
+        """Returns the maximum negotiation time in seconds, or infinity if unlimited."""
         return self.nmi.time_limit
 
     @property
@@ -1006,7 +1014,7 @@ class Mechanism(
 
     @property
     def dynamic_entry(self):
-        """Dynamic entry."""
+        """Returns whether negotiators can join/leave during negotiation."""
         return self.nmi.dynamic_entry
 
     @property
@@ -1582,7 +1590,7 @@ class Mechanism(
 
     @property
     def current_step(self):
-        """Current step."""
+        """Returns the current negotiation step number (0-indexed)."""
         return self._current_state.step
 
     def _get_preferences(self) -> list[UtilityFunction]:

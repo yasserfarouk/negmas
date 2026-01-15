@@ -850,7 +850,7 @@ class World(
 
     @property
     def current_step(self):
-        """Current step."""
+        """Returns the current simulation step number."""
         return self._current_step
 
     def _agent_logger(self, aid: str) -> logging.Logger:
@@ -901,7 +901,7 @@ class World(
 
     @property
     def log_folder(self):
-        """Log folder."""
+        """Returns the path to the logging folder for this world."""
         return self._log_folder
 
     def loginfo_agent(
@@ -1900,7 +1900,7 @@ class World(
         )
 
     def append_stats(self):
-        """Append stats."""
+        """Appends current statistics to the stats file if configured."""
         if self._stats_file_name is not None:
             save_stats(
                 self,

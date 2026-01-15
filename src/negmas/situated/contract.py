@@ -1,4 +1,4 @@
-"""Situated negotiation."""
+"""Contract class representing agreements between agents."""
 
 from __future__ import annotations
 

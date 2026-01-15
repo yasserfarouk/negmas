@@ -1,5 +1,5 @@
 # ruff: noqa: F403
-"""Negotiator implementations."""
+"""Re-exports tit-for-tat negotiators from the GB module for SAO compatibility."""
 
 import negmas.gb.negotiators.titfortat as _n
 from negmas.gb.negotiators.titfortat import *

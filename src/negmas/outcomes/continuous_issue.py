@@ -1,4 +1,4 @@
-"""Outcome representations."""
+"""Continuous issue implementation for real-valued ranges with finite limits."""
 
 from __future__ import annotations
 

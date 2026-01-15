@@ -1,4 +1,4 @@
-"""Negotiator implementations."""
+"""Nice negotiator that accepts everything and proposes randomly."""
 
 from __future__ import annotations
 

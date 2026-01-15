@@ -1,4 +1,4 @@
-"""Outcome representations."""
+"""Categorical issue implementation for discrete unordered values."""
 
 from __future__ import annotations
 

@@ -1,4 +1,4 @@
-"""Negotiator implementations."""
+"""Tit-for-tat negotiator implementations."""
 
 from __future__ import annotations
 

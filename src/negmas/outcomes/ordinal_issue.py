@@ -1,4 +1,4 @@
-"""Outcome representations."""
+"""Ordinal issue implementation where values can be ordered but differences are not meaningful."""
 
 from __future__ import annotations
 

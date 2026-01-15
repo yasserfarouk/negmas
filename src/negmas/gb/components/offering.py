@@ -368,7 +368,7 @@ class MiCROOfferingPolicy(OfferingPolicy):
         return random.choice(list(self._sent))
 
     def ensure_sorter(self):
-        """Ensure sorter."""
+        """Initializes the outcome sorter if not already initialized and returns it."""
         if not self.sorter:
             assert self.negotiator.ufun
             self.sorter = PresortingInverseUtilityFunction(

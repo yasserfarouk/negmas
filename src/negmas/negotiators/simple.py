@@ -1,4 +1,4 @@
-"""Negotiator implementations."""
+"""Simple negotiators using comparison, ranking, and evaluation strategies."""
 
 from __future__ import annotations
 

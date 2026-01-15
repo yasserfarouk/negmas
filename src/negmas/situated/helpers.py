@@ -1,4 +1,4 @@
-"""Situated negotiation."""
+"""Utility functions for situated negotiations."""
 
 from __future__ import annotations
 

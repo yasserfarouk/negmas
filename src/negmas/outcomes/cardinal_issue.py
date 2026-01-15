@@ -1,4 +1,4 @@
-"""Outcome representations."""
+"""Cardinal issue implementation where differences between values are meaningful."""
 
 from __future__ import annotations
 

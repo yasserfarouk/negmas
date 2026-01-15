@@ -1,4 +1,4 @@
-"""Protocol definitions."""
+"""Protocol definitions for preference types, utility functions, and related abstractions."""
 
 from __future__ import annotations
 
@@ -193,7 +193,7 @@ class StationaryConvertible(Protocol):
     """Can be converted to stationary Prefereences (i.e. one indepndent of the negotiation session, state or external factors). The conversion is only accurate at the instant it is done"""
 
     def to_stationary(self):
-        """To stationary."""
+        """Converts to a stationary utility function that is independent of session, state, and external factors."""
         ...
 
 

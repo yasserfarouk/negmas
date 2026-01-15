@@ -325,12 +325,12 @@ class AspirationNegotiator(TimeBasedConcedingNegotiator):
 
     @property
     def ufun_max(self):
-        """Ufun max."""
+        """Returns the maximum utility value from the inverter."""
         return self._inverter.ufun_max
 
     @property
     def ufun_min(self):
-        """Ufun min."""
+        """Returns the minimum utility value from the inverter."""
         return self._inverter.ufun_min
 
 

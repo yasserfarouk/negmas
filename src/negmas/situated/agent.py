@@ -1,4 +1,4 @@
-"""Agent implementations."""
+"""Base Agent class for agents participating in simulated worlds."""
 
 from __future__ import annotations
 

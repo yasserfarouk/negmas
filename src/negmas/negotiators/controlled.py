@@ -1,4 +1,4 @@
-"""Negotiator implementations."""
+"""Negotiators that delegate behavior to a parent controller."""
 
 from __future__ import annotations
 

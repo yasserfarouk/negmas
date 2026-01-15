@@ -61,7 +61,14 @@ STATS_FILE_NAME = "_stats.yaml"
 
 
 def scenario_size(self: Scenario):
-    """Scenario size."""
+    """Computes the scenario complexity as outcome space size times time steps.
+
+    Args:
+        self: The scenario to measure
+
+    Returns:
+        The estimated scenario size/complexity
+    """
     size = self.outcome_space.cardinality
     if math.isinf(size):
         size = self.outcome_space.cardinality_if_discretized(10)

@@ -1,5 +1,6 @@
 # ruff: noqa: F403
-"""Model implementations."""
+"""Opponent modeling implementations for SAO negotiations."""
+
 from .ufun import *
 
 __all__ = ufun.__all__
