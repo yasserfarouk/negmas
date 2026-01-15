@@ -335,10 +335,10 @@ class Mechanism(
 
     @property
     def negotiators(self) -> list[TNegotiator]:
-        """Negotiators.
+        """All negotiators participating in this negotiation mechanism.
 
         Returns:
-            list[TNegotiator]: The result.
+            list[TNegotiator]: List of negotiator objects currently registered
         """
         return self._negotiators
 
@@ -356,10 +356,10 @@ class Mechanism(
 
     @property
     def outcome_space(self) -> OutcomeSpace:
-        """Outcome space.
+        """The space of all possible negotiation outcomes.
 
         Returns:
-            OutcomeSpace: The result.
+            OutcomeSpace: Defines valid outcomes including issues, values, and constraints
         """
         return self.nmi.outcome_space
 
@@ -379,7 +379,7 @@ class Mechanism(
 
     @property
     def outcomes(self):
-        """Outcomes."""
+        """All possible outcomes for discrete spaces, or None for continuous spaces."""
         return self.nmi.outcomes
 
     def discrete_outcomes(
@@ -598,10 +598,10 @@ class Mechanism(
             ),
         ],
     ):
-        """Requirements.
+        """Set negotiation requirements that negotiators must satisfy.
 
         Args:
-            requirements: Requirements.
+            requirements: Dict mapping requirement names to acceptable values (single value, tuple range, or list/set of options)
         """
         self._requirements = {
             k: set(v) if isinstance(v, list) else v for k, v in requirements.items()
@@ -1542,13 +1542,13 @@ class Mechanism(
         return self.state
 
     def run(self, timeout=None) -> TState:
-        """Run.
+        """Execute the negotiation mechanism until completion or timeout.
 
         Args:
-            timeout: Timeout.
+            timeout: Maximum time in seconds to run, or None for no limit
 
         Returns:
-            TState: The result.
+            TState: Final negotiation state after completion
         """
         if timeout is None:
             for _ in self:
@@ -1568,16 +1568,16 @@ class Mechanism(
 
     @property
     def history(self) -> list[TState]:
-        """History.
+        """Complete history of mechanism states throughout the negotiation.
 
         Returns:
-            list[TState]: The result.
+            list[TState]: Chronological list of all negotiation states from start to current
         """
         return self._history
 
     @property
     def stats(self):
-        """Stats."""
+        """Mechanism statistics collected during negotiation (e.g., step counts, agreement metrics)."""
         return self._stats
 
     @property
