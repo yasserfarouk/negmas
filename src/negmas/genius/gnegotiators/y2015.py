@@ -102,7 +102,31 @@ class AgentBuyog(GeniusNegotiator):
 
 
 class AgentH(GeniusNegotiator):
-    """AgentH implementation."""
+    """
+    AgentH negotiation agent.
+
+    **ANAC 2015**.
+
+    Uses relative utility search and bid history analysis.
+
+    **Offering Strategy:**
+        - Relative utility search based on time progression
+        - Falls back to history-based bid generation
+        - Concedes gradually as time progresses
+
+    **Acceptance Strategy:**
+        - Time-dependent acceptance: accepts if utility * time < 0.45
+        - Simple threshold-based decision
+
+    Note:
+        This description is AI-generated based on the original Java implementation
+        and may not be fully accurate. Refer to the original source code and papers
+        for authoritative information.
+
+    References:
+        Fujita, K., et al. (2017). The Sixth Automated Negotiating Agents Competition
+        (ANAC 2015). Studies in Computational Intelligence, vol 674. Springer, Cham.
+    """
 
     def __init__(self, **kwargs):
         """Initialize the instance.
@@ -115,7 +139,40 @@ class AgentH(GeniusNegotiator):
 
 
 class AgentHP(GeniusNegotiator):
-    """AgentHP implementation."""
+    """
+    AgentHP negotiation agent.
+
+    **ANAC 2015**.
+
+    Uses Analytic Hierarchy Process (AHP) for bid evaluation with pairwise
+    comparison of issues. Tracks opponent behavior using frequency analysis
+    and geometric mean calculations.
+
+    **Offering Strategy:**
+        - Generates bids within a utility range based on time-dependent threshold
+        - Selects bids that maximize AHP evaluation score
+        - AHP weights derived from pairwise comparison matrix using geometric mean
+
+    **Acceptance Strategy:**
+        - Acceptance probability based on opponent concession rate and AHP scores
+        - Considers discounted utility when time pressure increases
+
+    **Opponent Modeling:**
+        Frequency-based tracking per opponent:
+
+        - Tracks issue value frequencies across opponent bids
+        - Computes issue weights using geometric mean of frequencies
+        - Updates AHP comparison matrix based on observed preferences
+
+    Note:
+        This description is AI-generated based on the original Java implementation
+        and may not be fully accurate. Refer to the original source code and papers
+        for authoritative information.
+
+    References:
+        Fujita, K., et al. (2017). The Sixth Automated Negotiating Agents Competition
+        (ANAC 2015). Studies in Computational Intelligence, vol 674. Springer, Cham.
+    """
 
     def __init__(self, **kwargs):
         """Initialize the instance.
@@ -128,7 +185,35 @@ class AgentHP(GeniusNegotiator):
 
 
 class AgentNeo(GeniusNegotiator):
-    """AgentNeo implementation."""
+    """
+    AgentNeo negotiation agent.
+
+    **ANAC 2015**.
+
+    Discount-aware agent that precomputes bids organized by utility ranges.
+    Uses similarity-based bid selection with multiple choice methods.
+
+    **Offering Strategy:**
+        - Starts with maximum utility bids for first 7 rounds
+        - Precomputes all possible bids and organizes them by utility ranges
+        - Uses three bid selection methods (ChooseBid1/2/3) based on similarity
+          to opponent's previous offers
+        - Considers discount factor when calculating target utility
+
+    **Acceptance Strategy:**
+        - Accepts if opponent's bid utility >= current threshold
+        - Accepts if opponent's bid utility >= utility of next planned offer
+        - Threshold decreases over time accounting for discount factor
+
+    Note:
+        This description is AI-generated based on the original Java implementation
+        and may not be fully accurate. Refer to the original source code and papers
+        for authoritative information.
+
+    References:
+        Fujita, K., et al. (2017). The Sixth Automated Negotiating Agents Competition
+        (ANAC 2015). Studies in Computational Intelligence, vol 674. Springer, Cham.
+    """
 
     def __init__(self, **kwargs):
         """Initialize the instance.
@@ -141,7 +226,37 @@ class AgentNeo(GeniusNegotiator):
 
 
 class AgentW(GeniusNegotiator):
-    """AgentW implementation."""
+    """
+    AgentW negotiation agent.
+
+    **ANAC 2015**.
+
+    Modular agent with separate components for negotiation info tracking,
+    bid searching, and strategy. Uses opponent's last bid as seed for search.
+
+    **Offering Strategy:**
+        - Modular design with negotiatingInfo, bidSearch, strategy components
+        - Time-dependent utility threshold that decreases over negotiation
+        - Uses opponent's last bid as seed for bid search
+        - Searches for bids above threshold that may appeal to opponent
+
+    **Acceptance Strategy:**
+        - Time-dependent threshold comparison
+        - Accepts if opponent's offer exceeds current threshold
+
+    **Opponent Modeling:**
+        Frequency-based model tracking opponent bidding patterns to guide
+        bid generation toward mutually acceptable outcomes.
+
+    Note:
+        This description is AI-generated based on the original Java implementation
+        and may not be fully accurate. Refer to the original source code and papers
+        for authoritative information.
+
+    References:
+        Fujita, K., et al. (2017). The Sixth Automated Negotiating Agents Competition
+        (ANAC 2015). Studies in Computational Intelligence, vol 674. Springer, Cham.
+    """
 
     def __init__(self, **kwargs):
         """Initialize the instance.
@@ -154,7 +269,37 @@ class AgentW(GeniusNegotiator):
 
 
 class AgentX(GeniusNegotiator):
-    """AgentX implementation."""
+    """
+    AgentX negotiation agent.
+
+    **ANAC 2015**.
+
+    Modular agent similar to AgentW but uses simulated annealing for bid
+    search with random bid seeding.
+
+    **Offering Strategy:**
+        - Modular design with negotiatingInfo, bidSearch, strategy components
+        - Simulated annealing bid search for finding near-optimal bids
+        - Uses random bid as initial seed (unlike AgentW's opponent-based seed)
+        - Time-dependent concession following threshold curve
+
+    **Acceptance Strategy:**
+        - Accepts if opponent's bid utility exceeds current threshold
+        - Threshold decreases over time based on negotiation progress
+
+    **Opponent Modeling:**
+        Frequency-based opponent model that tracks issue value frequencies
+        to estimate opponent preferences and guide bid search.
+
+    Note:
+        This description is AI-generated based on the original Java implementation
+        and may not be fully accurate. Refer to the original source code and papers
+        for authoritative information.
+
+    References:
+        Fujita, K., et al. (2017). The Sixth Automated Negotiating Agents Competition
+        (ANAC 2015). Studies in Computational Intelligence, vol 674. Springer, Cham.
+    """
 
     def __init__(self, **kwargs):
         """Initialize the instance.
@@ -167,7 +312,34 @@ class AgentX(GeniusNegotiator):
 
 
 class AresParty(GeniusNegotiator):
-    """AresParty implementation."""
+    """
+    AresParty negotiation agent.
+
+    **ANAC 2015**.
+
+    Discount-aware agent with time estimation for remaining rounds and
+    adaptive concession strategy. Uses toughness parameter for concession control.
+
+    **Offering Strategy:**
+        - Estimates remaining negotiation rounds based on elapsed time
+        - Precomputes bids organized by utility ranges for fast selection
+        - Concession controlled by alpha1=2 toughness parameter
+        - Discount-aware: adjusts target utility based on discount factor
+
+    **Acceptance Strategy:**
+        - Terminates if reservation value with discount > predicted maximum
+        - Accepts bids above time-dependent threshold
+        - Threshold calculation considers discount factor and remaining time
+
+    Note:
+        This description is AI-generated based on the original Java implementation
+        and may not be fully accurate. Refer to the original source code and papers
+        for authoritative information.
+
+    References:
+        Fujita, K., et al. (2017). The Sixth Automated Negotiating Agents Competition
+        (ANAC 2015). Studies in Computational Intelligence, vol 674. Springer, Cham.
+    """
 
     def __init__(self, **kwargs):
         """Initialize the instance.
@@ -227,7 +399,43 @@ class Atlas3(GeniusNegotiator):
 
 
 class CUHKAgent2015(GeniusNegotiator):
-    """CUHKAgent2015 implementation."""
+    """
+    CUHKAgent2015 negotiation agent.
+
+    **ANAC 2015**.
+
+    Sophisticated agent from Chinese University of Hong Kong with dual-opponent
+    modeling. Tracks both opponents separately with statistical analysis over
+    multiple time intervals.
+
+    **Offering Strategy:**
+        - Distance-based bid selection to balance self and opponent utilities
+        - Gaussian probability distribution for utility target selection
+        - Adapts strategy based on time intervals (First/Second/ThirdTimeInterval)
+        - Considers both opponents' estimated preferences in bid selection
+
+    **Acceptance Strategy:**
+        - Multi-criteria acceptance considering both opponents' behavior
+        - Statistical analysis of opponent concession patterns over intervals
+        - More lenient acceptance near deadline
+
+    **Opponent Modeling:**
+        Dual-opponent tracking with sophisticated statistical analysis:
+
+        - Separate models for each opponent in multilateral negotiation
+        - Divides negotiation into time intervals for trend analysis
+        - Tracks concession patterns, mean utilities, and variance
+        - Uses statistical measures to predict opponent behavior
+
+    Note:
+        This description is AI-generated based on the original Java implementation
+        and may not be fully accurate. Refer to the original source code and papers
+        for authoritative information.
+
+    References:
+        Fujita, K., et al. (2017). The Sixth Automated Negotiating Agents Competition
+        (ANAC 2015). Studies in Computational Intelligence, vol 674. Springer, Cham.
+    """
 
     def __init__(self, **kwargs):
         """Initialize the instance.
@@ -240,7 +448,37 @@ class CUHKAgent2015(GeniusNegotiator):
 
 
 class DrageKnight(GeniusNegotiator):
-    """DrageKnight implementation."""
+    """
+    DrageKnight negotiation agent.
+
+    **ANAC 2015**.
+
+    Modular agent similar to AgentW/X family, using simulated annealing
+    for bid search with frequency-based opponent modeling.
+
+    **Offering Strategy:**
+        - Modular design with strategy, bidSearch, negotiatingInfo components
+        - Simulated annealing search for bid generation
+        - Uses getThreshold2 method for threshold calculation
+        - Time-dependent concession strategy
+
+    **Acceptance Strategy:**
+        - Threshold-based acceptance using getThreshold2
+        - Accepts if opponent bid exceeds calculated threshold
+
+    **Opponent Modeling:**
+        Frequency-based model tracking opponent issue value preferences
+        to guide bid search toward mutually beneficial outcomes.
+
+    Note:
+        This description is AI-generated based on the original Java implementation
+        and may not be fully accurate. Refer to the original source code and papers
+        for authoritative information.
+
+    References:
+        Fujita, K., et al. (2017). The Sixth Automated Negotiating Agents Competition
+        (ANAC 2015). Studies in Computational Intelligence, vol 674. Springer, Cham.
+    """
 
     def __init__(self, **kwargs):
         """Initialize the instance.
@@ -253,7 +491,38 @@ class DrageKnight(GeniusNegotiator):
 
 
 class Group2(GeniusNegotiator):
-    """Group2 implementation."""
+    """
+    Group2 negotiation agent.
+
+    **ANAC 2015**.
+
+    Uses Pareto-optimal bid search with per-party opponent modeling.
+    Estimates remaining rounds to adapt concession timing.
+
+    **Offering Strategy:**
+        - Pareto-optimal bid search using G2ParetoFinder class
+        - Searches Pareto frontier for bids above minimum utility threshold
+        - Time-dependent minimum utility with round estimation
+        - Adapts bid selection based on negotiation progress
+
+    **Acceptance Strategy:**
+        - Accepts if opponent bid exceeds time-dependent threshold
+        - Threshold considers estimated remaining rounds
+        - More lenient as deadline approaches
+
+    **Opponent Modeling:**
+        Per-party opponent modeling tracking each opponent's preferences
+        separately to find Pareto-optimal bids acceptable to all parties.
+
+    Note:
+        This description is AI-generated based on the original Java implementation
+        and may not be fully accurate. Refer to the original source code and papers
+        for authoritative information.
+
+    References:
+        Fujita, K., et al. (2017). The Sixth Automated Negotiating Agents Competition
+        (ANAC 2015). Studies in Computational Intelligence, vol 674. Springer, Cham.
+    """
 
     def __init__(self, **kwargs):
         """Initialize the instance.
@@ -266,7 +535,41 @@ class Group2(GeniusNegotiator):
 
 
 class JonnyBlack(GeniusNegotiator):
-    """JonnyBlack implementation."""
+    """
+    JonnyBlack negotiation agent.
+
+    **ANAC 2015**.
+
+    Enumerates feasible bids and uses opponent preference prediction with
+    round-robin fairness in multilateral scenarios.
+
+    **Offering Strategy:**
+        - Enumerates all feasible bids with utility > finalStopVal (0.6)
+        - Selects bids based on estimated opponent preferences
+        - Round-robin opponent favoring: cycles agentToFavor to ensure
+          fairness in multilateral negotiations
+        - Balances own utility with opponent satisfaction
+
+    **Acceptance Strategy:**
+        - Accepts bids above the minimum utility threshold (0.6)
+        - Considers opponent preferences in acceptance decision
+
+    **Opponent Modeling:**
+        Frequency-based preference prediction:
+
+        - Counts value frequencies across opponent bids
+        - Estimates opponent utility function from frequency counts
+        - Uses predictions to favor bids likely acceptable to opponents
+
+    Note:
+        This description is AI-generated based on the original Java implementation
+        and may not be fully accurate. Refer to the original source code and papers
+        for authoritative information.
+
+    References:
+        Fujita, K., et al. (2017). The Sixth Automated Negotiating Agents Competition
+        (ANAC 2015). Studies in Computational Intelligence, vol 674. Springer, Cham.
+    """
 
     def __init__(self, **kwargs):
         """Initialize the instance.
@@ -339,7 +642,36 @@ class Kawaii(GeniusNegotiator):
 
 
 class MeanBot(GeniusNegotiator):
-    """MeanBot implementation."""
+    """
+    MeanBot negotiation agent.
+
+    **ANAC 2015**.
+
+    Extremely simple hardball agent. Always offers maximum utility bid
+    and only accepts near deadline. No opponent modeling.
+
+    **Offering Strategy:**
+        - Always offers the maximum utility bid
+        - No concession throughout negotiation
+        - Pure hardball/take-it-or-leave-it approach
+
+    **Acceptance Strategy:**
+        - Only considers acceptance after t >= 0.95 (95% of time elapsed)
+        - Accepts only if opponent's bid utility > 0.5
+        - Very restrictive acceptance criteria
+
+    **Opponent Modeling:**
+        None. This agent ignores opponent behavior entirely.
+
+    Note:
+        This description is AI-generated based on the original Java implementation
+        and may not be fully accurate. Refer to the original source code and papers
+        for authoritative information.
+
+    References:
+        Fujita, K., et al. (2017). The Sixth Automated Negotiating Agents Competition
+        (ANAC 2015). Studies in Computational Intelligence, vol 674. Springer, Cham.
+    """
 
     def __init__(self, **kwargs):
         """Initialize the instance.
@@ -352,7 +684,41 @@ class MeanBot(GeniusNegotiator):
 
 
 class Mercury(GeniusNegotiator):
-    """Mercury implementation."""
+    """
+    Mercury negotiation agent.
+
+    **ANAC 2015**.
+
+    Extended version of AresParty with enhanced multi-party support.
+    Tracks acceptance signals and adapts offers accordingly.
+
+    **Offering Strategy:**
+        - Inherits AresParty's discount-aware bid generation
+        - Tracks party order in multilateral negotiations
+        - When one opponent accepts (halfSucc flag), offers "nice bids"
+          in a lower utility range to close the deal
+        - Adapts strategy based on acceptance signals from opponents
+
+    **Acceptance Strategy:**
+        - Similar to AresParty with discount-aware thresholds
+        - More willing to accept when close to agreement (halfSucc=true)
+
+    **Opponent Modeling:**
+        Tracks acceptance signals per opponent:
+
+        - Monitors which opponents have shown willingness to accept
+        - Uses "halfSucc" flag to indicate partial agreement state
+        - Adjusts offers to facilitate final agreement
+
+    Note:
+        This description is AI-generated based on the original Java implementation
+        and may not be fully accurate. Refer to the original source code and papers
+        for authoritative information.
+
+    References:
+        Fujita, K., et al. (2017). The Sixth Automated Negotiating Agents Competition
+        (ANAC 2015). Studies in Computational Intelligence, vol 674. Springer, Cham.
+    """
 
     def __init__(self, **kwargs):
         """Initialize the instance.
@@ -365,7 +731,41 @@ class Mercury(GeniusNegotiator):
 
 
 class PNegotiator(GeniusNegotiator):
-    """P negotiator."""
+    """
+    PNegotiator negotiation agent.
+
+    **ANAC 2015**.
+
+    Two-state agent (HARDLINER/CONCEDER) with Bayesian opponent modeling
+    using the BayesLogic class for preference estimation.
+
+    **Offering Strategy:**
+        Two distinct phases:
+
+        - HARDLINER (t < 0.2): Offers maximum utility bids, no concession
+        - CONCEDER (t >= 0.2): Gradual concession using formula:
+          utility = (maxUtil - Cj/numIssues)² where Cj = maxUtil * t²
+
+    **Acceptance Strategy:**
+        - In HARDLINER phase: only accepts very high utility bids
+        - In CONCEDER phase: accepts based on calculated concession utility
+
+    **Opponent Modeling:**
+        Bayesian opponent modeling via BayesLogic class:
+
+        - Maintains probability distributions over opponent preferences
+        - Updates beliefs based on observed bids
+        - Uses Bayesian inference for preference estimation
+
+    Note:
+        This description is AI-generated based on the original Java implementation
+        and may not be fully accurate. Refer to the original source code and papers
+        for authoritative information.
+
+    References:
+        Fujita, K., et al. (2017). The Sixth Automated Negotiating Agents Competition
+        (ANAC 2015). Studies in Computational Intelligence, vol 674. Springer, Cham.
+    """
 
     def __init__(self, **kwargs):
         """Initialize the instance.
@@ -437,7 +837,43 @@ class ParsAgent(GeniusNegotiator):
 
 
 class PhoenixParty(GeniusNegotiator):
-    """PhoenixParty implementation."""
+    """
+    PhoenixParty negotiation agent.
+
+    **ANAC 2015**.
+
+    Advanced agent using Gaussian Process regression for opponent modeling
+    to predict opponent concession behavior. Features complex parameter tuning.
+
+    **Offering Strategy:**
+        - Uses Gaussian Process predictions for opponent concession timing
+        - Complex parameter set (alpha, beta, omega, epsilon, xi, gamma)
+          for fine-tuned strategy control
+        - Frequency-based heuristic ranking of bids
+        - Discount-aware with reservation value checks
+
+    **Acceptance Strategy:**
+        - Accepts based on predicted opponent behavior from GP model
+        - Checks against reservation value considering discount factor
+        - Uses multiple parameters to balance acceptance criteria
+
+    **Opponent Modeling:**
+        Gaussian Process (GP) regression - unique among ANAC 2015 agents:
+
+        - Models opponent concession as a function over time
+        - Predicts future opponent utility targets
+        - Uncertainty quantification in predictions
+        - Combined with frequency-based heuristic ranking
+
+    Note:
+        This description is AI-generated based on the original Java implementation
+        and may not be fully accurate. Refer to the original source code and papers
+        for authoritative information.
+
+    References:
+        Fujita, K., et al. (2017). The Sixth Automated Negotiating Agents Competition
+        (ANAC 2015). Studies in Computational Intelligence, vol 674. Springer, Cham.
+    """
 
     def __init__(self, **kwargs):
         """Initialize the instance.
@@ -450,7 +886,43 @@ class PhoenixParty(GeniusNegotiator):
 
 
 class PokerFace(GeniusNegotiator):
-    """PokerFace implementation."""
+    """
+    PokerFace negotiation agent.
+
+    **ANAC 2015**.
+
+    Two-phase strategy: random walking among high-utility bids early,
+    then concedes based on opponent bid frequency analysis.
+
+    **Offering Strategy:**
+        Two phases:
+
+        - Early phase (t < 0.6): Random walker selecting among high-utility
+          bids (utility > 0.85) to avoid revealing preferences
+        - Late phase (t >= 0.6): Concedes using opponent bid frequency
+          analysis with binary concede bid generation
+
+    **Acceptance Strategy:**
+        - Early phase: strict, only accepts very high utility
+        - Late phase: uses moving average for time estimation
+        - More lenient acceptance as deadline approaches
+
+    **Opponent Modeling:**
+        Frequency analysis of opponent bids:
+
+        - Tracks bid frequencies over negotiation history
+        - Uses moving average to estimate time per round
+        - Analyzes opponent patterns to guide concession
+
+    Note:
+        This description is AI-generated based on the original Java implementation
+        and may not be fully accurate. Refer to the original source code and papers
+        for authoritative information.
+
+    References:
+        Fujita, K., et al. (2017). The Sixth Automated Negotiating Agents Competition
+        (ANAC 2015). Studies in Computational Intelligence, vol 674. Springer, Cham.
+    """
 
     def __init__(self, **kwargs):
         """Initialize the instance.
@@ -526,7 +998,39 @@ class RandomDance(GeniusNegotiator):
 
 
 class SENGOKU(GeniusNegotiator):
-    """SENGOKU implementation."""
+    """
+    SENGOKU negotiation agent.
+
+    **ANAC 2015**.
+
+    Japanese-style modular agent with strategy/bidSearch/negotiatingInfo
+    components. Features a "last action" phase for final concession attempts.
+
+    **Offering Strategy:**
+        - Modular design similar to AgentW/X family
+        - Shift-based bid search for exploring outcome space
+        - Has special "last action" phase near deadline for final
+          concession to avoid negotiation failure
+        - Tracks acceptance rate to adapt strategy
+
+    **Acceptance Strategy:**
+        - Time-dependent threshold with acceptance rate tracking
+        - Special handling in "last action" phase
+        - More aggressive acceptance near deadline
+
+    **Opponent Modeling:**
+        Tracks negotiation information including acceptance rates
+        to adapt bidding and acceptance strategies dynamically.
+
+    Note:
+        This description is AI-generated based on the original Java implementation
+        and may not be fully accurate. Refer to the original source code and papers
+        for authoritative information.
+
+    References:
+        Fujita, K., et al. (2017). The Sixth Automated Negotiating Agents Competition
+        (ANAC 2015). Studies in Computational Intelligence, vol 674. Springer, Cham.
+    """
 
     def __init__(self, **kwargs):
         """Initialize the instance.
@@ -539,7 +1043,41 @@ class SENGOKU(GeniusNegotiator):
 
 
 class TUDMixedStrategyAgent(GeniusNegotiator):
-    """TUDMixedStrategyAgent implementation."""
+    """
+    TUDMixedStrategyAgent negotiation agent.
+
+    **ANAC 2015**.
+
+    From TU Delft. Uses mixed strategy with opponent utility function
+    modeling. May re-offer previously received bids strategically.
+
+    **Offering Strategy:**
+        - Mixed strategy combining multiple approaches
+        - Uses AgentUtils class for opponent utility estimation
+        - May re-offer bids previously received from opponents
+        - Strategy class determines next bid utility target
+
+    **Acceptance Strategy:**
+        - Strategy class determines acceptance conditions
+        - Considers estimated opponent utility in decisions
+        - Adaptive threshold based on negotiation progress
+
+    **Opponent Modeling:**
+        AgentUtils-based utility function modeling:
+
+        - Estimates opponent's utility function from bid history
+        - Uses model to evaluate bid quality for opponent
+        - Informs both offering and acceptance decisions
+
+    Note:
+        This description is AI-generated based on the original Java implementation
+        and may not be fully accurate. Refer to the original source code and papers
+        for authoritative information.
+
+    References:
+        Fujita, K., et al. (2017). The Sixth Automated Negotiating Agents Competition
+        (ANAC 2015). Studies in Computational Intelligence, vol 674. Springer, Cham.
+    """
 
     def __init__(self, **kwargs):
         """Initialize the instance.
@@ -554,7 +1092,39 @@ class TUDMixedStrategyAgent(GeniusNegotiator):
 
 
 class XianFaAgent(GeniusNegotiator):
-    """XianFaAgent implementation."""
+    """
+    XianFaAgent negotiation agent.
+
+    **ANAC 2015**.
+
+    Uses tree-based statistical opponent modeling with custom Tree, Node,
+    and Statistician classes in the xianfa package.
+
+    **Offering Strategy:**
+        - Tree-based bid organization for efficient search
+        - Uses Statistician class to analyze opponent patterns
+        - Adapts bids based on statistical analysis of opponent behavior
+
+    **Acceptance Strategy:**
+        - Statistical threshold based on opponent modeling
+        - Uses tree structure to evaluate bid quality
+
+    **Opponent Modeling:**
+        Tree-based statistician model (xianfa package):
+
+        - Tree and Node classes for hierarchical bid organization
+        - Statistician class for opponent behavior analysis
+        - Statistical inference on opponent preferences
+
+    Note:
+        This description is AI-generated based on the original Java implementation
+        and may not be fully accurate. Refer to the original source code and papers
+        for authoritative information.
+
+    References:
+        Fujita, K., et al. (2017). The Sixth Automated Negotiating Agents Competition
+        (ANAC 2015). Studies in Computational Intelligence, vol 674. Springer, Cham.
+    """
 
     def __init__(self, **kwargs):
         """Initialize the instance.
@@ -567,7 +1137,23 @@ class XianFaAgent(GeniusNegotiator):
 
 
 class Y2015Group2(GeniusNegotiator):
-    """Y2015Group2 implementation."""
+    """
+    Y2015Group2 negotiation agent.
+
+    **ANAC 2015**.
+
+    Alias for Group2. Uses Pareto-optimal bid search with per-party
+    opponent modeling. See Group2 for full documentation.
+
+    Note:
+        This description is AI-generated based on the original Java implementation
+        and may not be fully accurate. Refer to the original source code and papers
+        for authoritative information.
+
+    References:
+        Fujita, K., et al. (2017). The Sixth Automated Negotiating Agents Competition
+        (ANAC 2015). Studies in Computational Intelligence, vol 674. Springer, Cham.
+    """
 
     def __init__(self, **kwargs):
         """Initialize the instance.

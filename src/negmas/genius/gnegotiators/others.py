@@ -32,7 +32,16 @@ __all__ = [
 
 
 class AI2014Group2(GeniusNegotiator):
-    """AI2014Group2 implementation."""
+    """
+    TU Delft AI 2014 Group 2 negotiation agent.
+
+    Student project agent from TU Delft's Artificial Intelligence course (2014).
+    Implements a negotiation strategy developed as part of coursework.
+
+    Note:
+        AI-generated summary. May not be fully accurate.
+        Student project - no published reference available.
+    """
 
     def __init__(self, **kwargs):
         """Initialize the instance.
@@ -45,7 +54,16 @@ class AI2014Group2(GeniusNegotiator):
 
 
 class Group1(GeniusNegotiator):
-    """Group1 implementation."""
+    """
+    TU Delft IN4010 Q1 2015 Group 1 negotiation agent.
+
+    Student project agent from TU Delft's IN4010 Multi-Agent Systems course
+    (Q1 2015). Implements a negotiation strategy developed as part of coursework.
+
+    Note:
+        AI-generated summary. May not be fully accurate.
+        Student project - no published reference available.
+    """
 
     def __init__(self, **kwargs):
         """Initialize the instance.
@@ -58,7 +76,16 @@ class Group1(GeniusNegotiator):
 
 
 class Group10(GeniusNegotiator):
-    """Group10 implementation."""
+    """
+    TU Delft IN4010 Q1 2015 Group 10 negotiation agent.
+
+    Student project agent from TU Delft's IN4010 Multi-Agent Systems course
+    (Q1 2015). Implements a negotiation strategy developed as part of coursework.
+
+    Note:
+        AI-generated summary. May not be fully accurate.
+        Student project - no published reference available.
+    """
 
     def __init__(self, **kwargs):
         """Initialize the instance.
@@ -71,7 +98,16 @@ class Group10(GeniusNegotiator):
 
 
 class Group11(GeniusNegotiator):
-    """Group11 implementation."""
+    """
+    TU Delft IN4010 Q1 2015 Group 11 negotiation agent.
+
+    Student project agent from TU Delft's IN4010 Multi-Agent Systems course
+    (Q1 2015). Implements a negotiation strategy developed as part of coursework.
+
+    Note:
+        AI-generated summary. May not be fully accurate.
+        Student project - no published reference available.
+    """
 
     def __init__(self, **kwargs):
         """Initialize the instance.
@@ -84,7 +120,16 @@ class Group11(GeniusNegotiator):
 
 
 class Group12(GeniusNegotiator):
-    """Group12 implementation."""
+    """
+    TU Delft IN4010 Q1 2015 Group 12 negotiation agent.
+
+    Student project agent from TU Delft's IN4010 Multi-Agent Systems course
+    (Q1 2015). Implements a negotiation strategy developed as part of coursework.
+
+    Note:
+        AI-generated summary. May not be fully accurate.
+        Student project - no published reference available.
+    """
 
     def __init__(self, **kwargs):
         """Initialize the instance.
@@ -97,7 +142,16 @@ class Group12(GeniusNegotiator):
 
 
 class Group13(GeniusNegotiator):
-    """Group13 implementation."""
+    """
+    TU Delft IN4010 Q1 2015 Group 13 negotiation agent.
+
+    Student project agent from TU Delft's IN4010 Multi-Agent Systems course
+    (Q1 2015). Implements a negotiation strategy developed as part of coursework.
+
+    Note:
+        AI-generated summary. May not be fully accurate.
+        Student project - no published reference available.
+    """
 
     def __init__(self, **kwargs):
         """Initialize the instance.
@@ -110,7 +164,16 @@ class Group13(GeniusNegotiator):
 
 
 class Group14(GeniusNegotiator):
-    """Group14 implementation."""
+    """
+    TU Delft IN4010 Q1 2015 Group 14 negotiation agent.
+
+    Student project agent from TU Delft's IN4010 Multi-Agent Systems course
+    (Q1 2015). Implements a negotiation strategy developed as part of coursework.
+
+    Note:
+        AI-generated summary. May not be fully accurate.
+        Student project - no published reference available.
+    """
 
     def __init__(self, **kwargs):
         """Initialize the instance.
@@ -123,7 +186,16 @@ class Group14(GeniusNegotiator):
 
 
 class Group15(GeniusNegotiator):
-    """Group15 implementation."""
+    """
+    TU Delft IN4010 Q1 2015 Group 15 negotiation agent.
+
+    Student project agent from TU Delft's IN4010 Multi-Agent Systems course
+    (Q1 2015). Implements a negotiation strategy developed as part of coursework.
+
+    Note:
+        AI-generated summary. May not be fully accurate.
+        Student project - no published reference available.
+    """
 
     def __init__(self, **kwargs):
         """Initialize the instance.
@@ -136,7 +208,16 @@ class Group15(GeniusNegotiator):
 
 
 class Group16(GeniusNegotiator):
-    """Group16 implementation."""
+    """
+    TU Delft IN4010 Q1 2015 Group 16 negotiation agent.
+
+    Student project agent from TU Delft's IN4010 Multi-Agent Systems course
+    (Q1 2015). Implements a negotiation strategy developed as part of coursework.
+
+    Note:
+        AI-generated summary. May not be fully accurate.
+        Student project - no published reference available.
+    """
 
     def __init__(self, **kwargs):
         """Initialize the instance.
@@ -149,7 +230,16 @@ class Group16(GeniusNegotiator):
 
 
 class Group17(GeniusNegotiator):
-    """Group17 implementation."""
+    """
+    TU Delft IN4010 Q1 2015 Group 17 negotiation agent.
+
+    Student project agent from TU Delft's IN4010 Multi-Agent Systems course
+    (Q1 2015). Implements a negotiation strategy developed as part of coursework.
+
+    Note:
+        AI-generated summary. May not be fully accurate.
+        Student project - no published reference available.
+    """
 
     def __init__(self, **kwargs):
         """Initialize the instance.
@@ -162,7 +252,16 @@ class Group17(GeniusNegotiator):
 
 
 class Group18(GeniusNegotiator):
-    """Group18 implementation."""
+    """
+    TU Delft IN4010 Q1 2015 Group 18 negotiation agent.
+
+    Student project agent from TU Delft's IN4010 Multi-Agent Systems course
+    (Q1 2015). Implements a negotiation strategy developed as part of coursework.
+
+    Note:
+        AI-generated summary. May not be fully accurate.
+        Student project - no published reference available.
+    """
 
     def __init__(self, **kwargs):
         """Initialize the instance.
@@ -175,7 +274,16 @@ class Group18(GeniusNegotiator):
 
 
 class Group19(GeniusNegotiator):
-    """Group19 implementation."""
+    """
+    TU Delft IN4010 Q1 2015 Group 19 negotiation agent.
+
+    Student project agent from TU Delft's IN4010 Multi-Agent Systems course
+    (Q1 2015). Implements a negotiation strategy developed as part of coursework.
+
+    Note:
+        AI-generated summary. May not be fully accurate.
+        Student project - no published reference available.
+    """
 
     def __init__(self, **kwargs):
         """Initialize the instance.
@@ -188,7 +296,16 @@ class Group19(GeniusNegotiator):
 
 
 class Group20(GeniusNegotiator):
-    """Group20 implementation."""
+    """
+    TU Delft IN4010 Q1 2015 Group 20 negotiation agent.
+
+    Student project agent from TU Delft's IN4010 Multi-Agent Systems course
+    (Q1 2015). Implements a negotiation strategy developed as part of coursework.
+
+    Note:
+        AI-generated summary. May not be fully accurate.
+        Student project - no published reference available.
+    """
 
     def __init__(self, **kwargs):
         """Initialize the instance.
@@ -201,7 +318,16 @@ class Group20(GeniusNegotiator):
 
 
 class Group21(GeniusNegotiator):
-    """Group21 implementation."""
+    """
+    TU Delft IN4010 Q1 2015 Group 21 negotiation agent.
+
+    Student project agent from TU Delft's IN4010 Multi-Agent Systems course
+    (Q1 2015). Implements a negotiation strategy developed as part of coursework.
+
+    Note:
+        AI-generated summary. May not be fully accurate.
+        Student project - no published reference available.
+    """
 
     def __init__(self, **kwargs):
         """Initialize the instance.
@@ -214,7 +340,16 @@ class Group21(GeniusNegotiator):
 
 
 class Group22(GeniusNegotiator):
-    """Group22 implementation."""
+    """
+    TU Delft IN4010 Q1 2015 Group 22 negotiation agent.
+
+    Student project agent from TU Delft's IN4010 Multi-Agent Systems course
+    (Q1 2015). Implements a negotiation strategy developed as part of coursework.
+
+    Note:
+        AI-generated summary. May not be fully accurate.
+        Student project - no published reference available.
+    """
 
     def __init__(self, **kwargs):
         """Initialize the instance.
@@ -227,7 +362,16 @@ class Group22(GeniusNegotiator):
 
 
 class Group3Q2015(GeniusNegotiator):
-    """Group3Q2015 implementation."""
+    """
+    TU Delft IN4010 Q1 2015 Group 3 negotiation agent.
+
+    Student project agent from TU Delft's IN4010 Multi-Agent Systems course
+    (Q1 2015). Implements a negotiation strategy developed as part of coursework.
+
+    Note:
+        AI-generated summary. May not be fully accurate.
+        Student project - no published reference available.
+    """
 
     def __init__(self, **kwargs):
         """Initialize the instance.
@@ -240,7 +384,16 @@ class Group3Q2015(GeniusNegotiator):
 
 
 class Group4(GeniusNegotiator):
-    """Group4 implementation."""
+    """
+    TU Delft IN4010 Q1 2015 Group 4 negotiation agent.
+
+    Student project agent from TU Delft's IN4010 Multi-Agent Systems course
+    (Q1 2015). Implements a negotiation strategy developed as part of coursework.
+
+    Note:
+        AI-generated summary. May not be fully accurate.
+        Student project - no published reference available.
+    """
 
     def __init__(self, **kwargs):
         """Initialize the instance.
@@ -253,7 +406,16 @@ class Group4(GeniusNegotiator):
 
 
 class Group5(GeniusNegotiator):
-    """Group5 implementation."""
+    """
+    TU Delft IN4010 Q1 2015 Group 5 negotiation agent.
+
+    Student project agent from TU Delft's IN4010 Multi-Agent Systems course
+    (Q1 2015). Implements a negotiation strategy developed as part of coursework.
+
+    Note:
+        AI-generated summary. May not be fully accurate.
+        Student project - no published reference available.
+    """
 
     def __init__(self, **kwargs):
         """Initialize the instance.
@@ -266,7 +428,16 @@ class Group5(GeniusNegotiator):
 
 
 class Group6(GeniusNegotiator):
-    """Group6 implementation."""
+    """
+    TU Delft IN4010 Q1 2015 Group 6 negotiation agent.
+
+    Student project agent from TU Delft's IN4010 Multi-Agent Systems course
+    (Q1 2015). Implements a negotiation strategy developed as part of coursework.
+
+    Note:
+        AI-generated summary. May not be fully accurate.
+        Student project - no published reference available.
+    """
 
     def __init__(self, **kwargs):
         """Initialize the instance.
@@ -279,7 +450,16 @@ class Group6(GeniusNegotiator):
 
 
 class Group7(GeniusNegotiator):
-    """Group7 implementation."""
+    """
+    TU Delft IN4010 Q1 2015 Group 7 negotiation agent.
+
+    Student project agent from TU Delft's IN4010 Multi-Agent Systems course
+    (Q1 2015). Implements a negotiation strategy developed as part of coursework.
+
+    Note:
+        AI-generated summary. May not be fully accurate.
+        Student project - no published reference available.
+    """
 
     def __init__(self, **kwargs):
         """Initialize the instance.
@@ -292,7 +472,16 @@ class Group7(GeniusNegotiator):
 
 
 class Group8(GeniusNegotiator):
-    """Group8 implementation."""
+    """
+    TU Delft IN4010 Q1 2015 Group 8 negotiation agent.
+
+    Student project agent from TU Delft's IN4010 Multi-Agent Systems course
+    (Q1 2015). Implements a negotiation strategy developed as part of coursework.
+
+    Note:
+        AI-generated summary. May not be fully accurate.
+        Student project - no published reference available.
+    """
 
     def __init__(self, **kwargs):
         """Initialize the instance.
@@ -305,7 +494,16 @@ class Group8(GeniusNegotiator):
 
 
 class Group9(GeniusNegotiator):
-    """Group9 implementation."""
+    """
+    TU Delft IN4010 Q1 2015 Group 9 negotiation agent.
+
+    Student project agent from TU Delft's IN4010 Multi-Agent Systems course
+    (Q1 2015). Implements a negotiation strategy developed as part of coursework.
+
+    Note:
+        AI-generated summary. May not be fully accurate.
+        Student project - no published reference available.
+    """
 
     def __init__(self, **kwargs):
         """Initialize the instance.
@@ -318,7 +516,16 @@ class Group9(GeniusNegotiator):
 
 
 class Q12015Group2(GeniusNegotiator):
-    """Q12015Group2 implementation."""
+    """
+    TU Delft IN4010 Q1 2015 Group 2 negotiation agent.
+
+    Student project agent from TU Delft's IN4010 Multi-Agent Systems course
+    (Q1 2015). Implements a negotiation strategy developed as part of coursework.
+
+    Note:
+        AI-generated summary. May not be fully accurate.
+        Student project - no published reference available.
+    """
 
     def __init__(self, **kwargs):
         """Initialize the instance.
