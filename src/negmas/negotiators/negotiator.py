@@ -90,10 +90,10 @@ class Negotiator(Rational, Notifiable, Generic[TNMI, TState]):
 
     @property
     def ami(self) -> TNMI:
-        """Ami.
+        """Agent-Mechanism Interface (deprecated, use nmi instead).
 
         Returns:
-            TNMI: The result.
+            TNMI: The negotiation mechanism interface for this negotiator
         """
         warnings.deprecated(
             "`ami` is depricated and will not be a member of `Negotiator` in the future. Use `nmi` instead."
@@ -102,19 +102,19 @@ class Negotiator(Rational, Notifiable, Generic[TNMI, TState]):
 
     @property
     def opponent_ufun(self) -> BaseUtilityFunction | None:
-        """Opponent ufun.
+        """Opponent's utility function if known from private information.
 
         Returns:
-            BaseUtilityFunction | None: The result.
+            BaseUtilityFunction | None: Opponent's utility function or None if unknown
         """
         return self.private_info.get("opponent_ufun", None)
 
     @property
     def nmi(self) -> TNMI:
-        """Nmi.
+        """Negotiator-Mechanism Interface providing access to negotiation state and actions.
 
         Returns:
-            TNMI: The result.
+            TNMI: Interface for interacting with the negotiation mechanism
         """
         return self._nmi  # type: ignore
 

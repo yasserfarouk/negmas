@@ -26,21 +26,21 @@ class UtilityFunction(_ExtremelyDynamic, BaseUtilityFunction):
 
     @abstractmethod
     def eval(self, offer: Outcome) -> float:
-        """Eval.
+        """Evaluate the utility value of an offer.
 
         Args:
-            offer: Offer being considered.
+            offer: Outcome being evaluated (e.g., dict of issue values or tuple)
 
         Returns:
-            float: The result.
+            float: Utility value for this offer, typically normalized between 0 and 1
         """
         ...
 
     def to_crisp(self) -> UtilityFunction:
-        """To crisp.
+        """Convert to a crisp (non-probabilistic) utility function.
 
         Returns:
-            UtilityFunction: The result.
+            UtilityFunction: Self, as this is already a crisp utility function
         """
         return self
 
@@ -320,17 +320,20 @@ class CrispAdapter(UtilityFunction):
         self._prob = prob
 
     def eval(self, offer):
-        """Eval.
+        """Evaluate utility by converting probabilistic utility to crisp float value.
 
         Args:
-            offer: Offer being considered.
+            offer: Outcome to evaluate (converted from probabilistic to crisp utility)
+
+        Returns:
+            float: Crisp utility value for the offer
         """
         return float(self._prob.eval(offer))
 
     def to_stationary(self) -> UtilityFunction:
-        """To stationary.
+        """Convert to a stationary utility function (time-independent).
 
         Returns:
-            UtilityFunction: The result.
+            UtilityFunction: A new CrispAdapter with stationary probabilistic utility
         """
         return CrispAdapter(prob=self._prob.to_stationary())
