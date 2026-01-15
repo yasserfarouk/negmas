@@ -53,35 +53,35 @@ class ContinuousIssue(RangeIssue):
 
     @property
     def cardinality(self) -> int | float:
-        """Cardinality.
+        """Number of possible values (infinite for continuous issues).
 
         Returns:
-            int | float: The result.
+            int | float: Always returns infinity for continuous issues
         """
         return float("inf")
 
     @property
     def type(self) -> str:
-        """Type.
+        """Type of issue (continuous, discrete, categorical, etc.).
 
         Returns:
-            str: The result.
+            str: Always returns 'continuous' for this issue type
         """
         return "continuous"
 
     def is_continuous(self) -> bool:
-        """Check if continuous.
+        """Check if this issue has continuous values.
 
         Returns:
-            bool: The result.
+            bool: Always True for continuous issues
         """
         return True
 
     def is_uncountable(self) -> bool:
-        """Check if uncountable.
+        """Check if the issue has uncountably infinite values.
 
         Returns:
-            bool: The result.
+            bool: Always True for continuous issues (uncountably infinite)
         """
         return True
 

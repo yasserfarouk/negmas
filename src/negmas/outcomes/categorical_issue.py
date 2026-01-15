@@ -36,10 +36,10 @@ class CategoricalIssue(DiscreteIssue):
 
     @property
     def type(self) -> str:
-        """Type.
+        """Type of issue (continuous, discrete, categorical, etc.).
 
         Returns:
-            str: The result.
+            str: Always returns 'categorical' for this issue type
         """
         return "categorical"
 
@@ -52,27 +52,27 @@ class CategoricalIssue(DiscreteIssue):
         return output
 
     def is_continuous(self) -> bool:
-        """Check if continuous.
+        """Check if this issue has continuous values.
 
         Returns:
-            bool: The result.
+            bool: Always False for categorical issues (discrete values only)
         """
         return False
 
     def is_uncountable(self) -> bool:
-        """Check if uncountable.
+        """Check if the issue has uncountably infinite values.
 
         Returns:
-            bool: The result.
+            bool: Always False for categorical issues (finite countable values)
         """
         return False
 
     @property
     def all(self) -> Generator[Any, None, None]:
-        """All.
+        """Generate all possible values for this categorical issue.
 
         Returns:
-            Generator[Any, None, None]: The result.
+            Generator[Any, None, None]: Generator yielding each valid categorical value
         """
         yield from self._values
 
