@@ -194,19 +194,19 @@ class SAONMI(NegotiatorMechanismInterface):
 
     @property
     def state(self) -> SAOState:
-        """State.
+        """Current state of the SAO negotiation mechanism.
 
         Returns:
-            SAOState: The result.
+            SAOState: State containing step number, current offer, and negotiation status
         """
         return self._mechanism.state  # type: ignore
 
     @property
     def history(self) -> list[SAOState]:
-        """History.
+        """Complete history of all SAO negotiation states.
 
         Returns:
-            list[SAOState]: The result.
+            list[SAOState]: Chronological list of states from negotiation start to current
         """
         return self._mechanism.history
 
@@ -226,13 +226,13 @@ class SAONMI(NegotiatorMechanismInterface):
         return self._mechanism.offers  # type: ignore
 
     def negotiator_offers(self, negotiator_id: str) -> list[Outcome]:
-        """Negotiator offers.
+        """Get all offers made by a specific negotiator.
 
         Args:
-            negotiator_id: Negotiator id.
+            negotiator_id: ID of the negotiator whose offers to retrieve
 
         Returns:
-            list[Outcome]: The result.
+            list[Outcome]: List of all outcomes proposed by this negotiator
         """
         return self._mechanism.negotiator_offers(negotiator_id)  # type: ignore
 

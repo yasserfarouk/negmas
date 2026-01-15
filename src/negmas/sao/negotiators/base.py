@@ -152,14 +152,14 @@ class SAOPRNegotiator(GBNegotiator[SAONMI, SAOState]):
     def propose(  # type: ignore
         self, state: SAOState, dest: str | None = None
     ) -> Outcome | ExtendedOutcome | None:
-        """Propose.
+        """Generate a proposal (offer) for the current negotiation state.
 
         Args:
-            state: Current state.
-            dest: Dest.
+            state: Current SAO negotiation state including step, offers, and responses
+            dest: Target negotiator ID to send proposal to (None for all)
 
         Returns:
-            Outcome | ExtendedOutcome | None: The result.
+            Outcome | ExtendedOutcome | None: Proposed outcome, or None to end negotiation
         """
         ...
 
@@ -332,14 +332,14 @@ class SAOCallNegotiator(SAOPRNegotiator, ABC):
     def propose(
         self, state: SAOState, dest: str | None = None
     ) -> Outcome | ExtendedOutcome | None:
-        """Propose.
+        """Generate proposal by calling the negotiator and extracting the outcome.
 
         Args:
-            state: Current state.
-            dest: Dest.
+            state: Current SAO state with step counter and previous offers
+            dest: Destination negotiator ID (None broadcasts to all)
 
         Returns:
-            Outcome | ExtendedOutcome | None: The result.
+            Outcome | ExtendedOutcome | None: Cached or freshly generated proposal
         """
         if dest not in self.__last_offer:
             resp = self(state, dest)
@@ -349,14 +349,14 @@ class SAOCallNegotiator(SAOPRNegotiator, ABC):
         return self.__last_offer.pop(dest, None)
 
     def respond(self, state: SAOState, source: str | None = None) -> ResponseType:
-        """Respond.
+        """Generate response by calling negotiator and extracting response type.
 
         Args:
-            state: Current state.
-            source: Source identifier.
+            state: Current SAO state including the offer to respond to
+            source: Negotiator ID who made the offer (None if unknown)
 
         Returns:
-            ResponseType: The result.
+            ResponseType: Response action (ACCEPT_OFFER, REJECT_OFFER, or END_NEGOTIATION)
         """
         _ = source
         if source not in self.__last_response:
