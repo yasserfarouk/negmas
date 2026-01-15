@@ -1385,9 +1385,8 @@ def cartesian_tournament(
         SimpleTournamentResults containing scores, detailed results, score summaries, and final rankings.
 
     Notes:
-        - In explicit opponent mode (opponents provided), competitors appear at both first and last
-          positions to test different roles, but only their scores are recorded.
-        - Rotation with explicit opponents is not recommended as it can create role ambiguity.
+        - In explicit opponent mode (opponents provided), competitors appear at the first
+          position. Use rotate_ufuns=True to test performance in different roles.
         - Use njobs=-1 for debugging to run serially and see full tracebacks.
 
     Examples:
@@ -1480,20 +1479,14 @@ def cartesian_tournament(
         if explicit_opponents:
             # In explicit opponent mode, create combinations where:
             # - Competitor at position 0, opponents fill remaining positions
-            # - Competitor at position n-1, opponents fill other positions
-            # This allows testing competitors in different roles (e.g., buyer vs seller)
-            # scored_indices will track which position(s) have competitors
+            # When rotate_ufuns=True, ufun rotation naturally tests different roles
             if n < 2:
                 continue
             partners_list = []
-            # Competitor at position 0
+            # Competitor at position 0 (first position)
             for comp_info in competitor_info:
                 for opp_combo in product(*[opponent_info] * (n - 1)):
                     partners_list.append((comp_info,) + opp_combo)
-            # Competitor at position n-1
-            for comp_info in competitor_info:
-                for opp_combo in product(*[opponent_info] * (n - 1)):
-                    partners_list.append(opp_combo + (comp_info,))
         else:
             # Normal mode: all competitors play all positions
             partners_list = list(product(*tuple([competitor_info] * n)))
