@@ -714,21 +714,21 @@ class World(
 
     @property
     def stats(self) -> dict[str, Any]:
-        """Stats.
+        """Simulation statistics collected over time (negotiations, contracts, breaches, etc.).
 
         Returns:
-            dict[str, Any]: The result.
+            dict[str, Any]: Dict mapping statistic names to lists of values per simulation step
         """
         if len(self._stats) == 0:
             return dict()
         L = max(len(_) for _ in self._stats.values())
 
         def extend(x, L):
-            """Extend.
+            """Extend list x to length L by padding with NaN values.
 
             Args:
-                x: X.
-                L: L.
+                x: List to extend
+                L: Target length
             """
             n = len(x)
             if n >= L:
