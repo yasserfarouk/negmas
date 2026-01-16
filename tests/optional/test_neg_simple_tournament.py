@@ -268,6 +268,9 @@ def test_load_save_combine(tmp_path: Path):
         rotate_ufuns=rotate_ufuns,
         # plot_fraction=0.5,
         path=path,
+        # Use speed optimization to keep all files for testing file structure
+        storage_optimization="speed",
+        memory_optimization="speed",
     )
     final_scores = results.final_scores.copy()
     for d in TOURNAMENT_DIRS:

@@ -456,8 +456,8 @@ class SimpleTournamentResults:
         scores_summary: pd.DataFrame | None = None,
         final_scores: pd.DataFrame | None = None,
         path: Path | None = None,
-        memory_optimization: OptimizationLevel = "speed",
-        storage_optimization: OptimizationLevel = "speed",
+        memory_optimization: OptimizationLevel = "balanced",
+        storage_optimization: OptimizationLevel = "space",
         storage_format: StorageFormat | None = None,
         final_score_stat: tuple[str, str] = ("advantage", "mean"),
     ):
@@ -470,9 +470,9 @@ class SimpleTournamentResults:
             final_scores: Final rankings
             path: Location at which the logs are stored
             memory_optimization: Memory optimization level:
-                - "speed"/"time"/"none": Keep all data in memory (default behavior)
+                - "speed"/"time"/"none": Keep all data in memory
                 - "balanced": Keep details + final_scores + scores_summary in memory,
-                              compute scores on demand then cache
+                              compute scores on demand then cache (default)
                 - "space"/"max": Keep only final_scores + scores_summary in memory,
                           load details/scores from disk when needed
             storage_optimization: Storage optimization level:
@@ -924,8 +924,8 @@ class SimpleTournamentResults:
         cls,
         path: Path,
         must_have_details: bool = False,
-        memory_optimization: OptimizationLevel = "speed",
-        storage_optimization: OptimizationLevel = "speed",
+        memory_optimization: OptimizationLevel = "balanced",
+        storage_optimization: OptimizationLevel = "space",
         storage_format: StorageFormat | None = None,
     ) -> "SimpleTournamentResults":
         """Loads tournament results from the given path.
@@ -2102,8 +2102,8 @@ def cartesian_tournament(
     only_failures_on_self_play: bool = False,
     ignore_discount: bool = False,
     ignore_reserved: bool = False,
-    storage_optimization: OptimizationLevel = "speed",
-    memory_optimization: OptimizationLevel = "speed",
+    storage_optimization: OptimizationLevel = "space",
+    memory_optimization: OptimizationLevel = "balanced",
     storage_format: StorageFormat | None = None,
     python_class_identifier=PYTHON_CLASS_IDENTIFIER,
     before_start_callback: BeforeStartCallback | None = None,
@@ -2168,15 +2168,15 @@ def cartesian_tournament(
         only_failures_on_self_play: If True, only record self-play runs that fail to reach agreement.
         ignore_discount: If True, ignore discounting in utility functions (use base ufun).
         ignore_reserved: If True, ignore reserved values in utility functions.
-        storage_optimization: Controls disk space usage for tournament results:
+        storage_optimization: Controls disk space usage for tournament results (default: "space"):
                             - "speed"/"time"/"none": Keep all files (results/, all_scores.csv, details.csv, etc.)
                             - "balanced": Remove results/ folder after details.csv is created
-                            - "space"/"max": Remove both results/ folder AND all_scores.csv
+                            - "space"/"max": Remove both results/ folder AND all_scores.csv (default)
                               (scores can be reconstructed from details.csv)
-        memory_optimization: Controls RAM usage for returned SimpleTournamentResults:
-                           - "speed"/"time"/"none": Keep all DataFrames in memory (default behavior)
+        memory_optimization: Controls RAM usage for returned SimpleTournamentResults (default: "balanced"):
+                           - "speed"/"time"/"none": Keep all DataFrames in memory
                            - "balanced": Keep details + final_scores + scores_summary in memory,
-                                        compute scores on demand then cache
+                                        compute scores on demand then cache (default)
                            - "space"/"max": Keep only final_scores + scores_summary in memory,
                                      load details/scores from disk when needed
                            Note: If path is None, memory_optimization is ignored (everything kept in memory)
@@ -2184,7 +2184,7 @@ def cartesian_tournament(
                        - "csv": Plain CSV files (human-readable, larger size)
                        - "gzip": Gzip-compressed CSV files (good compression, human-readable when decompressed)
                        - "parquet": Parquet binary format (best compression, preserves types, fastest)
-                       - None: Auto-select based on storage_optimization (csv for speed, gzip for balanced, parquet for space)
+                       - None: Auto-select based on storage_optimization (default; csv for speed, gzip for balanced, parquet for space)
                        Note: Small files (scores.csv, type_scores.csv) are always CSV regardless of this setting.
         python_class_identifier: Function to convert classes to string identifiers.
         before_start_callback: Optional callback invoked before each negotiation starts.

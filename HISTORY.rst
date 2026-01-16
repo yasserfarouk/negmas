@@ -1,6 +1,84 @@
 History
 =======
 
+Release 0.14.0 (Unreleased)
+---------------------------
+
+**Breaking Changes:**
+
+* [breaking] ``cartesian_tournament`` now defaults to ``storage_optimization="space"`` and ``memory_optimization="balanced"``
+  instead of ``"speed"`` for both. This change reduces disk space and memory usage by default but may affect
+  code that expects specific file structures (e.g., ``results/`` folder or ``all_scores.csv``).
+
+  To restore the old behavior, explicitly pass ``storage_optimization="speed"`` and ``memory_optimization="speed"``.
+
+* [breaking] Elicitation module extracted to separate package ``negmas-elicit``
+
+**New Features:**
+
+* [feature] Add registry system for mechanisms, negotiators, and components with scenario support
+* [feature] Add ``scored_indices`` feature and ``opponents`` parameter to ``cartesian_tournament``
+* [feature] Add ``storage_optimization`` parameter to ``cartesian_tournament`` to control disk space usage:
+
+  - ``"speed"``/``"time"``/``"none"``: Keep all files (results/, all_scores.csv, details.csv, etc.)
+  - ``"balanced"``: Remove results/ folder after details.csv is created
+  - ``"space"``/``"max"``: Remove both results/ folder AND all_scores.csv (scores can be reconstructed from details.csv)
+
+* [feature] Add ``memory_optimization`` parameter to ``cartesian_tournament`` to control RAM usage:
+
+  - ``"speed"``/``"time"``/``"none"``: Keep all DataFrames in memory
+  - ``"balanced"``: Keep details + final_scores + scores_summary in memory, compute scores on demand then cache
+  - ``"space"``/``"max"``: Keep only final_scores + scores_summary in memory, load details/scores from disk when needed
+
+* [feature] Add ``storage_format`` parameter to ``cartesian_tournament`` supporting ``"csv"``, ``"gzip"``, and ``"parquet"`` formats
+* [feature] Add ``calc_pareto_if_missing`` option to ``ScenarioStats.from_dict()`` and ``Scenario.load_stats()`` for backward compatibility
+* [feature] Add ``include_pareto_frontier`` parameter to ``Scenario.dumpas()`` for space savings
+* [feature] Add ``has_pareto_frontier`` property and ``to_dict()``/``from_dict()`` methods to ``ScenarioStats``
+* [feature] Refactor ``SimpleTournamentResults`` to support lazy loading from disk
+* [feature] Add tournament callbacks: ``before_start_callback``, ``after_construction_callback``, ``after_end_callback``, ``progress_callback``
+
+**Bug Fixes:**
+
+* [bugfix] Fix propagating outcome space in discounted ufuns
+* [bugfix] Fix scenario stats loading and caching in ``calc_extra_stats``
+* [bugfix] Fix stats filename in ``dumpas`` and add tuple handling in ``convert_numpy``
+* [bugfix] Fix duplicate position creation in opponent mode tournaments
+* [bugfix] Fix loading scenarios by trying all folder types
+
+**Documentation:**
+
+* [docs] Add comprehensive ANAC competition documentation for 2010-2025
+* [docs] Add Python-native Genius negotiators and BOA components documentation
+* [docs] Update GENIUS_INFO with all ANAC agents
+* [docs] Improve docstrings throughout the codebase (SAO, outcomes, preferences, negotiators, Genius)
+* [docs] Add AI assistance disclosure
+* [docs] Add negmas-app to ecosystem
+
+**Other Changes:**
+
+* [chore] Add pyarrow dependency for parquet support
+* [chore] Add full license text
+
+Release 0.13.1
+--------------
+
+* [docs] Expand mechanisms documentation and remove incompatible TOC directives
+* [docs] Refactor gnegotiators into module and add negotiators/components documentation
+
+Release 0.13.0
+--------------
+
+* [feature] Add ``ExtendedOutcome`` and ``ExtendedResponseType`` for policies with text/data
+* [refactor] Migrate plotting from matplotlib to plotly
+* [docs] Upgrade to Furo theme for modern documentation
+* [docs] Split CLI documentation into separate negmas and negotiate pages
+* [docs] Improve README with quick start, architecture overview, and better examples
+* [docs] Optimize RTD build by removing show-inheritance and adding mock imports
+* [test] Add comprehensive BOA component verification tests
+* [bugfix] Resolve plotly migration issues - legend duplication and double-display
+* [bugfix] Resolve deprecation warnings in test suite
+* [bugfix] Suppress Hypothesis too_slow health check in test_checkpoint
+
 Release 0.12.0
 --------------
 
