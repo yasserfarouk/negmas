@@ -521,3 +521,72 @@ def test_scenario_load_stats_file_calc_pareto_if_missing(tmp_path):
     assert scenario2.stats is not None
     assert scenario2.stats.has_pareto_frontier
     assert len(scenario2.stats.pareto_utils) == original_pareto_count
+
+
+def test_scenario_load_stats_legacy_json(tmp_path):
+    """Test backward compatibility: load_stats can load legacy stats.json files."""
+    from negmas.helpers.inout import dump
+
+    file_name = str(files("negmas").joinpath("tests/data/Laptop"))
+    scenario = Scenario.from_genius_folder(Path(file_name))
+    assert scenario is not None
+
+    # Calculate stats
+    stats = scenario.calc_stats()
+    assert stats is not None
+
+    # Save stats to legacy stats.json location (simulating old cartesian_tournament behavior)
+    legacy_stats_file = tmp_path / "stats.json"
+    dump(stats.to_dict(), legacy_stats_file)
+
+    # Verify _stats.yaml does NOT exist (to ensure we're testing the fallback)
+    new_stats_file = tmp_path / STATS_FILE_NAME
+    assert not new_stats_file.exists()
+    assert legacy_stats_file.exists()
+
+    # Load stats - should fall back to stats.json
+    scenario2 = Scenario.from_genius_folder(Path(file_name))
+    assert scenario2 is not None
+    assert scenario2.stats is None
+
+    scenario2.load_stats(tmp_path)
+    assert scenario2.stats is not None
+    assert scenario2.stats.opposition == pytest.approx(stats.opposition, rel=1e-6)
+    assert len(scenario2.stats.pareto_utils) == len(stats.pareto_utils)
+
+
+def test_scenario_load_stats_prefers_new_format(tmp_path):
+    """Test that load_stats prefers _stats.yaml over legacy stats.json."""
+    from negmas.helpers.inout import dump
+
+    file_name = str(files("negmas").joinpath("tests/data/Laptop"))
+    scenario = Scenario.from_genius_folder(Path(file_name))
+    assert scenario is not None
+
+    # Calculate stats
+    stats = scenario.calc_stats()
+    assert stats is not None
+
+    # Save stats to new _stats.yaml with a distinctive opposition value
+    scenario.dumpas(tmp_path, type="yml")
+
+    # Also create a legacy stats.json with a DIFFERENT opposition value
+    legacy_stats_file = tmp_path / "stats.json"
+    modified_stats = stats.to_dict()
+    modified_stats["opposition"] = 0.12345  # Distinctive value
+    dump(modified_stats, legacy_stats_file)
+
+    # Both files should exist
+    new_stats_file = tmp_path / STATS_FILE_NAME
+    assert new_stats_file.exists()
+    assert legacy_stats_file.exists()
+
+    # Load stats - should prefer _stats.yaml (original opposition value)
+    scenario2 = Scenario.from_genius_folder(Path(file_name))
+    assert scenario2 is not None
+    scenario2.load_stats(tmp_path)
+    assert scenario2.stats is not None
+
+    # Should have loaded from _stats.yaml (original value), not stats.json (0.12345)
+    assert scenario2.stats.opposition == pytest.approx(stats.opposition, rel=1e-6)
+    assert scenario2.stats.opposition != pytest.approx(0.12345, rel=1e-6)

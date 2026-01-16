@@ -712,19 +712,27 @@ class Scenario:
             Self for method chaining.
 
         Notes:
+            Looks for stats in the following order (for backward compatibility):
+            1. _stats.yaml (new format)
+            2. stats.json (legacy format from cartesian_tournament < 0.14.0)
+
             Handles stats files that may have been saved without pareto frontier data
             (when include_pareto_frontier=False was used during saving).
 
             When calc_pareto_if_missing=True, the pareto frontier will be computed
             on-the-fly, which may be slow for large outcome spaces.
         """
-        path = Path(folder) / STATS_FILE_NAME
-        if path.is_file():
-            self.stats = ScenarioStats.from_dict(
-                load(path),
-                ufuns=self.ufuns if calc_pareto_if_missing else None,
-                calc_pareto_if_missing=calc_pareto_if_missing,
-            )
+        folder = Path(folder)
+        # Try new format first (_stats.yaml), then legacy format (stats.json)
+        for stats_file in (STATS_FILE_NAME, "stats.json"):
+            path = folder / stats_file
+            if path.is_file():
+                self.stats = ScenarioStats.from_dict(
+                    load(path),
+                    ufuns=self.ufuns if calc_pareto_if_missing else None,
+                    calc_pareto_if_missing=calc_pareto_if_missing,
+                )
+                break
         return self
 
     @staticmethod

@@ -12,6 +12,10 @@ Release 0.14.0 (Unreleased)
 
   To restore the old behavior, explicitly pass ``storage_optimization="speed"`` and ``memory_optimization="speed"``.
 
+* [breaking] ``cartesian_tournament`` now saves scenario statistics to ``_stats.yaml`` instead of ``stats.json``.
+  This aligns with the native ``Scenario`` format and reduces redundant file storage. ``Scenario.load_stats()``
+  maintains backward compatibility by checking for both ``_stats.yaml`` (new) and ``stats.json`` (legacy).
+
 * [breaking] Elicitation module extracted to separate package ``negmas-elicit``
 
 **New Features:**

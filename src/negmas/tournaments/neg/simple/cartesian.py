@@ -42,7 +42,6 @@ from negmas.preferences.ops import (
     ScenarioStats,
     calc_outcome_distances,
     calc_outcome_optimality,
-    calc_scenario_stats,
     estimate_max_dist,
 )
 from negmas.sao.common import SAOState
@@ -2427,9 +2426,23 @@ def cartesian_tournament(
             else:
                 scenario = s
             this_path = None
+            # Calculate stats if needed (before saving to ensure stats are available)
+            if save_stats:
+                scenario.calc_stats()
+
             if scenarios_path:
                 this_path = scenarios_path / str(scenario.outcome_space.name)
-                scenario.to_yaml(this_path)
+                # Exclude pareto frontier when optimizing for space
+                include_pareto = storage_optimization != "space"
+                # Use dumpas to save scenario with stats in _stats.yaml (not stats.json)
+                scenario.dumpas(
+                    this_path,
+                    type="yml",
+                    compact=False,
+                    save_stats=save_stats,
+                    save_info=True,
+                    include_pareto_frontier=include_pareto,
+                )
                 if save_scenario_figs:
                     plot_offline_run(
                         trace=[],
@@ -2458,15 +2471,6 @@ def cartesian_tournament(
                         show_relative_time=False,
                         show_n_steps=False,
                         show=False,
-                    )
-            if save_stats:
-                stats = calc_scenario_stats(scenario.ufuns)
-                if this_path:
-                    # Exclude pareto frontier when optimizing for space
-                    include_pareto = storage_optimization != "space"
-                    dump(
-                        stats.to_dict(include_pareto_frontier=include_pareto),
-                        this_path / "stats.json",
                     )
 
             mparams = copy.deepcopy(mechanism_params)
