@@ -79,6 +79,7 @@ class GeniusNegotiator(SAONegotiator):
         genius_bridge_path: str | None = None,
         strict: bool | None = None,
         id: str | None = None,
+        **kwargs,
     ):
         """Initialize the instance.
 
@@ -97,7 +98,9 @@ class GeniusNegotiator(SAONegotiator):
             strict: Strict.
             id: Id.
         """
-        super().__init__(name=name, preferences=None, parent=parent, owner=owner, id=id)
+        super().__init__(
+            name=name, preferences=None, parent=parent, owner=owner, id=id, **kwargs
+        )
         self.__frozen_relative_time = None
         self.__destroyed = False
         self.__started = False
