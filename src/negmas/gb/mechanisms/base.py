@@ -13,6 +13,7 @@ from negmas.helpers import humanize_time
 from negmas.helpers.types import get_full_type_name, instantiate
 from negmas.mechanisms import Mechanism, MechanismStepResult
 from negmas.outcomes import Outcome
+from negmas.outcomes.common import ExtendedOutcome, extract_data, extract_outcome
 from negmas.preferences import BaseUtilityFunction, Preferences
 
 from ..common import GBAction, GBResponse, GBState, ResponseType, ThreadState, GBNMI
@@ -78,8 +79,8 @@ class GBThread:
             offer = action.get(source, None)
             if not offer:
                 offer = None
-        # assert offer is None or isinstance(offer, Outcome)
-        self.state.new_offer = offer  # type: ignore
+        self.state.new_offer = extract_outcome(offer)
+        self.state.new_data = extract_data(offer)
         if self.constraint and not self.constraint(
             mechanism_state.threads[source], [_.threads[source] for _ in history]
         ):
@@ -285,6 +286,8 @@ class BaseGBMechanism(Mechanism[GBNMI, GBState, GBAction, GBNegotiator]):
                     t.new_offer,
                     {neg: int(resp) for neg, resp in t.new_responses.items()},
                     response(state),
+                    t.new_data.get("text", None) if t.new_data else None,
+                    t.new_data,
                 )
                 for source, t in state.threads.items()
             ]
@@ -292,7 +295,7 @@ class BaseGBMechanism(Mechanism[GBNMI, GBState, GBAction, GBNegotiator]):
         return offers
 
     @property
-    def extended_trace(self) -> list[tuple[int, str, Outcome]]:
+    def extended_trace(self) -> list[tuple[int, str, Outcome | None]]:
         """Returns the negotiation history as a list of step/negotiator/offer
         tuples."""
         offers = []
@@ -304,7 +307,7 @@ class BaseGBMechanism(Mechanism[GBNMI, GBState, GBAction, GBNegotiator]):
         return offers
 
     @property
-    def trace(self) -> list[tuple[str, Outcome]]:
+    def trace(self) -> list[tuple[str, Outcome | None]]:
         """Returns the negotiation history as a list of negotiator/offer
         tuples."""
         offers = []
@@ -313,25 +316,29 @@ class BaseGBMechanism(Mechanism[GBNMI, GBState, GBAction, GBNegotiator]):
 
         return offers
 
-    def negotiator_offers(self, negotiator_id: str) -> list[Outcome]:
+    def negotiator_offers(
+        self, negotiator_id: str
+    ) -> list[Outcome | ExtendedOutcome | None]:
         """Returns the offers given by a negotiator (in order)"""
         return [o for n, o in self.trace if n == negotiator_id]
 
     def negotiator_full_trace(
         self, negotiator_id: str
-    ) -> list[tuple[float, float, int, Outcome, str]]:
+    ) -> list[
+        tuple[float, float, int, Outcome, str, str | None, dict[str, Any] | None]
+    ]:
         """Returns the (time/relative-time/step/outcome/response) given by a
         negotiator (in order)"""
         return [
-            (t, rt, s, o, a)
-            for t, rt, s, n, o, _, a in self.full_trace
+            (t, rt, s, o, a, text, data)
+            for t, rt, s, n, o, _, a, text, data in self.full_trace
             if n == negotiator_id
         ]
 
     @property
-    def offers(self) -> list[Outcome]:
+    def offers(self) -> list[Outcome | None]:
         """Returns the negotiation history as a list of offers."""
-        return [o for _, o in self.trace]
+        return [extract_outcome(o) for _, o in self.trace]
 
     @property
     def _step(self):
@@ -737,6 +744,8 @@ class GBMechanism(BaseGBMechanism):
                     t.new_offer,
                     {neg: int(resp) for neg, resp in t.new_responses.items()},
                     response(state),
+                    t.new_data.get("text", None) if t.new_data else None,
+                    t.new_data,
                 )
                 for source, t in state.threads.items()
             ]
@@ -744,7 +753,7 @@ class GBMechanism(BaseGBMechanism):
         return offers
 
     @property
-    def extended_trace(self) -> list[tuple[int, str, Outcome]]:
+    def extended_trace(self) -> list[tuple[int, str, Outcome | None]]:
         """Returns the negotiation history as a list of step/negotiator/offer
         tuples."""
         offers = []
@@ -756,7 +765,7 @@ class GBMechanism(BaseGBMechanism):
         return offers
 
     @property
-    def trace(self) -> list[tuple[str, Outcome]]:
+    def trace(self) -> list[tuple[str, Outcome | None]]:
         """Returns the negotiation history as a list of negotiator/offer
         tuples."""
         offers = []
@@ -765,23 +774,25 @@ class GBMechanism(BaseGBMechanism):
 
         return offers
 
-    def negotiator_offers(self, negotiator_id: str) -> list[Outcome]:
+    def negotiator_offers(self, negotiator_id: str) -> list[Outcome | None]:
         """Returns the offers given by a negotiator (in order)"""
         return [o for n, o in self.trace if n == negotiator_id]
 
     def negotiator_full_trace(
         self, negotiator_id: str
-    ) -> list[tuple[float, float, int, Outcome, str]]:
+    ) -> list[
+        tuple[float, float, int, Outcome, str, str | None, dict[str, Any] | None]
+    ]:
         """Returns the (time/relative-time/step/outcome/response) given by a
         negotiator (in order)"""
         return [
-            (t, rt, s, o, a)
-            for t, rt, s, n, o, _, a in self.full_trace
+            (t, rt, s, o, a, text, data)
+            for t, rt, s, n, o, _, a, text, data in self.full_trace
             if n == negotiator_id
         ]
 
     @property
-    def offers(self) -> list[Outcome]:
+    def offers(self) -> list[Outcome | None]:
         """Returns the negotiation history as a list of offers."""
         return [o for _, o in self.trace]
 

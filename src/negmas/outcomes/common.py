@@ -20,6 +20,9 @@ __all__ = [
     "ensure_os",
     "os_or_none",
     "DEFAULT_LEVELS",
+    "extract_outcome",
+    "extract_text",
+    "extract_data",
 ]
 
 if TYPE_CHECKING:
@@ -59,8 +62,29 @@ class ExtendedOutcome:
         - :meth:`negmas.sao.common.SAOResponse.from_extended`: For creating SAOResponse from extended types.
     """
 
-    outcome: Outcome
+    outcome: Outcome | None
     data: dict[str, Any] | None = None
+
+
+def extract_outcome(outcome: Outcome | ExtendedOutcome | None) -> Outcome | None:
+    """Extracts the underlying `Outcome` tuple"""
+    if not isinstance(outcome, ExtendedOutcome):
+        return outcome
+    return outcome.outcome
+
+
+def extract_text(outcome: Outcome | ExtendedOutcome | None) -> str | None:
+    """Extracts the underlying `Outcome` tuple"""
+    if not isinstance(outcome, ExtendedOutcome) or not outcome.data:
+        return None
+    return outcome.data.get("text", "")
+
+
+def extract_data(outcome: Outcome | ExtendedOutcome | None) -> dict[str, Any] | None:
+    """Extracts the underlying `Outcome` tuple"""
+    if not isinstance(outcome, ExtendedOutcome) or not outcome.data:
+        return None
+    return outcome.data.get("data", None)
 
 
 PartialOutcomeDict = Mapping[int, Any]

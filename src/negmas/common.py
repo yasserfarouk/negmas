@@ -606,7 +606,10 @@ TRACE_ELEMENT_MEMBERS = [
     "offer",
     "responses",
     "state",
+    "text",
+    "data",
 ]
+
 
 TraceElement = namedtuple("TraceElement", TRACE_ELEMENT_MEMBERS)
 """An element of the trace returned by `full_trace` representing the history of the negotiation"""

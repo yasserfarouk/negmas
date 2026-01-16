@@ -4,9 +4,13 @@ import time
 
 import hypothesis.strategies as st
 from hypothesis import HealthCheck, given, settings
+import pytest
 
 from negmas import NamedObject
 from negmas.helpers import unique_name
+from negmas.sao import SAOMechanism, RandomNegotiator, AspirationNegotiator
+from negmas.outcomes import make_issue, make_os
+from negmas.preferences import LinearAdditiveUtilityFunction
 
 random.seed(time.perf_counter())
 
@@ -83,3 +87,564 @@ def test_checkpoint(
             assert not exist_ok
         else:
             raise e
+
+
+# Tests for Mechanism.save()
+class TestMechanismSave:
+    """Tests for Mechanism.save() method."""
+
+    def test_save_single_file_csv(self, tmp_path):
+        """Test saving to a single CSV file."""
+        m = SAOMechanism(outcomes=[(i,) for i in range(10)], n_steps=10)
+        m.add(RandomNegotiator(name="n1"))
+        m.add(RandomNegotiator(name="n2"))
+        m.run()
+
+        result = m.save(tmp_path, "test_single", single_file=True)
+
+        assert result.exists()
+        assert result.suffix == ".csv"
+        assert result.stat().st_size > 0
+
+    def test_save_single_file_gzip(self, tmp_path):
+        """Test saving to a gzip-compressed CSV file."""
+        m = SAOMechanism(outcomes=[(i,) for i in range(10)], n_steps=10)
+        m.add(RandomNegotiator(name="n1"))
+        m.add(RandomNegotiator(name="n2"))
+        m.run()
+
+        result = m.save(tmp_path, "test_gzip", single_file=True, storage_format="gzip")
+
+        assert result.exists()
+        assert str(result).endswith(".csv.gz")
+
+    def test_save_directory_structure(self, tmp_path):
+        """Test saving creates proper directory structure."""
+        m = SAOMechanism(outcomes=[(i,) for i in range(10)], n_steps=10)
+        m.add(RandomNegotiator(name="n1"))
+        m.add(RandomNegotiator(name="n2"))
+        m.run()
+
+        result = m.save(tmp_path, "test_dir", single_file=False)
+
+        assert result.is_dir()
+        assert (result / "trace.csv").exists()
+        assert (result / "config.yaml").exists()
+        assert (result / "outcome_stats.yaml").exists()
+
+    def test_save_with_preferences(self, tmp_path):
+        """Test saving with negotiator preferences saves scenario."""
+        issues = [make_issue(10, "price")]
+        os = make_os(issues)
+        m = SAOMechanism(issues=issues, n_steps=20)
+
+        u1 = LinearAdditiveUtilityFunction.random(os, reserved_value=0.0)
+        u2 = LinearAdditiveUtilityFunction.random(os, reserved_value=0.0)
+
+        m.add(AspirationNegotiator(name="buyer", preferences=u1))
+        m.add(AspirationNegotiator(name="seller", preferences=u2))
+        m.run()
+
+        result = m.save(tmp_path, "test_prefs", single_file=False, save_scenario=True)
+
+        assert result.is_dir()
+        scenario_dir = result / "scenario"
+        assert scenario_dir.exists()
+        assert any(scenario_dir.iterdir())  # Has files
+
+    def test_save_with_scenario_stats(self, tmp_path):
+        """Test saving with scenario statistics."""
+        issues = [make_issue(10, "price")]
+        os = make_os(issues)
+        m = SAOMechanism(issues=issues, n_steps=20)
+
+        u1 = LinearAdditiveUtilityFunction.random(os, reserved_value=0.0)
+        u2 = LinearAdditiveUtilityFunction.random(os, reserved_value=0.0)
+
+        m.add(AspirationNegotiator(name="buyer", preferences=u1))
+        m.add(AspirationNegotiator(name="seller", preferences=u2))
+        m.run()
+
+        result = m.save(
+            tmp_path,
+            "test_stats",
+            single_file=False,
+            save_scenario=True,
+            save_scenario_stats=True,
+        )
+
+        scenario_dir = result / "scenario"
+        assert scenario_dir.exists()
+        # Stats file should exist
+        assert (scenario_dir / "_stats.yaml").exists()
+
+    def test_save_full_trace_source(self, tmp_path):
+        """Test saving with full_trace as source."""
+        m = SAOMechanism(outcomes=[(i,) for i in range(10)], n_steps=10)
+        m.add(RandomNegotiator(name="n1"))
+        m.add(RandomNegotiator(name="n2"))
+        m.run()
+
+        result = m.save(
+            tmp_path, "test_full_trace", single_file=True, source="full_trace"
+        )
+
+        assert result.exists()
+        # Read and check columns
+        with open(result) as f:
+            header = f.readline().strip()
+            assert "time" in header
+            assert "negotiator" in header
+            assert "offer" in header
+
+    def test_save_with_metadata(self, tmp_path):
+        """Test saving with custom metadata."""
+        m = SAOMechanism(outcomes=[(i,) for i in range(10)], n_steps=10)
+        m.add(RandomNegotiator(name="n1"))
+        m.add(RandomNegotiator(name="n2"))
+        m.run()
+
+        metadata = {"experiment": "test", "version": 1}
+        result = m.save(tmp_path, "test_meta", single_file=False, metadata=metadata)
+
+        assert (result / "metadata.yaml").exists()
+
+    def test_save_outcome_stats_contains_agreement(self, tmp_path):
+        """Test that outcome_stats contains agreement info."""
+        import yaml
+
+        m = SAOMechanism(outcomes=[(i,) for i in range(10)], n_steps=10)
+        m.add(RandomNegotiator(name="n1"))
+        m.add(RandomNegotiator(name="n2"))
+        m.run()
+
+        result = m.save(tmp_path, "test_outcome", single_file=False)
+
+        with open(result / "outcome_stats.yaml") as f:
+            stats = yaml.safe_load(f)
+
+        assert "agreement" in stats
+        assert "broken" in stats
+        assert "timedout" in stats
+        assert "utilities" in stats
+
+    def test_save_config_contains_mechanism_info(self, tmp_path):
+        """Test that config.yaml contains mechanism info."""
+        import yaml
+
+        m = SAOMechanism(outcomes=[(i,) for i in range(10)], n_steps=10)
+        m.add(RandomNegotiator(name="n1"))
+        m.add(RandomNegotiator(name="n2"))
+        m.run()
+
+        result = m.save(tmp_path, "test_config", single_file=False)
+
+        with open(result / "config.yaml") as f:
+            config = yaml.safe_load(f)
+
+        assert "mechanism_type" in config
+        assert "n_negotiators" in config
+        assert config["n_negotiators"] == 2
+        assert "negotiator_names" in config
+
+    def test_save_overwrite_false(self, tmp_path):
+        """Test that overwrite=False doesn't overwrite existing files."""
+        m = SAOMechanism(outcomes=[(i,) for i in range(10)], n_steps=10)
+        m.add(RandomNegotiator(name="n1"))
+        m.add(RandomNegotiator(name="n2"))
+        m.run()
+
+        # First save
+        m.save(tmp_path, "test_no_overwrite", single_file=True)
+        first_size = (tmp_path / "test_no_overwrite.csv").stat().st_size
+
+        # Second save should not overwrite
+        m.save(
+            tmp_path,
+            "test_no_overwrite",
+            single_file=True,
+            overwrite=False,
+            warn_if_existing=False,
+        )
+        second_size = (tmp_path / "test_no_overwrite.csv").stat().st_size
+
+        assert first_size == second_size
+
+    def test_save_returns_correct_path(self, tmp_path):
+        """Test that save returns the correct path."""
+        m = SAOMechanism(outcomes=[(i,) for i in range(10)], n_steps=10)
+        m.add(RandomNegotiator(name="n1"))
+        m.add(RandomNegotiator(name="n2"))
+        m.run()
+
+        # Single file
+        result = m.save(tmp_path, "test_path", single_file=True)
+        assert result == tmp_path / "test_path.csv"
+
+        # Directory
+        result = m.save(tmp_path, "test_dir_path", single_file=False)
+        assert result == tmp_path / "test_dir_path"
+
+
+# Tests for CompletedRun
+class TestCompletedRun:
+    """Tests for CompletedRun save and load functionality."""
+
+    def test_to_completed_run_basic(self, tmp_path):
+        """Test creating a CompletedRun from a mechanism."""
+        m = SAOMechanism(outcomes=[(i,) for i in range(10)], n_steps=10)
+        m.add(RandomNegotiator(name="n1"))
+        m.add(RandomNegotiator(name="n2"))
+        m.run()
+
+        completed = m.to_completed_run()
+
+        assert completed.history_type == "history"
+        assert len(completed.history) > 0
+        assert completed.config["mechanism_type"] == "SAOMechanism"
+        assert completed.config["n_negotiators"] == 2
+
+    def test_to_completed_run_full_trace(self, tmp_path):
+        """Test creating a CompletedRun with full_trace source."""
+        m = SAOMechanism(outcomes=[(i,) for i in range(10)], n_steps=10)
+        m.add(RandomNegotiator(name="n1"))
+        m.add(RandomNegotiator(name="n2"))
+        m.run()
+
+        completed = m.to_completed_run(source="full_trace")
+
+        assert completed.history_type == "full_trace"
+        assert len(completed.history) > 0
+
+    def test_to_completed_run_with_metadata(self, tmp_path):
+        """Test creating a CompletedRun with metadata."""
+        m = SAOMechanism(outcomes=[(i,) for i in range(10)], n_steps=10)
+        m.add(RandomNegotiator(name="n1"))
+        m.add(RandomNegotiator(name="n2"))
+        m.run()
+
+        metadata = {"experiment": "test", "version": 1}
+        completed = m.to_completed_run(metadata=metadata)
+
+        assert completed.metadata == metadata
+
+    def test_completed_run_save_single_file(self, tmp_path):
+        """Test saving a CompletedRun to a single file."""
+        m = SAOMechanism(outcomes=[(i,) for i in range(10)], n_steps=10)
+        m.add(RandomNegotiator(name="n1"))
+        m.add(RandomNegotiator(name="n2"))
+        m.run()
+
+        completed = m.to_completed_run()
+        result = completed.save(tmp_path, "test_single", single_file=True)
+
+        assert result.exists()
+        assert result.suffix == ".csv"
+
+    def test_completed_run_save_directory(self, tmp_path):
+        """Test saving a CompletedRun to a directory."""
+        m = SAOMechanism(outcomes=[(i,) for i in range(10)], n_steps=10)
+        m.add(RandomNegotiator(name="n1"))
+        m.add(RandomNegotiator(name="n2"))
+        m.run()
+
+        completed = m.to_completed_run()
+        result = completed.save(tmp_path, "test_dir", single_file=False)
+
+        assert result.is_dir()
+        assert (result / "trace.csv").exists()
+        assert (result / "run_info.yaml").exists()
+        assert (result / "config.yaml").exists()
+
+    def test_completed_run_save_load_roundtrip_single_file(self, tmp_path):
+        """Test save and load roundtrip for single file mode."""
+        from negmas.mechanisms import CompletedRun
+
+        m = SAOMechanism(outcomes=[(i,) for i in range(10)], n_steps=10)
+        m.add(RandomNegotiator(name="n1"))
+        m.add(RandomNegotiator(name="n2"))
+        m.run()
+
+        completed = m.to_completed_run()
+        save_path = completed.save(tmp_path, "test_roundtrip", single_file=True)
+
+        loaded = CompletedRun.load(save_path)
+
+        # Single file mode has limited info
+        assert len(loaded.history) == len(completed.history)
+
+    def test_completed_run_save_load_roundtrip_directory(self, tmp_path):
+        """Test save and load roundtrip for directory mode."""
+        from negmas.mechanisms import CompletedRun
+
+        m = SAOMechanism(outcomes=[(i,) for i in range(10)], n_steps=10)
+        m.add(RandomNegotiator(name="n1"))
+        m.add(RandomNegotiator(name="n2"))
+        m.run()
+
+        completed = m.to_completed_run()
+        save_path = completed.save(tmp_path, "test_roundtrip_dir", single_file=False)
+
+        loaded = CompletedRun.load(save_path)
+
+        assert loaded.history_type == completed.history_type
+        assert loaded.config["mechanism_type"] == completed.config["mechanism_type"]
+        assert loaded.config["n_negotiators"] == completed.config["n_negotiators"]
+
+    def test_completed_run_save_load_gzip(self, tmp_path):
+        """Test save and load with gzip format."""
+        from negmas.mechanisms import CompletedRun
+
+        m = SAOMechanism(outcomes=[(i,) for i in range(10)], n_steps=10)
+        m.add(RandomNegotiator(name="n1"))
+        m.add(RandomNegotiator(name="n2"))
+        m.run()
+
+        completed = m.to_completed_run()
+        save_path = completed.save(
+            tmp_path, "test_gzip", single_file=False, storage_format="gzip"
+        )
+
+        loaded = CompletedRun.load(save_path)
+
+        assert loaded.history_type == completed.history_type
+
+    def test_completed_run_save_load_parquet(self, tmp_path):
+        """Test save and load with parquet format."""
+        from negmas.mechanisms import CompletedRun
+
+        m = SAOMechanism(outcomes=[(i,) for i in range(10)], n_steps=10)
+        m.add(RandomNegotiator(name="n1"))
+        m.add(RandomNegotiator(name="n2"))
+        m.run()
+
+        completed = m.to_completed_run()
+        save_path = completed.save(
+            tmp_path, "test_parquet", single_file=False, storage_format="parquet"
+        )
+
+        loaded = CompletedRun.load(save_path)
+
+        assert loaded.history_type == completed.history_type
+
+    def test_completed_run_with_scenario(self, tmp_path):
+        """Test CompletedRun with scenario information."""
+        from negmas.mechanisms import CompletedRun
+
+        issues = [make_issue(10, "price")]
+        os = make_os(issues)
+        m = SAOMechanism(issues=issues, n_steps=20)
+
+        u1 = LinearAdditiveUtilityFunction.random(os, reserved_value=0.0)
+        u2 = LinearAdditiveUtilityFunction.random(os, reserved_value=0.0)
+
+        m.add(AspirationNegotiator(name="buyer", preferences=u1))
+        m.add(AspirationNegotiator(name="seller", preferences=u2))
+        m.run()
+
+        completed = m.to_completed_run()
+
+        assert completed.scenario is not None
+
+        # Save and load with scenario
+        save_path = completed.save(
+            tmp_path, "test_scenario", single_file=False, save_scenario=True
+        )
+
+        loaded = CompletedRun.load(save_path)
+
+        assert loaded.scenario is not None
+
+    def test_completed_run_load_nonexistent_raises(self, tmp_path):
+        """Test that loading from nonexistent path raises FileNotFoundError."""
+        from negmas.mechanisms import CompletedRun
+
+        with pytest.raises(FileNotFoundError):
+            CompletedRun.load(tmp_path / "nonexistent")
+
+
+# Tests for load_table
+class TestLoadTable:
+    """Tests for load_table function."""
+
+    def test_load_table_csv(self, tmp_path):
+        """Test loading a CSV file."""
+        from negmas.helpers.inout import save_table, load_table
+
+        data = [{"a": 1, "b": 2}, {"a": 3, "b": 4}]
+        path = tmp_path / "test.csv"
+        save_table(data, path, storage_format="csv")
+
+        result = load_table(path)
+
+        assert len(result) == 2
+        assert list(result.columns) == ["a", "b"]
+
+    def test_load_table_csv_as_records(self, tmp_path):
+        """Test loading a CSV file as list of dicts."""
+        from negmas.helpers.inout import save_table, load_table
+
+        data = [{"a": 1, "b": 2}, {"a": 3, "b": 4}]
+        path = tmp_path / "test.csv"
+        save_table(data, path, storage_format="csv")
+
+        result = load_table(path, as_dataframe=False)
+
+        assert isinstance(result, list)
+        assert len(result) == 2
+        assert result[0]["a"] == 1
+
+    def test_load_table_gzip(self, tmp_path):
+        """Test loading a gzip-compressed CSV file."""
+        from negmas.helpers.inout import save_table, load_table
+
+        data = [{"a": 1, "b": 2}, {"a": 3, "b": 4}]
+        path = tmp_path / "test.csv"
+        actual_path = save_table(data, path, storage_format="gzip")
+
+        result = load_table(actual_path)
+
+        assert len(result) == 2
+
+    def test_load_table_parquet(self, tmp_path):
+        """Test loading a parquet file."""
+        from negmas.helpers.inout import save_table, load_table
+
+        data = [{"a": 1, "b": 2}, {"a": 3, "b": 4}]
+        path = tmp_path / "test.csv"
+        actual_path = save_table(data, path, storage_format="parquet")
+
+        result = load_table(actual_path)
+
+        assert len(result) == 2
+
+    def test_load_table_nonexistent_raises(self, tmp_path):
+        """Test that loading nonexistent file raises FileNotFoundError."""
+        from negmas.helpers.inout import load_table
+
+        with pytest.raises(FileNotFoundError):
+            load_table(tmp_path / "nonexistent.csv")
+
+    def test_load_table_unsupported_extension_raises(self, tmp_path):
+        """Test that loading unsupported extension raises ValueError."""
+        from negmas.helpers.inout import load_table
+
+        # Create a file with unsupported extension
+        path = tmp_path / "test.xyz"
+        path.write_text("data")
+
+        with pytest.raises(ValueError):
+            load_table(path)
+
+
+# Tests for per-negotiator saving and text/data fields
+class TestPerNegotiatorSaving:
+    """Tests for per-negotiator saving mode."""
+
+    def test_save_per_negotiator_creates_directory(self, tmp_path):
+        """Test that per_negotiator=True creates negotiator_behavior directory."""
+        m = SAOMechanism(outcomes=[(i,) for i in range(10)], n_steps=10)
+        m.add(RandomNegotiator(name="buyer"))
+        m.add(RandomNegotiator(name="seller"))
+        m.run()
+
+        result = m.save(
+            tmp_path, "test_per_neg", per_negotiator=True, source="full_trace"
+        )
+
+        assert (result / "negotiator_behavior").exists()
+        assert (result / "negotiator_behavior").is_dir()
+
+    def test_save_per_negotiator_file_naming(self, tmp_path):
+        """Test that per-negotiator files are named correctly."""
+        # Use more outcomes and steps to ensure both negotiators appear in the trace
+        # (short negotiations may end before all negotiators make offers)
+        m = SAOMechanism(outcomes=[(i,) for i in range(100)], n_steps=20)
+        m.add(RandomNegotiator(name="buyer"))
+        m.add(RandomNegotiator(name="seller"))
+        m.run()
+
+        result = m.save(
+            tmp_path, "test_naming", per_negotiator=True, source="full_trace"
+        )
+
+        neg_dir = result / "negotiator_behavior"
+        files = list(neg_dir.iterdir())
+
+        # Check naming convention: {type}@{index}_{name}.csv
+        # At minimum, the first negotiator (buyer) should always appear
+        file_names = [f.name for f in files]
+        assert len(files) >= 1, "At least one negotiator file should be created"
+        assert any("RandomNegotiator@0_buyer" in name for name in file_names)
+        # If negotiation lasted more than 1 step, seller should also appear
+        if m.current_step > 1:
+            assert any("RandomNegotiator@1_seller" in name for name in file_names)
+
+    def test_save_per_negotiator_file_content(self, tmp_path):
+        """Test that per-negotiator files have correct columns."""
+        import pandas as pd
+
+        m = SAOMechanism(outcomes=[(i,) for i in range(10)], n_steps=10)
+        m.add(RandomNegotiator(name="buyer"))
+        m.add(RandomNegotiator(name="seller"))
+        m.run()
+
+        result = m.save(
+            tmp_path, "test_content", per_negotiator=True, source="full_trace"
+        )
+
+        neg_dir = result / "negotiator_behavior"
+        files = list(neg_dir.iterdir())
+
+        for f in files:
+            df = pd.read_csv(f)
+            expected_cols = [
+                "time",
+                "relative_time",
+                "step",
+                "offer",
+                "response",
+                "text",
+                "data",
+            ]
+            assert list(df.columns) == expected_cols
+
+
+class TestTraceElementTextData:
+    """Tests for text and data fields in TraceElement."""
+
+    def test_full_trace_has_text_and_data_fields(self):
+        """Test that full_trace elements have text and data fields."""
+        m = SAOMechanism(outcomes=[(i,) for i in range(10)], n_steps=10)
+        m.add(RandomNegotiator(name="n1"))
+        m.add(RandomNegotiator(name="n2"))
+        m.run()
+
+        trace = m.full_trace
+        assert len(trace) > 0
+
+        # Check that TraceElement has text and data
+        first_element = trace[0]
+        assert hasattr(first_element, "text")
+        assert hasattr(first_element, "data")
+
+    def test_negotiator_full_trace_has_text_and_data(self):
+        """Test that negotiator_full_trace returns text and data."""
+        m = SAOMechanism(outcomes=[(i,) for i in range(10)], n_steps=10)
+        m.add(RandomNegotiator(name="n1"))
+        m.add(RandomNegotiator(name="n2"))
+        m.run()
+
+        neg_trace = m.negotiator_full_trace(m.negotiators[0].id)
+
+        if len(neg_trace) > 0:
+            # Each element should be (time, relative_time, step, offer, response, text, data)
+            first_element = neg_trace[0]
+            assert len(first_element) == 7
+
+    def test_trace_element_members_includes_text_data(self):
+        """Test that TRACE_ELEMENT_MEMBERS includes text and data."""
+        from negmas.common import TRACE_ELEMENT_MEMBERS
+
+        assert "text" in TRACE_ELEMENT_MEMBERS
+        assert "data" in TRACE_ELEMENT_MEMBERS

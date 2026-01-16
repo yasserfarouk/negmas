@@ -33,7 +33,13 @@ from negmas.helpers import (
     humanize_time,
     unique_name,
 )
-from negmas.helpers.inout import ConfigReader, add_records
+from negmas.helpers.inout import (
+    ConfigReader,
+    add_records,
+    save_table,
+    TableStorageFormat,
+    DEFAULT_TABLE_STORAGE_FORMAT,
+)
 from negmas.mechanisms import Mechanism
 from negmas.negotiators import Negotiator
 from negmas.outcomes import Issue, Outcome, outcome2dict
@@ -257,6 +263,7 @@ class World(
         debug: bool = False,
         name: str | None = None,
         id: str | None = None,
+        storage_format: TableStorageFormat | None = None,
     ):
         """Initialize the instance.
 
@@ -315,8 +322,12 @@ class World(
             debug: Debug.
             name: Name.
             id: Id.
+            storage_format: Format for saving tables ('csv', 'gzip', 'parquet'). Defaults to DEFAULT_TABLE_STORAGE_FORMAT.
         """
         self._debug = debug
+        self._storage_format: TableStorageFormat = (
+            storage_format if storage_format else DEFAULT_TABLE_STORAGE_FORMAT
+        )
         if debug:
             ignore_agent_exceptions = False
             ignore_negotiation_exceptions = False
@@ -616,10 +627,12 @@ class World(
                 id=i, name=aid, type=self.type_name_for_logs(agent)
             ) | self.extra_agent_info(agent)
         if self._extra_folder is not None:
-            import pandas as pd
-
-            df = pd.DataFrame.from_records(list(self._agent_info.values()))
-            df.to_csv(self._extra_folder / "agents.csv", index=False)
+            save_table(
+                list(self._agent_info.values()),
+                self._extra_folder / "agents.csv",
+                index=False,
+                storage_format=self._storage_format,
+            )
 
     def action_info_cols(self) -> list[tuple[str, type]]:
         """Action info cols.
@@ -1492,10 +1505,11 @@ class World(
         if len(record) < 1:
             return
         add_records(str(Path(self._log_folder) / "negotiations.csv"), [record])
-        import pandas as pd
-
-        data = pd.DataFrame([to_flat_dict(_) for _ in mechanism.history])
-        data.to_csv(os.path.join(negs_folder, f"{mechanism.id}.csv"), index=False)
+        save_table(
+            [to_flat_dict(_) for _ in mechanism.history],
+            os.path.join(negs_folder, f"{mechanism.id}.csv"),
+            storage_format=self._storage_format,
+        )
 
     @property
     def n_simulation_exceptions(self) -> dict[int, int]:
@@ -2062,11 +2076,12 @@ class World(
             #         | {k: v[-1] for k, v in self._stats.items()}
             #         | self.extra_sim_step_info_pre()
             #     )
-            import pandas as pd
-
-            df = pd.DataFrame.from_records(self._sim_info)
             assert self._extra_folder is not None
-            df.to_csv(self._extra_folder / "simsteps.csv", index=False)
+            save_table(
+                self._sim_info,
+                self._extra_folder / "simsteps.csv",
+                storage_format=self._storage_format,
+            )
             self._save_extra()
 
         if cross_step_boundary:
@@ -2652,10 +2667,11 @@ class World(
             id=len(self._agent_info) + 1, name=aid, type=self.type_name_for_logs(x)
         ) | self.extra_agent_info(x)
         if self._extra_folder is not None:
-            import pandas as pd
-
-            df = pd.DataFrame.from_records(list(self._agent_info.values()))
-            df.to_csv(self._extra_folder / "agents.csv", index=False)
+            save_table(
+                list(self._agent_info.values()),
+                self._extra_folder / "agents.csv",
+                storage_format=self._storage_format,
+            )
 
     def _combine_edges(
         self,
@@ -4489,8 +4505,11 @@ class World(
             import pandas as pd
 
             assert self._extra_folder is not None
-            df = pd.DataFrame.from_records(list(self._neg_info.values()))
-            df.to_csv(self._extra_folder / "negs.csv", index=False)
+            save_table(
+                list(self._neg_info.values()),
+                self._extra_folder / "negs.csv",
+                storage_format=self._storage_format,
+            )
             if self._saved_details_level < 3:
                 return
             df = pd.DataFrame(
@@ -4506,7 +4525,11 @@ class World(
                     )
                 )
             )
-            df.to_csv(self._extra_folder / "actions.csv", index=False)
+            save_table(
+                df,
+                self._extra_folder / "actions.csv",
+                storage_format=self._storage_format,
+            )
         except Exception as e:
             self.simulation_exceptions[self._current_step].append(exception2str())
             if not self.ignore_simulation_exceptions:

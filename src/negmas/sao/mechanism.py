@@ -8,7 +8,7 @@ import functools
 import sys
 import time
 from collections import defaultdict
-from typing import TYPE_CHECKING
+from typing import TYPE_CHECKING, Any
 
 from attr import asdict
 from rich import print
@@ -199,6 +199,22 @@ class SAOMechanism(
         self._waiting_time: dict[str, float] = defaultdict(float)
         self._waiting_start: dict[str, float] = defaultdict(return_inf)
         self._selected_first = 0
+
+    def make_config(self) -> dict[str, Any]:
+        return super().make_config() | dict(
+            dynamic_entry=self.dynamic_entry,
+            extra_callbacks=self._extra_callbacks,
+            end_on_no_response=self.nmi.end_on_no_response,
+            check_offers=self.check_offers,
+            enforce_issue_types=self._enforce_issue_types,
+            cast_offers=self._cast_offers,
+            offering_is_accepting=self.nmi.offering_is_accepting,
+            allow_offering_just_rejected_outcome=self.allow_offering_just_rejected_outcome,
+            name=self.name,
+            max_wait=self.params.get("max_wait", None),
+            sync_calls=self._sync_calls,
+            one_offer_per_step=self.nmi.one_offer_per_step,
+        )
 
     @property
     def state(self) -> SAOState:
@@ -737,6 +753,8 @@ class SAOMechanism(
         for state in self._history:
             state: SAOState
             acceptances = get_acceptances(state)
+            # Create a mapping from negotiator_id to data for this state
+            data_map = {nid: d for nid, d in state.new_data} if state.new_data else {}
             offers += [
                 TraceElement(
                     state.time,
@@ -746,6 +764,12 @@ class SAOMechanism(
                     o,
                     {n: ResponseType.ACCEPT_OFFER for n in acceptances},
                     response(state),
+                    data_map.get(n, {}).get("text", None)
+                    if data_map.get(n, None)
+                    else None,
+                    {k: v for k, v in data_map.get(n, {}).items()}
+                    if data_map.get(n, None)
+                    else None,
                 )
                 for n, o in state.new_offers
             ]
@@ -777,6 +801,8 @@ class SAOMechanism(
                     self.agreement,
                     {n: ResponseType.ACCEPT_OFFER for n in acceptances},
                     response(self._history[-1]),
+                    None,
+                    None,
                 )
             )
         if (
@@ -794,6 +820,12 @@ class SAOMechanism(
                 self.agreement,
                 {n: ResponseType.ACCEPT_OFFER for n in acceptances},
                 response(self._history[-1]),
+                self._history[-1].current_data.get("text", None)
+                if self._history[-1].current_data
+                else None,
+                self._history[-1].current_data
+                if self._history[-1].current_data
+                else None,
             )
         if (
             self.state.done
@@ -810,6 +842,12 @@ class SAOMechanism(
                 self.agreement,
                 {n: ResponseType.ACCEPT_OFFER for n in acceptances},
                 "error",
+                self._history[-1].current_data.get("text", None)
+                if self._history[-1].current_data
+                else None,
+                self._history[-1].current_data
+                if self._history[-1].current_data
+                else None,
             )
         elif (
             self.state.done
@@ -826,6 +864,12 @@ class SAOMechanism(
                 self.agreement,
                 {n: ResponseType.ACCEPT_OFFER for n in acceptances},
                 "timedout",
+                self._history[-1].current_data.get("text", None)
+                if self._history[-1].current_data
+                else None,
+                self._history[-1].current_data
+                if self._history[-1].current_data
+                else None,
             )
         elif self.state.done and self.agreement is None and offers:
             acceptances = get_acceptances(self._history[-1])
@@ -837,6 +881,12 @@ class SAOMechanism(
                 self.agreement,
                 {n: ResponseType.ACCEPT_OFFER for n in acceptances},
                 "broken",
+                self._history[-1].current_data.get("text", None)
+                if self._history[-1].current_data
+                else None,
+                self._history[-1].current_data
+                if self._history[-1].current_data
+                else None,
             )
 
         return offers
@@ -911,11 +961,13 @@ class SAOMechanism(
 
     def negotiator_full_trace(
         self, negotiator_id: str
-    ) -> list[tuple[float, float, int, Outcome, str]]:
-        """Returns the (time/relative-time/step/outcome/response) given by a negotiator (in order)"""
+    ) -> list[
+        tuple[float, float, int, Outcome, str, str | None, dict[str, Any] | None]
+    ]:
+        """Returns the (time/relative-time/step/outcome/response/text/data) given by a negotiator (in order)"""
         return [
-            (t, rt, s, o, a)
-            for t, rt, s, n, o, _, a in self.full_trace
+            (t, rt, s, o, a, text, data)
+            for t, rt, s, n, o, _, a, text, data in self.full_trace
             if n == negotiator_id
         ]
 

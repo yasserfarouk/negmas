@@ -2,6 +2,7 @@
 
 from __future__ import annotations
 import copy
+from pathlib import Path
 import math
 import pprint
 import random
@@ -17,6 +18,7 @@ from typing import (
     Callable,
     Iterable,
     Sequence,
+    cast,
     runtime_checkable,
     Protocol,
     TypeVar,
@@ -34,10 +36,12 @@ from negmas.common import (
     MechanismState,
     NegotiatorInfo,
     NegotiatorMechanismInterface,
+    TRACE_ELEMENT_MEMBERS,
     TraceElement,
 )
 from negmas.events import Event, EventSource
 from negmas.helpers import snake_case
+from negmas.helpers.inout import DEFAULT_TABLE_STORAGE_FORMAT, TableStorageFormat
 from negmas.helpers.misc import get_free_tcp_port
 from negmas.helpers.strings import humanize_time
 from negmas.negotiators import Negotiator
@@ -51,7 +55,11 @@ from negmas.preferences import (
     pareto_frontier_bf,
 )
 from negmas.preferences.crisp_ufun import UtilityFunction
-from negmas.preferences.ops import max_relative_welfare_points, max_welfare_points
+from negmas.preferences.ops import (
+    OutcomeOptimality,
+    max_relative_welfare_points,
+    max_welfare_points,
+)
 from negmas.types import NamedObject
 
 if TYPE_CHECKING:
@@ -59,8 +67,9 @@ if TYPE_CHECKING:
     from negmas.outcomes.protocols import DiscreteOutcomeSpace
     from negmas.preferences import Preferences
     from negmas.preferences.base_ufun import BaseUtilityFunction
+    from negmas.inout import Scenario
 
-__all__ = ["Mechanism", "MechanismStepResult", "Traceable"]
+__all__ = ["Mechanism", "MechanismStepResult", "Traceable", "CompletedRun"]
 
 TState = TypeVar("TState", bound=MechanismState)
 TAction = TypeVar("TAction", bound=MechanismAction)
@@ -98,6 +107,441 @@ class MechanismStepResult(Generic[TState]):
     negotiator in this round."""
     times: dict[str, float] | None = None
     """A mapping from negotiator ID to the time it consumed during this round."""
+
+
+@define
+class CompletedRun(Generic[TState]):
+    """Represents a completed negotiation run with all its data.
+
+    This class encapsulates the results of a negotiation including the history,
+    scenario, agreement, and various statistics. It can be saved to and loaded
+    from disk in various formats.
+
+    Attributes:
+        history: The negotiation history/trace data.
+        history_type: Type of history stored ("history", "full_trace", "trace", "extended_trace").
+        scenario: The negotiation scenario with outcome space and utility functions.
+        agreement: The final agreement reached, or None if no agreement.
+        agreement_stats: Optimality statistics for the agreement.
+        outcome_stats: Basic outcome statistics (agreement, broken, timedout, utilities).
+        config: Configuration parameters used for the negotiation.
+        metadata: Arbitrary metadata associated with the run.
+    """
+
+    history: list[TState] | list[TraceElement] | list[tuple]
+    history_type: str
+    scenario: Scenario | None
+    agreement: Outcome | None
+    agreement_stats: OutcomeOptimality | None
+    outcome_stats: dict[str, Any]
+    config: dict[str, Any]
+    metadata: dict[str, Any]
+
+    def save(
+        self,
+        parent: Path | str,
+        name: str,
+        single_file: bool = False,
+        per_negotiator: bool = False,
+        save_scenario: bool = True,
+        save_scenario_stats: bool = False,
+        save_agreement_stats: bool = True,
+        save_config: bool = True,
+        overwrite: bool = True,
+        warn_if_existing: bool = True,
+        storage_format: TableStorageFormat | None = DEFAULT_TABLE_STORAGE_FORMAT,
+    ) -> Path:
+        """Saves the completed run to disk.
+
+        Args:
+            parent: Parent directory where to save the run.
+            name: Name for the saved run (directory name or file name without extension).
+            single_file: If True, save only the trace as a single file.
+            per_negotiator: If True, save traces per negotiator in a subdirectory.
+                Files are named {type}@{index}_{name}.{ext}. Only works with full_trace history type.
+            save_scenario: If True, save the scenario information.
+            save_scenario_stats: If True, save scenario statistics.
+            save_agreement_stats: If True, save agreement statistics.
+            save_config: If True, save the configuration.
+            overwrite: If True, overwrite existing files/directories.
+            warn_if_existing: If True, warn when overwriting.
+            storage_format: Format for table storage ("csv", "gzip", "parquet").
+
+        Returns:
+            Path to the saved file or directory.
+        """
+        from negmas.helpers.inout import dump, save_table
+
+        parent = Path(parent)
+        parent.mkdir(parents=True, exist_ok=True)
+
+        # Determine column names based on history type
+        if self.history_type == "full_trace":
+            trace_columns = TRACE_ELEMENT_MEMBERS
+        elif self.history_type == "trace":
+            trace_columns = ["negotiator", "offer"]
+        elif self.history_type == "extended_trace":
+            trace_columns = ["step", "negotiator", "offer"]
+        else:  # "history" or unknown
+            trace_columns = None
+
+        # Determine file extension based on storage format
+        ext_map = {"csv": ".csv", "gzip": ".csv.gz", "parquet": ".parquet"}
+        ext = ext_map.get(storage_format, ".csv") if storage_format else ".csv"
+
+        if single_file:
+            # Save only the trace as a single file
+            file_path = parent / f"{name}{ext}"
+            if file_path.exists():
+                if warn_if_existing:
+                    warn(f"File {file_path} already exists")
+                if not overwrite:
+                    return file_path
+
+            if trace_columns:
+                # history is list[tuple] when trace_columns is set (TraceElement is a namedtuple)
+                save_table(
+                    cast(list[tuple], self.history),
+                    file_path,
+                    columns=trace_columns,
+                    storage_format=storage_format,
+                )
+            else:
+                # History data (list of state dicts)
+                # MechanismState is an attrs class with asdict(), namedtuples have _asdict()
+                history_dicts: list[dict[str, Any]] = []
+                for s in self.history:
+                    if hasattr(s, "asdict"):
+                        history_dicts.append(s.asdict())  # type: ignore[union-attr]
+                    elif hasattr(s, "_asdict"):
+                        history_dicts.append(s._asdict())  # type: ignore[union-attr]
+                    else:
+                        history_dicts.append(dict(s))  # type: ignore[arg-type]
+                save_table(history_dicts, file_path, storage_format=storage_format)
+            return file_path
+
+        # Multi-file mode: create directory structure
+        save_dir = parent / name
+        if save_dir.exists():
+            if warn_if_existing:
+                warn(f"Directory {save_dir} already exists")
+            if not overwrite:
+                return save_dir
+
+        save_dir.mkdir(parents=True, exist_ok=True)
+
+        # Save trace/history
+        trace_file = save_dir / f"trace{ext}"
+        if trace_columns:
+            # history is list[tuple] when trace_columns is set (TraceElement is a namedtuple)
+            save_table(
+                cast(list[tuple], self.history),
+                trace_file,
+                columns=trace_columns,
+                storage_format=storage_format,
+            )
+        else:
+            # MechanismState is an attrs class with asdict(), namedtuples have _asdict()
+            history_dicts: list[dict[str, Any]] = []
+            for s in self.history:
+                if hasattr(s, "asdict"):
+                    history_dicts.append(s.asdict())  # type: ignore[union-attr]
+                elif hasattr(s, "_asdict"):
+                    history_dicts.append(s._asdict())  # type: ignore[union-attr]
+                else:
+                    history_dicts.append(dict(s))  # type: ignore[arg-type]
+            save_table(history_dicts, trace_file, storage_format=storage_format)
+
+        # Save per-negotiator traces if requested
+        if per_negotiator and self.history_type == "full_trace":
+            negotiator_dir = save_dir / "negotiator_behavior"
+            negotiator_dir.mkdir(parents=True, exist_ok=True)
+
+            # Get negotiator info from config
+            negotiator_names = self.config.get("negotiator_names", [])
+            negotiator_types = self.config.get("negotiator_types", [])
+            negotiator_ids = self.config.get("negotiator_ids", [])
+
+            # Build a mapping from negotiator_id to (index, name, type)
+            # If we don't have IDs, we'll use names as IDs
+            if not negotiator_ids:
+                negotiator_ids = negotiator_names
+
+            id_to_info: dict[str, tuple[int, str, str]] = {}
+            for i, (nid, nname, ntype) in enumerate(
+                zip(negotiator_ids, negotiator_names, negotiator_types)
+            ):
+                id_to_info[nid] = (i, nname, ntype)
+
+            # Group history by negotiator
+            # In full_trace mode, entries are TraceElement namedtuples
+            negotiator_traces: dict[str, list[dict[str, Any]]] = {}
+            for entry in self.history:
+                # entry is a TraceElement (namedtuple) with 'negotiator' field
+                entry_dict: dict[str, Any] = (
+                    entry._asdict()  # type: ignore[union-attr]
+                    if hasattr(entry, "_asdict")
+                    else {}
+                )
+                nid = entry_dict.get("negotiator")
+                if nid is None:
+                    continue
+                if nid not in negotiator_traces:
+                    negotiator_traces[nid] = []
+                # Extract per-negotiator trace: time, relative_time, step, offer, response, text, data
+                negotiator_traces[nid].append(
+                    {
+                        "time": entry_dict.get("time"),
+                        "relative_time": entry_dict.get("relative_time"),
+                        "step": entry_dict.get("step"),
+                        "offer": entry_dict.get("offer"),
+                        "response": entry_dict.get("state"),
+                        "text": entry_dict.get("text"),
+                        "data": entry_dict.get("data"),
+                    }
+                )
+
+            # Save each negotiator's trace
+            for nid, trace in negotiator_traces.items():
+                if nid in id_to_info:
+                    idx, nname, ntype = id_to_info[nid]
+                else:
+                    # Fallback: use negotiator_id directly
+                    idx = list(negotiator_traces.keys()).index(nid)
+                    nname = nid
+                    ntype = "Unknown"
+                # Naming: {type}@{index}_{name}.{ext}
+                filename = f"{ntype}@{idx}_{nname}{ext}"
+                neg_file = negotiator_dir / filename
+                save_table(trace, neg_file, storage_format=storage_format)
+
+        # Save run info (history_type, agreement, basic stats)
+        run_info: dict[str, Any] = {
+            "history_type": self.history_type,
+            "agreement": self.agreement,
+            "storage_format": storage_format,
+        }
+        dump(run_info, save_dir / "run_info.yaml")
+
+        # Save scenario
+        if save_scenario and self.scenario is not None:
+            scenario_dir = save_dir / "scenario"
+            try:
+                if save_scenario_stats:
+                    self.scenario.calc_stats()
+                self.scenario.dumpas(
+                    scenario_dir,
+                    type="yml",
+                    save_stats=save_scenario_stats,
+                    save_info=True,
+                )
+            except Exception:
+                # If scenario saving fails, save basic info
+                scenario_dir.mkdir(parents=True, exist_ok=True)
+                dump(
+                    {"outcome_space": str(self.scenario.outcome_space)},
+                    scenario_dir / "outcome_space.yaml",
+                )
+
+        # Save outcome stats (always saved in directory mode)
+        if self.outcome_stats:
+            dump(self.outcome_stats, save_dir / "outcome_stats.yaml")
+
+        # Save agreement stats (optimality stats)
+        if save_agreement_stats and self.agreement_stats is not None:
+            stats_dict = {
+                "pareto_optimality": self.agreement_stats.pareto_optimality,
+                "nash_optimality": self.agreement_stats.nash_optimality,
+                "kalai_optimality": self.agreement_stats.kalai_optimality,
+                "modified_kalai_optimality": self.agreement_stats.modified_kalai_optimality,
+                "max_welfare_optimality": self.agreement_stats.max_welfare_optimality,
+                "ks_optimality": self.agreement_stats.ks_optimality,
+                "modified_ks_optimality": self.agreement_stats.modified_ks_optimality,
+            }
+            dump(stats_dict, save_dir / "agreement_stats.yaml")
+
+        # Save config
+        if save_config and self.config:
+            dump(self.config, save_dir / "config.yaml")
+
+        # Save metadata
+        if self.metadata:
+            dump(self.metadata, save_dir / "metadata.yaml")
+
+        return save_dir
+
+    @classmethod
+    def load(
+        cls,
+        path: Path | str,
+        load_scenario: bool = True,
+        load_scenario_stats: bool = False,
+        load_agreement_stats: bool = True,
+        load_config: bool = True,
+    ) -> "CompletedRun[TState]":
+        """Loads a completed run from the given path.
+
+        Args:
+            path: Path to a file (single-file mode) or directory (multi-file mode).
+            load_scenario: If True, load the scenario from the scenario directory.
+            load_scenario_stats: If True, load scenario statistics when loading the scenario.
+            load_agreement_stats: If True, load agreement optimality statistics.
+            load_config: If True, load the configuration from config.yaml.
+
+        Returns:
+            A CompletedRun instance with the loaded data.
+
+        Raises:
+            FileNotFoundError: If the path does not exist.
+            ValueError: If the path format is not recognized.
+        """
+        from negmas.helpers.inout import load, load_table
+        from negmas.inout import Scenario
+
+        path = Path(path).expanduser().absolute()
+
+        if not path.exists():
+            raise FileNotFoundError(f"Path not found: {path}")
+
+        if path.is_file():
+            # Single-file mode: load just the trace
+            history = load_table(path, as_dataframe=False)
+
+            # Detect history type from columns
+            history_type = "history"  # default
+            if len(history) > 0:
+                first_row = history[0]
+                if isinstance(first_row, dict):
+                    keys = set(first_row.keys())
+                    # Core full_trace columns (without optional text/data)
+                    full_trace_core_cols = {
+                        "time",
+                        "relative_time",
+                        "step",
+                        "negotiator",
+                        "offer",
+                        "responses",
+                        "state",
+                    }
+                    trace_cols = {"negotiator", "offer"}
+                    extended_trace_cols = {"step", "negotiator", "offer"}
+
+                    # Detect full_trace if core columns are present (text/data are optional)
+                    if full_trace_core_cols.issubset(keys):
+                        history_type = "full_trace"
+                    elif keys == extended_trace_cols:
+                        history_type = "extended_trace"
+                    elif keys == trace_cols:
+                        history_type = "trace"
+                    # else: remains "history" (state dicts)
+
+            return cls(
+                history=history,  # type: ignore
+                history_type=history_type,
+                scenario=None,
+                agreement=None,
+                agreement_stats=None,
+                outcome_stats={},
+                config={},
+                metadata={},
+            )
+
+        # Multi-file mode: load from directory
+        if not path.is_dir():
+            raise ValueError(f"Path is neither a file nor directory: {path}")
+
+        # Load run info
+        run_info_path = path / "run_info.yaml"
+        if run_info_path.exists():
+            run_info = load(run_info_path)
+            history_type = run_info.get("history_type", "history")
+            agreement = run_info.get("agreement")
+            storage_format = run_info.get("storage_format", "csv")
+        else:
+            history_type = "history"
+            agreement = None
+            storage_format = "csv"
+
+        # Determine trace file extension
+        ext_map = {"csv": ".csv", "gzip": ".csv.gz", "parquet": ".parquet"}
+        ext = ext_map.get(storage_format, ".csv")
+
+        # Try to find and load trace file
+        trace_file = path / f"trace{ext}"
+        if not trace_file.exists():
+            # Try other extensions
+            for try_ext in [".csv", ".csv.gz", ".parquet"]:
+                trace_file = path / f"trace{try_ext}"
+                if trace_file.exists():
+                    break
+            else:
+                raise FileNotFoundError(f"No trace file found in {path}")
+
+        history = load_table(trace_file, as_dataframe=False)
+
+        # Load scenario if present and requested
+        scenario = None
+        if load_scenario:
+            scenario_dir = path / "scenario"
+            if scenario_dir.exists():
+                try:
+                    scenario = Scenario.load(
+                        scenario_dir, load_stats=load_scenario_stats
+                    )
+                except Exception:
+                    scenario = None
+
+        # Load agreement stats if present and requested
+        agreement_stats = None
+        if load_agreement_stats:
+            stats_path = path / "agreement_stats.yaml"
+            if stats_path.exists():
+                stats_dict = load(stats_path)
+                if stats_dict:
+                    agreement_stats = OutcomeOptimality(
+                        pareto_optimality=stats_dict.get(
+                            "pareto_optimality", float("nan")
+                        ),
+                        nash_optimality=stats_dict.get("nash_optimality", float("nan")),
+                        kalai_optimality=stats_dict.get(
+                            "kalai_optimality", float("nan")
+                        ),
+                        modified_kalai_optimality=stats_dict.get(
+                            "modified_kalai_optimality", float("nan")
+                        ),
+                        max_welfare_optimality=stats_dict.get(
+                            "max_welfare_optimality", float("nan")
+                        ),
+                        ks_optimality=stats_dict.get("ks_optimality", float("nan")),
+                        modified_ks_optimality=stats_dict.get(
+                            "modified_ks_optimality", float("nan")
+                        ),
+                    )
+
+        # Load config if present and requested
+        config: dict[str, Any] = {}
+        if load_config:
+            config_path = path / "config.yaml"
+            config = load(config_path) if config_path.exists() else {}
+
+        # Load metadata if present
+        metadata_path = path / "metadata.yaml"
+        metadata = load(metadata_path) if metadata_path.exists() else {}
+
+        # Load outcome stats if present
+        outcome_stats_path = path / "outcome_stats.yaml"
+        outcome_stats = load(outcome_stats_path) if outcome_stats_path.exists() else {}
+
+        return cls(
+            history=history,  # type: ignore
+            history_type=history_type,
+            scenario=scenario,
+            agreement=agreement,
+            agreement_stats=agreement_stats,
+            outcome_stats=outcome_stats if outcome_stats else {},
+            config=config if config else {},
+            metadata=metadata if metadata else {},
+        )
 
 
 class Mechanism(
@@ -1812,6 +2256,177 @@ class Mechanism(
             (nash_utils, frontier_outcomes[indx]) for nash_utils, indx in nash_pts
         )
 
+    def to_completed_run(
+        self, source: str = "history", metadata: dict[str, Any] | None = None
+    ) -> CompletedRun:
+        """
+        Creates a CompletedRun object from the current mechanism state.
+
+        Args:
+            source: The source of the history information. Options:
+                - "history": Use the history attribute (list of states)
+                - "full_trace": Use the full_trace attribute (if available)
+                - "trace": Use the trace attribute (if available)
+                - "extended_trace": Use the extended_trace attribute (if available)
+            metadata: Arbitrary metadata to include in the CompletedRun.
+
+        Returns:
+            CompletedRun: A CompletedRun object containing the negotiation data.
+        """
+        from negmas.inout import Scenario
+
+        # Get the trace data based on source
+        if source == "full_trace" and hasattr(self, "full_trace"):
+            trace_data = self.full_trace  # type: ignore
+            history_type = "full_trace"
+        elif source == "trace" and hasattr(self, "trace"):
+            trace_data = self.trace  # type: ignore
+            history_type = "trace"
+        elif source == "extended_trace" and hasattr(self, "extended_trace"):
+            trace_data = self.extended_trace  # type: ignore
+            history_type = "extended_trace"
+        else:
+            trace_data = self.history
+            history_type = "history"
+
+        # Create scenario if possible
+        scenario = None
+        try:
+            ufuns = tuple(
+                n.preferences for n in self.negotiators if n.preferences is not None
+            )
+            if ufuns and self.outcome_space is not None:
+                scenario = Scenario(
+                    outcome_space=self.outcome_space,  # type: ignore
+                    ufuns=ufuns,  # type: ignore
+                    mechanism_type=self.__class__,
+                    mechanism_params=self.params,
+                )
+        except Exception:
+            scenario = None
+
+        # Build config (only include YAML-serializable values)
+        config = self.make_config()
+        # Build outcome stats (basic outcome information)
+        utilities: list[float | None] = []
+        for n in self.negotiators:
+            if n.ufun is not None and self.agreement is not None:
+                try:
+                    u = n.ufun(self.agreement)
+                    utilities.append(float(u) if u is not None else None)
+                except Exception:
+                    utilities.append(None)
+            else:
+                utilities.append(None)
+
+        outcome_stats = {
+            "agreement": self.agreement,
+            "broken": self.state.broken,
+            "timedout": self.state.timedout,
+            "utilities": utilities,
+        }
+
+        return CompletedRun(
+            history=trace_data,
+            history_type=history_type,
+            scenario=scenario,
+            agreement=self.agreement,
+            agreement_stats=None,  # Agreement stats require scenario stats to be calculated
+            outcome_stats=outcome_stats,
+            config=config,
+            metadata=metadata or {},
+        )
+
+    def make_config(self) -> dict[str, Any]:
+        """Create a YAML-serializable configuration dict from the mechanism state.
+
+        Returns:
+            A dictionary containing mechanism configuration that can be safely
+            serialized to YAML.
+        """
+        return dict(
+            mechanism_type=self.__class__.__name__,
+            n_negotiators=len(self.negotiators),
+            negotiator_names=[n.name for n in self.negotiators],
+            negotiator_types=[n.__class__.__name__ for n in self.negotiators],
+            negotiator_ids=[n.id for n in self.negotiators],
+            final_step=self.current_step,
+            final_time=self.time,
+            final_relative_time=self.relative_time,
+            broken=self.state.broken,
+            timedout=self.state.timedout,
+            has_error=self.state.has_error,
+            n_steps=self.nmi.n_steps,
+            time_limit=self.nmi.time_limit,
+            pend=self.nmi.pend,
+            pend_per_second=self.nmi.pend_per_second,
+            step_time_limit=self.nmi.step_time_limit,
+            negotiator_time_limit=self.nmi.negotiator_time_limit,
+            hidden_time_limit=self._hidden_time_limit,
+            max_n_negotiators=self.max_n_negotiators,
+            dynamic_entry=self.dynamic_entry,
+            name=self.name,
+            genius_port=self.genius_port,
+            id=self.id,
+            type_name=self.type_name,
+            verbosity=self.verbosity,
+            ignore_negotiator_exceptions=self.ignore_negotiator_exceptions,
+        )
+
+    def save(
+        self,
+        parent: Path | str,
+        name: str,
+        single_file: bool = False,
+        per_negotiator: bool = False,
+        save_scenario: bool = True,
+        save_scenario_stats: bool = False,
+        save_agreement_stats: bool = True,
+        save_config: bool = True,
+        source: str = "history",
+        metadata: dict[str, Any] | None = None,
+        overwrite: bool = True,
+        warn_if_existing: bool = True,
+        storage_format: TableStorageFormat | None = DEFAULT_TABLE_STORAGE_FORMAT,
+    ) -> Path:
+        """
+        Saves the negotiation in a standard NegMAS format.
+
+        Args:
+            parent: Where to save the negotiation
+            name: Name to save to. It can be a directory name or a file name (without extension)
+            single_file: If True, a single file with the negotiation history/trace will be saved. all save_* arguments will be ignored. The extension will be decided based on storage_format
+            per_negotiator: If True, save traces per negotiator in a subdirectory.
+                Files are named {type}@{index}_{name}.{ext}. Only works with full_trace source.
+            save_scenario: If True (and single_file is False), save the negotiation scenario information with history (under a `scenario` folder)
+            save_scenario_stats: If True (and single_file is False), save scenario stats and info (using Scenario.dumpas)
+            save_agreement_stats: If True (and single_file is False), save agreement stats, the agreement itself and its utilities under `outcome_stats.yaml`.
+                                  If utility functions are not found in negotiators, only the agreement will be saved there
+            save_config: If True (and single_file is False),  save the configuration paramters of the mechanism run.
+            source: The source of the history information to save. Default is "history" which means using the history attribute.
+            metadata: arbitrary data to save under `meta_data.yaml`. Only supported if single_file is False
+            overwrite: Overwrite existing files/folders
+            warn_if_existing: Warn if existing files/folders are found
+            storage_format: The format for storing tables.
+
+        Returns:
+            Path: The path to the saved file or directory.
+        """
+        completed_run = self.to_completed_run(source=source, metadata=metadata)
+        return completed_run.save(
+            parent=parent,
+            name=name,
+            single_file=single_file,
+            per_negotiator=per_negotiator,
+            save_scenario=save_scenario,
+            save_scenario_stats=save_scenario_stats,
+            save_agreement_stats=save_agreement_stats,
+            save_config=save_config,
+            overwrite=overwrite,
+            warn_if_existing=warn_if_existing,
+            storage_format=storage_format,
+        )
+
     def plot(self, **kwargs) -> Any:
         """A method for plotting a negotiation session."""
         _ = kwargs
@@ -1833,10 +2448,26 @@ class Traceable(Protocol):
     """A mechanism that can generate a trace"""
 
     @property
+    def full_trace_with_utils(self) -> list[tuple]:
+        """Returns the full trace and the utility of the negotiators at each step."""
+        ...
+
+    @property
     def full_trace(self) -> list[TraceElement]:
         """Returns the negotiation history as a list of relative_time/step/negotiator/offer tuples"""
         ...
 
-    def negotiator_full_trace(self, negotiator_id: str) -> list[TraceElement]:
+    @property
+    def trace(self) -> list[tuple[str, Outcome]]:
+        """Basic trace keeping only outcomes"""
+        ...
+
+    def extended_trace(self) -> list[tuple[int, str, Outcome]]:
+        """Returns the negotiation history as a list of step/negotiator/offer tuples"""
+        ...
+
+    def negotiator_full_trace(
+        self, negotiator_id: str
+    ) -> list[tuple[float, float, int, Outcome, str]]:
         """Returns the (time/relative-time/step/outcome/response) given by a negotiator (in order)"""
         ...

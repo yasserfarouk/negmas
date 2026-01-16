@@ -8,7 +8,12 @@ from os import PathLike
 from pathlib import Path
 from typing import TYPE_CHECKING, Any
 
-from negmas.helpers.inout import dump
+from negmas.helpers.inout import (
+    DEFAULT_TABLE_STORAGE_FORMAT,
+    TableStorageFormat,
+    dump,
+    save_table,
+)
 from negmas.serialization import PYTHON_CLASS_IDENTIFIER, serialize
 
 if TYPE_CHECKING:
@@ -23,6 +28,7 @@ def save_stats(
     params: dict[str, Any] | None = None,
     stats_file_name: str | None = None,
     python_class_identifier=PYTHON_CLASS_IDENTIFIER,
+    storage_format: TableStorageFormat | None = None,
 ):
     """
     Saves the statistics of a world run.
@@ -30,14 +36,19 @@ def save_stats(
     Args:
 
         world: The world
-        logdir_: The directory to save the stats into.
+        log_dir: The directory to save the stats into.
         params: A parameter list to save with the world
         stats_file_name: File name to use for stats file(s) without extension
+        python_class_identifier: The identifier for Python class serialization
+        storage_format: Format for saving tables ('csv', 'gzip', 'parquet'). Defaults to DEFAULT_TABLE_STORAGE_FORMAT.
 
     Returns:
 
     """
     import pandas as pd
+
+    if storage_format is None:
+        storage_format = DEFAULT_TABLE_STORAGE_FORMAT
 
     def is_json_serializable(x):
         """Check if json serializable.
@@ -109,14 +120,26 @@ def save_stats(
         dump(world.info, logdir_ / "info")
 
     data = pd.DataFrame.from_dict(world.stats)
-    data.to_csv(str(logdir_ / f"{stats_file_name}.csv"), index_label="index")
+    save_table(
+        data,
+        logdir_ / f"{stats_file_name}.csv",
+        index=True,
+        index_label="index",
+        storage_format=storage_format,
+    )
 
     if world.save_negotiations:
         if len(world.saved_negotiations) > 0:
             data = pd.DataFrame(world.saved_negotiations)
             if "ended_at" in data.columns:
                 data = data.sort_values(["ended_at"])
-            data.to_csv(str(logdir_ / "negotiations.csv"), index_label="index")  # type: ignore
+            save_table(
+                data,
+                logdir_ / "negotiations.csv",
+                index=True,
+                index_label="index",
+                storage_format=storage_format,
+            )
         else:
             with open(logdir_ / "negotiations.csv", "w") as f:
                 f.write("")
@@ -124,7 +147,13 @@ def save_stats(
     if world.save_resolved_breaches or world.save_unresolved_breaches:
         if len(world.saved_breaches) > 0:
             data = pd.DataFrame(world.saved_breaches)
-            data.to_csv(str(logdir_ / "breaches.csv"), index_label="index")  # type: ignore
+            save_table(
+                data,
+                logdir_ / "breaches.csv",
+                index=True,
+                index_label="index",
+                storage_format=storage_format,
+            )
         else:
             with open(logdir_ / "breaches.csv", "w") as f:
                 f.write("")
@@ -132,7 +161,7 @@ def save_stats(
     # if world.save_signed_contracts:
     #     if len(world.signed_contracts) > 0:
     #         data = pd.DataFrame(world.signed_contracts)
-    #         data.to_csv(str(logdir_ / "signed_contracts.csv"), index_label="index")
+    #         save_table(data, logdir_ / "signed_contracts.csv", index=True, index_label="index", storage_format=storage_format)
     #     else:
     #         with open(logdir_ / "signed_contracts.csv", "w") as f:
     #             f.write("")
@@ -140,7 +169,7 @@ def save_stats(
     # if world.save_cancelled_contracts:
     #     if len(world.cancelled_contracts) > 0:
     #         data = pd.DataFrame(world.cancelled_contracts)
-    #         data.to_csv(str(logdir_ / "cancelled_contracts.csv"), index_label="index")
+    #         save_table(data, logdir_ / "cancelled_contracts.csv", index=True, index_label="index", storage_format=storage_format)
     #     else:
     #         with open(logdir_ / "cancelled_contracts.csv", "w") as f:
     #             f.write("")
@@ -152,7 +181,13 @@ def save_stats(
                 if col in data.columns:
                     data = data.sort_values(["delivery_time"])
                     break
-            data.to_csv(str(logdir_ / "contracts.csv"), index_label="index")
+            save_table(
+                data,
+                logdir_ / "contracts.csv",
+                index=True,
+                index_label="index",
+                storage_format=storage_format,
+            )
         else:
             with open(logdir_ / "contracts.csv", "w") as f:
                 f.write("")
