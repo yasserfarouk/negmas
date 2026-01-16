@@ -11,7 +11,7 @@ from pathlib import Path
 from random import shuffle
 from typing import Any, Callable, Iterable, Sequence
 
-from attrs import asdict, define, field
+from attrs import define, field
 
 from negmas.helpers.inout import dump, load
 from negmas.helpers.strings import unique_name
@@ -615,9 +615,19 @@ class Scenario:
         compact: bool = False,
         save_stats=True,
         save_info=True,
+        include_pareto_frontier: bool = True,
     ) -> None:
         """
         Dumps the scenario in the given file format.
+
+        Args:
+            folder: Destination folder path.
+            type: File format ("yml", "json", or "xml").
+            compact: If True, use compact JSON formatting.
+            save_stats: If True, save scenario statistics to stats.json.
+            save_info: If True, save scenario info to info file.
+            include_pareto_frontier: If True, include pareto_utils and pareto_outcomes
+                in stats.json. If False, exclude them to save disk space. Default is True.
         """
         if type.startswith("."):
             type = type[1:]
@@ -633,7 +643,10 @@ class Scenario:
         if self.info and save_info:
             dump(self.info, folder / f"{INFO_FILE_NAME}.{type}")
         if self.stats and save_stats:
-            dump(asdict(self.stats), folder / STATS_FILE_NAME)
+            dump(
+                self.stats.to_dict(include_pareto_frontier=include_pareto_frontier),
+                folder / STATS_FILE_NAME,
+            )
 
     def load_info_file(self, file: Path):
         """Load info file.
@@ -660,26 +673,58 @@ class Scenario:
             break
         return self
 
-    def load_stats_file(self, file: Path):
+    def load_stats_file(self, file: Path, calc_pareto_if_missing: bool = False):
         """Load stats file.
 
         Args:
-            file: File.
+            file: File path to load stats from.
+            calc_pareto_if_missing: If True and the loaded stats have no pareto frontier
+                data, calculate it using this scenario's utility functions.
+
+        Returns:
+            Self for method chaining.
+
+        Notes:
+            Handles stats files that may have been saved without pareto frontier data
+            (when include_pareto_frontier=False was used during saving).
+
+            When calc_pareto_if_missing=True, the pareto frontier will be computed
+            on-the-fly, which may be slow for large outcome spaces.
         """
         if not file.is_file():
             return self
-        self.stats = ScenarioStats(**load(file))
+        self.stats = ScenarioStats.from_dict(
+            load(file),
+            ufuns=self.ufuns if calc_pareto_if_missing else None,
+            calc_pareto_if_missing=calc_pareto_if_missing,
+        )
         return self
 
-    def load_stats(self, folder: PathLike | str):
+    def load_stats(self, folder: PathLike | str, calc_pareto_if_missing: bool = False):
         """Load stats.
 
         Args:
-            folder: Folder.
+            folder: Folder containing the stats file.
+            calc_pareto_if_missing: If True and the loaded stats have no pareto frontier
+                data, calculate it using this scenario's utility functions.
+
+        Returns:
+            Self for method chaining.
+
+        Notes:
+            Handles stats files that may have been saved without pareto frontier data
+            (when include_pareto_frontier=False was used during saving).
+
+            When calc_pareto_if_missing=True, the pareto frontier will be computed
+            on-the-fly, which may be slow for large outcome spaces.
         """
         path = Path(folder) / STATS_FILE_NAME
         if path.is_file():
-            self.stats = ScenarioStats(**load(path))
+            self.stats = ScenarioStats.from_dict(
+                load(path),
+                ufuns=self.ufuns if calc_pareto_if_missing else None,
+                calc_pareto_if_missing=calc_pareto_if_missing,
+            )
         return self
 
     @staticmethod

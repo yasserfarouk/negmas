@@ -24,7 +24,16 @@ from negmas.tournaments.neg.simple.cartesian import (
     TOURNAMENT_FILES,
     SimpleTournamentResults,
     RunInfo,
+    _find_dataframe_file,
 )
+
+# Check if pyarrow is available for parquet tests
+try:
+    import pyarrow  # noqa: F401
+
+    HAS_PYARROW = True
+except ImportError:
+    HAS_PYARROW = False
 
 
 # Module-level callbacks for picklability in parallel tests
@@ -941,3 +950,393 @@ def test_opponents_rotation_ufun_assignment_bug():
 
     # The bug is now clear: With rotation + explicit opponents,
     # only ONE of the two negotiations gets scored!
+
+
+# ===== Storage and Memory Optimization Tests =====
+
+
+@mark.slow
+@mark.skipif(NEGMAS_FASTRUN, reason="Storage optimization tests are slow")
+def test_storage_optimization_speed(tmp_path: Path):
+    """Test storage_optimization='speed' keeps all files"""
+    path = tmp_path / "tournament_speed"
+    issues = (make_issue([f"q{i}" for i in range(3)], "quantity"),)
+    ufuns = [
+        (
+            U.random(issues=issues, reserved_value=(0.0, 0.2), normalized=False),
+            U.random(issues=issues, reserved_value=(0.0, 0.2), normalized=False),
+        )
+    ]
+    scenarios = [Scenario(outcome_space=make_os(issues, name="S0"), ufuns=ufuns[0])]
+    competitors = [RandomNegotiator, AspirationNegotiator]
+
+    results = cartesian_tournament(
+        competitors=competitors,
+        scenarios=scenarios,
+        mechanism_params=dict(n_steps=5),
+        n_repetitions=1,
+        verbosity=0,
+        rotate_ufuns=False,
+        path=path,
+        njobs=-1,
+        storage_optimization="speed",
+    )
+
+    # All files should exist
+    assert (path / "results").exists(), "results/ folder should exist"
+    assert (path / "all_scores.csv").exists(), "all_scores.csv should exist"
+    assert (path / "details.csv").exists(), "details.csv should exist"
+    assert (path / "scores.csv").exists(), "scores.csv should exist"
+    assert (path / "type_scores.csv").exists(), "type_scores.csv should exist"
+
+    # Results should be complete
+    assert len(results.scores) > 0
+    assert len(results.details) > 0
+    assert len(results.final_scores) > 0
+
+
+@mark.slow
+@mark.skipif(NEGMAS_FASTRUN, reason="Storage optimization tests are slow")
+def test_storage_optimization_balanced(tmp_path: Path):
+    """Test storage_optimization='balanced' removes results/ folder and uses gzip format"""
+    path = tmp_path / "tournament_balanced"
+    issues = (make_issue([f"q{i}" for i in range(3)], "quantity"),)
+    ufuns = [
+        (
+            U.random(issues=issues, reserved_value=(0.0, 0.2), normalized=False),
+            U.random(issues=issues, reserved_value=(0.0, 0.2), normalized=False),
+        )
+    ]
+    scenarios = [Scenario(outcome_space=make_os(issues, name="S0"), ufuns=ufuns[0])]
+    competitors = [RandomNegotiator, AspirationNegotiator]
+
+    results = cartesian_tournament(
+        competitors=competitors,
+        scenarios=scenarios,
+        mechanism_params=dict(n_steps=5),
+        n_repetitions=1,
+        verbosity=0,
+        rotate_ufuns=False,
+        path=path,
+        njobs=-1,
+        storage_optimization="balanced",
+    )
+
+    # results/ folder should be removed
+    assert not (path / "results").exists(), "results/ folder should be removed"
+    # Files should exist (in gzip format for balanced optimization)
+    assert (
+        _find_dataframe_file(path, "all_scores") is not None
+    ), "all_scores file should exist"
+    assert (
+        _find_dataframe_file(path, "details") is not None
+    ), "details file should exist"
+    # scores.csv always uses plain CSV format
+    assert (path / "scores.csv").exists(), "scores.csv should exist"
+
+    # Results should still be accessible
+    assert len(results.scores) > 0
+    assert len(results.details) > 0
+
+
+@mark.slow
+@mark.skipif(NEGMAS_FASTRUN, reason="Storage optimization tests are slow")
+@mark.skipif(not HAS_PYARROW, reason="pyarrow required for parquet format tests")
+def test_storage_optimization_space(tmp_path: Path):
+    """Test storage_optimization='space' removes results/ and all_scores, uses parquet format"""
+    path = tmp_path / "tournament_space"
+    issues = (make_issue([f"q{i}" for i in range(3)], "quantity"),)
+    ufuns = [
+        (
+            U.random(issues=issues, reserved_value=(0.0, 0.2), normalized=False),
+            U.random(issues=issues, reserved_value=(0.0, 0.2), normalized=False),
+        )
+    ]
+    scenarios = [Scenario(outcome_space=make_os(issues, name="S0"), ufuns=ufuns[0])]
+    competitors = [RandomNegotiator, AspirationNegotiator]
+
+    results = cartesian_tournament(
+        competitors=competitors,
+        scenarios=scenarios,
+        mechanism_params=dict(n_steps=5),
+        n_repetitions=1,
+        verbosity=0,
+        rotate_ufuns=False,
+        path=path,
+        njobs=-1,
+        storage_optimization="space",
+    )
+
+    # results/ folder and all_scores should be removed
+    assert not (path / "results").exists(), "results/ folder should be removed"
+    assert (
+        _find_dataframe_file(path, "all_scores") is None
+    ), "all_scores should be removed"
+    # Essential files should still exist (parquet format for space optimization)
+    assert (
+        _find_dataframe_file(path, "details") is not None
+    ), "details file should exist"
+    # scores.csv always uses plain CSV format
+    assert (path / "scores.csv").exists(), "scores.csv should exist"
+
+    # Results should still be accessible in memory
+    assert len(results.scores) > 0
+    assert len(results.details) > 0
+
+
+@mark.slow
+@mark.skipif(NEGMAS_FASTRUN, reason="Memory optimization tests are slow")
+def test_memory_optimization_speed(tmp_path: Path):
+    """Test memory_optimization='speed' keeps everything in memory"""
+    path = tmp_path / "tournament_mem_speed"
+    issues = (make_issue([f"q{i}" for i in range(3)], "quantity"),)
+    ufuns = [
+        (
+            U.random(issues=issues, reserved_value=(0.0, 0.2), normalized=False),
+            U.random(issues=issues, reserved_value=(0.0, 0.2), normalized=False),
+        )
+    ]
+    scenarios = [Scenario(outcome_space=make_os(issues, name="S0"), ufuns=ufuns[0])]
+    competitors = [RandomNegotiator, AspirationNegotiator]
+
+    results = cartesian_tournament(
+        competitors=competitors,
+        scenarios=scenarios,
+        mechanism_params=dict(n_steps=5),
+        n_repetitions=1,
+        verbosity=0,
+        rotate_ufuns=False,
+        path=path,
+        njobs=-1,
+        memory_optimization="speed",
+    )
+
+    # All data should be immediately available (cached)
+    assert results._scores_cached is True
+    assert results._details_cached is True
+    assert len(results.scores) > 0
+    assert len(results.details) > 0
+
+
+@mark.slow
+@mark.skipif(NEGMAS_FASTRUN, reason="Memory optimization tests are slow")
+def test_memory_optimization_without_path():
+    """Test that memory_optimization is ignored when path is None"""
+    issues = (make_issue([f"q{i}" for i in range(3)], "quantity"),)
+    ufuns = [
+        (
+            U.random(issues=issues, reserved_value=(0.0, 0.2), normalized=False),
+            U.random(issues=issues, reserved_value=(0.0, 0.2), normalized=False),
+        )
+    ]
+    scenarios = [Scenario(outcome_space=make_os(issues, name="S0"), ufuns=ufuns[0])]
+    competitors = [RandomNegotiator, AspirationNegotiator]
+
+    # Even with memory_optimization="space", data should be kept in memory when path=None
+    results = cartesian_tournament(
+        competitors=competitors,
+        scenarios=scenarios,
+        mechanism_params=dict(n_steps=5),
+        n_repetitions=1,
+        verbosity=0,
+        rotate_ufuns=False,
+        path=None,  # No path
+        njobs=-1,
+        memory_optimization="space",  # Should be ignored
+    )
+
+    # Data should still be available since there's no path to load from
+    assert len(results.scores) > 0
+    assert len(results.details) > 0
+    assert len(results.final_scores) > 0
+
+
+@mark.slow
+@mark.skipif(NEGMAS_FASTRUN, reason="Load/save optimization tests are slow")
+def test_load_with_missing_scores(tmp_path: Path):
+    """Test that SimpleTournamentResults.load() can reconstruct scores from results/ folder"""
+    path = tmp_path / "tournament_load"
+    issues = (make_issue([f"q{i}" for i in range(3)], "quantity"),)
+    ufuns = [
+        (
+            U.random(issues=issues, reserved_value=(0.0, 0.2), normalized=False),
+            U.random(issues=issues, reserved_value=(0.0, 0.2), normalized=False),
+        )
+    ]
+    scenarios = [Scenario(outcome_space=make_os(issues, name="S0"), ufuns=ufuns[0])]
+    competitors = [RandomNegotiator, AspirationNegotiator]
+
+    # Run tournament with speed mode (keeps all files)
+    original_results = cartesian_tournament(
+        competitors=competitors,
+        scenarios=scenarios,
+        mechanism_params=dict(n_steps=5),
+        n_repetitions=1,
+        verbosity=0,
+        rotate_ufuns=False,
+        path=path,
+        njobs=-1,
+        storage_optimization="speed",
+    )
+
+    original_scores_count = len(original_results.scores)
+
+    # Delete all_scores.csv to simulate space mode
+    (path / "all_scores.csv").unlink()
+
+    # Load should still work by reconstructing from results/ folder
+    loaded_results = SimpleTournamentResults.load(path)
+
+    assert len(loaded_results.scores) == original_scores_count
+    assert len(loaded_results.final_scores) > 0
+
+
+@mark.slow
+@mark.skipif(NEGMAS_FASTRUN, reason="Load/save optimization tests are slow")
+def test_load_with_missing_details(tmp_path: Path):
+    """Test that SimpleTournamentResults.load() can reconstruct details from results/ folder"""
+    path = tmp_path / "tournament_load_details"
+    issues = (make_issue([f"q{i}" for i in range(3)], "quantity"),)
+    ufuns = [
+        (
+            U.random(issues=issues, reserved_value=(0.0, 0.2), normalized=False),
+            U.random(issues=issues, reserved_value=(0.0, 0.2), normalized=False),
+        )
+    ]
+    scenarios = [Scenario(outcome_space=make_os(issues, name="S0"), ufuns=ufuns[0])]
+    competitors = [RandomNegotiator, AspirationNegotiator]
+
+    # Run tournament with speed mode (keeps all files)
+    original_results = cartesian_tournament(
+        competitors=competitors,
+        scenarios=scenarios,
+        mechanism_params=dict(n_steps=5),
+        n_repetitions=1,
+        verbosity=0,
+        rotate_ufuns=False,
+        path=path,
+        njobs=-1,
+        storage_optimization="speed",
+    )
+
+    original_details_count = len(original_results.details)
+
+    # Delete details.csv
+    (path / "details.csv").unlink()
+
+    # Load should still work by reconstructing from results/ folder
+    loaded_results = SimpleTournamentResults.load(path)
+
+    assert len(loaded_results.details) == original_details_count
+
+
+@mark.slow
+@mark.skipif(NEGMAS_FASTRUN, reason="Storage optimization tests are slow")
+def test_combine_tournaments_with_different_storage_optimizations(tmp_path: Path):
+    """Test that tournaments with different storage optimizations can be combined"""
+    issues = (make_issue([f"q{i}" for i in range(3)], "quantity"),)
+    ufuns = [
+        (
+            U.random(issues=issues, reserved_value=(0.0, 0.2), normalized=False),
+            U.random(issues=issues, reserved_value=(0.0, 0.2), normalized=False),
+        )
+    ]
+    scenarios = [Scenario(outcome_space=make_os(issues, name="S0"), ufuns=ufuns[0])]
+    competitors = [RandomNegotiator, AspirationNegotiator]
+
+    # Run two tournaments with different storage optimizations
+    path1 = tmp_path / "tournament1"
+    cartesian_tournament(
+        competitors=competitors,
+        scenarios=scenarios,
+        mechanism_params=dict(n_steps=5),
+        n_repetitions=1,
+        verbosity=0,
+        rotate_ufuns=False,
+        path=path1,
+        njobs=-1,
+        storage_optimization="speed",
+    )
+
+    path2 = tmp_path / "tournament2"
+    cartesian_tournament(
+        competitors=competitors,
+        scenarios=scenarios,
+        mechanism_params=dict(n_steps=5),
+        n_repetitions=1,
+        verbosity=0,
+        rotate_ufuns=False,
+        path=path2,
+        njobs=-1,
+        storage_optimization="balanced",
+    )
+
+    # Combine should work
+    combined, _ = SimpleTournamentResults.combine([path1, path2])
+    assert len(combined.scores) > 0
+    assert len(combined.details) > 0
+
+
+@mark.slow
+@mark.skipif(NEGMAS_FASTRUN, reason="Storage optimization tests are slow")
+def test_scores_reconstructed_from_details_csv_only(tmp_path: Path):
+    """Test that scores can be reconstructed from details.csv alone (no results/ folder).
+
+    This is critical for storage_optimization='balanced' and 'space' modes where
+    the results/ folder is deleted to save disk space.
+    """
+    path = tmp_path / "tournament_details_only"
+    issues = (make_issue([f"q{i}" for i in range(3)], "quantity"),)
+    ufuns = [
+        (
+            U.random(issues=issues, reserved_value=(0.0, 0.2), normalized=False),
+            U.random(issues=issues, reserved_value=(0.0, 0.2), normalized=False),
+        )
+    ]
+    scenarios = [Scenario(outcome_space=make_os(issues, name="S0"), ufuns=ufuns[0])]
+    competitors = [RandomNegotiator, AspirationNegotiator]
+
+    # Run tournament with speed mode to get reference data
+    original_results = cartesian_tournament(
+        competitors=competitors,
+        scenarios=scenarios,
+        mechanism_params=dict(n_steps=5),
+        n_repetitions=2,
+        verbosity=0,
+        rotate_ufuns=True,
+        path=path,
+        njobs=-1,
+        storage_optimization="speed",
+    )
+
+    # Save reference values
+    original_scores = original_results.scores.copy()
+    original_final_scores = original_results.final_scores.copy()
+
+    # Delete both results/ folder AND all_scores.csv to simulate balanced/space mode
+    import shutil
+
+    shutil.rmtree(path / "results")
+    (path / "all_scores.csv").unlink()
+
+    # Verify results/ folder and all_scores.csv are gone
+    assert not (path / "results").exists()
+    assert not (path / "all_scores.csv").exists()
+    # But details.csv should still exist
+    assert (path / "details.csv").exists()
+
+    # Load should reconstruct scores from details.csv
+    loaded_results = SimpleTournamentResults.load(path)
+
+    # Verify scores were reconstructed
+    assert len(loaded_results.scores) == len(
+        original_scores
+    ), f"Expected {len(original_scores)} scores, got {len(loaded_results.scores)}"
+
+    # Verify key score columns match
+    for col in ["strategy", "utility", "reserved_value", "scenario"]:
+        if col in original_scores.columns:
+            assert col in loaded_results.scores.columns, f"Missing column: {col}"
+
+    # Verify final scores still work
+    assert len(loaded_results.final_scores) == len(original_final_scores)

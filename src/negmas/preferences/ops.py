@@ -159,26 +159,62 @@ def sort_by_utility(
 
 @define
 class ScenarioStats:
-    """ScenarioStats implementation."""
+    """ScenarioStats implementation.
+
+    Attributes:
+        opposition: Opposition level between negotiators.
+        utility_ranges: List of (min, max) utility ranges for each negotiator.
+        pareto_utils: Tuple of utility tuples on the Pareto frontier. Can be empty
+            if not computed or excluded for space optimization.
+        pareto_outcomes: List of outcomes on the Pareto frontier. Can be empty
+            if not computed or excluded for space optimization.
+        nash_utils: List of utility tuples at Nash bargaining solutions.
+        nash_outcomes: List of outcomes at Nash bargaining solutions.
+        kalai_utils: List of utility tuples at Kalai-Smorodinsky solutions.
+        kalai_outcomes: List of outcomes at Kalai-Smorodinsky solutions.
+        modified_kalai_utils: List of utility tuples at modified Kalai solutions.
+        modified_kalai_outcomes: List of outcomes at modified Kalai solutions.
+        max_welfare_utils: List of utility tuples at maximum welfare points.
+        max_welfare_outcomes: List of outcomes at maximum welfare points.
+        max_relative_welfare_utils: List of utility tuples at max relative welfare points.
+        max_relative_welfare_outcomes: List of outcomes at max relative welfare points.
+        ks_utils: List of utility tuples at KS solutions.
+        ks_outcomes: List of outcomes at KS solutions.
+        modified_ks_utils: List of utility tuples at modified KS solutions.
+        modified_ks_outcomes: List of outcomes at modified KS solutions.
+
+    Notes:
+        The pareto_utils and pareto_outcomes fields can be empty when:
+        - Stats were saved with include_pareto_frontier=False for space optimization
+        - Stats were loaded from a file that excluded pareto data
+
+        Functions that need the pareto frontier should handle empty values gracefully
+        by either skipping pareto-related calculations or computing the frontier on demand.
+    """
 
     opposition: float
     utility_ranges: list[tuple[float, float]]
-    pareto_utils: tuple[tuple[float, ...], ...]
-    pareto_outcomes: list[Outcome]
-    nash_utils: list[tuple[float, ...]]
-    nash_outcomes: list[Outcome]
-    kalai_utils: list[tuple[float, ...]]
-    kalai_outcomes: list[Outcome]
-    modified_kalai_utils: list[tuple[float, ...]]
-    modified_kalai_outcomes: list[Outcome]
-    max_welfare_utils: list[tuple[float, ...]]
-    max_welfare_outcomes: list[Outcome]
-    max_relative_welfare_utils: list[tuple[float, ...]]
-    max_relative_welfare_outcomes: list[Outcome]
+    pareto_utils: tuple[tuple[float, ...], ...] = field(factory=tuple)
+    pareto_outcomes: list[Outcome] = field(factory=list)
+    nash_utils: list[tuple[float, ...]] = field(factory=list)
+    nash_outcomes: list[Outcome] = field(factory=list)
+    kalai_utils: list[tuple[float, ...]] = field(factory=list)
+    kalai_outcomes: list[Outcome] = field(factory=list)
+    modified_kalai_utils: list[tuple[float, ...]] = field(factory=list)
+    modified_kalai_outcomes: list[Outcome] = field(factory=list)
+    max_welfare_utils: list[tuple[float, ...]] = field(factory=list)
+    max_welfare_outcomes: list[Outcome] = field(factory=list)
+    max_relative_welfare_utils: list[tuple[float, ...]] = field(factory=list)
+    max_relative_welfare_outcomes: list[Outcome] = field(factory=list)
     ks_utils: list[tuple[float, ...]] = field(factory=list)
     ks_outcomes: list[Outcome] = field(factory=list)
     modified_ks_utils: list[tuple[float, ...]] = field(factory=list)
     modified_ks_outcomes: list[Outcome] = field(factory=list)
+
+    @property
+    def has_pareto_frontier(self) -> bool:
+        """Check if the pareto frontier data is available."""
+        return len(self.pareto_utils) > 0
 
     # TODO: Add more stats here. See the negobench overleaf for examples.
     # Add advantage_range_ratio (ratio of rational ufun ranges), utility_range_ratio.
@@ -294,6 +330,103 @@ class ScenarioStats:
             max_relative_welfare_utils=relative_welfare_utils,
             max_relative_welfare_outcomes=relative_welfare_outcomes,
         )
+
+    def to_dict(self, include_pareto_frontier: bool = True) -> dict:
+        """Convert to dictionary with optional exclusion of pareto frontier data.
+
+        Args:
+            include_pareto_frontier: If True, include pareto_utils and pareto_outcomes.
+                If False, exclude them to save space. Default is True.
+
+        Returns:
+            Dictionary representation of the ScenarioStats.
+
+        Notes:
+            When include_pareto_frontier=False, the pareto_utils and pareto_outcomes
+            fields are set to empty collections. This is useful for saving disk space
+            when the full pareto frontier is not needed.
+        """
+        from attrs import asdict
+
+        d = asdict(self)
+        if not include_pareto_frontier:
+            d["pareto_utils"] = tuple()
+            d["pareto_outcomes"] = []
+        return d
+
+    @classmethod
+    def from_dict(
+        cls,
+        d: dict,
+        ufuns: list[UtilityFunction] | tuple[UtilityFunction, ...] | None = None,
+        outcomes: Sequence[Outcome] | None = None,
+        calc_pareto_if_missing: bool = False,
+    ) -> "ScenarioStats":
+        """Create ScenarioStats from a dictionary.
+
+        Args:
+            d: Dictionary with ScenarioStats fields. Missing pareto fields
+               will be set to empty collections unless calc_pareto_if_missing is True.
+            ufuns: Utility functions to use for calculating pareto frontier if missing.
+                   Required if calc_pareto_if_missing is True.
+            outcomes: Outcomes to consider for pareto frontier calculation.
+                      If None, outcomes will be enumerated from the ufuns' outcome space.
+            calc_pareto_if_missing: If True and pareto frontier data is missing or empty,
+                                    calculate it using the provided ufuns.
+
+        Returns:
+            ScenarioStats instance.
+
+        Raises:
+            ValueError: If calc_pareto_if_missing is True but ufuns is not provided.
+
+        Notes:
+            When calc_pareto_if_missing is True and pareto data is missing, this method
+            will compute the pareto frontier which may be slow for large outcome spaces.
+        """
+        # Make a copy to avoid modifying the input dict
+        d = d.copy()
+
+        # Handle missing or empty pareto fields gracefully
+        pareto_missing = (
+            "pareto_utils" not in d
+            or not d["pareto_utils"]
+            or "pareto_outcomes" not in d
+            or not d["pareto_outcomes"]
+        )
+
+        if pareto_missing and calc_pareto_if_missing:
+            if ufuns is None:
+                raise ValueError(
+                    "ufuns must be provided when calc_pareto_if_missing is True"
+                )
+            # Calculate the pareto frontier
+            pareto_utils, pareto_indices = pareto_frontier(
+                ufuns, outcomes, sort_by_welfare=True
+            )
+            # Get outcomes if not provided
+            if outcomes is None:
+                os = ufuns[0].outcome_space
+                if os is not None:
+                    outcomes = list(
+                        os.enumerate_or_sample(max_cardinality=float("inf"))
+                    )  # type: ignore
+            if outcomes is not None:
+                pareto_outcomes = [outcomes[i] for i in pareto_indices]
+            else:
+                pareto_outcomes = []
+            d["pareto_utils"] = pareto_utils
+            d["pareto_outcomes"] = pareto_outcomes
+        else:
+            # Set defaults for missing fields
+            if "pareto_utils" not in d:
+                d["pareto_utils"] = tuple()
+            elif isinstance(d["pareto_utils"], list):
+                d["pareto_utils"] = tuple(tuple(x) for x in d["pareto_utils"])
+            if "pareto_outcomes" not in d:
+                d["pareto_outcomes"] = []
+
+        return cls(**d)
 
 
 @define

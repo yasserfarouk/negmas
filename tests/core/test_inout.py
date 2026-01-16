@@ -386,3 +386,138 @@ def test_scenario_calc_stats_attributes():
 
     assert isinstance(stats.max_welfare_utils, list)
     assert isinstance(stats.max_welfare_outcomes, list)
+
+
+def test_scenario_stats_to_dict_exclude_pareto():
+    """Test that to_dict can exclude pareto frontier data."""
+    file_name = str(files("negmas").joinpath("tests/data/Laptop"))
+    scenario = Scenario.from_genius_folder(Path(file_name))
+    assert scenario is not None
+
+    stats = scenario.calc_stats()
+    assert stats is not None
+    assert len(stats.pareto_utils) > 0
+    assert len(stats.pareto_outcomes) > 0
+
+    # Export with pareto
+    d_with_pareto = stats.to_dict(include_pareto_frontier=True)
+    assert len(d_with_pareto["pareto_utils"]) > 0
+    assert len(d_with_pareto["pareto_outcomes"]) > 0
+
+    # Export without pareto
+    d_without_pareto = stats.to_dict(include_pareto_frontier=False)
+    assert len(d_without_pareto["pareto_utils"]) == 0
+    assert len(d_without_pareto["pareto_outcomes"]) == 0
+
+
+def test_scenario_stats_from_dict_missing_pareto():
+    """Test that from_dict handles missing pareto fields gracefully."""
+    file_name = str(files("negmas").joinpath("tests/data/Laptop"))
+    scenario = Scenario.from_genius_folder(Path(file_name))
+    assert scenario is not None
+
+    stats = scenario.calc_stats()
+    assert stats is not None
+
+    # Create dict without pareto fields
+    d = stats.to_dict(include_pareto_frontier=False)
+    assert len(d["pareto_utils"]) == 0
+    assert len(d["pareto_outcomes"]) == 0
+
+    # Reconstruct from dict without calculating pareto
+    stats2 = ScenarioStats.from_dict(d)
+    assert stats2.opposition == pytest.approx(stats.opposition, rel=1e-6)
+    assert not stats2.has_pareto_frontier
+    assert len(stats2.pareto_utils) == 0
+    assert len(stats2.pareto_outcomes) == 0
+
+
+def test_scenario_stats_from_dict_calc_pareto_if_missing():
+    """Test that from_dict can calculate pareto frontier if missing."""
+    file_name = str(files("negmas").joinpath("tests/data/Laptop"))
+    scenario = Scenario.from_genius_folder(Path(file_name))
+    assert scenario is not None
+
+    stats = scenario.calc_stats()
+    assert stats is not None
+    original_pareto_count = len(stats.pareto_utils)
+    assert original_pareto_count > 0
+
+    # Create dict without pareto fields
+    d = stats.to_dict(include_pareto_frontier=False)
+
+    # Reconstruct from dict and calculate pareto
+    stats2 = ScenarioStats.from_dict(
+        d, ufuns=scenario.ufuns, calc_pareto_if_missing=True
+    )
+    assert stats2.has_pareto_frontier
+    assert len(stats2.pareto_utils) == original_pareto_count
+    assert len(stats2.pareto_outcomes) == original_pareto_count
+
+
+def test_scenario_stats_from_dict_calc_pareto_requires_ufuns():
+    """Test that from_dict raises error if calc_pareto_if_missing but no ufuns."""
+    file_name = str(files("negmas").joinpath("tests/data/Laptop"))
+    scenario = Scenario.from_genius_folder(Path(file_name))
+    assert scenario is not None
+
+    stats = scenario.calc_stats()
+    d = stats.to_dict(include_pareto_frontier=False)
+
+    with pytest.raises(ValueError, match="ufuns must be provided"):
+        ScenarioStats.from_dict(d, calc_pareto_if_missing=True)
+
+
+def test_scenario_load_stats_calc_pareto_if_missing(tmp_path):
+    """Test that load_stats can calculate pareto if missing."""
+    file_name = str(files("negmas").joinpath("tests/data/Laptop"))
+    scenario = Scenario.from_genius_folder(Path(file_name))
+    assert scenario is not None
+
+    # Calculate stats and save without pareto
+    stats = scenario.calc_stats()
+    original_pareto_count = len(stats.pareto_utils)
+    assert original_pareto_count > 0
+
+    scenario.dumpas(tmp_path, type="yml", include_pareto_frontier=False)
+
+    # Verify stats file exists but has no pareto
+    stats_file = tmp_path / STATS_FILE_NAME
+    assert stats_file.exists()
+
+    # Load without calculating pareto
+    scenario2 = Scenario.from_genius_folder(Path(file_name))
+    assert scenario2 is not None
+    scenario2.load_stats(tmp_path, calc_pareto_if_missing=False)
+    assert scenario2.stats is not None
+    assert not scenario2.stats.has_pareto_frontier
+
+    # Load with calculating pareto
+    scenario3 = Scenario.from_genius_folder(Path(file_name))
+    assert scenario3 is not None
+    scenario3.load_stats(tmp_path, calc_pareto_if_missing=True)
+    assert scenario3.stats is not None
+    assert scenario3.stats.has_pareto_frontier
+    assert len(scenario3.stats.pareto_utils) == original_pareto_count
+
+
+def test_scenario_load_stats_file_calc_pareto_if_missing(tmp_path):
+    """Test that load_stats_file can calculate pareto if missing."""
+    file_name = str(files("negmas").joinpath("tests/data/Laptop"))
+    scenario = Scenario.from_genius_folder(Path(file_name))
+    assert scenario is not None
+
+    # Calculate stats and save without pareto
+    stats = scenario.calc_stats()
+    original_pareto_count = len(stats.pareto_utils)
+
+    scenario.dumpas(tmp_path, type="yml", include_pareto_frontier=False)
+    stats_file = tmp_path / STATS_FILE_NAME
+
+    # Load with calculating pareto
+    scenario2 = Scenario.from_genius_folder(Path(file_name))
+    assert scenario2 is not None
+    scenario2.load_stats_file(stats_file, calc_pareto_if_missing=True)
+    assert scenario2.stats is not None
+    assert scenario2.stats.has_pareto_frontier
+    assert len(scenario2.stats.pareto_utils) == original_pareto_count
