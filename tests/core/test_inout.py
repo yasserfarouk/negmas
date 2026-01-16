@@ -590,3 +590,167 @@ def test_scenario_load_stats_prefers_new_format(tmp_path):
     # Should have loaded from _stats.yaml (original value), not stats.json (0.12345)
     assert scenario2.stats.opposition == pytest.approx(stats.opposition, rel=1e-6)
     assert scenario2.stats.opposition != pytest.approx(0.12345, rel=1e-6)
+
+
+# ===== save_table Tests =====
+
+
+def test_save_table_list_of_dicts_csv(tmp_path):
+    """Test saving a list of dicts as CSV."""
+    from negmas.helpers.inout import save_table
+
+    data = [{"a": 1, "b": 2}, {"a": 3, "b": 4}]
+    path = save_table(data, tmp_path / "test.csv")
+
+    assert path.exists()
+    assert path.suffix == ".csv"
+    with open(path) as f:
+        content = f.read()
+    assert "a,b" in content
+    assert "1,2" in content
+    assert "3,4" in content
+
+
+def test_save_table_dataframe_csv(tmp_path):
+    """Test saving a DataFrame as CSV."""
+    import pandas as pd
+
+    from negmas.helpers.inout import save_table
+
+    df = pd.DataFrame({"x": [1, 2, 3], "y": [4, 5, 6]})
+    path = save_table(df, tmp_path / "test.csv")
+
+    assert path.exists()
+    with open(path) as f:
+        content = f.read()
+    assert "x,y" in content
+
+
+def test_save_table_with_index(tmp_path):
+    """Test saving with index enabled."""
+    import pandas as pd
+
+    from negmas.helpers.inout import save_table
+
+    df = pd.DataFrame({"x": [1, 2], "y": [3, 4]})
+    path = save_table(df, tmp_path / "test.csv", index=True, index_label="idx")
+
+    with open(path) as f:
+        content = f.read()
+    assert "idx" in content
+
+
+def test_save_table_list_of_tuples(tmp_path):
+    """Test saving a list of tuples with columns."""
+    from negmas.helpers.inout import save_table
+
+    data = [(1, 2), (3, 4)]
+    path = save_table(data, tmp_path / "test.csv", columns=["col1", "col2"])
+
+    with open(path) as f:
+        content = f.read()
+    assert "col1,col2" in content
+
+
+def test_save_table_list_of_tuples_requires_columns(tmp_path):
+    """Test that list of tuples requires columns parameter."""
+    from negmas.helpers.inout import save_table
+
+    data = [(1, 2), (3, 4)]
+    with pytest.raises(ValueError, match="columns parameter is required"):
+        save_table(data, tmp_path / "test.csv")
+
+
+def test_save_table_gzip_format(tmp_path):
+    """Test saving as gzip-compressed CSV."""
+    import gzip
+
+    from negmas.helpers.inout import save_table
+
+    data = [{"a": 1, "b": 2}]
+    path = save_table(data, tmp_path / "test.csv", storage_format="gzip")
+
+    assert str(path).endswith(".gz")
+    assert path.exists()
+
+    # Verify it's valid gzip
+    with gzip.open(path, "rt") as f:
+        content = f.read()
+    assert "a,b" in content
+
+
+def test_save_table_parquet_format(tmp_path):
+    """Test saving as Parquet."""
+    import pandas as pd
+
+    from negmas.helpers.inout import save_table
+
+    data = [{"a": 1, "b": 2}]
+    path = save_table(data, tmp_path / "test.csv", storage_format="parquet")
+
+    assert path.suffix == ".parquet"
+    assert path.exists()
+
+    # Verify it's valid parquet
+    df = pd.read_parquet(path)
+    assert list(df.columns) == ["a", "b"]
+    assert df["a"].tolist() == [1]
+
+
+def test_save_table_empty_list(tmp_path):
+    """Test saving an empty list."""
+    from negmas.helpers.inout import save_table
+
+    data = []
+    path = save_table(data, tmp_path / "test.csv")
+
+    assert path.exists()
+
+
+def test_save_table_empty_list_with_columns(tmp_path):
+    """Test saving an empty list with columns specified."""
+    import pandas as pd
+
+    from negmas.helpers.inout import save_table
+
+    data = []
+    path = save_table(data, tmp_path / "test.csv", columns=["a", "b"])
+
+    assert path.exists()
+    df = pd.read_csv(path)
+    assert list(df.columns) == ["a", "b"]
+    assert len(df) == 0
+
+
+def test_save_table_creates_parent_dirs(tmp_path):
+    """Test that save_table creates parent directories."""
+    from negmas.helpers.inout import save_table
+
+    data = [{"a": 1}]
+    path = save_table(data, tmp_path / "nested" / "dir" / "test.csv")
+
+    assert path.exists()
+    assert path.parent.exists()
+
+
+def test_save_table_default_format():
+    """Test that DEFAULT_TABLE_STORAGE_FORMAT is csv for backward compatibility."""
+    from negmas.helpers.inout import DEFAULT_TABLE_STORAGE_FORMAT
+
+    assert DEFAULT_TABLE_STORAGE_FORMAT == "csv"
+
+
+def test_save_table_unsupported_data_type(tmp_path):
+    """Test that unsupported data types raise ValueError."""
+    from negmas.helpers.inout import save_table
+
+    with pytest.raises(ValueError, match="Unsupported data type"):
+        save_table("not a valid type", tmp_path / "test.csv")  # type: ignore
+
+
+def test_save_table_unsupported_list_element(tmp_path):
+    """Test that unsupported list element types raise ValueError."""
+    from negmas.helpers.inout import save_table
+
+    with pytest.raises(ValueError, match="Unsupported list element type"):
+        save_table([1, 2, 3], tmp_path / "test.csv")  # type: ignore

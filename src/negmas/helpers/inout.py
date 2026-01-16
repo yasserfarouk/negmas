@@ -14,7 +14,7 @@ import os
 import pathlib
 from os import PathLike
 from pathlib import Path
-from typing import TYPE_CHECKING, Any, Iterable
+from typing import TYPE_CHECKING, Any, Iterable, Literal
 
 import inflect
 import numpy as np
@@ -27,15 +27,19 @@ from negmas.config import negmas_config
 from .types import TYPE_START, get_class, get_full_type_name, is_jsonable
 
 if TYPE_CHECKING:
-    pass
+    import pandas as pd
 
 __all__ = [
     "is_nonzero_file",
     "ConfigReader",
     "DEFAULT_DUMP_EXTENSION",
+    "DEFAULT_TABLE_STORAGE_FORMAT",
+    "TableStorageFormat",
     "dump",
     "load",
+    "load_table",
     "add_records",
+    "save_table",
     "TYPE_START",
     "has_needed_files",
 ]
@@ -45,6 +49,13 @@ PATH_START = "__PATH__:"
 """Maps from a single issue to a Negotiator function."""
 
 DEFAULT_DUMP_EXTENSION = negmas_config("default_dump_extension", "json")
+
+# Table storage format options
+TableStorageFormat = Literal["csv", "gzip", "parquet"]
+"""Type alias for supported table storage formats."""
+
+DEFAULT_TABLE_STORAGE_FORMAT: TableStorageFormat = "csv"
+"""Default storage format for save_table. Set to 'csv' for backward compatibility."""
 
 
 def convert_numpy(obj):
@@ -489,6 +500,14 @@ def load(file_name: str | os.PathLike | pathlib.Path) -> Any:
         import pandas as pd
 
         d = pd.read_csv(file_name).to_dict()  # type: ignore
+    elif file_name.suffix == ".gz" and str(file_name).endswith(".csv.gz"):
+        import pandas as pd
+
+        d = pd.read_csv(file_name, compression="gzip").to_dict()  # type: ignore
+    elif file_name.suffix == ".parquet":
+        import pandas as pd
+
+        d = pd.read_parquet(file_name).to_dict()  # type: ignore
     else:
         raise ValueError(f"Unknown extension {file_name.suffix} for {file_name}")
     return d
@@ -560,6 +579,198 @@ def add_records(
             new_file = True
 
     data.to_csv(str(file_name), index=False, index_label="", mode=mode, header=new_file)
+
+
+def save_table(
+    data: pd.DataFrame | list[dict[str, Any]] | list[tuple] | list[list],
+    path: Path | str,
+    *,
+    columns: list[str] | None = None,
+    index: bool = False,
+    index_label: str | None = "index",
+    storage_format: TableStorageFormat | None = None,
+) -> Path:
+    """Save tabular data to a file in various formats.
+
+    This is a unified function for saving DataFrames and other tabular data
+    structures to CSV, gzip-compressed CSV, or Parquet formats.
+
+    Args:
+        data: The data to save. Can be:
+            - A pandas DataFrame
+            - A list of dictionaries (will be converted using pd.DataFrame.from_records)
+            - A list of tuples/lists (requires `columns` parameter)
+        path: File path to save to. Extension is NOT auto-detected; use `storage_format`
+            to specify the format.
+        columns: Column names for the data. Required when `data` is a list of tuples/lists.
+            Ignored for DataFrame and list of dicts.
+        index: Whether to save the DataFrame index. Defaults to False for backward
+            compatibility with existing code.
+        index_label: Label for the index column when saving to CSV formats with index=True.
+            Defaults to "index". Set to None to use the DataFrame's index name.
+        storage_format: Output format. If None, uses DEFAULT_TABLE_STORAGE_FORMAT.
+            Options: "csv", "gzip" (gzip-compressed CSV), "parquet"
+
+    Raises:
+        ValueError: If the data type is not supported or if columns are required but not provided.
+
+    Examples:
+        >>> import tempfile, os
+        >>> # Save a list of dicts as CSV
+        >>> with tempfile.TemporaryDirectory() as tmpdir:
+        ...     path = save_table(
+        ...         [{"a": 1, "b": 2}, {"a": 3, "b": 4}], os.path.join(tmpdir, "data.csv")
+        ...     )
+        ...     path.exists()
+        True
+
+    Notes:
+        - For CSV format, the file is saved as-is at the given path
+        - For gzip format, ".gz" is appended to the path if not already present
+        - For parquet format, the extension is changed to ".parquet" if not already present
+        - When DEFAULT_TABLE_STORAGE_FORMAT is "csv", behavior matches the previous
+          pd.DataFrame.from_records(x).to_csv(...) pattern exactly
+    """
+    import pandas as pd
+
+    # Convert path to Path object
+    path = Path(path).expanduser().absolute()
+    path.parent.mkdir(parents=True, exist_ok=True)
+
+    # Use default format if not specified
+    if storage_format is None:
+        storage_format = DEFAULT_TABLE_STORAGE_FORMAT
+
+    # Convert data to DataFrame if needed
+    if isinstance(data, pd.DataFrame):
+        df = data
+    elif isinstance(data, list):
+        if len(data) == 0:
+            df = pd.DataFrame(columns=columns) if columns else pd.DataFrame()  # type: ignore
+        elif isinstance(data[0], dict):
+            df = pd.DataFrame.from_records(data)
+        elif isinstance(data[0], (tuple, list)):
+            if columns is None:
+                raise ValueError(
+                    "columns parameter is required when data is a list of tuples/lists"
+                )
+            df = pd.DataFrame(data=data, columns=columns)  # type: ignore
+        else:
+            raise ValueError(
+                f"Unsupported list element type: {type(data[0])}. "
+                "Expected dict, tuple, or list."
+            )
+    else:
+        raise ValueError(
+            f"Unsupported data type: {type(data)}. "
+            "Expected DataFrame, list of dicts, or list of tuples/lists."
+        )
+
+    # Adjust path extension based on format
+    if storage_format == "gzip":
+        if not str(path).endswith(".gz"):
+            path = Path(str(path) + ".gz")
+    elif storage_format == "parquet":
+        if path.suffix != ".parquet":
+            path = path.with_suffix(".parquet")
+
+    # Save based on format
+    if storage_format == "csv":
+        if index:
+            if index_label:
+                df.to_csv(path, index_label=index_label)
+            else:
+                df.to_csv(path, index=True)
+        else:
+            df.to_csv(path, index=False)
+    elif storage_format == "gzip":
+        if index:
+            if index_label:
+                df.to_csv(path, index_label=index_label, compression="gzip")
+            else:
+                df.to_csv(path, index=True, compression="gzip")
+        else:
+            df.to_csv(path, index=False, compression="gzip")
+    elif storage_format == "parquet":
+        # Parquet can't handle arbitrary Python objects like tuples
+        # Convert object columns with non-serializable types to strings
+        df_parquet = df.copy()
+        for col in df_parquet.columns:
+            if df_parquet[col].dtype == "object":
+                # Check if any value is a tuple, list, or dict
+                sample = df_parquet[col].dropna().head(1)
+                if len(sample) > 0:
+                    val = sample.iloc[0]
+                    if isinstance(val, (tuple, list, dict)):
+                        df_parquet[col] = df_parquet[col].apply(
+                            lambda x: str(x) if x is not None else None
+                        )
+        df_parquet.to_parquet(path, index=index)
+    else:
+        raise ValueError(
+            f"Unknown storage_format: {storage_format}. Expected 'csv', 'gzip', or 'parquet'."
+        )
+
+    return path
+
+
+def load_table(
+    path: Path | str, *, as_dataframe: bool = True
+) -> "pd.DataFrame | list[dict[str, Any]]":
+    """Load tabular data from a file.
+
+    This function loads DataFrames from CSV, gzip-compressed CSV, or Parquet formats.
+    The format is automatically detected based on the file extension.
+
+    Args:
+        path: File path to load from. The extension determines the format:
+            - ".csv": Plain CSV file
+            - ".csv.gz" or ".gz": Gzip-compressed CSV file
+            - ".parquet": Parquet binary format
+        as_dataframe: If True, return a pandas DataFrame. If False, return a list of dicts.
+
+    Returns:
+        A pandas DataFrame or list of dicts containing the loaded data.
+
+    Raises:
+        ValueError: If the file extension is not supported.
+        FileNotFoundError: If the file does not exist.
+
+    Examples:
+        >>> import tempfile, os
+        >>> # Round-trip test: save and load a CSV file
+        >>> with tempfile.TemporaryDirectory() as tmpdir:
+        ...     csv_path = os.path.join(tmpdir, "data.csv")
+        ...     _ = save_table([{"a": 1, "b": 2}], csv_path)
+        ...     df = load_table(csv_path)
+        ...     list(df.columns)
+        ['a', 'b']
+    """
+    import pandas as pd
+
+    path = Path(path).expanduser().absolute()
+
+    if not path.exists():
+        raise FileNotFoundError(f"File not found: {path}")
+
+    # Determine format based on extension
+    path_str = str(path)
+    if path_str.endswith(".csv.gz") or (path.suffix == ".gz" and ".csv" in path_str):
+        df = pd.read_csv(path, compression="gzip")
+    elif path.suffix == ".csv":
+        df = pd.read_csv(path)
+    elif path.suffix == ".parquet":
+        df = pd.read_parquet(path)
+    else:
+        raise ValueError(
+            f"Unsupported file extension: {path.suffix}. "
+            "Expected '.csv', '.csv.gz', or '.parquet'."
+        )
+
+    if as_dataframe:
+        return df
+    else:
+        return df.to_dict(orient="records")
 
 
 StrOrTwo = tuple[str, str] | str

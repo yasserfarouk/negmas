@@ -40,9 +40,30 @@ Release 0.14.0 (Unreleased)
 * [feature] Add ``has_pareto_frontier`` property and ``to_dict()``/``from_dict()`` methods to ``ScenarioStats``
 * [feature] Refactor ``SimpleTournamentResults`` to support lazy loading from disk
 * [feature] Add tournament callbacks: ``before_start_callback``, ``after_construction_callback``, ``after_end_callback``, ``progress_callback``
+* [feature] Add ``save_table()`` helper function for saving tabular data in multiple formats (CSV, gzip, Parquet)
+* [feature] Add ``load_table()`` helper function for loading tabular data from multiple formats (CSV, gzip, Parquet)
+* [feature] Extend ``load()`` function in ``negmas.helpers.inout`` to support ``.csv.gz`` and ``.parquet`` files
+* [feature] Add ``DEFAULT_TABLE_STORAGE_FORMAT`` and ``TableStorageFormat`` to ``negmas.helpers.inout``
+* [feature] Add ``CompletedRun`` class for representing and persisting completed negotiation runs:
+
+  - Encapsulates history, scenario, agreement, and statistics
+  - Supports save/load with multiple storage formats
+  - Can be created from ``Mechanism.to_completed_run()``
+
+* [feature] Add ``Mechanism.to_completed_run()`` method for creating ``CompletedRun`` from mechanism state
+* [feature] Add ``Mechanism.save()`` method for saving negotiation results to disk:
+
+  - ``single_file=True``: Saves trace/history as a single CSV/gzip/parquet file
+  - ``single_file=False``: Creates a directory with trace, config, outcome stats, and optionally the scenario
+  - Supports multiple trace sources: ``"history"``, ``"full_trace"``, ``"trace"``, ``"extended_trace"``
+  - Supports storage formats: ``"csv"``, ``"gzip"``, ``"parquet"``
+
+* [feature] Add ``storage_format`` parameter to ``World`` class for controlling table storage format
+* [feature] Add ``storage_format`` parameter to ``save_stats()`` function in ``negmas.situated.save``
 
 **Bug Fixes:**
 
+* [bugfix] Fix parquet serialization of columns containing Python tuples/lists/dicts by converting to strings
 * [bugfix] Fix propagating outcome space in discounted ufuns
 * [bugfix] Fix scenario stats loading and caching in ``calc_extra_stats``
 * [bugfix] Fix stats filename in ``dumpas`` and add tuple handling in ``convert_numpy``

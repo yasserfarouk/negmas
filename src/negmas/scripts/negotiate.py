@@ -38,6 +38,7 @@ from negmas.preferences.ops import (
 )
 from negmas.preferences.generators import generate_multi_issue_ufuns
 from negmas.serialization import PYTHON_CLASS_IDENTIFIER
+from negmas.common import TRACE_ELEMENT_MEMBERS
 
 app = typer.Typer()
 
@@ -1184,15 +1185,7 @@ def run(
             if hasattr(session, "full_trace"):
                 hist = pd.DataFrame(
                     session.full_trace,  # type: ignore
-                    columns=[  # type: ignore
-                        "time",
-                        "relative_time",
-                        "step",
-                        "negotiator",
-                        "offer",
-                        "responses",
-                        "state",
-                    ],
+                    columns=TRACE_ELEMENT_MEMBERS,
                 )
             else:
                 hist = pd.DataFrame.from_records(

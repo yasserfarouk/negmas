@@ -28,7 +28,7 @@ from attr import asdict, define
 from rich import print
 from rich.progress import track
 
-from negmas.common import TraceElement
+from negmas.common import TraceElement, TRACE_ELEMENT_MEMBERS
 from negmas.helpers import unique_name
 from negmas.helpers.inout import dump, has_needed_files, load
 from negmas.helpers.strings import humanize_time, shortest_unique_names
@@ -1595,19 +1595,7 @@ def _save_record(
 
     if isinstance(m, Traceable):
         assert hasattr(m, "full_trace")
-        save_as_df(
-            m.full_trace,
-            (
-                "time",
-                "relative_time",
-                "step",
-                "negotiator",
-                "offer",
-                "responses",
-                "state",
-            ),
-            full_name,
-        )  # type: ignore
+        save_as_df(m.full_trace, TRACE_ELEMENT_MEMBERS, full_name)  # type: ignore
         for i, negotiator in enumerate(m.negotiators):
             neg_name = (
                 path
@@ -1627,7 +1615,15 @@ def _save_record(
             if isinstance(m, Traceable):
                 save_as_df(
                     m.negotiator_full_trace(negotiator.id),
-                    ("time", "relative_time", "step", "offer", "response"),
+                    (
+                        "time",
+                        "relative_time",
+                        "step",
+                        "offer",
+                        "response",
+                        "text",
+                        "data",
+                    ),
                     neg_name,
                 )  # type: ignore
     else:
