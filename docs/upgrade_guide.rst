@@ -269,3 +269,121 @@ def propose(self, state)             def propose(self, state, dest=None)     The
 def respond(self, state)             def respond(self, state, src=None)      The `respond()` function of SAONegotiator now takes an optional `src` parameter.
 def __call__(self, state)            def __call__(self, state, dest=None)    The `__call__()` function of SAONegotiator now takes an optional `dest` parameter.
 =================================== ======================================  =======================================================================================================================
+
+0.13->0.14 Upgrade Guide
+========================
+
+NegMAS 0.14 introduces a major refactoring of the registry system to use tags instead of
+boolean fields. While backward compatibility is maintained through deprecation warnings,
+you should update your code to use the new tag-based API.
+
+Registry System Changes
+-----------------------
+
+The registry system (``MechanismInfo``, ``NegotiatorInfo``, ``ScenarioInfo``) now uses
+**tags** instead of individual boolean fields. This provides more flexibility and
+extensibility.
+
+**MechanismInfo Changes:**
+
+=============================  ===========================================
+ Old Parameter                  New Tag
+=============================  ===========================================
+``requires_deadline=True``     ``tags=["requires-deadline"]``
+=============================  ===========================================
+
+**NegotiatorInfo Changes:**
+
+=============================  ===========================================
+ Old Parameter                  New Tag
+=============================  ===========================================
+``bilateral_only=True``        ``tags=["bilateral-only"]``
+``requires_opponent_ufun``     ``tags=["requires-opponent-ufun"]``
+``learns=True``                ``tags=["learning"]``
+``anac_year=2019``             ``tags=["anac-2019"]``
+``supports_uncertainty``       ``tags=["supports-uncertainty"]``
+``supports_discounting``       ``tags=["supports-discounting"]``
+=============================  ===========================================
+
+**ScenarioInfo Changes:**
+
+=============================  ===========================================
+ Old Parameter                  New Tag
+=============================  ===========================================
+``normalized=True``            ``tags=["normalized"]``
+``anac=True``                  ``tags=["anac"]``
+``file=True``                  ``tags=["file-based"]``
+``format="xml"``               ``tags=["format-xml"]``
+``has_stats=True``             ``tags=["has-stats"]``
+``has_plot=True``              ``tags=["has-plot"]``
+=============================  ===========================================
+
+**Example Migration:**
+
+.. code-block:: python
+
+   # Old way (deprecated, still works with warning)
+   @negotiator_info(bilateral_only=True, learns=True, anac_year=2019)
+   class MyNegotiator(SAONegotiator):
+       pass
+
+
+   # New way (recommended)
+   @negotiator_info(tags=["bilateral-only", "learning", "anac-2019"])
+   class MyNegotiator(SAONegotiator):
+       pass
+
+**Querying the Registry:**
+
+.. code-block:: python
+
+   # Find all learning negotiators
+   learning_negotiators = registry.negotiators.filter(tags=["learning"])
+
+   # Find all ANAC 2019 negotiators
+   anac2019 = registry.negotiators.filter(tags=["anac-2019"])
+
+   # Find negotiators with multiple tags
+   bilateral_learning = registry.negotiators.filter(tags=["bilateral-only", "learning"])
+
+Tournament Default Changes
+--------------------------
+
+The ``cartesian_tournament`` function now uses more memory-efficient defaults:
+
+=============================  ========================  ========================
+ Parameter                      Old Default               New Default
+=============================  ========================  ========================
+``storage_optimization``       ``"speed"``               ``"space"``
+``memory_optimization``        ``"speed"``               ``"balanced"``
+Stats file                     ``stats.json``            ``_stats.yaml``
+=============================  ========================  ========================
+
+If you need the old behavior for performance reasons:
+
+.. code-block:: python
+
+   results = cartesian_tournament(
+       ...,
+       storage_optimization="speed",
+       memory_optimization="speed",
+   )
+
+Elicitation Module Extraction
+-----------------------------
+
+The elicitation module has been extracted to a separate package ``negmas-elicit``.
+
+If you were using elicitation features:
+
+.. code-block:: bash
+
+   pip install negmas-elicit
+
+.. code-block:: python
+
+   # Old import (no longer works)
+   # from negmas.elicitation import SomeClass
+
+   # New import
+   from negmas_elicit import SomeClass

@@ -100,7 +100,7 @@ class GACNext(GeniusAcceptancePolicy):
         a: Scaling factor for opponent's offer utility (default 1.0).
         b: Offset added to scaled opponent utility (default 0.0).
 
-    Transcompiled from: bilateralexamples.boacomponents.AC_Next
+    Transcompiled from: negotiator.boaframework.acceptanceconditions.other.AC_Next
     """
 
     offering_policy: OfferingPolicy

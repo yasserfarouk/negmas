@@ -86,7 +86,7 @@ class GTimeDependentOffering(GeniusOfferingPolicy):
         e: Concession exponent. Controls the shape of the concession curve.
         k: Offset constant for the time function (default 0).
 
-    Transcompiled from: bilateralexamples.boacomponents.TimeDependent_Offering
+    Transcompiled from: negotiator.boaframework.offeringstrategy.other.TimeDependent_Offering
     """
 
     e: float = 0.2  # Boulware by default

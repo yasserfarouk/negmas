@@ -61,7 +61,7 @@ class GHardHeadedFrequencyModel(GeniusOpponentModel):
         learning_value_addition: Value added to unchanged issue weights (default 1).
         default_value: Default value for unseen issue values (default 1).
 
-    Transcompiled from: bilateralexamples.boacomponents.HardHeadedFrequencyModel
+    Transcompiled from: negotiator.boaframework.opponentmodel.HardHeadedFrequencyModel
     """
 
     learning_coef: float = 0.2

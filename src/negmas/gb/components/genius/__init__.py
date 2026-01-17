@@ -4,9 +4,9 @@ This module contains Python implementations of classic Genius BOA (Bidding, Oppo
 Acceptance) components, transcompiled from the original Java implementations.
 
 References:
-    - GTimeDependentOffering: bilateralexamples.boacomponents.TimeDependent_Offering
-    - GACNext: bilateralexamples.boacomponents.AC_Next
-    - GHardHeadedFrequencyModel: bilateralexamples.boacomponents.HardHeadedFrequencyModel
+    - GTimeDependentOffering: negotiator.boaframework.offeringstrategy.other.TimeDependent_Offering
+    - GACNext: negotiator.boaframework.acceptanceconditions.other.AC_Next
+    - GHardHeadedFrequencyModel: negotiator.boaframework.opponentmodel.HardHeadedFrequencyModel
 """
 
 from .base import *
