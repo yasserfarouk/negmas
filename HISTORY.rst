@@ -21,6 +21,7 @@ Release 0.14.0 (Unreleased)
 **New Features:**
 
 * [feature] Add registry system for mechanisms, negotiators, and components with scenario support
+* [feature] Add ``unregister()`` method to ``Registry`` and ``ScenarioRegistry`` for removing registered items
 * [feature] Add ``scored_indices`` feature and ``opponents`` parameter to ``cartesian_tournament``
 * [feature] Add ``storage_optimization`` parameter to ``cartesian_tournament`` to control disk space usage:
 

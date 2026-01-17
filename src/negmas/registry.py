@@ -475,6 +475,41 @@ class Registry(dict[str, RegistryInfo]):
         self[short_name] = info
         self._by_class[cls] = short_name
 
+    def unregister(self, cls_or_name: type | str) -> bool:
+        """Remove a class from the registry.
+
+        Args:
+            cls_or_name: Either the class itself or its registered short name.
+
+        Returns:
+            True if the class was found and removed, False if it wasn't registered.
+
+        Example:
+            # Unregister by class
+            registry.unregister(MyNegotiator)
+
+            # Unregister by name
+            registry.unregister("MyNegotiator")
+        """
+        if isinstance(cls_or_name, str):
+            # Given a name, find the info and get the class
+            info = self.get(cls_or_name)
+            if info is None:
+                return False
+            short_name = cls_or_name
+            cls = info.cls
+        else:
+            # Given a class, find the short name
+            cls = cls_or_name
+            short_name = self._by_class.get(cls)
+            if short_name is None:
+                return False
+
+        # Remove from both dictionaries
+        del self[short_name]
+        del self._by_class[cls]
+        return True
+
     def get_by_class(self, cls: type) -> T | None:
         """Get the registration info for a class.
 
@@ -720,6 +755,56 @@ class ScenarioRegistry(dict[str, ScenarioInfo]):
             self._by_name[name].append(key)
 
         return info
+
+    def unregister(self, path_or_name: str | Path) -> bool:
+        """Remove a scenario from the registry.
+
+        Args:
+            path_or_name: Either the path (as string or Path) or the scenario name.
+                If a name is given and multiple scenarios have that name, all are removed.
+
+        Returns:
+            True if at least one scenario was removed, False if none were found.
+
+        Example:
+            # Unregister by path
+            registry.unregister("/path/to/scenario")
+
+            # Unregister by name (removes all with that name)
+            registry.unregister("Laptop")
+        """
+        # If it's a Path object, resolve it to match how register() stores keys
+        if isinstance(path_or_name, Path):
+            path_str = str(path_or_name.resolve())
+        else:
+            path_str = path_or_name
+
+        # First check if it's a direct key (path)
+        if path_str in self:
+            info = self[path_str]
+            name = info.name
+
+            # Remove from main dict
+            del self[path_str]
+
+            # Remove from name index
+            if name in self._by_name:
+                if path_str in self._by_name[name]:
+                    self._by_name[name].remove(path_str)
+                if not self._by_name[name]:
+                    del self._by_name[name]
+            return True
+
+        # Otherwise, check if it's a name
+        if path_str in self._by_name:
+            keys = self._by_name[path_str].copy()
+            for key in keys:
+                if key in self:
+                    del self[key]
+            del self._by_name[path_str]
+            return len(keys) > 0
+
+        return False
 
     def get_by_name(self, name: str) -> list[ScenarioInfo]:
         """Get all scenarios with a given name.

@@ -324,6 +324,75 @@ class TestRegistry:
         assert registry.is_registered(TestNegotiator)
         assert registry.is_registered(TestNegotiator2)
 
+    def test_registry_unregister_by_class(self):
+        """Test unregistering a class by its class object."""
+        registry = Registry(RegistryInfo)
+
+        class TestClass:
+            pass
+
+        registry.register(TestClass, short_name="test")
+        assert "test" in registry
+        assert registry.is_registered(TestClass)
+
+        # Unregister by class
+        result = registry.unregister(TestClass)
+        assert result is True
+        assert "test" not in registry
+        assert registry.is_registered(TestClass) is False
+        assert registry.get_by_class(TestClass) is None
+
+    def test_registry_unregister_by_name(self):
+        """Test unregistering a class by its short name."""
+        registry = Registry(RegistryInfo)
+
+        class TestClass:
+            pass
+
+        registry.register(TestClass, short_name="test")
+        assert "test" in registry
+
+        # Unregister by name
+        result = registry.unregister("test")
+        assert result is True
+        assert "test" not in registry
+        assert registry.is_registered(TestClass) is False
+
+    def test_registry_unregister_not_found(self):
+        """Test unregistering a class that doesn't exist."""
+        registry = Registry(RegistryInfo)
+
+        class TestClass:
+            pass
+
+        # Unregister by name that doesn't exist
+        result = registry.unregister("nonexistent")
+        assert result is False
+
+        # Unregister by class that isn't registered
+        result = registry.unregister(TestClass)
+        assert result is False
+
+    def test_registry_unregister_clears_both_dicts(self):
+        """Test that unregistering cleans up both internal dictionaries."""
+        registry = Registry(RegistryInfo)
+
+        class TestClass:
+            pass
+
+        registry.register(TestClass, short_name="test")
+
+        # Verify both mappings exist
+        assert "test" in registry
+        assert TestClass in registry._by_class
+
+        # Unregister
+        registry.unregister(TestClass)
+
+        # Verify both mappings are removed
+        assert "test" not in registry
+        assert TestClass not in registry._by_class
+
 
 class TestDecorators:
     """Tests for registration decorators."""
@@ -1242,6 +1311,100 @@ class TestScenarioRegistry:
         names = registry.list_names()
         assert "scenario1" in names
         assert "scenario2" in names
+
+    def test_scenario_registry_unregister_by_path(self):
+        """Test unregistering a scenario by its path."""
+        from pathlib import Path
+        from negmas.registry import ScenarioRegistry
+
+        registry = ScenarioRegistry()
+        path = Path("/tmp/test_unregister")
+        registry.register(path, name="test_unregister")
+
+        key = str(path.resolve())
+        assert key in registry
+
+        # Unregister by path
+        result = registry.unregister(path)
+        assert result is True
+        assert key not in registry
+        assert registry.get_by_name("test_unregister") == []
+
+    def test_scenario_registry_unregister_by_path_string(self):
+        """Test unregistering a scenario by its path as string."""
+        from pathlib import Path
+        from negmas.registry import ScenarioRegistry
+
+        registry = ScenarioRegistry()
+        path = Path("/tmp/test_unregister_str")
+        registry.register(path, name="test_unregister_str")
+
+        key = str(path.resolve())
+        assert key in registry
+
+        # Unregister by path string
+        result = registry.unregister(key)
+        assert result is True
+        assert key not in registry
+
+    def test_scenario_registry_unregister_by_name(self):
+        """Test unregistering scenarios by name (removes all with that name)."""
+        from pathlib import Path
+        from negmas.registry import ScenarioRegistry
+
+        registry = ScenarioRegistry()
+        path1 = Path("/tmp/scenario_a")
+        path2 = Path("/tmp/subdir/scenario_a")  # Same name, different path
+
+        registry.register(path1, name="scenario_a")
+        registry.register(path2, name="scenario_a")
+
+        # Both should be registered
+        assert len(registry.get_by_name("scenario_a")) == 2
+
+        # Unregister by name - should remove all
+        result = registry.unregister("scenario_a")
+        assert result is True
+        assert len(registry.get_by_name("scenario_a")) == 0
+        assert str(path1.resolve()) not in registry
+        assert str(path2.resolve()) not in registry
+
+    def test_scenario_registry_unregister_not_found(self):
+        """Test unregistering a scenario that doesn't exist."""
+        from negmas.registry import ScenarioRegistry
+
+        registry = ScenarioRegistry()
+
+        # Unregister by path that doesn't exist
+        result = registry.unregister("/nonexistent/path")
+        assert result is False
+
+        # Unregister by name that doesn't exist
+        result = registry.unregister("nonexistent_name")
+        assert result is False
+
+    def test_scenario_registry_unregister_updates_name_index(self):
+        """Test that unregistering by path updates the name index correctly."""
+        from pathlib import Path
+        from negmas.registry import ScenarioRegistry
+
+        registry = ScenarioRegistry()
+        path1 = Path("/tmp/same_name_1")
+        path2 = Path("/tmp/same_name_2")
+
+        registry.register(path1, name="same_name")
+        registry.register(path2, name="same_name")
+
+        assert len(registry.get_by_name("same_name")) == 2
+
+        # Unregister just one by path
+        result = registry.unregister(path1)
+        assert result is True
+
+        # The other should still be accessible by name
+        remaining = registry.get_by_name("same_name")
+        assert len(remaining) == 1
+        assert remaining[0].path == path2.resolve()
 
 
 class TestRegisterScenarioFunction:
