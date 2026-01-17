@@ -353,6 +353,10 @@ NegMAS is the core of a broader ecosystem for automated negotiation research:
 - `scml-vis <https://github.com/yasserfarouk/scml-vis>`_ - SCML visualization
 - `jnegmas <https://github.com/yasserfarouk/jnegmas>`_ - Java interface (not maintained)
 
+**Specialized Tools**
+
+- `negmas-elicit <https://github.com/autoneg/negmas-elicit>`_ - Preference Elicitation during Negotiation Methods
+
 More Resources
 --------------
 
