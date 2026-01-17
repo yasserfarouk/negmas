@@ -325,6 +325,11 @@ The NegMAS Ecosystem
 
 NegMAS is the core of a broader ecosystem for automated negotiation research:
 
+.. image:: https://raw.githubusercontent.com/yasserfarouk/negmas/main/docs/figs/ecosystem.png
+   :alt: NegMAS Ecosystem
+   :align: center
+   :width: 100%
+
 **Competition Frameworks**
 
 - `anl <https://github.com/autoneg/anl>`_ - Automated Negotiation League (ANAC negotiation track)

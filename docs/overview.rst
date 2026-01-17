@@ -124,6 +124,26 @@ specific modules, advanced and helper modules.
   - **generics** Provides a set of types and interfaces to increase the
     representation flexibility of different base modules.
 
+The NegMAS Ecosystem
+--------------------
+
+NegMAS is the core of a broader ecosystem for automated negotiation research
+and competitions:
+
+.. image:: figs/ecosystem.png
+   :alt: NegMAS Ecosystem
+   :align: center
+   :width: 100%
+
+The ecosystem connects NegMAS to:
+
+- **geniusbridge**: Bridge to run Java-based Genius agents (ANAC 2010-2019)
+- **negmas-genius-agents**: Python translations of classic Genius agents
+- **negmas-geniusweb-bridge**: Adapter for GeniusWeb agents (ANAC 2020-2023)
+- **anl**: Automated Negotiation League framework (ANL 2024-2025)
+- **scml**: Supply Chain Management League framework (SCML 2019-2025)
+- **negmas-app**: GUI for running negotiations and tournaments
+
 A (not very) brief introduction to NegMAS
 -----------------------------------------
 
