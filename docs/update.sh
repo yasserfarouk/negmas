@@ -93,3 +93,43 @@ rm -rf api
 
 echo "Documentation notebooks have been updated successfully!"
 echo "You can now build the documentation with: make html"
+
+echo ""
+echo "Validating image references..."
+missing_images=0
+# Check getting_started.rst
+for img in $(grep -h "^\.\. image::\|^\.\. figure::" ./getting_started.rst 2>/dev/null | sed 's/.*:: //'); do
+    if [ ! -f "./$img" ]; then
+        echo "ERROR: Missing image in getting_started.rst: $img"
+        missing_images=$((missing_images + 1))
+    fi
+done
+
+# Check overview.rst
+for img in $(grep -h "^\.\. image::\|^\.\. figure::" ./overview.rst 2>/dev/null | sed 's/.*:: //'); do
+    if [ ! -f "./$img" ]; then
+        echo "ERROR: Missing image in overview.rst: $img"
+        missing_images=$((missing_images + 1))
+    fi
+done
+
+# Check tutorials
+for rstfile in ./tutorials/*.rst; do
+    for img in $(grep -h "^\.\. image::\|^\.\. figure::" "$rstfile" 2>/dev/null | sed 's/.*:: //'); do
+        if [ ! -f "./tutorials/$img" ]; then
+            echo "ERROR: Missing image in $rstfile: $img"
+            missing_images=$((missing_images + 1))
+        fi
+    done
+done
+
+if [ $missing_images -gt 0 ]; then
+    echo ""
+    echo "================================================"
+    echo "WARNING: $missing_images missing image(s) detected!"
+    echo "Please ensure all referenced images exist before pushing."
+    echo "================================================"
+    exit 1
+else
+    echo "All image references validated successfully!"
+fi
