@@ -19,6 +19,9 @@ from negmas.registry import (
 
 __all__: list[str] = []
 
+# Source identifier for all built-in registrations
+NEGMAS_SOURCE = "negmas"
+
 
 def _register_mechanisms() -> None:
     """Register all built-in mechanisms.
@@ -42,10 +45,11 @@ def _register_mechanisms() -> None:
     from negmas.st import HillClimbingSTMechanism, VetoSTMechanism
 
     # Register SAO mechanisms
+    # Note: requires_deadline is now expressed via the "requires-deadline" tag
     mechanism_registry.register(
         SAOMechanism,
         short_name="SAOMechanism",
-        requires_deadline=True,
+        source=NEGMAS_SOURCE,
         tags={"builtin", "sao", "requires-deadline", "propose", "respond"},
     )
 
@@ -53,27 +57,27 @@ def _register_mechanisms() -> None:
     mechanism_registry.register(
         ParallelGBMechanism,
         short_name="ParallelGBMechanism",
-        requires_deadline=True,
+        source=NEGMAS_SOURCE,
         tags={"builtin", "gb", "requires-deadline", "propose", "respond"},
     )
     mechanism_registry.register(
         SerialGBMechanism,
         short_name="SerialGBMechanism",
-        requires_deadline=True,
+        source=NEGMAS_SOURCE,
         tags={"builtin", "gb", "requires-deadline", "propose", "respond"},
     )
 
-    # Register TAU mechanisms - they don't require a deadline
+    # Register TAU mechanisms - they don't require a deadline (no "requires-deadline" tag)
     mechanism_registry.register(
         TAUMechanism,
         short_name="TAUMechanism",
-        requires_deadline=False,
+        source=NEGMAS_SOURCE,
         tags={"builtin", "gb", "tau", "propose", "respond"},
     )
     mechanism_registry.register(
         SerialTAUMechanism,
         short_name="SerialTAUMechanism",
-        requires_deadline=False,
+        source=NEGMAS_SOURCE,
         tags={"builtin", "gb", "tau", "propose", "respond"},
     )
 
@@ -81,13 +85,13 @@ def _register_mechanisms() -> None:
     mechanism_registry.register(
         HillClimbingSTMechanism,
         short_name="HillClimbingSTMechanism",
-        requires_deadline=True,
+        source=NEGMAS_SOURCE,
         tags={"builtin", "st", "requires-deadline"},
     )
     mechanism_registry.register(
         VetoSTMechanism,
         short_name="VetoSTMechanism",
-        requires_deadline=True,
+        source=NEGMAS_SOURCE,
         tags={"builtin", "st", "requires-deadline"},
     )
 
@@ -142,22 +146,33 @@ def _register_sao_negotiators() -> None:
     negotiator_registry.register(
         AspirationNegotiator,
         short_name="AspirationNegotiator",
+        source=NEGMAS_SOURCE,
         tags=base_tags | {"aspiration", "time-based"},
     )
     negotiator_registry.register(
-        ToughNegotiator, short_name="ToughNegotiator", tags=base_tags | {"aspiration"}
+        ToughNegotiator,
+        short_name="ToughNegotiator",
+        source=NEGMAS_SOURCE,
+        tags=base_tags | {"aspiration"},
     )
     negotiator_registry.register(
-        NiceNegotiator, short_name="NiceNegotiator", tags=base_tags | {"aspiration"}
+        NiceNegotiator,
+        short_name="NiceNegotiator",
+        source=NEGMAS_SOURCE,
+        tags=base_tags | {"aspiration"},
     )
 
     # Random negotiators
     negotiator_registry.register(
-        RandomNegotiator, short_name="RandomNegotiator", tags=base_tags | {"random"}
+        RandomNegotiator,
+        short_name="RandomNegotiator",
+        source=NEGMAS_SOURCE,
+        tags=base_tags | {"random"},
     )
     negotiator_registry.register(
         RandomAlwaysAcceptingNegotiator,
         short_name="RandomAlwaysAcceptingNegotiator",
+        source=NEGMAS_SOURCE,
         tags=base_tags | {"random"},
     )
 
@@ -165,11 +180,13 @@ def _register_sao_negotiators() -> None:
     negotiator_registry.register(
         LimitedOutcomesNegotiator,
         short_name="LimitedOutcomesNegotiator",
+        source=NEGMAS_SOURCE,
         tags=base_tags | {"limited-outcomes"},
     )
     negotiator_registry.register(
         LimitedOutcomesAcceptor,
         short_name="LimitedOutcomesAcceptor",
+        source=NEGMAS_SOURCE,
         tags=base_tags | {"limited-outcomes"},
     )
 
@@ -177,11 +194,13 @@ def _register_sao_negotiators() -> None:
     negotiator_registry.register(
         NaiveTitForTatNegotiator,
         short_name="NaiveTitForTatNegotiator",
+        source=NEGMAS_SOURCE,
         tags=base_tags | {"tit-for-tat"},
     )
     negotiator_registry.register(
         SimpleTitForTatNegotiator,
         short_name="SimpleTitForTatNegotiator",
+        source=NEGMAS_SOURCE,
         tags=base_tags | {"tit-for-tat"},
     )
 
@@ -189,26 +208,31 @@ def _register_sao_negotiators() -> None:
     negotiator_registry.register(
         TimeBasedNegotiator,
         short_name="TimeBasedNegotiator",
+        source=NEGMAS_SOURCE,
         tags=base_tags | {"time-based"},
     )
     negotiator_registry.register(
         TimeBasedConcedingNegotiator,
         short_name="TimeBasedConcedingNegotiator",
+        source=NEGMAS_SOURCE,
         tags=base_tags | {"time-based"},
     )
     negotiator_registry.register(
         BoulwareTBNegotiator,
         short_name="BoulwareTBNegotiator",
+        source=NEGMAS_SOURCE,
         tags=base_tags | {"time-based", "boulware"},
     )
     negotiator_registry.register(
         ConcederTBNegotiator,
         short_name="ConcederTBNegotiator",
+        source=NEGMAS_SOURCE,
         tags=base_tags | {"time-based", "conceder"},
     )
     negotiator_registry.register(
         LinearTBNegotiator,
         short_name="LinearTBNegotiator",
+        source=NEGMAS_SOURCE,
         tags=base_tags | {"time-based", "linear"},
     )
 
@@ -216,6 +240,7 @@ def _register_sao_negotiators() -> None:
     negotiator_registry.register(
         UtilBasedNegotiator,
         short_name="UtilBasedNegotiator",
+        source=NEGMAS_SOURCE,
         tags=base_tags | {"utility-based"},
     )
 
@@ -223,16 +248,19 @@ def _register_sao_negotiators() -> None:
     negotiator_registry.register(
         CABNegotiator,
         short_name="CABNegotiator",
+        source=NEGMAS_SOURCE,
         tags=base_tags | {"cab-family", "learning"},
     )
     negotiator_registry.register(
         CANNegotiator,
         short_name="CANNegotiator",
+        source=NEGMAS_SOURCE,
         tags=base_tags | {"cab-family", "learning"},
     )
     negotiator_registry.register(
         CARNegotiator,
         short_name="CARNegotiator",
+        source=NEGMAS_SOURCE,
         tags=base_tags | {"cab-family", "learning"},
     )
 
@@ -240,16 +268,19 @@ def _register_sao_negotiators() -> None:
     negotiator_registry.register(
         WABNegotiator,
         short_name="WABNegotiator",
+        source=NEGMAS_SOURCE,
         tags=base_tags | {"wab-family", "learning"},
     )
     negotiator_registry.register(
         WANNegotiator,
         short_name="WANNegotiator",
+        source=NEGMAS_SOURCE,
         tags=base_tags | {"wab-family", "learning"},
     )
     negotiator_registry.register(
         WARNegotiator,
         short_name="WARNegotiator",
+        source=NEGMAS_SOURCE,
         tags=base_tags | {"wab-family", "learning"},
     )
 
@@ -257,11 +288,13 @@ def _register_sao_negotiators() -> None:
     negotiator_registry.register(
         MiCRONegotiator,
         short_name="MiCRONegotiator",
+        source=NEGMAS_SOURCE,
         tags=base_tags | {"micro", "learning"},
     )
     negotiator_registry.register(
         FastMiCRONegotiator,
         short_name="FastMiCRONegotiator",
+        source=NEGMAS_SOURCE,
         tags=base_tags | {"micro", "learning"},
     )
 
@@ -331,6 +364,7 @@ def _register_sao_components() -> None:
         component_registry.register(
             cls,
             short_name=cls.__name__,
+            source=NEGMAS_SOURCE,
             component_type="acceptance",
             tags=acceptance_base | extra_tags,
         )
@@ -356,6 +390,7 @@ def _register_sao_components() -> None:
         component_registry.register(
             cls,
             short_name=cls.__name__,
+            source=NEGMAS_SOURCE,
             component_type="offering",
             tags=offering_base | extra_tags,
         )
@@ -377,6 +412,7 @@ def _register_sao_components() -> None:
         component_registry.register(
             cls,
             short_name=cls.__name__,
+            source=NEGMAS_SOURCE,
             component_type="model",
             tags=model_base | extra_tags,
         )
@@ -519,6 +555,7 @@ def _register_genius_boa_components() -> None:
         component_registry.register(
             cls,
             short_name=cls.__name__,
+            source=NEGMAS_SOURCE,
             component_type="acceptance",
             tags=genius_acceptance_base | extra_tags,
         )
@@ -606,6 +643,7 @@ def _register_genius_boa_components() -> None:
         component_registry.register(
             cls,
             short_name=cls.__name__,
+            source=NEGMAS_SOURCE,
             component_type="offering",
             tags=genius_offering_base | extra_tags,
         )
@@ -659,6 +697,7 @@ def _register_genius_boa_components() -> None:
         component_registry.register(
             cls,
             short_name=cls.__name__,
+            source=NEGMAS_SOURCE,
             component_type="model",
             tags=genius_model_base | extra_tags,
         )
@@ -951,7 +990,10 @@ def _register_genius_negotiators() -> None:
     ]
     for cls in basic_agents:
         negotiator_registry.register(
-            cls, short_name=cls.__name__, tags=genius_base | {"basic"}
+            cls,
+            short_name=cls.__name__,
+            source=NEGMAS_SOURCE,
+            tags=genius_base | {"basic"},
         )
 
     # Register TU Delft course agents (no specific ANAC year)
@@ -982,7 +1024,10 @@ def _register_genius_negotiators() -> None:
     ]
     for cls in other_agents:
         negotiator_registry.register(
-            cls, short_name=cls.__name__, tags=genius_base | {"tudelft"}
+            cls,
+            short_name=cls.__name__,
+            source=NEGMAS_SOURCE,
+            tags=genius_base | {"tudelft"},
         )
 
     # Register ANAC 2010 agents
@@ -1000,7 +1045,7 @@ def _register_genius_negotiators() -> None:
         negotiator_registry.register(
             cls,
             short_name=cls.__name__,
-            anac_year=2010,
+            source=NEGMAS_SOURCE,
             tags=genius_base | {"anac", "anac-2010"},
         )
 
@@ -1020,7 +1065,7 @@ def _register_genius_negotiators() -> None:
         negotiator_registry.register(
             cls,
             short_name=cls.__name__,
-            anac_year=2011,
+            source=NEGMAS_SOURCE,
             tags=genius_base | {"anac", "anac-2011"},
         )
 
@@ -1039,7 +1084,7 @@ def _register_genius_negotiators() -> None:
         negotiator_registry.register(
             cls,
             short_name=cls.__name__,
-            anac_year=2012,
+            source=NEGMAS_SOURCE,
             tags=genius_base | {"anac", "anac-2012"},
         )
 
@@ -1058,7 +1103,7 @@ def _register_genius_negotiators() -> None:
         negotiator_registry.register(
             cls,
             short_name=cls.__name__,
-            anac_year=2013,
+            source=NEGMAS_SOURCE,
             tags=genius_base | {"anac", "anac-2013"},
         )
 
@@ -1089,7 +1134,7 @@ def _register_genius_negotiators() -> None:
         negotiator_registry.register(
             cls,
             short_name=cls.__name__,
-            anac_year=2014,
+            source=NEGMAS_SOURCE,
             tags=genius_base | {"anac", "anac-2014"},
         )
 
@@ -1124,7 +1169,7 @@ def _register_genius_negotiators() -> None:
         negotiator_registry.register(
             cls,
             short_name=cls.__name__,
-            anac_year=2015,
+            source=NEGMAS_SOURCE,
             tags=genius_base | {"anac", "anac-2015"},
         )
 
@@ -1152,7 +1197,7 @@ def _register_genius_negotiators() -> None:
         negotiator_registry.register(
             cls,
             short_name=cls.__name__,
-            anac_year=2016,
+            source=NEGMAS_SOURCE,
             tags=genius_base | {"anac", "anac-2016"},
         )
 
@@ -1182,7 +1227,7 @@ def _register_genius_negotiators() -> None:
         negotiator_registry.register(
             cls,
             short_name=cls.__name__,
-            anac_year=2017,
+            source=NEGMAS_SOURCE,
             tags=genius_base | {"anac", "anac-2017"},
         )
 
@@ -1216,7 +1261,7 @@ def _register_genius_negotiators() -> None:
         negotiator_registry.register(
             cls,
             short_name=cls.__name__,
-            anac_year=2018,
+            source=NEGMAS_SOURCE,
             tags=genius_base | {"anac", "anac-2018"},
         )
 
@@ -1246,7 +1291,7 @@ def _register_genius_negotiators() -> None:
         negotiator_registry.register(
             cls,
             short_name=cls.__name__,
-            anac_year=2019,
+            source=NEGMAS_SOURCE,
             tags=genius_base | {"anac", "anac-2019"},
         )
 
@@ -1287,6 +1332,7 @@ def _register_scenarios() -> None:
             scenario_registry.register(
                 path=scenario_path,
                 name=scenario_path.name,
+                source=NEGMAS_SOURCE,
                 tags={"builtin"} | extra_tags,
                 n_negotiators=n_negotiators,
             )

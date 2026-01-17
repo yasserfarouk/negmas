@@ -1056,20 +1056,29 @@ def _format_info(
 
     # Handle ScenarioInfo differently (no full_type_name or cls)
     if isinstance(info, ScenarioInfo):
+        # Determine format from tags
+        fmt = "unknown"
+        for tag in ("xml", "json", "yaml"):
+            if tag in info.tags:
+                fmt = tag
+                break
         result = {
             "name": name,
             "path": str(info.path),
-            "format": info.format,
-            "file": info.file,
+            "format": fmt,
+            "file": "file" in info.tags,
         }
         if info.n_negotiators is not None:
             result["n_negotiators"] = info.n_negotiators
         if info.n_outcomes is not None:
             result["n_outcomes"] = info.n_outcomes
-        if info.normalized is not None:
-            result["normalized"] = info.normalized
-        if info.anac is not None:
-            result["anac"] = info.anac
+        if info.opposition_level is not None:
+            result["opposition_level"] = round(info.opposition_level, 3)
+        # Derive normalized and anac from tags
+        if "normalized" in info.tags:
+            result["normalized"] = True
+        if "anac" in info.tags:
+            result["anac"] = True
         if include_tags and info.tags:
             result["tags"] = ",".join(sorted(info.tags))
         if verbose and info.extra:
@@ -1079,21 +1088,31 @@ def _format_info(
     # Handle regular RegistryInfo subclasses
     result = {"name": name, "type": info.full_type_name}
 
-    # Add type-specific fields
-    if hasattr(info, "requires_deadline"):
-        result["requires_deadline"] = info.requires_deadline
-    if hasattr(info, "bilateral_only"):
-        result["bilateral_only"] = info.bilateral_only
-    if hasattr(info, "requires_opponent_ufun"):
-        result["requires_opponent_ufun"] = info.requires_opponent_ufun
-    if hasattr(info, "learns"):
-        result["learns"] = info.learns
-    if hasattr(info, "anac_year") and info.anac_year is not None:
-        result["anac_year"] = info.anac_year
-    if hasattr(info, "supports_uncertainty"):
-        result["supports_uncertainty"] = info.supports_uncertainty
-    if hasattr(info, "supports_discounting"):
-        result["supports_discounting"] = info.supports_discounting
+    # Add type-specific fields derived from tags
+    tags = info.tags if info.tags else set()
+
+    # MechanismInfo fields (from tags)
+    if "requires-deadline" in tags:
+        result["requires_deadline"] = True
+
+    # NegotiatorInfo fields (from tags)
+    if "bilateral-only" in tags:
+        result["bilateral_only"] = True
+    if "requires-opponent-ufun" in tags:
+        result["requires_opponent_ufun"] = True
+    if "learning" in tags:
+        result["learns"] = True
+    # Check for anac-YYYY tags
+    for tag in tags:
+        if tag.startswith("anac-") and tag[5:].isdigit():
+            result["anac_year"] = int(tag[5:])
+            break
+    if "supports-uncertainty" in tags:
+        result["supports_uncertainty"] = True
+    if "supports-discounting" in tags:
+        result["supports_discounting"] = True
+
+    # ComponentInfo fields
     if hasattr(info, "component_type"):
         result["component_type"] = info.component_type
 
@@ -1191,6 +1210,45 @@ def _parse_filter(filter_str: str) -> dict:
     return filters
 
 
+def _parse_numeric_range(value_str: str) -> int | float | tuple | None:
+    """Parse a numeric value or range string.
+
+    Accepts formats like:
+        - "100" (exact value)
+        - "100:500" (min:max range)
+        - ":100" (max only)
+        - "100:" (min only)
+        - "0.3:0.7" (float range)
+
+    Returns:
+        int, float, or tuple of (min, max) where None means unbounded
+    """
+    if not value_str:
+        return None
+
+    if ":" in value_str:
+        parts = value_str.split(":", 1)
+        try:
+            min_val = float(parts[0]) if parts[0] else None
+            max_val = float(parts[1]) if parts[1] else None
+            # Convert to int if possible
+            if min_val is not None and min_val == int(min_val):
+                min_val = int(min_val)
+            if max_val is not None and max_val == int(max_val):
+                max_val = int(max_val)
+            return (min_val, max_val)
+        except ValueError:
+            return None
+    else:
+        try:
+            val = float(value_str)
+            if val == int(val):
+                return int(val)
+            return val
+        except ValueError:
+            return None
+
+
 @registry.command(name="list", help="List all registered items of a given type")
 @click.argument(
     "registry_type",
@@ -1199,18 +1257,11 @@ def _parse_filter(filter_str: str) -> dict:
     ),
 )
 @click.option(
-    "--filter",
-    "-f",
-    "filter_str",
-    default="",
-    help="Filter by attributes (e.g., 'anac_year=2019,bilateral_only=true')",
-)
-@click.option(
     "--tag",
     "-t",
     "tags_str",
     default="",
-    help="Filter by tags - items must have ALL specified tags (comma-separated, e.g., 'genius,anac2019')",
+    help="Filter by tags - items must have ALL specified tags (comma-separated, e.g., 'genius,anac-2019')",
 )
 @click.option(
     "--any-tag",
@@ -1227,6 +1278,21 @@ def _parse_filter(filter_str: str) -> dict:
     help="Exclude items with ANY of these tags (comma-separated)",
 )
 @click.option(
+    "--n-outcomes",
+    default="",
+    help="Filter scenarios by n_outcomes (e.g., '100', '100:500', ':1000')",
+)
+@click.option(
+    "--n-negotiators",
+    default="",
+    help="Filter scenarios by n_negotiators (e.g., '2', '2:4')",
+)
+@click.option(
+    "--opposition-level",
+    default="",
+    help="Filter scenarios by opposition level (e.g., '0.3:0.7')",
+)
+@click.option(
     "--format",
     "-o",
     "output_format",
@@ -1239,10 +1305,12 @@ def _parse_filter(filter_str: str) -> dict:
 @click.option("--count", "-c", is_flag=True, help="Only show count of matching items")
 def list_registry(
     registry_type,
-    filter_str,
     tags_str,
     any_tags_str,
     exclude_tags_str,
+    n_outcomes,
+    n_negotiators,
+    opposition_level,
     output_format,
     verbose,
     show_tags,
@@ -1254,8 +1322,7 @@ def list_registry(
         print(f"Unknown registry type: {registry_type}")
         return
 
-    # Parse filters
-    filters = _parse_filter(filter_str)
+    # Parse tag filters
     tags = _parse_tags(tags_str)
     any_tags = _parse_tags(any_tags_str)
     exclude_tags = _parse_tags(exclude_tags_str)
@@ -1268,7 +1335,21 @@ def list_registry(
         query_kwargs["any_tags"] = any_tags
     if exclude_tags:
         query_kwargs["exclude_tags"] = exclude_tags
-    query_kwargs.update(filters)
+
+    # Add numeric filters for scenarios
+    if registry_type.lower() == "scenarios":
+        if n_outcomes:
+            parsed = _parse_numeric_range(n_outcomes)
+            if parsed is not None:
+                query_kwargs["n_outcomes"] = parsed
+        if n_negotiators:
+            parsed = _parse_numeric_range(n_negotiators)
+            if parsed is not None:
+                query_kwargs["n_negotiators"] = parsed
+        if opposition_level:
+            parsed = _parse_numeric_range(opposition_level)
+            if parsed is not None:
+                query_kwargs["opposition_level"] = parsed
 
     if query_kwargs:
         items = reg.query(**query_kwargs)

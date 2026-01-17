@@ -6,6 +6,29 @@ Release 0.14.0 (Unreleased)
 
 **Breaking Changes:**
 
+* [breaking] Registry system refactored to use tags instead of boolean fields:
+
+  - **MechanismInfo**: Removed ``requires_deadline`` field. Use tag ``requires-deadline`` instead.
+  - **NegotiatorInfo**: Removed ``bilateral_only``, ``requires_opponent_ufun``, ``learns``, ``anac_year``,
+    ``supports_uncertainty``, ``supports_discounting`` fields. Use tags instead:
+
+    - ``bilateral_only=True`` → tag ``bilateral-only``
+    - ``requires_opponent_ufun=True`` → tag ``requires-opponent-ufun``
+    - ``learns=True`` → tag ``learning``
+    - ``anac_year=2019`` → tag ``anac-2019``
+    - ``supports_uncertainty=True`` → tag ``supports-uncertainty``
+    - ``supports_discounting=True`` → tag ``supports-discounting``
+
+  - **ScenarioInfo**: Removed ``normalized``, ``anac``, ``file``, ``format``, ``has_stats``, ``has_plot`` fields.
+    Use tags instead (e.g., ``normalized``, ``anac``, ``file``, ``xml``/``json``/``yaml``, ``has-stats``, ``has-plot``).
+    Added ``opposition_level: float | None`` field for numeric opposition level.
+
+  - **Backward compatibility**: Old parameters (e.g., ``bilateral_only=True``) still accepted in ``register()``
+    methods but emit deprecation warnings and are converted to tags internally.
+
+  - **Query methods**: ``ScenarioRegistry.query()`` now supports numeric range queries for ``n_outcomes``,
+    ``n_negotiators``, and ``opposition_level`` using tuples (e.g., ``n_outcomes=(100, 500)``).
+
 * [breaking] ``cartesian_tournament`` now defaults to ``storage_optimization="space"`` and ``memory_optimization="balanced"``
   instead of ``"speed"`` for both. This change reduces disk space and memory usage by default but may affect
   code that expects specific file structures (e.g., ``results/`` folder or ``all_scores.csv``).
@@ -22,6 +45,28 @@ Release 0.14.0 (Unreleased)
 
 * [feature] Add registry system for mechanisms, negotiators, and components with scenario support
 * [feature] Add ``unregister()`` method to ``Registry`` and ``ScenarioRegistry`` for removing registered items
+* [feature] Registry classes now guarantee that new registrations never hide existing ones:
+
+  - ``Registry``: Same class can be registered multiple times with different names (e.g., with different parameters).
+    If a name already exists, falls back to full type name or numeric suffix (``_1``, ``_2``, etc.).
+    Added ``get_all_by_class()`` method to retrieve all registrations for a class.
+  - ``ScenarioRegistry``: Silently returns existing registration if path already registered (one registration per resolved path)
+* [feature] Enhanced registry system with source tracking and virtual negotiators:
+
+  - ``RegistryInfo`` now has ``key``, ``source``, and ``params`` fields for unique identification and origin tracking
+  - ``ScenarioInfo`` now has ``source`` field for tracking scenario origin
+  - ``Registry.register()`` returns unique keys (format: ``{short_name}#{uuid8}``) enabling virtual negotiators
+  - Added ``get_by_short_name()``, ``create()``, ``register_many()``, ``unregister_many()`` methods to ``Registry``
+  - Added ``register_many()``, ``unregister_many()``, ``load()`` methods to ``ScenarioRegistry``
+  - All decorators (``register_mechanism``, ``register_negotiator``, ``register_component``, ``register_scenario``)
+    now accept ``source`` and ``params`` parameters
+  - All built-in registrations now have ``source='negmas'`` for identification
+
+* [feature] Add ``save_registry()``, ``load_registry()``, and ``clear_registry()`` functions for registry persistence:
+
+  - Saves/loads all registries to/from JSON files (default: ``~/negmas/registry/``)
+  - Supports selective save/load of mechanisms, negotiators, components, and scenarios
+  - ``load_registry()`` can optionally clear existing registrations before loading
 * [feature] Add ``scored_indices`` feature and ``opponents`` parameter to ``cartesian_tournament``
 * [feature] Add ``storage_optimization`` parameter to ``cartesian_tournament`` to control disk space usage:
 
