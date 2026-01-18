@@ -149,6 +149,7 @@ class CompletedRun(Generic[TState]):
         save_config: bool = True,
         overwrite: bool = True,
         warn_if_existing: bool = True,
+        include_pareto_frontier: bool = False,
         storage_format: TableStorageFormat | None = DEFAULT_TABLE_STORAGE_FORMAT,
     ) -> Path:
         """Saves the completed run to disk.
@@ -165,6 +166,7 @@ class CompletedRun(Generic[TState]):
             save_config: If True, save the configuration.
             overwrite: If True, overwrite existing files/directories.
             warn_if_existing: If True, warn when overwriting.
+            include_pareto_frontier: If True the pareto frontier will be included in the scenario (if save_scenario)
             storage_format: Format for table storage ("csv", "gzip", "parquet").
 
         Returns:
@@ -334,6 +336,7 @@ class CompletedRun(Generic[TState]):
                     type="yml",
                     save_stats=save_scenario_stats,
                     save_info=True,
+                    include_pareto_frontier=include_pareto_frontier,
                 )
             except Exception:
                 # If scenario saving fails, save basic info
@@ -387,6 +390,10 @@ class CompletedRun(Generic[TState]):
             load_scenario_stats: If True, load scenario statistics when loading the scenario.
             load_agreement_stats: If True, load agreement optimality statistics.
             load_config: If True, load the configuration from config.yaml.
+
+        Remarks:
+            When loading scenarios, we will look at a scenario folder in the given path and if not
+            for a scenario_path in the metadata
 
         Returns:
             A CompletedRun instance with the loaded data.
@@ -479,11 +486,19 @@ class CompletedRun(Generic[TState]):
 
         history = load_table(trace_file, as_dataframe=False)
 
+        # Load metadata if present
+        metadata_path = path / "metadata.yaml"
+        metadata = load(metadata_path) if metadata_path.exists() else {}
+
         # Load scenario if present and requested
         scenario = None
         if load_scenario:
             scenario_dir = path / "scenario"
-            if scenario_dir.exists():
+            if not scenario_dir.exists():
+                scenario_dir = metadata.get("scenario_path", None)
+                if scenario_dir is not None:
+                    scenario_dir = Path(scenario_dir)
+            if scenario_dir is not None and scenario_dir.exists():
                 try:
                     scenario = Scenario.load(
                         scenario_dir, load_stats=load_scenario_stats
@@ -523,10 +538,6 @@ class CompletedRun(Generic[TState]):
         if load_config:
             config_path = path / "config.yaml"
             config = load(config_path) if config_path.exists() else {}
-
-        # Load metadata if present
-        metadata_path = path / "metadata.yaml"
-        metadata = load(metadata_path) if metadata_path.exists() else {}
 
         # Load outcome stats if present
         outcome_stats_path = path / "outcome_stats.yaml"
@@ -1993,11 +2004,15 @@ class Mechanism(
                         break
         return self.state
 
-    def run(self, timeout=None) -> TState:
+    def run(
+        self, timeout=None, progress_callback: Callable[[TState], None] | None = None
+    ) -> TState:
         """Execute the negotiation mechanism until completion or timeout.
 
         Args:
             timeout: Maximum time in seconds to run, or None for no limit
+            progress_callback: Optional callback function to report progress after each step receiving the state.
+                               The callback is called once before the first step and once after the negotiation ends
 
         Returns:
             TState: Final negotiation state after completion
@@ -2007,6 +2022,8 @@ class Mechanism(
                 pass
         else:
             start_time = time.perf_counter()
+            if progress_callback:
+                progress_callback(self.state)
             for _ in self:
                 if time.perf_counter() - start_time > timeout:
                     (
@@ -2016,6 +2033,10 @@ class Mechanism(
                     ) = (False, True, False)
                     self.on_negotiation_end()
                     break
+                if progress_callback:
+                    progress_callback(self.state)
+            if progress_callback:
+                progress_callback(self.state)
         return self.state
 
     @property
