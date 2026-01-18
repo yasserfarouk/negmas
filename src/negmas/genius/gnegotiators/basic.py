@@ -43,11 +43,7 @@ class ABMPAgent2(GeniusNegotiator):
     """
 
     def __init__(self, **kwargs):
-        """Initialize the instance.
-
-        Args:
-            **kwargs: Additional keyword arguments.
-        """
+        """Initializes the instance."""
         kwargs["java_class_name"] = "agents.ABMPAgent2"
         super().__init__(**kwargs)
 
@@ -70,11 +66,7 @@ class BayesianAgent(GeniusNegotiator):
     """
 
     def __init__(self, **kwargs):
-        """Initialize the instance.
-
-        Args:
-            **kwargs: Additional keyword arguments.
-        """
+        """Initializes the instance."""
         kwargs["java_class_name"] = "agents.BayesianAgent"
         super().__init__(**kwargs)
 
@@ -96,11 +88,7 @@ class BoulwareNegotiationParty(GeniusNegotiator):
     """
 
     def __init__(self, **kwargs):
-        """Initialize the instance.
-
-        Args:
-            **kwargs: Additional keyword arguments.
-        """
+        """Initializes the instance."""
         kwargs["java_class_name"] = "negotiator.parties.BoulwareNegotiationParty"
         super().__init__(**kwargs)
 
@@ -122,11 +110,7 @@ class ConcederNegotiationParty(GeniusNegotiator):
     """
 
     def __init__(self, **kwargs):
-        """Initialize the instance.
-
-        Args:
-            **kwargs: Additional keyword arguments.
-        """
+        """Initializes the instance."""
         kwargs["java_class_name"] = "negotiator.parties.ConcederNegotiationParty"
         super().__init__(**kwargs)
 
@@ -149,11 +133,7 @@ class FunctionalAcceptor(GeniusNegotiator):
     """
 
     def __init__(self, **kwargs):
-        """Initialize the instance.
-
-        Args:
-            **kwargs: Additional keyword arguments.
-        """
+        """Initializes the instance."""
         kwargs["java_class_name"] = "agents.FunctionalAcceptor"
         super().__init__(**kwargs)
 
@@ -176,11 +156,7 @@ class FuzzyAgent(GeniusNegotiator):
     """
 
     def __init__(self, **kwargs):
-        """Initialize the instance.
-
-        Args:
-            **kwargs: Additional keyword arguments.
-        """
+        """Initializes the instance."""
         kwargs["java_class_name"] = "agents.FuzzyAgent"
         super().__init__(**kwargs)
 
@@ -197,11 +173,7 @@ class ImmediateAcceptor(GeniusNegotiator):
     """
 
     def __init__(self, **kwargs):
-        """Initialize the instance.
-
-        Args:
-            **kwargs: Additional keyword arguments.
-        """
+        """Initializes the instance."""
         kwargs["java_class_name"] = "agents.ImmediateAcceptor"
         super().__init__(**kwargs)
 
@@ -219,11 +191,7 @@ class OptimalBidderSimple(GeniusNegotiator):
     """
 
     def __init__(self, **kwargs):
-        """Initialize the instance.
-
-        Args:
-            **kwargs: Additional keyword arguments.
-        """
+        """Initializes the instance."""
         kwargs["java_class_name"] = "agents.OptimalBidderSimple"
         super().__init__(**kwargs)
 
@@ -241,11 +209,7 @@ class RandomCounterOfferNegotiationParty(GeniusNegotiator):
     """
 
     def __init__(self, **kwargs):
-        """Initialize the instance.
-
-        Args:
-            **kwargs: Additional keyword arguments.
-        """
+        """Initializes the instance."""
         kwargs[
             "java_class_name"
         ] = "negotiator.parties.RandomCounterOfferNegotiationParty"
@@ -264,11 +228,7 @@ class RandomParty(GeniusNegotiator):
     """
 
     def __init__(self, **kwargs):
-        """Initialize the instance.
-
-        Args:
-            **kwargs: Additional keyword arguments.
-        """
+        """Initializes the instance."""
         kwargs["java_class_name"] = "negotiator.parties.RandomParty"
         super().__init__(**kwargs)
 
@@ -286,11 +246,7 @@ class RandomParty2(GeniusNegotiator):
     """
 
     def __init__(self, **kwargs):
-        """Initialize the instance.
-
-        Args:
-            **kwargs: Additional keyword arguments.
-        """
+        """Initializes the instance."""
         kwargs["java_class_name"] = "negotiator.parties.RandomParty2"
         super().__init__(**kwargs)
 
@@ -312,11 +268,7 @@ class SimilarityAgent(GeniusNegotiator):
     """
 
     def __init__(self, **kwargs):
-        """Initialize the instance.
-
-        Args:
-            **kwargs: Additional keyword arguments.
-        """
+        """Initializes the instance."""
         kwargs["java_class_name"] = "agents.SimilarityAgent"
         super().__init__(**kwargs)
 
@@ -334,11 +286,7 @@ class SimpleAgent(GeniusNegotiator):
     """
 
     def __init__(self, **kwargs):
-        """Initialize the instance.
-
-        Args:
-            **kwargs: Additional keyword arguments.
-        """
+        """Initializes the instance."""
         kwargs["java_class_name"] = ["agents.SimpleAgent"]
         super().__init__(**kwargs)
 
@@ -360,11 +308,7 @@ class TimeDependentAgentBoulware(GeniusNegotiator):
     """
 
     def __init__(self, **kwargs):
-        """Initialize the instance.
-
-        Args:
-            **kwargs: Additional keyword arguments.
-        """
+        """Initializes the instance."""
         kwargs["java_class_name"] = "agents.TimeDependentAgentBoulware"
         super().__init__(**kwargs)
 
@@ -386,11 +330,7 @@ class TimeDependentAgentConceder(GeniusNegotiator):
     """
 
     def __init__(self, **kwargs):
-        """Initialize the instance.
-
-        Args:
-            **kwargs: Additional keyword arguments.
-        """
+        """Initializes the instance."""
         kwargs["java_class_name"] = "agents.TimeDependentAgentConceder"
         super().__init__(**kwargs)
 
@@ -412,11 +352,7 @@ class TimeDependentAgentHardliner(GeniusNegotiator):
     """
 
     def __init__(self, **kwargs):
-        """Initialize the instance.
-
-        Args:
-            **kwargs: Additional keyword arguments.
-        """
+        """Initializes the instance."""
         kwargs["java_class_name"] = "agents.TimeDependentAgentHardliner"
         super().__init__(**kwargs)
 
@@ -438,11 +374,7 @@ class TimeDependentAgentLinear(GeniusNegotiator):
     """
 
     def __init__(self, **kwargs):
-        """Initialize the instance.
-
-        Args:
-            **kwargs: Additional keyword arguments.
-        """
+        """Initializes the instance."""
         kwargs["java_class_name"] = "agents.TimeDependentAgentLinear"
         super().__init__(**kwargs)
 
@@ -464,10 +396,6 @@ class UtilityBasedAcceptor(GeniusNegotiator):
     """
 
     def __init__(self, **kwargs):
-        """Initialize the instance.
-
-        Args:
-            **kwargs: Additional keyword arguments.
-        """
+        """Initializes the instance."""
         kwargs["java_class_name"] = "agents.UtilityBasedAcceptor"
         super().__init__(**kwargs)

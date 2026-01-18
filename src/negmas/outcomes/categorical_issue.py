@@ -17,12 +17,7 @@ class CategoricalIssue(DiscreteIssue):
     """
 
     def __init__(self, values, name=None) -> None:
-        """Initialize the instance.
-
-        Args:
-            values: Values.
-            name: Name.
-        """
+        """Initializes the instance."""
         super().__init__(values, name)
         values = list(values)
         self._n_values = len(values)

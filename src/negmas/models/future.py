@@ -17,12 +17,7 @@ class FutureUtilityRegressor:
     """
 
     def __init__(self, regressor_factory=GaussianProcessRegressor, **kwargs):
-        """Initialize the instance.
-
-        Args:
-            regressor_factory: Regressor factory.
-            **kwargs: Additional keyword arguments.
-        """
+        """Initializes the instance."""
         self.regressor = regressor_factory(**kwargs)
         self.inverse_regressor = regressor_factory(**kwargs)
 

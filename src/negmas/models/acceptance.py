@@ -53,11 +53,7 @@ class DiscreteAcceptanceModel(ABC):
     """"""
 
     def __init__(self, outcomes: Iterable[Outcome]):
-        """Initialize the instance.
-
-        Args:
-            outcomes: Outcomes.
-        """
+        """Initializes the instance."""
         outcomes = list(outcomes)
         self.outcomes = outcomes
         self.indx = dict(zip(outcomes, range(len(outcomes))))
@@ -285,12 +281,7 @@ class RandomDiscreteAcceptanceModel(DiscreteAcceptanceModel):
     """RandomDiscreteAcceptanceModel implementation."""
 
     def __init__(self, outcomes: Collection[Outcome], **kwargs):
-        """Initialize the instance.
-
-        Args:
-            outcomes: Outcomes.
-            **kwargs: Additional keyword arguments.
-        """
+        """Initializes the instance."""
         super().__init__(outcomes=outcomes)
 
     def probability_of_acceptance_indx(self, outcome_index: int) -> float:
@@ -325,12 +316,7 @@ class ConstantDiscreteAcceptanceModel(DiscreteAcceptanceModel):
     """ConstantDiscreteAcceptanceModel implementation."""
 
     def __init__(self, outcomes: Collection[Outcome], **kwargs):
-        """Initialize the instance.
-
-        Args:
-            outcomes: Outcomes.
-            **kwargs: Additional keyword arguments.
-        """
+        """Initializes the instance."""
         super().__init__(outcomes=outcomes)
 
     def probability_of_acceptance_indx(self, outcome_index: int) -> float:

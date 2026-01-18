@@ -102,12 +102,7 @@ class EventLogger(EventSink):
     """
 
     def __init__(self, file_name: str | Path, types: list[str] | None = None):
-        """Initialize the instance.
-
-        Args:
-            file_name: File name.
-            types: Types.
-        """
+        """Initializes the instance."""
         file_name = Path(file_name)
         file_name.parent.mkdir(parents=True, exist_ok=True)
         self._file_name = file_name

@@ -44,11 +44,7 @@ class AI2014Group2(GeniusNegotiator):
     """
 
     def __init__(self, **kwargs):
-        """Initialize the instance.
-
-        Args:
-            **kwargs: Additional keyword arguments.
-        """
+        """Initializes the instance."""
         kwargs["java_class_name"] = "agents.ai2014.group2.Group2"
         super().__init__(**kwargs)
 
@@ -66,11 +62,7 @@ class Group1(GeniusNegotiator):
     """
 
     def __init__(self, **kwargs):
-        """Initialize the instance.
-
-        Args:
-            **kwargs: Additional keyword arguments.
-        """
+        """Initializes the instance."""
         kwargs["java_class_name"] = "parties.in4010.q12015.group1.Group1"
         super().__init__(**kwargs)
 
@@ -88,11 +80,7 @@ class Group10(GeniusNegotiator):
     """
 
     def __init__(self, **kwargs):
-        """Initialize the instance.
-
-        Args:
-            **kwargs: Additional keyword arguments.
-        """
+        """Initializes the instance."""
         kwargs["java_class_name"] = "parties.in4010.q12015.group10.Group10"
         super().__init__(**kwargs)
 
@@ -110,11 +98,7 @@ class Group11(GeniusNegotiator):
     """
 
     def __init__(self, **kwargs):
-        """Initialize the instance.
-
-        Args:
-            **kwargs: Additional keyword arguments.
-        """
+        """Initializes the instance."""
         kwargs["java_class_name"] = "parties.in4010.q12015.group11.Group11"
         super().__init__(**kwargs)
 
@@ -132,11 +116,7 @@ class Group12(GeniusNegotiator):
     """
 
     def __init__(self, **kwargs):
-        """Initialize the instance.
-
-        Args:
-            **kwargs: Additional keyword arguments.
-        """
+        """Initializes the instance."""
         kwargs["java_class_name"] = "parties.in4010.q12015.group12.Group12"
         super().__init__(**kwargs)
 
@@ -154,11 +134,7 @@ class Group13(GeniusNegotiator):
     """
 
     def __init__(self, **kwargs):
-        """Initialize the instance.
-
-        Args:
-            **kwargs: Additional keyword arguments.
-        """
+        """Initializes the instance."""
         kwargs["java_class_name"] = "parties.in4010.q12015.group13.Group13"
         super().__init__(**kwargs)
 
@@ -176,11 +152,7 @@ class Group14(GeniusNegotiator):
     """
 
     def __init__(self, **kwargs):
-        """Initialize the instance.
-
-        Args:
-            **kwargs: Additional keyword arguments.
-        """
+        """Initializes the instance."""
         kwargs["java_class_name"] = "parties.in4010.q12015.group14.Group14"
         super().__init__(**kwargs)
 
@@ -198,11 +170,7 @@ class Group15(GeniusNegotiator):
     """
 
     def __init__(self, **kwargs):
-        """Initialize the instance.
-
-        Args:
-            **kwargs: Additional keyword arguments.
-        """
+        """Initializes the instance."""
         kwargs["java_class_name"] = "parties.in4010.q12015.group15.Group15"
         super().__init__(**kwargs)
 
@@ -220,11 +188,7 @@ class Group16(GeniusNegotiator):
     """
 
     def __init__(self, **kwargs):
-        """Initialize the instance.
-
-        Args:
-            **kwargs: Additional keyword arguments.
-        """
+        """Initializes the instance."""
         kwargs["java_class_name"] = "parties.in4010.q12015.group16.Group16"
         super().__init__(**kwargs)
 
@@ -242,11 +206,7 @@ class Group17(GeniusNegotiator):
     """
 
     def __init__(self, **kwargs):
-        """Initialize the instance.
-
-        Args:
-            **kwargs: Additional keyword arguments.
-        """
+        """Initializes the instance."""
         kwargs["java_class_name"] = "parties.in4010.q12015.group17.Group17"
         super().__init__(**kwargs)
 
@@ -264,11 +224,7 @@ class Group18(GeniusNegotiator):
     """
 
     def __init__(self, **kwargs):
-        """Initialize the instance.
-
-        Args:
-            **kwargs: Additional keyword arguments.
-        """
+        """Initializes the instance."""
         kwargs["java_class_name"] = "parties.in4010.q12015.group18.Group18"
         super().__init__(**kwargs)
 
@@ -286,11 +242,7 @@ class Group19(GeniusNegotiator):
     """
 
     def __init__(self, **kwargs):
-        """Initialize the instance.
-
-        Args:
-            **kwargs: Additional keyword arguments.
-        """
+        """Initializes the instance."""
         kwargs["java_class_name"] = "parties.in4010.q12015.group19.Group19"
         super().__init__(**kwargs)
 
@@ -308,11 +260,7 @@ class Group20(GeniusNegotiator):
     """
 
     def __init__(self, **kwargs):
-        """Initialize the instance.
-
-        Args:
-            **kwargs: Additional keyword arguments.
-        """
+        """Initializes the instance."""
         kwargs["java_class_name"] = "parties.in4010.q12015.group20.Group20"
         super().__init__(**kwargs)
 
@@ -330,11 +278,7 @@ class Group21(GeniusNegotiator):
     """
 
     def __init__(self, **kwargs):
-        """Initialize the instance.
-
-        Args:
-            **kwargs: Additional keyword arguments.
-        """
+        """Initializes the instance."""
         kwargs["java_class_name"] = "parties.in4010.q12015.group21.Group21"
         super().__init__(**kwargs)
 
@@ -352,11 +296,7 @@ class Group22(GeniusNegotiator):
     """
 
     def __init__(self, **kwargs):
-        """Initialize the instance.
-
-        Args:
-            **kwargs: Additional keyword arguments.
-        """
+        """Initializes the instance."""
         kwargs["java_class_name"] = "parties.in4010.q12015.group22.Group22"
         super().__init__(**kwargs)
 
@@ -374,11 +314,7 @@ class Group3Q2015(GeniusNegotiator):
     """
 
     def __init__(self, **kwargs):
-        """Initialize the instance.
-
-        Args:
-            **kwargs: Additional keyword arguments.
-        """
+        """Initializes the instance."""
         kwargs["java_class_name"] = "parties.in4010.q12015.group3.Group3"
         super().__init__(**kwargs)
 
@@ -396,11 +332,7 @@ class Group4(GeniusNegotiator):
     """
 
     def __init__(self, **kwargs):
-        """Initialize the instance.
-
-        Args:
-            **kwargs: Additional keyword arguments.
-        """
+        """Initializes the instance."""
         kwargs["java_class_name"] = "parties.in4010.q12015.group4.Group4"
         super().__init__(**kwargs)
 
@@ -418,11 +350,7 @@ class Group5(GeniusNegotiator):
     """
 
     def __init__(self, **kwargs):
-        """Initialize the instance.
-
-        Args:
-            **kwargs: Additional keyword arguments.
-        """
+        """Initializes the instance."""
         kwargs["java_class_name"] = "parties.in4010.q12015.group5.Group5"
         super().__init__(**kwargs)
 
@@ -440,11 +368,7 @@ class Group6(GeniusNegotiator):
     """
 
     def __init__(self, **kwargs):
-        """Initialize the instance.
-
-        Args:
-            **kwargs: Additional keyword arguments.
-        """
+        """Initializes the instance."""
         kwargs["java_class_name"] = "parties.in4010.q12015.group6.Group6"
         super().__init__(**kwargs)
 
@@ -462,11 +386,7 @@ class Group7(GeniusNegotiator):
     """
 
     def __init__(self, **kwargs):
-        """Initialize the instance.
-
-        Args:
-            **kwargs: Additional keyword arguments.
-        """
+        """Initializes the instance."""
         kwargs["java_class_name"] = "parties.in4010.q12015.group7.Group7"
         super().__init__(**kwargs)
 
@@ -484,11 +404,7 @@ class Group8(GeniusNegotiator):
     """
 
     def __init__(self, **kwargs):
-        """Initialize the instance.
-
-        Args:
-            **kwargs: Additional keyword arguments.
-        """
+        """Initializes the instance."""
         kwargs["java_class_name"] = "parties.in4010.q12015.group8.Group8"
         super().__init__(**kwargs)
 
@@ -506,11 +422,7 @@ class Group9(GeniusNegotiator):
     """
 
     def __init__(self, **kwargs):
-        """Initialize the instance.
-
-        Args:
-            **kwargs: Additional keyword arguments.
-        """
+        """Initializes the instance."""
         kwargs["java_class_name"] = "parties.in4010.q12015.group9.Group9"
         super().__init__(**kwargs)
 
@@ -528,10 +440,6 @@ class Q12015Group2(GeniusNegotiator):
     """
 
     def __init__(self, **kwargs):
-        """Initialize the instance.
-
-        Args:
-            **kwargs: Additional keyword arguments.
-        """
+        """Initializes the instance."""
         kwargs["java_class_name"] = "parties.in4010.q12015.group2.Group2"
         super().__init__(**kwargs)

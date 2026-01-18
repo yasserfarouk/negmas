@@ -81,23 +81,7 @@ class GeniusNegotiator(SAONegotiator):
         id: str | None = None,
         **kwargs,
     ):
-        """Initialize the instance.
-
-        Args:
-            preferences: Preferences.
-            name: Name.
-            parent: Parent.
-            owner: Owner.
-            java_class_name: Java class name.
-            domain_file_name: Domain file name.
-            utility_file_name: Utility file name.
-            can_propose: Can propose.
-            auto_load_java: Auto load java.
-            port: Port.
-            genius_bridge_path: Genius bridge path.
-            strict: Strict.
-            id: Id.
-        """
+        """Initializes the instance."""
         super().__init__(
             name=name, preferences=None, parent=parent, owner=owner, id=id, **kwargs
         )

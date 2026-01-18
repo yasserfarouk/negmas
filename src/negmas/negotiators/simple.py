@@ -40,24 +40,12 @@ class EvaluatorNegotiator(Negotiator):
     """
 
     def __init__(self, *args, **kwargs):
-        """Initialize the instance.
-
-        Args:
-            *args: Additional positional arguments.
-            **kwargs: Additional keyword arguments.
-        """
+        """Initializes the instance."""
         super().__init__(*args, **kwargs)
         self.capabilities["evaluate"] = True
 
     def evaluate(self, outcome: Outcome) -> Value | None:
-        """Evaluate.
-
-        Args:
-            outcome: Outcome to evaluate.
-
-        Returns:
-            Value | None: The result.
-        """
+        """Evaluates the given outcome using the internal utility function."""
         if not self.ufun:
             return None
         return self.ufun(outcome)
@@ -73,12 +61,7 @@ class RealComparatorNegotiator(Negotiator):
     """
 
     def __init__(self, *args, **kwargs):
-        """Initialize the instance.
-
-        Args:
-            *args: Additional positional arguments.
-            **kwargs: Additional keyword arguments.
-        """
+        """Initializes the instance."""
         super().__init__(*args, **kwargs)
         self.capabilities["compare-real"] = True
         self.capabilities["compare-binary"] = True
@@ -127,12 +110,7 @@ class BinaryComparatorNegotiator(Negotiator):
     """
 
     def __init__(self, *args, **kwargs):
-        """Initialize the instance.
-
-        Args:
-            *args: Additional positional arguments.
-            **kwargs: Additional keyword arguments.
-        """
+        """Initializes the instance."""
         super().__init__(*args, **kwargs)
         self.capabilities["compare-binary"] = True
 
@@ -171,12 +149,7 @@ class NLevelsComparatorNegotiator(Negotiator):
     """
 
     def __init__(self, *args, thresholds: list[float] | None = None, **kwargs):
-        """Initialize the instance.
-
-        Args:
-            *args: Additional positional arguments.
-            **kwargs: Additional keyword arguments.
-        """
+        """Initializes the instance."""
         super().__init__(*args, **kwargs)
         self.thresholds = thresholds  # type: ignore I am not sure why
         self.capabilities["compare-nlevels"] = True
@@ -251,11 +224,7 @@ class NLevelsComparatorNegotiator(Negotiator):
 
     @thresholds.setter
     def thresholds(self, thresholds: list[float]) -> None:
-        """Thresholds.
-
-        Args:
-            thresholds: Thresholds.
-        """
+        """Sets the internal thresholds for n-level comparison."""
         self.__preferences_thresholds = thresholds
 
     def compare_nlevels(
@@ -338,12 +307,7 @@ class RankerWithWeightsNegotiator(Negotiator):
     """
 
     def __init__(self, *args, **kwargs):
-        """Initialize the instance.
-
-        Args:
-            *args: Additional positional arguments.
-            **kwargs: Additional keyword arguments.
-        """
+        """Initializes the instance."""
         super().__init__(*args, **kwargs)
         self.capabilities["rank-weighted"] = True
         self.capabilities["compare-binary"] = True
@@ -399,12 +363,7 @@ class RankerNegotiator(Negotiator):
     """
 
     def __init__(self, *args, **kwargs):
-        """Initialize the instance.
-
-        Args:
-            *args: Additional positional arguments.
-            **kwargs: Additional keyword arguments.
-        """
+        """Initializes the instance."""
         super().__init__(*args, **kwargs)
         self.capabilities["rank"] = True
         self.capabilities["compare-binary"] = True
@@ -455,12 +414,7 @@ class SorterNegotiator(Negotiator):
     """
 
     def __init__(self, *args, **kwargs):
-        """Initialize the instance.
-
-        Args:
-            *args: Additional positional arguments.
-            **kwargs: Additional keyword arguments.
-        """
+        """Initializes the instance."""
         super().__init__(*args, **kwargs)
         self.capabilities["sort"] = True
 

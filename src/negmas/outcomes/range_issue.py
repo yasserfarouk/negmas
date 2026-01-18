@@ -13,12 +13,7 @@ class RangeIssue(CardinalIssue):
     """
 
     def __init__(self, values, name=None) -> None:
-        """Initialize the instance.
-
-        Args:
-            values: Values.
-            name: Name.
-        """
+        """Initializes the instance."""
         if values[1] < values[0]:
             raise ValueError(
                 f"Trying to create a range issue with min {values[0]} and max {values[1]}!!!"

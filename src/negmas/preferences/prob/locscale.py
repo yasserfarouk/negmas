@@ -57,14 +57,7 @@ class UniformUtilityFunction(ILSUtilityFunction):
     """
 
     def __init__(self, loc: UtilityFunction, scale: UtilityFunction, *args, **kwargs):
-        """Initialize the instance.
-
-        Args:
-            loc: Loc.
-            scale: Scale.
-            *args: Additional positional arguments.
-            **kwargs: Additional keyword arguments.
-        """
+        """Initializes the instance."""
         super().__init__("uniform", loc, scale, *args, *kwargs)
 
 
@@ -74,14 +67,7 @@ class GaussianUtilityFunction(ILSUtilityFunction):
     """
 
     def __init__(self, loc: UtilityFunction, scale: UtilityFunction, *args, **kwargs):
-        """Initialize the instance.
-
-        Args:
-            loc: Loc.
-            scale: Scale.
-            *args: Additional positional arguments.
-            **kwargs: Additional keyword arguments.
-        """
+        """Initializes the instance."""
         super().__init__("norm", loc, scale, *args, *kwargs)
 
 

@@ -92,11 +92,7 @@ class AgentBuyog(GeniusNegotiator):
     """
 
     def __init__(self, **kwargs):
-        """Initialize the instance.
-
-        Args:
-            **kwargs: Additional keyword arguments.
-        """
+        """Initializes the instance."""
         kwargs["java_class_name"] = "agents.anac.y2015.agentBuyogV2.AgentBuyogMain"
         super().__init__(**kwargs)
 
@@ -129,11 +125,7 @@ class AgentH(GeniusNegotiator):
     """
 
     def __init__(self, **kwargs):
-        """Initialize the instance.
-
-        Args:
-            **kwargs: Additional keyword arguments.
-        """
+        """Initializes the instance."""
         kwargs["java_class_name"] = "agents.anac.y2015.agenth.AgentH"
         super().__init__(**kwargs)
 
@@ -175,11 +167,7 @@ class AgentHP(GeniusNegotiator):
     """
 
     def __init__(self, **kwargs):
-        """Initialize the instance.
-
-        Args:
-            **kwargs: Additional keyword arguments.
-        """
+        """Initializes the instance."""
         kwargs["java_class_name"] = "agents.anac.y2015.AgentHP.AgentHP"
         super().__init__(**kwargs)
 
@@ -216,11 +204,7 @@ class AgentNeo(GeniusNegotiator):
     """
 
     def __init__(self, **kwargs):
-        """Initialize the instance.
-
-        Args:
-            **kwargs: Additional keyword arguments.
-        """
+        """Initializes the instance."""
         kwargs["java_class_name"] = "agents.anac.y2015.AgentNeo.Groupn"
         super().__init__(**kwargs)
 
@@ -259,11 +243,7 @@ class AgentW(GeniusNegotiator):
     """
 
     def __init__(self, **kwargs):
-        """Initialize the instance.
-
-        Args:
-            **kwargs: Additional keyword arguments.
-        """
+        """Initializes the instance."""
         kwargs["java_class_name"] = "agents.anac.y2015.AgentW.AgentW"
         super().__init__(**kwargs)
 
@@ -302,11 +282,7 @@ class AgentX(GeniusNegotiator):
     """
 
     def __init__(self, **kwargs):
-        """Initialize the instance.
-
-        Args:
-            **kwargs: Additional keyword arguments.
-        """
+        """Initializes the instance."""
         kwargs["java_class_name"] = "agents.anac.y2015.AgentX.AgentX"
         super().__init__(**kwargs)
 
@@ -342,11 +318,7 @@ class AresParty(GeniusNegotiator):
     """
 
     def __init__(self, **kwargs):
-        """Initialize the instance.
-
-        Args:
-            **kwargs: Additional keyword arguments.
-        """
+        """Initializes the instance."""
         kwargs["java_class_name"] = "agents.anac.y2015.AresParty.AresParty"
         super().__init__(**kwargs)
 
@@ -389,11 +361,7 @@ class Atlas3(GeniusNegotiator):
     """
 
     def __init__(self, **kwargs):
-        """Initialize the instance.
-
-        Args:
-            **kwargs: Additional keyword arguments.
-        """
+        """Initializes the instance."""
         kwargs["java_class_name"] = "agents.anac.y2015.Atlas3.Atlas3"
         super().__init__(**kwargs)
 
@@ -438,11 +406,7 @@ class CUHKAgent2015(GeniusNegotiator):
     """
 
     def __init__(self, **kwargs):
-        """Initialize the instance.
-
-        Args:
-            **kwargs: Additional keyword arguments.
-        """
+        """Initializes the instance."""
         kwargs["java_class_name"] = "agents.anac.y2015.cuhkagent2015.CUHKAgent2015"
         super().__init__(**kwargs)
 
@@ -481,11 +445,7 @@ class DrageKnight(GeniusNegotiator):
     """
 
     def __init__(self, **kwargs):
-        """Initialize the instance.
-
-        Args:
-            **kwargs: Additional keyword arguments.
-        """
+        """Initializes the instance."""
         kwargs["java_class_name"] = "agents.anac.y2015.DrageKnight.DrageKnight"
         super().__init__(**kwargs)
 
@@ -525,11 +485,7 @@ class Group2(GeniusNegotiator):
     """
 
     def __init__(self, **kwargs):
-        """Initialize the instance.
-
-        Args:
-            **kwargs: Additional keyword arguments.
-        """
+        """Initializes the instance."""
         kwargs["java_class_name"] = "agents.anac.y2015.group2.Group2"
         super().__init__(**kwargs)
 
@@ -572,11 +528,7 @@ class JonnyBlack(GeniusNegotiator):
     """
 
     def __init__(self, **kwargs):
-        """Initialize the instance.
-
-        Args:
-            **kwargs: Additional keyword arguments.
-        """
+        """Initializes the instance."""
         kwargs["java_class_name"] = "agents.anac.y2015.JonnyBlack.JonnyBlack"
         super().__init__(**kwargs)
 
@@ -632,11 +584,7 @@ class Kawaii(GeniusNegotiator):
     """
 
     def __init__(self, **kwargs):
-        """Initialize the instance.
-
-        Args:
-            **kwargs: Additional keyword arguments.
-        """
+        """Initializes the instance."""
         kwargs["java_class_name"] = "agents.anac.y2015.fairy.kawaii"
         super().__init__(**kwargs)
 
@@ -674,11 +622,7 @@ class MeanBot(GeniusNegotiator):
     """
 
     def __init__(self, **kwargs):
-        """Initialize the instance.
-
-        Args:
-            **kwargs: Additional keyword arguments.
-        """
+        """Initializes the instance."""
         kwargs["java_class_name"] = "agents.anac.y2015.meanBot.MeanBot"
         super().__init__(**kwargs)
 
@@ -721,11 +665,7 @@ class Mercury(GeniusNegotiator):
     """
 
     def __init__(self, **kwargs):
-        """Initialize the instance.
-
-        Args:
-            **kwargs: Additional keyword arguments.
-        """
+        """Initializes the instance."""
         kwargs["java_class_name"] = "agents.anac.y2015.Mercury.Mercury"
         super().__init__(**kwargs)
 
@@ -768,11 +708,7 @@ class PNegotiator(GeniusNegotiator):
     """
 
     def __init__(self, **kwargs):
-        """Initialize the instance.
-
-        Args:
-            **kwargs: Additional keyword arguments.
-        """
+        """Initializes the instance."""
         kwargs["java_class_name"] = "agents.anac.y2015.pnegotiator.PNegotiator"
         super().__init__(**kwargs)
 
@@ -827,11 +763,7 @@ class ParsAgent(GeniusNegotiator):
     """
 
     def __init__(self, **kwargs):
-        """Initialize the instance.
-
-        Args:
-            **kwargs: Additional keyword arguments.
-        """
+        """Initializes the instance."""
         kwargs["java_class_name"] = "agents.anac.y2015.ParsAgent.ParsAgent"
         super().__init__(**kwargs)
 
@@ -876,11 +808,7 @@ class PhoenixParty(GeniusNegotiator):
     """
 
     def __init__(self, **kwargs):
-        """Initialize the instance.
-
-        Args:
-            **kwargs: Additional keyword arguments.
-        """
+        """Initializes the instance."""
         kwargs["java_class_name"] = "agents.anac.y2015.Phoenix.PhoenixParty"
         super().__init__(**kwargs)
 
@@ -925,11 +853,7 @@ class PokerFace(GeniusNegotiator):
     """
 
     def __init__(self, **kwargs):
-        """Initialize the instance.
-
-        Args:
-            **kwargs: Additional keyword arguments.
-        """
+        """Initializes the instance."""
         kwargs["java_class_name"] = "agents.anac.y2015.pokerface.PokerFace"
         super().__init__(**kwargs)
 
@@ -988,11 +912,7 @@ class RandomDance(GeniusNegotiator):
     """
 
     def __init__(self, **kwargs):
-        """Initialize the instance.
-
-        Args:
-            **kwargs: Additional keyword arguments.
-        """
+        """Initializes the instance."""
         kwargs["java_class_name"] = "agents.anac.y2015.RandomDance.RandomDance"
         super().__init__(**kwargs)
 
@@ -1033,11 +953,7 @@ class SENGOKU(GeniusNegotiator):
     """
 
     def __init__(self, **kwargs):
-        """Initialize the instance.
-
-        Args:
-            **kwargs: Additional keyword arguments.
-        """
+        """Initializes the instance."""
         kwargs["java_class_name"] = "agents.anac.y2015.SENGOKU.SENGOKU"
         super().__init__(**kwargs)
 
@@ -1080,11 +996,7 @@ class TUDMixedStrategyAgent(GeniusNegotiator):
     """
 
     def __init__(self, **kwargs):
-        """Initialize the instance.
-
-        Args:
-            **kwargs: Additional keyword arguments.
-        """
+        """Initializes the instance."""
         kwargs[
             "java_class_name"
         ] = "agents.anac.y2015.TUDMixedStrategyAgent.TUDMixedStrategyAgent"
@@ -1127,11 +1039,7 @@ class XianFaAgent(GeniusNegotiator):
     """
 
     def __init__(self, **kwargs):
-        """Initialize the instance.
-
-        Args:
-            **kwargs: Additional keyword arguments.
-        """
+        """Initializes the instance."""
         kwargs["java_class_name"] = "agents.anac.y2015.xianfa.XianFaAgent"
         super().__init__(**kwargs)
 
@@ -1156,10 +1064,6 @@ class Y2015Group2(GeniusNegotiator):
     """
 
     def __init__(self, **kwargs):
-        """Initialize the instance.
-
-        Args:
-            **kwargs: Additional keyword arguments.
-        """
+        """Initializes the instance."""
         kwargs["java_class_name"] = "agents.anac.y2015.group2.Group2"
         super().__init__(**kwargs)

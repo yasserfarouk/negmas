@@ -76,12 +76,7 @@ class ChainNegotiator(Negotiator, ABC):
     """Base class for all nested negotiations negotiator"""
 
     def __init__(self, *args, **kwargs):
-        """Initialize the instance.
-
-        Args:
-            *args: Additional positional arguments.
-            **kwargs: Additional keyword arguments.
-        """
+        """Initializes the instance."""
         super().__init__(*args, **kwargs)
         self._nmi: ChainNMI
         self.__level = -1
@@ -168,12 +163,7 @@ class MultiChainNegotiator(Negotiator, ABC):
     """Base class for all nested negotiations negotiator"""
 
     def __init__(self, *args, **kwargs):
-        """Initialize the instance.
-
-        Args:
-            *args: Additional positional arguments.
-            **kwargs: Additional keyword arguments.
-        """
+        """Initializes the instance."""
         super().__init__(*args, **kwargs)
         self.__level = -1
 
@@ -267,13 +257,7 @@ class ChainNegotiationsMechanism(
     """ChainNegotiations mechanism."""
 
     def __init__(self, initial_state: MechanismState | None = None, *args, **kwargs):
-        """Initialize the instance.
-
-        Args:
-            initial_state: Initial state.
-            *args: Additional positional arguments.
-            **kwargs: Additional keyword arguments.
-        """
+        """Initializes the instance."""
         super().__init__(
             initial_state if initial_state else MechanismState(), *args, **kwargs
         )
@@ -474,12 +458,7 @@ class MultiChainNegotiationsMechanism(
     """MultiChainNegotiations mechanism."""
 
     def __init__(self, *args, **kwargs):
-        """Initialize the instance.
-
-        Args:
-            *args: Additional positional arguments.
-            **kwargs: Additional keyword arguments.
-        """
+        """Initializes the instance."""
         super().__init__(*args, **kwargs)
         self.__chain: list[list[MultiChainNegotiator]] = []
         self.__next_agent_level = 0

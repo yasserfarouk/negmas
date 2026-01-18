@@ -22,12 +22,7 @@ class OptionalIssue(Issue):
     """
 
     def __init__(self, base: Issue, name: str | None = None) -> None:
-        """Initialize the instance.
-
-        Args:
-            base: Base.
-            name: Name.
-        """
+        """Initializes the instance."""
         self.base = base
         self._n_values = self.base._n_values + 1
         super().__init__(values=base.values, name=name)

@@ -272,11 +272,7 @@ class ProbAdapter(ProbUtilityFunction):
     """
 
     def __init__(self, ufun: BaseUtilityFunction):
-        """Initialize the instance.
-
-        Args:
-            ufun: Ufun.
-        """
+        """Initializes the instance."""
         self._ufun = ufun
 
     def eval(self, offer: Outcome) -> Distribution:

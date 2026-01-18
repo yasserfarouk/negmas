@@ -240,12 +240,7 @@ class ScipyDistribution(Distribution):
     """
 
     def __init__(self, type: str, **kwargs) -> None:
-        """Initialize the instance.
-
-        Args:
-            type: Type.
-            **kwargs: Additional keyword arguments.
-        """
+        """Initializes the instance."""
         import scipy.stats as stats
 
         dist = getattr(stats, type.lower(), None)

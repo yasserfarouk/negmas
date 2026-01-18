@@ -24,13 +24,7 @@ class ContinuousIssue(RangeIssue):
     """
 
     def __init__(self, values, name=None, n_levels=DEFAULT_LEVELS) -> None:
-        """Initialize the instance.
-
-        Args:
-            values: Values.
-            name: Name.
-            n_levels: N levels.
-        """
+        """Initializes the instance."""
         super().__init__(values, name=name)
         self._n_levels = n_levels
         self.delta = (self.max_value - self.min_value) / self._n_levels

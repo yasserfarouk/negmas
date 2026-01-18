@@ -312,11 +312,7 @@ class CrispAdapter(UtilityFunction):
     """
 
     def __init__(self, prob: BaseUtilityFunction):
-        """Initialize the instance.
-
-        Args:
-            prob: Prob.
-        """
+        """Initializes the instance."""
         self._prob = prob
 
     def eval(self, offer):

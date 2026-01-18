@@ -910,12 +910,7 @@ class ParallelGBMechanism(GBMechanism):
     """ParallelGB mechanism."""
 
     def __init__(self, *args, **kwargs):
-        """Initialize the instance.
-
-        Args:
-            *args: Additional positional arguments.
-            **kwargs: Additional keyword arguments.
-        """
+        """Initializes the instance."""
         kwargs["parallel"] = True
         super().__init__(*args, **kwargs)
 
@@ -924,11 +919,6 @@ class SerialGBMechanism(GBMechanism):
     """SerialGB mechanism."""
 
     def __init__(self, *args, **kwargs):
-        """Initialize the instance.
-
-        Args:
-            *args: Additional positional arguments.
-            **kwargs: Additional keyword arguments.
-        """
+        """Initializes the instance."""
         kwargs["parallel"] = False
         super().__init__(*args, **kwargs)

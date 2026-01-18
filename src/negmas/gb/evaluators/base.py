@@ -126,11 +126,7 @@ class AnyAcceptEvaluationStrategy(EvaluationStrategy):
     """AnyAcceptEvaluation strategy."""
 
     def __init__(self, strategies: list[EvaluationStrategy]):
-        """Initialize the instance.
-
-        Args:
-            strategies: Strategies.
-        """
+        """Initializes the instance."""
         self._strategies = strategies
 
     def __call__(self, *args, **kwargs) -> GBResponse:
@@ -150,11 +146,7 @@ class AllAcceptEvaluationStrategy(EvaluationStrategy):
     """AllAcceptEvaluation strategy."""
 
     def __init__(self, strategies: list[EvaluationStrategy]):
-        """Initialize the instance.
-
-        Args:
-            strategies: Strategies.
-        """
+        """Initializes the instance."""
         self._strategies = strategies
 
     def __call__(self, *args, **kwargs) -> GBResponse:

@@ -75,12 +75,7 @@ class SamplingInverseUtilityFunction(InverseUFun):
     """
 
     def __init__(self, ufun: BaseUtilityFunction, max_samples_per_call: int = 10_000):
-        """Initialize the instance.
-
-        Args:
-            ufun: Ufun.
-            max_samples_per_call: Max samples per call.
-        """
+        """Initializes the instance."""
         self._ufun = ufun
         self.max_samples_per_call = max_samples_per_call
         self._initialized = True

@@ -591,12 +591,7 @@ class AdditivePartnerOffersOrientedSelector(PartnerOffersOrientedSelector):
     """
 
     def __init__(self, *args, u_weight: float = 0.6, **kwargs):
-        """Initialize the instance.
-
-        Args:
-            *args: Additional positional arguments.
-            **kwargs: Additional keyword arguments.
-        """
+        """Initializes the instance."""
         super().__init__(*args, **kwargs)
         self.u_weight = u_weight
 

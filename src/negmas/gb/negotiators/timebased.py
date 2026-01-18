@@ -200,12 +200,7 @@ class BoulwareTBNegotiator(TimeBasedConcedingNegotiator):
     """
 
     def __init__(self, *args, **kwargs):
-        """Initialize the instance.
-
-        Args:
-            *args: Additional positional arguments.
-            **kwargs: Additional keyword arguments.
-        """
+        """Initializes the instance."""
         kwargs["offering_curve"] = PolyAspiration(1.0, "boulware")
         kwargs["stochastic"] = False
         super().__init__(*args, **kwargs)
@@ -217,12 +212,7 @@ class LinearTBNegotiator(TimeBasedConcedingNegotiator):
     """
 
     def __init__(self, *args, **kwargs):
-        """Initialize the instance.
-
-        Args:
-            *args: Additional positional arguments.
-            **kwargs: Additional keyword arguments.
-        """
+        """Initializes the instance."""
         kwargs["offering_curve"] = PolyAspiration(1.0, "linear")
         kwargs["stochastic"] = False
         super().__init__(*args, **kwargs)
@@ -234,12 +224,7 @@ class ConcederTBNegotiator(TimeBasedConcedingNegotiator):
     """
 
     def __init__(self, *args, **kwargs):
-        """Initialize the instance.
-
-        Args:
-            *args: Additional positional arguments.
-            **kwargs: Additional keyword arguments.
-        """
+        """Initializes the instance."""
         kwargs["offering_curve"] = PolyAspiration(1.0, "conceder")
         kwargs["stochastic"] = False
         super().__init__(*args, **kwargs)
@@ -340,12 +325,7 @@ class OfferOrientedNegotiator(TimeBasedNegotiator):
     """
 
     def __init__(self, *args, offer_selector: OfferOrientedSelector, **kwargs):
-        """Initialize the instance.
-
-        Args:
-            *args: Additional positional arguments.
-            **kwargs: Additional keyword arguments.
-        """
+        """Initializes the instance."""
         super().__init__(*args, offer_selector=offer_selector, **kwargs)
 
 

@@ -15,12 +15,7 @@ class CallableIssue(Issue):
     """
 
     def __init__(self, values, name=None) -> None:
-        """Initialize the instance.
-
-        Args:
-            values: Values.
-            name: Name.
-        """
+        """Initializes the instance."""
         super().__init__(values, name)
         self._value_type = object
 

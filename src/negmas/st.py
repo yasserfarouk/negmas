@@ -377,12 +377,7 @@ class HillClimbingSTMechanism(VetoSTMechanism):
         return neighbors
 
     def __init__(self, *args, **kwargs):
-        """Initialize the instance.
-
-        Args:
-            *args: Additional positional arguments.
-            **kwargs: Additional keyword arguments.
-        """
+        """Initializes the instance."""
         super().__init__(*args, **kwargs)
 
         for issue in self.issues:

@@ -13,12 +13,7 @@ class CardinalIssue(OrdinalIssue):
     """
 
     def __init__(self, values, name=None) -> None:
-        """Initialize the instance.
-
-        Args:
-            values: Values.
-            name: Name.
-        """
+        """Initializes the instance."""
         super().__init__(values, name)
         try:
             for _ in range(3):

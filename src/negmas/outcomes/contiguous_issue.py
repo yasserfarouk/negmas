@@ -22,12 +22,7 @@ class ContiguousIssue(RangeIssue, DiscreteIssue):
     """
 
     def __init__(self, values: int | tuple[int, int], name: str | None = None) -> None:
-        """Initialize the instance.
-
-        Args:
-            values: Values.
-            name: Name.
-        """
+        """Initializes the instance."""
         vt: tuple[int, int]
         vt = values  # type: ignore
         if isinstance(vt, numbers.Integral):

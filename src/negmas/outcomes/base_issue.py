@@ -124,12 +124,7 @@ class Issue(HasMinMax, Iterable, ABC):
     """
 
     def __init__(self, values, name: str | None = None) -> None:
-        """Initialize the instance.
-
-        Args:
-            values: Values.
-            name: Name.
-        """
+        """Initializes the instance."""
         self.name = name if name else unique_name("issue", add_time=False, sep="")
         self._value_type = object
         self._values = values

@@ -60,19 +60,7 @@ class SAOPRNegotiator(GBNegotiator[SAONMI, SAOState]):
         can_propose: bool = True,
         **kwargs,
     ):
-        """Initialize the instance.
-
-        Args:
-            preferences: Preferences.
-            ufun: Ufun.
-            name: Name.
-            parent: Parent.
-            owner: Owner.
-            id: Id.
-            type_name: Type name.
-            can_propose: Can propose.
-            **kwargs: Additional keyword arguments.
-        """
+        """Initializes the instance."""
         super().__init__(
             name=name,
             preferences=preferences,
@@ -315,12 +303,7 @@ class SAOCallNegotiator(SAOPRNegotiator, ABC):
     """
 
     def __init__(self, *args, **kwargs):
-        """Initialize the instance.
-
-        Args:
-            *args: Additional positional arguments.
-            **kwargs: Additional keyword arguments.
-        """
+        """Initializes the instance."""
         super().__init__(*args, **kwargs)
         self.__last_offer: dict[str | None, Outcome | ExtendedOutcome | None] = dict()
         self.__last_response: dict[str | None, ResponseType] = dict()
@@ -378,15 +361,7 @@ class _InfiniteWaiter(SAOPRNegotiator):
     """Used only for testing: waits forever and never agrees to anything"""
 
     def __call__(self, state, dest: str | None = None) -> SAOResponse:
-        """Make instance callable.
-
-        Args:
-            state: Current state.
-            dest: Dest.
-
-        Returns:
-            SAOResponse: The result.
-        """
+        """Waits forever and rejects all offers (for testing only)."""
         _ = state, dest
 
         sleep(10000 * 60 * 60)

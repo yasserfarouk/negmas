@@ -18,27 +18,14 @@ class RandomUtilityFunction(StationaryMixin, UtilityFunction):
     """A random utility function for a discrete outcome space"""
 
     def __init__(self, rng: tuple[float, float] = (0.0, 1.0), *args, **kwargs):
-        """Initialize the instance.
-
-        Args:
-            rng: Rng.
-            *args: Additional positional arguments.
-            **kwargs: Additional keyword arguments.
-        """
+        """Initializes the instance."""
         super().__init__(*args, **kwargs)
         self._cache: dict[Outcome | None, float] = dict()
         self._scale = rng[1] - rng[0]
         self._offset = rng[0]
 
     def eval(self, offer: Outcome | None) -> float:
-        """Eval.
-
-        Args:
-            offer: Offer being considered.
-
-        Returns:
-            float: The result.
-        """
+        """Evaluates the given offer, returning a cached random utility value."""
         v = self._cache.get(offer, None)
         if v is None:
             v = self._offset + self._scale * random()

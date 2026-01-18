@@ -31,12 +31,7 @@ class AgentWorldInterface:
     #     self.agent = self._world.agents[agent_id]
 
     def __init__(self, world: World, agent: Agent):
-        """Initialize the instance.
-
-        Args:
-            world: World.
-            agent: Agent.
-        """
+        """Initializes the instance."""
         self._world, self.agent = world, agent
 
     def execute(

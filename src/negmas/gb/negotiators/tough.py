@@ -26,12 +26,7 @@ class ToughNegotiator(MAPNegotiator):
     """
 
     def __init__(self, can_propose=True, **kwargs):
-        """Initialize the instance.
-
-        Args:
-            can_propose: Can propose.
-            **kwargs: Additional keyword arguments.
-        """
+        """Initializes the instance."""
         acceptance = AcceptBest()
         offering = None if not can_propose else OfferBest()
         super().__init__(acceptance=acceptance, offering=offering, **kwargs)

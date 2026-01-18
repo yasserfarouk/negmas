@@ -501,11 +501,7 @@ class InverseUFun(Protocol):
     initialized: bool
 
     def __init__(self, ufun: UFun) -> None:
-        """Initialize the instance.
-
-        Args:
-            ufun: Ufun.
-        """
+        """Initializes the instance."""
         ...
 
     def init(self):
