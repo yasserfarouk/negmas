@@ -47,6 +47,7 @@ from negmas.preferences.ops import (
 from negmas.sao.common import SAOState
 from negmas.sao.mechanism import SAOMechanism
 from negmas.serialization import PYTHON_CLASS_IDENTIFIER, serialize, to_flat_dict
+from negmas.warnings import deprecated
 
 OptimizationLevel = Literal["speed", "time", "none", "balanced", "space", "max"]
 StorageFormat = Literal["csv", "gzip", "parquet"]
@@ -2061,8 +2062,10 @@ def cartesian_tournament(
     opponents: list[type[Negotiator] | str]
     | tuple[type[Negotiator] | str, ...] = tuple(),
     opponent_params: Sequence[dict | None] | None = None,
+    opponent_names: list[str] | None = None,
     private_infos: list[None | tuple[dict, ...]] | None = None,
     competitor_params: Sequence[dict | None] | None = None,
+    competitor_names: list[str] | None = None,
     rotate_ufuns: bool = True,
     rotate_private_infos: bool = True,
     n_repetitions: int = 1,
@@ -2091,7 +2094,7 @@ def cartesian_tournament(
     final_score: tuple[str, str] = ("advantage", "mean"),
     id_reveals_type: bool = False,
     name_reveals_type: bool = True,
-    shorten_names: bool = True,
+    shorten_names: bool | None = None,
     raise_exceptions: bool = True,
     mask_scenario_names: bool = True,
     only_failures_on_self_play: bool = False,
@@ -2120,9 +2123,17 @@ def cartesian_tournament(
                   Competitors will be tested in both first and last positions to evaluate
                   different roles (e.g., buyer vs seller).
         opponent_params: Parameters for initializing opponents (one dict per opponent type).
+        opponent_names: Optional list of custom names for opponents. If provided, must have
+                       the same length as opponents and contain unique names. If not provided,
+                       names are generated from class names using shortest_unique_names().
+
         private_infos: Private information passed to negotiators via their `private_info` attribute.
                       Must be a list of tuples, one tuple per scenario.
         competitor_params: Parameters for initializing competitors (one dict per competitor type).
+        competitor_names: Optional list of custom names for competitors. If provided, must have
+                         the same length as competitors and contain unique names. If not provided,
+                         names are generated from class names using shortest_unique_names().
+
         rotate_ufuns: If True, utility functions are rotated across negotiator positions.
                      For bilateral negotiations, this creates scenarios with reversed preferences.
                      Not recommended when using explicit opponents as roles become ambiguous.
@@ -2156,7 +2167,8 @@ def cartesian_tournament(
                     'mean', 'median', 'min', 'max', or 'std'. Default: ('advantage', 'mean').
         id_reveals_type: If True, negotiator IDs reveal their type (for analysis).
         name_reveals_type: If True, negotiator names reveal their type.
-        shorten_names: If True, use shortened class names in results.
+        shorten_names: Deprecated. Use competitor_names and opponent_names instead.
+                      This parameter is ignored and will be removed in a future version.
         raise_exceptions: If True, exceptions from negotiators/mechanisms stop the tournament.
                          If False, exceptions are logged but tournament continues.
         mask_scenario_names: If True, mask scenario names from negotiators.
@@ -2250,6 +2262,14 @@ def cartesian_tournament(
         )
         ```
     """
+    # Handle deprecated shorten_names parameter
+    if shorten_names is not None:
+        deprecated(
+            "The 'shorten_names' parameter is deprecated and will be removed in a future version. "
+            "Use 'competitor_names' and 'opponent_names' to customize names instead. "
+            "Names are now always generated using shortest_unique_names()."
+        )
+
     if mechanism_params is None:
         mechanism_params = dict()
     mechanism_params["ignore_negotiator_exceptions"] = not raise_exceptions
@@ -2274,6 +2294,38 @@ def cartesian_tournament(
     if private_infos is None:
         private_infos = [tuple(dict() for _ in s.ufuns) for s in scenarios]
 
+    # Validate and process competitor_names
+    if competitor_names is not None:
+        if len(competitor_names) != len(competitors):
+            raise ValueError(
+                f"competitor_names length ({len(competitor_names)}) must match "
+                f"competitors length ({len(competitors)})"
+            )
+        if len(set(competitor_names)) != len(competitor_names):
+            duplicates = [
+                name
+                for name in set(competitor_names)
+                if competitor_names.count(name) > 1
+            ]
+            raise ValueError(
+                f"competitor_names must be unique. Duplicate names found: {duplicates}"
+            )
+
+    # Validate and process opponent_names
+    if opponent_names is not None:
+        if len(opponent_names) != len(opponents):
+            raise ValueError(
+                f"opponent_names length ({len(opponent_names)}) must match "
+                f"opponents length ({len(opponents)})"
+            )
+        if len(set(opponent_names)) != len(opponent_names):
+            duplicates = [
+                name for name in set(opponent_names) if opponent_names.count(name) > 1
+            ]
+            raise ValueError(
+                f"opponent_names must be unique. Duplicate names found: {duplicates}"
+            )
+
     # Report progress: competitors loaded
     if progress_callback:
         try:
@@ -2291,36 +2343,21 @@ def cartesian_tournament(
     stats = None
 
     def shorten(name):
-        #        for s in ("Negotiator", "Agent"):
-        #            x = name.replace(s, "")
-        #            if not x:
-        #                return name
-        #            name = x
-        """Shorten.
-
-        Args:
-            name: Name.
-        """
         return name
 
-    if shorten_names:
-        competitor_names = [
-            shorten(_)
-            for _ in shortest_unique_names([get_full_type_name(_) for _ in competitors])
-        ]
-        opponent_names = (
-            [
-                shorten(_)
-                for _ in shortest_unique_names(
-                    [get_full_type_name(_) for _ in opponents]
-                )
-            ]
-            if opponents
-            else []
+    # Generate names if not provided by user
+    if competitor_names is None:
+        competitor_names = shortest_unique_names(
+            [get_full_type_name(_) for _ in competitors]
         )
-    else:
-        competitor_names = [get_full_type_name(_) for _ in competitors]
-        opponent_names = [get_full_type_name(_) for _ in opponents] if opponents else []
+
+    if opponent_names is None:
+        if opponents:
+            opponent_names = shortest_unique_names(
+                [get_full_type_name(_) for _ in opponents]
+            )
+        else:
+            opponent_names = []
     competitor_info = list(
         zip(competitors, competitor_params, competitor_names, strict=True)
     )
