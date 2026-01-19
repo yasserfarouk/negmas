@@ -662,6 +662,85 @@ class TestStringHelpers:
         assert shorten_keys_in_string("") == ""
         assert shorten_keys_in_string("no matches here") == "no matches here"
 
+    def test_shorten_keys_in_string_max_compression_true(self):
+        """Test shorten_keys_in_string with max_compression=True (default)."""
+        from negmas.helpers.strings import shorten_keys_in_string
+
+        s = "[first_name=John,last_name=Doe]"
+        result = shorten_keys_in_string(s, max_compression=True)
+
+        # With max compression, keys should be as short as possible
+        assert result.startswith("[")
+        assert result.endswith("]")
+        assert len(result) < len(s)
+        # Values should be preserved
+        assert "John" in result
+        assert "Doe" in result
+
+    def test_shorten_keys_in_string_max_compression_false(self):
+        """Test shorten_keys_in_string with max_compression=False."""
+        from negmas.helpers.strings import shorten_keys_in_string
+
+        s = "[first_name=John,last_name=Doe]"
+        result_max = shorten_keys_in_string(s, max_compression=True)
+        result_min = shorten_keys_in_string(s, max_compression=False)
+
+        # With minimal compression, result should be longer than max compression
+        assert len(result_min) >= len(result_max)
+        # Values should still be preserved
+        assert "John" in result_min
+        assert "Doe" in result_min
+        assert result_min.startswith("[")
+        assert result_min.endswith("]")
+
+    def test_shorten_keys_in_string_max_compression_none_short(self):
+        """Test shorten_keys_in_string with max_compression=None and short result."""
+        from negmas.helpers.strings import shorten_keys_in_string
+
+        # Short input that won't exceed max_length with minimal compression
+        s = "[a=1,b=2]"
+        result = shorten_keys_in_string(s, max_compression=None, max_length=100)
+
+        # Should use minimal compression since result is short
+        assert result.startswith("[")
+        assert result.endswith("]")
+        assert "1" in result
+        assert "2" in result
+
+    def test_shorten_keys_in_string_max_compression_none_long(self):
+        """Test shorten_keys_in_string with max_compression=None and long result."""
+        from negmas.helpers.strings import shorten_keys_in_string
+
+        # Longer input with similar prefixes
+        s = "[parameter_alpha=0.1,parameter_beta=0.2,parameter_gamma=0.3]"
+
+        # With a very small max_length, should fall back to max compression
+        result_adaptive = shorten_keys_in_string(s, max_compression=None, max_length=20)
+        result_max = shorten_keys_in_string(s, max_compression=True)
+
+        # Adaptive should produce same result as max compression when exceeding max_length
+        assert result_adaptive == result_max
+
+    def test_shorten_keys_in_string_max_compression_none_threshold(self):
+        """Test shorten_keys_in_string adaptive behavior at threshold."""
+        from negmas.helpers.strings import shorten_keys_in_string
+
+        s = "[first_name=John,last_name=Doe]"
+        result_min = shorten_keys_in_string(s, max_compression=False)
+        result_max = shorten_keys_in_string(s, max_compression=True)
+
+        # With max_length larger than minimal result, should use minimal compression
+        result_large_threshold = shorten_keys_in_string(
+            s, max_compression=None, max_length=len(result_min) + 10
+        )
+        assert result_large_threshold == result_min
+
+        # With max_length smaller than minimal result, should use max compression
+        result_small_threshold = shorten_keys_in_string(
+            s, max_compression=None, max_length=len(result_min) - 1
+        )
+        assert result_small_threshold == result_max
+
     def test_encode_params_basic(self):
         """Test encode_params with basic dict."""
         from negmas.helpers.strings import encode_params

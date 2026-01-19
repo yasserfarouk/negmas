@@ -391,8 +391,33 @@ def humanize_time(
     return str("".join(parts))
 
 
-def shorten_keys_in_string(s: str) -> str:
-    """Shorten keys in a string like '[key1=val1,key2=val2]' to shortest unique names."""
+def shorten_keys_in_string(
+    s: str, max_compression: bool | None = True, max_length: int = 31
+) -> str:
+    """Shorten keys in a string like '[key1=val1,key2=val2]' to shortest unique names.
+
+    Args:
+        s: The input string containing key=value pairs in the format '[key1=val1,key2=val2]'.
+        max_compression: Controls how aggressively keys are shortened.
+            - True (default): Use maximum compression immediately for shortest possible keys.
+            - False: Use minimal compression, keeping keys more readable.
+            - None: Adaptive mode - tries minimal compression first, then falls back to
+              maximum compression if the result exceeds `max_length`.
+        max_length: Maximum allowed length of the output string when `max_compression=None`.
+            If the minimally compressed string exceeds this length, maximum compression
+            is applied. Only used when `max_compression=None`. Defaults to 31.
+
+    Returns:
+        The string with shortened keys, maintaining the '[key=val,...]' format.
+
+    Examples:
+        >>> shorten_keys_in_string("[first_name=John,last_name=Doe]", max_compression=True)
+        '[f=John,l=Doe]'
+        >>> shorten_keys_in_string("[first_name=John,last_name=Doe]", max_compression=False)
+        '[first_=John,last_=Doe]'
+        >>> shorten_keys_in_string("[a=1,b=2]", max_compression=None, max_length=100)
+        '[a=1,b=2]'
+    """
     import re
     from negmas.helpers.strings import shortest_unique_names
 
@@ -401,14 +426,43 @@ def shorten_keys_in_string(s: str) -> str:
     if not matches:
         return s
 
+    try_both = max_compression is None
+    if try_both:
+        max_compression = False
     keys, values = zip(*matches)
-    short_keys = shortest_unique_names(list(keys))
+    short_keys = shortest_unique_names(
+        list(keys), max_compression=max_compression, guarantee_unique=False
+    )
     pairs = [f"{k}={v}" for k, v in zip(short_keys, values)]
-    return f"[{','.join(pairs)}]"
+    s = f"[{','.join(pairs)}]"
+    if try_both and len(s) > max_length:
+        short_keys = shortest_unique_names(
+            list(keys), max_compression=True, guarantee_unique=False
+        )
+        pairs = [f"{k}={v}" for k, v in zip(short_keys, values)]
+        s = f"[{','.join(pairs)}]"
+
+    return s
 
 
 def shorten_keys(d: dict | None) -> dict:
-    """Shorten dict keys to shortest unique names."""
+    """Shorten dict keys to shortest unique names.
+
+    Always uses maximum compression since dict keys are already unique,
+    making minimal compression (which preserves more of the original key)
+    unnecessary - the goal is to produce the shortest possible unique keys.
+
+    Args:
+        d: The dictionary whose keys should be shortened. If None or empty,
+            returns an empty dict.
+
+    Returns:
+        A new dictionary with shortened keys and the same values.
+
+    Examples:
+        >>> shorten_keys({"first_name": "John", "last_name": "Doe"})
+        {'f': 'John', 'l': 'Doe'}
+    """
     if not d:
         return dict()
     keys = list(d.keys())
