@@ -754,3 +754,306 @@ def test_save_table_unsupported_list_element(tmp_path):
 
     with pytest.raises(ValueError, match="Unsupported list element type"):
         save_table([1, 2, 3], tmp_path / "test.csv")  # type: ignore
+
+
+# ===== recalculate_stats Tests =====
+
+
+def test_scale_min_recalculate_stats_true():
+    """Test scale_min with recalculate_stats=True recalculates stats."""
+    file_name = str(files("negmas").joinpath("tests/data/Laptop"))
+    scenario = Scenario.from_genius_folder(Path(file_name))
+    assert scenario is not None
+
+    # Calculate initial stats
+    scenario.calc_stats()
+    assert scenario.stats is not None
+
+    # Scale with recalculate_stats=True (default)
+    scenario.scale_min(to=0.0, recalculate_stats=True)
+
+    assert scenario.stats is not None
+    # Stats should be recalculated (may or may not change depending on scaling)
+    assert isinstance(scenario.stats.opposition, float)
+
+
+def test_scale_min_recalculate_stats_false():
+    """Test scale_min with recalculate_stats=False invalidates stats."""
+    file_name = str(files("negmas").joinpath("tests/data/Laptop"))
+    scenario = Scenario.from_genius_folder(Path(file_name))
+    assert scenario is not None
+
+    # Calculate initial stats
+    scenario.calc_stats()
+    assert scenario.stats is not None
+
+    # Scale with recalculate_stats=False
+    scenario.scale_min(to=0.0, recalculate_stats=False)
+
+    # Stats should be invalidated
+    assert scenario.stats is None
+
+
+def test_scale_min_no_stats_does_nothing():
+    """Test scale_min when no stats exist doesn't create them."""
+    file_name = str(files("negmas").joinpath("tests/data/Laptop"))
+    scenario = Scenario.from_genius_folder(Path(file_name))
+    assert scenario is not None
+    assert scenario.stats is None
+
+    # Scale without existing stats
+    scenario.scale_min(to=0.0)
+
+    # Stats should still be None (not created)
+    assert scenario.stats is None
+
+
+def test_scale_max_recalculate_stats_true():
+    """Test scale_max with recalculate_stats=True recalculates stats."""
+    file_name = str(files("negmas").joinpath("tests/data/Laptop"))
+    scenario = Scenario.from_genius_folder(Path(file_name))
+    assert scenario is not None
+
+    scenario.calc_stats()
+    assert scenario.stats is not None
+
+    scenario.scale_max(to=1.0, recalculate_stats=True)
+
+    assert scenario.stats is not None
+    assert isinstance(scenario.stats.opposition, float)
+
+
+def test_scale_max_recalculate_stats_false():
+    """Test scale_max with recalculate_stats=False invalidates stats."""
+    file_name = str(files("negmas").joinpath("tests/data/Laptop"))
+    scenario = Scenario.from_genius_folder(Path(file_name))
+    assert scenario is not None
+
+    scenario.calc_stats()
+    assert scenario.stats is not None
+
+    scenario.scale_max(to=1.0, recalculate_stats=False)
+
+    assert scenario.stats is None
+
+
+def test_normalize_recalculate_stats_true():
+    """Test normalize with recalculate_stats=True recalculates stats."""
+    file_name = str(files("negmas").joinpath("tests/data/Laptop"))
+    scenario = Scenario.from_genius_folder(Path(file_name))
+    assert scenario is not None
+
+    scenario.calc_stats()
+    assert scenario.stats is not None
+
+    scenario.normalize(to=(0.0, 1.0), recalculate_stats=True)
+
+    assert scenario.stats is not None
+    assert isinstance(scenario.stats.opposition, float)
+
+
+def test_normalize_recalculate_stats_false():
+    """Test normalize with recalculate_stats=False invalidates stats."""
+    file_name = str(files("negmas").joinpath("tests/data/Laptop"))
+    scenario = Scenario.from_genius_folder(Path(file_name))
+    assert scenario is not None
+
+    scenario.calc_stats()
+    assert scenario.stats is not None
+
+    scenario.normalize(to=(0.0, 1.0), recalculate_stats=False)
+
+    assert scenario.stats is None
+
+
+def test_discretize_recalculate_stats_true():
+    """Test discretize with recalculate_stats=True recalculates stats."""
+    file_name = str(files("negmas").joinpath("tests/data/Laptop"))
+    scenario = Scenario.from_genius_folder(Path(file_name))
+    assert scenario is not None
+
+    scenario.calc_stats()
+    assert scenario.stats is not None
+
+    scenario.discretize(levels=5, recalculate_stats=True)
+
+    assert scenario.stats is not None
+    assert isinstance(scenario.stats.opposition, float)
+
+
+def test_discretize_recalculate_stats_false():
+    """Test discretize with recalculate_stats=False invalidates stats."""
+    file_name = str(files("negmas").joinpath("tests/data/Laptop"))
+    scenario = Scenario.from_genius_folder(Path(file_name))
+    assert scenario is not None
+
+    scenario.calc_stats()
+    assert scenario.stats is not None
+
+    scenario.discretize(levels=5, recalculate_stats=False)
+
+    assert scenario.stats is None
+
+
+def test_discretize_updates_ufun_outcome_spaces():
+    """Test that discretize updates outcome_space for all ufuns."""
+    file_name = str(files("negmas").joinpath("tests/data/Laptop"))
+    scenario = Scenario.from_genius_folder(Path(file_name))
+    assert scenario is not None
+
+    scenario.discretize(levels=5)
+
+    # Verify all ufuns have the same outcome_space as the scenario
+    for ufun in scenario.ufuns:
+        assert ufun.outcome_space is scenario.outcome_space
+
+
+def test_remove_discounting_recalculate_stats_true():
+    """Test remove_discounting with recalculate_stats=True recalculates stats."""
+    file_name = str(files("negmas").joinpath("tests/data/Laptop"))
+    scenario = Scenario.from_genius_folder(Path(file_name))
+    assert scenario is not None
+
+    scenario.calc_stats()
+    assert scenario.stats is not None
+
+    scenario.remove_discounting(recalculate_stats=True)
+
+    assert scenario.stats is not None
+    assert isinstance(scenario.stats.opposition, float)
+
+
+def test_remove_discounting_recalculate_stats_false():
+    """Test remove_discounting with recalculate_stats=False invalidates stats."""
+    file_name = str(files("negmas").joinpath("tests/data/Laptop"))
+    scenario = Scenario.from_genius_folder(Path(file_name))
+    assert scenario is not None
+
+    scenario.calc_stats()
+    assert scenario.stats is not None
+
+    scenario.remove_discounting(recalculate_stats=False)
+
+    assert scenario.stats is None
+
+
+def test_remove_reserved_values_recalculate_stats_true():
+    """Test remove_reserved_values with recalculate_stats=True recalculates stats."""
+    file_name = str(files("negmas").joinpath("tests/data/Laptop"))
+    scenario = Scenario.from_genius_folder(Path(file_name))
+    assert scenario is not None
+
+    # Set some reserved values first
+    for u in scenario.ufuns:
+        u.reserved_value = 0.5
+
+    scenario.calc_stats()
+    assert scenario.stats is not None
+
+    scenario.remove_reserved_values(r=float("-inf"), recalculate_stats=True)
+
+    assert scenario.stats is not None
+    assert isinstance(scenario.stats.opposition, float)
+
+
+def test_remove_reserved_values_recalculate_stats_false():
+    """Test remove_reserved_values with recalculate_stats=False invalidates stats."""
+    file_name = str(files("negmas").joinpath("tests/data/Laptop"))
+    scenario = Scenario.from_genius_folder(Path(file_name))
+    assert scenario is not None
+
+    scenario.calc_stats()
+    assert scenario.stats is not None
+
+    scenario.remove_reserved_values(r=0.0, recalculate_stats=False)
+
+    assert scenario.stats is None
+
+
+def test_to_single_issue_recalculate_stats_true():
+    """Test to_single_issue with recalculate_stats=True recalculates stats."""
+    file_name = str(files("negmas").joinpath("tests/data/Laptop"))
+    scenario = Scenario.from_genius_folder(Path(file_name))
+    assert scenario is not None
+
+    scenario.calc_stats()
+    assert scenario.stats is not None
+
+    scenario.to_single_issue(recalculate_stats=True)
+
+    assert scenario.stats is not None
+    assert isinstance(scenario.stats.opposition, float)
+
+
+def test_to_single_issue_recalculate_stats_false():
+    """Test to_single_issue with recalculate_stats=False invalidates stats."""
+    file_name = str(files("negmas").joinpath("tests/data/Laptop"))
+    scenario = Scenario.from_genius_folder(Path(file_name))
+    assert scenario is not None
+
+    scenario.calc_stats()
+    assert scenario.stats is not None
+
+    scenario.to_single_issue(recalculate_stats=False)
+
+    assert scenario.stats is None
+
+
+def test_to_single_issue_updates_ufun_outcome_spaces():
+    """Test that to_single_issue creates ufuns with correct outcome_space."""
+    file_name = str(files("negmas").joinpath("tests/data/Laptop"))
+    scenario = Scenario.from_genius_folder(Path(file_name))
+    assert scenario is not None
+
+    # Verify we have multiple issues initially
+    assert hasattr(scenario.outcome_space, "issues")
+    assert len(scenario.outcome_space.issues) > 1
+
+    scenario.to_single_issue()
+
+    # Verify single issue now
+    assert len(scenario.outcome_space.issues) == 1
+
+    # Verify all ufuns have outcome_space set (they are newly created ufuns)
+    for ufun in scenario.ufuns:
+        assert ufun.outcome_space is not None
+
+
+def test_chained_operations_with_recalculate_stats():
+    """Test chaining multiple operations with recalculate_stats parameter."""
+    file_name = str(files("negmas").joinpath("tests/data/Laptop"))
+    scenario = Scenario.from_genius_folder(Path(file_name))
+    assert scenario is not None
+
+    scenario.calc_stats()
+    assert scenario.stats is not None
+
+    # Chain operations - only recalculate at the end
+    scenario.scale_max(recalculate_stats=False)
+    assert scenario.stats is None
+
+    # Stats are gone, so subsequent operations won't recreate them
+    scenario.scale_min(recalculate_stats=True)
+    assert scenario.stats is None  # No stats to recalculate
+
+    # Recalculate explicitly
+    scenario.calc_stats()
+    assert scenario.stats is not None
+
+    # Now chain with recalculate at each step
+    scenario.normalize(recalculate_stats=True)
+    assert scenario.stats is not None
+
+
+def test_recalculate_stats_default_is_true():
+    """Test that recalculate_stats defaults to True for all methods."""
+    file_name = str(files("negmas").joinpath("tests/data/Laptop"))
+    scenario = Scenario.from_genius_folder(Path(file_name))
+    assert scenario is not None
+
+    scenario.calc_stats()
+    assert scenario.stats is not None
+
+    # Without explicit parameter, stats should be recalculated (not invalidated)
+    scenario.scale_max()  # Uses default recalculate_stats=True
+    assert scenario.stats is not None

@@ -202,19 +202,24 @@ class Scenario:
         return self
 
     def to_single_issue(
-        self, numeric=False, stringify=True, randomize=False
+        self,
+        numeric=False,
+        stringify=True,
+        randomize=False,
+        recalculate_stats: bool = True,
     ) -> Scenario:
-        """
-        Forces the domain to have a single issue with all possible outcomes
+        """Converts the scenario to use a single issue containing all possible outcomes.
 
         Args:
-            numeric: If given, the output issue will be a `ContiguousIssue` otherwise it will be a `DiscreteCategoricalIssue`
-            stringify:  If given, the output issue will have string values. Checked only if `numeric` is `False`
-            randomize: Randomize outcome order when creating the single issue
+            numeric: If True, the output issue will be a `ContiguousIssue`, otherwise a `DiscreteCategoricalIssue`.
+            stringify: If True and `numeric` is False, the output issue will have string values.
+            randomize: If True, randomize outcome order when creating the single issue.
+            recalculate_stats: If True and stats exist, recalculate them after conversion.
+                If False and stats exist, invalidate stats by setting them to None.
 
         Remarks:
-            - maps the agenda and ufuns to work correctly together
-            - Only works if the outcome space is finite
+            - Maps the agenda and ufuns to work correctly together.
+            - Only works if the outcome space is finite.
         """
         if (
             hasattr(self.outcome_space, "issues")
@@ -255,6 +260,11 @@ class Scenario:
             )
         self.ufuns = tuple(ufuns)
         self.outcome_space = sos
+        if self.stats:
+            if recalculate_stats:
+                self.calc_stats()
+            else:
+                self.stats = None
         return self if not randomize else self._randomize()
 
     def make_session(
@@ -303,11 +313,9 @@ class Scenario:
         if not isinstance(negotiators, Iterable):
             negs = [
                 negotiators(
-                    name=ufun.name
+                    name=ufun.name  # type: ignore We trust that the class given is a negotiator and has a name
                     if ufun.name
-                    else unique_name("n")  # type: ignore We trust that the class given is a negotiator and has a name
-                    .replace(".xml", "")
-                    .replace(".yml", ""),
+                    else unique_name("n").replace(".xml", "").replace(".yml", ""),
                     private_info=dict(opponent_ufun=opp_ufun) if opp_ufun else None,  # type: ignore We trust that the class given is a negotiator and has private_info
                 )
                 for ufun, opp_ufun in zip(self.ufuns, opp_ufuns)
@@ -334,39 +342,54 @@ class Scenario:
 
         return m
 
-    def scale_min(self, to: float = 1.0) -> Scenario:
-        """Normalizes a utility function to the given range
+    def scale_min(self, to: float = 1.0, recalculate_stats: bool = True) -> Scenario:
+        """Scales all utility functions so their minimum value equals the given target.
 
         Args:
-            ufun: The utility function to normalize
-            outcomes: A collection of outcomes to normalize for
-            rng: range to normalize to. Default is [0, 1]
-            levels: Number of levels to use for discretizing continuous issues (if any)
-            max_cardinality: Maximum allowed number of outcomes resulting after all discretization is done
+            to: Target minimum value for all utility functions.
+            recalculate_stats: If True and stats exist, recalculate them after scaling.
+                If False and stats exist, invalidate stats by setting them to None.
         """
-        self.ufuns = tuple(_.scale_min(to) for _ in self.ufuns)  #  The type is correct
+        self.ufuns = tuple(_.scale_min(to) for _ in self.ufuns)
+        if self.stats:
+            if recalculate_stats:
+                self.calc_stats()
+            else:
+                self.stats = None
         return self
 
-    def scale_max(self, to: float = 1.0) -> Scenario:
-        """Normalizes a utility function to the given range
+    def scale_max(self, to: float = 1.0, recalculate_stats: bool = True) -> Scenario:
+        """Scales all utility functions so their maximum value equals the given target.
 
         Args:
-            ufun: The utility function to normalize
-            outcomes: A collection of outcomes to normalize for
-            rng: range to normalize to. Default is [0, 1]
-            levels: Number of levels to use for discretizing continuous issues (if any)
-            max_cardinality: Maximum allowed number of outcomes resulting after all discretization is done
+            to: Target maximum value for all utility functions.
+            recalculate_stats: If True and stats exist, recalculate them after scaling.
+                If False and stats exist, invalidate stats by setting them to None.
         """
         self.ufuns = tuple(_.scale_max(to) for _ in self.ufuns)  #  The type is correct
+        if self.stats:
+            if recalculate_stats:
+                self.calc_stats()
+            else:
+                self.stats = None
         return self
 
-    def normalize(self, to: tuple[float, float] = (0.0, 1.0)) -> Scenario:
-        """Normalizes a utility function to the given range
+    def normalize(
+        self, to: tuple[float, float] = (0.0, 1.0), recalculate_stats: bool = True
+    ) -> Scenario:
+        """Normalizes all utility functions to the given range.
 
         Args:
-            rng: range to normalize to. Default is [0, 1]
+            to: Target range (min, max) to normalize all utility functions to.
+            recalculate_stats: If True and stats exist, recalculate them after normalizing.
+                If False and stats exist, invalidate stats by setting them to None.
         """
         self.ufuns = tuple(_.normalize(to) for _ in self.ufuns)  #  The type is correct
+        if self.stats:
+            if recalculate_stats:
+                self.calc_stats()
+            else:
+                self.stats = None
         return self
 
     def is_normalized(
@@ -384,25 +407,63 @@ class Scenario:
             for a, b in mnmx
         )
 
-    def discretize(self, levels: int = 10):
-        """Discretize all issues"""
+    def discretize(self, levels: int = 10, recalculate_stats: bool = True):
+        """Discretizes all continuous issues in the outcome space.
+
+        Args:
+            levels: Number of discrete levels to create for each continuous issue.
+            recalculate_stats: If True and stats exist, recalculate them after discretizing.
+                If False and stats exist, invalidate stats by setting them to None.
+        """
         self.outcome_space = self.outcome_space.to_discrete(levels)
+        for f in self.ufuns:
+            f.outcome_space = self.outcome_space
+        if self.stats:
+            if recalculate_stats:
+                self.calc_stats()
+            else:
+                self.stats = None
         return self
 
-    def remove_discounting(self):
-        """Removes discounting from all ufuns"""
-        ufuns = []
-        for u in self.ufuns:
-            while isinstance(u, DiscountedUtilityFunction):
-                u = u.ufun
-            ufuns.append(u)
-        self.ufuns = tuple(ufuns)
+    def remove_discounting(self, recalculate_stats: bool = True):
+        """Removes time-based discounting from all utility functions.
+
+        Args:
+            recalculate_stats: If True and stats exist, recalculate them after removing discounting.
+                If False and stats exist, invalidate stats by setting them to None.
+        """
+        self.ufuns = tuple(  # type: ignore It is the UtilityFunction, BaseUtilityFunction issue. They are equivalent here.
+            [
+                u.extract_base_ufun(deep=True)
+                if isinstance(u, DiscountedUtilityFunction)
+                else u
+                for u in self.ufuns
+            ]
+        )
+        if self.stats:
+            if recalculate_stats:
+                self.calc_stats()
+            else:
+                self.stats = None
         return self
 
-    def remove_reserved_values(self, r: float = float("-inf")):
-        """Removes reserved values from all ufuns replaacing it with `r`"""
+    def remove_reserved_values(
+        self, r: float = float("-inf"), recalculate_stats: bool = True
+    ):
+        """Replaces reserved values in all utility functions with the given value.
+
+        Args:
+            r: The value to set as the new reserved value for all utility functions.
+            recalculate_stats: If True and stats exist, recalculate them after removing reserved values.
+                If False and stats exist, invalidate stats by setting them to None.
+        """
         for u in self.ufuns:
             u.reserved_value = r
+        if self.stats:
+            if recalculate_stats:
+                self.calc_stats()
+            else:
+                self.stats = None
         return self
 
     def calc_stats(self) -> ScenarioStats:
