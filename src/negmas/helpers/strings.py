@@ -414,7 +414,7 @@ def shorten_keys_in_string(
         >>> shorten_keys_in_string("[first_name=John,last_name=Doe]", max_compression=True)
         '[f=John,l=Doe]'
         >>> shorten_keys_in_string("[first_name=John,last_name=Doe]", max_compression=False)
-        '[first_=John,last_=Doe]'
+        '[first_name=John,last_name=Doe]'
         >>> shorten_keys_in_string("[a=1,b=2]", max_compression=None, max_length=100)
         '[a=1,b=2]'
     """
