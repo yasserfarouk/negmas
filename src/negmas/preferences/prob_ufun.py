@@ -259,7 +259,7 @@ class ProbUtilityFunction(_ExtremelyDynamic, BaseUtilityFunction):
             The utility of the given outcome
         """
         if offer is None:
-            return ScipyDistribution("uniform", loc=self.reserved_value, scale=0.0)
+            return self.reserved_distribution
         v = self.eval(offer)
         if isinstance(v, float):
             return Real(v)

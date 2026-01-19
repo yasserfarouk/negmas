@@ -1127,3 +1127,172 @@ def test_discounted_ufun_inherits_outcome_space_from_inner_ufun(discounted_class
 
 if __name__ == "__main__":
     pytest.main(args=[__file__])
+
+
+# Tests for reserved_value with Distribution support
+class TestReservedValueDistribution:
+    """Tests for the reserved_value property supporting Distribution inputs."""
+
+    def test_reserved_value_float_input_returns_float(self):
+        """Test that passing float as reserved_value returns float."""
+        issues = [make_issue(10), make_issue(5)]
+        ufun = LinearUtilityFunction.random(issues=issues, reserved_value=0.5)
+        assert isinstance(ufun.reserved_value, float)
+        assert ufun.reserved_value == 0.5
+
+    def test_reserved_value_distribution_input_returns_mean(self):
+        """Test that passing Distribution as reserved_value returns its mean."""
+        from negmas.helpers.prob import ScipyDistribution
+
+        issues = [make_issue(10), make_issue(5)]
+        dist = ScipyDistribution(
+            type="uniform", loc=0.2, scale=0.6
+        )  # mean = 0.2 + 0.6/2 = 0.5
+        # Use direct constructor, not random() which treats reserved_value as a range
+        ufun = LinearUtilityFunction(
+            weights=[1.0, 1.0], issues=issues, reserved_value=dist
+        )
+
+        assert isinstance(ufun.reserved_value, float)
+        assert abs(ufun.reserved_value - 0.5) < 1e-10
+
+    def test_reserved_distribution_from_float_returns_delta(self):
+        """Test that reserved_distribution returns delta distribution when reserved_value is float."""
+        from negmas.helpers.prob import Real
+
+        issues = [make_issue(10), make_issue(5)]
+        ufun = LinearUtilityFunction.random(issues=issues, reserved_value=0.5)
+
+        dist = ufun.reserved_distribution
+        # Delta distribution should have mean equal to the value
+        assert abs(dist.mean() - 0.5) < 1e-10
+        # And zero variance (it's a delta/Real distribution)
+        assert isinstance(dist, Real) or dist.scale == 0.0
+
+    def test_reserved_distribution_from_distribution_returns_same(self):
+        """Test that reserved_distribution returns the original distribution."""
+        from negmas.helpers.prob import ScipyDistribution
+
+        issues = [make_issue(10), make_issue(5)]
+        dist = ScipyDistribution(type="uniform", loc=0.2, scale=0.6)
+        # Use direct constructor, not random()
+        ufun = LinearUtilityFunction(
+            weights=[1.0, 1.0], issues=issues, reserved_value=dist
+        )
+
+        returned_dist = ufun.reserved_distribution
+        assert abs(returned_dist.mean() - dist.mean()) < 1e-10
+
+    def test_reserved_value_setter_accepts_float(self):
+        """Test that reserved_value setter accepts float."""
+        issues = [make_issue(10), make_issue(5)]
+        ufun = LinearUtilityFunction.random(issues=issues, reserved_value=0.0)
+        ufun.reserved_value = 0.75
+        assert ufun.reserved_value == 0.75
+
+    def test_reserved_value_setter_accepts_distribution(self):
+        """Test that reserved_value setter accepts Distribution."""
+        from negmas.helpers.prob import ScipyDistribution
+
+        issues = [make_issue(10), make_issue(5)]
+        ufun = LinearUtilityFunction.random(issues=issues, reserved_value=0.0)
+
+        dist = ScipyDistribution(type="uniform", loc=0.0, scale=1.0)  # mean = 0.5
+        ufun.reserved_value = dist
+        assert abs(ufun.reserved_value - 0.5) < 1e-10
+
+    def test_call_with_none_returns_reserved_value(self):
+        """Test that calling ufun with None returns reserved_value as float."""
+        issues = [make_issue(10), make_issue(5)]
+        ufun = LinearUtilityFunction.random(issues=issues, reserved_value=0.3)
+        result = ufun(None)
+        assert isinstance(result, float)
+        assert result == 0.3
+
+    def test_call_with_none_distribution_returns_mean(self):
+        """Test that calling ufun with None when reserved is Distribution returns mean."""
+        from negmas.helpers.prob import ScipyDistribution
+
+        issues = [make_issue(10), make_issue(5)]
+        dist = ScipyDistribution(type="uniform", loc=0.2, scale=0.6)  # mean = 0.5
+        # Use direct constructor
+        ufun = LinearUtilityFunction(
+            weights=[1.0, 1.0], issues=issues, reserved_value=dist
+        )
+
+        result = ufun(None)
+        assert isinstance(result, float)
+        assert abs(result - 0.5) < 1e-10
+
+    def test_prob_ufun_call_with_none_returns_distribution(self):
+        """Test that ProbUtilityFunction returns Distribution when called with None."""
+        from negmas.helpers.prob import ScipyDistribution
+        from negmas.preferences.prob.mapping import ProbMappingUtilityFunction
+
+        mapping = {
+            ("a",): ScipyDistribution(type="uniform", loc=0.0, scale=0.5),
+            ("b",): ScipyDistribution(type="uniform", loc=0.5, scale=0.5),
+        }
+        ufun = ProbMappingUtilityFunction(mapping=mapping, reserved_value=0.3)
+
+        result = ufun(None)
+        # ProbUtilityFunction should return a Distribution
+        assert hasattr(result, "mean")
+        assert abs(result.mean() - 0.3) < 1e-10
+
+    def test_prob_ufun_call_with_none_distribution_reserved(self):
+        """Test that ProbUtilityFunction returns the reserved Distribution when called with None."""
+        from negmas.helpers.prob import ScipyDistribution
+        from negmas.preferences.prob.mapping import ProbMappingUtilityFunction
+
+        mapping = {
+            ("a",): ScipyDistribution(type="uniform", loc=0.0, scale=0.5),
+            ("b",): ScipyDistribution(type="uniform", loc=0.5, scale=0.5),
+        }
+        dist = ScipyDistribution(type="uniform", loc=0.2, scale=0.6)  # mean = 0.5
+        ufun = ProbMappingUtilityFunction(mapping=mapping, reserved_value=dist)
+
+        result = ufun(None)
+        assert hasattr(result, "mean")
+        assert abs(result.mean() - 0.5) < 1e-10
+
+    def test_discounted_ufun_with_distribution_reserved_value(self):
+        """Test that discounted ufuns work with Distribution reserved_value."""
+        from negmas.helpers.prob import ScipyDistribution
+        from negmas.preferences.discounted import ExpDiscountedUFun
+
+        issues = [make_issue(10), make_issue(5)]
+        dist = ScipyDistribution(type="uniform", loc=0.2, scale=0.6)  # mean = 0.5
+        base_ufun = LinearUtilityFunction.random(issues=issues, normalized=True)
+
+        discounted = ExpDiscountedUFun(
+            ufun=base_ufun, discount=0.9, reserved_value=dist
+        )
+
+        assert isinstance(discounted.reserved_value, float)
+        assert abs(discounted.reserved_value - 0.5) < 1e-10
+
+    def test_backward_compatibility_float_reserved_value(self):
+        """Test that existing code using float reserved_value still works."""
+        issues = [make_issue(10), make_issue(5)]
+
+        # Direct constructor with float reserved_value (the main backward compat case)
+        # Note: .random() treats reserved_value as a range tuple, so we use direct constructor
+        ufun1 = LinearUtilityFunction(
+            weights=[1.0, 1.0], issues=issues, reserved_value=0.0
+        )
+        ufun2 = LinearUtilityFunction(
+            weights=[1.0, 1.0], issues=issues, reserved_value=float("-inf")
+        )
+        ufun3 = LinearUtilityFunction(
+            weights=[1.0, 1.0], issues=issues, reserved_value=1.0
+        )
+
+        assert ufun1.reserved_value == 0.0
+        assert ufun2.reserved_value == float("-inf")
+        assert ufun3.reserved_value == 1.0
+
+        # Operations should still work
+        assert ufun1(None) == 0.0
+        assert ufun2(None) == float("-inf")
+        assert ufun3(None) == 1.0

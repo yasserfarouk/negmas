@@ -11,8 +11,8 @@ from pathlib import Path
 from typing import TYPE_CHECKING, Any, Iterable, Sequence, TypeVar
 
 from negmas import warnings
-from negmas.common import Value
-from negmas.helpers.prob import Distribution, Real, ScipyDistribution
+from negmas.common import Distribution, Value
+from negmas.helpers.prob import Real, make_distribution
 from negmas.helpers.types import get_full_type_name
 from negmas.outcomes import Issue, Outcome, dict2outcome
 from negmas.outcomes.common import check_one_at_most, os_or_none
@@ -57,21 +57,54 @@ class BaseUtilityFunction(Preferences, ABC):
     def __init__(
         self,
         *args,
-        reserved_value: float = float("-inf"),
+        reserved_value: Value = float("-inf"),
         invalid_value: float | None = None,
         **kwargs,
     ):
         """Initialize the instance.
 
         Args:
+            reserved_value: The utility value when no agreement is reached. Can be a float
+                or a Distribution. When read back via the reserved_value property, always
+                returns a float (mean if Distribution). Use reserved_distribution to get
+                the full distribution.
+            invalid_value: The value to return for invalid outcomes.
             *args: Additional positional arguments.
             **kwargs: Additional keyword arguments.
         """
         super().__init__(*args, **kwargs)
-        self.reserved_value = reserved_value
+        self._reserved_value: Value = reserved_value
         self._cached_inverse: InverseUFun | None = None
         self._cached_inverse_type: type[InverseUFun] | None = None
         self._invalid_value = invalid_value
+
+    @property
+    def reserved_value(self) -> float:
+        """Returns the reserved value as a float.
+
+        If the underlying value is a Distribution, returns its mean.
+        If it's already a numeric type (int/float), returns it as-is for backward compatibility.
+        """
+        if isinstance(self._reserved_value, Distribution):
+            return float(self._reserved_value.mean())
+        return self._reserved_value  # type: ignore (preserves int/float)
+
+    @reserved_value.setter
+    def reserved_value(self, value: Value) -> None:
+        """Sets the reserved value.
+
+        Args:
+            value: Can be a float or a Distribution.
+        """
+        self._reserved_value = value
+
+    @property
+    def reserved_distribution(self) -> Distribution:
+        """Returns the reserved value as a Distribution.
+
+        If the underlying value is a float, returns a delta distribution at that value.
+        """
+        return make_distribution(self._reserved_value)
 
     @abstractmethod
     def eval(self, offer: Outcome) -> Value:
@@ -174,15 +207,6 @@ class BaseUtilityFunction(Preferences, ABC):
             elif w < r:
                 w = r
         return w, b
-
-    @property
-    def reserved_distribution(self) -> Distribution:
-        """Reserved distribution.
-
-        Returns:
-            Distribution: The result.
-        """
-        return ScipyDistribution(type="uniform", loc=self.reserved_value, scale=0.0)
 
     def max(self) -> Value:
         """Max.

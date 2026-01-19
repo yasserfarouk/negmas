@@ -162,21 +162,29 @@ class BasePref(Protocol):
 class HasReservedDistribution(Protocol):
     """In case of disagreement, a value sampled from `reserved_distribution` will be received by the entity"""
 
-    reserved_distribution: Distribution
+    @property
+    def reserved_distribution(self) -> Distribution:
+        """Returns the reserved value as a distribution.
+
+        If the reserved value was set as a float, returns a delta distribution at that value.
+        If it was set as a Distribution, returns that distribution.
+        """
+        ...
 
 
 @runtime_checkable
 class HasReservedValue(Protocol):
-    """In case of disagreement, `reserved_value` will be received by the entity"""
+    """In case of disagreement, `reserved_value` will be received by the entity.
 
-    reserved_value: float
+    The reserved_value property always returns a float (the mean if the underlying
+    value is a Distribution). Use reserved_distribution to get the full distribution.
+    """
 
     @property
-    def reserved_distribution(self) -> Distribution:
-        """Reserved distribution.
+    def reserved_value(self) -> float:
+        """Returns the reserved value as a float.
 
-        Returns:
-            Distribution: The result.
+        If the underlying value is a Distribution, returns its mean.
         """
         ...
 

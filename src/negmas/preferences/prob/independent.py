@@ -3,22 +3,20 @@
 from __future__ import annotations
 
 import pprint
-from typing import TYPE_CHECKING, Iterable
+from typing import Iterable
 
 import numpy as np
 
 from negmas.generics import iget, ikeys, ivalues
 from negmas.helpers.prob import ScipyDistribution
 from negmas.outcomes import Issue, Outcome
+from negmas.common import Value
 
 from ...helpers.prob import Distribution, make_distribution, uniform_around
 from ..crisp.mapping import MappingUtilityFunction
 from ..mixins import StationaryMixin
 from ..prob_ufun import ProbUtilityFunction
 from .mapping import ProbMappingUtilityFunction
-
-if TYPE_CHECKING:
-    from ..base import Value
 
 __all__ = ["IPUtilityFunction"]
 
@@ -138,7 +136,7 @@ class IPUtilityFunction(StationaryMixin, ProbUtilityFunction):
         range: tuple[float, float] = (0.0, 1.0),
         uncertainty: float = 0.5,
         variability: float = 0.0,
-        reserved_value: float = float("-inf"),
+        reserved_value: Value = float("-inf"),
     ) -> IPUtilityFunction:
         """
         Generates a distribution from which `u` may have been sampled

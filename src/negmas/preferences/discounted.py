@@ -71,7 +71,7 @@ class ExpDiscountedUFun(DiscountedUtilityFunction):
         discount: float | None = None,
         factor: str | Callable[[MechanismState], float] = "step",
         name=None,
-        reserved_value: float = float("-inf"),
+        reserved_value: Value = float("-inf"),
         dynamic_reservation=True,
         id=None,
         **kwargs,
