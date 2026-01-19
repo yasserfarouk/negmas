@@ -35,7 +35,7 @@ class CountableInfiniteIssue(ContiguousIssue, InfiniteIssue):
         """Initialize the instance.
 
         Args:
-            values: Values.
+            values: Tuple of (min, max) defining the infinite integer range.
             *args: Additional positional arguments.
             **kwargs: Additional keyword arguments.
         """
@@ -86,10 +86,13 @@ class CountableInfiniteIssue(ContiguousIssue, InfiniteIssue):
         return random.randint(-INFINITE_INT, self._values[0] - 1)
 
     def value_at(self, index: int):
-        """Value at.
+        """Access value by index (not supported for infinite issues).
 
         Args:
-            index: Index.
+            index: The index to access.
+
+        Raises:
+            ValueError: Infinite issues cannot be indexed.
         """
         raise ValueError("Cannot index an infinite issue")
 

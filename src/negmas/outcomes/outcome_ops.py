@@ -42,25 +42,25 @@ def _is_single(x):
 
 @overload
 def outcome2dict(outcome: None, issues: Sequence[str | Issue]) -> None:
-    """Outcome2dict.
+    """Convert outcome to dictionary (overload for None).
 
     Args:
-        outcome: Outcome to evaluate.
-        issues: Issues.
+        outcome: None outcome returns None.
+        issues: Issue names or Issue objects defining the outcome space.
     """
     ...
 
 
 @overload
 def outcome2dict(outcome: Outcome, issues: Sequence[str | Issue]) -> dict[str, Any]:
-    """Outcome2dict.
+    """Convert outcome to dictionary (overload for Outcome).
 
     Args:
-        outcome: Outcome to evaluate.
-        issues: Issues.
+        outcome: The outcome tuple/list to convert.
+        issues: Issue names or Issue objects defining the outcome space.
 
     Returns:
-        dict[str, Any]: The result.
+        Dictionary mapping issue names to their values in the outcome.
     """
     ...
 

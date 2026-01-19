@@ -404,12 +404,15 @@ def issues_from_outcomes(
         outcomes = [(_,) for _ in range(outcomes)]
 
     def convert_type(v, old, values):
-        """Convert type.
+        """Convert value type to match existing values, promoting types when necessary.
 
         Args:
-            v: V.
-            old: Old.
-            values: Values.
+            v: The new value to convert.
+            old: An existing value to match types with.
+            values: The list of existing values (may be modified if type promotion needed).
+
+        Raises:
+            ValueError: If attempting to add a string after numeric values.
         """
         if isinstance(v, numbers.Integral) and not isinstance(old, numbers.Integral):
             return float(v)

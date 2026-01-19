@@ -89,15 +89,15 @@ class OutcomeSpace(Container, Protocol):
     def to_largest_discrete(
         self, levels: int, max_cardinality: int | float = float("inf"), **kwargs
     ) -> DiscreteOutcomeSpace:
-        """To largest discrete.
+        """Convert to the largest discrete approximation within cardinality limits.
 
         Args:
-            levels: Levels.
-            max_cardinality: Max cardinality.
-            **kwargs: Additional keyword arguments.
+            levels: Number of discrete levels to sample for each continuous dimension.
+            max_cardinality: Maximum total number of outcomes in the discrete space.
+            **kwargs: Additional keyword arguments passed to the discretization method.
 
         Returns:
-            DiscreteOutcomeSpace: The result.
+            A discrete approximation of this outcome space.
         """
         ...
 
@@ -126,13 +126,13 @@ class OutcomeSpace(Container, Protocol):
         return self.is_discrete()
 
     def __contains__(self, item: Outcome | OutcomeSpace | Issue) -> bool:  # type: ignore
-        """contains  .
+        """Check if an outcome, outcome space, or issue is contained in this space.
 
         Args:
-            item: Item.
+            item: The outcome, outcome space, or issue to check for containment.
 
         Returns:
-            bool: The result.
+            True if the item is contained in or compatible with this outcome space.
         """
         ...
 
@@ -175,14 +175,14 @@ class DiscreteOutcomeSpace(OutcomeSpace, Collection, Protocol):
     def to_single_issue(
         self, numeric: bool = False, stringify: bool = True
     ) -> CartesianOutcomeSpace:
-        """To single issue.
+        """Convert multi-issue outcome space to a single-issue representation.
 
         Args:
-            numeric: Numeric.
-            stringify: Stringify.
+            numeric: If True, encode outcomes as numeric values; otherwise use original types.
+            stringify: If True, convert outcome values to strings for the single issue.
 
         Returns:
-            CartesianOutcomeSpace: The result.
+            A CartesianOutcomeSpace with a single issue representing all original outcomes.
         """
         ...
 

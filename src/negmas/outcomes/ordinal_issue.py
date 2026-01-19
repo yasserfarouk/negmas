@@ -43,16 +43,16 @@ class OrdinalIssue(Issue, ABC):
     def ordered_value_generator(  # type: ignore
         self, n: int = 10, grid=True, compact=False, endpoints=True
     ) -> Generator[Any, None, None]:
-        """Ordered value generator.
+        """Generate values in a defined order.
 
         Args:
-            n: Number of items.
-            grid: Grid.
-            compact: Compact.
-            endpoints: Endpoints.
+            n: Maximum number of values to generate.
+            grid: If True, generate values on a regular grid.
+            compact: If True, pack values more densely.
+            endpoints: If True, include the boundary values.
 
-        Returns:
-            Generator[Any, None, None]: The result.
+        Yields:
+            Values from the issue in order.
         """
         ...
 
