@@ -19,14 +19,14 @@ class RepeatLastOfferOnly(LocalOfferingConstraint):
     n: int = sys.maxsize
 
     def eval(self, state: ThreadState, history: list[ThreadState]) -> bool:
-        """Eval.
+        """Check if the repeating last offer constraint is satisfied.
 
         Args:
-            state: Current state.
-            history: History.
+            state: Current thread state.
+            history: List of previous thread states for detecting repeated last offers.
 
         Returns:
-            bool: The result.
+            True if the last offer hasn't been repeated too many times, False otherwise.
         """
         offer = state.new_offer
         if not offer:

@@ -38,16 +38,16 @@ class TAUEvaluationStrategy(EvaluationStrategy):
         history: list[GBState],
         active_thread: int | None,
     ) -> GBResponse:
-        """Make instance callable.
+        """Evaluate all threads and end negotiation when all negotiators are repeating offers.
 
         Args:
-            negotiator_ids: Negotiator ids.
-            state: Current state.
-            history: History.
-            active_thread: Active thread.
+            negotiator_ids: List of negotiator IDs in the mechanism.
+            state: Current global state of the mechanism.
+            history: List of previous global states.
+            active_thread: Index of the currently active thread (unused in this evaluator).
 
         Returns:
-            GBResponse: The result.
+            The first non-repeating offer if found, None if all are repeating, or 'continue' otherwise.
         """
         for source, t in state.threads.items():
             offer = t.new_offer

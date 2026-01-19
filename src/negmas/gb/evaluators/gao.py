@@ -20,16 +20,16 @@ class GAOEvaluationStrategy(LocalEvaluationStrategy):
         history: list[ThreadState],
         mechanism_state: MechanismState,
     ) -> GBResponse:
-        """Eval.
+        """Evaluate using the Generalized Accept/Offer protocol.
 
         Args:
-            negotiator_id: Negotiator id.
-            state: Current state.
-            history: History.
-            mechanism_state: Mechanism state.
+            negotiator_id: ID of the negotiator being evaluated.
+            state: Current state of the negotiation thread.
+            history: List of previous thread states for context.
+            mechanism_state: Overall mechanism state.
 
         Returns:
-            GBResponse: The result.
+            Response indicating whether to accept the offer or continue/end negotiation.
         """
         offer, responses = state.new_offer, state.new_responses
         if offer is None:

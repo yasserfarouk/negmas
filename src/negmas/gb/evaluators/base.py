@@ -49,24 +49,24 @@ class EvaluationStrategy(ABC):
         ...
 
     def __and__(self, other: EvaluationStrategy) -> EvaluationStrategy:
-        """and  .
+        """Combine two evaluation strategies with logical AND.
 
         Args:
-            other: Other.
+            other: The evaluation strategy to combine with this one.
 
         Returns:
-            EvaluationStrategy: The result.
+            A strategy that accepts only when both strategies accept.
         """
         return AllAcceptEvaluationStrategy([self, other])
 
     def __or__(self, other: EvaluationStrategy) -> EvaluationStrategy:
-        """or  .
+        """Combine two evaluation strategies with logical OR.
 
         Args:
-            other: Other.
+            other: The evaluation strategy to combine with this one.
 
         Returns:
-            EvaluationStrategy: The result.
+            A strategy that accepts when either strategy accepts.
         """
         return AnyAcceptEvaluationStrategy([self, other])
 
@@ -108,16 +108,16 @@ class LocalEvaluationStrategy(EvaluationStrategy):
         history: list[ThreadState],
         mechanism_state: MechanismState,
     ) -> GBResponse:
-        """Eval.
+        """Evaluate the current state and return a response.
 
         Args:
-            negotiator_id: Negotiator id.
-            state: Current state.
-            history: History.
-            mechanism_state: Mechanism state.
+            negotiator_id: ID of the negotiator being evaluated.
+            state: Current state of the negotiation thread.
+            history: List of previous thread states for context.
+            mechanism_state: Overall mechanism state.
 
         Returns:
-            GBResponse: The result.
+            Response indicating whether to accept, reject, or continue.
         """
         ...
 
@@ -163,13 +163,13 @@ class AllAcceptEvaluationStrategy(EvaluationStrategy):
 
 
 def all_accept(responses: list[GBResponse]) -> GBResponse:
-    """All accept.
+    """Combine multiple responses requiring all to agree for acceptance.
 
     Args:
-        responses: Responses.
+        responses: List of responses from different evaluation strategies.
 
     Returns:
-        GBResponse: The result.
+        Accepted outcome if all agree, None if any reject, otherwise 'continue'.
     """
     if not responses:
         return "continue"
@@ -182,13 +182,13 @@ def all_accept(responses: list[GBResponse]) -> GBResponse:
 
 
 def any_accept(responses: list[GBResponse]) -> GBResponse:
-    """Any accept.
+    """Combine multiple responses accepting if any strategy accepts.
 
     Args:
-        responses: Responses.
+        responses: List of responses from different evaluation strategies.
 
     Returns:
-        GBResponse: The result.
+        Random accepted outcome if any strategy accepts, None if all reject, otherwise 'continue'.
     """
     if not responses:
         return "continue"

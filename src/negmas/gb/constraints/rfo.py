@@ -19,14 +19,14 @@ class RepeatFinalOfferOnly(LocalOfferingConstraint):
     n: int = sys.maxsize
 
     def __call__(self, state: ThreadState, history: list[ThreadState]) -> bool:
-        """Make instance callable.
+        """Check if the repeating free offers constraint is satisfied.
 
         Args:
-            state: Current state.
-            history: History.
+            state: Current thread state.
+            history: List of previous thread states for detecting repeated offers.
 
         Returns:
-            bool: The result.
+            True if the offer hasn't been repeated too many times, False otherwise.
         """
         offer = state.new_offer
         if not offer:

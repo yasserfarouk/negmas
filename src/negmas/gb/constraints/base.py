@@ -38,24 +38,24 @@ class OfferingConstraint(ABC):
         ...
 
     def __and__(self, other: OfferingConstraint) -> OfferingConstraint:
-        """and  .
+        """Combine two constraints with logical AND.
 
         Args:
-            other: Other.
+            other: The constraint to combine with this one.
 
         Returns:
-            OfferingConstraint: The result.
+            A new constraint that is satisfied only when both constraints are satisfied.
         """
         return AllOfferingConstraints([self, other])
 
     def __or__(self, other: OfferingConstraint) -> OfferingConstraint:
-        """or  .
+        """Combine two constraints with logical OR.
 
         Args:
-            other: Other.
+            other: The constraint to combine with this one.
 
         Returns:
-            OfferingConstraint: The result.
+            A new constraint that is satisfied when either constraint is satisfied.
         """
         return AnyOfferingConstraint([self, other])
 
@@ -76,20 +76,23 @@ class LocalOfferingConstraint(OfferingConstraint, ABC):
 
         Args:
             state: Current state.
-            history: History.
+            history: List of previous thread states for context.
 
         Returns:
-            bool: The result.
+            True if the constraint is satisfied, False otherwise.
         """
         ...  # type: ignore
 
     def eval_globally(self, source: str, state: GBState, history: list[GBState]):
-        """Eval globally.
+        """Evaluate constraint in global context by extracting the relevant thread.
 
         Args:
-            source: Source identifier.
-            state: Current state.
-            history: History.
+            source: Identifier of the negotiation thread to evaluate.
+            state: Current global negotiation state.
+            history: List of previous global negotiation states.
+
+        Returns:
+            True if the constraint is satisfied for the specified thread.
         """
         return self(state.threads[source], [_.threads[source] for _ in history])
 

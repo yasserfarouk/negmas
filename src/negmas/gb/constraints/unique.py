@@ -12,14 +12,14 @@ class UniqueOffers(LocalOfferingConstraint):
     """UniqueOffers implementation."""
 
     def __call__(self, state: ThreadState, history: list[ThreadState]) -> bool:
-        """Make instance callable.
+        """Check if the current offer is unique (hasn't been made before).
 
         Args:
-            state: Current state.
-            history: History.
+            state: Current thread state containing the new offer.
+            history: List of previous thread states to check for duplicate offers.
 
         Returns:
-            bool: The result.
+            True if the offer is unique, False if it was already made.
         """
         offer = state.new_offer
         if not offer:
