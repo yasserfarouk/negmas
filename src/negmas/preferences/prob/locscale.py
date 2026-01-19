@@ -23,9 +23,9 @@ class ILSUtilityFunction(StationaryMixin, ProbUtilityFunction):
         """Initialize the instance.
 
         Args:
-            type: Type.
-            loc: Loc.
-            scale: Scale.
+            type: The type of scipy distribution (e.g. 'uniform', 'norm', 'beta').
+            loc: Utility function that evaluates to the location parameter of the distribution.
+            scale: Utility function that evaluates to the scale parameter of the distribution.
             *args: Additional positional arguments.
             **kwargs: Additional keyword arguments.
         """

@@ -244,7 +244,7 @@ class MechanismState:
     """ID of the agent owning the negotiator that raised the last error"""
 
     def __hash__(self):
-        """hash  ."""
+        """Returns a hash based on the state's dict representation."""
         return hash(self.asdict())
 
     #     def __copy__(self):
@@ -256,31 +256,31 @@ class MechanismState:
 
     @property
     def ended(self):
-        """Ended."""
+        """Whether the negotiation has concluded, regardless of outcome."""
         return self.started and (
             self.broken or self.timedout or (self.agreement is not None)
         )
 
     @property
     def completed(self):
-        """Completed."""
+        """Alias for `ended`. Whether the negotiation has concluded."""
         return self.started and (
             self.broken or self.timedout or (self.agreement is not None)
         )
 
     @property
     def done(self):
-        """Done."""
+        """Alias for `ended`. Whether the negotiation has concluded."""
         return self.started and (
             self.broken or self.timedout or (self.agreement is not None)
         )
 
     def keys(self):
-        """Keys."""
+        """Returns the field names of the mechanism state."""
         return self.__dict__.keys()
 
     def values(self):
-        """Values."""
+        """Returns the field values of the mechanism state."""
         return self.__dict__.values()
 
     def asdict(self):
@@ -426,11 +426,7 @@ class NegotiatorMechanismInterface:
 
     @property
     def atomic_steps(self) -> bool:
-        """Atomic steps.
-
-        Returns:
-            bool: The result.
-        """
+        """Whether steps in this mechanism are atomic (cannot be interrupted)."""
         return self._mechanism.atomic_steps
 
     def discrete_outcomes(
@@ -562,11 +558,11 @@ class NegotiatorMechanismInterface:
         return self._mechanism.agent_names
 
     def keys(self):
-        """Keys."""
+        """Returns the field names of the NMI."""
         return self.__dict__.keys()
 
     def values(self):
-        """Values."""
+        """Returns the field values of the NMI."""
         return self.__dict__.values()
 
     def asdict(self):

@@ -41,24 +41,24 @@ class MechanismFactory:
         log_ufuns_file=None,
         group: str | None = None,
     ):
-        """Initialize the instance.
+        """Initialize the mechanism factory with negotiation configuration.
 
         Args:
-            world: World.
-            mechanism_name: Mechanism name.
-            mechanism_params: Mechanism params.
-            issues: Issues.
-            req_id: Req id.
-            caller: Caller.
-            partners: Partners.
-            roles: Roles.
-            annotation: Annotation.
-            neg_n_steps: Neg n steps.
-            neg_time_limit: Neg time limit.
-            neg_step_time_limit: Neg step time limit.
-            allow_self_negotiation: Allow self negotiation.
-            log_ufuns_file: Log ufuns file.
-            group: Group.
+            world: The world simulation in which negotiations take place.
+            mechanism_name: Fully qualified class name of the negotiation mechanism to use.
+            mechanism_params: Dictionary of parameters to pass to the mechanism constructor.
+            issues: List of negotiation issues defining the outcome space.
+            req_id: Unique identifier for the negotiation request.
+            caller: The agent initiating the negotiation request.
+            partners: List of agents to participate in the negotiation.
+            roles: Optional list of role names for each partner in the negotiation.
+            annotation: Optional metadata dictionary passed to all partners.
+            neg_n_steps: Maximum number of negotiation rounds (None for unlimited).
+            neg_time_limit: Maximum wall-clock time in seconds for the negotiation.
+            neg_step_time_limit: Maximum time per negotiation step.
+            allow_self_negotiation: Whether to allow negotiations where the caller is the only unique partner.
+            log_ufuns_file: File path to log utility function evaluations for debugging.
+            group: Optional identifier for grouping related negotiations.
         """
         self.mechanism_name, self.mechanism_params = mechanism_name, mechanism_params
         self.caller = caller
@@ -288,10 +288,10 @@ class MechanismFactory:
         return neg_info
 
     def init(self) -> NegotiationInfo | None:
-        """Init.
+        """Start the negotiation by inviting partners and creating the mechanism.
 
         Returns:
-            NegotiationInfo | None: The result.
+            NegotiationInfo containing the mechanism and partners if successful, None if negotiation setup failed.
         """
         return self._start_negotiation(
             mechanism_name=self.mechanism_name,

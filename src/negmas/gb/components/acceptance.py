@@ -64,15 +64,15 @@ class AcceptAnyRational(AcceptancePolicy):
     def __call__(
         self, state: GBState, offer: Outcome | None, source: str | None
     ) -> ResponseType | ExtendedResponseType:
-        """Make instance callable.
+        """Evaluate whether to accept an offer based on rationality.
 
         Args:
-            state: Current state.
-            offer: Offer being considered.
-            source: Source identifier.
+            state: The current negotiation state containing timing and history.
+            offer: The outcome being evaluated for acceptance.
+            source: Identifier of the negotiator who made the offer.
 
         Returns:
-            ResponseType: The result.
+            ACCEPT_OFFER if the offer is not worse than disagreement, REJECT_OFFER otherwise.
         """
         if not self.negotiator or not self.negotiator.preferences:
             return ResponseType.REJECT_OFFER
@@ -93,15 +93,15 @@ class AcceptNotWorseRational(AcceptancePolicy):
     def __call__(
         self, state: GBState, offer: Outcome | None, source: str | None
     ) -> ResponseType | ExtendedResponseType:
-        """Make instance callable.
+        """Evaluate whether to accept an offer that is not worse than previous acceptances.
 
         Args:
-            state: Current state.
-            offer: Offer being considered.
-            source: Source identifier.
+            state: The current negotiation state containing timing and history.
+            offer: The outcome being evaluated for acceptance.
+            source: Identifier of the negotiator who made the offer.
 
         Returns:
-            ResponseType: The result.
+            ACCEPT_OFFER if not worse than the best accepted so far, REJECT_OFFER otherwise.
         """
         if not self.negotiator or not self.negotiator.preferences:
             return ResponseType.REJECT_OFFER
@@ -127,15 +127,15 @@ class AcceptBetterRational(AcceptancePolicy):
     def __call__(
         self, state: GBState, offer: Outcome | None, source: str | None
     ) -> ResponseType | ExtendedResponseType:
-        """Make instance callable.
+        """Evaluate whether to accept an offer that improves upon previous acceptances.
 
         Args:
-            state: Current state.
-            offer: Offer being considered.
-            source: Source identifier.
+            state: The current negotiation state containing timing and history.
+            offer: The outcome being evaluated for acceptance.
+            source: Identifier of the negotiator who made the offer.
 
         Returns:
-            ResponseType: The result.
+            ACCEPT_OFFER if better than all previous acceptances (or first rational), REJECT_OFFER otherwise.
         """
         if not self.negotiator or not self.negotiator.preferences:
             return ResponseType.REJECT_OFFER
@@ -161,13 +161,7 @@ class ACConst(AcceptancePolicy):
     th: float = 0.9
 
     def __call__(self, state, offer, source):
-        """Make instance callable.
-
-        Args:
-            state: Current state.
-            offer: Offer being considered.
-            source: Source identifier.
-        """
+        """Accept offers with utility at or above the constant threshold."""
         if not self.negotiator or not self.negotiator.ufun:
             return ResponseType.REJECT_OFFER
         u = float(self.negotiator.ufun(offer))
@@ -189,37 +183,21 @@ class ACLastKReceived(AcceptancePolicy):
     _best: list[float] = field(init=False, default=[])
 
     def after_join(self, nmi) -> None:
-        """After join.
-
-        Args:
-            nmi: Nmi.
-        """
+        """Initialize the sliding window buffer for tracking recent offer utilities."""
         k = nmi.n_steps if self.k <= 0 and nmi.n_steps else self.k
         self._best = [float("inf") for _ in range(k)]  # type: ignore
 
     def before_responding(
         self, state: GBState, offer: Outcome | None, source: str | None = None
     ):
-        """Before responding.
-
-        Args:
-            state: Current state.
-            offer: Offer being considered.
-            source: Source identifier.
-        """
+        """Record the utility of the received offer in the sliding window."""
         if not self.negotiator or not self.negotiator.ufun:
             return
         self._best.append(float(self.negotiator.ufun(offer)))
         self._best = self._best[1:]
 
     def __call__(self, state, offer, source):
-        """Make instance callable.
-
-        Args:
-            state: Current state.
-            offer: Offer being considered.
-            source: Source identifier.
-        """
+        """Accept if scaled utility exceeds the aggregated utility of recent offers."""
         if not self.negotiator or not self.negotiator.ufun:
             return ResponseType.REJECT_OFFER
         best = self.op(self._best)
@@ -245,25 +223,13 @@ class ACLastFractionReceived(AcceptancePolicy):
     def before_responding(
         self, state: GBState, offer: Outcome | None, source: str | None = None
     ):
-        """Before responding.
-
-        Args:
-            state: Current state.
-            offer: Offer being considered.
-            source: Source identifier.
-        """
+        """Record the utility and timestamp of the received offer for time-windowed analysis."""
         if not self.negotiator or not self.negotiator.ufun:
             return
         self._best.append((float(self.negotiator.ufun(offer)), state.relative_time))
 
     def __call__(self, state, offer, source):
-        """Make instance callable.
-
-        Args:
-            state: Current state.
-            offer: Offer being considered.
-            source: Source identifier.
-        """
+        """Accept if scaled utility exceeds the aggregated utility of offers within the time fraction."""
         if not self.negotiator or not self.negotiator.ufun:
             return ResponseType.REJECT_OFFER
         cutoff = state.relative_time - self.fraction
@@ -288,13 +254,7 @@ class AcceptFinalOffer(AcceptancePolicy):
     """
 
     def __call__(self, state, offer, source):
-        """Make instance callable.
-
-        Args:
-            state: Current state.
-            offer: Offer being considered.
-            source: Source identifier.
-        """
+        """Accept only the final offer if it meets the reserved value threshold."""
         if not self.negotiator or not self.negotiator.ufun or not self.negotiator.nmi:
             return ResponseType.REJECT_OFFER
         if (
@@ -331,26 +291,14 @@ class ACLast(AcceptancePolicy):
         offer: "Outcome | ExtendedOutcome | None",
         dest: str | None = None,
     ):
-        """After proposing.
-
-        Args:
-            state: Current state.
-            offer: Offer being considered.
-            dest: Dest.
-        """
+        """Update the stored utility of our last proposed offer."""
         return super().after_proposing(state, offer, dest)
         if not self.negotiator or not self.negotiator.ufun:
             return
         self.last_offer_util = float(self.negotiator.ufun(offer))
 
     def __call__(self, state, offer, source):
-        """Make instance callable.
-
-        Args:
-            state: Current state.
-            offer: Offer being considered.
-            source: Source identifier.
-        """
+        """Accept if scaled offer utility exceeds our last proposed offer's utility."""
         if not self.negotiator or not self.negotiator.ufun:
             return ResponseType.REJECT_OFFER
         last = self.last_offer_util
@@ -371,13 +319,7 @@ class AcceptBetween(AcceptancePolicy):
     rational: bool = True
 
     def __call__(self, state, offer, source):
-        """Make instance callable.
-
-        Args:
-            state: Current state.
-            offer: Offer being considered.
-            source: Source identifier.
-        """
+        """Accept offers only within the specified relative time range."""
         if self.max >= state.relative_time >= self.min and (
             not self.rational
             or self.negotiator.ufun.is_not_worse(  # type: ignore
@@ -400,13 +342,7 @@ class ACTime(AcceptancePolicy):
     rational: bool = True
 
     def __call__(self, state, offer, source):
-        """Make instance callable.
-
-        Args:
-            state: Current state.
-            offer: Offer being considered.
-            source: Source identifier.
-        """
+        """Accept offers once the relative time reaches or exceeds tau."""
         if state.relative_time >= self.tau and (
             not self.rational
             or self.negotiator.ufun.is_not_worse(  # type: ignore
@@ -433,13 +369,7 @@ class MiCROAcceptancePolicy(AcceptancePolicy):
     accept_same: bool = True
 
     def __call__(self, state, offer, source):
-        """Make instance callable.
-
-        Args:
-            state: Current state.
-            offer: Offer being considered.
-            source: Source identifier.
-        """
+        """Accept offers at least as good as what we would offer next under MiCRO strategy."""
         if not self.negotiator or not self.negotiator.ufun:
             return ResponseType.REJECT_OFFER
         mine = (
@@ -472,13 +402,7 @@ class ACNext(AcceptancePolicy):
     beta: float = 0.0
 
     def __call__(self, state, offer, source):
-        """Make instance callable.
-
-        Args:
-            state: Current state.
-            offer: Offer being considered.
-            source: Source identifier.
-        """
+        """Accept if scaled offer utility meets or exceeds our next planned offer's utility."""
         if not self.negotiator or not self.negotiator.ufun:
             return ResponseType.REJECT_OFFER
         nxt = float(self.negotiator.ufun(self.offering_strategy(state)))
@@ -498,13 +422,7 @@ class TFTAcceptancePolicy(AcceptancePolicy):
     recommender: ConcessionRecommender
 
     def __call__(self, state, offer, source):
-        """Make instance callable.
-
-        Args:
-            state: Current state.
-            offer: Offer being considered.
-            source: Source identifier.
-        """
+        """Accept if offer utility meets our tit-for-tat reciprocal concession threshold."""
         if not self.negotiator or not self.negotiator.ufun:
             return ResponseType.REJECT_OFFER
         partner_u = float(self.partner_ufun.eval_normalized(offer)) if offer else 1.0
@@ -534,15 +452,15 @@ class AcceptAround(AcceptancePolicy):
     def __call__(
         self, state: GBState, offer: Outcome | None, source: str | None
     ) -> ResponseType | ExtendedResponseType:
-        """Make instance callable.
+        """Accept offers when negotiation time is near the target relative time.
 
         Args:
-            state: Current state.
-            offer: Offer being considered.
-            source: Source identifier.
+            state: The current negotiation state containing timing and history.
+            offer: The outcome being evaluated for acceptance.
+            source: Identifier of the negotiator who made the offer.
 
         Returns:
-            ResponseType: The result.
+            ACCEPT_OFFER if within eps of target time or at final step, REJECT_OFFER otherwise.
         """
         if offer is None:
             return ResponseType.REJECT_OFFER
@@ -563,7 +481,7 @@ class AcceptAround(AcceptancePolicy):
 
 @define
 class RandomAcceptancePolicy(AcceptancePolicy):
-    """RandomAcceptance policy implementation."""
+    """Responds randomly with configurable probabilities for accept, reject, end, or no response."""
 
     p_acceptance: float = 0.15
     p_rejection: float = 0.25
@@ -572,15 +490,15 @@ class RandomAcceptancePolicy(AcceptancePolicy):
     def __call__(
         self, state: GBState, offer: Outcome | None, source: str | None
     ) -> ResponseType | ExtendedResponseType:
-        """Make instance callable.
+        """Generate a random response based on configured probability distribution.
 
         Args:
-            state: Current state.
-            offer: Offer being considered.
-            source: Source identifier.
+            state: The current negotiation state containing timing and history.
+            offer: The outcome being evaluated for acceptance.
+            source: Identifier of the negotiator who made the offer.
 
         Returns:
-            ResponseType: The result.
+            A randomly selected response type based on probability thresholds.
         """
         r = random.random()
         if r <= self.p_acceptance + 1e-8:
@@ -604,26 +522,22 @@ class AcceptBest(AcceptancePolicy):
     _best_util: float = float("inf")
 
     def on_preferences_changed(self, changes: list[PreferencesChange]):
-        """On preferences changed.
-
-        Args:
-            changes: Changes.
-        """
+        """Handle preference updates (no action needed for best-only acceptance)."""
         if not self.negotiator or not self.negotiator.ufun:
             return
 
     def __call__(
         self, state: GBState, offer: Outcome | None, source: str | None
     ) -> ResponseType | ExtendedResponseType:
-        """Make instance callable.
+        """Accept only if the offer achieves the maximum possible utility.
 
         Args:
-            state: Current state.
-            offer: Offer being considered.
-            source: Source identifier.
+            state: The current negotiation state containing timing and history.
+            offer: The outcome being evaluated for acceptance.
+            source: Identifier of the negotiator who made the offer.
 
         Returns:
-            ResponseType: The result.
+            ACCEPT_OFFER if offer utility equals the maximum, REJECT_OFFER otherwise.
         """
         if not self.negotiator or not self.negotiator.ufun:
             return ResponseType.REJECT_OFFER
@@ -646,11 +560,7 @@ class AcceptTop(AcceptancePolicy):
     k: int = 1
 
     def on_preferences_changed(self, changes: list[PreferencesChange]):
-        """On preferences changed.
-
-        Args:
-            changes: Changes.
-        """
+        """Reinitialize the utility inverter when preferences change significantly."""
         if not self.negotiator or not self.negotiator.ufun:
             return
         if any(
@@ -667,15 +577,15 @@ class AcceptTop(AcceptancePolicy):
     def __call__(
         self, state: GBState, offer: Outcome | None, source: str | None
     ) -> ResponseType | ExtendedResponseType:
-        """Make instance callable.
+        """Accept offers ranked in the top k outcomes or top fraction of the outcome space.
 
         Args:
-            state: Current state.
-            offer: Offer being considered.
-            source: Source identifier.
+            state: The current negotiation state containing timing and history.
+            offer: The outcome being evaluated for acceptance.
+            source: Identifier of the negotiator who made the offer.
 
         Returns:
-            ResponseType: The result.
+            ACCEPT_OFFER if offer is in top k or top fraction, REJECT_OFFER otherwise.
         """
         if not self.negotiator or not self.negotiator.ufun:
             return ResponseType.REJECT_OFFER
@@ -698,26 +608,22 @@ class AcceptAbove(AcceptancePolicy):
     above_reserve: bool = True
 
     def on_preferences_changed(self, changes: list[PreferencesChange]):
-        """On preferences changed.
-
-        Args:
-            changes: Changes.
-        """
+        """Handle preference updates (no action needed for threshold-based acceptance)."""
         if not self.negotiator or not self.negotiator.ufun:
             return
 
     def __call__(
         self, state: GBState, offer: Outcome | None, source: str | None
     ) -> ResponseType | ExtendedResponseType:
-        """Make instance callable.
+        """Accept offers with normalized utility at or above the limit threshold.
 
         Args:
-            state: Current state.
-            offer: Offer being considered.
-            source: Source identifier.
+            state: The current negotiation state containing timing and history.
+            offer: The outcome being evaluated for acceptance.
+            source: Identifier of the negotiator who made the offer.
 
         Returns:
-            ResponseType: The result.
+            ACCEPT_OFFER if normalized utility meets limit, REJECT_OFFER otherwise.
         """
         if not self.negotiator or not self.negotiator.ufun:
             return ResponseType.REJECT_OFFER
@@ -732,22 +638,13 @@ class AcceptAbove(AcceptancePolicy):
 @define
 class EndImmediately(AcceptancePolicy):
     """
-    Rejects immediately anything
+    Ends negotiation immediately regardless of the offer.
     """
 
     def __call__(
         self, state: GBState, offer: Outcome | None, source: str | None
     ) -> ResponseType | ExtendedResponseType:
-        """Make instance callable.
-
-        Args:
-            state: Current state.
-            offer: Offer being considered.
-            source: Source identifier.
-
-        Returns:
-            ResponseType: The result.
-        """
+        """Always terminate the negotiation immediately."""
         return ResponseType.END_NEGOTIATION
 
 
@@ -760,16 +657,7 @@ class RejectAlways(AcceptancePolicy):
     def __call__(
         self, state: GBState, offer: Outcome | None, source: str | None
     ) -> ResponseType | ExtendedResponseType:
-        """Make instance callable.
-
-        Args:
-            state: Current state.
-            offer: Offer being considered.
-            source: Source identifier.
-
-        Returns:
-            ResponseType: The result.
-        """
+        """Always reject any offer regardless of its utility."""
         return ResponseType.REJECT_OFFER
 
 
@@ -782,16 +670,7 @@ class AcceptImmediately(AcceptancePolicy):
     def __call__(
         self, state: GBState, offer: Outcome | None, source: str | None
     ) -> ResponseType | ExtendedResponseType:
-        """Make instance callable.
-
-        Args:
-            state: Current state.
-            offer: Offer being considered.
-            source: Source identifier.
-
-        Returns:
-            ResponseType: The result.
-        """
+        """Always accept any offer regardless of its utility."""
         return ResponseType.ACCEPT_OFFER
 
 
@@ -816,12 +695,12 @@ class LimitedOutcomesAcceptancePolicy(AcceptancePolicy):
         prob: list[float] | float = 1.0,
         p_ending: float = 0.0,
     ):
-        """From outcome list.
+        """Create policy from a list of outcomes with their acceptance probabilities.
 
         Args:
-            outcomes: Outcomes.
-            prob: Prob.
-            p_ending: P ending.
+            outcomes: The list of acceptable outcomes.
+            prob: Acceptance probability for each outcome (single value or per-outcome list).
+            p_ending: Probability of ending negotiation on each call.
         """
         if not isinstance(prob, Iterable):
             prob = [float(prob)] * len(outcomes)
@@ -832,15 +711,15 @@ class LimitedOutcomesAcceptancePolicy(AcceptancePolicy):
     def __call__(
         self, state: GBState, offer: Outcome | None, source: str | None
     ) -> ResponseType | ExtendedResponseType:
-        """Make instance callable.
+        """Probabilistically accept offers from the predefined outcome set.
 
         Args:
-            state: Current state.
-            offer: Offer being considered.
-            source: Source identifier.
+            state: The current negotiation state containing timing and history.
+            offer: The outcome being evaluated for acceptance.
+            source: Identifier of the negotiator who made the offer.
 
         Returns:
-            ResponseType: The result.
+            END_NEGOTIATION, ACCEPT_OFFER, or REJECT_OFFER based on probabilities.
         """
         if random.random() < self.p_ending - 1e-12:
             return ResponseType.END_NEGOTIATION
@@ -866,16 +745,7 @@ class NegotiatorAcceptancePolicy(AcceptancePolicy):
     def __call__(
         self, state: GBState, offer: Outcome | None, source: str | None
     ) -> ResponseType | ExtendedResponseType:
-        """Make instance callable.
-
-        Args:
-            state: Current state.
-            offer: Offer being considered.
-            source: Source identifier.
-
-        Returns:
-            ResponseType | ExtendedResponseType: The result.
-        """
+        """Delegate acceptance decision to the wrapped negotiator."""
         return self.acceptor.respond(state, source)
 
 
@@ -892,11 +762,7 @@ class ConcensusAcceptancePolicy(AcceptancePolicy, ABC):
             self.set_negotiator(self.negotiator)
 
     def on_negotiation_start(self, state) -> None:
-        """On negotiation start.
-
-        Args:
-            state: Current state.
-        """
+        """Initialize child strategies with the negotiator reference at negotiation start."""
         self._set_child_negotiators()
         return super().on_negotiation_start(state)
 
@@ -926,15 +792,15 @@ class ConcensusAcceptancePolicy(AcceptancePolicy, ABC):
     def __call__(
         self, state: GBState, offer: Outcome | None, source: str | None
     ) -> ResponseType | ExtendedResponseType:
-        """Make instance callable.
+        """Aggregate responses from child strategies using filter and decide methods.
 
         Args:
-            state: Current state.
-            offer: Offer being considered.
-            source: Source identifier.
+            state: The current negotiation state containing timing and history.
+            offer: The outcome being evaluated for acceptance.
+            source: Identifier of the negotiator who made the offer.
 
         Returns:
-            ResponseType: The result.
+            The consensus response determined by the decide method.
         """
         selected, selected_indices = [], []
         for i, s in enumerate(self.strategies):
@@ -955,14 +821,14 @@ class AllAcceptanceStrategies(ConcensusAcceptancePolicy):
     """Accept only if all children accept, end only if all of them end, otherwise reject"""
 
     def filter(self, indx: int, response: ResponseType) -> FilterResult:
-        """Filter.
+        """Stop early on reject/end; continue collecting accepts for unanimous decision.
 
         Args:
-            indx: Indx.
-            response: Response.
+            indx: Index of the strategy in the strategies list.
+            response: The response returned by the strategy at this index.
 
         Returns:
-            FilterResult: The result.
+            FilterResult indicating whether to continue and whether to save this response.
         """
         if response == ResponseType.REJECT_OFFER:
             return FilterResult(False, True)
@@ -973,14 +839,14 @@ class AllAcceptanceStrategies(ConcensusAcceptancePolicy):
     def decide(
         self, indices: list[int], responses: list[ResponseType]
     ) -> ResponseType | ExtendedResponseType:
-        """Decide.
+        """Return first non-accept response, or accept if all strategies accepted.
 
         Args:
-            indices: Indices.
-            responses: Responses.
+            indices: Indices of strategies whose responses were saved.
+            responses: The saved responses from those strategies.
 
         Returns:
-            ResponseType: The result.
+            ACCEPT_OFFER if all accepted, otherwise the first reject/end response.
         """
         if not responses:
             return ResponseType.ACCEPT_OFFER
@@ -993,14 +859,14 @@ class AnyAcceptancePolicy(ConcensusAcceptancePolicy):
     end or reject only if all of them end or reject"""
 
     def filter(self, indx: int, response: ResponseType) -> FilterResult:
-        """Filter.
+        """Stop early on accept/end; continue collecting rejects to find any acceptor.
 
         Args:
-            indx: Indx.
-            response: Response.
+            indx: Index of the strategy in the strategies list.
+            response: The response returned by the strategy at this index.
 
         Returns:
-            FilterResult: The result.
+            FilterResult indicating whether to continue and whether to save this response.
         """
         if response == ResponseType.ACCEPT_OFFER:
             return FilterResult(False, True)
@@ -1011,14 +877,14 @@ class AnyAcceptancePolicy(ConcensusAcceptancePolicy):
     def decide(
         self, indices: list[int], responses: list[ResponseType]
     ) -> ResponseType | ExtendedResponseType:
-        """Decide.
+        """Accept if any strategy accepted, reject only if all rejected.
 
         Args:
-            indices: Indices.
-            responses: Responses.
+            indices: Indices of strategies whose responses were saved.
+            responses: The saved responses from those strategies.
 
         Returns:
-            ResponseType: The result.
+            ACCEPT_OFFER if any accepted, REJECT_OFFER if all rejected.
         """
         if not responses:
             return ResponseType.REJECT_OFFER

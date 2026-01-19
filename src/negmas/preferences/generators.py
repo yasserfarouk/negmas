@@ -560,28 +560,28 @@ def generate_multi_issue_ufuns(
     guarantee_rational: bool = False,
     numeric_prob: float = -1,
 ) -> tuple[LinearAdditiveUtilityFunction | MappingUtilityFunction, ...]:
-    """Generate multi issue ufuns.
+    """Generate multi issue ufuns (overload for explicit n_values).
 
     Args:
-        n_issues: N issues.
-        n_values: N values.
-        sizes: Sizes.
-        n_ufuns: N ufuns.
-        pareto_generators: Pareto generators.
-        generator_params: Generator params.
-        reserved_values: Reserved values.
-        rational_fractions: Rational fractions.
-        reservation_selector: Reservation selector.
-        issue_names: Issue names.
-        os_name: Os name.
-        ufun_names: Ufun names.
-        numeric: Numeric.
-        linear: Linear.
-        guarantee_rational: Guarantee rational.
-        numeric_prob: Numeric prob.
+        n_issues: Number of independent issues.
+        n_values: Range or count for issue sizes.
+        sizes: Must be None for this overload.
+        n_ufuns: Number of utility functions to generate.
+        pareto_generators: Generators for creating Pareto-optimal value functions.
+        generator_params: Configuration parameters for each generator.
+        reserved_values: Utility values for no agreement (list, range, or single value).
+        rational_fractions: Fraction of outcomes that should be rational for each ufun.
+        reservation_selector: Function to combine reserved_values with rational_fractions.
+        issue_names: Custom names for the issues.
+        os_name: Name for the outcome space.
+        ufun_names: Custom names for the generated utility functions.
+        numeric: If True, all issues have numeric integer values.
+        linear: If True, generate linear-additive ufuns instead of mapping ufuns.
+        guarantee_rational: Ensure at least one rational outcome per ufun.
+        numeric_prob: Probability each issue is numeric (overridden by numeric parameter).
 
     Returns:
-        tuple[LinearAdditiveUtilityFunction | MappingUtilityFunction, ...]: The result.
+        Tuple of generated utility functions (LinearAdditive or Mapping type).
     """
     ...
 
@@ -590,9 +590,9 @@ def generate_multi_issue_ufuns(
 def generate_multi_issue_ufuns(
     n_issues: int,
     n_values: None = None,
-    sizes: tuple[int, ...] | list[int] = tuple(),
+    sizes: tuple[int, ...] | list[int] = (),
     n_ufuns: int = 2,
-    pareto_generators: tuple[ParetoGenerator | str, ...] = ("piecewise_linear",),
+    pareto_generators: tuple[ParetoGenerator | str, ...] = tuple(GENERATOR_MAP.keys()),
     generator_params: tuple[dict[str, Any], ...] | list[dict[str, Any]] | None = None,
     reserved_values: list[float] | tuple[float, float] | float = 0.0,
     rational_fractions: list[float] | None = None,
@@ -600,33 +600,33 @@ def generate_multi_issue_ufuns(
     issue_names: tuple[str, ...] | list[str] | None = None,
     os_name: str | None = None,
     ufun_names: tuple[str, ...] | None = None,
-    numeric: bool = False,
+    numeric: bool = True,
     linear: bool = True,
     guarantee_rational: bool = False,
     numeric_prob: float = -1,
 ) -> tuple[LinearAdditiveUtilityFunction | MappingUtilityFunction, ...]:
-    """Generate multi issue ufuns.
+    """Generate multi issue ufuns (overload for explicit sizes).
 
     Args:
-        n_issues: N issues.
-        n_values: N values.
-        sizes: Sizes.
-        n_ufuns: N ufuns.
-        pareto_generators: Pareto generators.
-        generator_params: Generator params.
-        reserved_values: Reserved values.
-        rational_fractions: Rational fractions.
-        reservation_selector: Reservation selector.
-        issue_names: Issue names.
-        os_name: Os name.
-        ufun_names: Ufun names.
-        numeric: Numeric.
-        linear: Linear.
-        guarantee_rational: Guarantee rational.
-        numeric_prob: Numeric prob.
+        n_issues: Number of independent issues.
+        n_values: Must be None for this overload.
+        sizes: Explicit sizes for each issue.
+        n_ufuns: Number of utility functions to generate.
+        pareto_generators: Generators for creating Pareto-optimal value functions.
+        generator_params: Configuration parameters for each generator.
+        reserved_values: Utility values for no agreement (list, range, or single value).
+        rational_fractions: Fraction of outcomes that should be rational for each ufun.
+        reservation_selector: Function to combine reserved_values with rational_fractions.
+        issue_names: Custom names for the issues.
+        os_name: Name for the outcome space.
+        ufun_names: Custom names for the generated utility functions.
+        numeric: If True, all issues have numeric integer values.
+        linear: If True, generate linear-additive ufuns instead of mapping ufuns.
+        guarantee_rational: Ensure at least one rational outcome per ufun.
+        numeric_prob: Probability each issue is numeric (overridden by numeric parameter).
 
     Returns:
-        tuple[LinearAdditiveUtilityFunction | MappingUtilityFunction, ...]: The result.
+        Tuple of generated utility functions (LinearAdditive or Mapping type).
     """
     ...
 

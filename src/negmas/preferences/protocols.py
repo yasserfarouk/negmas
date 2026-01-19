@@ -92,27 +92,27 @@ class XmlSerializableUFun(Protocol):
     def from_genius(
         cls: type[X], issues: list[Issue], file_name: PathLike, **kwargs
     ) -> X:
-        """From genius.
+        """Import a utility function from a GENIUS XML file.
 
         Args:
-            issues: Issues.
-            file_name: File name.
-            **kwargs: Additional keyword arguments.
+            issues: The list of issues defining the negotiation domain.
+            file_name: Path to the GENIUS XML file.
+            **kwargs: Additional keyword arguments passed to the parser.
 
         Returns:
-            X: The result.
+            A utility function object parsed from the file.
         """
         ...
 
     @abstractmethod
     def xml(self, issues: list[Issue]) -> str:
-        """Xml.
+        """Generate the XML representation of this utility function.
 
         Args:
-            issues: Issues.
+            issues: The list of issues defining the negotiation domain.
 
         Returns:
-            str: The result.
+            A string containing the XML representation compatible with GENIUS.
         """
         ...
 
@@ -360,13 +360,13 @@ class UFun(CardinalProb, Protocol):
         """
 
     def __call__(self, offer: Outcome | None) -> Value:
-        """Make instance callable.
+        """Evaluate the utility of an offer.
 
         Args:
-            offer: Offer being considered.
+            offer: The outcome to evaluate, or None for the reserved value.
 
         Returns:
-            Value: The result.
+            The utility value (float or Distribution) for the given offer.
         """
         ...
 
@@ -379,32 +379,32 @@ class UFunCrisp(UFun, Protocol):
     """Can be called to map an `Outcome` to a `float`"""
 
     def eval(self, offer: Outcome) -> float:
-        """Eval.
+        """Evaluate the utility of an offer.
 
         Args:
-            offer: Offer being considered.
+            offer: The outcome to evaluate.
 
         Returns:
-            float: The result.
+            The crisp (deterministic) utility value as a float.
         """
         ...
 
     def to_stationary(self: T) -> T:
-        """To stationary.
+        """Convert this utility function to a stationary (time-independent) version.
 
         Returns:
-            T: The result.
+            A stationary version of this utility function.
         """
         ...
 
     def __call__(self, offer: Outcome | None) -> float:
-        """Make instance callable.
+        """Evaluate the utility of an offer.
 
         Args:
-            offer: Offer being considered.
+            offer: The outcome to evaluate, or None for the reserved value.
 
         Returns:
-            float: The result.
+            The crisp utility value as a float.
         """
         ...
 
@@ -415,24 +415,24 @@ class UFunProb(UFun, Protocol):
 
     @abstractmethod
     def eval(self, offer: Outcome) -> Distribution:
-        """Eval.
+        """Evaluate the utility of an offer as a probability distribution.
 
         Args:
-            offer: Offer being considered.
+            offer: The outcome to evaluate.
 
         Returns:
-            Distribution: The result.
+            A distribution representing the probabilistic utility value.
         """
         ...
 
     def __call__(self, offer: Outcome | None) -> Distribution:
-        """Make instance callable.
+        """Evaluate the utility of an offer as a probability distribution.
 
         Args:
-            offer: Offer being considered.
+            offer: The outcome to evaluate, or None for the reserved value.
 
         Returns:
-            Distribution: The result.
+            A distribution representing the probabilistic utility value.
         """
         ...
 
@@ -748,56 +748,52 @@ class Fun(Protocol):
 
     @property
     def dim(self) -> int:
-        """Dim.
-
-        Returns:
-            int: The result.
-        """
+        """Returns the number of issues this function operates on."""
         ...
 
     def minmax(self, input) -> tuple[float, float]:
-        """Minmax.
+        """Compute the minimum and maximum values of this function.
 
         Args:
-            input: Input.
+            input: The domain (e.g., issue or outcome space) to compute bounds over.
 
         Returns:
-            tuple[float, float]: The result.
+            A tuple of (minimum, maximum) utility values.
         """
         ...
 
     @abstractmethod
     def shift_by(self, offset: float) -> Fun:
-        """Shift by.
+        """Create a new function shifted by a constant offset.
 
         Args:
-            offset: Offset.
+            offset: The amount to add to all output values.
 
         Returns:
-            Fun: The result.
+            A new function with all values shifted by the offset.
         """
         ...
 
     @abstractmethod
     def scale_by(self, scale: float) -> Fun:
-        """Scale by.
+        """Create a new function scaled by a constant factor.
 
         Args:
-            scale: Scale.
+            scale: The factor to multiply all output values by.
 
         Returns:
-            Fun: The result.
+            A new function with all values multiplied by the scale.
         """
         ...
 
     def __call__(self, x) -> float:
-        """Make instance callable.
+        """Evaluate the function for the given input.
 
         Args:
-            x: X.
+            x: The input value(s) to evaluate.
 
         Returns:
-            float: The result.
+            The computed utility value.
         """
         ...
 
@@ -807,37 +803,37 @@ class SingleIssueFun(Fun, Protocol):
     """A value function mapping values from a **single** issue to a real number"""
 
     def xml(self, indx: int, issue: Issue, bias=0.0) -> str:
-        """Xml.
+        """Generate XML representation for GENIUS compatibility.
 
         Args:
-            indx: Indx.
-            issue: Issue.
-            bias: Bias.
+            indx: The index of this value function in the utility function.
+            issue: The issue this function maps values from.
+            bias: A constant offset to add to all values in the XML output.
 
         Returns:
-            str: The result.
+            XML string representation of this value function.
         """
         ...
 
     def min(self, input: Issue) -> float:
-        """Min.
+        """Compute the minimum value of this function over the given issue.
 
         Args:
-            input: Input.
+            input: The issue to compute the minimum over.
 
         Returns:
-            float: The result.
+            The minimum utility value for any value of the issue.
         """
         ...
 
     def max(self, input: Issue) -> float:
-        """Max.
+        """Compute the maximum value of this function over the given issue.
 
         Args:
-            input: Input.
+            input: The issue to compute the maximum over.
 
         Returns:
-            float: The result.
+            The maximum utility value for any value of the issue.
         """
         ...
 
@@ -848,67 +844,63 @@ class MultiIssueFun(Fun, Protocol):
 
     @property
     def dim(self) -> int:
-        """Dim.
-
-        Returns:
-            int: The result.
-        """
+        """Returns the number of issues this function operates on."""
         ...
 
     def minmax(self, input: tuple[Issue, ...]) -> tuple[float, float]:
-        """Minmax.
+        """Compute the minimum and maximum values over the given issues.
 
         Args:
-            input: Input.
+            input: The tuple of issues to compute bounds over.
 
         Returns:
-            tuple[float, float]: The result.
+            A tuple of (minimum, maximum) utility values.
         """
         ...
 
     def shift_by(self, offset: float) -> MultiIssueFun:
-        """Shift by.
+        """Create a new function shifted by a constant offset.
 
         Args:
-            offset: Offset.
+            offset: The amount to add to all output values.
 
         Returns:
-            MultiIssueFun: The result.
+            A new multi-issue function with all values shifted.
         """
         ...
 
     def scale_by(self, scale: float) -> MultiIssueFun:
-        """Scale by.
+        """Create a new function scaled by a constant factor.
 
         Args:
-            scale: Scale.
+            scale: The factor to multiply all output values by.
 
         Returns:
-            MultiIssueFun: The result.
+            A new multi-issue function with all values scaled.
         """
         ...
 
     def xml(self, indx: int, issues: list[Issue] | tuple[Issue, ...], bias=0.0) -> str:
-        """Xml.
+        """Generate XML representation for GENIUS compatibility.
 
         Args:
-            indx: Indx.
-            issues: Issues.
-            bias: Bias.
+            indx: The index of this value function in the utility function.
+            issues: The issues this function maps values from.
+            bias: A constant offset to add to all values in the XML output.
 
         Returns:
-            str: The result.
+            XML string representation of this value function.
         """
         ...
 
     def __call__(self, x: tuple) -> float:
-        """Make instance callable.
+        """Evaluate the function for the given issue values.
 
         Args:
-            x: X.
+            x: A tuple of values, one for each issue.
 
         Returns:
-            float: The result.
+            The computed utility value.
         """
         ...
 
@@ -919,40 +911,40 @@ class Shiftable(CardinalProb, Protocol):
 
     @abstractmethod
     def shift_by(self, offset: float, shift_reserved=True) -> Shiftable:
-        """Shift by.
+        """Shift all utility values by a constant offset.
 
         Args:
-            offset: Offset.
-            shift_reserved: Shift reserved.
+            offset: The amount to add to all utility values.
+            shift_reserved: Whether to also shift the reserved value.
 
         Returns:
-            Shiftable: The result.
+            A new utility function with shifted values.
         """
         ...
 
     @abstractmethod
     def shift_min(self, to: float, rng: tuple[float, float] | None = None) -> Shiftable:
-        """Shift min.
+        """Shift utility values so the minimum becomes the target value.
 
         Args:
-            to: To.
-            rng: Rng.
+            to: The target value for the minimum utility.
+            rng: Optional current range; if None, computed automatically.
 
         Returns:
-            Shiftable: The result.
+            A new utility function with the minimum shifted to the target.
         """
         ...
 
     @abstractmethod
     def shift_max(self, to: float, rng: tuple[float, float] | None = None) -> Shiftable:
-        """Shift max.
+        """Shift utility values so the maximum becomes the target value.
 
         Args:
-            to: To.
-            rng: Rng.
+            to: The target value for the maximum utility.
+            rng: Optional current range; if None, computed automatically.
 
         Returns:
-            Shiftable: The result.
+            A new utility function with the maximum shifted to the target.
         """
         ...
 
@@ -963,40 +955,40 @@ class Scalable(UFun, Protocol):
 
     @abstractmethod
     def scale_by(self, scale: float, scale_reserved=True) -> Scalable:
-        """Scale by.
+        """Multiply all utility values by a constant factor.
 
         Args:
-            scale: Scale.
-            scale_reserved: Scale reserved.
+            scale: The factor to multiply all utility values by.
+            scale_reserved: Whether to also scale the reserved value.
 
         Returns:
-            Scalable: The result.
+            A new utility function with scaled values.
         """
         ...
 
     @abstractmethod
     def scale_min(self, to: float, rng: tuple[float, float] | None = None) -> Scalable:
-        """Scale min.
+        """Scale utility values so the minimum becomes the target value.
 
         Args:
-            to: To.
-            rng: Rng.
+            to: The target value for the minimum utility.
+            rng: Optional current range; if None, computed automatically.
 
         Returns:
-            Scalable: The result.
+            A new utility function with the minimum scaled to the target.
         """
         ...
 
     @abstractmethod
     def scale_max(self, to: float, rng: tuple[float, float] | None = None) -> Scalable:
-        """Scale max.
+        """Scale utility values so the maximum becomes the target value.
 
         Args:
-            to: To.
-            rng: Rng.
+            to: The target value for the maximum utility.
+            rng: Optional current range; if None, computed automatically.
 
         Returns:
-            Scalable: The result.
+            A new utility function with the maximum scaled to the target.
         """
         ...
 
@@ -1014,17 +1006,17 @@ class PartiallyShiftable(Scalable, Protocol):
         outcomes: list[Outcome] | None = None,
         rng: tuple[float, float] | None = None,
     ) -> PartiallyScalable:
-        """Shift min for.
+        """Shift minimum utility to a target value for a subset of outcomes.
 
         Args:
-            to: To.
-            outcome_space: Outcome space.
-            issues: Issues.
-            outcomes: Outcomes.
-            rng: Rng.
+            to: The target value for the minimum utility.
+            outcome_space: The outcome space to consider for shifting.
+            issues: Alternative way to specify the domain via issues.
+            outcomes: Alternative way to specify the domain via explicit outcomes.
+            rng: Optional current range; if None, computed automatically.
 
         Returns:
-            PartiallyScalable: The result.
+            A new utility function with the minimum shifted for the specified domain.
         """
         ...
 
@@ -1037,17 +1029,17 @@ class PartiallyShiftable(Scalable, Protocol):
         outcomes: list[Outcome] | None = None,
         rng: tuple[float, float] | None = None,
     ) -> PartiallyScalable:
-        """Shift max for.
+        """Shift maximum utility to a target value for a subset of outcomes.
 
         Args:
-            to: To.
-            outcome_space: Outcome space.
-            issues: Issues.
-            outcomes: Outcomes.
-            rng: Rng.
+            to: The target value for the maximum utility.
+            outcome_space: The outcome space to consider for shifting.
+            issues: Alternative way to specify the domain via issues.
+            outcomes: Alternative way to specify the domain via explicit outcomes.
+            rng: Optional current range; if None, computed automatically.
 
         Returns:
-            PartiallyScalable: The result.
+            A new utility function with the maximum shifted for the specified domain.
         """
         ...
 
@@ -1065,17 +1057,17 @@ class PartiallyScalable(Scalable, BasePref, Protocol):
         outcomes: list[Outcome] | None = None,
         rng: tuple[float, float] | None = None,
     ) -> PartiallyScalable:
-        """Scale min for.
+        """Scale minimum utility to a target value for a subset of outcomes.
 
         Args:
-            to: To.
-            outcome_space: Outcome space.
-            issues: Issues.
-            outcomes: Outcomes.
-            rng: Rng.
+            to: The target value for the minimum utility.
+            outcome_space: The outcome space to consider for scaling.
+            issues: Alternative way to specify the domain via issues.
+            outcomes: Alternative way to specify the domain via explicit outcomes.
+            rng: Optional current range; if None, computed automatically.
 
         Returns:
-            PartiallyScalable: The result.
+            A new utility function with the minimum scaled for the specified domain.
         """
         ...
 
@@ -1088,17 +1080,17 @@ class PartiallyScalable(Scalable, BasePref, Protocol):
         outcomes: list[Outcome] | None = None,
         rng: tuple[float, float] | None = None,
     ) -> PartiallyScalable:
-        """Scale max for.
+        """Scale maximum utility to a target value for a subset of outcomes.
 
         Args:
-            to: To.
-            outcome_space: Outcome space.
-            issues: Issues.
-            outcomes: Outcomes.
-            rng: Rng.
+            to: The target value for the maximum utility.
+            outcome_space: The outcome space to consider for scaling.
+            issues: Alternative way to specify the domain via issues.
+            outcomes: Alternative way to specify the domain via explicit outcomes.
+            rng: Optional current range; if None, computed automatically.
 
         Returns:
-            PartiallyScalable: The result.
+            A new utility function with the maximum scaled for the specified domain.
         """
         ...
 
@@ -1112,13 +1104,13 @@ class Normalizable(Shiftable, Scalable, Protocol):
 
     @abstractmethod
     def normalize(self: N, to: tuple[float, float] = (0.0, 1.0)) -> N:
-        """Normalize.
+        """Normalize utility values to a specified range.
 
         Args:
-            to: To.
+            to: The target range as (min, max), defaults to (0.0, 1.0).
 
         Returns:
-            N: The result.
+            A new utility function with values normalized to the target range.
         """
         ...
 

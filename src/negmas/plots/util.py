@@ -1,4 +1,4 @@
-"""Module for util functionality."""
+"""Plotting utilities for visualizing negotiation runs and utility functions."""
 
 from __future__ import annotations
 
@@ -110,21 +110,21 @@ def _update_yaxes_safe(
 
 
 def opacity_colorizer(t: TraceElement, alpha: float = 1.0):
-    """Opacity colorizer.
+    """Returns a constant opacity value, ignoring the trace element.
 
     Args:
-        t: T.
-        alpha: Alpha.
+        t: The trace element (unused).
+        alpha: The constant opacity value to return (0.0 to 1.0).
     """
     _ = t
     return alpha
 
 
 def default_colorizer(t: TraceElement):
-    """Default colorizer.
+    """Computes opacity based on the fraction of negotiators accepting the offer.
 
     Args:
-        t: T.
+        t: The trace element containing offer and response information.
     """
     if not t.responses:
         return 1.0
@@ -243,92 +243,56 @@ TNMI = TypeVar("TNMI", bound=NegotiatorMechanismInterface, covariant=True)
 class PlottableMechanism(Protocol, Generic[TNMI, TNegotiator]):
     @property
     def outcome_space(self) -> OutcomeSpace:
-        """Outcome space.
-
-        Returns:
-            OutcomeSpace: The result.
-        """
+        """The space of all possible outcomes in this mechanism."""
         ...
 
     @property
     def negotiators(self) -> list[TNegotiator]:
-        """Negotiators.
-
-        Returns:
-            list[TNegotiator]: The result.
-        """
+        """The list of negotiators participating in this mechanism."""
         ...
 
     @property
     def negotiator_ids(self) -> list[str]:
-        """Negotiator ids.
-
-        Returns:
-            list[str]: The result.
-        """
+        """The unique identifiers of all negotiators in this mechanism."""
         ...
 
     @property
     def negotiator_names(self) -> list[str]:
-        """Negotiator names.
-
-        Returns:
-            list[str]: The result.
-        """
+        """The human-readable names of all negotiators in this mechanism."""
         ...
 
     @property
     def nmi(self) -> TNMI:
-        """Nmi.
-
-        Returns:
-            TNMI: The result.
-        """
+        """The negotiator-mechanism interface for accessing mechanism state."""
         ...
 
     @property
     def agreement(self) -> Outcome | None:
-        """Agreement.
-
-        Returns:
-            Outcome | None: The result.
-        """
+        """The final agreement reached, or None if no agreement was reached."""
         ...
 
     @property
     def state(self) -> MechanismState:
-        """State.
-
-        Returns:
-            MechanismState: The result.
-        """
+        """The current state of the mechanism including timing and error info."""
         ...
 
     @property
     def full_trace(self) -> list[TraceElement]:
-        """Full trace.
-
-        Returns:
-            list[TraceElement]: The result.
-        """
+        """Complete history of all offers and responses during negotiation."""
         ...
 
     def discrete_outcomes(self) -> list[Outcome]:
-        """Discrete outcomes.
-
-        Returns:
-            list[Outcome]: The result.
-        """
+        """Returns all discrete outcomes in the outcome space."""
         ...
 
     def negotiator_index(self, source: str) -> int | None:
-        """Negotiator index.
+        """Returns the index of a negotiator given their ID or name.
 
         Args:
-            source: Source identifier.
+            source: The negotiator ID or name to look up.
 
         Returns:
-            int | None: The result.
+            int | None: The index of the negotiator, or None if not found.
         """
         ...
 
@@ -379,13 +343,13 @@ def get_cmap_colors(n: int, name: str = DEFAULT_COLORMAP) -> list[str]:
 
 
 def make_colors_and_markers(colors, markers, n: int, colormap=DEFAULT_COLORMAP):
-    """Make colors and markers.
+    """Generates color and marker lists for plotting multiple series.
 
     Args:
-        colors: Colors.
-        markers: Markers.
-        n: Number of items.
-        colormap: Colormap.
+        colors: Predefined color list, or None to auto-generate from colormap.
+        markers: Predefined marker list, or None to auto-generate.
+        n: Number of distinct colors/markers needed.
+        colormap: Name of colormap to use when auto-generating colors.
     """
     if not colors:
         colors = get_cmap_colors(n, colormap)
@@ -418,31 +382,31 @@ def plot_offer_utilities(
     first_color_index: int = 0,
     mark_offers_view: bool = True,
 ):
-    """Plot offer utilities using plotly.
+    """Plots utility values of offers over time for a specific negotiator.
 
     Args:
-        trace: Trace.
-        negotiator: Negotiator.
-        plotting_ufuns: Plotting ufuns.
-        plotting_negotiators: Plotting negotiators.
-        ignore_none_offers: Ignore none offers.
-        name_map: Name map.
-        colors: Colors.
-        markers: Markers.
-        colormap: Colormap.
-        fig: Plotly figure (if None, creates new one).
-        row: Row in subplot grid.
-        col: Column in subplot grid.
-        sharey: Share y axis.
-        xdim: X dimension.
-        ylimits: Y limits.
-        show_legend: Show legend.
-        show_x_label: Show x label.
-        ignore_markers_limit: Ignore markers limit.
-        show_reserved: Show reserved.
-        colorizer: Colorizer.
-        first_color_index: First color index.
-        mark_offers_view: Mark offers view.
+        trace: List of trace elements recording all offers made during negotiation.
+        negotiator: ID of the negotiator whose offers to plot on x-axis.
+        plotting_ufuns: Utility functions to evaluate offers against.
+        plotting_negotiators: IDs of negotiators corresponding to each utility function.
+        ignore_none_offers: Whether to skip None offers in the plot.
+        name_map: Mapping from negotiator IDs to display names.
+        colors: List of colors for each negotiator's line.
+        markers: List of marker symbols for each negotiator.
+        colormap: Colormap name for auto-generating colors.
+        fig: Existing Plotly figure to add traces to, or None to create new.
+        row: Row index in subplot grid (1-indexed).
+        col: Column index in subplot grid (1-indexed).
+        sharey: Whether this subplot shares y-axis with others.
+        xdim: X-axis dimension ('relative_time', 'step', or 'time').
+        ylimits: Optional (min, max) limits for y-axis.
+        show_legend: Whether to display legend entries.
+        show_x_label: Whether to show x-axis label.
+        ignore_markers_limit: Hide markers if trace has more elements than this.
+        show_reserved: Whether to show reserved value lines.
+        colorizer: Function to compute opacity for each trace element.
+        first_color_index: Index offset for color assignment.
+        mark_offers_view: Whether to mark special states (errors, agreement, timeout).
     """
     if colorizer is None:
         colorizer = default_colorizer
@@ -625,47 +589,47 @@ def plot_2dutils(
     colorizer: Colorizer | None = None,
     fast: bool = False,
 ):
-    """Plot 2D utilities using plotly.
+    """Plots negotiation trace in 2D utility space for two negotiators.
 
     Args:
-        trace: Trace.
-        plotting_ufuns: Plotting ufuns.
-        plotting_negotiators: Plotting negotiators.
-        offering_negotiators: Offering negotiators.
-        agreement: Agreement.
-        outcome_space: Outcome space.
-        issues: Issues.
-        outcomes: Outcomes.
-        with_lines: With lines.
-        show_annotations: Show annotations.
-        show_agreement: Show agreement.
-        show_pareto_distance: Show pareto distance.
-        show_nash_distance: Show nash distance.
-        show_kalai_distance: Show kalai distance.
-        show_ks_distance: Show ks distance.
-        show_max_welfare_distance: Show max welfare distance.
-        mark_pareto_points: Mark pareto points.
-        mark_all_outcomes: Mark all outcomes.
-        mark_nash_points: Mark nash points.
-        mark_kalai_points: Mark kalai points.
-        mark_ks_points: Mark ks points.
-        mark_max_welfare_points: Mark max welfare points.
-        show_max_relative_welfare_distance: Show max relative welfare distance.
-        show_reserved: Show reserved.
-        show_total_time: Show total time.
-        show_relative_time: Show relative time.
-        show_n_steps: Show n steps.
-        end_reason: End reason.
-        extra_annotation: Extra annotation.
-        name_map: Name map.
-        colors: Colors.
-        markers: Markers.
-        colormap: Colormap.
-        fig: Plotly figure.
-        row: Row in subplot.
-        col: Column in subplot.
-        colorizer: Colorizer.
-        fast: Fast mode.
+        trace: List of trace elements recording all offers made during negotiation.
+        plotting_ufuns: The two utility functions for the x and y axes.
+        plotting_negotiators: IDs of the two negotiators being plotted.
+        offering_negotiators: IDs of all negotiators who made offers to display.
+        agreement: The final agreement outcome, if any.
+        outcome_space: The space of possible outcomes.
+        issues: List of negotiation issues (alternative to outcome_space).
+        outcomes: Explicit list of outcomes (alternative to outcome_space).
+        with_lines: Whether to connect consecutive offers with lines.
+        show_annotations: Whether to show text labels on special points.
+        show_agreement: Whether to include agreement details in annotation.
+        show_pareto_distance: Whether to show distance from agreement to Pareto frontier.
+        show_nash_distance: Whether to show distance from agreement to Nash point.
+        show_kalai_distance: Whether to show distance from agreement to Kalai point.
+        show_ks_distance: Whether to show distance from agreement to Kalai-Smorodinsky point.
+        show_max_welfare_distance: Whether to show distance to max welfare point.
+        mark_pareto_points: Whether to mark Pareto optimal outcomes.
+        mark_all_outcomes: Whether to mark all possible outcomes.
+        mark_nash_points: Whether to mark Nash bargaining solution.
+        mark_kalai_points: Whether to mark Kalai proportional solution.
+        mark_ks_points: Whether to mark Kalai-Smorodinsky solution.
+        mark_max_welfare_points: Whether to mark maximum welfare points.
+        show_max_relative_welfare_distance: Whether to show distance to max relative welfare.
+        show_reserved: Whether to shade regions below reserved values.
+        show_total_time: Whether to show total negotiation time in annotation.
+        show_relative_time: Whether to show relative time (0-1) in annotation.
+        show_n_steps: Whether to show number of steps in annotation.
+        end_reason: Text describing why negotiation ended.
+        extra_annotation: Additional text to include in annotation.
+        name_map: Mapping from negotiator IDs to display names.
+        colors: List of colors for each negotiator's markers.
+        markers: List of marker symbols for each negotiator.
+        colormap: Colormap name for auto-generating colors.
+        fig: Existing Plotly figure to add traces to, or None to create new.
+        row: Row index in subplot grid (1-indexed).
+        col: Column index in subplot grid (1-indexed).
+        colorizer: Function to compute opacity for each trace element.
+        fast: Whether to skip expensive calculations (Pareto, Nash, etc.).
     """
     if not colorizer:
         colorizer = default_colorizer
@@ -1115,18 +1079,18 @@ def plot_offline_run(
     mark_max_welfare_points: bool = True,
     show: bool = True,
 ):
-    """Plot offline run using plotly.
+    """Plots a negotiation run from saved trace data (without a live mechanism).
 
     Args:
-        trace: Trace.
-        ids: Ids.
-        ufuns: Ufuns.
-        agreement: Agreement.
-        timedout: Timedout.
-        broken: Broken.
-        has_error: Has error.
-        errstr: Error string.
-        names: Names.
+        trace: List of trace elements recording all offers made during negotiation.
+        ids: List of negotiator IDs in the order they participated.
+        ufuns: List of utility functions corresponding to each negotiator.
+        agreement: The final agreement outcome, or None if no agreement.
+        timedout: Whether the negotiation ended due to timeout.
+        broken: Whether the negotiation was broken/terminated early.
+        has_error: Whether an error occurred during negotiation.
+        errstr: Error message string if has_error is True.
+        names: Display names for negotiators (defaults to IDs if None).
     """
     if names is None:
         names = [_ for _ in ids]
@@ -1329,10 +1293,10 @@ def plot_mechanism_run(
     mark_max_welfare_points: bool = True,
     show: bool = True,
 ):
-    """Plot mechanism run using plotly.
+    """Plots a complete visualization of a negotiation mechanism run.
 
     Args:
-        mechanism: Mechanism.
+        mechanism: The mechanism object containing negotiation state and history.
     """
     assert not (no2d and only2d), "Cannot specify no2d and only2d together"
 

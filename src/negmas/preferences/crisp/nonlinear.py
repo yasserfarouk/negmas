@@ -89,13 +89,15 @@ class NonLinearAggregationUtilityFunction(StationaryMixin, UtilityFunction):
         *args,
         **kwargs,
     ) -> None:
-        """Initialize the instance.
+        """Initialize the nonlinear aggregation utility function.
 
         Args:
-            values: Values.
-            f: F.
-            *args: Additional positional arguments.
-            **kwargs: Additional keyword arguments.
+            values: Mappings from issue values to utility values, either as a dict
+                keyed by issue name or a list ordered by issue index.
+            f: Nonlinear aggregation function that combines per-issue utilities into
+                a single utility value.
+            *args: Additional positional arguments passed to parent class.
+            **kwargs: Additional keyword arguments passed to parent class.
         """
         super().__init__(*args, **kwargs)
         if isinstance(values, dict):
@@ -320,17 +322,17 @@ class HyperRectangleUtilityFunction(StationaryMixin, UtilityFunction):
         *args,
         **kwargs,
     ) -> None:
-        """Initialize the instance.
+        """Initialize the hyper-rectangle utility function.
 
         Args:
-            outcome_ranges: Outcome ranges.
-            utilities: Utilities.
-            weights: Weights.
-            ignore_issues_not_in_input: Ignore issues not in input.
-            ignore_failing_range_utilities: Ignore failing range utilities.
-            bias: Bias.
-            *args: Additional positional arguments.
-            **kwargs: Additional keyword arguments.
+            outcome_ranges: Hyper-rectangular regions defining subsets of the outcome space.
+            utilities: Utility values or functions for each region.
+            weights: Multipliers for combining each region's utility contribution.
+            ignore_issues_not_in_input: Skip regions with issues missing from the outcome.
+            ignore_failing_range_utilities: Continue if a region's utility computation fails.
+            bias: Constant offset added to the final utility.
+            *args: Additional positional arguments passed to parent class.
+            **kwargs: Additional keyword arguments passed to parent class.
         """
         super().__init__(*args, **kwargs)
         self.outcome_ranges = list(outcome_ranges)
@@ -345,7 +347,7 @@ class HyperRectangleUtilityFunction(StationaryMixin, UtilityFunction):
         """Represents the function as XML
 
         Args:
-            issues:
+            issues: The issues defining the negotiation domain structure.
 
         Examples:
 
@@ -582,15 +584,15 @@ class NonlinearHyperRectangleUtilityFunction(StationaryMixin, UtilityFunction):
         reserved_value: float = float("-inf"),
         id=None,
     ) -> None:
-        """Initialize the instance.
+        """Initialize the nonlinear hyper-rectangle utility function.
 
         Args:
-            hypervolumes: Hypervolumes.
-            mappings: Mappings.
-            f: F.
-            name: Name.
-            reserved_value: Reserved value.
-            id: Id.
+            hypervolumes: Hyper-rectangular regions partitioning the outcome space.
+            mappings: Utility functions applied within each corresponding region.
+            f: Nonlinear aggregation function combining utilities from active regions.
+            name: Optional name for this utility function.
+            reserved_value: Utility value returned when no agreement is reached.
+            id: Optional unique identifier for this utility function.
         """
         super().__init__(name=name, reserved_value=reserved_value, id=id)
         self.hypervolumes = hypervolumes

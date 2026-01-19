@@ -43,23 +43,20 @@ class GBThread:
 
     @property
     def accepted_offers(self) -> list[Outcome]:
-        """Accepted offers.
-
-        Returns:
-            list[Outcome]: The result.
-        """
+        """Returns the list of offers that have been accepted in this thread."""
         return self.state.accepted_offers
 
     def run(
         self, action: dict[str, GBAction] | None = None
     ) -> tuple[ThreadState, GBResponse | None]:
-        """Run.
+        """Execute one round of the negotiation thread.
 
         Args:
-            action: Action.
+            action: Optional mapping of negotiator IDs to their pre-specified actions.
+                    If None, the thread's negotiator proposes and responders respond.
 
         Returns:
-            tuple[ThreadState, GBResponse | None]: The result.
+            A tuple of the updated thread state and the optional evaluation response.
         """
         mechanism_state: GBState = self.mechanism.state  #
         history: list[GBState] = self.mechanism.history  #
@@ -159,11 +156,22 @@ class BaseGBMechanism(Mechanism[GBNMI, GBState, GBAction, GBNegotiator]):
         dest_separator: str | None = ";",
         **kwargs,
     ):
-        """Initialize the instance.
+        """Create a new GB mechanism with the specified configuration.
 
         Args:
-            *args: Additional positional arguments.
-            **kwargs: Additional keyword arguments.
+            dynamic_entry: Whether negotiators can join after the mechanism starts.
+            extra_callbacks: Whether to call additional callbacks on partner actions.
+            check_offers: Whether to validate offers against the outcome space.
+            enforce_issue_types: Whether to enforce correct types for issue values.
+            cast_offers: Whether to cast offer values to expected types.
+            end_on_no_response: Whether to end negotiation when a negotiator stops responding.
+            ignore_negotiator_exceptions: Whether to ignore exceptions from negotiators.
+            parallel: Whether to run threads in parallel (randomized order) or serial.
+            sync_calls: Whether to use synchronous callback execution.
+            initial_state: Optional initial state for the mechanism.
+            dest_separator: Separator for combining destination negotiator IDs, or None to disable.
+            *args: Additional positional arguments passed to the parent class.
+            **kwargs: Additional keyword arguments passed to the parent class.
         """
         self.dest_separator = dest_separator
         super().__init__(
@@ -204,23 +212,20 @@ class BaseGBMechanism(Mechanism[GBNMI, GBState, GBAction, GBNegotiator]):
         return self._current_state
 
     def set_sync_call(self, v: bool):
-        """Set sync call.
-
-        Args:
-            v: V.
-        """
+        """Enable or disable synchronous callback execution."""
         self._sync_call = v
 
     def run_threads(
         self, action: dict[str, GBAction] | None = None
     ) -> dict[str, tuple[ThreadState, GBResponse | None]]:
-        """Run threads.
+        """Execute all negotiation threads for one round.
 
         Args:
-            action: Action.
+            action: Optional mapping of negotiator IDs to their pre-specified actions.
+                    If None, each thread's negotiator proposes independently.
 
         Returns:
-            dict[str, tuple[ThreadState, GBResponse | None]]: The result.
+            A mapping from negotiator IDs to their thread state and evaluation response.
         """
 
         def _do_run(idd, thread: GBThread):
@@ -251,18 +256,10 @@ class BaseGBMechanism(Mechanism[GBNMI, GBState, GBAction, GBNegotiator]):
 
     @property
     def full_trace(self) -> list[TraceElement]:
-        """Full trace.
-
-        Returns:
-            list[TraceElement]: The result.
-        """
+        """Returns the complete negotiation history with timing, offers, responses, and metadata."""
 
         def response(state: GBState):
-            """Response.
-
-            Args:
-                state: Current state.
-            """
+            """Determine the response status string from the given state."""
             if state.timedout:
                 return "timedout"
             if state.ended:
@@ -377,38 +374,38 @@ class BaseGBMechanism(Mechanism[GBNMI, GBState, GBAction, GBNegotiator]):
         simple_offers_view=False,
         **kwargs,
     ):
-        """Plot.
+        """Visualize the negotiation session showing offers, utilities, and outcome metrics.
 
         Args:
-            plotting_negotiators: Plotting negotiators.
-            save_fig: Save fig.
-            path: Path.
-            fig_name: Fig name.
-            ignore_none_offers: Ignore none offers.
-            with_lines: With lines.
-            show_agreement: Show agreement.
-            show_pareto_distance: Show pareto distance.
-            show_nash_distance: Show nash distance.
-            show_kalai_distance: Show kalai distance.
-            show_max_welfare_distance: Show max welfare distance.
-            show_max_relative_welfare_distance: Show max relative welfare distance.
-            show_end_reason: Show end reason.
-            show_annotations: Show annotations.
-            show_reserved: Show reserved.
-            show_total_time: Show total time.
-            show_relative_time: Show relative time.
-            show_n_steps: Show n steps.
-            colors: Colors.
-            markers: Markers.
-            colormap: Colormap.
-            ylimits: Ylimits.
-            common_legend: Common legend.
-            xdim: Xdim.
-            colorizer: Colorizer.
-            only2d: Only2d.
-            fast: Fast.
-            simple_offers_view: Simple offers view.
-            **kwargs: Additional keyword arguments.
+            plotting_negotiators: Indices or IDs of the two negotiators to plot.
+            save_fig: Whether to save the figure to disk.
+            path: Directory path for saving the figure.
+            fig_name: Filename for the saved figure.
+            ignore_none_offers: Whether to skip None offers in the plot.
+            with_lines: Whether to connect offer points with lines.
+            show_agreement: Whether to highlight the final agreement point.
+            show_pareto_distance: Whether to display distance to Pareto frontier.
+            show_nash_distance: Whether to display distance to Nash solution.
+            show_kalai_distance: Whether to display distance to Kalai-Smorodinsky solution.
+            show_max_welfare_distance: Whether to display distance to max welfare point.
+            show_max_relative_welfare_distance: Whether to display distance to max relative welfare.
+            show_end_reason: Whether to annotate the reason for negotiation end.
+            show_annotations: Whether to show offer annotations on the plot.
+            show_reserved: Whether to show reserved value lines.
+            show_total_time: Whether to display total elapsed time.
+            show_relative_time: Whether to display relative time progress.
+            show_n_steps: Whether to display the number of negotiation steps.
+            colors: Custom color sequence for plotting negotiators.
+            markers: Custom marker styles for each negotiator.
+            colormap: Matplotlib colormap name for gradient coloring.
+            ylimits: Y-axis limits as (min, max) tuple.
+            common_legend: Whether to use a shared legend for all subplots.
+            xdim: X-axis dimension, either "step" or "time".
+            colorizer: Custom function for determining point colors.
+            only2d: Whether to show only the 2D utility plot.
+            fast: Whether to use fast rendering (less detail).
+            simple_offers_view: Whether to use simplified offer visualization.
+            **kwargs: Additional arguments passed to the plotting function.
         """
         from negmas.plots.util import default_colorizer, plot_mechanism_run
 
@@ -457,13 +454,16 @@ class BaseGBMechanism(Mechanism[GBNMI, GBState, GBAction, GBNegotiator]):
         role: str | None = None,
         ufun: BaseUtilityFunction | None = None,
     ) -> bool | None:
-        """Add.
+        """Add a negotiator to the mechanism and create its corresponding thread.
 
         Args:
-            negotiator: Negotiator.
+            negotiator: The negotiator instance to add to this mechanism.
+            preferences: Optional preferences to assign to the negotiator.
+            role: Optional role identifier for the negotiator.
+            ufun: Optional utility function to assign to the negotiator.
 
         Returns:
-            bool | None: The result.
+            True if successfully added, False if rejected, None if already present.
         """
         added = super().add(negotiator, preferences=preferences, role=role, ufun=ufun)
         if added:
@@ -520,11 +520,30 @@ class GBMechanism(BaseGBMechanism):
         initial_state: GBState | None = None,
         **kwargs,
     ):
-        """Initialize the instance.
+        """Create a GB mechanism with evaluation strategies and offering constraints.
 
         Args:
-            *args: Additional positional arguments.
-            **kwargs: Additional keyword arguments.
+            evaluator_type: Global evaluation strategy class for determining negotiation outcomes.
+            evaluator_params: Parameters to pass when instantiating the global evaluator.
+            local_evaluator_type: Per-thread evaluation strategy class for local decisions.
+            local_evaluator_params: Parameters to pass when instantiating local evaluators.
+            constraint_type: Global constraint class limiting valid offers.
+            constraint_params: Parameters to pass when instantiating the global constraint.
+            local_constraint_type: Per-thread constraint class limiting valid offers.
+            local_constraint_params: Parameters to pass when instantiating local constraints.
+            response_combiner: Function to combine multiple thread responses into a final response.
+            dynamic_entry: Whether negotiators can join after the mechanism starts.
+            extra_callbacks: Whether to call additional callbacks on partner actions.
+            check_offers: Whether to validate offers against the outcome space.
+            enforce_issue_types: Whether to enforce correct types for issue values.
+            cast_offers: Whether to cast offer values to expected types.
+            end_on_no_response: Whether to end negotiation when a negotiator stops responding.
+            ignore_negotiator_exceptions: Whether to ignore exceptions from negotiators.
+            parallel: Whether to run threads in parallel (randomized order) or serial.
+            sync_calls: Whether to use synchronous callback execution.
+            initial_state: Optional initial state for the mechanism.
+            *args: Additional positional arguments passed to the parent class.
+            **kwargs: Additional keyword arguments passed to the parent class.
         """
         if not evaluator_type and not local_evaluator_type:
             raise ValueError(
@@ -602,13 +621,16 @@ class GBMechanism(BaseGBMechanism):
         role: str | None = None,
         ufun: BaseUtilityFunction | None = None,
     ) -> bool | None:
-        """Add.
+        """Add a negotiator to the mechanism with its evaluator and constraint.
 
         Args:
-            negotiator: Negotiator.
+            negotiator: The negotiator instance to add to this mechanism.
+            preferences: Optional preferences to assign to the negotiator.
+            role: Optional role identifier for the negotiator.
+            ufun: Optional utility function to assign to the negotiator.
 
         Returns:
-            bool | None: The result.
+            True if successfully added, False if rejected, None if already present.
         """
         added = super().add(negotiator, preferences=preferences, role=role, ufun=ufun)
         if added:
@@ -647,25 +669,21 @@ class GBMechanism(BaseGBMechanism):
         return added
 
     def set_sync_call(self, v: bool):
-        """Set sync call.
-
-        Args:
-            v: V.
-        """
+        """Enable or disable synchronous callback execution."""
         self._sync_call = v
 
     def __call__(  #
         self, state: GBState, action: dict[str, GBAction] | None = None
     ) -> MechanismStepResult:
         # print(f"Round {self._current_state.step}")
-        """Make instance callable.
+        """Execute one step of the mechanism, processing all threads and evaluating results.
 
         Args:
-            state: Current state.
-            action: Action.
+            state: The current mechanism state containing thread states and history.
+            action: Optional mapping of negotiator IDs to pre-specified actions.
 
         Returns:
-            MechanismStepResult: The result.
+            The step result containing updated state and any agreement reached.
         """
         results = self.run_threads(action)
         # if state.step > self.outcome_space.cardinality:
@@ -709,18 +727,10 @@ class GBMechanism(BaseGBMechanism):
 
     @property
     def full_trace(self) -> list[TraceElement]:
-        """Full trace.
-
-        Returns:
-            list[TraceElement]: The result.
-        """
+        """Returns the complete negotiation history with timing, offers, responses, and metadata."""
 
         def response(state: GBState):
-            """Response.
-
-            Args:
-                state: Current state.
-            """
+            """Determine the response status string from the given state."""
             if state.timedout:
                 return "timedout"
             if state.ended:
@@ -833,38 +843,38 @@ class GBMechanism(BaseGBMechanism):
         simple_offers_view=False,
         **kwargs,
     ):
-        """Plot.
+        """Visualize the negotiation session showing offers, utilities, and outcome metrics.
 
         Args:
-            plotting_negotiators: Plotting negotiators.
-            save_fig: Save fig.
-            path: Path.
-            fig_name: Fig name.
-            ignore_none_offers: Ignore none offers.
-            with_lines: With lines.
-            show_agreement: Show agreement.
-            show_pareto_distance: Show pareto distance.
-            show_nash_distance: Show nash distance.
-            show_kalai_distance: Show kalai distance.
-            show_max_welfare_distance: Show max welfare distance.
-            show_max_relative_welfare_distance: Show max relative welfare distance.
-            show_end_reason: Show end reason.
-            show_annotations: Show annotations.
-            show_reserved: Show reserved.
-            show_total_time: Show total time.
-            show_relative_time: Show relative time.
-            show_n_steps: Show n steps.
-            colors: Colors.
-            markers: Markers.
-            colormap: Colormap.
-            ylimits: Ylimits.
-            common_legend: Common legend.
-            xdim: Xdim.
-            colorizer: Colorizer.
-            only2d: Only2d.
-            fast: Fast.
-            simple_offers_view: Simple offers view.
-            **kwargs: Additional keyword arguments.
+            plotting_negotiators: Indices or IDs of the two negotiators to plot.
+            save_fig: Whether to save the figure to disk.
+            path: Directory path for saving the figure.
+            fig_name: Filename for the saved figure.
+            ignore_none_offers: Whether to skip None offers in the plot.
+            with_lines: Whether to connect offer points with lines.
+            show_agreement: Whether to highlight the final agreement point.
+            show_pareto_distance: Whether to display distance to Pareto frontier.
+            show_nash_distance: Whether to display distance to Nash solution.
+            show_kalai_distance: Whether to display distance to Kalai-Smorodinsky solution.
+            show_max_welfare_distance: Whether to display distance to max welfare point.
+            show_max_relative_welfare_distance: Whether to display distance to max relative welfare.
+            show_end_reason: Whether to annotate the reason for negotiation end.
+            show_annotations: Whether to show offer annotations on the plot.
+            show_reserved: Whether to show reserved value lines.
+            show_total_time: Whether to display total elapsed time.
+            show_relative_time: Whether to display relative time progress.
+            show_n_steps: Whether to display the number of negotiation steps.
+            colors: Custom color sequence for plotting negotiators.
+            markers: Custom marker styles for each negotiator.
+            colormap: Matplotlib colormap name for gradient coloring.
+            ylimits: Y-axis limits as (min, max) tuple.
+            common_legend: Whether to use a shared legend for all subplots.
+            xdim: X-axis dimension, either "step" or "time".
+            colorizer: Custom function for determining point colors.
+            only2d: Whether to show only the 2D utility plot.
+            fast: Whether to use fast rendering (less detail).
+            simple_offers_view: Whether to use simplified offer visualization.
+            **kwargs: Additional arguments passed to the plotting function.
         """
         from negmas.plots.util import default_colorizer, plot_mechanism_run
 

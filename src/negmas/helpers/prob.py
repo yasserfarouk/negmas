@@ -39,13 +39,13 @@ class Real(Distribution):
         scale: float = 0.0,
         **kwargs,
     ):
-        """Initialize the instance.
+        """Initialize a Real distribution representing a single deterministic value.
 
         Args:
-            loc: Loc.
-            type: Type.
-            scale: Scale.
-            **kwargs: Additional keyword arguments.
+            loc: The location (value) of this deterministic distribution.
+            type: Distribution type name (defaults to "uniform" for compatibility).
+            scale: Must be zero or near-zero since Real represents a single point.
+            **kwargs: Additional keyword arguments (ignored).
         """
         loc = float(loc)
         if not (0 <= scale <= EPSILON):
@@ -57,22 +57,11 @@ class Real(Distribution):
         self._type = type if type else "uniform"
 
     def __float__(self) -> float:
-        """float  .
-
-        Returns:
-            float: The result.
-        """
+        """Convert this distribution to a float by returning its location value."""
         return self.loc
 
     def __call__(self, val: float) -> float:
-        """Make instance callable.
-
-        Args:
-            val: Val.
-
-        Returns:
-            float: The result.
-        """
+        """Return the probability density at the given value (1.0 if equal to loc, else 0.0)."""
         return 1.0 if abs(val - self.loc) < 1e-10 else 0.0
 
     @property
@@ -91,11 +80,7 @@ class Real(Distribution):
         # super().__init__(type=type if type else "uniform")
 
     def type(self) -> str:
-        """Type.
-
-        Returns:
-            str: The result.
-        """
+        """Return the distribution type name."""
         return self._type
 
     def mean(self) -> float:
@@ -255,18 +240,14 @@ class ScipyDistribution(Distribution):
         self._type = type
 
     def __copy__(self):
-        """copy  ."""
+        """Create a shallow copy of this distribution."""
         cls = self.__class__
         result = cls.__new__(cls)
         result.__dict__.update(self.__dict__)
         return result
 
     def __deepcopy__(self, memo):
-        """deepcopy  .
-
-        Args:
-            memo: Memo.
-        """
+        """Create a deep copy of this distribution."""
         cls = self.__class__
         result = cls.__new__(cls)
         memo[id(self)] = result
@@ -275,11 +256,7 @@ class ScipyDistribution(Distribution):
         return result
 
     def type(self) -> str:
-        """Type.
-
-        Returns:
-            str: The result.
-        """
+        """Return the distribution type name (e.g., 'uniform', 'normal')."""
         return self._type
 
     def _make_dist(self, type: str, loc: float, scale: float):
@@ -292,20 +269,16 @@ class ScipyDistribution(Distribution):
 
     @property
     def loc(self):
-        """Loc."""
+        """Return the location parameter of the distribution (typically the mean)."""
         return self._dist.kwds.get("loc", 0.5)
 
     @property
     def scale(self):
-        """Scale."""
+        """Return the scale parameter of the distribution (typically the standard deviation)."""
         return self._dist.kwds.get("scale", 0.0)
 
     def mean(self) -> float:
-        """Mean.
-
-        Returns:
-            float: The result.
-        """
+        """Calculate and return the mean of the distribution."""
         if self._type != "uniform":
             raise NotImplementedError(
                 "Only uniform distributions are supported for now"
@@ -324,24 +297,17 @@ class ScipyDistribution(Distribution):
         return self._dist.cdf(mx) - self._dist.cdf(mn)
 
     def sample(self, size: int = 1) -> np.ndarray:
-        """Sample.
-
-        Args:
-            size: Size.
-
-        Returns:
-            np.ndarray: The result.
-        """
+        """Draw random samples from the distribution."""
         return self._dist.rvs(size=size)
 
     @property
     def min(self):
-        """Min."""
+        """Return the minimum possible value of the distribution."""
         return self.loc - self.scale
 
     @property
     def max(self):
-        """Max."""
+        """Return the maximum possible value of the distribution."""
         return self.loc + self.scale
 
     def is_gaussian(self):
@@ -361,31 +327,19 @@ class ScipyDistribution(Distribution):
         return self.prob(val)
 
     def __add__(self, other):
-        """add  .
-
-        Args:
-            other: Other.
-        """
+        """Return the distribution for the sum of samples from self and other."""
         if isinstance(other, float) and self._type in ("uniform", "normal"):
             self._dist = self._make_dist(self._type, self.loc + other, self.scale)
         raise NotImplementedError()
 
     def __sub__(self, other):
-        """sub  .
-
-        Args:
-            other: Other.
-        """
+        """Return the distribution for the difference between samples from self and other."""
         if isinstance(other, float) and self._type in ("uniform", "normal"):
             self._dist = self._make_dist(self._type, self.loc - other, self.scale)
         raise NotImplementedError()
 
     def __mul__(self, weight: float):
-        """mul  .
-
-        Args:
-            weight: Weight.
-        """
+        """Return the distribution scaled by the given weight factor."""
         if isinstance(weight, float) and self._type in ("uniform", "normal"):
             self._dist = self._make_dist(
                 self._type, self.loc * weight, self.scale * weight
@@ -447,7 +401,7 @@ class ScipyDistribution(Distribution):
         return self.mean()
 
     def __str__(self):
-        """str  ."""
+        """Return a human-readable string representation of the distribution."""
         if self._type == "uniform":
             return f"U({self.loc}, {self.loc + self.scale})"
         if self._type == "normal":
@@ -463,28 +417,28 @@ class UniformDistribution(ScipyDistribution):
     def __init__(
         self, loc: float = 0.0, scale: float = 1.0, *, type: str = "uniform", **kwargs
     ) -> None:
-        """Initialize the instance.
+        """Initialize a uniform distribution.
 
         Args:
-            loc: Loc.
-            scale: Scale.
-            **kwargs: Additional keyword arguments.
+            loc: The lower bound of the distribution range.
+            scale: The width of the distribution (upper bound = loc + scale).
+            **kwargs: Additional keyword arguments passed to scipy.stats.uniform.
         """
         super().__init__(loc=loc, scale=scale, type="uniform", **kwargs)
 
 
 class NormalDistribution(ScipyDistribution):
-    """A `ScipyDistribution` reprsenting a unifrom distribution"""
+    """A `ScipyDistribution` representing a normal (Gaussian) distribution"""
 
     def __init__(
         self, loc: float = 0.0, scale: float = 1.0, *, type: str = "norm", **kwargs
     ) -> None:
-        """Initialize the instance.
+        """Initialize a normal (Gaussian) distribution.
 
         Args:
-            loc: Loc.
-            scale: Scale.
-            **kwargs: Additional keyword arguments.
+            loc: The mean of the distribution.
+            scale: The standard deviation of the distribution.
+            **kwargs: Additional keyword arguments passed to scipy.stats.norm.
         """
         super().__init__(loc=loc, scale=scale, type="norm", **kwargs)
 

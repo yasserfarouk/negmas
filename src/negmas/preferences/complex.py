@@ -68,9 +68,9 @@ class WeightedUtilityFunction(_DependenceMixin, BaseUtilityFunction):
         """Initialize the instance.
 
         Args:
-            ufuns: Ufuns.
-            weights: Weights.
-            **kwargs: Additional keyword arguments.
+            ufuns: Collection of component utility functions to combine.
+            weights: Coefficients for the weighted sum (defaults to equal weights if not provided).
+            **kwargs: Additional keyword arguments passed to the base class.
         """
         super().__init__(**kwargs)
         self.values: list[BaseUtilityFunction] = list(ufuns)
@@ -199,9 +199,9 @@ class ComplexNonlinearUtilityFunction(_DependenceMixin, BaseUtilityFunction):
         """Initialize the instance.
 
         Args:
-            ufuns: Ufuns.
-            combination_function: Combination function.
-            **kwargs: Additional keyword arguments.
+            ufuns: Collection of component utility functions to combine.
+            combination_function: Function that takes an iterable of utility values and returns the combined utility.
+            **kwargs: Additional keyword arguments passed to the base class.
         """
         super().__init__(**kwargs)
         self.ufuns = list(ufuns)

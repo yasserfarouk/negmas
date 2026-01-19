@@ -95,8 +95,8 @@ class MappingUtilityFunction(StationaryMixin, UtilityFunction):
         """Initialize the instance.
 
         Args:
-            mapping: Mapping.
-            default: Default.
+            mapping: Either a callable taking outcomes to utilities, or a dict mapping outcomes to utility values.
+            default: The utility value returned when evaluation fails or outcome is not in the mapping.
             *args: Additional positional arguments.
             **kwargs: Additional keyword arguments.
         """
@@ -216,13 +216,13 @@ class MappingUtilityFunction(StationaryMixin, UtilityFunction):
         max_cardinality: int = 10000,
     ):
         # todo: corrrect this for continuous outcome-spaces
-        """Random.
+        """Generate a random mapping utility function.
 
         Args:
-            outcome_space: Outcome space.
-            reserved_value: Reserved value.
-            normalized: Normalized.
-            max_cardinality: Max cardinality.
+            outcome_space: The space of possible outcomes to generate mappings for.
+            reserved_value: The utility for no agreement or range (min, max) for random selection.
+            normalized: If True, normalize utility values to [0, 1] range.
+            max_cardinality: Maximum number of outcomes to sample for discrete approximation.
         """
         if not isinstance(reserved_value, Iterable):
             reserved_value = (reserved_value, reserved_value)

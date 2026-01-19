@@ -108,22 +108,11 @@ class BaseUtilityFunction(Preferences, ABC):
 
     @abstractmethod
     def eval(self, offer: Outcome) -> Value:
-        """Eval.
-
-        Args:
-            offer: Offer being considered.
-
-        Returns:
-            Value: The result.
-        """
+        """Evaluate the utility of an offer and return its value."""
         ...
 
     def to_stationary(self: T) -> T:
-        """To stationary.
-
-        Returns:
-            T: The result.
-        """
+        """Convert this utility function to a stationary (time-independent) version."""
         raise NotImplementedError(
             f"I do not know how to convert a ufun of type {self.type_name} to a stationary ufun."
         )
@@ -135,16 +124,19 @@ class BaseUtilityFunction(Preferences, ABC):
         outcomes: Iterable[Outcome] | None = None,
         max_cardinality=100_000,
     ) -> tuple[Outcome, Outcome]:
-        """Extreme outcomes.
+        """Find the worst and best outcomes by evaluating utilities.
 
         Args:
-            outcome_space: Outcome space.
-            issues: Issues.
-            outcomes: Outcomes.
-            max_cardinality: Max cardinality.
+            outcome_space: The outcome space to search. If None, uses the ufun's outcome space.
+            issues: Alternative to outcome_space - list of issues defining the space.
+            outcomes: Alternative to outcome_space - explicit iterable of outcomes to evaluate.
+            max_cardinality: Maximum number of outcomes to enumerate or sample.
 
         Returns:
-            tuple[Outcome, Outcome]: The result.
+            A tuple of (worst_outcome, best_outcome).
+
+        Raises:
+            ValueError: If no outcomes can be found to evaluate.
         """
         check_one_at_most(outcome_space, issues, outcomes)
         outcome_space = os_or_none(outcome_space, issues, outcomes)
@@ -209,38 +201,22 @@ class BaseUtilityFunction(Preferences, ABC):
         return w, b
 
     def max(self) -> Value:
-        """Max.
-
-        Returns:
-            Value: The result.
-        """
+        """Return the maximum utility value over the outcome space."""
         _, mx = self.minmax()
         return mx
 
     def min(self) -> Value:
-        """Min.
-
-        Returns:
-            Value: The result.
-        """
+        """Return the minimum utility value over the outcome space."""
         mn, _ = self.minmax()
         return mn
 
     def best(self) -> Outcome:
-        """Best.
-
-        Returns:
-            Outcome: The result.
-        """
+        """Return the outcome with the highest utility value."""
         _, mx = self.extreme_outcomes()
         return mx
 
     def worst(self) -> Outcome:
-        """Worst.
-
-        Returns:
-            Outcome: The result.
-        """
+        """Return the outcome with the lowest utility value."""
         mn, _ = self.extreme_outcomes()
         return mn
 
@@ -310,40 +286,31 @@ class BaseUtilityFunction(Preferences, ABC):
         self._cached_inverse = None
 
     def is_volatile(self) -> bool:
-        """Check if volatile.
-
-        Returns:
-            bool: The result.
-        """
+        """Return True if this utility function can change between calls."""
         return True
 
     def is_session_dependent(self) -> bool:
-        """Check if session dependent.
-
-        Returns:
-            bool: The result.
-        """
+        """Return True if this utility function depends on the negotiation session."""
         return True
 
     def is_state_dependent(self) -> bool:
-        """Check if state dependent.
-
-        Returns:
-            bool: The result.
-        """
+        """Return True if this utility function depends on the negotiation state."""
         return True
 
     def scale_by(
         self: T, scale: float, scale_reserved=True
     ) -> WeightedUtilityFunction | T:
-        """Scale by.
+        """Return a new ufun with all utility values scaled by the given factor.
 
         Args:
-            scale: Scale.
-            scale_reserved: Scale reserved.
+            scale: The scaling factor to multiply all utility values by. Must be non-negative.
+            scale_reserved: If True, also scale the reserved value by the same factor.
 
         Returns:
-            WeightedUtilityFunction | T: The result.
+            A new WeightedUtilityFunction wrapping this ufun with the given scale applied.
+
+        Raises:
+            ValueError: If scale is negative.
         """
         if scale < 0:
             raise ValueError(f"Cannot scale with a negative multiplier ({scale})")
@@ -362,17 +329,17 @@ class BaseUtilityFunction(Preferences, ABC):
         outcomes: Sequence[Outcome] | None = None,
         rng: tuple[float, float] | None = None,
     ) -> T:
-        """Scale min for.
+        """Scale utilities so the minimum value equals the target over the given space.
 
         Args:
-            to: To.
-            outcome_space: Outcome space.
-            issues: Issues.
-            outcomes: Outcomes.
-            rng: Rng.
+            to: The target value for the minimum utility.
+            outcome_space: The outcome space to compute minimum over.
+            issues: Alternative to outcome_space - list of issues defining the space.
+            outcomes: Alternative to outcome_space - explicit list of outcomes.
+            rng: Pre-computed (min, max) range to avoid recomputation.
 
         Returns:
-            T: The result.
+            A new scaled utility function.
         """
         if rng is None:
             mn, _ = self.minmax(outcome_space, issues, outcomes)
@@ -382,14 +349,14 @@ class BaseUtilityFunction(Preferences, ABC):
         return self.scale_by(scale)
 
     def scale_min(self: T, to: float, rng: tuple[float, float] | None = None) -> T:
-        """Scale min.
+        """Scale utilities so the minimum value equals the target over the ufun's outcome space.
 
         Args:
-            to: To.
-            rng: Rng.
+            to: The target value for the minimum utility.
+            rng: Pre-computed (min, max) range to avoid recomputation.
 
         Returns:
-            T: The result.
+            A new scaled utility function.
         """
         return self.scale_min_for(to, outcome_space=self.outcome_space, rng=rng)
 
@@ -401,17 +368,17 @@ class BaseUtilityFunction(Preferences, ABC):
         outcomes: Sequence[Outcome] | None = None,
         rng: tuple[float, float] | None = None,
     ) -> T:
-        """Scale max for.
+        """Scale utilities so the maximum value equals the target over the given space.
 
         Args:
-            to: To.
-            outcome_space: Outcome space.
-            issues: Issues.
-            outcomes: Outcomes.
-            rng: Rng.
+            to: The target value for the maximum utility.
+            outcome_space: The outcome space to compute maximum over.
+            issues: Alternative to outcome_space - list of issues defining the space.
+            outcomes: Alternative to outcome_space - explicit list of outcomes.
+            rng: Pre-computed (min, max) range to avoid recomputation.
 
         Returns:
-            T: The result.
+            A new scaled utility function.
         """
         if rng is None:
             _, mx = self.minmax(outcome_space, issues, outcomes)
@@ -421,14 +388,14 @@ class BaseUtilityFunction(Preferences, ABC):
         return self.scale_by(scale)
 
     def scale_max(self: T, to: float, rng: tuple[float, float] | None = None) -> T:
-        """Scale max.
+        """Scale utilities so the maximum value equals the target over the ufun's outcome space.
 
         Args:
-            to: To.
-            rng: Rng.
+            to: The target value for the maximum utility.
+            rng: Pre-computed (min, max) range to avoid recomputation.
 
         Returns:
-            T: The result.
+            A new scaled utility function.
         """
         return self.scale_max_for(to, outcome_space=self.outcome_space, rng=rng)
 
@@ -437,14 +404,19 @@ class BaseUtilityFunction(Preferences, ABC):
         to: tuple[float, float] = (0.0, 1.0),
         outcome_space: OutcomeSpace | None = None,
     ) -> T | ConstUtilityFunction:
-        """Normalize for.
+        """Normalize utilities to the target range over the given outcome space.
 
         Args:
-            to: To.
-            outcome_space: Outcome space.
+            to: The target (min, max) range for normalized utilities. Defaults to (0.0, 1.0).
+            outcome_space: The outcome space to normalize over. If None, uses the ufun's
+                outcome space.
 
         Returns:
-            T | ConstUtilityFunction: The result.
+            A new normalized utility function. Returns a ConstUtilityFunction if the
+            original range is too small (< 1e-7).
+
+        Raises:
+            ValueError: If no outcome space is provided or defined for the ufun.
         """
         max_cardinality: int = MAX_CARDINALITY
         if not outcome_space:
@@ -475,14 +447,18 @@ class BaseUtilityFunction(Preferences, ABC):
     def normalize(
         self: T, to: tuple[float, float] = (0.0, 1.0), normalize_weights: bool = False
     ) -> T | ConstUtilityFunction:
-        """Normalize.
+        """Normalize utilities to the target range over the ufun's outcome space.
 
         Args:
-            to: To.
-            normalize_weights: Normalize weights.
+            to: The target (min, max) range for normalized utilities. Defaults to (0.0, 1.0).
+            normalize_weights: Currently unused, kept for API compatibility.
 
         Returns:
-            T | ConstUtilityFunction: The result.
+            A new normalized utility function. Returns a ConstUtilityFunction if the
+            original range is too small (< 1e-8).
+
+        Raises:
+            ValueError: If the ufun has no outcome space defined.
         """
         _ = normalize_weights
         from negmas.preferences import ConstUtilityFunction
@@ -508,14 +484,14 @@ class BaseUtilityFunction(Preferences, ABC):
     def shift_by(
         self: T, offset: float, shift_reserved=True
     ) -> WeightedUtilityFunction | T:
-        """Shift by.
+        """Return a new ufun with all utility values shifted by the given offset.
 
         Args:
-            offset: Offset.
-            shift_reserved: Shift reserved.
+            offset: The amount to add to all utility values.
+            shift_reserved: If True, also shift the reserved value by the same offset.
 
         Returns:
-            WeightedUtilityFunction | T: The result.
+            A new WeightedUtilityFunction combining this ufun with a constant offset.
         """
         from negmas.preferences.complex import WeightedUtilityFunction
         from negmas.preferences.crisp.const import ConstUtilityFunction
@@ -536,17 +512,17 @@ class BaseUtilityFunction(Preferences, ABC):
         outcomes: Sequence[Outcome] | None = None,
         rng: tuple[float, float] | None = None,
     ) -> T:
-        """Shift min for.
+        """Shift utilities so the minimum value equals the target over the given space.
 
         Args:
-            to: To.
-            outcome_space: Outcome space.
-            issues: Issues.
-            outcomes: Outcomes.
-            rng: Rng.
+            to: The target value for the minimum utility.
+            outcome_space: The outcome space to compute minimum over.
+            issues: Alternative to outcome_space - list of issues defining the space.
+            outcomes: Alternative to outcome_space - explicit list of outcomes.
+            rng: Pre-computed (min, max) range to avoid recomputation.
 
         Returns:
-            T: The result.
+            A new shifted utility function.
         """
         if rng is None:
             mn, _ = self.minmax(outcome_space, issues, outcomes)
@@ -563,17 +539,17 @@ class BaseUtilityFunction(Preferences, ABC):
         outcomes: Sequence[Outcome] | None = None,
         rng: tuple[float, float] | None = None,
     ) -> T:
-        """Shift max for.
+        """Shift utilities so the maximum value equals the target over the given space.
 
         Args:
-            to: To.
-            outcome_space: Outcome space.
-            issues: Issues.
-            outcomes: Outcomes.
-            rng: Rng.
+            to: The target value for the maximum utility.
+            outcome_space: The outcome space to compute maximum over.
+            issues: Alternative to outcome_space - list of issues defining the space.
+            outcomes: Alternative to outcome_space - explicit list of outcomes.
+            rng: Pre-computed (min, max) range to avoid recomputation.
 
         Returns:
-            T: The result.
+            A new shifted utility function.
         """
         if rng is None:
             _, mx = self.minmax(outcome_space, issues, outcomes)
@@ -661,21 +637,13 @@ class BaseUtilityFunction(Preferences, ABC):
         return float(self(offer))
 
     def to_crisp(self) -> UtilityFunction:
-        """To crisp.
-
-        Returns:
-            UtilityFunction: The result.
-        """
+        """Convert this utility function to a crisp (deterministic) utility function."""
         from negmas.preferences.crisp_ufun import CrispAdapter
 
         return CrispAdapter(self)
 
     def to_prob(self) -> ProbUtilityFunction:
-        """To prob.
-
-        Returns:
-            ProbUtilityFunction: The result.
-        """
+        """Convert this utility function to a probabilistic utility function."""
         from negmas.preferences.prob_ufun import ProbAdapter
 
         return ProbAdapter(self)
@@ -683,13 +651,15 @@ class BaseUtilityFunction(Preferences, ABC):
     def to_dict(
         self, python_class_identifier=PYTHON_CLASS_IDENTIFIER
     ) -> dict[str, Any]:
-        """To dict.
+        """Serialize this utility function to a dictionary.
 
         Args:
-            python_class_identifier: Python class identifier.
+            python_class_identifier: The key used to store the Python class name
+                in the serialized dictionary. Defaults to PYTHON_CLASS_IDENTIFIER.
 
         Returns:
-            dict[str, Any]: The result.
+            A dictionary containing the serialized utility function data including
+            the outcome space, reserved value, name, and id.
         """
         d = {python_class_identifier: get_full_type_name(type(self))}
         return dict(
@@ -704,11 +674,15 @@ class BaseUtilityFunction(Preferences, ABC):
 
     @classmethod
     def from_dict(cls, d, python_class_identifier=PYTHON_CLASS_IDENTIFIER):
-        """From dict.
+        """Deserialize a utility function from a dictionary.
 
         Args:
-            d: D.
-            python_class_identifier: Python class identifier.
+            d: The dictionary containing serialized utility function data.
+            python_class_identifier: The key used to identify the Python class name
+                in the dictionary. Defaults to PYTHON_CLASS_IDENTIFIER.
+
+        Returns:
+            A new utility function instance reconstructed from the dictionary.
         """
         d.pop(python_class_identifier, None)
         d["outcome_space"] = deserialize(
@@ -1329,14 +1303,14 @@ class BaseUtilityFunction(Preferences, ABC):
         return f - s
 
     def is_not_worse(self, first: Outcome | None, second: Outcome | None) -> bool:
-        """Check if not worse.
+        """Check if the first outcome is at least as good as the second.
 
         Args:
-            first: First.
-            second: Second.
+            first: The first outcome to compare (None represents no agreement).
+            second: The second outcome to compare (None represents no agreement).
 
         Returns:
-            bool: The result.
+            True if the utility of first is greater than or equal to the utility of second.
         """
         return self.difference_prob(first, second) >= 0.0
 
@@ -1384,35 +1358,19 @@ class _FullyStatic:
     """
 
     def is_session_dependent(self) -> bool:
-        """Check if session dependent.
-
-        Returns:
-            bool: The result.
-        """
+        """Return False since fully static ufuns never depend on the negotiation session."""
         return False
 
     def is_volatile(self) -> bool:
-        """Check if volatile.
-
-        Returns:
-            bool: The result.
-        """
+        """Return False since fully static ufuns never change between calls."""
         return False
 
     def is_state_dependent(self) -> bool:
-        """Check if state dependent.
-
-        Returns:
-            bool: The result.
-        """
+        """Return False since fully static ufuns never depend on the negotiation state."""
         return False
 
     def is_stationary(self) -> bool:
-        """Check if stationary.
-
-        Returns:
-            bool: The result.
-        """
+        """Return True since fully static ufuns are always stationary."""
         return True
 
 
@@ -1422,33 +1380,17 @@ class _ExtremelyDynamic:
     """
 
     def is_session_dependent(self) -> bool:
-        """Check if session dependent.
-
-        Returns:
-            bool: The result.
-        """
+        """Return True since extremely dynamic ufuns depend on the negotiation session."""
         return True
 
     def is_volatile(self) -> bool:
-        """Check if volatile.
-
-        Returns:
-            bool: The result.
-        """
+        """Return True since extremely dynamic ufuns can change between calls."""
         return True
 
     def is_state_dependent(self) -> bool:
-        """Check if state dependent.
-
-        Returns:
-            bool: The result.
-        """
+        """Return True since extremely dynamic ufuns depend on the negotiation state."""
         return True
 
     def is_stationary(self) -> bool:
-        """Check if stationary.
-
-        Returns:
-            bool: The result.
-        """
+        """Return False since extremely dynamic ufuns are never stationary."""
         return False

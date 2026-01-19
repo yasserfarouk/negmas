@@ -635,78 +635,98 @@ class World(
             )
 
     def action_info_cols(self) -> list[tuple[str, type]]:
-        """Action info cols.
+        """Returns column definitions for action logging.
+
+        Override this method to customize the action information columns
+        stored during negotiation logging.
 
         Returns:
-            list[tuple[str, type]]: The result.
+            List of (column_name, column_type) tuples for action data.
         """
         return [("offer", str)]
 
     def extract_action_info(self, action: Any) -> list[Any]:
-        """Extract action info.
+        """Extracts loggable information from a negotiation action.
+
+        Override this method to customize what action information is stored
+        during negotiation logging.
 
         Args:
-            action: Action.
+            action: The negotiation action (e.g., an offer).
 
         Returns:
-            list[Any]: The result.
+            A list of values corresponding to action_info_cols().
         """
         return [str(action)]
 
     def agreement_info_cols(self) -> list[tuple[str, type]]:
-        """Agreement info cols.
+        """Returns column definitions for agreement logging.
+
+        Override this method to customize the agreement information columns
+        stored during negotiation logging.
 
         Returns:
-            list[tuple[str, type]]: The result.
+            List of (column_name, column_type) tuples for agreement data.
         """
         return [("agreement", str)]
 
     def extract_agreement_info(self, agreement: Outcome | None) -> list[Any]:
-        """Extract agreement info.
+        """Extracts loggable information from a negotiation agreement.
+
+        Override this method to customize what agreement information is stored
+        during negotiation logging.
 
         Args:
-            agreement: Agreement.
+            agreement: The negotiation outcome/agreement, or None if no agreement.
 
         Returns:
-            list[Any]: The result.
+            A list of values corresponding to agreement_info_cols().
         """
         return [str(agreement)] if agreement else [""]
 
     def extra_agent_info(self, agent: Agent | None) -> dict[str, Any]:
-        """Extra agent info.
+        """Returns additional agent-specific data to include in logs/exports.
+
+        Override this method to add custom agent attributes to saved data.
 
         Args:
-            agent: Agent.
+            agent: The agent to extract additional information from, or None.
 
         Returns:
-            dict[str, Any]: The result.
+            A dictionary of custom agent attributes to include in output files.
         """
         return dict()
 
     def extra_sim_step_info_pre(self) -> dict[str, Any]:
-        """Extra sim step info pre.
+        """Returns additional data to log at the start of each simulation step.
+
+        Override to add custom metrics collected before the step executes.
 
         Returns:
-            dict[str, Any]: The result.
+            A dictionary of custom pre-step data to include in simulation logs.
         """
         return dict()
 
     def extra_sim_step_info_post(self) -> dict[str, Any]:
-        """Extra sim step info post.
+        """Returns additional data to log at the end of each simulation step.
+
+        Override to add custom metrics collected after the step completes.
 
         Returns:
-            dict[str, Any]: The result.
+            A dictionary of custom post-step data to include in simulation logs.
         """
         return dict()
 
     def extra_neg_info(self, info: NegotiationInfo) -> dict[str, Any]:
-        """Extra neg info.
+        """Returns additional negotiation-specific data to include in logs.
+
+        Override to add custom negotiation attributes to saved negotiation records.
 
         Args:
-            info: Info.
+            info: The negotiation info object containing details about the negotiation.
 
         Returns:
-            dict[str, Any]: The result.
+            A dictionary of custom negotiation data to include in output files.
         """
         return dict()
 
@@ -808,10 +828,10 @@ class World(
         self.logger.info(f"{self._log_header()}: " + s.strip())
 
     def set_bulletin_board(self, bulletin_board):
-        """Set bulletin board.
+        """Initializes or replaces the world's bulletin board with required sections.
 
         Args:
-            bulletin_board: Bulletin board.
+            bulletin_board: A BulletinBoard instance, or None to create a new one.
         """
         self.bulletin_board = (
             bulletin_board if bulletin_board is not None else BulletinBoard()
@@ -1086,10 +1106,10 @@ class World(
 
     @property
     def saved_negotiations(self) -> list[dict[str, Any]]:
-        """Saved negotiations.
+        """Returns all saved negotiation records as a list of dictionaries.
 
         Returns:
-            list[dict[str, Any]]: The result.
+            List of negotiation records containing metadata, outcomes, and history.
         """
         return list(self._saved_negotiations.values())
 
@@ -2546,28 +2566,28 @@ class World(
 
     @property
     def saved_breaches(self) -> list[dict[str, Any]]:
-        """Saved breaches.
+        """Returns all saved breach records as a list of dictionaries.
 
         Returns:
-            list[dict[str, Any]]: The result.
+            List of breach records containing perpetrator, victims, and resolution status.
         """
         return list(self._saved_breaches.values())
 
     @property
     def resolved_breaches(self) -> list[dict[str, Any]]:
-        """Resolved breaches.
+        """Returns breach records that have been successfully resolved.
 
         Returns:
-            list[dict[str, Any]]: The result.
+            List of breach records where resolution was achieved.
         """
         return list(_ for _ in self._saved_breaches.values() if _["resolved"])
 
     @property
     def unresolved_breaches(self) -> list[dict[str, Any]]:
-        """Unresolved breaches.
+        """Returns breach records that remain unresolved.
 
         Returns:
-            list[dict[str, Any]]: The result.
+            List of breach records where no resolution was reached.
         """
         return list(_ for _ in self._saved_breaches.values() if not _["resolved"])
 
@@ -2610,34 +2630,34 @@ class World(
             self._entities[simulation_priority].add(x)
 
     def register_stats_monitor(self, m: StatsMonitor):
-        """Register stats monitor.
+        """Adds a statistics monitor to receive periodic stats updates.
 
         Args:
-            m: M.
+            m: The StatsMonitor to register for receiving simulation statistics.
         """
         self.stats_monitors.add(m)
 
     def unregister_stats_monitor(self, m: StatsMonitor):
-        """Unregister stats monitor.
+        """Removes a previously registered statistics monitor.
 
         Args:
-            m: M.
+            m: The StatsMonitor to unregister.
         """
         self.stats_monitors.remove(m)
 
     def register_world_monitor(self, m: WorldMonitor):
-        """Register world monitor.
+        """Adds a world monitor to observe simulation state changes.
 
         Args:
-            m: M.
+            m: The WorldMonitor to register for observing simulation progress.
         """
         self.world_monitors.add(m)
 
     def unregister_world_monitor(self, m: WorldMonitor):
-        """Unregister world monitor.
+        """Removes a previously registered world monitor.
 
         Args:
-            m: M.
+            m: The WorldMonitor to unregister.
         """
         self.world_monitors.remove(m)
 
@@ -2683,12 +2703,7 @@ class World(
         result = deflistdict()
 
         def add_dicts(d1, d2):
-            """Add dicts.
-
-            Args:
-                d1: D1.
-                d2: D2.
-            """
+            """Merges two defaultdict(list) dicts by concatenating lists for each key."""
             d3 = deflistdict()
             for k, v in d1.items():
                 d3[k] = v + d2[k]
@@ -3245,19 +3260,19 @@ class World(
 
     @property
     def saved_contracts(self) -> list[dict[str, Any]]:
-        """Saved contracts.
+        """Returns all saved contract records as a list of dictionaries.
 
         Returns:
-            list[dict[str, Any]]: The result.
+            List of contract records containing agreement details and execution status.
         """
         return list(self._saved_contracts.values())
 
     @property
     def executed_contracts(self) -> list[dict[str, Any]]:
-        """Executed contracts.
+        """Returns contracts that have been successfully executed.
 
         Returns:
-            list[dict[str, Any]]: The result.
+            List of contract records where execution completed without issues.
         """
         return list(
             _ for _ in self._saved_contracts.values() if _.get("executed_at", -1) >= 0
@@ -3265,10 +3280,10 @@ class World(
 
     @property
     def signed_contracts(self) -> list[dict[str, Any]]:
-        """Signed contracts.
+        """Returns contracts that have been signed by all parties.
 
         Returns:
-            list[dict[str, Any]]: The result.
+            List of contract records where all partners signed.
         """
         return list(
             _ for _ in self._saved_contracts.values() if _.get("signed_at", -1) >= 0
@@ -3276,10 +3291,10 @@ class World(
 
     @property
     def nullified_contracts(self) -> list[dict[str, Any]]:
-        """Nullified contracts.
+        """Returns contracts that were nullified (e.g., due to bankruptcy).
 
         Returns:
-            list[dict[str, Any]]: The result.
+            List of contract records that were invalidated by the system.
         """
         return list(
             _ for _ in self._saved_contracts.values() if _.get("nullified_at", -1) >= 0
@@ -3287,10 +3302,10 @@ class World(
 
     @property
     def erred_contracts(self) -> list[dict[str, Any]]:
-        """Erred contracts.
+        """Returns contracts that caused exceptions during execution.
 
         Returns:
-            list[dict[str, Any]]: The result.
+            List of contract records where execution raised an error.
         """
         return list(
             _ for _ in self._saved_contracts.values() if _.get("erred_at", -1) >= 0
@@ -3298,10 +3313,10 @@ class World(
 
     @property
     def cancelled_contracts(self) -> list[dict[str, Any]]:
-        """Cancelled contracts.
+        """Returns contracts that were concluded but not signed.
 
         Returns:
-            list[dict[str, Any]]: The result.
+            List of contract records that were rejected by at least one partner.
         """
         return list(
             _ for _ in self._saved_contracts.values() if not _.get("signed_at", -1) < 0
@@ -3426,11 +3441,7 @@ class World(
             steps = tuple(min(self.n_steps, max(0, _)) for _ in steps)
 
             def yes(x):
-                """Yes.
-
-                Args:
-                    x: X.
-                """
+                """Always returns True (default filter accepting all agents)."""
                 return True
 
             if who is None:
@@ -3509,11 +3520,7 @@ class World(
             steps = tuple(min(self.n_steps, max(0, _)) for _ in steps)
 
             def yes(x):
-                """Yes.
-
-                Args:
-                    x: X.
-                """
+                """Always returns True (default filter accepting all agents)."""
                 return True
 
             if who is None:
@@ -3722,15 +3729,15 @@ class World(
         draw_every: int = 1,
         fps: int = 5,
     ) -> None:
-        """Save gif.
+        """Generates an animated GIF showing the simulation's agent interaction graph over time.
 
         Args:
-            path: Path.
-            what: What.
-            who: Who.
-            together: Together.
-            draw_every: Draw every.
-            fps: Fps.
+            path: Output file path for the GIF. Defaults to log_folder/name.gif.
+            what: Edge types to include (e.g., negotiations, contracts).
+            who: Filter function to select which agents to display.
+            together: If True, combine all edge types in one graph.
+            draw_every: Interval between frames (in simulation steps).
+            fps: Frames per second in the output GIF.
         """
         try:
             import gif
@@ -3741,11 +3748,7 @@ class World(
             # define the animation function. Simply draw the world
             @gif.frame
             def plot_frame(s):
-                """Plot frame.
-
-                Args:
-                    s: S.
-                """
+                """Draws the world state at simulation step s for GIF animation."""
                 self.draw(
                     steps=(s - draw_every, s),
                     what=what,
@@ -3989,18 +3992,14 @@ class World(
         """
 
     def __getstate__(self):
-        """getstate  ."""
+        """Prepares instance state for pickling, excluding the logger."""
         state = self.__dict__.copy()
         if "logger" in state.keys():
             state.pop("logger", None)
         return state
 
     def __setstate__(self, state):
-        """setstate  .
-
-        Args:
-            state: Current state.
-        """
+        """Restores instance state from pickle and recreates the logger."""
         self.__dict__ = state
         self.logger = create_loggers(
             file_name=self.log_file_name,

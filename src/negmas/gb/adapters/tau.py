@@ -69,14 +69,7 @@ class UtilityAdapter:
     def __call__(
         self, outcome: Outcome | ExtendedOutcome | None
     ) -> Outcome | ExtendedOutcome | None:
-        """Make instance callable.
-
-        Args:
-            outcome: Outcome to evaluate.
-
-        Returns:
-            Outcome | ExtendedOutcome | None: The result.
-        """
+        """Transforms an outcome to match TAU rules by selecting the nearest unproposed outcome."""
         if isinstance(outcome, ExtendedOutcome):
             outcome = outcome.outcome
         if outcome is None:
@@ -202,30 +195,18 @@ class UtilityAdapter:
 
     @property
     def average_u_diff(self) -> float:
-        """Average u diff.
-
-        Returns:
-            float: The result.
-        """
+        """Returns the average utility difference between original and adapted offers."""
         if not self.n_offers:
             return 0.0
         return self.udiff / self.n_offers
 
     @property
     def total_u_diff(self) -> float:
-        """Total u diff.
-
-        Returns:
-            float: The result.
-        """
+        """Returns the total accumulated utility difference from offer adaptations."""
         return self.udiff
 
     def on_preferences_changed(self, ufun: BaseUtilityFunction | None):
-        """On preferences changed.
-
-        Args:
-            ufun: Ufun.
-        """
+        """Resets the adapter state when the utility function changes."""
         self.ufun = ufun
         self._n_rational = float("inf")  # type: ignore
         self.outcome_index = dict()
@@ -415,29 +396,13 @@ class TAUNegotiatorAdapter(GBNegotiator):
     def propose(
         self, state: GBState, dest: str | None = None
     ) -> Outcome | ExtendedOutcome | None:
-        """Propose.
-
-        Args:
-            state: Current state.
-            dest: Dest.
-
-        Returns:
-            Outcome | ExtendedOutcome | None: The result.
-        """
+        """Generates a proposal by delegating to the base negotiator and adapting the result."""
         return self.adapter(
             self.base.propose(self._sao_stat_from_gb_state(state, self.id), dest=dest)
         )
 
     def respond(self, state: GBState, source: str | None) -> ResponseType:
-        """Respond.
-
-        Args:
-            state: Current state.
-            source: Source identifier.
-
-        Returns:
-            ResponseType: The result.
-        """
+        """Evaluates a received offer and returns the appropriate response type."""
         offer = get_offer(state, source)
         adapted_state = self._sao_stat_from_gb_state(state, source)
         response = self.base.respond(adapted_state, source)
@@ -448,136 +413,62 @@ class TAUNegotiatorAdapter(GBNegotiator):
         return response
 
     def on_partner_proposal(self, state: GBState, *args, **kwargs) -> None:
-        """On partner proposal.
-
-        Args:
-            state: Current state.
-            *args: Additional positional arguments.
-            **kwargs: Additional keyword arguments.
-        """
+        """Forwards partner proposal notification to the base negotiator."""
         return self.base.on_partner_proposal(
             self._sao_stat_from_gb_state(state), *args, **kwargs
         )
 
     def on_partner_response(self, state: GBState, *args, **kwargs) -> None:
-        """On partner response.
-
-        Args:
-            state: Current state.
-            *args: Additional positional arguments.
-            **kwargs: Additional keyword arguments.
-        """
+        """Forwards partner response notification to the base negotiator."""
         return self.base.on_partner_response(
             self._sao_stat_from_gb_state(state), *args, **kwargs
         )
 
     def on_partner_ended(self, partner: str):
-        """On partner ended.
-
-        Args:
-            partner: Partner.
-        """
+        """Notifies the base negotiator that a partner has left the negotiation."""
         return self.base.on_partner_ended(partner)
 
     def propose_(
         self, state: GBState, *args, **kwargs
     ) -> Outcome | ExtendedOutcome | None:
-        """Propose .
-
-        Args:
-            state: Current state.
-            *args: Additional positional arguments.
-            **kwargs: Additional keyword arguments.
-
-        Returns:
-            Outcome | ExtendedOutcome | None: The result.
-        """
+        """Internal proposal method delegating to the base negotiator."""
         return self.base.propose_(self._sao_stat_from_gb_state(state), *args, **kwargs)
 
     def respond_(self, state: GBState, *args, **kwargs) -> ResponseType:
-        """Respond .
-
-        Args:
-            state: Current state.
-            *args: Additional positional arguments.
-            **kwargs: Additional keyword arguments.
-
-        Returns:
-            ResponseType: The result.
-        """
+        """Internal response method delegating to the base negotiator."""
         return self.base.respond_(self._sao_stat_from_gb_state(state), *args, **kwargs)
 
     def on_preferences_changed(self, *args, **kwargs):
-        """On preferences changed.
-
-        Args:
-            *args: Additional positional arguments.
-            **kwargs: Additional keyword arguments.
-        """
+        """Propagates preferences changes to the base negotiator and adapter."""
         self.base.on_preferences_changed(*args, **kwargs)
         self.adapter.on_preferences_changed(self.base.ufun)
 
     def set_preferences(
         self, value: Preferences | None, force=False, ignore_exceptions: bool = False
     ) -> Preferences | None:
-        """Set preferences.
-
-        Args:
-            value: Value.
-            force: Force.
-            ignore_exceptions: Ignore exceptions.
-
-        Returns:
-            Preferences | None: The result.
-        """
+        """Sets preferences on both this adapter and the base negotiator."""
         super().set_preferences(value, force=force)
         r = self.base.set_preferences(value, force)
         self.adapter.ufun = self.base.ufun
         return r
 
     def before_death(self, cntxt: dict[str, Any]) -> bool:
-        """Before death.
-
-        Args:
-            cntxt: Cntxt.
-
-        Returns:
-            bool: The result.
-        """
+        """Called before the negotiator is destroyed; delegates to base negotiator."""
         return self.base.before_death(cntxt)
 
     def isin(self, negotiation_id: str | None) -> bool:
-        """Isin.
-
-        Args:
-            negotiation_id: Negotiation id.
-
-        Returns:
-            bool: The result.
-        """
+        """Checks if the base negotiator is participating in a given negotiation."""
         return self.base.isin(negotiation_id)
 
     def add_capabilities(self, capabilities: dict) -> None:
-        """Add capabilities.
-
-        Args:
-            capabilities: Capabilities.
-        """
+        """Adds capabilities to both this adapter and the base negotiator."""
         super().add_capabilities(capabilities)
         self.base.add_capabilities(capabilities)
 
     def join(
         self, nmi, state: GBState, *, preferences=None, ufun=None, role="negotiator"
     ) -> bool:
-        """Join.
-
-        Args:
-            nmi: Nmi.
-            state: Current state.
-
-        Returns:
-            bool: The result.
-        """
+        """Joins a negotiation, initializing the base negotiator and adapter."""
         joined = self.base.join(
             nmi=nmi,
             state=self._sao_stat_from_gb_state(state),
@@ -610,88 +501,44 @@ class TAUNegotiatorAdapter(GBNegotiator):
         self.base.owner = owner
 
     def is_acceptable_as_agreement(self, outcome: Outcome) -> bool:
-        """Check if acceptable as agreement.
-
-        Args:
-            outcome: Outcome to evaluate.
-
-        Returns:
-            bool: The result.
-        """
+        """Checks if the given outcome is acceptable as a final agreement."""
         return self.base.is_acceptable_as_agreement(outcome)
 
     def remove_capability(self, name: str) -> None:
-        """Remove capability.
-
-        Args:
-            name: Name.
-        """
+        """Removes the specified capability from the base negotiator."""
         self.base.remove_capability(name)
 
     def on_negotiation_start(self, state: GBState) -> None:
-        """On negotiation start.
-
-        Args:
-            state: Current state.
-        """
+        """Notifies the base negotiator that negotiation has started."""
         return self.base.on_negotiation_start(self._sao_stat_from_gb_state(state))
 
     def on_round_start(self, state: GBState) -> None:
-        """On round start.
-
-        Args:
-            state: Current state.
-        """
+        """Notifies the base negotiator that a new round has started."""
         return self.base.on_round_start(self._sao_stat_from_gb_state(state))
 
     def on_mechanism_error(self, state: GBState) -> None:
-        """On mechanism error.
-
-        Args:
-            state: Current state.
-        """
+        """Notifies the base negotiator of a mechanism error."""
         return self.base.on_mechanism_error(self._sao_stat_from_gb_state(state))
 
     def on_round_end(self, state: GBState) -> None:
-        """On round end.
-
-        Args:
-            state: Current state.
-        """
+        """Notifies the base negotiator that a round has ended."""
         return self.base.on_round_end(self._sao_stat_from_gb_state(state))
 
     def on_leave(self, state: GBState) -> None:
-        """On leave.
-
-        Args:
-            state: Current state.
-        """
+        """Notifies the base negotiator that we are leaving the negotiation."""
         return self.base.on_leave(self._sao_stat_from_gb_state(state))
 
     def on_negotiation_end(self, state: GBState) -> None:
-        """On negotiation end.
-
-        Args:
-            state: Current state.
-        """
+        """Notifies the base negotiator that negotiation has ended."""
         return self.base.on_negotiation_start(self._sao_stat_from_gb_state(state))
 
     def on_notification(self, notification, notifier: str):
-        """On notification.
-
-        Args:
-            notification: Notification.
-            notifier: Notifier.
-        """
+        """Forwards notification to both this adapter and the base negotiator."""
         super().on_notification(notification, notifier)
         self.base.on_notification(notification, notifier)
 
     def cancel(self, reason=None) -> None:
-        """Cancel.
-
-        Args:
-            reason: Reason.
-        """
+        """Cancels the negotiation with an optional reason."""
         return self.base.cancel(reason)
 
     @property
@@ -707,11 +554,7 @@ class TAUNegotiatorAdapter(GBNegotiator):
 
     @crisp_ufun.setter
     def crisp_ufun(self, v):
-        """Crisp ufun.
-
-        Args:
-            v: V.
-        """
+        """Sets the crisp utility function on the base negotiator."""
         self.base.crisp_ufun = v
 
     @property
@@ -721,29 +564,17 @@ class TAUNegotiatorAdapter(GBNegotiator):
 
     @prob_ufun.setter
     def prob_ufun(self, v):
-        """Prob ufun.
-
-        Args:
-            v: V.
-        """
+        """Sets the probabilistic utility function on the base negotiator."""
         self.base.prob_ufun = v
 
     @property
     def ufun(self) -> BaseUtilityFunction | None:
-        """Ufun.
-
-        Returns:
-            BaseUtilityFunction | None: The result.
-        """
+        """Returns the utility function from the base negotiator."""
         return self.base.ufun
 
     @ufun.setter
     def ufun(self, v: BaseUtilityFunction):
-        """Ufun.
-
-        Args:
-            v: V.
-        """
+        """Sets the utility function on the base negotiator."""
         self.base.ufun = v
 
     @property
@@ -753,27 +584,15 @@ class TAUNegotiatorAdapter(GBNegotiator):
 
     @property
     def has_cardinal_preferences(self) -> bool:
-        """Check if has cardinal preferences.
-
-        Returns:
-            bool: The result.
-        """
+        """Checks whether the negotiator has cardinal (numeric) utility preferences."""
         return self.base.has_cardinal_preferences
 
     @property
     def reserved_outcome(self) -> Outcome | None:
-        """Reserved outcome.
-
-        Returns:
-            Outcome | None: The result.
-        """
+        """Returns the outcome received if negotiation fails (i.e., the BATNA)."""
         return self.base.reserved_outcome
 
     @property
     def reserved_value(self) -> float:
-        """Reserved value.
-
-        Returns:
-            float: The result.
-        """
+        """Returns the utility value of the reserved outcome (minimum acceptable utility)."""
         return self.base.reserved_value

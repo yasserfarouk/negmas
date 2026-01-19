@@ -64,10 +64,10 @@ class AgentWorldInterface:
 
     @property
     def default_signing_delay(self) -> int:
-        """Default signing delay.
+        """Number of simulation steps between contract agreement and signing.
 
         Returns:
-            int: The result.
+            The signing delay in steps, or 0 if the world forces immediate signing.
         """
         return self._world.default_signing_delay if not self._world.force_signing else 0
 
@@ -446,7 +446,7 @@ class AgentWorldInterface:
 
     @property
     def settings(self):
-        """Settings."""
+        """World configuration settings from the bulletin board."""
         if not self._world.bulletin_board:
             return None
         return self._world.bulletin_board.data.get("settings", dict())

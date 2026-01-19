@@ -119,12 +119,12 @@ class EventLogger(EventSink):
         sender: EventSource,
         python_class_identifier=PYTHON_CLASS_IDENTIFIER,
     ):
-        """On event.
+        """Handle an event by logging it to the configured file.
 
         Args:
-            event: Event.
-            sender: Sender.
-            python_class_identifier: Python class identifier.
+            event: The event to log.
+            sender: The source object that emitted this event.
+            python_class_identifier: Key for class type identification during serialization.
         """
         if not self._file_name:
             return
@@ -181,11 +181,11 @@ class Notifier(NamedObject):
     """An object that can notify other objects"""
 
     def notify(self, notifiable: Notifiable, notification: Notification):
-        """Notify.
+        """Send a notification to a notifiable object.
 
         Args:
-            notifiable: Notifiable.
-            notification: Notification.
+            notifiable: The object to be notified.
+            notification: The notification data to send.
         """
         notifiable.on_notification_(notification=notification, notifier=self.id)
 

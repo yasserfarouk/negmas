@@ -167,15 +167,11 @@ class Issue(HasMinMax, Iterable, ABC):
         )
 
     def __copy__(self):
-        """copy  ."""
+        """Returns a shallow copy of the issue."""
         return make_issue(name=self.name, values=self._values)
 
     def __deepcopy__(self, memodict={}):
-        """deepcopy  .
-
-        Args:
-            memodict: Memodict.
-        """
+        """Returns a deep copy of the issue."""
         _ = memodict
         return make_issue(name=self.name, values=self._values)
 
@@ -436,23 +432,15 @@ class Issue(HasMinMax, Iterable, ABC):
         )
 
     def __getitem__(self, indx):
-        """getitem  .
-
-        Args:
-            indx: Indx.
-        """
+        """Returns the value at the given index."""
         return self.value_at(indx)
 
     def __iter__(self):
-        """iter  ."""
+        """Returns an iterator over all issue values in order."""
         return self.ordered_value_generator().__iter__()
 
     def __contains__(self, item):
-        """contains  .
-
-        Args:
-            item: Item.
-        """
+        """Checks if a value or issue is contained within this issue."""
         try:
             if isinstance(item, Issue):
                 return self.contains(item)
@@ -465,27 +453,23 @@ class Issue(HasMinMax, Iterable, ABC):
         return False
 
     def __len__(self):
-        """len  ."""
+        """Returns the cardinality (number of possible values) of the issue."""
         return self.cardinality
 
     def __eq__(self, other):
-        """eq  .
-
-        Args:
-            other: Other.
-        """
+        """Checks equality based on values and name."""
         return self._values == other.values and self.name == other.name
 
     def __hash__(self):
-        """hash  ."""
+        """Returns a hash based on the string representation."""
         return hash(str(self))
 
     def __repr__(self):
-        """repr  ."""
+        """Returns a detailed string representation for debugging."""
         return f"{self.__class__.__name__}({self._values}, {self.name})"
 
     def __str__(self):
-        """str  ."""
+        """Returns a human-readable string showing the issue name and values."""
         return f"{self.name}: {self._values}"
 
 
@@ -500,11 +484,7 @@ class DiscreteIssue(Issue):
         return self._n_values  # type: ignore
 
     def is_continuous(self) -> bool:
-        """Check if continuous.
-
-        Returns:
-            bool: The result.
-        """
+        """Always returns False since discrete issues are not continuous."""
         return False
 
     @property
@@ -526,17 +506,7 @@ class DiscreteIssue(Issue):
     def ordered_value_generator(
         self, n: int | float | None = 10, grid=True, compact=True, endpoints=True
     ) -> Generator[Any, None, None]:
-        """Ordered value generator.
-
-        Args:
-            n: Number of items.
-            grid: Grid.
-            compact: Compact.
-            endpoints: Endpoints.
-
-        Returns:
-            Generator[Any, None, None]: The result.
-        """
+        """Generates values in their natural order, cycling if n exceeds cardinality."""
         _ = compact, grid, endpoints
         m = self.cardinality
         n = m if n is None or not math.isfinite(n) else int(n)
@@ -547,17 +517,7 @@ class DiscreteIssue(Issue):
     def value_generator(
         self, n: int | float | None = None, grid=True, compact=True, endpoints=True
     ) -> Generator[Any, None, None]:
-        """Value generator.
-
-        Args:
-            n: Number of items.
-            grid: Grid.
-            compact: Compact.
-            endpoints: Endpoints.
-
-        Returns:
-            Generator[Any, None, None]: The result.
-        """
+        """Generates sampled values based on the specified sampling strategy."""
         m = self.cardinality
         n = m if n is None or not math.isfinite(n) else int(n)
 
@@ -567,11 +527,7 @@ class DiscreteIssue(Issue):
         )
 
     def value_at(self, index: int):
-        """Value at.
-
-        Args:
-            index: Index.
-        """
+        """Returns the value at the given index, raising IndexError if out of bounds."""
         if index < 0 or index > self.cardinality - 1:
             raise IndexError(index)
         return self._values[index]
@@ -600,17 +556,9 @@ class DiscreteIssue(Issue):
         ).tolist()
 
     def is_valid(self, v):
-        """Check if valid.
-
-        Args:
-            v: V.
-        """
+        """Checks whether the given value is one of the valid issue values."""
         return v in self._values
 
     def __getitem__(self, indx):
-        """getitem  .
-
-        Args:
-            indx: Indx.
-        """
+        """Returns the value at the given index."""
         return self.values(indx)

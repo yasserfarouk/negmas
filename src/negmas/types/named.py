@@ -47,7 +47,9 @@ class NamedObject:
         """Initialize the instance.
 
         Args:
-            name: Name.
+            name: Optional human-readable name (auto-generated if not provided).
+            id: Optional unique identifier (UUID generated if not provided).
+            type_name: Optional type name override for serialization.
         """
         if name is not None:
             name = str(name)
@@ -149,10 +151,10 @@ class NamedObject:
 
     @name.setter
     def name(self, name):
-        """Name.
+        """Set the name of this entity.
 
         Args:
-            name: Name.
+            name: The new name for this entity.
         """
         self.__name = name
 
@@ -163,10 +165,10 @@ class NamedObject:
 
     @uuid.setter
     def uuid(self, uuid):
-        """Uuid.
+        """Set the UUID of this entity.
 
         Args:
-            uuid: Uuid.
+            uuid: The new UUID for this entity.
         """
         self.__uuid = uuid
 
@@ -181,10 +183,10 @@ class NamedObject:
 
     @id.setter
     def id(self, id):
-        """Id.
+        """Set the ID of this entity.
 
         Args:
-            id: Id.
+            id: The new unique identifier for this entity.
         """
         self.__uuid = id
 

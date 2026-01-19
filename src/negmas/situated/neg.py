@@ -45,11 +45,11 @@ class NegAgent(Agent):
         negotiator_params: dict[str, Any] | None = None,
         **kwargs,
     ):
-        """Initialize the instance.
+        """Creates an agent that wraps a negotiator for evaluation in NegWorld.
 
         Args:
-            *args: Additional positional arguments.
-            **kwargs: Additional keyword arguments.
+            negotiator_type: The type or fully-qualified name of the negotiator to wrap.
+            negotiator_params: Parameters to pass when instantiating the negotiator.
         """
         super().__init__(*args, **kwargs)
         self._negotiator_params = negotiator_params if negotiator_params else dict()
@@ -230,10 +230,10 @@ class Condition:
     """Indices of negotiators to be scored in this negotiation. `None` is equivalent to `[self.index]`"""
 
     def to_dict(self, python_class_identifier=PYTHON_CLASS_IDENTIFIER):
-        """To dict.
+        """Serializes this condition to a dictionary representation.
 
         Args:
-            python_class_identifier: Python class identifier.
+            python_class_identifier: The key used to store Python class type information in the dict.
         """
         return dict(
             name=self.name,
@@ -259,11 +259,11 @@ class Condition:
 
     @classmethod
     def from_dict(cls, d, python_class_identifier=PYTHON_CLASS_IDENTIFIER):
-        """From dict.
+        """Deserializes a Condition instance from a dictionary representation.
 
         Args:
-            d: D.
-            python_class_identifier: Python class identifier.
+            d: The dictionary containing the serialized condition data.
+            python_class_identifier: The key used to identify Python class type information in the dict.
         """
         return cls(
             name=d["name"],
@@ -326,12 +326,7 @@ class NegWorld(NoContractExecutionMixin, World):
         python_class_identifier: str = PYTHON_CLASS_IDENTIFIER,
         **kwargs,
     ):
-        """Initialize the instance.
-
-        Args:
-            *args: Additional positional arguments.
-            **kwargs: Additional keyword arguments.
-        """
+        """Creates a NegWorld for evaluating negotiators in a given scenario."""
         kwargs["log_to_file"] = not no_logs
         if compact:
             kwargs["event_file_name"] = None
@@ -403,14 +398,7 @@ class NegWorld(NoContractExecutionMixin, World):
         ]
 
         def add_agents(types, params, wrappers, target):
-            """Add agents.
-
-            Args:
-                types: Types.
-                params: Params.
-                wrappers: Wrappers.
-                target: Target.
-            """
+            """Creates wrapped agents from negotiator types and adds them to the world."""
             types, params = _wrap_in_agents(types, params, wrappers)
             for t, p in zip(types, params):
                 agent = instantiate(t, **p)
@@ -425,19 +413,10 @@ class NegWorld(NoContractExecutionMixin, World):
         add_agents(partner_types, partner_params, _NegPartner, self._partners)
 
     def simulation_step(self, stage):
-        """Simulation step.
-
-        Args:
-            stage: Stage.
-        """
+        """Runs one step of the simulation, executing negotiations and recording results."""
 
         def unormalize(u, indx):
-            """Unormalize.
-
-            Args:
-                u: U.
-                indx: Indx.
-            """
+            """Normalizes a utility value if score normalization is enabled."""
             if self._normalize_scores:
                 mn, mx = self._preferences_ranges[indx]
                 if mx > mn:
@@ -447,24 +426,12 @@ class NegWorld(NoContractExecutionMixin, World):
             return u
 
         def calcu(ufun, indx, agreement):
-            """Calcu.
-
-            Args:
-                ufun: Ufun.
-                indx: Indx.
-                agreement: Agreement.
-            """
+            """Computes the normalized utility of an agreement for a given ufun."""
             u = ufun(agreement)
             return unormalize(u, indx)
 
         def getid(indx, aid, special_index=self._scenario.index):
-            """Getid.
-
-            Args:
-                indx: Indx.
-                aid: Aid.
-                special_index: Special index.
-            """
+            """Gets the agent ID at a given index in the negotiation partners list."""
             lst = list(self._partners.keys())
             lst.insert(special_index, aid)
             return lst[indx]
@@ -529,50 +496,50 @@ class NegWorld(NoContractExecutionMixin, World):
             self.loginfo(f"{partner_names} -> {agreement}")
 
     def received_utility(self, aid: str):
-        """Received utility.
+        """Returns the average utility received by the agent across all negotiations.
 
         Args:
-            aid: Aid.
+            aid: The agent's unique identifier.
         """
         return sum(
             self._received_utility.get(aid, [0])
         ) / self._n_negs_per_copmetitor.get(aid, 0)
 
     def agreement_rate(self, aid: str):
-        """Agreement rate.
+        """Returns the fraction of negotiations that ended in agreement for this agent.
 
         Args:
-            aid: Aid.
+            aid: The agent's unique identifier.
         """
         return sum(
             self._n_agreements_per_cometitor.get(aid, [0])
         ) / self._n_negs_per_agent.get(aid, 0)
 
     def partner_utility(self, aid: str):
-        """Partner utility.
+        """Returns the average total utility received by partners when negotiating with this agent.
 
         Args:
-            aid: Aid.
+            aid: The agent's unique identifier.
         """
         return sum(
             self._partner_utility.get(aid, [0])
         ) / self._n_negs_per_copmetitor.get(aid, 0)
 
     def received_advantage(self, aid: str):
-        """Received advantage.
+        """Returns the average advantage (utility above reservation value) received by the agent.
 
         Args:
-            aid: Aid.
+            aid: The agent's unique identifier.
         """
         return sum(
             self._received_advantage.get(aid, [0])
         ) / self._n_negs_per_copmetitor.get(aid, 0)
 
     def partner_advantage(self, aid: str):
-        """Partner advantage.
+        """Returns the average total advantage received by partners when negotiating with this agent.
 
         Args:
-            aid: Aid.
+            aid: The agent's unique identifier.
         """
         return sum(
             self._partner_advantage.get(aid, [0])
@@ -580,16 +547,16 @@ class NegWorld(NoContractExecutionMixin, World):
 
     @property
     def competitors(self):
-        """Competitors."""
+        """The agents being evaluated in this world."""
         return self._competitors
 
     @property
     def partners(self):
-        """Partners."""
+        """The partner agents that competitors negotiate against."""
         return self._partners
 
     def post_step_stats(self):
-        """Post step stats."""
+        """Records statistics for all competitors after each simulation step."""
         for aid in self._competitors.keys():
             self._stats[f"has_agreement_{aid}"].append(self._success[aid])
             self._stats[f"received_utility_{aid}"].append(
@@ -607,58 +574,30 @@ class NegWorld(NoContractExecutionMixin, World):
             )
 
     def pre_step_stats(self):
-        """Pre step stats."""
+        """Called before each simulation step to record statistics (no-op in NegWorld)."""
         pass
 
     def order_contracts_for_execution(
         self, contracts: Collection[Contract]
     ) -> Collection[Contract]:
-        """Order contracts for execution.
-
-        Args:
-            contracts: Contracts.
-
-        Returns:
-            Collection[Contract]: The result.
-        """
+        """Returns contracts in the order they should be executed (unchanged in NegWorld)."""
         return contracts
 
     def contract_record(self, contract: Contract) -> dict[str, Any]:
-        """Contract record.
-
-        Args:
-            contract: Contract.
-
-        Returns:
-            dict[str, Any]: The result.
-        """
+        """Converts a contract to a flat dictionary for logging and serialization."""
         return to_flat_dict(contract, deep=True)
 
     def breach_record(self, breach: Breach) -> dict[str, Any]:
-        """Breach record.
-
-        Args:
-            breach: Breach.
-
-        Returns:
-            dict[str, Any]: The result.
-        """
+        """Converts a breach to a flat dictionary for logging and serialization."""
         return to_flat_dict(breach, deep=True)
 
     def contract_size(self, contract: Contract) -> float:
-        """Contract size.
-
-        Args:
-            contract: Contract.
-
-        Returns:
-            float: The result.
-        """
+        """Returns the relative size/weight of a contract (inverse of competitor count)."""
         n = len(self._competitors)
         return 1.0 / (n if n else 1)
 
     def delete_executed_contracts(self) -> None:
-        """Delete executed contracts."""
+        """Removes executed contracts from storage (no-op in NegWorld)."""
         pass
 
     def execute_action(
@@ -672,34 +611,17 @@ class NegWorld(NoContractExecutionMixin, World):
         ...
 
     def executable_contracts(self) -> Collection[Contract]:
-        """Executable contracts.
-
-        Returns:
-            Collection[Contract]: The result.
-        """
+        """Returns contracts ready for execution (always empty in NegWorld)."""
         return []
 
     def start_contract_execution(self, contract: Contract) -> set[Breach]:
-        """Start contract execution.
-
-        Args:
-            contract: Contract.
-
-        Returns:
-            set[Breach]: The result.
-        """
+        """Begins executing a contract (no-op in NegWorld, returns empty set)."""
         return set()
 
     def complete_contract_execution(
         self, contract: Contract, breaches: list[Breach], resolution: Contract
     ) -> None:
-        """Complete contract execution.
-
-        Args:
-            contract: Contract.
-            breaches: Breaches.
-            resolution: Resolution.
-        """
+        """Finalizes contract execution after breach resolution (no-op in NegWorld)."""
         pass
 
 

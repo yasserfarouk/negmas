@@ -203,7 +203,7 @@ class SAOSyncController(SAOController):
         self.reset()
 
     def reset(self):
-        """Reset."""
+        """Clears all cached offers, responses, and proposals to prepare for new negotiations."""
         self.__offers: dict[str, Outcome | None] = dict()
         self.__responses: dict[str, ResponseType] = dict()
         self.__proposals: dict[str, Outcome | None] = dict()

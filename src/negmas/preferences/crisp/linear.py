@@ -132,8 +132,8 @@ class AffineUtilityFunction(StationaryMixin, UtilityFunction):
         """Initialize the instance.
 
         Args:
-            weights: Weights.
-            bias: Bias.
+            weights: Coefficients for combining issue values into utility (dict by issue name or list by position).
+            bias: Constant offset added to the weighted sum.
             *args: Additional positional arguments.
             **kwargs: Additional keyword arguments.
         """
@@ -600,7 +600,7 @@ class LinearUtilityFunction(AffineUtilityFunction):
         """Initialize the instance.
 
         Args:
-            weights: Weights.
+            weights: Coefficients for combining issue values into utility (dict by issue name or list by position).
             *args: Additional positional arguments.
             **kwargs: Additional keyword arguments.
         """
@@ -700,9 +700,9 @@ class LinearAdditiveUtilityFunction(  # type: ignore
         """Initialize the instance.
 
         Args:
-            values: Values.
-            weights: Weights.
-            bias: Bias.
+            values: Utility functions for individual issues (dict by issue name or list by position).
+            weights: Coefficients for combining value function outputs (dict by issue name or list by position).
+            bias: Constant offset added to the weighted sum.
             *args: Additional positional arguments.
             **kwargs: Additional keyword arguments.
         """

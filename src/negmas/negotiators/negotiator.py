@@ -60,17 +60,17 @@ class Negotiator(Rational, Notifiable, Generic[TNMI, TState]):
         type_name: str | None = None,
         private_info: dict[str, Any] | None = None,
     ) -> None:
-        """Initialize the instance.
+        """Initialize the negotiator with optional preferences and parent controller.
 
         Args:
-            name: Name.
-            preferences: Preferences.
-            ufun: Ufun.
-            parent: Parent.
-            owner: Owner.
-            id: Id.
-            type_name: Type name.
-            private_info: Private info.
+            name: Display name for the negotiator (auto-generated if not provided).
+            preferences: The negotiator's preferences over outcomes.
+            ufun: Utility function (overrides preferences if provided).
+            parent: Controller managing this negotiator.
+            owner: Agent that owns this negotiator in a simulation.
+            id: Unique identifier (auto-generated if not provided).
+            type_name: Type identifier for serialization purposes.
+            private_info: Arbitrary private data; 'opponent_ufun' key enables opponent_ufun property.
         """
         self._private_info = private_info if private_info else dict()
         if ufun is not None:
@@ -137,15 +137,15 @@ class Negotiator(Rational, Notifiable, Generic[TNMI, TState]):
     def set_preferences(
         self, value: Preferences | None, force=False, ignore_exceptions: bool = False
     ) -> Preferences | None:
-        """Set preferences.
+        """Set the negotiator's preferences, with optional constraint handling.
 
         Args:
-            value: Value.
-            force: Force.
-            ignore_exceptions: Ignore exceptions.
+            value: The new preferences to assign to this negotiator.
+            force: If True, bypass validation and set preferences unconditionally.
+            ignore_exceptions: If True, suppress any exceptions during assignment.
 
         Returns:
-            Preferences | None: The result.
+            Preferences | None: The previously held preferences, if any.
         """
         if self._nmi is None:
             self._preferences = value
@@ -434,8 +434,8 @@ class Negotiator(Rational, Notifiable, Generic[TNMI, TState]):
         Called whenever the agent receives a notification
 
         Args:
-            notification: The notification!!
-            notifier: The notifier!!
+            notification: The notification object containing type and data payload.
+            notifier: The ID of the mechanism or entity that sent the notification.
 
         Returns:
             None
@@ -473,5 +473,5 @@ class Negotiator(Rational, Notifiable, Generic[TNMI, TState]):
         """
 
     def __str__(self):
-        """str  ."""
+        """Return the negotiator's name as its string representation."""
         return f"{self.name}"

@@ -54,12 +54,12 @@ class RankOnlyUtilityFunction(StationaryMixin, UtilityFunction):
         """Initialize the instance.
 
         Args:
-            ufun: Ufun.
-            randomize_equal: Randomize equal.
-            eps: Eps.
-            name: Name.
-            id: Id.
-            type_name: Type name.
+            ufun: The base utility function to create rankings from.
+            randomize_equal: If True, break ties randomly; otherwise preserve them with equal ranks.
+            eps: Tolerance for considering two utility values as equal.
+            name: Optional name for the utility function.
+            id: Optional unique identifier.
+            type_name: Optional type name override.
         """
         if ufun.outcome_space is None:
             raise ValueError(

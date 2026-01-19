@@ -48,8 +48,8 @@ class ProbMappingUtilityFunction(StationaryMixin, ProbUtilityFunction):
         """Initialize the instance.
 
         Args:
-            mapping: Mapping.
-            default: Default.
+            mapping: Either a callable taking outcomes to distributions, or a dict mapping outcomes to distributions.
+            default: The distribution returned when evaluation fails or outcome is not in the mapping.
             *args: Additional positional arguments.
             **kwargs: Additional keyword arguments.
         """
@@ -107,13 +107,13 @@ class ProbMappingUtilityFunction(StationaryMixin, ProbUtilityFunction):
         return m
 
     def xml(self, issues: list[Issue]) -> str:
-        """Xml.
+        """Generate XML representation (not implemented for probabilistic utility functions).
 
         Args:
-            issues: Issues.
+            issues: The issues defining the outcome space.
 
-        Returns:
-            str: The result.
+        Raises:
+            NotImplementedError: This utility function type cannot be serialized to XML.
         """
         raise NotImplementedError("Cannot save ProbMappingUtilityFunction to xml")
 
@@ -127,14 +127,14 @@ class ProbMappingUtilityFunction(StationaryMixin, ProbUtilityFunction):
         type: str = "uniform",
     ):
         # todo: corrrect this for continuous outcome-spaces
-        """Random.
+        """Generate a random probabilistic mapping utility function.
 
         Args:
-            outcome_space: Outcome space.
-            reserved_value: Reserved value.
-            normalized: Normalized.
-            max_cardinality: Max cardinality.
-            type: Type.
+            outcome_space: The space of possible outcomes to generate mappings for.
+            reserved_value: The utility for no agreement or range (min, max) for random selection.
+            normalized: If True, normalize utility distribution parameters to [0, 1] range.
+            max_cardinality: Maximum number of outcomes to sample for discrete approximation.
+            type: The type of scipy distribution to use (e.g. 'uniform', 'norm').
         """
         if not isinstance(reserved_value, Iterable):
             reserved_value = (reserved_value, reserved_value)

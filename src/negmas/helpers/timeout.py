@@ -38,16 +38,12 @@ def single_thread():
 
 
 def is_single_thread() -> bool:
-    """Check if single thread.
-
-    Returns:
-        bool: The result.
-    """
+    """Returns True if negmas is configured to use single-threaded execution."""
     return SINGLE_THREAD_FORCED
 
 
 class TimeoutCaller:
-    """TimeoutCaller implementation."""
+    """Executes callables with timeout support using a shared thread pool."""
 
     pool = None
 
@@ -60,11 +56,12 @@ class TimeoutCaller:
 
     @classmethod
     def run(cls, to_run, timeout: float):
-        """Run.
+        """
+        Executes a callable with a timeout limit.
 
         Args:
-            to_run: To run.
-            timeout: Timeout.
+            to_run: A callable to execute in the thread pool.
+            timeout: Maximum seconds to wait before raising TimeoutError.
         """
         if is_single_thread():
             return to_run()
@@ -79,7 +76,7 @@ class TimeoutCaller:
 
     @classmethod
     def cleanup(cls):
-        """Cleanup."""
+        """Shuts down the thread pool and cleans up any pending threads."""
         if cls.pool is not None:
             try:
                 cls.pool.shutdown(wait=False)

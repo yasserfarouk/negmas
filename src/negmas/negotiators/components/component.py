@@ -8,21 +8,12 @@ from attrs import define
 
 
 def __setattr__(self, name, value):
-    """setattr  .
-
-    Args:
-        name: Name.
-        value: Value.
-    """
+    """Sets an attribute on the component."""
     pass
 
 
 def __delattr__(self, name):
-    """delattr  .
-
-    Args:
-        name: Name.
-    """
+    """Deletes an attribute from the component."""
     pass
 
 
@@ -48,7 +39,7 @@ class Component:
 
     @property
     def negotiator(self):
-        """Negotiator."""
+        """Returns the negotiator this component is attached to."""
         return self._negotiator
 
     def set_negotiator(self, negotiator: Negotiator) -> None:

@@ -30,8 +30,9 @@ class ConstUtilityFunction(StationaryMixin, UtilityFunction):
         """Initialize the instance.
 
         Args:
-            value: Value.
-            **kwargs: Additional keyword arguments.
+            value: The constant utility value returned for all outcomes.
+            reserved_value: The utility for no agreement (defaults to negative infinity).
+            **kwargs: Additional keyword arguments passed to the base class.
         """
         super().__init__(**kwargs)
         self.reserved_value = reserved_value
@@ -72,13 +73,13 @@ class ConstUtilityFunction(StationaryMixin, UtilityFunction):
         return float(self.value)
 
     def xml(self, issues: list[Issue]) -> str:
-        """Xml.
+        """Generate XML representation of the utility function.
 
         Args:
-            issues: Issues.
+            issues: The issues defining the outcome space.
 
         Returns:
-            str: The result.
+            XML string representation of this constant utility function.
         """
         from negmas.preferences.crisp.linear import AffineUtilityFunction
 

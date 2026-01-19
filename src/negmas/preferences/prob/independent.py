@@ -56,10 +56,10 @@ class IPUtilityFunction(StationaryMixin, ProbUtilityFunction):
         """Initialize the instance.
 
         Args:
-            outcomes: Outcomes.
-            distributions: Distributions.
-            issue_names: Issue names.
-            **kwargs: Additional keyword arguments.
+            outcomes: The outcomes to assign distributions to.
+            distributions: Probability distributions for each outcome (defaults to uniform[0,1] if not provided).
+            issue_names: Names of the issues (extracted from outcomes if not provided).
+            **kwargs: Additional keyword arguments passed to the base class.
         """
         super().__init__(**kwargs)
         outcomes = list(outcomes)
@@ -313,13 +313,13 @@ class IPUtilityFunction(StationaryMixin, ProbUtilityFunction):
         return self.distributions[offer]
 
     def xml(self, issues: list[Issue]) -> str:
-        """Xml.
+        """Generate XML representation (not implemented for probabilistic utility functions).
 
         Args:
-            issues: Issues.
+            issues: The issues defining the outcome space.
 
-        Returns:
-            str: The result.
+        Raises:
+            NotImplementedError: This utility function type cannot be serialized to XML.
         """
         raise NotImplementedError(f"Cannot convert {self.__class__.__name__} to xml")
 

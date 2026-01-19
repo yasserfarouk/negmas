@@ -93,28 +93,16 @@ class Scenario:
     stats: ScenarioStats | None = None
 
     def __lt__(self, other: Scenario):
-        """lt  .
-
-        Args:
-            other: Other.
-        """
+        """Compares scenarios by their size/complexity for sorting."""
         return scenario_size(self) < scenario_size(other)
 
     @property
     def issues(self) -> tuple[Issue, ...]:
-        """Issues.
-
-        Returns:
-            tuple[Issue, ...]: The result.
-        """
+        """The negotiation issues defining the outcome space."""
         return self.outcome_space.issues
 
     def plot(self, **kwargs):
-        """Plot.
-
-        Args:
-            **kwargs: Additional keyword arguments.
-        """
+        """Visualizes the scenario's utility space using a 2D plot."""
         from negmas.plots.util import plot_2dutils
 
         return plot_2dutils(
@@ -160,29 +148,17 @@ class Scenario:
 
     @property
     def n_negotiators(self) -> int:
-        """N negotiators.
-
-        Returns:
-            int: The result.
-        """
+        """The number of negotiators (utility functions) in this scenario."""
         return len(self.ufuns)
 
     @property
     def n_issues(self) -> int:
-        """N issues.
-
-        Returns:
-            int: The result.
-        """
+        """The number of negotiation issues in the outcome space."""
         return len(self.outcome_space.issues)
 
     @property
     def issue_names(self) -> list[str]:
-        """Issue names.
-
-        Returns:
-            list[str]: The result.
-        """
+        """The names of all negotiation issues in the outcome space."""
         return self.outcome_space.issue_names
 
     def to_numeric(self) -> Scenario:
@@ -467,11 +443,7 @@ class Scenario:
         return self
 
     def calc_stats(self) -> ScenarioStats:
-        """Calc stats and save them.
-
-        Returns:
-            ScenarioStats: The result.
-        """
+        """Calculates scenario statistics and stores them in the stats attribute."""
         self.stats = calc_scenario_stats(self.ufuns)
         return self.stats
 
@@ -582,12 +554,7 @@ class Scenario:
         """
 
         def get_name(x, default):
-            """Get name.
-
-            Args:
-                x: X.
-                default: Default.
-            """
+            """Extracts a clean name from a path-like string."""
             if not x:
                 return str(default)
             return x.split("/")[-1].replace(".xml", "")
@@ -600,16 +567,7 @@ class Scenario:
             ignored=("id", "n_values", "outcome_space"),
             rename={PYTHON_CLASS_IDENTIFIER: "type"},
         ):
-            """Adjust.
-
-            Args:
-                d: D.
-                default_name: Default name.
-                remove_dunder: Remove dunder.
-                adjust_name: Adjust name.
-                ignored: Ignored.
-                rename: Rename.
-            """
+            """Transforms a serialized dict for cleaner output format."""
             if isinstance(d, list) or isinstance(d, tuple):
                 return [
                     adjust(_, default_name, remove_dunder, adjust_name, ignored)
@@ -710,22 +668,14 @@ class Scenario:
             )
 
     def load_info_file(self, file: Path):
-        """Load info file.
-
-        Args:
-            file: File.
-        """
+        """Loads scenario info from a specific file path."""
         if not file.is_file():
             return self
         self.info = load(file)
         return self
 
     def load_info(self, folder: PathLike | str):
-        """Load info.
-
-        Args:
-            folder: Folder.
-        """
+        """Loads scenario info from a folder, searching for supported formats."""
         for ext in ("yml", "yaml", "json"):
             path = Path(folder) / f"{INFO_FILE_NAME}.{ext}"
             if not path.is_file():
@@ -762,7 +712,7 @@ class Scenario:
         return self
 
     def load_stats(self, folder: PathLike | str, calc_pareto_if_missing: bool = False):
-        """Load stats.
+        """Loads scenario statistics from a folder, searching for supported formats.
 
         Args:
             folder: Folder containing the stats file.
@@ -803,16 +753,16 @@ class Scenario:
         ignore_reserved=False,
         safe_parsing=True,
     ) -> Scenario | None:
-        """From genius folder.
+        """Loads a scenario from a folder containing Genius-format XML files.
 
         Args:
-            path: Path.
-            ignore_discount: Ignore discount.
-            ignore_reserved: Ignore reserved.
-            safe_parsing: Safe parsing.
+            path: Directory containing the domain and utility function XML files.
+            ignore_discount: If True, ignore time-based discounting in utility functions.
+            ignore_reserved: If True, set reserved values to -inf.
+            safe_parsing: If True, apply more stringent validation during parsing.
 
         Returns:
-            Scenario | None: The result.
+            The loaded Scenario, or None if loading fails.
         """
         s = load_genius_domain_from_folder(
             folder_name=str(path),
@@ -859,11 +809,7 @@ class Scenario:
 
     @classmethod
     def is_loadable(cls, path: PathLike | str):
-        """Check if loadable.
-
-        Args:
-            path: Path.
-        """
+        """Checks whether a directory contains a valid loadable scenario."""
         if not Path(path).is_dir():
             return False
         for finder in (
@@ -885,18 +831,18 @@ class Scenario:
         ignore_reserved=False,
         safe_parsing=True,
     ) -> Scenario | None:
-        """From genius files.
+        """Loads a scenario from specific Genius-format XML file paths.
 
         Args:
-            domain: Domain.
-            ufuns: Ufuns.
-            info: Info.
-            ignore_discount: Ignore discount.
-            ignore_reserved: Ignore reserved.
-            safe_parsing: Safe parsing.
+            domain: Path to the domain XML file.
+            ufuns: Paths to the utility function XML files.
+            info: Optional path to the scenario info file.
+            ignore_discount: If True, ignore time-based discounting.
+            ignore_reserved: If True, set reserved values to -inf.
+            safe_parsing: If True, apply more stringent validation during parsing.
 
         Returns:
-            Scenario | None: The result.
+            The loaded Scenario, or None if loading fails.
         """
         s = load_genius_domain(
             domain,
@@ -921,17 +867,17 @@ class Scenario:
         use_reserved_outcome=False,
         safe_parsing=True,
     ) -> Scenario | None:
-        """From geniusweb folder.
+        """Loads a scenario from a folder containing GeniusWeb-format JSON files.
 
         Args:
-            path: Path.
-            ignore_discount: Ignore discount.
-            ignore_reserved: Ignore reserved.
-            use_reserved_outcome: Use reserved outcome.
-            safe_parsing: Safe parsing.
+            path: Directory containing the domain and utility function JSON files.
+            ignore_discount: If True, ignore time-based discounting.
+            ignore_reserved: If True, set reserved values to -inf.
+            use_reserved_outcome: If True, use reserved outcome instead of reserved value.
+            safe_parsing: If True, apply more stringent validation during parsing.
 
         Returns:
-            Scenario | None: The result.
+            The loaded Scenario, or None if loading fails.
         """
         s = load_geniusweb_domain_from_folder(
             folder_name=str(path),
@@ -954,19 +900,19 @@ class Scenario:
         use_reserved_outcome=False,
         safe_parsing=True,
     ) -> Scenario | None:
-        """From geniusweb files.
+        """Loads a scenario from specific GeniusWeb-format JSON file paths.
 
         Args:
-            domain: Domain.
-            ufuns: Ufuns.
-            info: Info.
-            ignore_discount: Ignore discount.
-            ignore_reserved: Ignore reserved.
-            use_reserved_outcome: Use reserved outcome.
-            safe_parsing: Safe parsing.
+            domain: Path to the domain JSON file.
+            ufuns: Paths to the utility function JSON files.
+            info: Optional path to the scenario info file.
+            ignore_discount: If True, ignore time-based discounting.
+            ignore_reserved: If True, set reserved values to -inf.
+            use_reserved_outcome: If True, use reserved outcome instead of reserved value.
+            safe_parsing: If True, apply more stringent validation during parsing.
 
         Returns:
-            Scenario | None: The result.
+            The loaded Scenario, or None if loading fails.
         """
         s = load_geniusweb_domain(
             domain,
@@ -992,16 +938,16 @@ class Scenario:
         ignore_reserved=False,
         safe_parsing=True,
     ) -> Scenario | None:
-        """From yaml folder.
+        """Loads a scenario from a folder containing YAML files.
 
         Args:
-            path: Path.
-            ignore_discount: Ignore discount.
-            ignore_reserved: Ignore reserved.
-            safe_parsing: Safe parsing.
+            path: Directory containing the domain and utility function YAML files.
+            ignore_discount: If True, ignore time-based discounting.
+            ignore_reserved: If True, set reserved values to -inf.
+            safe_parsing: Unused; YAML parsing is always safe.
 
         Returns:
-            Scenario | None: The result.
+            The loaded Scenario, or None if loading fails.
         """
         domain, ufuns = find_domain_and_utility_files_yaml(path)
         if not domain:
@@ -1028,33 +974,24 @@ class Scenario:
         safe_parsing=True,
         python_class_identifier="type",
     ) -> Scenario | None:
-        """From yaml files.
+        """Loads a scenario from specific YAML file paths.
 
         Args:
-            domain: Domain.
-            ufuns: Ufuns.
-            info: Info.
-            ignore_discount: Ignore discount.
-            ignore_reserved: Ignore reserved.
-            safe_parsing: Safe parsing.
-            python_class_identifier: Python class identifier.
+            domain: Path to the domain YAML file.
+            ufuns: Paths to the utility function YAML files.
+            info: Optional path to the scenario info file.
+            ignore_discount: If True, ignore time-based discounting.
+            ignore_reserved: If True, set reserved values to -inf.
+            safe_parsing: Unused; YAML parsing is always safe.
+            python_class_identifier: Key used to identify the Python class type in YAML.
 
         Returns:
-            Scenario | None: The result.
+            The loaded Scenario, or None if loading fails.
         """
         _ = safe_parsing  # yaml parsing is always safe
 
         def adjust_type(d: dict, base: str = "negmas", domain=None) -> dict:
-            """Adjust type.
-
-            Args:
-                d: D.
-                base: Base.
-                domain: Domain.
-
-            Returns:
-                dict: The result.
-            """
+            """Ensures type fields have full module paths and sets outcome space."""
             if "." not in d["type"]:
                 d["type"] = f"{base}.{d['type']}"
             if domain is not None:

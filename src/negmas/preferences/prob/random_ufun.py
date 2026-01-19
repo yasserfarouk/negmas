@@ -31,9 +31,9 @@ class ProbRandomUtilityFunction(StationaryMixin, ProbUtilityFunction):
         """Initialize the instance.
 
         Args:
-            locs: Locs.
-            scales: Scales.
-            types: Types.
+            locs: Range (min, max) for randomly selecting location parameters of distributions.
+            scales: Range (min, max) for randomly selecting scale parameters of distributions.
+            types: Tuple of scipy distribution type names to randomly choose from (e.g. 'uniform', 'norm').
             *args: Additional positional arguments.
             **kwargs: Additional keyword arguments.
         """

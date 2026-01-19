@@ -112,24 +112,24 @@ class SAOMechanism(
         one_offer_per_step: bool = False,
         **kwargs,
     ):
-        """Initialize the instance.
+        """Initialize the SAO mechanism.
 
         Args:
-            dynamic_entry: Dynamic entry.
-            extra_callbacks: Extra callbacks.
-            end_on_no_response: End on no response.
-            avoid_ultimatum: Avoid ultimatum.
-            check_offers: Check offers.
-            enforce_issue_types: Enforce issue types.
-            cast_offers: Cast offers.
-            offering_is_accepting: Offering is accepting.
-            allow_offering_just_rejected_outcome: Allow offering just rejected outcome.
-            name: Name.
-            max_wait: Max wait.
-            sync_calls: Sync calls.
-            initial_state: Initial state.
-            one_offer_per_step: One offer per step.
-            **kwargs: Additional keyword arguments.
+            dynamic_entry: Whether negotiators can join after the negotiation starts.
+            extra_callbacks: Whether to enable additional callbacks (on_round_start, etc.).
+            end_on_no_response: Whether to end negotiation if a negotiator returns NO_RESPONSE.
+            avoid_ultimatum: [Deprecated] Whether to avoid ultimatum situations.
+            check_offers: Whether to validate offers against the outcome space.
+            enforce_issue_types: Whether to enforce correct types for issue values.
+            cast_offers: Whether to cast issue values to their correct types if enforcement is on.
+            offering_is_accepting: Whether proposing an offer counts as accepting it.
+            allow_offering_just_rejected_outcome: Whether a negotiator can re-offer a just-rejected outcome.
+            name: Optional name for the mechanism.
+            max_wait: Maximum number of consecutive WAIT responses before timing out.
+            sync_calls: Whether to call negotiators synchronously (disables per-call timeouts).
+            initial_state: Optional initial state for the mechanism.
+            one_offer_per_step: Whether each step processes only one negotiator's offer.
+            **kwargs: Additional keyword arguments passed to the parent Mechanism.
         """
         debug = kwargs.get("debug", False)
         if debug:
@@ -232,14 +232,16 @@ class SAOMechanism(
         role: str | None = None,
         **kwargs,
     ) -> bool | None:
-        """Add.
+        """Add a negotiator to this mechanism.
 
         Args:
-            negotiator: Negotiator.
-            **kwargs: Additional keyword arguments.
+            negotiator: The negotiator instance to add.
+            preferences: Optional preferences to assign to the negotiator.
+            role: Optional role identifier for the negotiator.
+            **kwargs: Additional keyword arguments passed to the parent add method.
 
         Returns:
-            bool | None: The result.
+            True if successfully added, False if rejected, None if pending.
         """
         from ..genius.negotiator import GeniusNegotiator
 
@@ -262,11 +264,7 @@ class SAOMechanism(
         return added
 
     def set_sync_call(self, v: bool):
-        """Set sync call.
-
-        Args:
-            v: V.
-        """
+        """Enable or disable synchronous negotiator calls."""
         self._sync_call = v
 
     def _agent_info(self):
@@ -710,11 +708,7 @@ class SAOMechanism(
         """Returns the negotiation history as a list of relative_time/step/negotiator/offer tuples"""
 
         def response(state: SAOState):
-            """Response.
-
-            Args:
-                state: Current state.
-            """
+            """Determine the negotiation status string from state."""
             if state.agreement:
                 return "agreement"
             if state.timedout:
@@ -728,11 +722,7 @@ class SAOMechanism(
         offers = []
 
         def get_acceptances(state: SAOState):
-            """Get acceptances.
-
-            Args:
-                state: Current state.
-            """
+            """Get list of negotiator IDs that accepted the current offer."""
             neg = state.current_proposer
             n_acceptances = state.n_acceptances
             if self.nmi.offering_is_accepting:
@@ -775,12 +765,7 @@ class SAOMechanism(
             ]
 
         def not_equal(a, b):
-            """Not equal.
-
-            Args:
-                a: A.
-                b: B.
-            """
+            """Check if two outcomes differ in any value."""
             return any(x != y for x, y in zip(a, b))
 
         self._history: list[SAOState]
@@ -900,12 +885,7 @@ class SAOMechanism(
             offers += [(state.step, n, o) for n, o in state.new_offers]
 
         def not_equal(a, b):
-            """Not equal.
-
-            Args:
-                a: A.
-                b: B.
-            """
+            """Check if two outcomes differ in any value."""
             return any(x != y for x, y in zip(a, b))
 
         self._history: list[SAOState]  #
@@ -934,12 +914,7 @@ class SAOMechanism(
             offers += [(n, o) for n, o in state.new_offers]
 
         def not_equal(a, b):
-            """Not equal.
-
-            Args:
-                a: A.
-                b: B.
-            """
+            """Check if two outcomes differ, handling dict conversion."""
             if isinstance(a, dict):
                 a = a.values()
             if isinstance(b, dict):
@@ -1025,48 +1000,48 @@ class SAOMechanism(
         show: bool = True,
         **kwargs,
     ):
-        """Plot.
+        """Visualize the negotiation run showing offers and utilities in 2D space.
 
         Args:
-            plotting_negotiators: Plotting negotiators.
-            save_fig: Save fig.
-            path: Path.
-            fig_name: Fig name.
-            ignore_none_offers: Ignore none offers.
-            with_lines: With lines.
-            show_agreement: Show agreement.
-            show_pareto_distance: Show pareto distance.
-            show_nash_distance: Show nash distance.
-            show_kalai_distance: Show kalai distance.
-            show_ks_distance: Show ks distance.
-            show_max_welfare_distance: Show max welfare distance.
-            show_max_relative_welfare_distance: Show max relative welfare distance.
-            show_end_reason: Show end reason.
-            show_last_negotiator: Show last negotiator.
-            show_annotations: Show annotations.
-            show_reserved: Show reserved.
-            show_total_time: Show total time.
-            show_relative_time: Show relative time.
-            show_n_steps: Show n steps.
-            colors: Colors.
-            markers: Markers.
-            colormap: Colormap.
-            ylimits: Ylimits.
-            common_legend: Common legend.
-            xdim: Xdim.
-            only2d: Only2d.
-            no2d: No2d.
-            fast: Fast.
-            simple_offers_view: Simple offers view.
-            mark_offers_view: Mark offers view.
-            mark_pareto_points: Mark pareto points.
-            mark_all_outcomes: Mark all outcomes.
-            mark_nash_points: Mark nash points.
-            mark_kalai_points: Mark kalai points.
-            mark_ks_points: Mark ks points.
-            mark_max_welfare_points: Mark max welfare points.
+            plotting_negotiators: Indices or IDs of two negotiators whose utilities form the axes.
+            save_fig: Whether to save the figure to disk.
+            path: Directory path for saving the figure.
+            fig_name: Filename for the saved figure.
+            ignore_none_offers: Whether to skip None offers in the plot.
+            with_lines: Whether to connect offers with lines showing progression.
+            show_agreement: Whether to highlight the final agreement point.
+            show_pareto_distance: Whether to display distance to Pareto frontier.
+            show_nash_distance: Whether to display distance to Nash solution.
+            show_kalai_distance: Whether to display distance to Kalai-Smorodinsky solution.
+            show_ks_distance: Whether to display distance to KS point.
+            show_max_welfare_distance: Whether to display distance to max welfare point.
+            show_max_relative_welfare_distance: Whether to display distance to max relative welfare.
+            show_end_reason: Whether to annotate why the negotiation ended.
+            show_last_negotiator: Whether to show the last negotiator who acted.
+            show_annotations: Whether to show offer annotations on the plot.
+            show_reserved: Whether to show reservation values.
+            show_total_time: Whether to display total negotiation time.
+            show_relative_time: Whether to display relative time progress.
+            show_n_steps: Whether to display the number of steps.
+            colors: Custom color list for negotiators.
+            markers: Custom marker list for negotiators.
+            colormap: Matplotlib colormap name for coloring offers.
+            ylimits: Y-axis limits as (min, max) tuple.
+            common_legend: Whether to use a shared legend for all subplots.
+            xdim: Dimension for x-axis ("relative_time", "step", etc.).
+            only2d: Whether to show only the 2D utility space plot.
+            no2d: Whether to skip the 2D utility space plot.
+            fast: Whether to use faster but less detailed rendering.
+            simple_offers_view: Whether to use simplified offer visualization.
+            mark_offers_view: Whether to mark offers in the utility space view.
+            mark_pareto_points: Whether to mark Pareto optimal points.
+            mark_all_outcomes: Whether to mark all possible outcomes.
+            mark_nash_points: Whether to mark Nash bargaining solution.
+            mark_kalai_points: Whether to mark Kalai-Smorodinsky solution.
+            mark_ks_points: Whether to mark KS points.
+            mark_max_welfare_points: Whether to mark maximum welfare points.
             show: Whether to display the figure immediately.
-            **kwargs: Additional keyword arguments.
+            **kwargs: Additional arguments passed to the plotting function.
         """
         from negmas.plots.util import plot_mechanism_run
 

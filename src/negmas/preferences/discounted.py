@@ -46,7 +46,7 @@ class DiscountedUtilityFunction(StateDependentUFunMixin, BaseUtilityFunction):
         return ufun
 
     def is_state_dependent(self):
-        """Check if state dependent."""
+        """Returns True since discounted utility functions depend on negotiation state."""
         return True
 
     def to_stationary(self):
@@ -299,22 +299,18 @@ class ExpDiscountedUFun(DiscountedUtilityFunction):
 
     @property
     def type(self):
-        """Type."""
+        """Returns the type name with exponential discounting suffix."""
         return self.ufun.type + "_exponentially_discounted"
 
     def __getattr__(self, item):
-        """getattr  .
-
-        Args:
-            item: Item.
-        """
+        """Delegates attribute access to the underlying utility function."""
         # Prevent infinite recursion during deepcopy/pickle when ufun is not yet set
         if item == "ufun":
             raise AttributeError(item)
         return getattr(self.ufun, item)
 
     def __str__(self):
-        """str  ."""
+        """Returns a human-readable string representation."""
         return f"{self.ufun.type}-cost:{self.discount} based on {self.factor}"
 
 
@@ -462,7 +458,7 @@ class LinDiscountedUFun(DiscountedUtilityFunction):
 
     @property
     def type(self):
-        """Type."""
+        """Returns the type name with linear discounting suffix."""
         return self.ufun.type + "_linearly_discounted"
 
     @classmethod
@@ -499,18 +495,14 @@ class LinDiscountedUFun(DiscountedUtilityFunction):
         )
 
     def __getattr__(self, item):
-        """getattr  .
-
-        Args:
-            item: Item.
-        """
+        """Delegates attribute access to the underlying utility function."""
         # Prevent infinite recursion during deepcopy/pickle when ufun is not yet set
         if item == "ufun":
             raise AttributeError(item)
         return getattr(self.ufun, item)
 
     def __str__(self):
-        """str  ."""
+        """Returns a human-readable string representation."""
         return f"{self.ufun.type}-cost:{self.cost} raised to {self.power} based on {self.factor}"
 
     def minmax(

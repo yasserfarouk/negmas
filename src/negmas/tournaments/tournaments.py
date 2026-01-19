@@ -68,12 +68,7 @@ TIMEOUT_EXTRA = 1.05
 
 
 def to_file(x, f):
-    """To file.
-
-    Args:
-        x: X.
-        f: F.
-    """
+    """Serializes an object to a file."""
     dump(x, f)
     # with open(f, "w") as file:
     #     s = serialize(x)
@@ -85,11 +80,7 @@ def to_file(x, f):
 
 
 def from_file(f):
-    """From file.
-
-    Args:
-        f: F.
-    """
+    """Deserializes an object from a file."""
     return load(f)
     # with open(f, "r") as file:
     #     s = file.read()
@@ -183,19 +174,20 @@ class ConfigGenerator(Protocol):
         compact: bool = False,
         **kwargs,
     ) -> list[dict[str, Any]]:
-        """Make instance callable.
+        """
+        Generates world configurations for the tournament.
 
         Args:
-            n_competitors: N competitors.
-            n_agents_per_competitor: N agents per competitor.
-            agent_names_reveal_type: Agent names reveal type.
-            non_competitors: Non competitors.
-            non_competitor_params: Non competitor params.
-            compact: Compact.
-            **kwargs: Additional keyword arguments.
+            n_competitors: Number of competitor agent types per world.
+            n_agents_per_competitor: Number of agent instances per competitor type.
+            agent_names_reveal_type: Whether agent names should include their type info.
+            non_competitors: Agent types to include that won't compete for scores.
+            non_competitor_params: Initialization parameters for non-competing agents.
+            compact: Whether to minimize memory footprint and logging.
+            **kwargs: Additional configuration parameters.
 
         Returns:
-            list[dict[str, Any]]: The result.
+            A list of world configuration dictionaries.
         """
         ...
 
@@ -233,21 +225,23 @@ class ConfigAssigner(Protocol):
         dynamic_non_competitor_params: Sequence[dict[str, Any]] | None = None,
         exclude_competitors_from_reassignment: bool = True,
     ) -> list[list[dict[str, Any]]]:
-        """Make instance callable.
+        """
+        Assigns competitors to world configurations.
 
         Args:
-            config: Config.
-            max_n_worlds: Max n worlds.
-            n_agents_per_competitor: N agents per competitor.
-            fair: Fair.
-            competitors: Competitors.
-            params: Params.
-            dynamic_non_competitors: Dynamic non competitors.
-            dynamic_non_competitor_params: Dynamic non competitor params.
-            exclude_competitors_from_reassignment: Exclude competitors from reassignment.
+            config: Base world configurations from the ConfigGenerator.
+            max_n_worlds: Maximum number of worlds to generate from this config.
+            n_agents_per_competitor: Number of agent instances per competitor type.
+            fair: If true, each competitor gets equal representation across configs.
+            competitors: List of Agent types to assign to the configurations.
+            params: Initialization parameters for each competitor type.
+            dynamic_non_competitors: Non-competing agents assigned dynamically at runtime.
+            dynamic_non_competitor_params: Parameters for dynamic non-competitors.
+            exclude_competitors_from_reassignment: Whether to exclude competitors from
+                being reassigned as dynamic non-competitors.
 
         Returns:
-            list[list[dict[str, Any]]]: The result.
+            A list of world configuration sets with competitors assigned.
         """
         ...
 
@@ -275,13 +269,15 @@ class WorldRunResults:
 
 
 def score_adapter(scores_data: dict[str, Any]) -> WorldRunResults:
-    """Score adapter.
+    """
+    Converts raw score data into a WorldRunResults object.
 
     Args:
-        scores_data: Scores data.
+        scores_data: Dictionary containing world names, paths, scores, and extra scores
+            from a completed world run.
 
     Returns:
-        WorldRunResults: The result.
+        A WorldRunResults object populated with the score data.
     """
     world_names = (
         [scores_data["name"]]
@@ -378,11 +374,12 @@ class AgentStats:
 
     @classmethod
     def from_records(cls, records: list[dict[str, Any]], label: str):
-        """From records.
+        """
+        Creates an AgentStats instance from a list of record dictionaries.
 
         Args:
-            records: Records.
-            label: Label.
+            records: List of dictionaries containing agent statistics data.
+            label: The key name used to identify agents in the records (e.g., 'name', 'type').
         """
         a = cls()
         if len(records) < 1:
@@ -464,19 +461,16 @@ class WorldSetRunStats:
     """Contracts executed"""
 
     def to_record(self, world):
-        """To record.
-
-        Args:
-            world: World.
-        """
+        """Converts this stats object to a list of record dictionaries for serialization."""
         return [vars(self)]
 
     @classmethod
     def from_records(cls, records: list[dict[str, Any]]):
-        """From records.
+        """
+        Creates a WorldSetRunStats instance by aggregating multiple record dictionaries.
 
         Args:
-            records: Records.
+            records: List of dictionaries containing world run statistics to aggregate.
         """
         a = cls(name="", planned_n_steps=0, executed_n_steps=0, execution_time=0)
         if len(records) < 1:
@@ -531,7 +525,7 @@ class TournamentResults:
     """Extra scores returned from the scoring function. This can be used to have multi-dimensional scoring"""
 
     def __str__(self):
-        """str  ."""
+        """Returns a formatted string summary of the tournament results."""
         import tabulate
 
         results = ""
@@ -1371,22 +1365,23 @@ def save_run_results(
     n_world_configs,
     i,
 ):
-    """Save run results.
+    """
+    Persists the results of a world run to disk and updates progress.
 
     Args:
-        run_id: Run id.
-        score_: Score .
-        world_stats_: World stats .
-        type_stats_: Type stats .
-        agent_stats_: Agent stats .
-        tournament_progress_callback: Tournament progress callback.
-        world_paths: World paths.
-        name: Name.
-        verbose: Verbose.
-        _strt:  strt.
-        attempts_path: Attempts path.
-        n_world_configs: N world configs.
-        i: I.
+        run_id: Unique identifier for this world run.
+        score_: The WorldRunResults containing agent scores.
+        world_stats_: Statistics about the world execution.
+        type_stats_: Aggregated statistics per agent type.
+        agent_stats_: Statistics per individual agent instance.
+        tournament_progress_callback: Optional callback to report progress.
+        world_paths: List of filesystem paths where results should be saved.
+        name: Tournament name for logging purposes.
+        verbose: Whether to print progress information.
+        _strt: Start time for computing elapsed time.
+        attempts_path: Path to the attempts tracking directory.
+        n_world_configs: Total number of world configurations in the tournament.
+        i: Current index in the tournament execution sequence.
     """
     if tournament_progress_callback is not None:
         tournament_progress_callback(score_, i, n_world_configs)
@@ -2331,11 +2326,7 @@ def _combine_stats(stats: pd.DataFrame | None) -> pd.DataFrame | None:
     )
 
     def get_last(x):
-        """Get last.
-
-        Args:
-            x: X.
-        """
+        """Returns the row with the maximum step value from a dataframe."""
         return x.loc[x["step"] == x["step"].max(), :]
 
     last = stats.groupby(["world"]).apply(get_last)
@@ -2355,11 +2346,7 @@ def _combine_stats(stats: pd.DataFrame | None) -> pd.DataFrame | None:
     combined = pd.merge(combined, last, on=["world"])
 
     def adjust_name(s):
-        """Adjust name.
-
-        Args:
-            s: S.
-        """
+        """Normalizes column names by removing special characters and standardizing suffixes."""
         if isinstance(s, tuple):
             s = "".join(s)
         return (
@@ -2429,10 +2416,11 @@ def combine_tournament_stats(
 
 
 def compile_results(path: str | Path | Path):
-    """Compile results.
+    """
+    Compiles all individual world run results into aggregate tournament result files.
 
     Args:
-        path: Path.
+        path: Path to the tournament directory containing world run results.
     """
     path = _path(path)
     if not path.exists():
@@ -3018,13 +3006,14 @@ def tournament(
 
 
 def is_already_run(world_params) -> bool:
-    """Check if already run.
+    """
+    Checks if a world with the given parameters has already been simulated.
 
     Args:
-        world_params: World params.
+        world_params: Dictionary containing world configuration parameters.
 
     Returns:
-        bool: The result.
+        True if the world was previously run, False otherwise.
     """
     return False
 

@@ -48,45 +48,25 @@ class OptionalIssue(Issue):
         return self.min_value is not None and self.max_value is not None
 
     def is_numeric(self) -> bool:
-        """Check if numeric.
-
-        Returns:
-            bool: The result.
-        """
+        """Check if the issue values are numeric types."""
         return issubclass(self.base._value_type, numbers.Number)
 
     def is_integer(self) -> bool:
-        """Check if integer.
-
-        Returns:
-            bool: The result.
-        """
+        """Check if the issue values are integer types."""
         return issubclass(self.base.value_type, numbers.Integral)
 
     def is_float(self) -> bool:
-        """Check if float.
-
-        Returns:
-            bool: The result.
-        """
+        """Check if the issue values are floating-point types."""
         return issubclass(self._value_type, numbers.Real) and not issubclass(
             self._value_type, numbers.Integral
         )
 
     def is_continuous(self) -> bool:
-        """Check if continuous.
-
-        Returns:
-            bool: The result.
-        """
+        """Check if the issue has continuous (real-valued) domain."""
         return self.base.is_continuous()
 
     def is_discrete(self) -> bool:
-        """Check if discrete.
-
-        Returns:
-            bool: The result.
-        """
+        """Check if the issue has a discrete (countable) domain."""
         return not self.is_continuous()
 
     @property
@@ -148,16 +128,16 @@ class OptionalIssue(Issue):
     def ordered_value_generator(  # type: ignore
         self, n: int | float | None = None, grid=True, compact=False, endpoints=True
     ) -> Generator[int | None, None, None]:
-        """Ordered value generator.
+        """Generate values in ascending order, starting with None.
 
         Args:
-            n: Number of items.
-            grid: Grid.
-            compact: Compact.
-            endpoints: Endpoints.
+            n: Maximum number of values to generate, or None for all.
+            grid: If True, use evenly spaced values; otherwise sample randomly.
+            compact: If True, concentrate values around the center of the range.
+            endpoints: If True, include min and max values in the output.
 
         Returns:
-            Generator[int | None, None, None]: The result.
+            Generator yielding None first, then values from the base issue.
         """
         yield None
         yield from self.base.ordered_value_generator(n, grid, compact, endpoints)
@@ -165,16 +145,16 @@ class OptionalIssue(Issue):
     def value_generator(
         self, n: int | float | None = 10, grid=True, compact=True, endpoints=True
     ) -> Generator[Any, None, None]:
-        """Value generator.
+        """Generate a sample of values from this issue, starting with None.
 
         Args:
-            n: Number of items.
-            grid: Grid.
-            compact: Compact.
-            endpoints: Endpoints.
+            n: Maximum number of values to generate, or None for all.
+            grid: If True, use evenly spaced values; otherwise sample randomly.
+            compact: If True, concentrate values around the center of the range.
+            endpoints: If True, include min and max values in the output.
 
         Returns:
-            Generator[Any, None, None]: The result.
+            Generator yielding None first, then sampled values from the base issue.
         """
         yield None
         yield from self.base.value_generator(n, grid, compact, endpoints)
@@ -182,16 +162,16 @@ class OptionalIssue(Issue):
     def to_discrete(  # type: ignore
         self, n: int | float | None = 10, grid=True, compact=True, endpoints=True
     ) -> OptionalIssue:
-        """To discrete.
+        """Convert to a discrete optional issue with at most n values.
 
         Args:
-            n: Number of items.
-            grid: Grid.
-            compact: Compact.
-            endpoints: Endpoints.
+            n: Maximum number of discrete values in the resulting issue.
+            grid: If True, use evenly spaced values; otherwise sample randomly.
+            compact: If True, concentrate values around the center of the range.
+            endpoints: If True, include min and max values in the discretization.
 
         Returns:
-            OptionalIssue: The result.
+            A new OptionalIssue wrapping the discretized base issue.
         """
         return OptionalIssue(self.base.to_discrete(n, grid, compact, endpoints))
 
@@ -210,15 +190,15 @@ class OptionalIssue(Issue):
     def rand_outcomes(
         self, n: int, with_replacement=False, fail_if_not_enough=False
     ) -> list:
-        """Rand outcomes.
+        """Generate n random values from this issue.
 
         Args:
-            n: Number of items.
-            with_replacement: With replacement.
-            fail_if_not_enough: Fail if not enough.
+            n: Number of random values to generate.
+            with_replacement: If True, allow duplicate values in the result.
+            fail_if_not_enough: If True, raise error when n exceeds cardinality.
 
         Returns:
-            list: The result.
+            A list of n randomly selected values from the base issue.
         """
         return self.base.rand_outcomes(n, with_replacement, fail_if_not_enough)
 
@@ -235,19 +215,15 @@ class OptionalIssue(Issue):
         yield from self.base.all
 
     def __eq__(self, other):
-        """eq  .
-
-        Args:
-            other: Other.
-        """
+        """Check equality based on the wrapped base issue."""
         if not isinstance(other, OptionalIssue):
             return False
         return self.base == other.base
 
     def __repr__(self):
-        """repr  ."""
+        """Return detailed string representation for debugging."""
         return f"{self.__class__.__name__}({self.base}, {self.name})"
 
     def __str__(self):
-        """str  ."""
+        """Return human-readable string showing name and base issue."""
         return f"{self.name}: {self.base}"

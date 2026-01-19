@@ -19,7 +19,7 @@ def safe_min(a, b):
 
 
 def deflistdict():
-    """Deflistdict."""
+    """Create a defaultdict that returns empty lists for missing keys."""
     return defaultdict(list)
 
 

@@ -69,14 +69,14 @@ class UtilityBasedOutcomeSetRecommender(GBComponent):
         | Literal["some"]
         | Literal["all"] = "some",
     ):
-        """Initialize the instance.
+        """Initialize the outcome set recommender.
 
         Args:
-            rank_only: Rank only.
-            ufun_inverter: Ufun inverter.
-            max_cardinality: Max cardinality.
-            eps: Eps.
-            inversion_method: Inversion method.
+            rank_only: If True, use only relative ranks of outcomes for inversion, not actual utility values.
+            ufun_inverter: Optional factory function to create an InverseUFun from a BaseUtilityFunction.
+            max_cardinality: Maximum outcome space cardinality before switching to sampling-based inversion.
+            eps: Small epsilon value used to slightly expand utility ranges for robustness.
+            inversion_method: Strategy for selecting outcomes from a utility range ('min', 'max', 'one', 'some', 'all').
         """
         super().__init__()
         self._rank_only = rank_only
@@ -90,22 +90,14 @@ class UtilityBasedOutcomeSetRecommender(GBComponent):
         self._inv_method = None
 
     def set_negotiator(self, negotiator: GBNegotiator) -> None:  # type: ignore
-        """Set negotiator.
-
-        Args:
-            negotiator: Negotiator.
-        """
+        """Attaches this component to a negotiator and resets internal state."""
         super().set_negotiator(negotiator)
         self.inv: InverseUFun | None = None
         self.min = self.max = self.best = None
         self._inv_method = None
 
     def on_preferences_changed(self, changes: list[PreferencesChange]):
-        """On preferences changed.
-
-        Args:
-            changes: Changes.
-        """
+        """Rebuilds the inverse utility function when preferences change."""
         if self._negotiator is None:
             raise ValueError("Unknown negotiator in a component")
         ufun = self._negotiator.ufun
@@ -141,12 +133,7 @@ class UtilityBasedOutcomeSetRecommender(GBComponent):
             self.min = ufun.reserved_value
 
     def before_proposing(self, state: GBState, dest: str | None = None):
-        """Before proposing.
-
-        Args:
-            state: Current state.
-            dest: Dest.
-        """
+        """Ensures the inverter is initialized before making a proposal."""
         if self._negotiator is None:
             raise ValueError("Unknown negotiator in a component")
         if self.inv is None or self.max is None or self.min is None:
@@ -196,7 +183,7 @@ class UtilityBasedOutcomeSetRecommender(GBComponent):
 
     @property
     def tolerance(self):
-        """Tolerance."""
+        """Returns the epsilon value used to expand utility ranges."""
         return self.eps
 
     @property
@@ -236,11 +223,7 @@ class UtilityInverter(GBComponent):
     """
 
     def set_negotiator(self, negotiator: GBNegotiator) -> None:  # type: ignore
-        """Set negotiator.
-
-        Args:
-            negotiator: Negotiator.
-        """
+        """Attaches this component and its recommender to a negotiator."""
         super().set_negotiator(negotiator)
         self.recommender.set_negotiator(negotiator)
 
@@ -253,11 +236,13 @@ class UtilityInverter(GBComponent):
         | None = None,
         **kwargs,
     ):
-        """Initialize the instance.
+        """Initialize the utility inverter.
 
         Args:
-            *args: Additional positional arguments.
-            **kwargs: Additional keyword arguments.
+            *args: Positional arguments forwarded to UtilityBasedOutcomeSetRecommender.
+            offer_selector: Strategy for selecting from candidate outcomes - can be 'min', 'max',
+                or a callable that picks from a sequence of outcomes given the current state.
+            **kwargs: Keyword arguments forwarded to UtilityBasedOutcomeSetRecommender.
         """
         if offer_selector is None:
             type_ = "one"
@@ -275,33 +260,20 @@ class UtilityInverter(GBComponent):
         self.set_negotiator(None)  # type: ignore (It is OK. We do not really need to pass this at all here.)
 
     def on_preferences_changed(self, changes: list[PreferencesChange]):
-        """On preferences changed.
-
-        Args:
-            changes: Changes.
-        """
+        """Forwards preference changes to the underlying recommender."""
         self.recommender.on_preferences_changed(changes)
 
     def before_proposing(self, state: GBState, dest: str | None = None):
-        """Before proposing.
-
-        Args:
-            state: Current state.
-            dest: Dest.
-        """
+        """Prepares the recommender before making a proposal."""
         self.recommender.before_proposing(state)
 
     def scale_utilities(self, urange):
-        """Scale utilities.
-
-        Args:
-            urange: Urange.
-        """
+        """Scales normalized [0-1] utilities to the actual ufun range."""
         return self.recommender.scale_utilities(urange)
 
     @property
     def tolerance(self):
-        """Tolerance."""
+        """Returns the epsilon value used to expand utility ranges."""
         return self.recommender.eps
 
     @property

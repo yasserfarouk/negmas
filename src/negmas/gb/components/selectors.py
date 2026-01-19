@@ -136,54 +136,30 @@ class OfferFilterProtocol(Protocol):
     def __call__(
         self, outcomes: Sequence[Outcome], state: GBState
     ) -> Sequence[Outcome]:
-        """Make instance callable.
+        """Filter a sequence of outcomes based on some criteria.
 
         Args:
-            outcomes: Outcomes.
-            state: Current state.
+            outcomes: The candidate outcomes to filter.
+            state: The current negotiation state.
 
         Returns:
-            Sequence[Outcome]: The result.
+            The filtered sequence of outcomes.
         """
         ...
 
 
 def NoFiltering(outcomes: Sequence[Outcome], state: GBState) -> Sequence[Outcome]:
-    """Nofiltering.
-
-    Args:
-        outcomes: Outcomes.
-        state: Current state.
-
-    Returns:
-        Sequence[Outcome]: The result.
-    """
+    """Returns all outcomes unchanged without any filtering."""
     return outcomes
 
 
 def KeepFirst(outcomes: Sequence[Outcome], state: GBState) -> Sequence[Outcome]:
-    """Keepfirst.
-
-    Args:
-        outcomes: Outcomes.
-        state: Current state.
-
-    Returns:
-        Sequence[Outcome]: The result.
-    """
+    """Returns only the first outcome from the sequence, or empty if none."""
     return [] if not outcomes else [outcomes[0]]
 
 
 def KeepLast(outcomes: Sequence[Outcome], state: GBState) -> Sequence[Outcome]:
-    """Keeplast.
-
-    Args:
-        outcomes: Outcomes.
-        state: Current state.
-
-    Returns:
-        Sequence[Outcome]: The result.
-    """
+    """Returns only the last outcome from the sequence, or empty if none."""
     return [] if not outcomes else [outcomes[-1]]
 
 
@@ -195,14 +171,14 @@ class OfferSelectorProtocol(Protocol):
     def __call__(
         self, outcomes: Sequence[Outcome], state: GBState
     ) -> Outcome | ExtendedOutcome | None:
-        """Make instance callable.
+        """Select the best outcome from a sequence of candidates.
 
         Args:
-            outcomes: Outcomes.
-            state: Current state.
+            outcomes: The candidate outcomes to select from.
+            state: The current negotiation state.
 
         Returns:
-            Outcome | None: The result.
+            The selected outcome, or None if no selection can be made.
         """
         ...
 
@@ -216,53 +192,37 @@ class OfferSelector(OfferSelectorProtocol, GBComponent):
     def __call__(
         self, outcomes: Sequence[Outcome], state: GBState
     ) -> Outcome | ExtendedOutcome | None:
-        """Make instance callable.
+        """Select the best outcome from a sequence of candidates.
 
         Args:
-            outcomes: Outcomes.
-            state: Current state.
+            outcomes: The candidate outcomes to select from.
+            state: The current negotiation state.
 
         Returns:
-            Outcome | None: The result.
+            The selected outcome, or None if no selection can be made.
         """
         ...
 
 
 class RandomOfferSelector(OfferSelector):
-    """RandomOfferSelector implementation."""
+    """Selects a random outcome from the candidate set."""
 
     def __call__(
         self, outcomes: Sequence[Outcome], state: GBState
     ) -> Outcome | ExtendedOutcome | None:
-        """Make instance callable.
-
-        Args:
-            outcomes: Outcomes.
-            state: Current state.
-
-        Returns:
-            Outcome | None: The result.
-        """
+        """Select a random outcome from the candidates."""
         if not outcomes:
             return None
         return choice(outcomes)
 
 
 class BestOfferSelector(OfferSelector):
-    """BestOfferSelector implementation."""
+    """Selects the outcome with the highest utility value."""
 
     def __call__(
         self, outcomes: Sequence[Outcome], state: GBState
     ) -> Outcome | ExtendedOutcome | None:
-        """Make instance callable.
-
-        Args:
-            outcomes: Outcomes.
-            state: Current state.
-
-        Returns:
-            Outcome | None: The result.
-        """
+        """Select the outcome with the highest utility."""
         if not self._negotiator:
             warn(
                 "Asked to select an outcome with unkonwn negotiator",
@@ -283,20 +243,12 @@ class BestOfferSelector(OfferSelector):
 
 
 class MedianOfferSelector(OfferSelector):
-    """MedianOfferSelector implementation."""
+    """Selects the outcome with the median utility value."""
 
     def __call__(
         self, outcomes: Sequence[Outcome], state: GBState
     ) -> Outcome | ExtendedOutcome | None:
-        """Make instance callable.
-
-        Args:
-            outcomes: Outcomes.
-            state: Current state.
-
-        Returns:
-            Outcome | None: The result.
-        """
+        """Select the outcome with the median utility."""
         if not self._negotiator:
             warn(
                 "Asked to select an outcome with unkonwn negotiator",
@@ -318,20 +270,12 @@ class MedianOfferSelector(OfferSelector):
 
 
 class WorstOfferSelector(OfferSelector):
-    """WorstOfferSelector implementation."""
+    """Selects the outcome with the lowest utility value."""
 
     def __call__(
         self, outcomes: Sequence[Outcome], state: GBState
     ) -> Outcome | ExtendedOutcome | None:
-        """Make instance callable.
-
-        Args:
-            outcomes: Outcomes.
-            state: Current state.
-
-        Returns:
-            Outcome | None: The result.
-        """
+        """Select the outcome with the lowest utility."""
         if not self._negotiator:
             warn(
                 "Asked to select an outcome with unkonwn negotiator",
@@ -359,11 +303,10 @@ class OfferOrientedSelector(OfferSelector):
     def __init__(
         self, distance_fun: DistanceFun = generalized_minkowski_distance, **kwargs
     ):
-        """Initialize the instance.
-
+        """
         Args:
-            distance_fun: Distance fun.
-            **kwargs: Additional keyword arguments.
+            distance_fun: Function to compute distance between outcomes.
+            **kwargs: Additional parameters passed to the distance function.
         """
         self._pivot: Outcome | None = None
         self._distance_fun = distance_fun
@@ -372,15 +315,7 @@ class OfferOrientedSelector(OfferSelector):
     def __call__(
         self, outcomes: Sequence[Outcome], state: GBState
     ) -> Outcome | ExtendedOutcome | None:
-        """Make instance callable.
-
-        Args:
-            outcomes: Outcomes.
-            state: Current state.
-
-        Returns:
-            Outcome | None: The result.
-        """
+        """Select the outcome nearest to the pivot outcome."""
         if not self._negotiator or not self._negotiator.ufun:
             raise ValueError("Unknown ufun or negotiator")
         if not self._pivot:
@@ -406,13 +341,7 @@ class FirstOfferOrientedSelector(OfferOrientedSelector):
     def before_responding(
         self, state: GBState, offer: Outcome | None, source: str | None = None
     ):
-        """Before responding.
-
-        Args:
-            state: Current state.
-            offer: Offer being considered.
-            source: Source identifier.
-        """
+        """Sets the pivot to the first offer received from the partner."""
         if self._pivot or offer is None:
             return
         self._pivot = offer
@@ -426,13 +355,7 @@ class LastOfferOrientedSelector(OfferOrientedSelector):
     def before_responding(
         self, state: GBState, offer: Outcome | None, source: str | None = None
     ):
-        """Before responding.
-
-        Args:
-            state: Current state.
-            offer: Offer being considered.
-            source: Source identifier.
-        """
+        """Updates the pivot to the most recent offer from the partner."""
         if offer is None:
             return
         self._pivot = offer
@@ -448,13 +371,7 @@ class BestOfferOrientedSelector(OfferOrientedSelector):
     def before_responding(
         self, state: GBState, offer: Outcome | None, source: str | None = None
     ):
-        """Before responding.
-
-        Args:
-            state: Current state.
-            offer: Offer being considered.
-            source: Source identifier.
-        """
+        """Updates the pivot if the current offer has the highest utility so far."""
         if offer is None:
             return
         if not self._negotiator or not self._negotiator.ufun:
@@ -480,12 +397,11 @@ class OutcomeSetOrientedSelector(OfferSelector):
         offer_filter: OfferFilterProtocol = NoFiltering,
         **kwargs,
     ):
-        """Initialize the instance.
-
+        """
         Args:
-            distance_fun: Distance fun.
-            offer_filter: Offer filter.
-            **kwargs: Additional keyword arguments.
+            distance_fun: Function to compute distance between outcomes.
+            offer_filter: Filter to apply to candidates before selection.
+            **kwargs: Additional parameters passed to the distance function.
         """
         self._pivots: list[Outcome] = []
         self._distance_fun = distance_fun
@@ -496,30 +412,22 @@ class OutcomeSetOrientedSelector(OfferSelector):
     def calculate_scores(
         self, outcomes: Sequence[Outcome], pivots: list[Outcome], state: GBState
     ) -> Sequence[tuple[float, Outcome]]:
-        """Calculate scores.
+        """Compute a score for each outcome based on its relation to the pivot outcomes.
 
         Args:
-            outcomes: Outcomes.
-            pivots: Pivots.
-            state: Current state.
+            outcomes: The candidate outcomes to score.
+            pivots: Reference outcomes used for distance calculations.
+            state: The current negotiation state.
 
         Returns:
-            Sequence[tuple[float, Outcome]]: The result.
+            Sequence of (score, outcome) tuples for ranking.
         """
         ...
 
     def __call__(
         self, outcomes: Sequence[Outcome], state: GBState
     ) -> Outcome | ExtendedOutcome | None:
-        """Make instance callable.
-
-        Args:
-            outcomes: Outcomes.
-            state: Current state.
-
-        Returns:
-            Outcome | None: The result.
-        """
+        """Select the outcome with the highest score relative to pivot outcomes."""
         if not self._negotiator or not self._negotiator.ufun:
             raise ValueError("Unknown ufun or negotiator")
         outcomes = self._offer_filter(outcomes, state)
@@ -538,13 +446,7 @@ class PartnerOffersOrientedSelector(OutcomeSetOrientedSelector):
     def before_responding(
         self, state: GBState, offer: Outcome | None, source: str | None = None
     ):
-        """Before responding.
-
-        Args:
-            state: Current state.
-            offer: Offer being considered.
-            source: Source identifier.
-        """
+        """Adds the partner's offer to the pivot set for future distance calculations."""
         if offer is None:
             return
         self._pivots.append(offer)
@@ -561,16 +463,7 @@ class MultiplicativePartnerOffersOrientedSelector(PartnerOffersOrientedSelector)
     def calculate_scores(
         self, outcomes: Sequence[Outcome], pivots: list[Outcome], state: GBState
     ) -> Sequence[tuple[float, Outcome]]:
-        """Calculate scores.
-
-        Args:
-            outcomes: Outcomes.
-            pivots: Pivots.
-            state: Current state.
-
-        Returns:
-            Sequence[tuple[float, Outcome]]: The result.
-        """
+        """Compute scores as the product of utility and normalized distance to pivots."""
         if not self._negotiator or not self._negotiator.ufun:
             raise ValueError("Unknown ufun or negotiator")
         return multiplicative_score(
@@ -591,23 +484,19 @@ class AdditivePartnerOffersOrientedSelector(PartnerOffersOrientedSelector):
     """
 
     def __init__(self, *args, u_weight: float = 0.6, **kwargs):
-        """Initializes the instance."""
+        """
+        Args:
+            *args: Arguments passed to parent class.
+            u_weight: Weight for utility in the additive combination (0-1).
+            **kwargs: Additional keyword arguments passed to parent class.
+        """
         super().__init__(*args, **kwargs)
         self.u_weight = u_weight
 
     def calculate_scores(
         self, outcomes: Sequence[Outcome], pivots: list[Outcome], state: GBState
     ) -> Sequence[tuple[float, Outcome]]:
-        """Calculate scores.
-
-        Args:
-            outcomes: Outcomes.
-            pivots: Pivots.
-            state: Current state.
-
-        Returns:
-            Sequence[tuple[float, Outcome]]: The result.
-        """
+        """Compute scores as a weighted sum of utility and normalized distance to pivots."""
         if not self._negotiator or not self._negotiator.ufun:
             raise ValueError("Unknown ufun or negotiator")
         return additive_score(

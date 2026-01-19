@@ -180,14 +180,14 @@ class UtilityFunction(_ExtremelyDynamic, BaseUtilityFunction):
         return ufuns
 
     def is_not_worse(self, first: Outcome | None, second: Outcome | None) -> bool:
-        """Check if not worse.
+        """Check if the first outcome is at least as good as the second.
 
         Args:
-            first: First.
-            second: Second.
+            first: The first outcome to compare.
+            second: The second outcome to compare.
 
         Returns:
-            bool: The result.
+            True if first has utility >= second, False otherwise.
         """
         return self.difference(first, second) >= 0
 

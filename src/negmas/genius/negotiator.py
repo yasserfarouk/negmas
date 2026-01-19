@@ -140,16 +140,12 @@ class GeniusNegotiator(SAONegotiator):
 
     @property
     def strict(self):
-        """Strict."""
+        """Whether to raise exceptions on errors instead of issuing warnings."""
         return self._strict
 
     @strict.setter
     def strict(self, value: bool):
-        """Strict.
-
-        Args:
-            value: Value.
-        """
+        """Sets the strict mode for error handling."""
         self._strict = value
         return self._strict
 
@@ -160,19 +156,15 @@ class GeniusNegotiator(SAONegotiator):
 
     @property
     def port(self):
+        """The TCP port used for the Genius bridge connection."""
         # if a port was not specified then we just set any random empty port to be used
-        """Port."""
         if not self.is_connected and self._port <= 0:
             self._port = get_free_tcp_port()
         return self._port
 
     @port.setter
     def port(self, port):
-        """Port.
-
-        Args:
-            port: Port.
-        """
+        """Sets the TCP port for the Genius bridge connection."""
         self._port = port
 
     @classmethod
@@ -203,11 +195,12 @@ class GeniusNegotiator(SAONegotiator):
 
     @classmethod
     def random_negotiator_name(cls, agent_based=True, party_based=True):
-        """Random negotiator name.
+        """
+        Returns a randomly selected Genius negotiator class name.
 
         Args:
-            agent_based: Agent based.
-            party_based: Party based.
+            agent_based: Include older agents based on the Java Negotiator class
+            party_based: Include newer agents based on AbstractNegotiationParty
         """
         agent_names = cls.negotiators(agent_based=agent_based, party_based=party_based)
         return random.choice(agent_names)
@@ -295,14 +288,18 @@ class GeniusNegotiator(SAONegotiator):
     def join(
         self, nmi, state, *, preferences=None, ufun=None, role="negotiator"
     ) -> bool:
-        """Join.
+        """
+        Joins a negotiation mechanism and initializes the Java-side agent.
 
         Args:
-            nmi: Nmi.
-            state: Current state.
+            nmi: The negotiation mechanism interface providing negotiation context
+            state: The current mechanism state at join time
+            preferences: Optional utility function for this negotiator
+            ufun: Alias for preferences (deprecated)
+            role: The role this negotiator plays in the mechanism
 
         Returns:
-            bool: The result.
+            True if successfully joined, False otherwise
         """
         if ufun:
             preferences = ufun
@@ -391,10 +388,11 @@ class GeniusNegotiator(SAONegotiator):
         return output
 
     def destroy_java_counterpart(self, state=None) -> None:
-        """Destroy java counterpart.
+        """
+        Destroys the Java-side Genius agent and cleans up temporary files.
 
         Args:
-            state: Current state.
+            state: The final mechanism state, used to report agreement if any
         """
         if self.__started and not self.__destroyed:
             if self.java is not None:
@@ -579,10 +577,11 @@ class GeniusNegotiator(SAONegotiator):
             )
 
     def cancel(self, reason=None) -> None:
-        """Cancel.
+        """
+        Cancels the negotiation and notifies the Java-side agent.
 
         Args:
-            reason: Reason.
+            reason: Optional explanation for why the negotiation was cancelled
         """
         _ = reason
         try:
@@ -592,10 +591,11 @@ class GeniusNegotiator(SAONegotiator):
 
     @property
     def relative_time(self) -> float | None:
-        """Relative time.
+        """
+        The relative negotiation time as reported by the Genius agent (0.0 to 1.0).
 
         Returns:
-            float | None: The result.
+            The relative time between 0 and 1, or None if unavailable
         """
         if self.nmi is None or not self.nmi.state.started:
             return 0
@@ -653,12 +653,7 @@ class GeniusNegotiator(SAONegotiator):
         issues = nmi.cartesian_outcome_space.issues
 
         def map_value(issue: Issue, val: str):
-            """Map value.
-
-            Args:
-                issue: Issue.
-                val: Val.
-            """
+            """Converts a string value to the appropriate type for an issue."""
             if not issue.value_type:
                 return val
             if issubclass(issue.value_type, tuple):
@@ -708,14 +703,15 @@ class GeniusNegotiator(SAONegotiator):
         return response, tuple(outcome) if outcome else None
 
     def __call__(self, state: SAOState, dest: str | None = None) -> SAOResponse:
-        """Make instance callable.
+        """
+        Allows the negotiator to be called directly to get a response.
 
         Args:
-            state: Current state.
-            dest: Dest.
+            state: The current SAO negotiation state
+            dest: Optional destination negotiator ID for the response
 
         Returns:
-            SAOResponse: The result.
+            The negotiator's response including action type and any proposed outcome
         """
         self.respond_sao(state)
         return SAOResponse(self.__my_last_response, self.__my_last_offer)
@@ -727,11 +723,12 @@ class GeniusNegotiator(SAONegotiator):
         return s
 
     def respond_sao(self, state: SAOState, source: str | None = None) -> None:
-        """Respond sao.
+        """
+        Processes an incoming offer and prepares a response for SAO mechanisms.
 
         Args:
-            state: Current state.
-            source: Source identifier.
+            state: The current SAO negotiation state containing the offer
+            source: The ID of the negotiator who made the current offer
         """
         offer = state.current_offer
         if offer is None and self.__my_last_offer is not None and self._strict:
@@ -752,14 +749,15 @@ class GeniusNegotiator(SAONegotiator):
         self.propose_sao(state)
 
     def propose_sao(self, state: SAOState, dest: str | None = None) -> SAOResponse:
-        """Propose sao.
+        """
+        Generates a new proposal or response for SAO mechanisms.
 
         Args:
-            state: Current state.
-            dest: Dest.
+            state: The current SAO negotiation state
+            dest: Optional target negotiator ID for the proposal
 
         Returns:
-            SAOResponse: The result.
+            The response containing the action type and proposed outcome
         """
         current_step = self._current_step(state)
         if current_step == self.__my_last_offer_step:
@@ -791,21 +789,22 @@ class GeniusNegotiator(SAONegotiator):
         return SAOResponse(response, outcome)
 
     def __str__(self):
-        """str  ."""
+        """Returns a string representation including the Java class name."""
         name = super().__str__().split("/")
         return "/".join(name[:-1]) + f"/{self.java_class_name}/" + name[-1]
 
     # compatibility with GAO
 
     def respond(self, state: GBState, source: str | None = None) -> ResponseType:
-        """Respond.
+        """
+        Responds to an offer in General Bargaining (GB) mechanisms.
 
         Args:
-            state: Current state.
-            source: Source identifier.
+            state: The current GB negotiation state
+            source: The ID of the negotiator who made the offer (required)
 
         Returns:
-            ResponseType: The result.
+            The response type (accept, reject, or end negotiation)
         """
         if source is None:
             raise ValueError(
@@ -836,18 +835,19 @@ class GeniusNegotiator(SAONegotiator):
         return self.__my_last_response
 
     def propose(self, state: GBState, dest: str | None = None) -> Outcome | None:
+        """
+        Generates a proposal for General Bargaining (GB) mechanisms.
+
+        Args:
+            state: The current GB negotiation state
+            dest: Optional target negotiator ID for the proposal
+
+        Returns:
+            The proposed outcome, or None if ending/accepting
+        """
         # saves one new offer/response every step
         # if current_step >= 146:
         #     breakpoint()
-        """Propose.
-
-        Args:
-            state: Current state.
-            dest: Dest.
-
-        Returns:
-            Outcome | None: The result.
-        """
         current_step = self._current_step(state)
         if current_step == self.__my_last_offer_step:
             return self.__my_last_offer

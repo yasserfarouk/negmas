@@ -24,42 +24,30 @@ class CallableIssue(Issue):
 
     @property
     def type(self) -> str:
-        """Type.
-
-        Returns:
-            str: The result.
-        """
+        """Return the issue type identifier (always 'uncountable' for callables)."""
         return "uncountable"
 
     def is_uncountable(self) -> bool:
-        """Check if uncountable.
-
-        Returns:
-            bool: The result.
-        """
+        """Check if the issue has uncountably many values (always True for callables)."""
         return True
 
     def is_continuous(self) -> bool:
-        """Check if continuous.
-
-        Returns:
-            bool: The result.
-        """
+        """Check if this issue has continuous values (always False for callables)."""
         return False
 
     def ordered_value_generator(
         self, n: int | float | None = 10, grid=True, compact=False, endpoints=True
     ) -> Generator[Any, None, None]:
-        """Ordered value generator.
+        """Not supported for callable issues.
 
         Args:
-            n: Number of items.
-            grid: Grid.
-            compact: Compact.
-            endpoints: Endpoints.
+            n: Number of values to generate.
+            grid: Ignored - ordering not supported.
+            compact: Ignored - ordering not supported.
+            endpoints: Ignored - ordering not supported.
 
-        Returns:
-            Generator[Any, None, None]: The result.
+        Raises:
+            NotImplementedError: Always raised since ordering is undefined for callables.
         """
         raise NotImplementedError(
             "Cannot generate values in order from a Callable issue"
@@ -68,16 +56,19 @@ class CallableIssue(Issue):
     def value_generator(
         self, n: int | float | None = 10, grid=True, compact=False, endpoints=True
     ) -> Generator[Any, None, None]:
-        """Value generator.
+        """Generate n values by calling the underlying callable.
 
         Args:
-            n: Number of items.
-            grid: Grid.
-            compact: Compact.
-            endpoints: Endpoints.
+            n: Number of values to generate (must be a finite integer).
+            grid: Ignored - values come from callable.
+            compact: Ignored - values come from callable.
+            endpoints: Ignored - values come from callable.
 
-        Returns:
-            Generator[Any, None, None]: The result.
+        Yields:
+            Values produced by calling the stored callable n times.
+
+        Raises:
+            ValueError: If n is None or a float.
         """
         if n is None or isinstance(n, float):
             raise ValueError("Real valued issue with no discretization value")
@@ -90,15 +81,18 @@ class CallableIssue(Issue):
     def rand_outcomes(
         self, n: int, with_replacement=False, fail_if_not_enough=False
     ) -> list:
-        """Rand outcomes.
+        """Generate n random values by calling the underlying callable.
 
         Args:
-            n: Number of items.
-            with_replacement: With replacement.
-            fail_if_not_enough: Fail if not enough.
+            n: Number of random values to generate.
+            with_replacement: Must be True; sampling without replacement is not supported.
+            fail_if_not_enough: Ignored for callable issues.
 
         Returns:
-            list: The result.
+            A list of n values produced by calling the stored callable.
+
+        Raises:
+            ValueError: If with_replacement is False.
         """
         if not with_replacement:
             raise ValueError(
@@ -116,13 +110,20 @@ class CallableIssue(Issue):
         )
 
     def is_valid(self):
-        """Check if valid."""
+        """Validity checking is not supported for callable issues.
+
+        Raises:
+            ValueError: Always raised since validity cannot be determined.
+        """
         raise ValueError("Cannot check the validity of callable issues")
 
     def value_at(self, index: int):
-        """Value at.
+        """Indexing is not supported for callable issues.
 
         Args:
-            index: Index.
+            index: Ignored - indexing not supported.
+
+        Raises:
+            ValueError: Always raised since callables cannot be indexed.
         """
         raise ValueError("Cannot index a callable issue")

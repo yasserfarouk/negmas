@@ -36,10 +36,10 @@ class ContinuousIssue(RangeIssue):
         )
 
     def to_dict(self, python_class_identifier=PYTHON_CLASS_IDENTIFIER):
-        """To dict.
+        """Serialize this issue to a dictionary for reconstruction.
 
         Args:
-            python_class_identifier: Python class identifier.
+            python_class_identifier: Key used to store the class type info.
         """
         d = super().to_dict(python_class_identifier=python_class_identifier)
         d["n_levels"] = self._n_levels
@@ -91,16 +91,19 @@ class ContinuousIssue(RangeIssue):
         compact=False,
         endpoints=True,
     ) -> Generator[float, None, None]:
-        """Ordered value generator.
+        """Generate float values in ascending order from this range.
 
         Args:
-            n: Number of items.
-            grid: Grid.
-            compact: Compact.
-            endpoints: Endpoints.
+            n: Number of values to generate (required, must be finite).
+            grid: If True, use evenly spaced values; otherwise sample randomly.
+            compact: If True, concentrate values around the center of the range.
+            endpoints: If True, include min and max values in the output.
 
         Returns:
-            Generator[float, None, None]: The result.
+            Generator yielding float values in ascending order.
+
+        Raises:
+            ValueError: If n is None or infinite.
         """
         if n is None or not math.isfinite(n):
             raise ValueError(f"Cannot generate {n} values from issue: {self}")
@@ -130,31 +133,31 @@ class ContinuousIssue(RangeIssue):
         compact=False,
         endpoints=True,
     ) -> Generator[float, None, None]:
-        """Value generator.
+        """Generate a sample of float values from this continuous range.
 
         Args:
-            n: Number of items.
-            grid: Grid.
-            compact: Compact.
-            endpoints: Endpoints.
+            n: Number of values to generate (required, must be finite).
+            grid: If True, use evenly spaced values; otherwise sample randomly.
+            compact: If True, concentrate values around the center of the range.
+            endpoints: If True, include min and max values in the output.
 
         Returns:
-            Generator[float, None, None]: The result.
+            Generator yielding sampled float values.
         """
         return self.ordered_value_generator(n, grid, compact, endpoints)
 
     def rand_outcomes(
         self, n: int, with_replacement=False, fail_if_not_enough=False
     ) -> list[float]:
-        """Rand outcomes.
+        """Generate n random float values from this continuous range.
 
         Args:
-            n: Number of items.
-            with_replacement: With replacement.
-            fail_if_not_enough: Fail if not enough.
+            n: Number of random values to generate.
+            with_replacement: If True, sample randomly; otherwise use linspace.
+            fail_if_not_enough: Ignored for continuous issues (always enough values).
 
         Returns:
-            list[float]: The result.
+            A list of n float values from the range.
         """
         if with_replacement:
             return (
@@ -174,14 +177,21 @@ class ContinuousIssue(RangeIssue):
 
     @property
     def all(self):
-        """All."""
+        """Cannot enumerate all values of a continuous issue.
+
+        Raises:
+            ValueError: Always raised since continuous issues are uncountable.
+        """
         raise ValueError("Cannot enumerate all values of a continuous issue")
 
     def value_at(self, index: int):
-        """Value at.
+        """Return the value at the given discretization level.
 
         Args:
-            index: Index.
+            index: Zero-based index into discretized levels.
+
+        Raises:
+            IndexError: If the computed value exceeds max_value.
         """
         v = self.min_value + self.delta * index
         if v > self.max_value:

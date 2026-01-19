@@ -82,16 +82,16 @@ class SamplingInverseUtilityFunction(InverseUFun):
 
     @property
     def initialized(self):
-        """Initialized."""
+        """Whether the inverter has been initialized."""
         return self._initialized
 
     @property
     def ufun(self):
-        """Ufun."""
+        """The utility function being inverted."""
         return self._ufun
 
     def init(self):
-        """Init."""
+        """Initialize the inverter (no-op for sampling-based inverter)."""
         pass
 
     def all(self, rng: float | tuple[float, float]) -> list[Outcome]:
@@ -141,14 +141,15 @@ class SamplingInverseUtilityFunction(InverseUFun):
     def worst_in(
         self, rng: float | tuple[float, float], normalized: bool
     ) -> Outcome | None:
-        """Worst in.
+        """
+        Finds an outcome with the lowest utility within the given range using sampling.
 
         Args:
-            rng: Rng.
-            normalized: Normalized.
+            rng: The utility range (single value or (min, max) tuple).
+            normalized: Whether the range is normalized to [0, 1].
 
         Returns:
-            Outcome | None: The result.
+            The outcome with lowest utility in the range, or None if not found.
         """
         some = self.some(rng, normalized)
         if not isinstance(rng, Iterable):
@@ -163,14 +164,15 @@ class SamplingInverseUtilityFunction(InverseUFun):
     def best_in(
         self, rng: float | tuple[float, float], normalized: bool
     ) -> Outcome | None:
-        """Best in.
+        """
+        Finds an outcome with the highest utility within the given range using sampling.
 
         Args:
-            rng: Rng.
-            normalized: Normalized.
+            rng: The utility range (single value or (min, max) tuple).
+            normalized: Whether the range is normalized to [0, 1].
 
         Returns:
-            Outcome | None: The result.
+            The outcome with highest utility in the range, or None if not found.
         """
         some = self.some(rng, normalized)
         if not isinstance(rng, Iterable):
@@ -189,16 +191,17 @@ class SamplingInverseUtilityFunction(InverseUFun):
         fallback_to_higher: bool = True,
         fallback_to_best: bool = True,
     ) -> Outcome | None:
-        """One in.
+        """
+        Finds any outcome within the given utility range using random sampling.
 
         Args:
-            rng: Rng.
-            normalized: Normalized.
-            fallback_to_higher: Fallback to higher.
-            fallback_to_best: Fallback to best.
+            rng: The utility range (single value or (min, max) tuple).
+            normalized: Whether the range is normalized to [0, 1].
+            fallback_to_higher: If True, expand range upward when no match found.
+            fallback_to_best: If True, return best outcome as last resort.
 
         Returns:
-            Outcome | None: The result.
+            An outcome within the range, or None if not found and fallbacks disabled.
         """
         if not self._ufun.outcome_space:
             return None
@@ -280,17 +283,6 @@ class PresortingInverseUtilityFunction(InverseUFun):
         eps: float = 1e-12,
         rel_eps: float = 1e-6,
     ):
-        """Initialize the instance.
-
-        Args:
-            ufun: Ufun.
-            levels: Levels.
-            max_cache_size: Max cache size.
-            rational_only: Rational only.
-            n_waypints: N waypints.
-            eps: Eps.
-            rel_eps: Rel eps.
-        """
         self._ufun = ufun
         self.max_cache_size = max_cache_size
         self.levels = levels
@@ -311,22 +303,22 @@ class PresortingInverseUtilityFunction(InverseUFun):
 
     @property
     def initialized(self):
-        """Initialized."""
+        """Whether the inverter has been initialized with sorted outcomes."""
         return self._initialized
 
     @property
     def ufun(self):
-        """Ufun."""
+        """The utility function being inverted."""
         return self._ufun
 
     def reset(self) -> None:
-        """Reset."""
+        """Clears cached outcomes and resets the inverter to uninitialized state."""
         self._initialized = False
         self.outcomes, self.utils = [], []  # type: ignore
         self._waypoints, self._waypoint_values = [], []  # type: ignore
 
     def init(self):
-        """Init."""
+        """Initializes the inverter by enumerating and sorting outcomes by utility."""
         outcome_space = self._ufun.outcome_space
         if outcome_space is None:
             raise ValueError("Cannot find the outcome space.")
@@ -700,7 +692,7 @@ class PresortingInverseUtilityFunction(InverseUFun):
             mx = self._last_rational
 
         def recover_from_failure():
-            """Recover from failure."""
+            """Attempts fallback strategies when no outcome is found in range."""
             if fallback_to_higher and rng[1] < 1 - EPS:
                 return self.one_in(
                     (rng[0], 1 if normalized else float(self._ufun.max())),
@@ -829,13 +821,14 @@ class PresortingInverseUtilityFunction(InverseUFun):
         return self.one_in(rng, normalized)
 
     def outcome_at(self, indx: int) -> Outcome | None:
-        """Outcome at.
+        """
+        Returns the outcome at the given rank index (0 = best).
 
         Args:
-            indx: Indx.
+            indx: The rank index, where 0 is the best outcome.
 
         Returns:
-            Outcome | None: The result.
+            The outcome at that rank, or None if index is out of bounds.
         """
         n = len(self.outcomes)
         if indx >= n:
@@ -845,13 +838,14 @@ class PresortingInverseUtilityFunction(InverseUFun):
         return self.outcomes[indx]
 
     def utility_at(self, indx: int) -> float:
-        """Utility at.
+        """
+        Returns the utility value at the given rank index (0 = best).
 
         Args:
-            indx: Indx.
+            indx: The rank index, where 0 is the best outcome.
 
         Returns:
-            float: The result.
+            The utility value at that rank, or -inf if index is out of bounds.
         """
         n = len(self.outcomes)
         if indx >= n:
@@ -884,14 +878,6 @@ class PresortingInverseUtilityFunctionBruteForce(InverseUFun):
         max_cache_size: int = 10_000_000_000,
         rational_only: bool = False,
     ):
-        """Initialize the instance.
-
-        Args:
-            ufun: Ufun.
-            levels: Levels.
-            max_cache_size: Max cache size.
-            rational_only: Rational only.
-        """
         self._ufun = ufun
         self.max_cache_size = max_cache_size
         self.levels = levels
@@ -901,21 +887,21 @@ class PresortingInverseUtilityFunctionBruteForce(InverseUFun):
 
     @property
     def initialized(self):
-        """Initialized."""
+        """Whether the inverter has been initialized with sorted outcomes."""
         return self._initialized
 
     @property
     def ufun(self):
-        """Ufun."""
+        """The utility function being inverted."""
         return self._ufun
 
     def reset(self) -> None:
-        """Reset."""
+        """Clears cached outcomes and resets the inverter to uninitialized state."""
         self._initialized = False
         self._orddered_outcomes = []
 
     def init(self):
-        """Init."""
+        """Initializes the inverter by enumerating and sorting outcomes by utility."""
         outcome_space = self._ufun.outcome_space
         if outcome_space is None:
             raise ValueError("Cannot find the outcome space.")
@@ -1038,7 +1024,7 @@ class PresortingInverseUtilityFunctionBruteForce(InverseUFun):
         rmn = rng[0] if isinstance(rng, Iterable) else rng
 
         def recover_from_failure():
-            """Recover from failure."""
+            """Attempts fallback strategies when no outcome is found in range."""
             if fallback_to_higher and rmx < 1 - EPS:
                 return self.some(
                     (rmn, 1 if normalized else float(self._ufun.max())),
@@ -1095,14 +1081,15 @@ class PresortingInverseUtilityFunctionBruteForce(InverseUFun):
     def worst_in(
         self, rng: float | tuple[float, float], normalized: bool
     ) -> Outcome | None:
-        """Worst in.
+        """
+        Finds an outcome with the lowest utility within the given range.
 
         Args:
-            rng: Rng.
-            normalized: Normalized.
+            rng: The utility range (single value or (min, max) tuple).
+            normalized: Whether the range is normalized to [0, 1].
 
         Returns:
-            Outcome | None: The result.
+            The outcome with lowest utility in the range, or None if not found.
         """
         if not self._ufun.is_stationary():
             self.init()
@@ -1122,14 +1109,15 @@ class PresortingInverseUtilityFunctionBruteForce(InverseUFun):
     def best_in(
         self, rng: float | tuple[float, float], normalized: bool
     ) -> Outcome | None:
-        """Best in.
+        """
+        Finds an outcome with the highest utility within the given range.
 
         Args:
-            rng: Rng.
-            normalized: Normalized.
+            rng: The utility range (single value or (min, max) tuple).
+            normalized: Whether the range is normalized to [0, 1].
 
         Returns:
-            Outcome | None: The result.
+            The outcome with highest utility in the range, or None if not found.
         """
         if not self._ufun.is_stationary():
             self.init()
@@ -1150,16 +1138,17 @@ class PresortingInverseUtilityFunctionBruteForce(InverseUFun):
         fallback_to_higher: bool = True,
         fallback_to_best: bool = True,
     ) -> Outcome | None:
-        """One in.
+        """
+        Finds any outcome within the given utility range.
 
         Args:
-            rng: Rng.
-            normalized: Normalized.
-            fallback_to_higher: Fallback to higher.
-            fallback_to_best: Fallback to best.
+            rng: The utility range (single value or (min, max) tuple).
+            normalized: Whether the range is normalized to [0, 1].
+            fallback_to_higher: If True, expand range upward when no match found.
+            fallback_to_best: If True, return best outcome as last resort.
 
         Returns:
-            Outcome | None: The result.
+            An outcome within the range, or None if not found and fallbacks disabled.
         """
         lst = self.some(
             rng,
@@ -1274,26 +1263,28 @@ class PresortingInverseUtilityFunctionBruteForce(InverseUFun):
         return self.one_in(rng, normalized)
 
     def outcome_at(self, indx: int) -> Outcome | None:
-        """Outcome at.
+        """
+        Returns the outcome at the given rank index (0 = best).
 
         Args:
-            indx: Indx.
+            indx: The rank index, where 0 is the best outcome.
 
         Returns:
-            Outcome | None: The result.
+            The outcome at that rank, or None if index is out of bounds.
         """
         if indx >= len(self._ordered_outcomes):
             return None
         return self._ordered_outcomes[indx][1]
 
     def utility_at(self, indx: int) -> float:
-        """Utility at.
+        """
+        Returns the utility value at the given rank index (0 = best).
 
         Args:
-            indx: Indx.
+            indx: The rank index, where 0 is the best outcome.
 
         Returns:
-            float: The result.
+            The utility value at that rank, or -inf if index is out of bounds.
         """
         if indx >= len(self._ordered_outcomes):
             return float("-inf")

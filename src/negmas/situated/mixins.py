@@ -19,22 +19,22 @@ __all__ = ["TimeInAgreementMixin", "NoContractExecutionMixin", "NoResponsesMixin
 
 
 class TimeInAgreementMixin:
-    """TimeInAgreementMixin implementation."""
+    """Mixin that tracks contracts by their execution time step for efficient retrieval."""
 
     def init(self, time_field="time"):
-        """Init.
+        """Initialize contract tracking by time step.
 
         Args:
-            time_field: Time field.
+            time_field: Name of the field in contract agreements that specifies execution time.
         """
         self._time_field_name = time_field
         self.contracts_per_step: dict[int, list[Contract]] = defaultdict(list)
 
     def on_contract_signed(self: World, contract: Contract):
-        """On contract signed.
+        """Register newly signed contract for execution at its scheduled time step.
 
         Args:
-            contract: Contract.
+            contract: The contract that was just signed.
         """
         result = super().on_contract_signed(contract=contract)
         if result:
@@ -77,11 +77,7 @@ class TimeInAgreementMixin:
         self.contracts_per_step.pop(self.current_step, None)
 
     def get_dropped_contracts(self) -> Collection[Contract]:
-        """Get dropped contracts.
-
-        Returns:
-            Collection[Contract]: The result.
-        """
+        """Return contracts scheduled for this step that were signed but not executed, breached, nullified, or errored."""
         return [
             _
             for _ in self.contracts_per_step.get(self.current_step, [])
@@ -103,34 +99,17 @@ class NoContractExecutionMixin:
         pass
 
     def executable_contracts(self) -> Collection[Contract]:
-        """Executable contracts.
-
-        Returns:
-            Collection[Contract]: The result.
-        """
+        """Return empty collection since this mixin disables contract execution."""
         return []
 
     def start_contract_execution(self, contract: Contract) -> set[Breach]:
-        """Start contract execution.
-
-        Args:
-            contract: Contract.
-
-        Returns:
-            set[Breach]: The result.
-        """
+        """No-op since this mixin disables contract execution."""
         return set()
 
     def complete_contract_execution(
         self, contract: Contract, breaches: list[Breach], resolution: Contract
     ) -> None:
-        """Complete contract execution.
-
-        Args:
-            contract: Contract.
-            breaches: Breaches.
-            resolution: Resolution.
-        """
+        """No-op since this mixin disables contract execution."""
         pass
 
 
@@ -138,22 +117,22 @@ class NoResponsesMixin:
     """A mixin that can be added to Agent to minimize the number of abstract methods"""
 
     def on_neg_request_rejected(self, req_id: str, by: list[str] | None):
-        """On neg request rejected.
+        """Called when a negotiation request is rejected.
 
         Args:
-            req_id: Req id.
-            by: By.
+            req_id: Unique identifier of the rejected request.
+            by: List of agent IDs that rejected the request, or None if unknown.
         """
         pass
 
     def on_neg_request_accepted(
         self, req_id: str, mechanism: NegotiatorMechanismInterface
     ):
-        """On neg request accepted.
+        """Called when a negotiation request is accepted and the mechanism starts.
 
         Args:
-            req_id: Req id.
-            mechanism: Mechanism.
+            req_id: Unique identifier of the accepted request.
+            mechanism: Interface to the negotiation mechanism that was created.
         """
         pass
 
@@ -164,92 +143,92 @@ class NoResponsesMixin:
         mechanism: NegotiatorMechanismInterface,
         state: MechanismState,
     ) -> None:
-        """On negotiation failure.
+        """Called when a negotiation ends without reaching an agreement.
 
         Args:
-            partners: Partners.
-            annotation: Annotation.
-            mechanism: Mechanism.
-            state: Current state.
+            partners: List of agent IDs that participated in the negotiation.
+            annotation: Metadata associated with the negotiation.
+            mechanism: Interface to the negotiation mechanism.
+            state: Final state of the mechanism when it ended.
         """
         pass
 
     def on_negotiation_success(
         self, contract: Contract, mechanism: NegotiatorMechanismInterface
     ) -> None:
-        """On negotiation success.
+        """Called when a negotiation ends with a successful agreement.
 
         Args:
-            contract: Contract.
-            mechanism: Mechanism.
+            contract: The resulting contract from the negotiation.
+            mechanism: Interface to the negotiation mechanism.
         """
         pass
 
     def on_contract_signed(self, contract: Contract) -> bool:
-        """On contract signed.
+        """Called when all parties have signed a contract.
 
         Args:
-            contract: Contract.
+            contract: The fully signed contract.
 
         Returns:
-            bool: The result.
+            True to accept the contract, False to reject it.
         """
         return True
 
     def on_contract_cancelled(self, contract: Contract, rejectors: list[str]) -> None:
-        """On contract cancelled.
+        """Called when a contract is cancelled due to rejections.
 
         Args:
-            contract: Contract.
-            rejectors: Rejectors.
+            contract: The cancelled contract.
+            rejectors: List of agent IDs that rejected the contract.
         """
         pass
 
     def set_renegotiation_agenda(
         self, contract: Contract, breaches: list[Breach]
     ) -> RenegotiationRequest | None:
-        """Set renegotiation agenda.
+        """Create a renegotiation request when a contract is breached.
 
         Args:
-            contract: Contract.
-            breaches: Breaches.
+            contract: The breached contract.
+            breaches: List of breaches that occurred.
 
         Returns:
-            RenegotiationRequest | None: The result.
+            A renegotiation request if renegotiation is desired, None otherwise.
         """
         pass
 
     def respond_to_renegotiation_request(
         self, contract: Contract, breaches: list[Breach], agenda: RenegotiationRequest
     ) -> Negotiator | None:
-        """Respond to renegotiation request.
+        """Decide whether to participate in renegotiation of a breached contract.
 
         Args:
-            contract: Contract.
-            breaches: Breaches.
-            agenda: Agenda.
+            contract: The breached contract being renegotiated.
+            breaches: List of breaches that triggered renegotiation.
+            agenda: The proposed renegotiation agenda and terms.
 
         Returns:
-            Negotiator | None: The result.
+            A negotiator to participate in renegotiation, None to refuse.
         """
         pass
 
     def on_contract_executed(self, contract: Contract) -> None:
-        """On contract executed.
+        """Called when a contract has been successfully executed.
 
         Args:
-            contract: Contract.
+            contract: The executed contract.
         """
         pass
 
     def on_contract_breached(
         self, contract: Contract, breaches: list[Breach], resolution: Contract | None
     ) -> None:
-        """On contract breached.
+        """Called when a contract has been breached.
 
         Args:
-            contract: Contract.
-            breaches: Breaches.
-            resolution: Resolution.
+            contract: The breached contract.
+            breaches: List of breaches that occurred.
+            resolution: New contract from renegotiation if any, None otherwise.
         """
         pass

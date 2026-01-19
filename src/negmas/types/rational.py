@@ -121,11 +121,11 @@ class Rational(NamedObject):
         """Initialize the instance.
 
         Args:
-            name: Name.
-            preferences: Preferences.
-            ufun: Ufun.
-            id: Id.
-            type_name: Type name.
+            name: Optional human-readable name (auto-generated if not provided).
+            preferences: Preferences object defining this entity's valuation of outcomes.
+            ufun: Alias for preferences (utility function defining outcome preferences).
+            id: Optional unique identifier (UUID generated if not provided).
+            type_name: Optional type name override for serialization.
         """
         super().__init__(name, type_name=type_name, id=id)
         if ufun:

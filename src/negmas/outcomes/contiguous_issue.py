@@ -59,35 +59,27 @@ class ContiguousIssue(RangeIssue, DiscreteIssue):
 
     @property
     def all(self) -> Generator[int, None, None]:
-        """All.
-
-        Returns:
-            Generator[int, None, None]: The result.
-        """
+        """Generator yielding all integer values in the range [min, max]."""
         yield from range(self._values[0], self._values[1] + 1)
 
     @property
     def cardinality(self) -> int:
-        """Cardinality.
-
-        Returns:
-            int: The result.
-        """
+        """Number of distinct integer values in this issue's range."""
         return self.max_value - self.min_value + 1
 
     def ordered_value_generator(
         self, n: int | float | None = None, grid=True, compact=False, endpoints=True
     ) -> Generator[int, None, None]:
-        """Ordered value generator.
+        """Generate integer values in ascending order from this range.
 
         Args:
-            n: Number of items.
-            grid: Grid.
-            compact: Compact.
-            endpoints: Endpoints.
+            n: Maximum number of values to generate, or None for all.
+            grid: If True, use evenly spaced values; otherwise sample randomly.
+            compact: If True, concentrate values around the center of the range.
+            endpoints: If True, include min and max values in the output.
 
         Returns:
-            Generator[int, None, None]: The result.
+            Generator yielding integers from the range in order.
         """
         m = self.cardinality
         n = m if n is None or not math.isfinite(n) else int(n)
@@ -97,16 +89,16 @@ class ContiguousIssue(RangeIssue, DiscreteIssue):
     def value_generator(
         self, n: int | float | None = None, grid=True, compact=False, endpoints=True
     ) -> Generator[int, None, None]:
-        """Value generator.
+        """Generate a sample of integer values from this range.
 
         Args:
-            n: Number of items.
-            grid: Grid.
-            compact: Compact.
-            endpoints: Endpoints.
+            n: Maximum number of values to generate, or None for all.
+            grid: If True, use evenly spaced values; otherwise sample randomly.
+            compact: If True, concentrate values around the center of the range.
+            endpoints: If True, include min and max values in the output.
 
         Returns:
-            Generator[int, None, None]: The result.
+            Generator yielding sampled integer values from the range.
         """
         yield from (
             _ + self._values[0]
@@ -118,16 +110,16 @@ class ContiguousIssue(RangeIssue, DiscreteIssue):
     def to_discrete(
         self, n: int | None, grid=True, compact=False, endpoints=True
     ) -> DiscreteIssue:
-        """To discrete.
+        """Convert to a discrete issue with at most n values.
 
         Args:
-            n: Number of items.
-            grid: Grid.
-            compact: Compact.
-            endpoints: Endpoints.
+            n: Maximum number of discrete values, or None to keep all.
+            grid: If True, use evenly spaced values; otherwise sample randomly.
+            compact: If True, select a contiguous subrange from the center.
+            endpoints: If True, include min and max values in the discretization.
 
         Returns:
-            DiscreteIssue: The result.
+            A ContiguousIssue (if compact) or general DiscreteIssue with sampled values.
         """
         if n is None or self.cardinality < n:
             return self
@@ -169,18 +161,17 @@ class ContiguousIssue(RangeIssue, DiscreteIssue):
         return random.randint(self.max_value + 1, 2 * self.max_value)
 
     def is_continuous(self) -> bool:
-        """Check if continuous.
-
-        Returns:
-            bool: The result.
-        """
+        """Check if this issue has continuous values (always False for integers)."""
         return False
 
     def value_at(self, index: int):
-        """Value at.
+        """Return the integer value at the given index position.
 
         Args:
-            index: Index.
+            index: Zero-based position in the range.
+
+        Raises:
+            IndexError: If index is out of bounds.
         """
         if index < 0 or index > self.cardinality - 1:
             raise IndexError(index)
