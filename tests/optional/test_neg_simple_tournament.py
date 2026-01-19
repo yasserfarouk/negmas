@@ -22,9 +22,11 @@ from ..switches import NEGMAS_FASTRUN
 from negmas.tournaments.neg.simple.cartesian import (
     TOURNAMENT_DIRS,
     TOURNAMENT_FILES,
+    CONFIG_FILE_NAME,
     SimpleTournamentResults,
     RunInfo,
     _find_dataframe_file,
+    _combine_configs,
 )
 
 # Check if pyarrow is available for parquet tests
@@ -1464,7 +1466,7 @@ def test_competitor_names_validation_length():
     competitors = [RandomNegotiator, AspirationNegotiator]
     wrong_length_names = ["OnlyOne"]  # Should be 2 names
 
-    with pytest.raises(ValueError, match="competitor_names length"):
+    with pytest.raises(ValueError, match="names length"):
         cartesian_tournament(
             competitors=competitors,
             scenarios=scenarios,
@@ -1493,7 +1495,7 @@ def test_competitor_names_validation_uniqueness():
     competitors = [RandomNegotiator, AspirationNegotiator]
     duplicate_names = ["SameName", "SameName"]
 
-    with pytest.raises(ValueError, match="competitor_names must be unique"):
+    with pytest.raises(ValueError, match="names must be unique"):
         cartesian_tournament(
             competitors=competitors,
             scenarios=scenarios,
@@ -1523,7 +1525,7 @@ def test_opponent_names_validation_length():
     opponents = [AspirationNegotiator, BoulwareTBNegotiator]
     wrong_length_names = ["OnlyOne"]  # Should be 2 names
 
-    with pytest.raises(ValueError, match="opponent_names length"):
+    with pytest.raises(ValueError, match="names length"):
         cartesian_tournament(
             competitors=competitors,
             opponents=opponents,
@@ -1554,7 +1556,7 @@ def test_opponent_names_validation_uniqueness():
     opponents = [AspirationNegotiator, BoulwareTBNegotiator]
     duplicate_names = ["SameName", "SameName"]
 
-    with pytest.raises(ValueError, match="opponent_names must be unique"):
+    with pytest.raises(ValueError, match="names must be unique"):
         cartesian_tournament(
             competitors=competitors,
             opponents=opponents,
@@ -1642,3 +1644,764 @@ def test_default_names_without_custom_names():
     strategies = set(results.scores["strategy"].unique())
     # Names should be generated from class names (shortened)
     assert len(strategies) == 2, f"Expected 2 strategies, got {strategies}"
+
+
+def test_same_type_different_params_unique_names():
+    """Test that same negotiator type with different params gets unique names."""
+    issues = (
+        make_issue([f"q{i}" for i in range(5)], "quantity"),
+        make_issue([f"p{i}" for i in range(3)], "price"),
+    )
+    ufuns = [
+        (
+            U.random(issues=issues, reserved_value=(0.0, 0.2), normalized=False),
+            U.random(issues=issues, reserved_value=(0.0, 0.2), normalized=False),
+        )
+    ]
+    scenarios = [Scenario(outcome_space=make_os(issues, name="S0"), ufuns=ufuns[0])]
+
+    # Same negotiator type but with different params
+    competitors = [AspirationNegotiator, AspirationNegotiator]
+    competitor_params = [{"aspiration_type": "linear"}, {"aspiration_type": "conceder"}]
+
+    results = cartesian_tournament(
+        competitors=competitors,
+        scenarios=scenarios,
+        competitor_params=competitor_params,
+        mechanism_params=dict(n_steps=5),
+        n_repetitions=1,
+        verbosity=0,
+        rotate_ufuns=False,
+        path=None,
+        njobs=-1,
+    )
+
+    # Should have scores with unique auto-generated names
+    assert len(results.scores) > 0
+    strategies = set(results.scores["strategy"].unique())
+    # Names should be unique even for same type with different params
+    assert len(strategies) == 2, f"Expected 2 unique strategies, got {strategies}"
+
+
+def test_generated_names_uniqueness_validation():
+    """Test that generated names are validated for uniqueness."""
+    issues = (
+        make_issue([f"q{i}" for i in range(5)], "quantity"),
+        make_issue([f"p{i}" for i in range(3)], "price"),
+    )
+    ufuns = [
+        (
+            U.random(issues=issues, reserved_value=(0.0, 0.2), normalized=False),
+            U.random(issues=issues, reserved_value=(0.0, 0.2), normalized=False),
+        )
+    ]
+    scenarios = [Scenario(outcome_space=make_os(issues, name="S0"), ufuns=ufuns[0])]
+
+    # Same negotiator type with same params - should still work due to auto name generation
+    competitors = [AspirationNegotiator, AspirationNegotiator]
+    competitor_params = [{"aspiration_type": "linear"}, {"aspiration_type": "linear"}]
+
+    # This should raise an error because generated names would be duplicates
+    with pytest.raises(ValueError, match="names must be unique"):
+        cartesian_tournament(
+            competitors=competitors,
+            scenarios=scenarios,
+            competitor_params=competitor_params,
+            mechanism_params=dict(n_steps=5),
+            n_repetitions=1,
+            verbosity=0,
+            rotate_ufuns=False,
+            path=None,
+            njobs=-1,
+        )
+
+
+def test_params_encoded_in_names():
+    """Test that params are encoded in auto-generated names when needed."""
+    issues = (
+        make_issue([f"q{i}" for i in range(5)], "quantity"),
+        make_issue([f"p{i}" for i in range(3)], "price"),
+    )
+    ufuns = [
+        (
+            U.random(issues=issues, reserved_value=(0.0, 0.2), normalized=False),
+            U.random(issues=issues, reserved_value=(0.0, 0.2), normalized=False),
+        )
+    ]
+    scenarios = [Scenario(outcome_space=make_os(issues, name="S0"), ufuns=ufuns[0])]
+
+    # Same negotiator type but with different params
+    competitors = [AspirationNegotiator, AspirationNegotiator]
+    competitor_params = [{"aspiration_type": "linear"}, {"aspiration_type": "conceder"}]
+
+    results = cartesian_tournament(
+        competitors=competitors,
+        scenarios=scenarios,
+        competitor_params=competitor_params,
+        mechanism_params=dict(n_steps=5),
+        n_repetitions=1,
+        verbosity=0,
+        rotate_ufuns=False,
+        path=None,
+        njobs=-1,
+    )
+
+    strategies = list(results.scores["strategy"].unique())
+    # The names should contain some distinguishing info from params
+    # since the types are the same
+    assert strategies[0] != strategies[1], "Names should be different"
+
+
+def test_config_saved_to_disk(tmp_path):
+    """Test that config is saved to disk when path is provided."""
+    issues = (make_issue([f"q{i}" for i in range(5)], "quantity"),)
+    ufuns = [
+        (
+            U.random(issues=issues, reserved_value=(0.0, 0.2), normalized=False),
+            U.random(issues=issues, reserved_value=(0.0, 0.2), normalized=False),
+        )
+    ]
+    scenarios = [Scenario(outcome_space=make_os(issues, name="S0"), ufuns=ufuns[0])]
+
+    competitors = [RandomNegotiator, AspirationNegotiator]
+
+    results = cartesian_tournament(
+        competitors=competitors,
+        scenarios=scenarios,
+        mechanism_params=dict(n_steps=5),
+        n_repetitions=1,
+        verbosity=0,
+        rotate_ufuns=False,
+        path=tmp_path,
+        njobs=-1,
+    )
+
+    # Check config file exists
+    config_path = tmp_path / CONFIG_FILE_NAME
+    assert config_path.exists(), "Config file should be saved"
+
+    # Check config is accessible via results
+    assert results.config is not None
+    assert results.config["n_competitors"] == 2
+    assert results.config["n_scenarios"] == 1
+    assert "RandomNegotiator" in results.config["competitors"][0]
+    assert "AspirationNegotiator" in results.config["competitors"][1]
+
+
+def test_config_contains_generated_names(tmp_path):
+    """Test that config contains the generated competitor names."""
+    issues = (make_issue([f"q{i}" for i in range(5)], "quantity"),)
+    ufuns = [
+        (
+            U.random(issues=issues, reserved_value=(0.0, 0.2), normalized=False),
+            U.random(issues=issues, reserved_value=(0.0, 0.2), normalized=False),
+        )
+    ]
+    scenarios = [Scenario(outcome_space=make_os(issues, name="S0"), ufuns=ufuns[0])]
+
+    competitors = [RandomNegotiator, AspirationNegotiator]
+
+    results = cartesian_tournament(
+        competitors=competitors,
+        scenarios=scenarios,
+        mechanism_params=dict(n_steps=5),
+        n_repetitions=1,
+        verbosity=0,
+        rotate_ufuns=False,
+        path=tmp_path,
+        njobs=-1,
+    )
+
+    # Config should have the generated names (not None)
+    assert results.config is not None
+    assert results.config["competitor_names"] is not None
+    assert len(results.config["competitor_names"]) == 2
+
+
+def test_config_with_metadata(tmp_path):
+    """Test that metadata is included in config."""
+    issues = (make_issue([f"q{i}" for i in range(5)], "quantity"),)
+    ufuns = [
+        (
+            U.random(issues=issues, reserved_value=(0.0, 0.2), normalized=False),
+            U.random(issues=issues, reserved_value=(0.0, 0.2), normalized=False),
+        )
+    ]
+    scenarios = [Scenario(outcome_space=make_os(issues, name="S0"), ufuns=ufuns[0])]
+
+    competitors = [RandomNegotiator]
+    metadata = {"experiment_name": "test_experiment", "version": 1.0}
+
+    results = cartesian_tournament(
+        competitors=competitors,
+        scenarios=scenarios,
+        mechanism_params=dict(n_steps=5),
+        n_repetitions=1,
+        verbosity=0,
+        rotate_ufuns=False,
+        path=tmp_path,
+        njobs=-1,
+        metadata=metadata,
+    )
+
+    assert results.config is not None
+    assert results.config["metadata"] is not None
+    assert results.config["metadata"]["experiment_name"] == "test_experiment"
+    assert results.config["metadata"]["version"] == 1.0
+
+
+def test_config_loaded_from_disk(tmp_path):
+    """Test that config is loaded when loading results from disk."""
+    issues = (make_issue([f"q{i}" for i in range(5)], "quantity"),)
+    ufuns = [
+        (
+            U.random(issues=issues, reserved_value=(0.0, 0.2), normalized=False),
+            U.random(issues=issues, reserved_value=(0.0, 0.2), normalized=False),
+        )
+    ]
+    scenarios = [Scenario(outcome_space=make_os(issues, name="S0"), ufuns=ufuns[0])]
+
+    competitors = [RandomNegotiator, AspirationNegotiator]
+
+    # Run tournament and save
+    cartesian_tournament(
+        competitors=competitors,
+        scenarios=scenarios,
+        mechanism_params=dict(n_steps=5),
+        n_repetitions=1,
+        verbosity=0,
+        rotate_ufuns=False,
+        path=tmp_path,
+        njobs=-1,
+    )
+
+    # Load results from disk
+    loaded_results = SimpleTournamentResults.load(tmp_path)
+
+    # Config should be loaded
+    assert loaded_results.config is not None
+    assert loaded_results.config["n_competitors"] == 2
+
+
+def test_config_not_saved_when_no_path():
+    """Test that config is still available in results even without path."""
+    issues = (make_issue([f"q{i}" for i in range(5)], "quantity"),)
+    ufuns = [
+        (
+            U.random(issues=issues, reserved_value=(0.0, 0.2), normalized=False),
+            U.random(issues=issues, reserved_value=(0.0, 0.2), normalized=False),
+        )
+    ]
+    scenarios = [Scenario(outcome_space=make_os(issues, name="S0"), ufuns=ufuns[0])]
+
+    competitors = [RandomNegotiator]
+
+    results = cartesian_tournament(
+        competitors=competitors,
+        scenarios=scenarios,
+        mechanism_params=dict(n_steps=5),
+        n_repetitions=1,
+        verbosity=0,
+        rotate_ufuns=False,
+        path=None,
+        njobs=-1,
+    )
+
+    # Config should still be available in results
+    assert results.config is not None
+    assert results.config["n_competitors"] == 1
+
+
+# Tests for _combine_configs helper function
+def test_combine_configs_single_config():
+    """Test that single config is returned unchanged except n_scenarios."""
+    config = {
+        "n_scenarios": 5,
+        "competitors": ["A", "B"],
+        "n_competitors": 2,
+        "rotate_ufuns": True,
+    }
+    result = _combine_configs([config], n_unique_scenarios=10)
+    assert result["n_scenarios"] == 10
+    assert result["competitors"] == ["A", "B"]
+    assert result["rotate_ufuns"] is True
+
+
+def test_combine_configs_same_values():
+    """Test combining configs with same values preserves them."""
+    config1 = {
+        "competitors": ["A", "B"],
+        "competitor_names": ["NameA", "NameB"],
+        "competitor_params": None,
+        "opponents": None,
+        "opponent_names": [],
+        "opponent_params": None,
+        "n_scenarios": 5,
+        "rotate_ufuns": True,
+        "n_steps": 100,
+    }
+    config2 = {
+        "competitors": ["A", "B"],
+        "competitor_names": ["NameA", "NameB"],
+        "competitor_params": None,
+        "opponents": None,
+        "opponent_names": [],
+        "opponent_params": None,
+        "n_scenarios": 3,
+        "rotate_ufuns": True,
+        "n_steps": 100,
+    }
+    result = _combine_configs([config1, config2], n_unique_scenarios=8)
+    assert result["n_scenarios"] == 8
+    assert result["competitors"] == ["A", "B"]
+    assert result["rotate_ufuns"] is True
+    assert result["n_steps"] == 100
+
+
+def test_combine_configs_different_booleans():
+    """Test that different boolean values become None."""
+    config1 = {
+        "competitors": ["A"],
+        "competitor_names": ["NameA"],
+        "competitor_params": None,
+        "opponents": None,
+        "opponent_names": [],
+        "opponent_params": None,
+        "n_scenarios": 5,
+        "rotate_ufuns": True,
+        "self_play": True,
+    }
+    config2 = {
+        "competitors": ["A"],
+        "competitor_names": ["NameA"],
+        "competitor_params": None,
+        "opponents": None,
+        "opponent_names": [],
+        "opponent_params": None,
+        "n_scenarios": 3,
+        "rotate_ufuns": False,
+        "self_play": True,
+    }
+    result = _combine_configs([config1, config2], n_unique_scenarios=8)
+    assert result["rotate_ufuns"] is None  # Different booleans become None
+    assert result["self_play"] is True  # Same booleans stay
+
+
+def test_combine_configs_different_competitors_raises():
+    """Test that different competitors raises ValueError."""
+    config1 = {
+        "competitors": ["A", "B"],
+        "competitor_names": ["NameA", "NameB"],
+        "competitor_params": None,
+        "opponents": None,
+        "opponent_names": [],
+        "opponent_params": None,
+    }
+    config2 = {
+        "competitors": ["A", "C"],
+        "competitor_names": ["NameA", "NameC"],
+        "competitor_params": None,
+        "opponents": None,
+        "opponent_names": [],
+        "opponent_params": None,
+    }
+    with pytest.raises(ValueError, match="different competitors"):
+        _combine_configs([config1, config2], n_unique_scenarios=5)
+
+
+def test_combine_configs_different_opponents_raises():
+    """Test that different opponents raises ValueError."""
+    config1 = {
+        "competitors": ["A"],
+        "competitor_names": ["NameA"],
+        "competitor_params": None,
+        "opponents": ["X", "Y"],
+        "opponent_names": ["NameX", "NameY"],
+        "opponent_params": None,
+    }
+    config2 = {
+        "competitors": ["A"],
+        "competitor_names": ["NameA"],
+        "competitor_params": None,
+        "opponents": ["X", "Z"],
+        "opponent_names": ["NameX", "NameZ"],
+        "opponent_params": None,
+    }
+    with pytest.raises(ValueError, match="different opponents"):
+        _combine_configs([config1, config2], n_unique_scenarios=5)
+
+
+def test_combine_configs_path_is_none():
+    """Test that combined config has path=None."""
+    config1 = {
+        "competitors": ["A"],
+        "competitor_names": ["NameA"],
+        "competitor_params": None,
+        "opponents": None,
+        "opponent_names": [],
+        "opponent_params": None,
+        "path": "/path/to/tournament1",
+    }
+    config2 = {
+        "competitors": ["A"],
+        "competitor_names": ["NameA"],
+        "competitor_params": None,
+        "opponents": None,
+        "opponent_names": [],
+        "opponent_params": None,
+        "path": "/path/to/tournament2",
+    }
+    result = _combine_configs([config1, config2], n_unique_scenarios=5)
+    assert result["path"] is None
+
+
+def test_combine_tournaments_config(tmp_path):
+    """Test that combining tournaments properly combines configs."""
+    issues = (make_issue([f"q{i}" for i in range(5)], "quantity"),)
+
+    # Create two tournaments with different scenarios but same competitors
+    competitors = [RandomNegotiator, AspirationNegotiator]
+
+    # Tournament 1
+    ufuns1 = [
+        (
+            U.random(issues=issues, reserved_value=(0.0, 0.2), normalized=False),
+            U.random(issues=issues, reserved_value=(0.0, 0.2), normalized=False),
+        )
+    ]
+    scenarios1 = [Scenario(outcome_space=make_os(issues, name="S1"), ufuns=ufuns1[0])]
+    path1 = tmp_path / "t1"
+    cartesian_tournament(
+        competitors=competitors,
+        scenarios=scenarios1,
+        mechanism_params=dict(n_steps=5),
+        n_repetitions=1,
+        verbosity=0,
+        rotate_ufuns=False,
+        path=path1,
+        njobs=-1,
+        storage_optimization="none",  # Keep all files including results/ folder
+    )
+
+    # Tournament 2
+    ufuns2 = [
+        (
+            U.random(issues=issues, reserved_value=(0.0, 0.2), normalized=False),
+            U.random(issues=issues, reserved_value=(0.0, 0.2), normalized=False),
+        )
+    ]
+    scenarios2 = [Scenario(outcome_space=make_os(issues, name="S2"), ufuns=ufuns2[0])]
+    path2 = tmp_path / "t2"
+    cartesian_tournament(
+        competitors=competitors,
+        scenarios=scenarios2,
+        mechanism_params=dict(n_steps=5),
+        n_repetitions=1,
+        verbosity=0,
+        rotate_ufuns=False,
+        path=path2,
+        njobs=-1,
+        storage_optimization="none",  # Keep all files including results/ folder
+    )
+
+    # Combine tournaments
+    combined, _ = SimpleTournamentResults.combine([path1, path2], verbosity=0)
+
+    # Check combined config
+    assert combined.config is not None
+    assert combined.config["n_competitors"] == 2
+    assert combined.config["n_scenarios"] == 2  # Two unique scenarios
+    assert combined.config["path"] is None  # No single source path
+
+
+def test_combine_tournaments_different_competitors_raises(tmp_path):
+    """Test that combining tournaments with different competitors raises error."""
+    issues = (make_issue([f"q{i}" for i in range(5)], "quantity"),)
+
+    # Tournament 1 with competitors A, B
+    ufuns1 = [
+        (
+            U.random(issues=issues, reserved_value=(0.0, 0.2), normalized=False),
+            U.random(issues=issues, reserved_value=(0.0, 0.2), normalized=False),
+        )
+    ]
+    scenarios1 = [Scenario(outcome_space=make_os(issues, name="S1"), ufuns=ufuns1[0])]
+    path1 = tmp_path / "t1"
+    cartesian_tournament(
+        competitors=[RandomNegotiator, AspirationNegotiator],
+        scenarios=scenarios1,
+        mechanism_params=dict(n_steps=5),
+        n_repetitions=1,
+        verbosity=0,
+        rotate_ufuns=False,
+        path=path1,
+        njobs=-1,
+        storage_optimization="none",  # Keep all files including results/ folder
+    )
+
+    # Tournament 2 with different competitors
+    ufuns2 = [
+        (
+            U.random(issues=issues, reserved_value=(0.0, 0.2), normalized=False),
+            U.random(issues=issues, reserved_value=(0.0, 0.2), normalized=False),
+        )
+    ]
+    scenarios2 = [Scenario(outcome_space=make_os(issues, name="S2"), ufuns=ufuns2[0])]
+    path2 = tmp_path / "t2"
+    cartesian_tournament(
+        competitors=[RandomNegotiator],  # Different competitors!
+        scenarios=scenarios2,
+        mechanism_params=dict(n_steps=5),
+        n_repetitions=1,
+        verbosity=0,
+        rotate_ufuns=False,
+        path=path2,
+        njobs=-1,
+        storage_optimization="none",  # Keep all files including results/ folder
+    )
+
+    # Combining should raise an error
+    with pytest.raises(ValueError, match="different competitors"):
+        SimpleTournamentResults.combine([path1, path2], verbosity=0)
+
+
+def test_callback_after_end_receives_config():
+    """Test that after_end_callback receives config as second argument when using new signature."""
+    received_configs = []
+    received_records = []
+
+    def after_callback_with_config(record: dict, config: dict):
+        received_configs.append(config)
+        received_records.append(record)
+
+    n_repetitions = 1
+    issues = (make_issue([f"q{i}" for i in range(5)], "quantity"),)
+    ufuns = [
+        (
+            U.random(issues=issues, reserved_value=(0.0, 0.2), normalized=False),
+            U.random(issues=issues, reserved_value=(0.0, 0.2), normalized=False),
+        )
+    ]
+    scenarios = [Scenario(outcome_space=make_os(issues, name="S0"), ufuns=ufuns[0])]
+    competitors = [RandomNegotiator, AspirationNegotiator]
+
+    cartesian_tournament(
+        competitors=competitors,
+        scenarios=scenarios,
+        mechanism_params=dict(n_steps=5),
+        n_repetitions=n_repetitions,
+        verbosity=0,
+        rotate_ufuns=False,
+        path=None,
+        njobs=-1,
+        after_end_callback=after_callback_with_config,
+    )
+
+    expected_calls = len(scenarios) * len(competitors) ** 2 * n_repetitions
+    assert len(received_configs) == expected_calls
+    assert len(received_records) == expected_calls
+
+    # All configs should be the same (same tournament)
+    for config in received_configs:
+        assert isinstance(config, dict)
+        assert "competitors" in config
+        assert "n_repetitions" in config
+        assert config["n_repetitions"] == n_repetitions
+
+
+def test_callback_after_end_backwards_compatible():
+    """Test that after_end_callback still works with old signature (record only)."""
+    received_records = []
+
+    def after_callback_old_style(record: dict):
+        received_records.append(record)
+
+    n_repetitions = 1
+    issues = (make_issue([f"q{i}" for i in range(5)], "quantity"),)
+    ufuns = [
+        (
+            U.random(issues=issues, reserved_value=(0.0, 0.2), normalized=False),
+            U.random(issues=issues, reserved_value=(0.0, 0.2), normalized=False),
+        )
+    ]
+    scenarios = [Scenario(outcome_space=make_os(issues, name="S0"), ufuns=ufuns[0])]
+    competitors = [RandomNegotiator, AspirationNegotiator]
+
+    # This should work without errors despite the callback not accepting config
+    cartesian_tournament(
+        competitors=competitors,
+        scenarios=scenarios,
+        mechanism_params=dict(n_steps=5),
+        n_repetitions=n_repetitions,
+        verbosity=0,
+        rotate_ufuns=False,
+        path=None,
+        njobs=-1,
+        after_end_callback=after_callback_old_style,
+    )
+
+    expected_calls = len(scenarios) * len(competitors) ** 2 * n_repetitions
+    assert len(received_records) == expected_calls
+
+
+def test_callback_progress_receives_config():
+    """Test that progress_callback receives config as fourth argument when using new signature."""
+    received_configs = []
+    messages = []
+
+    def progress_callback_with_config(
+        msg: str, current: int, total: int, config: dict | None
+    ):
+        received_configs.append(config)
+        messages.append(msg)
+
+    n_repetitions = 1
+    issues = (make_issue([f"q{i}" for i in range(5)], "quantity"),)
+    ufuns = [
+        (
+            U.random(issues=issues, reserved_value=(0.0, 0.2), normalized=False),
+            U.random(issues=issues, reserved_value=(0.0, 0.2), normalized=False),
+        )
+    ]
+    scenarios = [Scenario(outcome_space=make_os(issues, name="S0"), ufuns=ufuns[0])]
+    competitors = [RandomNegotiator, AspirationNegotiator]
+
+    cartesian_tournament(
+        competitors=competitors,
+        scenarios=scenarios,
+        mechanism_params=dict(n_steps=5),
+        n_repetitions=n_repetitions,
+        verbosity=0,
+        rotate_ufuns=False,
+        path=None,
+        njobs=-1,
+        progress_callback=progress_callback_with_config,
+    )
+
+    # Progress callback should be called multiple times (loaded competitors, processing scenario, starting negotiations)
+    assert len(received_configs) >= 3
+    assert len(messages) >= 3
+
+    # All configs should be the same (same tournament)
+    for config in received_configs:
+        assert isinstance(config, dict)
+        assert "competitors" in config
+
+
+def test_callback_progress_backwards_compatible():
+    """Test that progress_callback still works with old signature (message, current, total only)."""
+    messages = []
+
+    def progress_callback_old_style(msg: str, current: int, total: int):
+        messages.append(msg)
+
+    n_repetitions = 1
+    issues = (make_issue([f"q{i}" for i in range(5)], "quantity"),)
+    ufuns = [
+        (
+            U.random(issues=issues, reserved_value=(0.0, 0.2), normalized=False),
+            U.random(issues=issues, reserved_value=(0.0, 0.2), normalized=False),
+        )
+    ]
+    scenarios = [Scenario(outcome_space=make_os(issues, name="S0"), ufuns=ufuns[0])]
+    competitors = [RandomNegotiator, AspirationNegotiator]
+
+    # This should work without errors despite the callback not accepting config
+    cartesian_tournament(
+        competitors=competitors,
+        scenarios=scenarios,
+        mechanism_params=dict(n_steps=5),
+        n_repetitions=n_repetitions,
+        verbosity=0,
+        rotate_ufuns=False,
+        path=None,
+        njobs=-1,
+        progress_callback=progress_callback_old_style,
+    )
+
+    # Progress callback should be called
+    assert len(messages) >= 3
+
+
+def test_runinfo_has_config():
+    """Test that RunInfo dataclass contains config field."""
+    received_configs = []
+
+    def before_callback(info: RunInfo):
+        received_configs.append(info.config)
+
+    n_repetitions = 1
+    issues = (make_issue([f"q{i}" for i in range(5)], "quantity"),)
+    ufuns = [
+        (
+            U.random(issues=issues, reserved_value=(0.0, 0.2), normalized=False),
+            U.random(issues=issues, reserved_value=(0.0, 0.2), normalized=False),
+        )
+    ]
+    scenarios = [Scenario(outcome_space=make_os(issues, name="S0"), ufuns=ufuns[0])]
+    competitors = [RandomNegotiator, AspirationNegotiator]
+
+    cartesian_tournament(
+        competitors=competitors,
+        scenarios=scenarios,
+        mechanism_params=dict(n_steps=5),
+        n_repetitions=n_repetitions,
+        verbosity=0,
+        rotate_ufuns=False,
+        path=None,
+        njobs=-1,
+        before_start_callback=before_callback,
+    )
+
+    expected_calls = len(scenarios) * len(competitors) ** 2 * n_repetitions
+    assert len(received_configs) == expected_calls
+
+    # All configs should be dicts with tournament info
+    for config in received_configs:
+        assert isinstance(config, dict)
+        assert "competitors" in config
+        assert "n_repetitions" in config
+        assert config["n_repetitions"] == n_repetitions
+
+
+def test_constructedneginfo_has_config():
+    """Test that ConstructedNegInfo dataclass contains config field."""
+    from negmas.tournaments.neg.simple.cartesian import ConstructedNegInfo
+
+    received_configs = []
+
+    def after_construction_callback(info: ConstructedNegInfo):
+        received_configs.append(info.config)
+
+    n_repetitions = 1
+    issues = (make_issue([f"q{i}" for i in range(5)], "quantity"),)
+    ufuns = [
+        (
+            U.random(issues=issues, reserved_value=(0.0, 0.2), normalized=False),
+            U.random(issues=issues, reserved_value=(0.0, 0.2), normalized=False),
+        )
+    ]
+    scenarios = [Scenario(outcome_space=make_os(issues, name="S0"), ufuns=ufuns[0])]
+    competitors = [RandomNegotiator, AspirationNegotiator]
+
+    cartesian_tournament(
+        competitors=competitors,
+        scenarios=scenarios,
+        mechanism_params=dict(n_steps=5),
+        n_repetitions=n_repetitions,
+        verbosity=0,
+        rotate_ufuns=False,
+        path=None,
+        njobs=-1,
+        after_construction_callback=after_construction_callback,
+    )
+
+    expected_calls = len(scenarios) * len(competitors) ** 2 * n_repetitions
+    assert len(received_configs) == expected_calls
+
+    # All configs should be dicts with tournament info
+    for config in received_configs:
+        assert isinstance(config, dict)
+        assert "competitors" in config
+        assert "n_repetitions" in config
+        assert config["n_repetitions"] == n_repetitions

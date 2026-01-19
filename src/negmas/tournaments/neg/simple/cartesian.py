@@ -21,17 +21,17 @@ from os import cpu_count
 from pathlib import Path
 from random import randint, random, shuffle
 from time import perf_counter
-from typing import Any, Callable, Iterable, Literal, Sequence
+from typing import Any, Callable, Iterable, Literal
 
 import pandas as pd
-from attr import asdict, define
+from attr import asdict, define, field
 from rich import print
 from rich.progress import track
 
 from negmas.common import TraceElement, TRACE_ELEMENT_MEMBERS
 from negmas.helpers import unique_name
 from negmas.helpers.inout import dump, has_needed_files, load
-from negmas.helpers.strings import humanize_time, shortest_unique_names
+from negmas.helpers.strings import encode_params, humanize_time, shortest_unique_names
 from negmas.helpers.types import get_class, get_full_type_name
 from negmas.inout import Scenario, scenario_size
 from negmas.mechanisms import Mechanism, Traceable
@@ -259,6 +259,7 @@ __all__ = [
     "SimpleTournamentResults",
     "combine_tournaments",
     "RunInfo",
+    "ConstructedNegInfo",
     "ProgressCallback",
     "BeforeStartCallback",
     "AfterEndCallback",
@@ -276,6 +277,7 @@ ALL_RESULTS_FILE_NAME = f"details{EXTENSION}"
 TYPE_SCORES_FILE_NAME = f"type_scores{EXTENSION}"
 FINAL_SCORES_FILE_NAME = f"scores{EXTENSION}"
 NEGOTIATOR_BEHAVIOR_DIR_NAME = "negotiator_behavior"
+CONFIG_FILE_NAME = "config.yaml"
 SCENARIOS_DIR_NAME = "scenarios"
 PLOTS_DIR_NAME = "plots"
 NEGOTIATIONS_DIR_NAME = "negotiations"
@@ -373,6 +375,105 @@ def _details_df_to_records(df: pd.DataFrame) -> list[dict[str, Any]]:
     return records
 
 
+def _combine_configs(
+    configs: list[dict[str, Any]], n_unique_scenarios: int
+) -> dict[str, Any]:
+    """Combine multiple tournament configs into a single config.
+
+    For boolean values that differ across configs, the combined value is None.
+    For values that are the same across all configs, the combined value is that value.
+    n_scenarios is set to the provided n_unique_scenarios count.
+
+    Args:
+        configs: List of config dictionaries to combine
+        n_unique_scenarios: Number of unique scenarios in the combined tournament
+
+    Returns:
+        Combined config dictionary
+
+    Raises:
+        ValueError: If competitors or opponents don't match across configs
+    """
+    if not configs:
+        return {}
+
+    if len(configs) == 1:
+        result = configs[0].copy()
+        result["n_scenarios"] = n_unique_scenarios
+        return result
+
+    # Validate that competitors and opponents match
+    first = configs[0]
+    for i, cfg in enumerate(configs[1:], 2):
+        if cfg.get("competitors") != first.get("competitors"):
+            raise ValueError(
+                f"Cannot combine tournaments with different competitors. "
+                f"Tournament 1 has {first.get('competitors')}, "
+                f"tournament {i} has {cfg.get('competitors')}"
+            )
+        if cfg.get("competitor_names") != first.get("competitor_names"):
+            raise ValueError(
+                f"Cannot combine tournaments with different competitor_names. "
+                f"Tournament 1 has {first.get('competitor_names')}, "
+                f"tournament {i} has {cfg.get('competitor_names')}"
+            )
+        if cfg.get("competitor_params") != first.get("competitor_params"):
+            raise ValueError(
+                f"Cannot combine tournaments with different competitor_params. "
+                f"Tournament 1 has {first.get('competitor_params')}, "
+                f"tournament {i} has {cfg.get('competitor_params')}"
+            )
+        if cfg.get("opponents") != first.get("opponents"):
+            raise ValueError(
+                f"Cannot combine tournaments with different opponents. "
+                f"Tournament 1 has {first.get('opponents')}, "
+                f"tournament {i} has {cfg.get('opponents')}"
+            )
+        if cfg.get("opponent_names") != first.get("opponent_names"):
+            raise ValueError(
+                f"Cannot combine tournaments with different opponent_names. "
+                f"Tournament 1 has {first.get('opponent_names')}, "
+                f"tournament {i} has {cfg.get('opponent_names')}"
+            )
+        if cfg.get("opponent_params") != first.get("opponent_params"):
+            raise ValueError(
+                f"Cannot combine tournaments with different opponent_params. "
+                f"Tournament 1 has {first.get('opponent_params')}, "
+                f"tournament {i} has {cfg.get('opponent_params')}"
+            )
+
+    # Get all keys from all configs
+    all_keys = set()
+    for cfg in configs:
+        all_keys.update(cfg.keys())
+
+    result: dict[str, Any] = {}
+    for key in all_keys:
+        values = [cfg.get(key) for cfg in configs if key in cfg]
+
+        if not values:
+            continue
+
+        # Check if all values are the same
+        first_value = values[0]
+        all_same = all(v == first_value for v in values)
+
+        if all_same:
+            result[key] = first_value
+        elif all(isinstance(v, bool) or v is None for v in values):
+            # Boolean values that differ become None
+            result[key] = None
+        else:
+            # For non-boolean differing values, use None
+            result[key] = None
+
+    # Override specific fields
+    result["n_scenarios"] = n_unique_scenarios
+    result["path"] = None  # Combined tournament doesn't have a single source path
+
+    return result
+
+
 @define
 class RunInfo:
     """Information about a negotiation run before it starts.
@@ -390,6 +491,7 @@ class RunInfo:
         scenario_index: Index of this scenario in the tournament
         negotiation_id: Unique identifier for this negotiation run
         scored_indices: Indices of negotiators whose scores will be recorded (None means all)
+        config: Tournament configuration dictionary (same as saved to config.yaml)
     """
 
     s: Scenario
@@ -415,21 +517,78 @@ class RunInfo:
     scored_indices: list[int] | None = None
     n_repetitions: int = 1
     scenario_index: int = 0
+    config: dict[str, Any] = field(factory=dict)
 
 
 @define
 class ConstructedNegInfo:
+    """Information about a negotiation after mechanism construction.
+
+    Passed to after_construction_callback in cartesian_tournament to allow inspection
+    and modification of the mechanism before execution.
+
+    Attributes:
+        run_id: Unique identifier for this negotiation run
+        mechanism: The constructed mechanism instance
+        failures: Dictionary of any failures during construction
+        scenario: The scenario being negotiated
+        real_scenario_name: The actual scenario name (may differ from masked name)
+        config: Tournament configuration dictionary (same as saved to config.yaml)
+    """
+
     run_id: int | str | None
     mechanism: Mechanism
     failures: dict
     scenario: Scenario
     real_scenario_name: str | None
+    config: dict[str, Any] = field(factory=dict)
 
 
 BeforeStartCallback = Callable[[RunInfo], None]
 AfterConstructionCallback = Callable[[ConstructedNegInfo], None]
-AfterEndCallback = Callable[[dict[str, Any]], None]
-ProgressCallback = Callable[[str, int, int], None]  # (message, current, total)
+# AfterEndCallback can accept either (record) or (record, config)
+AfterEndCallback = (
+    Callable[[dict[str, Any]], None] | Callable[[dict[str, Any], dict[str, Any]], None]
+)
+# ProgressCallback can accept either (message, current, total) or (message, current, total, config)
+ProgressCallback = (
+    Callable[[str, int, int], None]
+    | Callable[[str, int, int, dict[str, Any] | None], None]
+)
+
+
+def _call_after_end_callback(
+    callback: AfterEndCallback, record: dict[str, Any], config: dict[str, Any] | None
+) -> None:
+    """Call after_end_callback with backwards compatibility.
+
+    Tries to call with (record, config) first. If that fails with TypeError
+    (wrong number of arguments), falls back to (record) only.
+    """
+    try:
+        callback(record, config)  # type: ignore
+    except TypeError:
+        # Fall back to old signature without config
+        callback(record)  # type: ignore
+
+
+def _call_progress_callback(
+    callback: ProgressCallback,
+    message: str,
+    current: int,
+    total: int,
+    config: dict[str, Any] | None,
+) -> None:
+    """Call progress_callback with backwards compatibility.
+
+    Tries to call with (message, current, total, config) first. If that fails
+    with TypeError (wrong number of arguments), falls back to (message, current, total) only.
+    """
+    try:
+        callback(message, current, total, config)  # type: ignore
+    except TypeError:
+        # Fall back to old signature without config
+        callback(message, current, total)  # type: ignore
 
 
 class SimpleTournamentResults:
@@ -451,6 +610,7 @@ class SimpleTournamentResults:
 
     def __init__(
         self,
+        config: dict[str, Any] | None = None,
         scores: pd.DataFrame | None = None,
         details: pd.DataFrame | None = None,
         scores_summary: pd.DataFrame | None = None,
@@ -464,6 +624,7 @@ class SimpleTournamentResults:
         """Initialize SimpleTournamentResults.
 
         Args:
+            config: The complete configuration of the tournament
             scores: All scores per negotiator
             details: All negotiation results
             scores_summary: All score statistics summarized per type
@@ -510,6 +671,7 @@ class SimpleTournamentResults:
         self._final_scores = (
             final_scores if final_scores is not None else pd.DataFrame()
         )
+        self._config = config
 
         # For scores and details, behavior depends on memory optimization
         if effective_memory_opt == "speed":
@@ -534,6 +696,11 @@ class SimpleTournamentResults:
             self._details = details  # May be None
             self._scores_cached = scores is not None
             self._details_cached = details is not None
+
+    @property
+    def config(self) -> dict[str, Any] | None:
+        """The complete configuration of the tournament."""
+        return self._config
 
     @property
     def path(self) -> Path | None:
@@ -651,6 +818,7 @@ class SimpleTournamentResults:
     @classmethod
     def from_records(
         cls,
+        config: dict[str, Any] | None = None,
         scores: list[dict[str, Any]] | pd.DataFrame | None = None,
         results: list[dict[str, Any]] | pd.DataFrame | None = None,
         type_scores: pd.DataFrame | None = None,
@@ -676,6 +844,8 @@ class SimpleTournamentResults:
         """
         if scores is None and results is None:
             raise ValueError("Cannot pass both scoers and results as None")
+        if config is None:
+            config = load(path / CONFIG_FILE_NAME) if path else dict()
         if scores is None or (
             len(scores) == 0 and results is not None and len(results) > 0
         ):
@@ -725,6 +895,7 @@ class SimpleTournamentResults:
         else:
             details_df = type_scores = final = pd.DataFrame()
         return SimpleTournamentResults(
+            config=config,
             scores=scores_df,
             details=details_df,
             scores_summary=type_scores,  # type: ignore
@@ -913,9 +1084,32 @@ class SimpleTournamentResults:
                 scores.append(s)
         if len(scores) < 1:
             raise FileNotFoundError("Cannot find any records or details to use")
+
+        # Load and combine configs from all paths
+        configs = []
+        for path in loaded_paths:
+            config_path = path / CONFIG_FILE_NAME
+            if config_path.exists():
+                configs.append(load(config_path))
+
+        # Combine results to count unique scenarios
+        combined_results = pd.concat(results, ignore_index=True)
+        combined_scores = pd.concat(scores, ignore_index=True)
+
+        # Count unique scenarios from the combined results
+        n_unique_scenarios = int(
+            combined_results["scenario"].nunique()
+            if "scenario" in combined_results.columns
+            else 0
+        )
+
+        # Combine configs (validates competitors/opponents match)
+        config = _combine_configs(configs, n_unique_scenarios) if configs else None
+
         return cls.from_records(
-            scores=pd.concat(scores, ignore_index=True),
-            results=pd.concat(results, ignore_index=True),
+            config=config,
+            scores=combined_scores,
+            results=combined_results,
             final_score_stat=final_score_stat,
         ), list(loaded_paths)
 
@@ -971,6 +1165,11 @@ class SimpleTournamentResults:
             storage_optimization=storage_optimization,
             storage_format=storage_format,
         )
+
+        # Load config if exists
+        config_path = path / CONFIG_FILE_NAME
+        if config_path.exists():
+            kwargs["config"] = load(config_path)
 
         # Load scores_summary and final_scores (always CSV format, small files)
         for k, base_name, required, header, index_col in (
@@ -1679,6 +1878,7 @@ def run_negotiation(
     before_start_callback: BeforeStartCallback | None = None,
     after_construction_callback: AfterConstructionCallback | None = None,
     after_end_callback: AfterEndCallback | None = None,
+    config: dict[str, Any] | None = None,
 ) -> dict[str, Any]:
     """Run a single negotiation session and return comprehensive results.
 
@@ -1711,7 +1911,9 @@ def run_negotiation(
         scenario_index: Index of this scenario in the tournament (for RunInfo).
         before_start_callback: Optional callback invoked before negotiation starts. Receives RunInfo object.
         after_construction_callback: Optional callback invoked after mechanism construction. Receives ConstructedNegInfo object.
-        after_end_callback: Optional callback invoked after negotiation ends. Receives the record dictionary.
+        after_end_callback: Optional callback invoked after negotiation ends. Receives the record dictionary
+            and optionally the config dictionary. Supports both (record) and (record, config) signatures.
+        config: Tournament configuration dictionary (same as saved to config.yaml). Passed to callbacks.
 
     Returns:
         Dictionary containing complete negotiation results:
@@ -1766,6 +1968,7 @@ def run_negotiation(
                     scored_indices=scored_indices,
                     n_repetitions=n_repetitions,
                     scenario_index=scenario_index,
+                    config=config or {},
                 )
             )
         except Exception as e:
@@ -1792,7 +1995,9 @@ def run_negotiation(
     if after_construction_callback:
         try:
             after_construction_callback(
-                ConstructedNegInfo(run_id, m, failures, s, real_scenario_name)
+                ConstructedNegInfo(
+                    run_id, m, failures, s, real_scenario_name, config=config or {}
+                )
             )
         except Exception as e:
             if verbosity > 0:
@@ -1852,7 +2057,7 @@ def run_negotiation(
     )
     if after_end_callback:
         try:
-            after_end_callback(run_record)
+            _call_after_end_callback(after_end_callback, run_record, config)
         except Exception as e:
             if verbosity > 0:
                 print(f"After end callback failed for {run_id}: {e}")
@@ -2061,10 +2266,10 @@ def cartesian_tournament(
     scenarios: list[Scenario] | tuple[Scenario, ...],
     opponents: list[type[Negotiator] | str]
     | tuple[type[Negotiator] | str, ...] = tuple(),
-    opponent_params: Sequence[dict | None] | None = None,
+    opponent_params: list[dict | None] | None = None,
     opponent_names: list[str] | None = None,
     private_infos: list[None | tuple[dict, ...]] | None = None,
-    competitor_params: Sequence[dict | None] | None = None,
+    competitor_params: list[dict | None] | None = None,
     competitor_names: list[str] | None = None,
     rotate_ufuns: bool = True,
     rotate_private_infos: bool = True,
@@ -2108,6 +2313,7 @@ def cartesian_tournament(
     after_construction_callback: AfterConstructionCallback | None = None,
     after_end_callback: AfterEndCallback | None = None,
     progress_callback: ProgressCallback | None = None,
+    metadata: dict[str, Any] | None = None,
 ) -> SimpleTournamentResults:
     """Run a Cartesian tournament where negotiators compete across multiple scenarios.
 
@@ -2214,6 +2420,7 @@ def cartesian_tournament(
                           expected count. Useful for showing setup progress in UIs before
                           negotiations start. Called during competitor validation, scenario
                           processing, and run configuration building.
+        metadata: Optional dictionary of metadata to include in tournament results.
 
     Returns:
         SimpleTournamentResults containing scores, detailed results, score summaries, and final rankings.
@@ -2262,6 +2469,7 @@ def cartesian_tournament(
         )
         ```
     """
+
     # Handle deprecated shorten_names parameter
     if shorten_names is not None:
         deprecated(
@@ -2294,42 +2502,122 @@ def cartesian_tournament(
     if private_infos is None:
         private_infos = [tuple(dict() for _ in s.ufuns) for s in scenarios]
 
-    # Validate and process competitor_names
-    if competitor_names is not None:
-        if len(competitor_names) != len(competitors):
-            raise ValueError(
-                f"competitor_names length ({len(competitor_names)}) must match "
-                f"competitors length ({len(competitors)})"
-            )
-        if len(set(competitor_names)) != len(competitor_names):
-            duplicates = [
-                name
-                for name in set(competitor_names)
-                if competitor_names.count(name) > 1
-            ]
-            raise ValueError(
-                f"competitor_names must be unique. Duplicate names found: {duplicates}"
-            )
-
-    # Validate and process opponent_names
-    if opponent_names is not None:
-        if len(opponent_names) != len(opponents):
-            raise ValueError(
-                f"opponent_names length ({len(opponent_names)}) must match "
-                f"opponents length ({len(opponents)})"
-            )
-        if len(set(opponent_names)) != len(opponent_names):
-            duplicates = [
-                name for name in set(opponent_names) if opponent_names.count(name) > 1
-            ]
-            raise ValueError(
-                f"opponent_names must be unique. Duplicate names found: {duplicates}"
+    def check_geneate_names(
+        negotiators: list[type[Negotiator] | str],
+        params: list[dict | None] | None,
+        names: list[str] | None,
+        name_type="competitor",
+    ) -> list[str]:
+        if params is None:
+            params = [dict() for _ in negotiators]
+        if names is None:
+            names = shortest_unique_names(
+                [
+                    get_full_type_name(_) + encode_params(p)
+                    for _, p in zip(negotiators, params)
+                ]
             )
 
+        if len(names) != len(negotiators):
+            raise ValueError(
+                f"names length ({len(names)}) must match "
+                f"{name_type}s length ({len(negotiators)})"
+            )
+        if len(set(names)) != len(names):
+            duplicates = [name for name in set(names) if names.count(name) > 1]
+            raise ValueError(
+                f"names must be unique. Duplicate names found: {duplicates}"
+            )
+        return names
+
+    # Generate names if not provided by user
+    competitor_names = check_geneate_names(
+        competitors, competitor_params, competitor_names, "competitor"
+    )
+    opponent_names = (
+        check_geneate_names(opponents, opponent_params, opponent_names, "opponent")
+        if opponents
+        else []
+    )
+
+    config = dict(
+        n_scenarios=len(scenarios),
+        n_competitors=len(competitors),
+        competitors=[get_full_type_name(_) for _ in competitors],
+        competitor_names=competitor_names,
+        competitor_params=serialize(
+            competitor_params, python_class_identifier=python_class_identifier
+        ),
+        opponents=[get_full_type_name(_) for _ in opponents] if opponents else None,
+        n_opponents=len(opponents) if opponents else 0,
+        opponent_names=opponent_names,
+        opponent_params=serialize(
+            opponent_params, python_class_identifier=python_class_identifier
+        ),
+        private_infos=serialize(
+            private_infos, python_class_identifier=python_class_identifier
+        ),
+        rotate_ufuns=rotate_ufuns,
+        rotate_private_infos=rotate_private_infos,
+        n_repetitions=n_repetitions,
+        path=str(path) if path else None,
+        njobs=njobs,
+        mechanism_type=get_full_type_name(mechanism_type),
+        mechanism_params=serialize(
+            mechanism_params, python_class_identifier=python_class_identifier
+        ),
+        n_steps=n_steps,
+        time_limit=time_limit,
+        pend=pend,
+        pend_per_second=pend_per_second,
+        step_time_limit=step_time_limit,
+        negotiator_time_limit=negotiator_time_limit,
+        hidden_time_limit=hidden_time_limit,
+        external_timeout=external_timeout,
+        plot_fraction=plot_fraction,
+        plot_params=serialize(
+            plot_params, python_class_identifier=python_class_identifier
+        ),
+        verbosity=verbosity,
+        self_play=self_play,
+        randomize_runs=randomize_runs,
+        sort_runs=sort_runs,
+        save_every=save_every,
+        save_stats=save_stats,
+        save_scenario_figs=save_scenario_figs,
+        final_score=final_score,
+        id_reveals_type=id_reveals_type,
+        name_reveals_type=name_reveals_type,
+        shorten_names=shorten_names,
+        raise_exceptions=raise_exceptions,
+        mask_scenario_names=mask_scenario_names,
+        only_failures_on_self_play=only_failures_on_self_play,
+        ignore_discount=ignore_discount,
+        ignore_reserved=ignore_reserved,
+        storage_optimization=storage_optimization,
+        memory_optimization=memory_optimization,
+        storage_format=storage_format,
+        python_class_identifier=python_class_identifier,
+        has_before_start_callback=before_start_callback is not None,
+        has_after_construction_callback=after_construction_callback is not None,
+        has_after_end_callback=after_end_callback is not None,
+        has_progress_callback=progress_callback is not None,
+        metadata=serialize(metadata),
+    )
+
+    # Save config to disk if path is provided
+    if path:
+        dump(config, Path(path) / CONFIG_FILE_NAME)
     # Report progress: competitors loaded
     if progress_callback:
         try:
-            progress_callback(f"Loaded {len(competitors)} competitors", 1, 3)
+            _call_progress_callback(
+                progress_callback,
+                f"Loaded {len(competitors)} competitors",
+                1,
+                3,
+                config,
+            )
         except Exception:
             pass
 
@@ -2342,22 +2630,6 @@ def cartesian_tournament(
         scenarios_path.mkdir(exist_ok=True, parents=True)
     stats = None
 
-    def shorten(name):
-        return name
-
-    # Generate names if not provided by user
-    if competitor_names is None:
-        competitor_names = shortest_unique_names(
-            [get_full_type_name(_) for _ in competitors]
-        )
-
-    if opponent_names is None:
-        if opponents:
-            opponent_names = shortest_unique_names(
-                [get_full_type_name(_) for _ in opponents]
-            )
-        else:
-            opponent_names = []
     competitor_info = list(
         zip(competitors, competitor_params, competitor_names, strict=True)
     )
@@ -2371,8 +2643,12 @@ def cartesian_tournament(
         # Report progress: processing scenarios
         if progress_callback:
             try:
-                progress_callback(
-                    f"Processing scenario {scenario_idx + 1}/{n_scenarios}", 2, 3
+                _call_progress_callback(
+                    progress_callback,
+                    f"Processing scenario {scenario_idx + 1}/{n_scenarios}",
+                    2,
+                    3,
+                    config,
                 )
             except Exception:
                 pass
@@ -2420,7 +2696,8 @@ def cartesian_tournament(
             # Strip discounting if requested
             if ignore_discount:
                 while isinstance(result, DiscountedUtilityFunction):
-                    result = result.ufun
+                    inner = result.extract_base_ufun()
+                    result = inner
             # Clear reserved value if requested
             if ignore_reserved and hasattr(result, "reserved_value"):
                 result = copy.deepcopy(result)
@@ -2454,7 +2731,7 @@ def cartesian_tournament(
                         issues=s.outcome_space.issues,
                         name=f"{original_name}-{i}" if i else original_name,
                     ),
-                    tuple(ufuns),
+                    tuple(ufuns),  # type: ignore
                 )
             else:
                 scenario = s
@@ -2558,6 +2835,7 @@ def cartesian_tournament(
                         mask_scenario_name=mask_scenario_names,
                         private_infos=pinfo_tuple,
                         scored_indices=scored_indices,
+                        config=config,
                     )
                     for i in range(n_repetitions)
                 ]
@@ -2569,7 +2847,9 @@ def cartesian_tournament(
     # Report progress: setup complete, ready to start negotiations
     if progress_callback:
         try:
-            progress_callback(f"Starting {len(runs)} negotiations", 3, 3)
+            _call_progress_callback(
+                progress_callback, f"Starting {len(runs)} negotiations", 3, 3, config
+            )
         except Exception:
             pass
 
@@ -2699,7 +2979,9 @@ def cartesian_tournament(
                         result = failed_run_record(**info)
                         if after_end_callback:
                             try:
-                                after_end_callback(result)
+                                _call_after_end_callback(
+                                    after_end_callback, result, config
+                                )
                             except Exception as e:
                                 if verbosity > 0:
                                     print(
@@ -2743,7 +3025,7 @@ def cartesian_tournament(
             # _stop_process_pool(pool)
 
     tresults = SimpleTournamentResults.from_records(
-        scores, results, final_score_stat=final_score, path=path
+        config, scores, results, final_score_stat=final_score, path=path
     )
     if verbosity > 0:
         print(tresults.final_scores)
@@ -2792,6 +3074,7 @@ def cartesian_tournament(
     # This allows lazy loading when memory_optimization != "speed" and path is provided
     if path and memory_optimization != "speed":
         tresults = SimpleTournamentResults(
+            config=config,
             scores=tresults._scores if memory_optimization == "balanced" else None,
             details=tresults._details,
             scores_summary=tresults._scores_summary,
