@@ -7,6 +7,10 @@ import pytest
 
 from negmas.genius import genius_bridge_is_running, GeniusBridge
 
+# Set plotly to use a non-blocking renderer to avoid hangs in CI/test environments
+# This must be set before any plotly imports in notebooks
+os.environ.setdefault("PLOTLY_RENDERER", "png")
+
 NEGMAS_IGNORE_TEST_NOTEBOOKS = os.environ.get("NEGMAS_IGNORE_TEST_NOTEBOOKS", False)
 # NEGMAS_IGNORE_TEST_NOTEBOOKS = True
 
