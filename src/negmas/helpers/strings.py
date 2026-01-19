@@ -14,6 +14,7 @@ import socket
 import string
 import traceback
 from collections import defaultdict
+from pathlib import Path
 
 __all__ = [
     "shortest_unique_names",
@@ -24,6 +25,11 @@ __all__ = [
     "exception2str",
     "humanize_time",
     "shorten",
+    "shorten_keys",
+    "shorten_keys_in_string",
+    "encode_params",
+    "write_lines",
+    "read_lines",
 ]
 
 COMMON_NAME_PARTS = (
@@ -383,3 +389,59 @@ def humanize_time(
             else:
                 parts.append("%2d%s%s" % (n, unit, ""))
     return str("".join(parts))
+
+
+def shorten_keys_in_string(s: str) -> str:
+    """Shorten keys in a string like '[key1=val1,key2=val2]' to shortest unique names."""
+    import re
+    from negmas.helpers.strings import shortest_unique_names
+
+    pattern = r"(\w+)=([^,\]]+)"
+    matches = re.findall(pattern, s)
+    if not matches:
+        return s
+
+    keys, values = zip(*matches)
+    short_keys = shortest_unique_names(list(keys))
+    pairs = [f"{k}={v}" for k, v in zip(short_keys, values)]
+    return f"[{','.join(pairs)}]"
+
+
+def shorten_keys(d: dict | None) -> dict:
+    """Shorten dict keys to shortest unique names."""
+    if not d:
+        return dict()
+    keys = list(d.keys())
+    short_keys = shortest_unique_names(
+        keys, max_compression=True, guarantee_unique=False
+    )
+    return {sk: d[k] for sk, k in zip(short_keys, keys)}
+
+
+def encode_params(params: dict | None) -> str:
+    """Encode parameters into a string.
+
+    Args:
+        params (dict): The parameters to encode.
+
+    Returns:
+        str: The encoded parameters.
+    """
+    if not params:
+        return ""
+    parts = []
+    for k, v in params.items():
+        parts.append(f"{k}={v}")
+    return "[" + "&".join(parts) + "]"
+
+
+def write_lines(lines: list[str], path: Path) -> None:
+    """Write a list of strings to a file, one per line."""
+    with open(path, "w") as f:
+        f.write("\n".join(lines))
+
+
+def read_lines(path: Path) -> list[str]:
+    """Read a list of strings from a file, one per line."""
+    with open(path) as f:
+        return f.read().split("\n")

@@ -610,6 +610,93 @@ class TestPerNegotiatorSaving:
             assert list(df.columns) == expected_cols
 
 
+class TestStringHelpers:
+    """Tests for string helper functions."""
+
+    def test_shorten_keys_basic(self):
+        """Test shorten_keys with basic dict."""
+        from negmas.helpers.strings import shorten_keys
+
+        d = {"sdfsd": 463, "dfsdf": 4, "sdfds": "sdfwer"}
+        result = shorten_keys(d)
+
+        # All keys should be unique
+        assert len(set(result.keys())) == len(result)
+        # Values should be preserved
+        assert set(result.values()) == set(d.values())
+
+    def test_shorten_keys_empty(self):
+        """Test shorten_keys with empty dict."""
+        from negmas.helpers.strings import shorten_keys
+
+        assert shorten_keys({}) == {}
+        assert shorten_keys(None) == {}
+
+    def test_shorten_keys_single_item(self):
+        """Test shorten_keys with single item dict."""
+        from negmas.helpers.strings import shorten_keys
+
+        d = {"longkeyname": 42}
+        result = shorten_keys(d)
+
+        assert len(result) == 1
+        assert 42 in result.values()
+
+    def test_shorten_keys_in_string_basic(self):
+        """Test shorten_keys_in_string with basic string."""
+        from negmas.helpers.strings import shorten_keys_in_string
+
+        s = "[sdfsd=463,dfsdf=4,sdfds=sdfwer]"
+        result = shorten_keys_in_string(s)
+
+        # Result should be shorter or equal length
+        assert len(result) <= len(s)
+        # Should still have bracket format
+        assert result.startswith("[")
+        assert result.endswith("]")
+
+    def test_shorten_keys_in_string_empty(self):
+        """Test shorten_keys_in_string with empty/no-match string."""
+        from negmas.helpers.strings import shorten_keys_in_string
+
+        assert shorten_keys_in_string("") == ""
+        assert shorten_keys_in_string("no matches here") == "no matches here"
+
+    def test_encode_params_basic(self):
+        """Test encode_params with basic dict."""
+        from negmas.helpers.strings import encode_params
+
+        params = {"key1": "val1", "key2": 42}
+        result = encode_params(params)
+
+        assert result.startswith("[")
+        assert result.endswith("]")
+        assert "key1=val1" in result
+        assert "key2=42" in result
+
+    def test_encode_params_empty(self):
+        """Test encode_params with empty/None."""
+        from negmas.helpers.strings import encode_params
+
+        assert encode_params({}) == ""
+        assert encode_params(None) == ""
+
+    def test_shortest_unique_names_with_params(self):
+        """Test that shortest_unique_names works when names differ only by params."""
+        from negmas.helpers.strings import shortest_unique_names, encode_params
+
+        # Same class name but different params
+        names = [
+            "MyNegotiator" + encode_params({"alpha": 0.1}),
+            "MyNegotiator" + encode_params({"alpha": 0.5}),
+            "MyNegotiator" + encode_params({"alpha": 0.9}),
+        ]
+        result = shortest_unique_names(names)
+
+        # All results should be unique
+        assert len(set(result)) == len(result)
+
+
 class TestTraceElementTextData:
     """Tests for text and data fields in TraceElement."""
 
