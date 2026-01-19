@@ -80,7 +80,7 @@ class StateDependentUFunMixin:
         offer: Outcome,
         nmi: NegotiatorMechanismInterface | None = None,
         state: MechanismState | None = None,
-    ) -> Distribution:
+    ) -> Value | None:
         """Evaluates the offer given a session and state"""
 
     def eval(self, offer: Outcome) -> Distribution:

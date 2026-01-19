@@ -1076,5 +1076,54 @@ def test_discounted_ufun_minmax_uses_outcome_space_fallback(discounted_class):
     assert minmax_result == minmax_explicit
 
 
+@mark.parametrize("discounted_class", ["ExpDiscountedUFun", "LinDiscountedUFun"])
+def test_discounted_ufun_shares_outcome_space_with_inner_ufun(discounted_class):
+    """Test that DiscountedUtilityFunction shares outcome_space with its inner ufun."""
+    from negmas.preferences.discounted import ExpDiscountedUFun, LinDiscountedUFun
+
+    issues = [make_issue(10), make_issue(5)]
+    os = make_os(issues)
+
+    # Create a base ufun and clear its outcome_space
+    base_ufun = LinearUtilityFunction.random(issues=issues, normalized=True)
+    base_ufun.outcome_space = None
+    assert base_ufun.outcome_space is None
+
+    # Create the discounted ufun WITH outcome_space set
+    if discounted_class == "ExpDiscountedUFun":
+        discounted_ufun = ExpDiscountedUFun(
+            ufun=base_ufun, discount=0.9, outcome_space=os
+        )
+    else:
+        discounted_ufun = LinDiscountedUFun(ufun=base_ufun, cost=0.1, outcome_space=os)
+
+    # The inner ufun should now have the outcome_space set
+    assert discounted_ufun.ufun.outcome_space is os
+    assert discounted_ufun.outcome_space is os
+
+
+@mark.parametrize("discounted_class", ["ExpDiscountedUFun", "LinDiscountedUFun"])
+def test_discounted_ufun_inherits_outcome_space_from_inner_ufun(discounted_class):
+    """Test that DiscountedUtilityFunction inherits outcome_space from inner ufun if not provided."""
+    from negmas.preferences.discounted import ExpDiscountedUFun, LinDiscountedUFun
+
+    issues = [make_issue(10), make_issue(5)]
+    os = make_os(issues)
+
+    # Create a base ufun WITH outcome_space set
+    base_ufun = LinearUtilityFunction.random(issues=issues, normalized=True)
+    base_ufun.outcome_space = os
+
+    # Create the discounted ufun WITHOUT outcome_space set
+    if discounted_class == "ExpDiscountedUFun":
+        discounted_ufun = ExpDiscountedUFun(ufun=base_ufun, discount=0.9)
+    else:
+        discounted_ufun = LinDiscountedUFun(ufun=base_ufun, cost=0.1)
+
+    # The discounted ufun should inherit outcome_space from inner ufun
+    assert discounted_ufun.outcome_space is os
+    assert discounted_ufun.ufun.outcome_space is os
+
+
 if __name__ == "__main__":
     pytest.main(args=[__file__])

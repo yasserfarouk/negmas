@@ -5,13 +5,12 @@ from __future__ import annotations
 import random
 from typing import Any, Callable
 
-from negmas.common import MechanismState, NegotiatorMechanismInterface
+from negmas.common import Value, MechanismState, NegotiatorMechanismInterface
 from negmas.helpers import get_class
 from negmas.helpers.numeric import make_range
 from negmas.outcomes import Issue, Outcome
 from negmas.serialization import PYTHON_CLASS_IDENTIFIER, deserialize, serialize
 
-from .base import Value
 from .base_ufun import BaseUtilityFunction
 from .mixins import StateDependentUFunMixin
 
@@ -30,6 +29,21 @@ class DiscountedUtilityFunction(StateDependentUFunMixin, BaseUtilityFunction):
         """
         super().__init__(**kwargs)
         self.ufun = ufun
+        if self.outcome_space:
+            self.ufun.outcome_space = self.outcome_space
+        else:
+            self.outcome_space = self.ufun.outcome_space
+
+    def extract_base_ufun(self, deep: bool = False) -> BaseUtilityFunction:
+        """Extracts the underlying base utility function without discounting."""
+        self.ufun.outcome_space = self.outcome_space
+        ufun = self
+        if not deep:
+            return ufun
+        while isinstance(ufun, DiscountedUtilityFunction):
+            ufun = ufun.ufun
+            ufun.outcome_space = self.outcome_space
+        return ufun
 
     def is_state_dependent(self):
         """Check if state dependent."""
@@ -57,7 +71,7 @@ class ExpDiscountedUFun(DiscountedUtilityFunction):
         discount: float | None = None,
         factor: str | Callable[[MechanismState], float] = "step",
         name=None,
-        reserved_value: Value = float("-inf"),
+        reserved_value: float = float("-inf"),
         dynamic_reservation=True,
         id=None,
         **kwargs,
@@ -77,7 +91,6 @@ class ExpDiscountedUFun(DiscountedUtilityFunction):
         super().__init__(
             ufun=ufun, name=name, reserved_value=reserved_value, id=id, **kwargs
         )
-        self.ufun = ufun
         self.discount = discount
         self.factor = factor
         self.dynamic_reservation = dynamic_reservation
@@ -235,7 +248,7 @@ class ExpDiscountedUFun(DiscountedUtilityFunction):
         offer: Outcome,
         nmi: NegotiatorMechanismInterface | None = None,
         state: MechanismState | None = None,
-    ):
+    ) -> Value:
         """Evaluates discounted utility for an offer given the current negotiation state.
 
         Args:
@@ -348,7 +361,6 @@ class LinDiscountedUFun(DiscountedUtilityFunction):
         )
         if power is None:
             power = 1.0
-        self.ufun = ufun
         self.cost = cost
         self.factor = factor
         self.power = power
@@ -396,7 +408,7 @@ class LinDiscountedUFun(DiscountedUtilityFunction):
         offer: Outcome,
         nmi: NegotiatorMechanismInterface | None = None,
         state: MechanismState | None = None,
-    ):
+    ) -> Value:
         """Evaluates discounted utility for an offer given the current negotiation state.
 
         Args:
