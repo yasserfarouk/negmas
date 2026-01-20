@@ -21,6 +21,7 @@ class RandomNegotiator(MAPNegotiator):
         **kwargs: Passed to the GBNegotiator
 
     Remarks:
+
         - If p_acceptance + p_rejection + p_ending < 1, the rest is the probability of no-response.
     """
 

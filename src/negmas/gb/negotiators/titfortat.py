@@ -34,6 +34,7 @@ class NaiveTitForTatNegotiator(MAPNegotiator):
                             or the special string value 'min' for minimum concession
 
     Remarks:
+
         - This negotiator does not keep an opponent model. It thinks only in terms of changes in its own utility.
           If the opponent's last offer was better for the negotiator compared with the one before it, it considers
           that the opponent has conceded by the difference. This means that it implicitly assumes a zero-sum

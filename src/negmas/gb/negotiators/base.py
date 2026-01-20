@@ -42,6 +42,7 @@ class GBNegotiator(Negotiator[GBNMI, GBState], Generic[TNMI, TState]):
          owner: The `Agent` that owns the negotiator.
 
     Remarks:
+
         - The only method that **must** be implemented by any GBNegotiator is `propose`.
         - The default `respond` method, accepts offers with a utility value no less than whatever `propose` returns
           with the same mechanism state.
@@ -100,6 +101,7 @@ class GBNegotiator(Negotiator[GBNMI, GBState], Generic[TNMI, TState]):
             The outcome being proposed or None to refuse to propose
 
         Remarks:
+
             - This function guarantees that no agents can propose something with a utility value
 
         """
@@ -117,6 +119,7 @@ class GBNegotiator(Negotiator[GBNMI, GBState], Generic[TNMI, TState]):
             ResponseType | ExtendedResponseType: The response to the offer
 
         Remarks:
+
             - The default implementation never ends the negotiation
             - The default implementation asks the negotiator to `propose`() and accepts the `offer` if its utility was
               at least as good as the offer that it would have proposed (and above the reserved value).
@@ -152,6 +155,7 @@ class GBNegotiator(Negotiator[GBNMI, GBState], Generic[TNMI, TState]):
             response: The response
 
         Remarks:
+
             - Will only be called if `enable_callbacks` is set for the mechanism
         """
 

@@ -69,7 +69,6 @@ def make_offer_selector(
     Generates a callable that can be used to select a specific outcome in a range of utility values.
 
     Args:
-
         inverse_ufun: The inverse utility function used
         selector: Any callable that selects an outcome, or "best"/"worst" for the one with highest/lowest utility. `None` for random.
     """
