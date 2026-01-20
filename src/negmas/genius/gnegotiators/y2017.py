@@ -38,16 +38,19 @@ class AgentF(GeniusNegotiator):
     negotiations to build a "PBList" (popular bids from previous agreements).
 
     **Offering Strategy:**
+
         - Uses time-scaled threshold via negotiationStrategy.getThreshold(time)
         - Searches for bids above the threshold, preferring those in PBList
         - In final phase, traverses a "CList" of candidate bids with concession
         - Tracks supporter count in multilateral settings
 
     **Acceptance Strategy:**
+
         - Accepts if opponent's bid utility exceeds current threshold
         - More aggressive acceptance in final negotiation phase
 
     **Opponent Modeling:**
+
         - Builds PBList from past agreements across negotiations
         - Uses persistent data to remember successful bids
 
@@ -57,6 +60,7 @@ class AgentF(GeniusNegotiator):
         authoritative information.
 
     References:
+
         Aydogan, R., Fujita, K., Baarslag, T., Jonker, C. M., & Ito, T. (2021).
         ANAC 2017: Repeated multilateral negotiation league.
         In Advances in Automated Negotiations (pp. 101-115). Springer Singapore.
@@ -80,6 +84,7 @@ class AgentKN(GeniusNegotiator):
     with opponent value frequency analysis.
 
     **Offering Strategy:**
+
         Uses Simulated Annealing to search for 10 bids that maximize utility
         while starting from a random initial bid. The bids are then scored
         using a combined metric:
@@ -91,6 +96,7 @@ class AgentKN(GeniusNegotiator):
         the opponent has frequently requested.
 
     **Acceptance Strategy:**
+
         Accepts when the opponent's bid exceeds a dynamic threshold:
 
         threshold(t) = 1 - (1 - e_max(t)) * t^alpha
@@ -105,6 +111,7 @@ class AgentKN(GeniusNegotiator):
         utilities from opponent offers.
 
     **Opponent Modeling:**
+
         Tracks value frequencies for each issue across opponent bids:
 
         - Updates issue weights when consecutive bids have the same value
@@ -113,6 +120,7 @@ class AgentKN(GeniusNegotiator):
           to estimate the opponent's bidding range
 
     References:
+
         Aydogan, R., Fujita, K., Baarslag, T., Jonker, C. M., & Ito, T. (2021).
         ANAC 2017: Repeated multilateral negotiation league.
         In Advances in Automated Negotiations (pp. 101-115). Springer Singapore.
@@ -135,17 +143,20 @@ class CaduceusDC16(GeniusNegotiator):
     sub-agent contributes to bid selection and acceptance decisions.
 
     **Offering Strategy:**
+
         - Each sub-agent proposes a bid and votes on others' proposals
         - Weighted scoring: 5 (YXAgent), 4 (ParsCat), 3 (Farma), 2 (MyAgent), 1 (Atlas32016)
         - Uses getMostProposedBidWithWeight() for weighted value voting per issue
         - Offers best bid early (before 83% * discount factor of time)
 
     **Acceptance Strategy:**
+
         - Voting mechanism: accepts if accept_score > bid_score
         - Each sub-agent votes to accept or reject based on its own criteria
         - Weighted votes determine final decision
 
     **Opponent Modeling:**
+
         Inherits opponent modeling from each sub-agent, which are combined
         through the voting mechanism.
 
@@ -155,6 +166,7 @@ class CaduceusDC16(GeniusNegotiator):
         authoritative information.
 
     References:
+
         Aydogan, R., Fujita, K., Baarslag, T., Jonker, C. M., & Ito, T. (2021).
         ANAC 2017: Repeated multilateral negotiation league.
         In Advances in Automated Negotiations (pp. 101-115). Springer Singapore.
@@ -177,15 +189,18 @@ class Farma17(GeniusNegotiator):
     to inform its bidding strategy.
 
     **Offering Strategy:**
+
         - Time-dependent threshold controls minimum acceptable utility
         - BidSearch component finds bids above threshold
         - Considers opponent preferences when selecting among valid bids
 
     **Acceptance Strategy:**
+
         - Accepts bids above the time-dependent threshold
         - Updates opponent info when receiving offers or accepts
 
     **Opponent Modeling:**
+
         - Tracks rejected and agreed values for each opponent
         - NegoStats maintains statistics on opponent behavior
         - NegoHistory stores past negotiation data for analysis
@@ -196,6 +211,7 @@ class Farma17(GeniusNegotiator):
         authoritative information.
 
     References:
+
         Aydogan, R., Fujita, K., Baarslag, T., Jonker, C. M., & Ito, T. (2021).
         ANAC 2017: Repeated multilateral negotiation league.
         In Advances in Automated Negotiations (pp. 101-115). Springer Singapore.
@@ -222,6 +238,7 @@ class Farma2017(GeniusNegotiator):
         authoritative information.
 
     References:
+
         Aydogan, R., Fujita, K., Baarslag, T., Jonker, C. M., & Ito, T. (2021).
         ANAC 2017: Repeated multilateral negotiation league.
         In Advances in Automated Negotiations (pp. 101-115). Springer Singapore.
@@ -244,6 +261,7 @@ class GeneKing(GeniusNegotiator):
     informed by opponent preferences.
 
     **Offering Strategy:**
+
         - Maintains a gene pool of candidate bids
         - Crossover with frequency weighting based on opponent value preferences
         - Mutation with 1/70 probability per issue
@@ -251,10 +269,12 @@ class GeneKing(GeniusNegotiator):
         - Uses negotiation history for initial population
 
     **Acceptance Strategy:**
+
         - Accepts bids that meet utility threshold criteria
         - Threshold adapts based on time and opponent behavior
 
     **Opponent Modeling:**
+
         - Tracks frequency per issue/value for each opponent
         - Uses frequency data to weight crossover operations
         - Higher frequency values more likely selected during evolution
@@ -265,6 +285,7 @@ class GeneKing(GeniusNegotiator):
         authoritative information.
 
     References:
+
         Aydogan, R., Fujita, K., Baarslag, T., Jonker, C. M., & Ito, T. (2021).
         ANAC 2017: Repeated multilateral negotiation league.
         In Advances in Automated Negotiations (pp. 101-115). Springer Singapore.
@@ -287,17 +308,20 @@ class Gin(GeniusNegotiator):
     success/failure rates.
 
     **Offering Strategy:**
+
         - Builds frequency table of opponent-preferred values per issue
         - Selects bids sorted by alignment with frequency table
         - History-aware: adjusts fitToOpponent (0/1/2) based on failure rate
         - More aggressive if failure rate > 40%, moderate if > 20%
 
     **Acceptance Strategy:**
+
         - Three-tier threshold system: 0.9 / 0.88 / 0.80
         - Thresholds adjust more aggressively if history shows failures
         - Accepts when opponent bid exceeds current threshold
 
     **Opponent Modeling:**
+
         - Aggregates value frequencies across all opponents
         - Uses frequency data to select mutually beneficial bids
 
@@ -307,6 +331,7 @@ class Gin(GeniusNegotiator):
         authoritative information.
 
     References:
+
         Aydogan, R., Fujita, K., Baarslag, T., Jonker, C. M., & Ito, T. (2021).
         ANAC 2017: Repeated multilateral negotiation league.
         In Advances in Automated Negotiations (pp. 101-115). Springer Singapore.
@@ -329,18 +354,22 @@ class Group3(GeniusNegotiator):
     are likely acceptable to multiple parties.
 
     **Offering Strategy:**
+
         - Tracks assumed values per opponent (increments when same value repeated)
         - Merges opponent preferences to generate consensus bids
         - History-based minimum utility adjustment
 
     **Acceptance Strategy:**
+
         - Time-based acceptance thresholds:
+
           - 0.85 when time < 0.5
           - 0.75 when time < 0.8
           - 0.70 when time < 0.9
           - Accepts any offer when time > 0.95
 
     **Opponent Modeling:**
+
         - Increments value weights when opponents repeat the same value
         - Merges preferences across opponents to find common ground
 
@@ -350,6 +379,7 @@ class Group3(GeniusNegotiator):
         authoritative information.
 
     References:
+
         Aydogan, R., Fujita, K., Baarslag, T., Jonker, C. M., & Ito, T. (2021).
         ANAC 2017: Repeated multilateral negotiation league.
         In Advances in Automated Negotiations (pp. 101-115). Springer Singapore.
@@ -372,15 +402,18 @@ class Imitator(GeniusNegotiator):
     agreements by imitating opponent preferences.
 
     **Offering Strategy:**
+
         - Builds frequency table per issue/value from opponent offers
         - Generates bids using the most frequent values from each opponent
         - Compares frequencies across opponents to select optimal values
 
     **Acceptance Strategy:**
+
         - Time-based acceptance with increasing acceptance rate
         - More likely to accept as deadline approaches
 
     **Opponent Modeling:**
+
         - Tracks value frequencies for each issue per opponent
         - Compares frequencies across opponents to identify common preferences
 
@@ -390,6 +423,7 @@ class Imitator(GeniusNegotiator):
         authoritative information.
 
     References:
+
         Aydogan, R., Fujita, K., Baarslag, T., Jonker, C. M., & Ito, T. (2021).
         ANAC 2017: Repeated multilateral negotiation league.
         In Advances in Automated Negotiations (pp. 101-115). Springer Singapore.
@@ -411,17 +445,20 @@ class MadAgent(GeniusNegotiator):
     It employs different "madness" phases as the deadline approaches.
 
     **Offering Strategy:**
+
         - Generates fake bids periodically (every 100000/2^5 rounds) for risk assessment
         - Maintains preferred bids list from opponent modeling
         - Offers second-best bid in first 5% of negotiation
         - Three opponent models: two individual + one combined
 
     **Acceptance Strategy:**
+
         - Threshold starts at 0.8 * 1.125 = 0.9
         - Adapts threshold based on opponent model predictions
         - Time phases: "almost mad" at 50%, "mad" at 80%
 
     **Opponent Modeling:**
+
         - Maintains three separate opponent models
         - Tracks preferred bids per opponent
         - Combines models for final decision making
@@ -432,6 +469,7 @@ class MadAgent(GeniusNegotiator):
         authoritative information.
 
     References:
+
         Aydogan, R., Fujita, K., Baarslag, T., Jonker, C. M., & Ito, T. (2021).
         ANAC 2017: Repeated multilateral negotiation league.
         In Advances in Automated Negotiations (pp. 101-115). Springer Singapore.
@@ -453,17 +491,20 @@ class Mamenchis(GeniusNegotiator):
     It aims to maximize both sum and product of utilities across parties.
 
     **Offering Strategy:**
+
         - Time phases: time1=0.9, time2=0.99, time3=0.995
         - History-aware parameter initialization
         - Concession formula: upper - (upper - lower) * t^exponent
         - Generates candidate bids by merging top bids from parties
 
     **Acceptance Strategy:**
+
         - Phase-dependent acceptance thresholds
         - Social welfare considerations (max sum and product of utilities)
         - More aggressive near deadline
 
     **Opponent Modeling:**
+
         - Preference modeling per opponent
         - Estimates opponent utility for social welfare calculation
         - Merges top bids to find mutually beneficial outcomes
@@ -474,6 +515,7 @@ class Mamenchis(GeniusNegotiator):
         authoritative information.
 
     References:
+
         Aydogan, R., Fujita, K., Baarslag, T., Jonker, C. M., & Ito, T. (2021).
         ANAC 2017: Repeated multilateral negotiation league.
         In Advances in Automated Negotiations (pp. 101-115). Springer Singapore.
@@ -495,16 +537,19 @@ class Mosa(GeniusNegotiator):
     parameters. Uses time-phase bidding with social welfare optimization.
 
     **Offering Strategy:**
+
         - Time phases: 0.9, 0.99, 0.996
         - Initial upper=0.95, exponent=50
         - Same social welfare approach as Mamenchis
         - Slightly different tuning parameters
 
     **Acceptance Strategy:**
+
         - Phase-dependent acceptance with social welfare consideration
         - Similar to Mamenchis with parameter variations
 
     **Opponent Modeling:**
+
         - Same preference modeling approach as Mamenchis
         - Estimates opponent utilities for welfare calculations
 
@@ -514,6 +559,7 @@ class Mosa(GeniusNegotiator):
         authoritative information.
 
     References:
+
         Aydogan, R., Fujita, K., Baarslag, T., Jonker, C. M., & Ito, T. (2021).
         ANAC 2017: Repeated multilateral negotiation league.
         In Advances in Automated Negotiations (pp. 101-115). Springer Singapore.
@@ -540,6 +586,7 @@ class ParsAgent3(GeniusNegotiator):
         authoritative information.
 
     References:
+
         Aydogan, R., Fujita, K., Baarslag, T., Jonker, C. M., & Ito, T. (2021).
         ANAC 2017: Repeated multilateral negotiation league.
         In Advances in Automated Negotiations (pp. 101-115). Springer Singapore.
@@ -563,6 +610,7 @@ class PonPokoAgent(GeniusNegotiator):
     patterns, each with distinct concession characteristics.
 
     **Offering Strategy:**
+
         The agent randomly selects one of 5 bidding patterns at initialization:
 
         - **Pattern 0**: Sinusoidal oscillation with slow linear decline.
@@ -577,16 +625,19 @@ class PonPokoAgent(GeniusNegotiator):
         [threshold_low, threshold_high] utility range.
 
     **Acceptance Strategy:**
+
         Accepts if the opponent's offer has utility greater than the current
         threshold_low value. This creates a simple but effective acceptance
         criterion that varies with the selected bidding pattern.
 
     **Opponent Modeling:**
+
         PonPokoAgent does not employ explicit opponent modeling. Its strength
         lies in the unpredictability of its randomly selected strategy, making
         it resistant to exploitation by adaptive opponents.
 
     References:
+
         Aydogan, R., Fujita, K., Baarslag, T., Jonker, C. M., & Ito, T. (2021).
         ANAC 2017: Repeated multilateral negotiation league.
         In Advances in Automated Negotiations (pp. 101-115). Springer Singapore.
@@ -610,6 +661,7 @@ class Rubick(GeniusNegotiator):
     concession with increasing variance over time.
 
     **Offering Strategy:**
+
         Generates bids above a target utility using opponent model insights:
 
         - Searches for bids that maximize intersection with opponent's
@@ -623,6 +675,7 @@ class Rubick(GeniusNegotiator):
         randomly selected based on max received utility.
 
     **Acceptance Strategy:**
+
         Time-based with randomness to prevent exploitation:
 
         target = 1 - t^power * |N(0, 1/3)|
@@ -632,6 +685,7 @@ class Rubick(GeniusNegotiator):
         Accepts if opponent offer exceeds target or time > 0.999.
 
     **Opponent Modeling:**
+
         Employs frequency-based opponent modeling:
 
         - Tracks value frequencies for each issue per opponent
@@ -643,6 +697,7 @@ class Rubick(GeniusNegotiator):
         in previous negotiations for use near the deadline.
 
     References:
+
         Aydogan, R., Fujita, K., Baarslag, T., Jonker, C. M., & Ito, T. (2021).
         ANAC 2017: Repeated multilateral negotiation league.
         In Advances in Automated Negotiations (pp. 101-115). Springer Singapore.
@@ -665,16 +720,19 @@ class ShahAgent(GeniusNegotiator):
     analysis and negotiation history.
 
     **Offering Strategy:**
+
         - Time-dependent utility: (pmin + (1-pmin) * (1-f(t))) * discount^t
         - Clusters opponent bids using K-means (20 clusters)
         - Tracks cluster history with distribution factor and max distance
         - History-aware minimum limit adjustment
 
     **Acceptance Strategy:**
+
         - Accepts bids above dynamic threshold based on cluster analysis
         - Concession rate estimated from opponent cluster transitions
 
     **Opponent Modeling:**
+
         - K-means clustering of opponent bid patterns
         - Tracks cluster distribution and transitions over time
         - Estimates opponent concession rate from cluster analysis
@@ -685,6 +743,7 @@ class ShahAgent(GeniusNegotiator):
         authoritative information.
 
     References:
+
         Aydogan, R., Fujita, K., Baarslag, T., Jonker, C. M., & Ito, T. (2021).
         ANAC 2017: Repeated multilateral negotiation league.
         In Advances in Automated Negotiations (pp. 101-115). Springer Singapore.
@@ -707,14 +766,17 @@ class SimpleAgent2017(GeniusNegotiator):
     Predictor component.
 
     **Offering Strategy:**
+
         - Delegates to Predictor class for bid generation
         - History-aware threshold via setHistoryAndUpdateThreshold()
 
     **Acceptance Strategy:**
+
         - Threshold-based acceptance adjusted by negotiation history
         - Simple decision logic delegating to Predictor
 
     **Opponent Modeling:**
+
         - Handled by Predictor component
         - Uses history data for prediction
 
@@ -724,6 +786,7 @@ class SimpleAgent2017(GeniusNegotiator):
         authoritative information.
 
     References:
+
         Aydogan, R., Fujita, K., Baarslag, T., Jonker, C. M., & Ito, T. (2021).
         ANAC 2017: Repeated multilateral negotiation league.
         In Advances in Automated Negotiations (pp. 101-115). Springer Singapore.
@@ -746,16 +809,19 @@ class TaxiBox(GeniusNegotiator):
     the difference between expected and actual opponent utilities.
 
     **Offering Strategy:**
+
         - Estimates emax: avg + (1-avg) * |diff|
         - Target formula: 1 - (1-emax) * (0.8t)^(3 + 2*shiwang - 0.8t)
         - Tracks opponent utility average and changes
         - Adaptive concession based on opponent responsiveness
 
     **Acceptance Strategy:**
+
         - Accepts bids above current target utility
         - Target adapts based on opponent utility patterns
 
     **Opponent Modeling:**
+
         - Tracks average utility of opponent offers
         - Monitors utility changes to estimate opponent concession
 
@@ -765,6 +831,7 @@ class TaxiBox(GeniusNegotiator):
         authoritative information.
 
     References:
+
         Aydogan, R., Fujita, K., Baarslag, T., Jonker, C. M., & Ito, T. (2021).
         ANAC 2017: Repeated multilateral negotiation league.
         In Advances in Automated Negotiations (pp. 101-115). Springer Singapore.
@@ -787,16 +854,19 @@ class TucAgent(GeniusNegotiator):
     threshold calculation and bid generation.
 
     **Offering Strategy:**
+
         - IssueManager handles bid generation and threshold calculation
         - Uses Bayesian models to predict opponent preferences
         - Selects bids based on combined opponent model predictions
 
     **Acceptance Strategy:**
+
         - Immediately accepts bids with utility > 0.95
         - Otherwise uses dynamic threshold from IssueManager
         - Bayesian models inform acceptance decisions
 
     **Opponent Modeling:**
+
         - Bayesian opponent model with separate models per opponent
         - Updates beliefs based on observed opponent offers
         - IssueManager integrates opponent models for decisions
@@ -807,6 +877,7 @@ class TucAgent(GeniusNegotiator):
         authoritative information.
 
     References:
+
         Aydogan, R., Fujita, K., Baarslag, T., Jonker, C. M., & Ito, T. (2021).
         ANAC 2017: Repeated multilateral negotiation league.
         In Advances in Automated Negotiations (pp. 101-115). Springer Singapore.

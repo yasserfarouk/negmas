@@ -41,14 +41,17 @@ class Agent33(GeniusNegotiator):
     tracking, and strategy. Tracks rejected and agreed values per opponent.
 
     **Offering Strategy:**
+
         - Uses time-dependent threshold from NegoStrategy component
         - BidSearch generates bids above threshold considering opponent preferences
 
     **Acceptance Strategy:**
+
         - Accepts if opponent's bid utility exceeds current threshold
         - Threshold decreases over time
 
     **Opponent Modeling:**
+
         Tracks frequency of values rejected/agreed by each opponent via NegoStats.
 
     Note:
@@ -56,6 +59,7 @@ class Agent33(GeniusNegotiator):
         Refer to original implementation for authoritative details.
 
     References:
+
         Baarslag, T., et al. (2019). Proceedings of the ANAC 2018 Multilateral
         Negotiation League.
     """
@@ -76,14 +80,17 @@ class Agent36(GeniusNegotiator):
     between opponents. Stores commonly accepted bids across sessions.
 
     **Offering Strategy:**
+
         - Generates bids above time-dependent threshold
         - Threshold: 0.8 initially, 0.75 at t>0.95, 0.7 at t>0.98
 
     **Acceptance Strategy:**
+
         - Accepts if utility exceeds current threshold
         - More permissive in final negotiation stages
 
     **Opponent Modeling:**
+
         Frequency-based tracking of opponent value preferences to identify
         mutually beneficial issues.
 
@@ -92,6 +99,7 @@ class Agent36(GeniusNegotiator):
         Refer to original implementation for authoritative details.
 
     References:
+
         Baarslag, T., et al. (2019). Proceedings of the ANAC 2018 Multilateral
         Negotiation League.
     """
@@ -113,14 +121,17 @@ class AgentHerb(GeniusNegotiator):
     training in repeated negotiations.
 
     **Offering Strategy:**
+
         - Evaluates bids by: own utility + product of opponent acceptance
           probabilities
         - Selects bids maximizing combined score
 
     **Acceptance Strategy:**
+
         - Accepts if bid utility is acceptable given opponent model predictions
 
     **Opponent Modeling:**
+
         Logistic regression trained on opponent accept/reject decisions for
         each bid offered.
 
@@ -129,6 +140,7 @@ class AgentHerb(GeniusNegotiator):
         Refer to original implementation for authoritative details.
 
     References:
+
         Baarslag, T., et al. (2019). Proceedings of the ANAC 2018 Multilateral
         Negotiation League.
     """
@@ -149,13 +161,16 @@ class AgentNP1(GeniusNegotiator):
     the "hardest opponent" based on value frequency differences.
 
     **Offering Strategy:**
+
         - Generates bids above time-phased thresholds
         - Threshold: 0.81 at t<0.9, 0.78 at t<0.99
 
     **Acceptance Strategy:**
+
         - Accepts if utility exceeds current phase threshold
 
     **Opponent Modeling:**
+
         Estimates opponent issue weights via value frequency analysis.
         Identifies hardest opponent for strategic adaptation.
 
@@ -164,6 +179,7 @@ class AgentNP1(GeniusNegotiator):
         Refer to original implementation for authoritative details.
 
     References:
+
         Baarslag, T., et al. (2019). Proceedings of the ANAC 2018 Multilateral
         Negotiation League.
     """
@@ -184,14 +200,17 @@ class AgreeableAgent2018(GeniusNegotiator):
     Domain-size aware timing for concession adjustments.
 
     **Offering Strategy:**
+
         - Time-dependent concession: pMin + (pMax-pMin)*(1-f(t))
         - Roulette wheel selection among bids in utility range
         - Selection weighted by opponent model scores
 
     **Acceptance Strategy:**
+
         - Accepts bids within acceptable utility range based on opponent model
 
     **Opponent Modeling:**
+
         Frequency-based analysis of opponent bid history to estimate
         preferences.
 
@@ -200,6 +219,7 @@ class AgreeableAgent2018(GeniusNegotiator):
         Refer to original implementation for authoritative details.
 
     References:
+
         Baarslag, T., et al. (2019). Proceedings of the ANAC 2018 Multilateral
         Negotiation League.
     """
@@ -222,14 +242,17 @@ class AteamAgent(GeniusNegotiator):
     via bid history frequency analysis. Looks for common issues with opponent.
 
     **Offering Strategy:**
+
         - First 50% of time: offers maximum utility bid
         - Later: searches for bids above threshold (0.8 * max utility)
         - Considers estimated opponent utility for bid selection
 
     **Acceptance Strategy:**
+
         - Accepts if utility exceeds threshold based on negotiation progress
 
     **Opponent Modeling:**
+
         Frequency analysis of opponent bid history to estimate their utility
         function and find common ground.
 
@@ -238,6 +261,7 @@ class AteamAgent(GeniusNegotiator):
         Refer to original implementation for authoritative details.
 
     References:
+
         Baarslag, T., et al. (2019). Proceedings of the ANAC 2018 Multilateral
         Negotiation League.
     """
@@ -277,13 +301,16 @@ class BetaOne(GeniusNegotiator):
     selfish ratio adjustment.
 
     **Offering Strategy:**
+
         - Generates bids based on threshold adjusted by opponent behavior
         - AntiAnalysis component provides threshold boundaries
 
     **Acceptance Strategy:**
+
         - Accepts based on utility threshold adjusted by betrayal detection
 
     **Opponent Modeling:**
+
         Linear regression on opponent concession patterns to detect
         cooperative vs. competitive behavior (betrayal detection).
 
@@ -292,6 +319,7 @@ class BetaOne(GeniusNegotiator):
         Refer to original implementation for authoritative details.
 
     References:
+
         Baarslag, T., et al. (2019). Proceedings of the ANAC 2018 Multilateral
         Negotiation League.
     """
@@ -330,14 +358,17 @@ class ConDAgent(GeniusNegotiator):
     threshold calculation and bid generation.
 
     **Offering Strategy:**
+
         - Generates bids via IssueManager above dynamic threshold
         - Considers Bayesian model predictions for bid selection
 
     **Acceptance Strategy:**
+
         - Accepts immediately if utility > 0.95
         - Otherwise uses dynamic threshold from IssueManager
 
     **Opponent Modeling:**
+
         Bayesian model per opponent updated with observed bids to estimate
         opponent preferences probabilistically.
 
@@ -346,6 +377,7 @@ class ConDAgent(GeniusNegotiator):
         Refer to original implementation for authoritative details.
 
     References:
+
         Baarslag, T., et al. (2019). Proceedings of the ANAC 2018 Multilateral
         Negotiation League.
     """
@@ -366,13 +398,16 @@ class ExpRubick(GeniusNegotiator):
     opponent modeling with "bags" of preferred values and history analysis.
 
     **Offering Strategy:**
+
         - Target utility: 1 - (1-emax) * (0.8t)^(3 + 2*concession - 0.8t)
         - Generates bids near target considering opponent preferences
 
     **Acceptance Strategy:**
+
         - Accepts if utility exceeds adaptive target
 
     **Opponent Modeling:**
+
         Frequency-based with "bags" collecting preferred values per issue
         for each opponent.
 
@@ -381,6 +416,7 @@ class ExpRubick(GeniusNegotiator):
         Refer to original implementation for authoritative details.
 
     References:
+
         Baarslag, T., et al. (2019). Proceedings of the ANAC 2018 Multilateral
         Negotiation League.
     """
@@ -402,14 +438,17 @@ class FullAgent(GeniusNegotiator):
     BidsManager tracks opponent bids and acceptances.
 
     **Offering Strategy:**
+
         - OfferingStrategy_lgsmi component generates offers
         - Uses opponent model for bid selection optimization
 
     **Acceptance Strategy:**
+
         - AcceptanceStrategy_lgsmi determines acceptance
         - Considers opponent model predictions
 
     **Opponent Modeling:**
+
         OpponentModel_lgsmi with OMStrategy_lgsmi for strategic use of
         opponent preference estimates.
 
@@ -418,6 +457,7 @@ class FullAgent(GeniusNegotiator):
         Refer to original implementation for authoritative details.
 
     References:
+
         Baarslag, T., et al. (2019). Proceedings of the ANAC 2018 Multilateral
         Negotiation League.
     """
@@ -438,14 +478,17 @@ class GroupY(GeniusNegotiator):
     initialization from previous sessions.
 
     **Offering Strategy:**
+
         - First 3 rounds: offers best bid
         - Later: uses opponent model scoring for bid selection
         - Time-based phases at 0.5 and 0.2 remaining time
 
     **Acceptance Strategy:**
+
         - Time-based utility thresholds with phase transitions
 
     **Opponent Modeling:**
+
         Tracks value frequency per opponent to estimate preferences.
 
     Note:
@@ -453,6 +496,7 @@ class GroupY(GeniusNegotiator):
         Refer to original implementation for authoritative details.
 
     References:
+
         Baarslag, T., et al. (2019). Proceedings of the ANAC 2018 Multilateral
         Negotiation League.
     """
@@ -473,12 +517,14 @@ class IQSun2018(GeniusNegotiator):
     dependent weights with sinusoidal threshold variations.
 
     **Offering Strategy:**
+
         - Combines: time-based utility, session history average, and
           "helping bid" with sinusoidal threshold
         - Concession factor: 0.1-0.3, minimum utility: 0.5
         - Weights adjusted by domain size
 
     **Acceptance Strategy:**
+
         - Accepts based on weighted combination of factors
 
     Note:
@@ -486,6 +532,7 @@ class IQSun2018(GeniusNegotiator):
         Refer to original implementation for authoritative details.
 
     References:
+
         Baarslag, T., et al. (2019). Proceedings of the ANAC 2018 Multilateral
         Negotiation League.
     """
@@ -506,15 +553,18 @@ class Lancelot(GeniusNegotiator):
     Time-phased behavior with opponent evaluation influencing decisions.
 
     **Offering Strategy:**
+
         - t < 0.2: random bids above threshold
         - 0.2 <= t < 0.98: positive bids considering opponent evaluation
         - t >= 0.98: threshold-based offers
 
     **Acceptance Strategy:**
+
         - Opponent evaluation influences acceptance threshold
         - More permissive near deadline
 
     **Opponent Modeling:**
+
         Evaluates opponent behavior to adjust strategy parameters.
 
     Note:
@@ -522,6 +572,7 @@ class Lancelot(GeniusNegotiator):
         Refer to original implementation for authoritative details.
 
     References:
+
         Baarslag, T., et al. (2019). Proceedings of the ANAC 2018 Multilateral
         Negotiation League.
     """
@@ -543,13 +594,16 @@ class Libra(GeniusNegotiator):
     on offer/accept/end decisions.
 
     **Offering Strategy:**
+
         - Weighted voting among sub-agents' proposed offers
         - Weights adjusted based on opponent responses to each sub-agent
 
     **Acceptance Strategy:**
+
         - Weighted voting among sub-agents' accept/reject decisions
 
     **Opponent Modeling:**
+
         Indirect through sub-agents. Weights reflect which sub-agent
         strategies are most effective against current opponent.
 
@@ -558,6 +612,7 @@ class Libra(GeniusNegotiator):
         Refer to original implementation for authoritative details.
 
     References:
+
         Baarslag, T., et al. (2019). Proceedings of the ANAC 2018 Multilateral
         Negotiation League.
     """
@@ -596,13 +651,16 @@ class PonPokoRampage(GeniusNegotiator):
     "hardliner" opponents and adjusts strategy accordingly.
 
     **Offering Strategy:**
+
         - Sinusoidal threshold variations with random pattern selection
         - Adjusts threshold +0.05 if hardliner opponent detected
 
     **Acceptance Strategy:**
+
         - Uses threshold modified by opponent hardliner detection
 
     **Opponent Modeling:**
+
         Detects hardliner opponents by counting unique bids offered.
         Few unique bids indicates a hardliner.
 
@@ -611,6 +669,7 @@ class PonPokoRampage(GeniusNegotiator):
         Refer to original implementation for authoritative details.
 
     References:
+
         Baarslag, T., et al. (2019). Proceedings of the ANAC 2018 Multilateral
         Negotiation League.
     """
@@ -632,13 +691,16 @@ class SMACAgent(GeniusNegotiator):
     and frequency-based opponent modeling.
 
     **Offering Strategy:**
+
         - Sigmoid utility curves parameterized by pre-optimized config
         - Parameters selected based on domain characteristics
 
     **Acceptance Strategy:**
+
         - Uses selected parameter configuration for threshold
 
     **Opponent Modeling:**
+
         Frequency-based with Chebyshev/Euclidean distance metrics for
         similarity computation.
 
@@ -647,6 +709,7 @@ class SMACAgent(GeniusNegotiator):
         Refer to original implementation for authoritative details.
 
     References:
+
         Baarslag, T., et al. (2019). Proceedings of the ANAC 2018 Multilateral
         Negotiation League.
     """
@@ -668,13 +731,16 @@ class Seto(GeniusNegotiator):
     based on first received bid.
 
     **Offering Strategy:**
+
         - Uses NegoStrategy with alpha = 4*sqrt(util) + 0.5
         - Alpha computed from first received bid utility
 
     **Acceptance Strategy:**
+
         - Time-dependent threshold from NegoStrategy
 
     **Opponent Modeling:**
+
         Tracks rejected/agreed values via NegoStats component.
 
     Note:
@@ -682,6 +748,7 @@ class Seto(GeniusNegotiator):
         Refer to original implementation for authoritative details.
 
     References:
+
         Baarslag, T., et al. (2019). Proceedings of the ANAC 2018 Multilateral
         Negotiation League.
     """
@@ -702,13 +769,16 @@ class Shiboy(GeniusNegotiator):
     NegoHistory, and NegoStrategy components.
 
     **Offering Strategy:**
+
         - BidSearch generates bids above time-dependent threshold
         - Considers opponent preferences from NegoStats
 
     **Acceptance Strategy:**
+
         - Time-dependent threshold from NegoStrategy
 
     **Opponent Modeling:**
+
         Tracks rejected and agreed values per opponent via NegoStats.
 
     Note:
@@ -716,6 +786,7 @@ class Shiboy(GeniusNegotiator):
         Refer to original implementation for authoritative details.
 
     References:
+
         Baarslag, T., et al. (2019). Proceedings of the ANAC 2018 Multilateral
         Negotiation League.
     """
@@ -736,13 +807,16 @@ class Sontag(GeniusNegotiator):
     lower bound formula for concession.
 
     **Offering Strategy:**
+
         - Lower bound: t/2.5 - log10(t/2 + 0.1)
         - Generates random bids within utility bounds
 
     **Acceptance Strategy:**
+
         - Accepts if utility exceeds lower bound
 
     **Opponent Modeling:**
+
         Uses persistent history from previous sessions but no explicit
         opponent model.
 
@@ -751,6 +825,7 @@ class Sontag(GeniusNegotiator):
         Refer to original implementation for authoritative details.
 
     References:
+
         Baarslag, T., et al. (2019). Proceedings of the ANAC 2018 Multilateral
         Negotiation League.
     """
@@ -771,14 +846,17 @@ class Yeela(GeniusNegotiator):
     best received offer and may offer it if better than generated bids.
 
     **Offering Strategy:**
+
         - Generates bids via Learner optimization
         - May offer best received bid if it's better than generated
         - Compares new offers against all previous bids
 
     **Acceptance Strategy:**
+
         - Gives up negotiation at t=0.75 if no acceptable agreement
 
     **Opponent Modeling:**
+
         Tracks best received offer from opponents.
 
     Note:
@@ -786,6 +864,7 @@ class Yeela(GeniusNegotiator):
         Refer to original implementation for authoritative details.
 
     References:
+
         Baarslag, T., et al. (2019). Proceedings of the ANAC 2018 Multilateral
         Negotiation League.
     """
