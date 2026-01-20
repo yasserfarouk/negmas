@@ -444,8 +444,15 @@ class GeniusBridge:
             #         cwd=path.parent,
             #     )
             # else:
+            # Add JVM flags for Java 9+ compatibility with JAXB
+            jvm_flags = [
+                "--add-opens",
+                "java.base/java.lang=ALL-UNNAMED",
+                "--add-opens",
+                "java.base/java.util=ALL-UNNAMED",
+            ]
             cls.java_processes[port] = subprocess.Popen(
-                ["java", "-jar", str(path)] + params + [f"{port}"],
+                ["java"] + jvm_flags + ["-jar", str(path)] + params + [f"{port}"],
                 shell=use_shell,
                 # capture_output=capture_output,
                 cwd=path.parent,  # type: ignore
