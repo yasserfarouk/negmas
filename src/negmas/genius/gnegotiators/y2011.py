@@ -28,12 +28,14 @@ class AgentK2(GeniusNegotiator):
     probabilistic acceptance decisions.
 
     **Offering Strategy:**
+
         - Maintains a map of previously offered bids with utilities
         - Randomly selects from bids above current target utility
         - If no suitable cached bid exists, generates random bids meeting threshold
         - Target utility decreases over time using cubic time function: t³
 
     **Acceptance Strategy:**
+
         - Tracks opponent bid statistics (mean, variance) over all rounds
         - Calculates acceptance probability based on:
           - Estimated maximum opponent offer (mean + deviation adjustment)
@@ -42,6 +44,7 @@ class AgentK2(GeniusNegotiator):
         - Accepts probabilistically when offer exceeds satisfaction threshold
 
     **Opponent Modeling:**
+
         Statistical approach tracking:
 
         - Running mean and variance of opponent utilities
@@ -54,6 +57,7 @@ class AgentK2(GeniusNegotiator):
         and papers for authoritative information.
 
     References:
+
         Kawaguchi, S., Fujita, K., & Ito, T. (2012). AgentK: Compromising
         strategy based on estimated maximum utility for automated negotiating
         agents. In New Trends in Agent-based Complex Automated Negotiations.
@@ -76,12 +80,14 @@ class BramAgent(GeniusNegotiator):
     and maintains a sorted array of candidate bids.
 
     **Offering Strategy:**
+
         - Pre-generates and sorts all candidate bids by own utility (descending)
         - Creates offers using opponent modeling (sampling from value frequencies)
         - Falls back to sorted bid array when modeled bids don't meet threshold
         - Avoids proposing the same bid too frequently (max 20% frequency)
 
     **Acceptance Strategy:**
+
         - Time-phased threshold with increasing flexibility:
           - 0-33%: threshold = max - 7% of range
           - 33-83%: threshold = max - 15% of range
@@ -90,6 +96,7 @@ class BramAgent(GeniusNegotiator):
         - Accepts if opponent offer meets threshold or exceeds planned counter-offer
 
     **Opponent Modeling:**
+
         Frequency-based learning from last 10 opponent bids:
 
         - Tracks value frequency per issue (discrete, real, integer)
@@ -102,6 +109,7 @@ class BramAgent(GeniusNegotiator):
         and papers for authoritative information.
 
     References:
+
         Brzostowski, J., & Kowalczyk, R. (2006). Predicting partner's behaviour
         in agent negotiation. In Proceedings of AAMAS 2006.
     """
@@ -147,6 +155,7 @@ class Gahboninho(GeniusNegotiator):
     niceness.
 
     **Offering Strategy:**
+
         - First 40 bids: gradually decreases from max utility to 0.925
           (allows opponent profiling)
         - After profiling: generates bids at recommended threshold
@@ -155,12 +164,14 @@ class Gahboninho(GeniusNegotiator):
         - In "frenzy" mode (near deadline): offers best opponent bid seen
 
     **Acceptance Strategy:**
+
         - First 40 rounds: accepts only if utility > 0.95
         - Normal phase: accepts based on dynamic minimum threshold
         - Threshold stays high while opponent appears cooperative
         - Near deadline: accepts best opponent bid if reasonable
 
     **Opponent Modeling:**
+
         - Tracks opponent bid history and importance weights
         - Estimates "noise" as a niceness indicator
         - Filters bids late in negotiation based on opponent preferences
@@ -189,6 +200,7 @@ class HardHeaded(GeniusNegotiator):
     negotiation and only concedes near the deadline.
 
     **Offering Strategy:**
+
         - Uses a monotonic concession function that generates bids in decreasing
           utility order
         - Cycles through the same range of high-utility bids for most of the
@@ -198,11 +210,13 @@ class HardHeaded(GeniusNegotiator):
           bids for itself
 
     **Acceptance Strategy:**
+
         - Accepts if opponent's offer exceeds the lowest utility offered so far
         - Accepts if opponent's offer is better than the next planned offer
         - Very conservative early acceptance thresholds
 
     **Opponent Modeling:**
+
         Frequency-based learning approach:
 
         - Tracks unchanged issues between consecutive opponent bids to estimate
@@ -212,6 +226,7 @@ class HardHeaded(GeniusNegotiator):
           equivalent options
 
     References:
+
         van Krimpen, T., Looije, D., & Hajizadeh, S. (2013). HardHeaded.
         In Complex Automated Negotiations: Theories, Models, and Software
         Competitions. Studies in Computational Intelligence, vol 435.
@@ -235,6 +250,7 @@ class IAMhaggler2011(GeniusNegotiator):
     by the University of Southampton team.
 
     **Offering Strategy:**
+
         - Uses Bayesian Monte Carlo GP regression to model opponent concession
         - Computes expected utility surface over (time, utility) space
         - Factors in discount factor and risk parameter (default 3.0)
@@ -242,11 +258,13 @@ class IAMhaggler2011(GeniusNegotiator):
         - Generates random bids within ±0.025 of target utility
 
     **Acceptance Strategy:**
+
         - Accepts if opponent utility × 1.02 >= own last bid utility
         - Accepts if opponent utility × 1.02 >= 0.9 (MAXIMUM_ASPIRATION)
         - Accepts if opponent utility × 1.02 >= planned counter-offer
 
     **Opponent Modeling:**
+
         Gaussian Process regression with:
 
         - Matern 3/2 covariance function + noise
@@ -260,6 +278,7 @@ class IAMhaggler2011(GeniusNegotiator):
         and papers for authoritative information.
 
     References:
+
         Williams, C.R., Robu, V., Gerding, E.H., & Jennings, N.R. (2012).
         IAMhaggler: A negotiation agent for complex environments. In
         New Trends in Agent-based Complex Automated Negotiations.
@@ -281,6 +300,7 @@ class NiceTitForTat(GeniusNegotiator):
     Nash bargaining solution.
 
     **Offering Strategy:**
+
         - Initially cooperates with high utility bids
         - Responds in kind to opponent's concessions
         - Calculates opponent's concession factor relative to Nash point
@@ -289,12 +309,14 @@ class NiceTitForTat(GeniusNegotiator):
         - Selects bids that maximize opponent utility among equivalents
 
     **Acceptance Strategy:**
+
         - Accepts if opponent's offer >= planned counter-offer utility
         - Near deadline: probabilistic acceptance based on expected utility
           of waiting for better offers
         - Considers recent bid history to estimate probability of improvement
 
     **Opponent Modeling:**
+
         Bayesian opponent model that:
 
         - Updates beliefs about opponent preferences after each bid
@@ -303,6 +325,7 @@ class NiceTitForTat(GeniusNegotiator):
         - Guides concession strategy to match opponent's behavior
 
     References:
+
         Baarslag, T., Hindriks, K., & Jonker, C. (2013). A tit for tat
         negotiation strategy for real-time bilateral negotiations.
         Studies in Computational Intelligence, 435:229-233.
@@ -325,18 +348,21 @@ class TheNegotiator(GeniusNegotiator):
     a bid generator to create offers.
 
     **Offering Strategy:**
+
         - Maintains a collection of all possible bids sorted by utility
         - Generates offers based on current phase and threshold
         - BidGenerator selects appropriate bids meeting phase requirements
         - Threshold varies by phase and time remaining
 
     **Acceptance Strategy:**
+
         - Phase-dependent acceptance thresholds
         - Phase 3 (endgame): considers moves left before deadline
         - Acceptor component evaluates opponent bids against threshold
         - More lenient acceptance as deadline approaches
 
     **Time Management:**
+
         - Divides negotiation into 3 phases
         - Tracks elapsed time and estimates moves remaining
         - Adjusts threshold based on discount factor
@@ -348,6 +374,7 @@ class TheNegotiator(GeniusNegotiator):
         and papers for authoritative information.
 
     References:
+
         Dirkzwager, A., Hendrikx, M., & de Ruiter, J. (2013). TheNegotiator:
         A dynamic strategy for bilateral automated negotiation. In Complex
         Automated Negotiations: Theories, Models, and Software Competitions.
@@ -371,6 +398,7 @@ class ValueModelAgent(GeniusNegotiator):
     concession rate until fairness requires compromise.
 
     **Offering Strategy:**
+
         - Maintains approved bids above current threshold (starts at 0.98)
         - Sorts approved bids by estimated opponent utility
         - Alternates between "best" scan (highest opponent utility) and
@@ -378,6 +406,7 @@ class ValueModelAgent(GeniusNegotiator):
         - Endgame "chicken game": waits, then offers opponent's best bid
 
     **Acceptance Strategy:**
+
         - Accepts if opponent utility > threshold and discounted, or > 0.975
         - Time-phased acceptance in final 10%:
           - 90-96%: accepts at lowered threshold
@@ -386,6 +415,7 @@ class ValueModelAgent(GeniusNegotiator):
         - Adjusts threshold based on opponent concession
 
     **Opponent Modeling:**
+
         Temporal Difference learning approach:
 
         - Models utility loss per value in each issue

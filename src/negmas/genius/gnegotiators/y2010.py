@@ -26,6 +26,7 @@ class AgentFSEGA(GeniusNegotiator):
     opponent modeling and time-dependent concession with three behavioral phases.
 
     **Offering Strategy:**
+
         - Starts with maximum utility bid
         - Maintains sorted list of bids above a minimum utility threshold (0.5)
         - Time-dependent behavior with three phases:
@@ -35,11 +36,13 @@ class AgentFSEGA(GeniusNegotiator):
         - Selects bids that maximize estimated opponent utility within acceptable range
 
     **Acceptance Strategy:**
+
         - Accepts if opponent's bid utility × 1.03 ≥ own last bid's utility
         - Accepts if opponent's bid utility > planned next bid's utility
         - Accepts opponent's first bid if it equals maximum possible utility
 
     **Opponent Modeling:**
+
         Bayesian learning approach:
 
         - Uses Bayesian opponent model to estimate opponent preferences
@@ -52,6 +55,7 @@ class AgentFSEGA(GeniusNegotiator):
         and papers for authoritative information.
 
     References:
+
         Baarslag, T., Hindriks, K., Hendrikx, M., Dirkzwager, A., & Jonker, C.M. (2014).
         Decoupling Negotiating Agents to Explore the Space of Negotiation Strategies.
         In Novel Insights in Agent-based Complex Automated Negotiation.
@@ -74,6 +78,7 @@ class AgentK(GeniusNegotiator):
     behavior, with probabilistic acceptance decisions.
 
     **Offering Strategy:**
+
         - Maintains a target utility that decreases over time using cubic time function
         - Estimates opponent's maximum likely offer using mean + deviation
         - Adds randomness ("tremor") to bidding and acceptance to avoid predictability
@@ -81,6 +86,7 @@ class AgentK(GeniusNegotiator):
         - Caches and reuses previously generated bids above target
 
     **Acceptance Strategy:**
+
         - Uses probabilistic acceptance based on multiple factors:
             - Utility evaluation: how good the offer is compared to estimated max
             - Satisfaction: how close the offer is to current target
@@ -88,6 +94,7 @@ class AgentK(GeniusNegotiator):
         - Never accepts with probability 1.0; always has stochastic element
 
     **Opponent Modeling:**
+
         Statistical approach:
 
         - Tracks running mean and variance of opponent's offers
@@ -101,6 +108,7 @@ class AgentK(GeniusNegotiator):
         and papers for authoritative information.
 
     References:
+
         Kawaguchi, S., Fujita, K., & Ito, T. (2011). AgentK: Compromising strategy
         based on estimated maximum utility for automated negotiating agents.
         In Complex Automated Negotiations: Theories, Models, and Software
@@ -123,6 +131,7 @@ class AgentSmith(GeniusNegotiator):
     sampling with opponent preference estimation to find near-Pareto bids.
 
     **Offering Strategy:**
+
         - Starts with maximum utility bid
         - Samples bid space and filters bids above utility threshold (0.7)
         - Sorts bids by combined utility (own + estimated opponent)
@@ -130,11 +139,13 @@ class AgentSmith(GeniusNegotiator):
         - Near deadline (>110s of assumed 180s session), offers best opponent bid
 
     **Acceptance Strategy:**
+
         - Accepts if opponent's bid utility > 0.9 (margin threshold)
         - Accepts if opponent's bid utility ≥ own last bid's utility
         - Near deadline: accepts if opponent utility ≥ 0.7
 
     **Opponent Modeling:**
+
         Frequency-based preference learning:
 
         - Tracks opponent bid history
@@ -148,6 +159,7 @@ class AgentSmith(GeniusNegotiator):
         and papers for authoritative information.
 
     References:
+
         Baarslag, T., Hindriks, K., Hendrikx, M., Dirkzwager, A., & Jonker, C.M. (2014).
         Decoupling Negotiating Agents to Explore the Space of Negotiation Strategies.
         In Novel Insights in Agent-based Complex Automated Negotiation.
@@ -170,17 +182,20 @@ class IAMcrazyHaggler(GeniusNegotiator):
     samples high-utility bids without any concession over time.
 
     **Offering Strategy:**
+
         - Generates random bids from the outcome space
         - Only offers bids with utility > 0.9 (or 0.95 in discounted domains)
         - No time-dependent concession - maintains hard position throughout
         - Completely ignores opponent's preferences and offers
 
     **Acceptance Strategy:**
+
         - Accepts if opponent's bid × 1.02 ≥ own last bid's utility
         - Accepts if opponent's bid × 1.02 ≥ 0.85 (maximum aspiration)
         - Adjusts thresholds slightly for discounted utility spaces
 
     **Opponent Modeling:**
+
         None - this agent does not model the opponent at all.
 
     Note:
@@ -189,6 +204,7 @@ class IAMcrazyHaggler(GeniusNegotiator):
         and papers for authoritative information.
 
     References:
+
         Williams, C.R., Robu, V., Gerding, E.H., & Jennings, N.R. (2011).
         An Overview of the Results and Insights from the First Automated
         Negotiating Agents Competition (ANAC 2010). In New Trends in Agent-Based
@@ -213,6 +229,7 @@ class IAMhaggler(GeniusNegotiator):
     optimize concession timing.
 
     **Offering Strategy:**
+
         - Uses Gaussian Process to predict when opponent will make maximum
           concession
         - Calculates expected utility surface over time and utility dimensions
@@ -221,12 +238,14 @@ class IAMhaggler(GeniusNegotiator):
         - Risk-aware utility function with configurable risk parameter
 
     **Acceptance Strategy:**
+
         - Accepts if opponent's offer * multiplier >= target utility
         - Accepts if opponent's offer * multiplier >= maximum aspiration (0.9)
         - Accepts if opponent's offer >= planned bid utility
         - Multiple acceptance thresholds for robustness
 
     **Opponent Modeling:**
+
         Gaussian Process regression approach:
 
         - Tracks opponent utilities over time slots
@@ -241,6 +260,7 @@ class IAMhaggler(GeniusNegotiator):
         and papers for authoritative information.
 
     References:
+
         Williams, C.R., Robu, V., Gerding, E.H., & Jennings, N.R. (2012).
         IAMhaggler: A Negotiation Agent for Complex Environments.
         In New Trends in Agent-Based Complex Automated Negotiations.
@@ -263,6 +283,7 @@ class Nozomi(GeniusNegotiator):
     based on opponent responsiveness and negotiation progress.
 
     **Offering Strategy:**
+
         - Starts with maximum utility bid
         - Uses four bid types selected probabilistically:
             - COMPROMISE: Incrementally concede on one issue toward opponent's position
@@ -273,6 +294,7 @@ class Nozomi(GeniusNegotiator):
         - Adapts concession based on opponent's reciprocity
 
     **Acceptance Strategy:**
+
         - Accepts if utility > 95% of maximum utility
         - Accepts if opponent's offer ≥ own previous bid's utility
         - Time-dependent acceptance with multiple phases:
@@ -282,6 +304,7 @@ class Nozomi(GeniusNegotiator):
         - Uses "evaluation gap" to measure bid similarity
 
     **Opponent Modeling:**
+
         Behavioral tracking approach:
 
         - Tracks opponent's best offer and updates maximum aspiration accordingly
@@ -295,6 +318,7 @@ class Nozomi(GeniusNegotiator):
         and papers for authoritative information.
 
     References:
+
         Baarslag, T., Hindriks, K., Hendrikx, M., Dirkzwager, A., & Jonker, C.M. (2014).
         Decoupling Negotiating Agents to Explore the Space of Negotiation Strategies.
         In Novel Insights in Agent-based Complex Automated Negotiation.
@@ -317,17 +341,20 @@ class SouthamptonAgent(GeniusNegotiator):
     common infrastructure for opponent modeling and bid space analysis.
 
     **Offering Strategy:**
+
         - Abstract methods for initial and subsequent bids (implemented by subclasses)
         - Tracks own bidding history
         - Maintains bid space representation for analysis
 
     **Acceptance Strategy:**
+
         - Accepts if opponent's bid × 1.02 ≥ own last bid's utility
         - Accepts if opponent's bid × 1.02 ≥ maximum aspiration (0.9)
         - Accepts if opponent's bid × 1.02 ≥ planned next bid's utility
         - Detects if opponent is a "hardhead" (no significant concession)
 
     **Opponent Modeling:**
+
         General framework:
 
         - Maintains opponent model infrastructure
@@ -341,6 +368,7 @@ class SouthamptonAgent(GeniusNegotiator):
         and papers for authoritative information.
 
     References:
+
         Williams, C.R., Robu, V., Gerding, E.H., & Jennings, N.R. (2011).
         An Overview of the Results and Insights from the First Automated
         Negotiating Agents Competition (ANAC 2010). In New Trends in Agent-Based
@@ -364,6 +392,7 @@ class Yushu(GeniusNegotiator):
     adjust targets based on remaining negotiation rounds.
 
     **Offering Strategy:**
+
         - Starts with maximum utility bid
         - Calculates target utility using time-based concession: target = max - (max - min) × t^eagerness
         - Dynamically adjusts minimum acceptable utility based on:
@@ -373,12 +402,14 @@ class Yushu(GeniusNegotiator):
         - Near deadline, may suggest opponent's best historical offer
 
     **Acceptance Strategy:**
+
         - Accepts if opponent's utility ≥ target utility
         - Accepts if opponent's utility ≥ acceptable threshold (time-dependent)
         - More lenient when fewer rounds remain (< 8 rounds: accept good offers)
         - May accept opponent's best historical bid near deadline
 
     **Opponent Modeling:**
+
         Best-offer tracking:
 
         - Maintains sorted list of top 10 opponent bids by utility
@@ -392,6 +423,7 @@ class Yushu(GeniusNegotiator):
         and papers for authoritative information.
 
     References:
+
         Baarslag, T., Hindriks, K., Hendrikx, M., Dirkzwager, A., & Jonker, C.M. (2014).
         Decoupling Negotiating Agents to Explore the Space of Negotiation Strategies.
         In Novel Insights in Agent-based Complex Automated Negotiation.

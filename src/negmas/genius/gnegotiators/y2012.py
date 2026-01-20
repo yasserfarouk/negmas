@@ -27,6 +27,7 @@ class AgentLG(GeniusNegotiator):
     mutually beneficial offers.
 
     **Offering Strategy:**
+
         - Phase 1 (t < 0.6): Offers top 25% utility bids incrementally,
           learns opponent preferences
         - Phase 2 (0.6 <= t < 0.9995): Starts compromising, chooses bids
@@ -35,12 +36,14 @@ class AgentLG(GeniusNegotiator):
         - Minimum utility threshold starts at 75% of max
 
     **Acceptance Strategy:**
+
         - Accepts if opponent offer >= 99% of own last offer utility
         - Accepts if time > 0.999 and offer >= 90% of own utility
         - Accepts if offer >= minimum bid utility threshold
         - Accepts if previously offered same bid
 
     **Opponent Modeling:**
+
         - Tracks all opponent bids and their utilities
         - Maintains estimate of opponent's best bid for self
         - Uses opponent history to select compromise bids
@@ -67,6 +70,7 @@ class AgentMR(GeniusNegotiator):
     behavior forecasting. Adjusts strategy based on discount factor presence.
 
     **Offering Strategy:**
+
         - Maintains sorted bid ranking by utility
         - Generates bid variations from opponent offers meeting threshold
         - Sigmoid function controls minimum acceptable utility over time
@@ -74,12 +78,14 @@ class AgentMR(GeniusNegotiator):
         - Near deadline (t > 0.985): offers opponent's best bid if acceptable
 
     **Acceptance Strategy:**
+
         - Probabilistic acceptance: P = f(utility, time³)
         - Accepts if P > 0.965 or utility > threshold
         - Accepts if bid was previously in own bid ranking
         - Time-cubic function makes deadline acceptance more likely
 
     **Opponent Modeling:**
+
         - Tracks opponent's maximum offered utility over time
         - Forecasts opponent concession at t=0.5 to adjust sigmoid parameters
         - Updates sigmoid gain and percent based on concession rate
@@ -108,6 +114,7 @@ class CUHKAgent(GeniusNegotiator):
     opponent behavior and time pressure.
 
     **Offering Strategy:**
+
         - Time-dependent concession with adaptive threshold adjustment
         - Concession rate adapts based on opponent's toughness degree
         - In large domains: focuses on high-utility bid range
@@ -116,18 +123,21 @@ class CUHKAgent(GeniusNegotiator):
           candidates
 
     **Acceptance Strategy:**
+
         - Accepts if offer exceeds current utility threshold
         - Accepts if offer exceeds the utility of planned counter-offer
         - Near deadline: more lenient acceptance based on opponent's best offer
         - Adapts acceptance based on predicted maximum achievable utility
 
     **Opponent Modeling:**
+
         - Tracks opponent's bidding history to estimate preferences
         - Calculates opponent's concession degree to adapt own strategy
         - Identifies opponent's maximum offered bid for reference
         - Uses opponent model to choose mutually beneficial bids
 
     References:
+
         Hao, J., & Leung, H. (2014). CUHKAgent: An Adaptive Negotiation Strategy
         for Bilateral Negotiations over Multiple Items. In Novel Insights in
         Agent-based Complex Automated Negotiation. Studies in Computational
@@ -151,16 +161,19 @@ class IAMhaggler2012(GeniusNegotiator):
     Southampton team.
 
     **Offering Strategy:**
+
         - Inherits GP regression-based targeting from IAMhaggler2011
         - Uses SouthamptonUtilitySpace for improved bid generation
         - Ensures offers never fall below reservation value
         - Falls back to initial bid if proposed bid is below reservation
 
     **Acceptance Strategy:**
+
         - Same as IAMhaggler2011 (multiplier-based acceptance)
         - Additional check against reservation value
 
     **Opponent Modeling:**
+
         - Same Gaussian Process regression as IAMhaggler2011
         - Time-slotted sampling of opponent behavior
         - Bayesian Monte Carlo for regression updates
@@ -171,6 +184,7 @@ class IAMhaggler2012(GeniusNegotiator):
         and papers for authoritative information.
 
     References:
+
         Williams, C.R., Robu, V., Gerding, E.H., & Jennings, N.R. (2012).
         IAMhaggler: A negotiation agent for complex environments. In
         New Trends in Agent-based Complex Automated Negotiations.
@@ -194,6 +208,7 @@ class MetaAgent(GeniusNegotiator):
     models to predict which agent will perform best.
 
     **Agent Selection:**
+
         - Analyzes domain: issues, discount factor, domain size,
           expected utility, standard deviations
         - Uses pre-trained regression coefficients for 18 candidate agents
@@ -201,11 +216,13 @@ class MetaAgent(GeniusNegotiator):
         - Candidate pool includes winners from ANAC 2010-2011
 
     **Offering Strategy:**
+
         - First bid: always offers maximum utility bid
         - Subsequent bids: delegated to selected agent
         - Handles reservation value (ends negotiation if offer below)
 
     **Candidate Agents:**
+
         HardHeaded, AgentK2, TheNegotiator, ValueModelAgent, Gahboninho,
         BRAMAgent, AgentSmith, and several custom agents (Chameleon,
         WinnerAgent, GYRL, DNAgent, etc.)
@@ -256,6 +273,7 @@ class OMACagent(GeniusNegotiator):
     and adapt concession strategy accordingly.
 
     **Offering Strategy:**
+
         - Early phase (t <= 0.02): offers maximum utility bid
         - Uses exponential moving average (EMA) forecasting of opponent bids
         - Generates random bids within utility range [target±1%]
@@ -263,12 +281,14 @@ class OMACagent(GeniusNegotiator):
         - Different parameters for high vs low discount factor domains
 
     **Acceptance Strategy:**
+
         - Accepts if opponent offer >= own planned offer utility
         - Accepts if bid was previously in own bid history
         - Near deadline: accepts best opponent bid if above minimum (0.59)
         - Ends negotiation if no acceptable bid found and reservation > 0
 
     **Opponent Modeling:**
+
         Time-series prediction using:
 
         - Moving average of opponent's max utilities per time block
@@ -282,6 +302,7 @@ class OMACagent(GeniusNegotiator):
         and papers for authoritative information.
 
     References:
+
         Chen, S., & Weiss, G. (2012). An Efficient and Adaptive Approach to
         Negotiation in Complex Environments. In ECAI 2012.
     """
@@ -302,6 +323,7 @@ class TheNegotiatorReloaded(GeniusNegotiator):
     components for opponent modeling, offering strategy, and acceptance.
 
     **Architecture (BOA Framework):**
+
         - Opponent Model: IAMhagglerBayesianModel (if domain < 200K bids)
           or NoModel for large domains
         - OM Strategy: NullStrategy with threshold 0.35
@@ -309,6 +331,7 @@ class TheNegotiatorReloaded(GeniusNegotiator):
         - Acceptance: Custom conditions with multiple parameters
 
     **Acceptance Strategy:**
+
         Parameterized acceptance with:
 
         - Alpha=1, Beta=0: basic threshold multipliers
@@ -317,6 +340,7 @@ class TheNegotiatorReloaded(GeniusNegotiator):
         - Threshold bounds: [0.98, 0.99]
 
     **Opponent Modeling:**
+
         - Bayesian model (IAMhaggler variant) for small domains
         - Disabled for large domains (> 200K possible bids)
         - Used to estimate opponent preferences
