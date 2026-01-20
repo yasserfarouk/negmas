@@ -49,6 +49,7 @@ class SAOMechanism(
     Implements Several variants of the Stacked Alternating Offers Protocol
 
     Args:
+
         outcome_space: The negotiation agenda
         issues: A list of issues defining the outcome-space of the negotiation
         outcomes: A list of outcomes defining the outcome-space of the negotiation
@@ -115,6 +116,7 @@ class SAOMechanism(
         """Initialize the SAO mechanism.
 
         Args:
+
             dynamic_entry: Whether negotiators can join after the negotiation starts.
             extra_callbacks: Whether to enable additional callbacks (on_round_start, etc.).
             end_on_no_response: Whether to end negotiation if a negotiator returns NO_RESPONSE.
@@ -235,12 +237,14 @@ class SAOMechanism(
         """Add a negotiator to this mechanism.
 
         Args:
+
             negotiator: The negotiator instance to add.
             preferences: Optional preferences to assign to the negotiator.
             role: Optional role identifier for the negotiator.
             **kwargs: Additional keyword arguments passed to the parent add method.
 
         Returns:
+
             True if successfully added, False if rejected, None if pending.
         """
         from ..genius.negotiator import GeniusNegotiator
@@ -497,6 +501,7 @@ class SAOMechanism(
         implements a round or a single step of the Stacked Alternating Offers Protocol.
 
         Args:
+
             state: Current state of the mechanism
             action: The action to use as a mapping from negotiator ID (key) to its response (value).
                     If not given, the negotiator(s) is called to generate its response.
@@ -1003,6 +1008,7 @@ class SAOMechanism(
         """Visualize the negotiation run showing offers and utilities in 2D space.
 
         Args:
+
             plotting_negotiators: Indices or IDs of two negotiators whose utilities form the axes.
             save_fig: Whether to save the figure to disk.
             path: Directory path for saving the figure.

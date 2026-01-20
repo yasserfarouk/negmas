@@ -42,6 +42,7 @@ class SAOController(Controller[SAONMI, SAOState, ControlledSAONegotiator]):
     A controller that can manage multiple negotiators taking full or partial control from them.
 
     Args:
+
          default_negotiator_type: Default type to use when creating negotiators using this controller. The default type is
                                   `ControlledSAONegotiator` which passes *full control* to the controller.
          default_negotiator_params: Default paramters to pass to the default controller.
@@ -81,6 +82,7 @@ class SAOController(Controller[SAONMI, SAOState, ControlledSAONegotiator]):
         Called by children negotiators to get permission to join negotiations
 
         Args:
+
             negotiator_id: The negotiator ID
             nmi  (SAONMI): The negotiation.
             state (SAOState): The current state of the negotiation
@@ -88,6 +90,7 @@ class SAOController(Controller[SAONMI, SAOState, ControlledSAONegotiator]):
             role (str): role of the agent.
 
         Returns:
+
             True if the negotiator is allowed to join the negotiation otherwise
             False
 
@@ -108,6 +111,7 @@ class SAOController(Controller[SAONMI, SAOState, ControlledSAONegotiator]):
         the controller
 
         Args:
+
             negotiator_id: The negotiator ID
             nmi  (SAONMI): The negotiation.
             state (SAOState): The current state of the negotiation
@@ -146,6 +150,7 @@ class SAORandomController(SAOController):
     A controller that returns random offers.
 
     Args:
+
         p_acceptance: The probability of accepting an offer.
 
     """
@@ -188,6 +193,7 @@ class SAOSyncController(SAOController):
                      defined globally for the complete set of negotiations
 
     Remarks:
+
         - The controller waits for an offer from each one of its negotiators before deciding what to do.
         - Loops may happen if multiple controllers of this type negotiate with each other. For example controller A
           is negotiating with B, C, while B is also negotiating with C. These loops are broken by the `SAOMechanism`
@@ -236,12 +242,15 @@ class SAOSyncController(SAOController):
         Finds the first offer for this given negotiator. By default it will be the best offer
 
         Args:
+
             negotiator_id: The ID of the negotiator
 
         Returns:
+
             The first offer to use.
 
         Remarks:
+
             Default behavior is to use the ufun defined for the controller if any then try the ufun
             defined for the negotiator. If neither exists, the first offer will be None.
         """
@@ -308,10 +317,12 @@ class SAOSyncController(SAOController):
         """Calculate a response to all offers from all negotiators (negotiator ID is the key).
 
         Args:
+
             offers: Maps negotiator IDs to offers
             states: Maps negotiator IDs to offers AT the time the offers were made.
 
         Remarks:
+
             - The response type CANNOT be WAIT.
             - If the system determines that a loop is formed, the agent may receive this call for a subset of
               negotiations not all of them.
@@ -418,11 +429,13 @@ class SAORandomSyncController(SAOSyncController):
     A sync controller that returns random offers. (See `SAOSyncController` ).
 
     Args:
+
         p_acceptance: The probability that an offer will be accepted
         p_rejection: The probability that an offer will be rejected
         p_ending: The probability of ending the negotiation at any negotiation round.
 
     Remarks:
+
         - If probability of acceptance, rejection and ending sum to less than 1.0, the agent will return NO_RESPONSE
           with the remaining probability. Depending on the settings of the `SAOMechanism` this may be treated as
           ending the negotiation.
@@ -516,6 +529,7 @@ class SAOSingleAgreementController(SAOSyncController, ABC):
           and the result of `best_outcome` otherwise.
 
     Args:
+
         strict: If True the controller is **guaranteed** to get a single agreement but it will have to send
                 no-response repeatedly so there is a higher chance of never getting an agreement when two of those controllers
                 negotiate with each other
@@ -542,11 +556,13 @@ class SAOSingleAgreementController(SAOSyncController, ABC):
         `state` .
 
         Args:
+
             negotiator: The negotiator for which the best outcome is to be found
             state: If given, the state of the negotiation. If None, should
                    return the absolute best outcome
 
         Return:
+
             The outcome with maximum utility.
 
         Remarks:
@@ -579,12 +595,14 @@ class SAOSingleAgreementController(SAOSyncController, ABC):
         """Compares two outcomes of the same negotiation
 
         Args:
+
             a: Outcome
             b: Outcome
             negotiator: The negotiator for which the comparison is to be made
             state: Current state of the negotiation
 
         Returns:
+
             True if utility(a) > utility(b)
         """
 
@@ -598,6 +616,7 @@ class SAOSingleAgreementController(SAOSyncController, ABC):
         """Generate an offer for the given partner
 
         Args:
+
             negotiator: The ID of the negotiator for who an offer is to be made.
             state: The mechanism state of this partner
             best_offer: The best offer received in this round. None means that
@@ -605,6 +624,7 @@ class SAOSingleAgreementController(SAOSyncController, ABC):
             best_from: The ID of the negotiator that received the best offer
 
         Returns:
+
             The outcome to be offered to `negotiator` (None means no-offer)
 
         Remarks:
@@ -630,11 +650,13 @@ class SAOSingleAgreementController(SAOSyncController, ABC):
         """Should decide if the given offer is acceptable
 
         Args:
+
             offer: The offer being tested
             source: The ID of the negotiator that received this offer
             state: The state of the negotiation handled by that negotiator
 
         Remarks:
+
             - If True is returned, this offer will be accepted and all other
               negotiations will be ended.
         """
@@ -645,9 +667,11 @@ class SAOSingleAgreementController(SAOSyncController, ABC):
         Return the ID of the negotiator with the best offer
 
         Args:
+
             offers: A mapping from negotiator ID to the offer it received
 
         Returns:
+
             The ID of the negotiator with best offer. Ties should be broken.
             Return None only if there is no way to calculate the best offer.
         """
@@ -659,10 +683,12 @@ class SAOSingleAgreementController(SAOSyncController, ABC):
         Counters all responses
 
         Args:
+
             offers: A dictionary mapping partner ID to offer
             states: A dictionary mapping partner ID to mechanism state
 
         Returns:
+
             A dictionary mapping partner ID to a response
 
         Remarks:
@@ -786,11 +812,13 @@ class SAOSingleAgreementController(SAOSyncController, ABC):
         received
 
         Args:
+
             negotiator: The negotiator from which the best offer was received
             state: The state of the corresponding negotiation
             offer: The best offer received at this round.
 
         Returns:
+
             The offer to be sent back to `negotiator`
 
         """
@@ -811,6 +839,7 @@ class SAOMetaNegotiatorController(SAOController):
     Controls multiple negotiations using a single `meta` negotiator.
 
     Args:
+
         - meta_negotiator: The negotiator used for controlling all negotiations.
 
     Remarks:
@@ -863,6 +892,7 @@ class SAOSingleAgreementRandomController(SAOSingleAgreementController):
     A single agreement controller that uses a random negotiation strategy.
 
     Args:
+
         p_acceptance: The probability that an offer is accepted
 
     """
@@ -893,6 +923,7 @@ class SAOSingleAgreementAspirationController(SAOSingleAgreementController):
     to accept and what to propose.
 
     Args:
+
         preferences: The utility function to use for ALL negotiations
         max_aspiration: The maximum aspiration level to start with
         aspiration_type: The aspiration type/ exponent

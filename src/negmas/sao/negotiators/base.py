@@ -30,6 +30,7 @@ class SAOPRNegotiator(GBNegotiator[SAONMI, SAOState]):
     Base class for all SAO negotiators. Implemented by implementing propose() and respond() methods.
 
     Args:
+
          name: Negotiator name
          parent: Parent controller if any
          preferences: The preferences of the negotiator
@@ -37,6 +38,7 @@ class SAOPRNegotiator(GBNegotiator[SAONMI, SAOState]):
          owner: The `Agent` that owns the negotiator.
 
     Remarks:
+
         - The only method that **must** be implemented by any SAONegotiator is `propose`.
         - The default `respond` method, accepts offers with a utility value no less than whatever `propose` returns
           with the same mechanism state.
@@ -44,6 +46,7 @@ class SAOPRNegotiator(GBNegotiator[SAONMI, SAOState]):
           offer I gave or the next one I would have given in the current state.
 
     See Also:
+
         `SAOCallNegotiator`
 
     """
@@ -83,10 +86,12 @@ class SAOPRNegotiator(GBNegotiator[SAONMI, SAOState]):
         Called whenever a notification is received
 
         Args:
+
             notification: The notification
             notifier: The notifier entity
 
         Remarks:
+
             - The default implementation only responds to end_negotiation by ending the negotiation
         """
         _ = notifier
@@ -100,13 +105,16 @@ class SAOPRNegotiator(GBNegotiator[SAONMI, SAOState]):
         The method directly called by the mechanism (through `counter` ) to ask for a proposal
 
         Args:
+
             state: The mechanism state
             dest: the destination (can be ignored in AOP, SAOP, MAOP)
 
         Returns:
+
             An outcome to offer or None to refuse to offer
 
         Remarks:
+
             - Depending on the `SAOMechanism` settings, refusing to offer may be interpreted as ending the negotiation
             - The negotiator will only receive this call if it has the 'propose' capability.
 
@@ -143,10 +151,12 @@ class SAOPRNegotiator(GBNegotiator[SAONMI, SAOState]):
         """Generate a proposal (offer) for the current negotiation state.
 
         Args:
+
             state: Current SAO negotiation state including step, offers, and responses
             dest: Target negotiator ID to send proposal to (None for all)
 
         Returns:
+
             Outcome | ExtendedOutcome | None: Proposed outcome, or None to end negotiation
         """
         ...
@@ -158,13 +168,16 @@ class SAOPRNegotiator(GBNegotiator[SAONMI, SAOState]):
         Called to respond to an offer. This is the method that should be overriden to provide an acceptance strategy.
 
         Args:
+
             state: a `SAOState` giving current state of the negotiation.
             source: The ID of the negotiator that gave this offer
 
         Returns:
+
             ResponseType | ExtendedResponseType: The response to the offer
 
         Remarks:
+
             - The default implementation never ends the negotiation
             - The default implementation asks the negotiator to `propose`() and accepts the `offer` if its utility was
               at least as good as the offer that it would have proposed (and above the reserved value).
@@ -209,10 +222,12 @@ class SAOPRNegotiator(GBNegotiator[SAONMI, SAOState]):
         """The method to be called directly by the mechanism (through `counter` ) to respond to an offer.
 
         Args:
+
             state: a `SAOState` giving current state of the negotiation.
             source: The ID of the negotiator that gave the offer.
 
         Returns:
+
             ResponseType | ExtendedResponseType: The response to the offer. Possible values are:
 
                 - NO_RESPONSE: refuse to offer. Depending on the mechanism settings this may be interpreted as ending
@@ -225,6 +240,7 @@ class SAOPRNegotiator(GBNegotiator[SAONMI, SAOState]):
                 - WAIT: Instructs the mechanism to wait for this negotiator more. It may lead to cycles so use with care.
 
         Remarks:
+
             - The default implementation never ends the negotiation except if an earler end_negotiation notification is
               sent to the negotiator
             - The default implementation asks the negotiator to `propose`() and accepts the `offer` if its utility was
@@ -249,13 +265,16 @@ class SAOPRNegotiator(GBNegotiator[SAONMI, SAOState]):
         It just calls `respond_` and `propose_` as needed.
 
         Args:
+
             state: `SAOState` giving current state of the negotiation.
             dest: The ID of the destination of the response. May be empty under `SAOMechanism`
 
         Returns:
+
             Tuple[ResponseType, Outcome]: The response to the given offer with a counter offer if the response is REJECT
 
         Remarks:
+
             - The current offer is accessible through state.current_offer
 
         """
@@ -287,6 +306,7 @@ class SAOCallNegotiator(SAOPRNegotiator, ABC):
     An SAO negotiator implemented by overriding __call__ to return a counter offer.
 
     Args:
+
          name: Negotiator name
          parent: Parent controller if any
          preferences: The preferences of the negotiator
@@ -294,11 +314,13 @@ class SAOCallNegotiator(SAOPRNegotiator, ABC):
          owner: The `Agent` that owns the negotiator.
 
     Remarks:
+
         - The only method that **must** be implemented by any SAONegotiator is `propose`.
         - The default `respond` method, accepts offers with a utility value no less than whatever `propose` returns
           with the same mechanism state.
 
     See Also:
+
         `SAOPRNegotiator`
     """
 
@@ -318,10 +340,12 @@ class SAOCallNegotiator(SAOPRNegotiator, ABC):
         """Generate proposal by calling the negotiator and extracting the outcome.
 
         Args:
+
             state: Current SAO state with step counter and previous offers
             dest: Destination negotiator ID (None broadcasts to all)
 
         Returns:
+
             Outcome | ExtendedOutcome | None: Cached or freshly generated proposal
         """
         if dest not in self.__last_offer:
@@ -335,10 +359,12 @@ class SAOCallNegotiator(SAOPRNegotiator, ABC):
         """Generate response by calling negotiator and extracting response type.
 
         Args:
+
             state: Current SAO state including the offer to respond to
             source: Negotiator ID who made the offer (None if unknown)
 
         Returns:
+
             ResponseType: Response action (ACCEPT_OFFER, REJECT_OFFER, or END_NEGOTIATION)
         """
         _ = source
