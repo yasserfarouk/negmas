@@ -412,39 +412,81 @@ def show_negotiator_info(spec: str, on_multiple_matches: str = "warn") -> bool:
     # Get the first match (should be only one for full_type_name)
     key, info = list(results.items())[0]
 
-    # Display the information
-    print(f"\n[bold cyan]{info.short_name}[/bold cyan]")
-    print("=" * 70)
-    print(f"[bold]Type:[/bold] {info.full_type_name}")
-    print(f"[bold]Source:[/bold] {info.source}")
+    # Use rich for better formatting
+    try:
+        from rich.console import Console
+        from rich.panel import Panel
+        from rich.markdown import Markdown
+        from rich.table import Table
 
-    if info.tags:
-        print(f"[bold]Tags:[/bold] {', '.join(sorted(info.tags))}")
+        console = Console()
 
-    if info.params:
-        print("[bold]Default Parameters:[/bold]")
-        for key, value in info.params.items():
-            print(f"  • {key}: {value}")
+        # Create header
+        console.print()
+        console.print(f"[bold cyan]{info.short_name}[/bold cyan]", style="bold")
+        console.print("─" * 70, style="dim")
 
-    # Display description
-    if info.description:
-        print("\n[bold]Description:[/bold]")
-        print()
-        # Use rich markdown rendering if available
-        try:
-            from rich.markdown import Markdown
-            from rich.console import Console
+        # Create info table
+        table = Table(show_header=False, box=None, padding=(0, 2))
+        table.add_column(style="bold cyan", width=20)
+        table.add_column()
 
-            console = Console()
+        table.add_row("Type", f"[yellow]{info.full_type_name}[/yellow]")
+        table.add_row("Source", f"[green]{info.source}[/green]")
+
+        if info.tags:
+            tags_str = ", ".join(
+                f"[magenta]{tag}[/magenta]" for tag in sorted(info.tags)
+            )
+            table.add_row("Tags", tags_str)
+
+        console.print(table)
+
+        # Display default parameters if any
+        if info.params:
+            console.print("\n[bold cyan]Default Parameters:[/bold cyan]")
+            param_table = Table(show_header=False, box=None, padding=(0, 2))
+            param_table.add_column(style="dim", width=20)
+            param_table.add_column()
+            for key, value in info.params.items():
+                param_table.add_row(f"  {key}", str(value))
+            console.print(param_table)
+
+        # Display description
+        console.print("\n[bold cyan]Description:[/bold cyan]")
+        if info.description:
+            # Render as markdown
             md = Markdown(info.description)
-            console.print(md)
-        except ImportError:
-            # Fallback to plain text
-            print(info.description)
-    else:
-        print("\n[dim]No description available[/dim]")
+            console.print(Panel(md, border_style="dim", padding=(1, 2)))
+        else:
+            console.print("[dim]No description available[/dim]")
 
-    print("\n" + "=" * 70)
+        console.print("─" * 70, style="dim")
+        console.print()
+
+    except ImportError:
+        # Fallback to simple formatting
+        print(f"\n[bold cyan]{info.short_name}[/bold cyan]")
+        print("=" * 70)
+        print(f"[bold]Type:[/bold] {info.full_type_name}")
+        print(f"[bold]Source:[/bold] {info.source}")
+
+        if info.tags:
+            print(f"[bold]Tags:[/bold] {', '.join(sorted(info.tags))}")
+
+        if info.params:
+            print("[bold]Default Parameters:[/bold]")
+            for key, value in info.params.items():
+                print(f"  • {key}: {value}")
+
+        if info.description:
+            print("\n[bold]Description:[/bold]")
+            print()
+            print(info.description)
+        else:
+            print("\n[dim]No description available[/dim]")
+
+        print("\n" + "=" * 70)
 
     return True
 
@@ -480,43 +522,86 @@ def show_scenario_info(spec: str, on_multiple_matches: str = "warn") -> bool:
 
     info = scenario_registry[scenario_key]
 
-    # Display the information
-    print(f"\n[bold cyan]{info.name}[/bold cyan]")
-    print("=" * 70)
-    print(f"[bold]Path:[/bold] {info.path}")
-    print(f"[bold]Source:[/bold] {info.source}")
+    # Use rich for better formatting
+    try:
+        from rich.console import Console
+        from rich.panel import Panel
+        from rich.markdown import Markdown
+        from rich.table import Table
 
-    if info.tags:
-        print(f"[bold]Tags:[/bold] {', '.join(sorted(info.tags))}")
+        console = Console()
 
-    if info.n_negotiators is not None:
-        print(f"[bold]Negotiators:[/bold] {info.n_negotiators}")
+        # Create header
+        console.print()
+        console.print(f"[bold cyan]{info.name}[/bold cyan]", style="bold")
+        console.print("─" * 70, style="dim")
 
-    if info.n_outcomes is not None:
-        print(f"[bold]Outcomes:[/bold] {info.n_outcomes}")
+        # Create info table
+        table = Table(show_header=False, box=None, padding=(0, 2))
+        table.add_column(style="bold cyan", width=20)
+        table.add_column()
 
-    if info.opposition_level is not None:
-        print(f"[bold]Opposition Level:[/bold] {info.opposition_level:.2f}")
+        table.add_row("Path", f"[yellow]{info.path}[/yellow]")
+        table.add_row("Source", f"[green]{info.source}[/green]")
 
-    # Display description
-    if info.description:
-        print("\n[bold]Description:[/bold]")
-        print()
-        # Use rich markdown rendering if available
-        try:
-            from rich.markdown import Markdown
-            from rich.console import Console
+        if info.tags:
+            tags_str = ", ".join(
+                f"[magenta]{tag}[/magenta]" for tag in sorted(info.tags)
+            )
+            table.add_row("Tags", tags_str)
 
-            console = Console()
+        if info.n_negotiators is not None:
+            table.add_row("Negotiators", f"[blue]{info.n_negotiators}[/blue]")
+
+        if info.n_outcomes is not None:
+            table.add_row("Outcomes", f"[blue]{info.n_outcomes:,}[/blue]")
+
+        if info.opposition_level is not None:
+            table.add_row(
+                "Opposition Level", f"[blue]{info.opposition_level:.2f}[/blue]"
+            )
+
+        console.print(table)
+
+        # Display description
+        console.print("\n[bold cyan]Description:[/bold cyan]")
+        if info.description:
+            # Render as markdown
             md = Markdown(info.description)
-            console.print(md)
-        except ImportError:
-            # Fallback to plain text
-            print(info.description)
-    else:
-        print("\n[dim]No description available[/dim]")
+            console.print(Panel(md, border_style="dim", padding=(1, 2)))
+        else:
+            console.print("[dim]No description available[/dim]")
 
-    print("\n" + "=" * 70)
+        console.print("─" * 70, style="dim")
+        console.print()
+
+    except ImportError:
+        # Fallback to simple formatting
+        print(f"\n[bold cyan]{info.name}[/bold cyan]")
+        print("=" * 70)
+        print(f"[bold]Path:[/bold] {info.path}")
+        print(f"[bold]Source:[/bold] {info.source}")
+
+        if info.tags:
+            print(f"[bold]Tags:[/bold] {', '.join(sorted(info.tags))}")
+
+        if info.n_negotiators is not None:
+            print(f"[bold]Negotiators:[/bold] {info.n_negotiators}")
+
+        if info.n_outcomes is not None:
+            print(f"[bold]Outcomes:[/bold] {info.n_outcomes}")
+
+        if info.opposition_level is not None:
+            print(f"[bold]Opposition Level:[/bold] {info.opposition_level:.2f}")
+
+        if info.description:
+            print("\n[bold]Description:[/bold]")
+            print()
+            print(info.description)
+        else:
+            print("\n[dim]No description available[/dim]")
+
+        print("\n" + "=" * 70)
 
     return True
 
