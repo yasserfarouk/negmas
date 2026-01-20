@@ -913,27 +913,41 @@ class Registry(Generic[T], dict[str, T]):
         # Create and return the instance
         return info.cls(**merged_params)
 
-    def register_many(self, registrations: list[dict[str, Any]]) -> list[str]:
+    def register_many(
+        self, registrations: list[dict[str, Any]], source: str | None = None
+    ) -> list[str]:
         """Register multiple classes in a single call.
 
         Args:
             registrations: A list of dictionaries, each containing the arguments
                 for a single registration. Each dict must have a 'cls' key with
                 the class to register. Other keys are passed to register().
+            source: Optional default source for all registrations. If a registration
+                dict contains its own 'source' key, that takes precedence.
 
         Returns:
             A list of unique keys assigned to the registrations.
 
         Example:
+            # All get the same source
             keys = registry.register_many([
-                {'cls': MyNegotiator, 'short_name': 'my_neg', 'source': 'mylib'},
+                {'cls': MyNegotiator, 'short_name': 'my_neg'},
                 {'cls': OtherNegotiator, 'params': {'alpha': 0.5}},
-            ])
+            ], source='mylib')
+
+            # Override source for specific registrations
+            keys = registry.register_many([
+                {'cls': MyNegotiator, 'source': 'mylib'},  # Uses 'mylib'
+                {'cls': OtherNegotiator},  # Uses default source from parameter
+            ], source='default-lib')
         """
         keys = []
         for reg in registrations:
             reg_copy = dict(reg)
             cls = reg_copy.pop("cls")
+            # Apply default source if not specified in this registration
+            if source is not None and "source" not in reg_copy:
+                reg_copy["source"] = source
             key = self.register(cls, **reg_copy)
             keys.append(key)
         return keys
@@ -1411,27 +1425,41 @@ class ScenarioRegistry(dict[str, ScenarioInfo]):
         """
         return list(self._by_name.keys())
 
-    def register_many(self, registrations: list[dict[str, Any]]) -> list[ScenarioInfo]:
+    def register_many(
+        self, registrations: list[dict[str, Any]], source: str | None = None
+    ) -> list[ScenarioInfo]:
         """Register multiple scenarios in a single call.
 
         Args:
             registrations: A list of dictionaries, each containing the arguments
                 for a single registration. Each dict must have a 'path' key with
                 the path to the scenario. Other keys are passed to register().
+            source: Optional default source for all registrations. If a registration
+                dict contains its own 'source' key, that takes precedence.
 
         Returns:
             A list of ScenarioInfo objects for the registered scenarios.
 
         Example:
+            # All get the same source
             infos = registry.register_many([
-                {'path': '/path/to/scenario1', 'source': 'mylib', 'tags': {'custom'}},
+                {'path': '/path/to/scenario1', 'tags': {'custom'}},
                 {'path': '/path/to/scenario2', 'n_negotiators': 2},
-            ])
+            ], source='mylib')
+
+            # Override source for specific registrations
+            infos = registry.register_many([
+                {'path': '/path/to/scenario1', 'source': 'mylib'},  # Uses 'mylib'
+                {'path': '/path/to/scenario2'},  # Uses default source from parameter
+            ], source='default-lib')
         """
         results = []
         for reg in registrations:
             reg_copy = dict(reg)
             path = reg_copy.pop("path")
+            # Apply default source if not specified in this registration
+            if source is not None and "source" not in reg_copy:
+                reg_copy["source"] = source
             info = self.register(path, **reg_copy)
             results.append(info)
         return results
@@ -1754,6 +1782,7 @@ def register_scenario(
 
 def register_all_scenarios(
     path: str | Path,
+    source: str = "unknown",
     tags: set[str] | list[str] | tuple[str, ...] | None = None,
     recursive: bool = True,
     registry: ScenarioRegistry | None = None,
@@ -1778,6 +1807,9 @@ def register_all_scenarios(
 
     Args:
         path: The root directory to search for scenarios.
+        source: The origin of these registrations ('negmas' for built-in, library
+            name for external, or 'unknown' if not specified). Applied to all
+            scenarios registered from this directory.
         tags: Optional tags to add to all registered scenarios.
         recursive: If True, recursively search subdirectories.
         registry: The registry to use. If None, uses the global scenario_registry.
@@ -1794,6 +1826,7 @@ def register_all_scenarios(
 
         scenarios = register_all_scenarios(
             "/path/to/scenarios",
+            source="my-library",
             tags={"custom", "my-project"},
         )
         print(f"Registered {len(scenarios)} scenarios")
@@ -1801,6 +1834,7 @@ def register_all_scenarios(
         # Register without recursion
         scenarios = register_all_scenarios(
             "/path/to/scenarios",
+            source="my-library",
             recursive=False,
         )
     """
@@ -1860,6 +1894,7 @@ def register_all_scenarios(
             info = registry.register(
                 path=scenario_path,
                 name=scenario_path.name,
+                source=source,
                 tags=scenario_tags,
                 normalized=normalized,
                 n_outcomes=n_outcomes,
