@@ -334,6 +334,7 @@ class Atlas3(GeniusNegotiator):
     concepts.
 
     **Offering Strategy:**
+
         - Uses appropriate bid searching based on relative utility for linear
           utility spaces
         - Applies replacement method based on frequency analysis of opponent's
@@ -343,17 +344,21 @@ class Atlas3(GeniusNegotiator):
         - Near deadline: cycles through promising bids from opponent's history
 
     **Acceptance Strategy:**
+
         - Accepts if the offer utility exceeds the current threshold calculated
           from ESS-based concession function
         - Near deadline: accepts bids above reservation value from candidate list
 
     **Opponent Modeling:**
+
         Frequency-based model that tracks opponent's bidding patterns to:
+
         - Estimate opponent preferences
         - Identify promising bids that might be acceptable to both parties
         - Guide bid search towards mutually beneficial outcomes
 
     References:
+
         Mori, A., Ito, T. (2017). Atlas3: A Negotiating Agent Based on Expecting
         Lower Limit of Concession Function. In: Modern Approaches to Agent-based
         Complex Automated Negotiation. Studies in Computational Intelligence,
