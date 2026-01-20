@@ -841,6 +841,7 @@ def run_native_genius_negotiation(
     mechanism_type: str = "genius.core.protocol.StackedAlternatingOffersProtocol",
     port: int = DEFAULT_JAVA_PORT,
     auto_start_bridge: bool = True,
+    trace_mode: str = "none",
 ) -> SAOState:
     """
     Runs a negotiation natively inside Genius using the genius bridge.
@@ -890,6 +891,11 @@ def run_native_genius_negotiation(
         raise ValueError(
             f"Number of negotiators ({len(negotiators)}) must match "
             f"number of ufuns in scenario ({scenario.n_negotiators})"
+        )
+
+    if trace_mode not in ("none", "full", "full_with_utils"):
+        raise ValueError(
+            f"trace_mode must be 'none', 'full', or 'full_with_utils', got '{trace_mode}'"
         )
 
     # Ensure bridge is running
@@ -942,53 +948,130 @@ def run_native_genius_negotiation(
 
         # Run the negotiation in Genius
         try:
-            success = gateway.entry_point.run_negotiation(  # type: ignore
-                mechanism_type,
-                str(domain_file),
-                profiles_str,
-                agents_str,
-                output_file,
-                n_steps if n_steps >= 0 else -1,
-                time_limit if time_limit >= 0 else -1,
-            )
+            if trace_mode == "none":
+                success = gateway.entry_point.run_negotiation(  # type: ignore
+                    mechanism_type,
+                    str(domain_file),
+                    profiles_str,
+                    agents_str,
+                    output_file,
+                    n_steps if n_steps >= 0 else -1,
+                    time_limit if time_limit >= 0 else -1,
+                )
+                trace_str = ""
+            else:
+                success = gateway.entry_point.run_negotiation_with_trace(  # type: ignore
+                    mechanism_type,
+                    str(domain_file),
+                    profiles_str,
+                    agents_str,
+                    output_file,
+                    n_steps if n_steps >= 0 else -1,
+                    time_limit if time_limit >= 0 else -1,
+                    trace_mode,
+                )
+                # Get the trace data
+                trace_str = gateway.entry_point.get_last_trace()  # type: ignore
         except Exception as e:
             raise RuntimeError(f"Failed to run negotiation in Genius: {e}")
 
         if not success:
             raise RuntimeError("Negotiation failed in Genius (returned False)")
 
-        # Parse the log file to extract results
-        # The log file contains information about offers, agreements, etc.
-        # For now, create a basic SAOState with minimal information
-        # TODO: Parse the actual log file for detailed trace
+        # Parse trace if collected
+        from ..common import TraceElement
 
+        ENTRY_SEP = "<<y,y>>"
+        FIELD_SEP = "<<sy>>"
+
+        trace_history = []
         agreement = None
-        step = n_steps if n_steps >= 0 else -1
+        final_step = n_steps if n_steps >= 0 else -1
+        final_state = "ended"
 
-        # Try to read the log file to find agreement information
-        if Path(output_file).exists():
+        if trace_str:
+            # Parse trace string
+            entries = trace_str.split(ENTRY_SEP) if trace_str else []
+
+            for entry in entries:
+                if not entry:
+                    continue
+
+                fields = entry.split(FIELD_SEP)
+                if len(fields) < 7:
+                    continue  # Malformed entry
+
+                try:
+                    time = float(fields[0])
+                    relative_time = float(fields[1])
+                    step = int(fields[2])
+                    negotiator = fields[3]
+                    offer_str = fields[4]
+                    fields[5]
+                    state = fields[6]
+
+                    # Track final step and state
+                    if step > final_step:
+                        final_step = step
+                    final_state = state
+
+                    # Parse offer to outcome if present
+                    offer = None
+                    if offer_str and offer_str.strip():
+                        # TODO: Parse offer string to actual outcome
+                        # For now, store as string
+                        pass
+
+                    # Determine responses - for Genius, this is simplified
+                    responses = {}
+
+                    # Create trace element
+                    trace_element = TraceElement(
+                        time=time,
+                        relative_time=relative_time,
+                        step=step,
+                        negotiator=negotiator,
+                        offer=offer,
+                        responses=responses,
+                        state=state,
+                        text=None,
+                        data=None,
+                    )
+                    trace_history.append(trace_element)
+
+                    # If state is agreement, last offer is the agreement
+                    if state == "agreement" and offer_str:
+                        # TODO: Parse to actual outcome
+                        pass
+
+                except (ValueError, IndexError):
+                    # Skip malformed entries
+                    continue
+
+        # Try to read the log file to find agreement information (fallback)
+        if Path(output_file).exists() and agreement is None:
             try:
                 with open(output_file, "r") as f:
                     f.read()
                     # Parse log to find agreement
                     # This is a simplified parser - the actual format depends on Genius output
-                    # TODO: Implement proper log parsing
                     pass
             except Exception:
                 pass
 
+        # Determine if timed out or ended normally
+        timedout = final_state == "timedout"
+
         # Create and return SAOState
-        # Note: This is a minimal state. Full implementation would parse
-        # the Genius log to populate trace, offers, etc.
         state = SAOState(
             running=False,
             waiting=False,
             started=True,
-            step=step,
+            step=final_step,
             time=0.0,
             relative_time=1.0,
             broken=not success,
-            timedout=False,
+            timedout=timedout,
             agreement=agreement,
             results=None,
             n_negotiators=len(negotiators),
@@ -1006,5 +1089,11 @@ def run_native_genius_negotiation(
             current_data=None,
             new_data=[],
         )
+
+        # Add trace history if available
+        if trace_history:
+            # Note: SAOState doesn't have a history attribute by default
+            # We'll attach it as a custom attribute for compatibility
+            state._history = trace_history  # type: ignore
 
         return state
