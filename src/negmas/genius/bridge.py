@@ -682,6 +682,120 @@ class GeniusBridge:
         return True
 
     @classmethod
+    def get_active_agents(cls, port: int = DEFAULT_JAVA_PORT) -> list[str]:
+        """
+        Gets all active agent UUIDs from the bridge.
+
+        Args:
+            port: The port at which the bridge is listening in Java
+
+        Returns:
+            A list of agent UUIDs currently active in the bridge
+
+        Remarks:
+            - Thread-safe via ConcurrentHashMap on the Java side
+            - Returns empty list if bridge is not running or connection fails
+        """
+        assert port > 0
+        try:
+            gateway = cls.gateway(port, force=False)
+        except Exception as e:
+            warnings.warn(
+                f"Failed to get active agents at port {port} with error: {str(e)}\n"
+                f"{traceback.format_exc()}",
+                warnings.NegmasBridgeProcessWarning,
+            )
+            return []
+        if gateway is None:
+            return []
+        try:
+            result = gateway.entry_point.getActiveAgents()  # type: ignore
+            if result is None:
+                return []
+            # The Java side returns agents separated by ENTRY_SEP
+            # Split and filter out empty strings
+            return [uuid.strip() for uuid in str(result).split("\n") if uuid.strip()]
+        except Exception as e:
+            warnings.warn(
+                f"Failed to retrieve active agents: {str(e)}",
+                warnings.NegmasBridgeProcessWarning,
+            )
+            return []
+
+    @classmethod
+    def agent_exists(cls, uuid: str, port: int = DEFAULT_JAVA_PORT) -> bool:
+        """
+        Checks if a specific agent exists in the bridge.
+
+        Args:
+            uuid: The UUID of the agent to check
+            port: The port at which the bridge is listening in Java
+
+        Returns:
+            True if the agent exists, False otherwise
+
+        Remarks:
+            - Thread-safe via ConcurrentHashMap on the Java side
+        """
+        assert port > 0
+        if not uuid:
+            return False
+        try:
+            gateway = cls.gateway(port, force=False)
+        except Exception as e:
+            warnings.warn(
+                f"Failed to check agent existence at port {port} with error: {str(e)}\n"
+                f"{traceback.format_exc()}",
+                warnings.NegmasBridgeProcessWarning,
+            )
+            return False
+        if gateway is None:
+            return False
+        try:
+            return bool(gateway.entry_point.agentExists(uuid))  # type: ignore
+        except Exception as e:
+            warnings.warn(
+                f"Failed to check if agent {uuid} exists: {str(e)}",
+                warnings.NegmasBridgeProcessWarning,
+            )
+            return False
+
+    @classmethod
+    def get_agent_count(cls, port: int = DEFAULT_JAVA_PORT) -> int:
+        """
+        Gets the number of active agents in the bridge.
+
+        Args:
+            port: The port at which the bridge is listening in Java
+
+        Returns:
+            The number of active agents, or 0 if bridge is not running
+
+        Remarks:
+            - Thread-safe via ConcurrentHashMap on the Java side
+        """
+        assert port > 0
+        try:
+            gateway = cls.gateway(port, force=False)
+        except Exception as e:
+            warnings.warn(
+                f"Failed to get agent count at port {port} with error: {str(e)}\n"
+                f"{traceback.format_exc()}",
+                warnings.NegmasBridgeProcessWarning,
+            )
+            return 0
+        if gateway is None:
+            return 0
+        try:
+            return int(gateway.entry_point.getAgentCount())  # type: ignore
+        except Exception as e:
+            warnings.warn(
+                f"Failed to retrieve agent count: {str(e)}",
+                warnings.NegmasBridgeProcessWarning,
+            )
+            return 0
+
+    @classmethod
     def clean_all(cls) -> bool:
         """
         Removes all agents and runs garbage collection on all bridges.
