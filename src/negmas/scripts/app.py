@@ -1308,7 +1308,216 @@ def version():
     print(negmas.__version__)
 
 
-def _resolve_negotiator(spec: str, verbose: bool = False):
+def _show_scenario_match_table(spec: str, matches: list, selected) -> None:
+    """Show a table of all scenario matches with the selected one highlighted."""
+    print(f"\n  [bold]Available options for '{spec}':[/bold]")
+    table_data = []
+    for m in matches:
+        is_selected = m.path == selected.path
+        marker = "→ " if is_selected else "  "
+        # Determine how to invoke this specific option
+        invoke_as = f"{m.source}@{m.name}"
+        # Show path relative to current directory if possible
+        try:
+            from pathlib import Path
+
+            rel_path = m.path.relative_to(Path.cwd())
+            path_display = str(rel_path)
+        except ValueError:
+            path_display = str(m.path)
+
+        row = [f"{marker}{m.name}", m.source, path_display, invoke_as]
+        table_data.append(row)
+
+    print(
+        tabulate(
+            table_data,
+            headers=["Name", "Source", "Path", "Invoke As"],
+            tablefmt="simple",
+        )
+    )
+    print()
+
+
+def _resolve_scenario(
+    spec: str, verbose: bool = False, on_multiple_matches: str = "warn"
+):
+    """Resolve a scenario specification from the registry.
+
+    Supports multiple formats:
+    - source@scenario: Registry lookup by source (e.g., 'negmas@CameraB')
+    - source>scenario: Registry lookup by source (DEPRECATED, use @ instead)
+    - name: Direct registry lookup by name (e.g., 'CameraB')
+    - path: Direct file/folder path
+
+    When multiple matches are found (without explicit source), preference is given to:
+    1. source='negmas' (native implementation)
+    2. Any non-genius source (native before genius wrappers)
+    3. Any source (if no native found)
+
+    Args:
+        spec: Scenario specification string
+        verbose: Print resolution details
+        on_multiple_matches: What to do when multiple matches found: 'fail', 'warn', or 'silent'
+
+    Returns:
+        Path to scenario if found in registry or as file path, None otherwise
+    """
+
+    try:
+        from negmas import scenario_registry
+    except ImportError:
+        return None
+
+    # Handle source@scenario or source>scenario format
+    separator = None
+    if "@" in spec:
+        separator = "@"
+    elif ">" in spec:
+        separator = ">"
+        if verbose:
+            print(
+                f"[yellow]  Note: '>' separator is deprecated, use '@' instead: {spec.replace('>', '@')}[/yellow]"
+            )
+
+    if separator:
+        source, _, scenario_spec = spec.partition(separator)
+
+        # Check if it's a direct path lookup
+        if scenario_spec in scenario_registry:
+            info = scenario_registry[scenario_spec]
+            if info.source == source or source == "any":
+                if verbose:
+                    print(
+                        f"[green]  Found scenario by path: {info.name} ({info.path})[/green]"
+                    )
+                return info.path
+
+        # Try lookup by name within specified source
+        matches = [
+            info
+            for info in scenario_registry.values()
+            if info.name == scenario_spec and (info.source == source or source == "any")
+        ]
+
+        if not matches:
+            if verbose:
+                print(
+                    f"[yellow]  No scenario found for: {source}{separator}{scenario_spec}[/yellow]"
+                )
+            return None
+
+        if len(matches) == 1:
+            if verbose:
+                print(
+                    f"[green]  Found: {matches[0].name} from {matches[0].source}[/green]"
+                )
+            return matches[0].path
+
+        # Multiple matches with explicit source
+        if on_multiple_matches == "silent" and not verbose:
+            return matches[0].path
+
+        print(
+            f"[yellow]  Multiple scenarios match '{scenario_spec}' in source '{source}'[/yellow]"
+        )
+        _show_scenario_match_table(spec, matches, matches[0])
+        if on_multiple_matches == "fail":
+            sys.exit(1)
+        return matches[0].path
+
+    # No explicit source - try direct lookup
+    if spec in scenario_registry:
+        info = scenario_registry[spec]
+        if verbose:
+            print(f"[green]  Found scenario by key: {info.name} ({info.path})[/green]")
+        return info.path
+
+    # Try lookup by name
+    matches = scenario_registry.get_by_name(spec)
+
+    if not matches:
+        return None
+
+    if len(matches) == 1:
+        if verbose:
+            print(f"[green]  Found: {matches[0].name} from {matches[0].source}[/green]")
+        return matches[0].path
+
+    # Multiple matches - apply priority rules
+    # Priority 1: source='negmas'
+    negmas_matches = [m for m in matches if m.source == "negmas"]
+    if negmas_matches:
+        info = negmas_matches[0]
+        if on_multiple_matches != "silent" or verbose:
+            print(
+                f"[yellow]  Multiple scenarios match '{spec}', using 'negmas' source[/yellow]"
+            )
+            if on_multiple_matches == "warn" or on_multiple_matches == "fail":
+                _show_scenario_match_table(spec, matches, info)
+        if on_multiple_matches == "fail":
+            sys.exit(1)
+        return info.path
+
+    # Priority 2: non-genius sources
+    non_genius_matches = [m for m in matches if m.source != "genius"]
+    if non_genius_matches:
+        info = non_genius_matches[0]
+        if on_multiple_matches != "silent" or verbose:
+            print(
+                f"[yellow]  Multiple scenarios match '{spec}', using non-genius source[/yellow]"
+            )
+            if on_multiple_matches == "warn" or on_multiple_matches == "fail":
+                _show_scenario_match_table(spec, matches, info)
+        if on_multiple_matches == "fail":
+            sys.exit(1)
+        return info.path
+
+    # All are genius wrappers - use first one
+    info = matches[0]
+    if verbose or on_multiple_matches != "silent":
+        print(
+            f"[yellow]  Multiple Genius scenarios match '{spec}', using first: {info.path}[/yellow]"
+        )
+        if on_multiple_matches == "fail" or (
+            on_multiple_matches == "warn" and not verbose
+        ):
+            _show_scenario_match_table(spec, matches, info)
+    if on_multiple_matches == "fail":
+        sys.exit(1)
+    return info.path
+
+
+def _show_match_table(spec: str, matches: list, selected) -> None:
+    """Show a table of all matches with the selected one highlighted."""
+    print(f"\n  [bold]Available options for '{spec}':[/bold]")
+    table_data = []
+    for m in matches:
+        is_selected = m.key == selected.key
+        marker = "→ " if is_selected else "  "
+        # Determine how to invoke this specific option
+        invoke_as = f"{m.source}@{m.short_name}"
+        row = [
+            f"{marker}{m.short_name}",
+            m.source,
+            m.full_type_name.split(".")[-1],
+            invoke_as,
+        ]
+        table_data.append(row)
+
+    print(
+        tabulate(
+            table_data,
+            headers=["Name", "Source", "Class", "Invoke As"],
+            tablefmt="simple",
+        )
+    )
+    print()
+
+
+def _resolve_negotiator(
+    spec: str, verbose: bool = False, on_multiple_matches: str = "warn"
+):
     """Resolve a negotiator specification to a class or instance.
 
     Supports multiple formats:
@@ -1318,6 +1527,16 @@ def _resolve_negotiator(spec: str, verbose: bool = False):
     - short_name or key: Direct registry lookup (e.g., 'AspirationNegotiator' or 'AspirationNegotiator#a1b2c3d4')
     - module.ClassName: Full Python class path (e.g., 'negmas.sao.AspirationNegotiator')
     - genius:ClassName: Genius Java class (returns string for Genius bridge)
+
+    When multiple matches are found (without explicit source), preference is given to:
+    1. source='negmas' (native implementation)
+    2. Any non-genius source (native before genius wrappers)
+    3. Any source (if no native found)
+
+    Args:
+        spec: Negotiator specification string
+        verbose: Print resolution details
+        on_multiple_matches: What to do when multiple matches found: 'fail', 'warn', or 'silent'
 
     Returns:
         For NegMAS negotiators: A negotiator class or the full type name string
@@ -1359,18 +1578,31 @@ def _resolve_negotiator(spec: str, verbose: bool = False):
             return info.full_type_name
 
         # Try short_name match
-        for key, info in results.items():
-            if info.short_name == name:
-                if verbose:
-                    print(f"  Resolved '{spec}' to {info.full_type_name} (key: {key})")
-                return info.full_type_name
+        matches = [info for info in results.values() if info.short_name == name]
 
-        # Not found in registry with that source
-        if verbose:
-            print(f"  Warning: '{name}' not found in registry with source '{source}'")
-        # Fall through to try as direct class name
+        if not matches:
+            if verbose:
+                print(
+                    f"  Warning: '{name}' not found in registry with source '{source}'"
+                )
+            # Fall through to try as direct class name
+        elif len(matches) == 1:
+            info = matches[0]
+            if verbose:
+                print(f"  Resolved '{spec}' to {info.full_type_name}")
+            return info.full_type_name
+        else:
+            # Multiple matches with explicit source
+            if on_multiple_matches != "silent":
+                print(
+                    f"[yellow]  Multiple negotiators match '{name}' in source '{source}'[/yellow]"
+                )
+                _show_match_table(spec, matches, matches[0])
+            if on_multiple_matches == "fail":
+                sys.exit(1)
+            return matches[0].full_type_name
 
-    # Try direct registry lookup (by key or short_name)
+    # Try direct registry lookup (by key)
     info = negotiator_registry.get(spec)
     if info:
         if verbose:
@@ -1379,28 +1611,70 @@ def _resolve_negotiator(spec: str, verbose: bool = False):
 
     # Try short_name lookup
     matches = negotiator_registry.get_by_short_name(spec)
-    if matches:
+    if not matches:
+        # Try as full class path
+        try:
+            cls = get_class(spec)
+            if cls is not None:
+                if verbose:
+                    print(f"  Resolved '{spec}' to class {spec}")
+                return spec
+        except (ModuleNotFoundError, AttributeError, ImportError):
+            pass
+
+        # Assume it's a Genius Java class name if nothing else worked
+        if verbose:
+            print(f"  Treating '{spec}' as Genius Java class name")
+        return spec
+
+    if len(matches) == 1:
         info = matches[0]
         if verbose:
             print(f"  Resolved '{spec}' to {info.full_type_name}")
-            if len(matches) > 1:
-                print("  Note: Multiple matches found, using first one")
         return info.full_type_name
 
-    # Try as full class path
-    try:
-        cls = get_class(spec)
-        if cls is not None:
-            if verbose:
-                print(f"  Resolved '{spec}' to class {spec}")
-            return spec
-    except (ModuleNotFoundError, AttributeError, ImportError):
-        pass
+    # Multiple matches - apply priority rules
+    # Priority 1: source='negmas'
+    negmas_matches = [m for m in matches if m.source == "negmas"]
+    if negmas_matches:
+        info = negmas_matches[0]
+        if on_multiple_matches != "silent" or verbose:
+            print(
+                f"[yellow]  Multiple negotiators match '{spec}', using 'negmas' source[/yellow]"
+            )
+            if on_multiple_matches == "warn" or on_multiple_matches == "fail":
+                _show_match_table(spec, matches, info)
+        if on_multiple_matches == "fail":
+            sys.exit(1)
+        return info.full_type_name
 
-    # Assume it's a Genius Java class name if nothing else worked
-    if verbose:
-        print(f"  Treating '{spec}' as Genius Java class name")
-    return spec
+    # Priority 2: non-genius sources
+    non_genius_matches = [m for m in matches if m.source != "genius"]
+    if non_genius_matches:
+        info = non_genius_matches[0]
+        if on_multiple_matches != "silent" or verbose:
+            print(
+                f"[yellow]  Multiple negotiators match '{spec}', using non-genius source[/yellow]"
+            )
+            if on_multiple_matches == "warn" or on_multiple_matches == "fail":
+                _show_match_table(spec, matches, info)
+        if on_multiple_matches == "fail":
+            sys.exit(1)
+        return info.full_type_name
+
+    # All are genius wrappers - use first one
+    info = matches[0]
+    if verbose or on_multiple_matches != "silent":
+        print(
+            f"[yellow]  Multiple Genius wrappers match '{spec}', using first: {info.full_type_name}[/yellow]"
+        )
+        if on_multiple_matches == "fail" or (
+            on_multiple_matches == "warn" and not verbose
+        ):
+            _show_match_table(spec, matches, info)
+    if on_multiple_matches == "fail":
+        sys.exit(1)
+    return info.full_type_name
 
 
 def _complete_negotiator(ctx, param, incomplete):
@@ -1466,8 +1740,8 @@ def _complete_negotiator(ctx, param, incomplete):
     "--scenario",
     "-s",
     required=False,
-    type=click.Path(exists=True),
-    help="Path to negotiation scenario (folder or file containing domain and profiles)",
+    type=str,
+    help="Path to negotiation scenario (folder or file containing domain and profiles), or scenario name/registry spec (e.g., 'CameraB' or 'negmas@CameraB')",
 )
 @click.option(
     "--steps",
@@ -1521,6 +1795,12 @@ def _complete_negotiator(ctx, param, incomplete):
     default=False,
     help="Reload the registry from disk before running",
 )
+@click.option(
+    "--on-multiple-matches",
+    default="warn",
+    type=click.Choice(["fail", "warn", "silent"], case_sensitive=False),
+    help="What to do when multiple registry entries match a short name: 'fail' (show table and exit), 'warn' (show table but continue), 'silent' (use prioritized match without warning). Default: warn",
+)
 def negotiate(
     agents: str,
     scenario: str,
@@ -1533,6 +1813,7 @@ def negotiate(
     list_agents: bool,
     source: str | None,
     refresh_registry: bool,
+    on_multiple_matches: str,
 ):
     """Run a negotiation between agents using a given scenario.
 
@@ -1681,7 +1962,9 @@ def negotiate(
     has_genius_negotiators = False
 
     for spec in agent_specs:
-        resolved = _resolve_negotiator(spec, verbose=verbose)
+        resolved = _resolve_negotiator(
+            spec, verbose=verbose, on_multiple_matches=on_multiple_matches
+        )
         agent_list.append(resolved)
 
         # Validation: Check if resolved negotiator exists in registry (if not a Genius class)
@@ -1753,7 +2036,34 @@ def negotiate(
         print(f"Time limit: {time if time >= 0 else 'N/A'}")
         print(f"Mode: {'Genius (native)' if in_genius else 'NegMAS'}")
 
-    scenario_path = Path(scenario)
+    # Try to resolve scenario from registry if needed
+    scenario_path = None
+    if scenario is not None:
+        from pathlib import Path
+
+        # Check if it's a registry spec (contains @ or >) or a name in the registry
+        if "@" in scenario or ">" in scenario or not Path(scenario).exists():
+            resolved_path = _resolve_scenario(
+                scenario, verbose=verbose, on_multiple_matches=on_multiple_matches
+            )
+            if resolved_path:
+                scenario_path = resolved_path
+                if verbose:
+                    print(
+                        f"[green]Resolved scenario '{scenario}' to {scenario_path}[/green]"
+                    )
+            elif not Path(scenario).exists():
+                print(
+                    f"[red]Scenario '{scenario}' not found in registry or as a file[/red]"
+                )
+                sys.exit(1)
+            else:
+                scenario_path = Path(scenario)
+        else:
+            scenario_path = Path(scenario)
+    else:
+        print("[red]Error: --scenario is required[/red]")
+        sys.exit(1)
 
     if in_genius:
         # Run negotiation in Genius
