@@ -263,6 +263,8 @@ class RegistryInfo:
         cls: The actual class object.
         source: The origin of this registration ('negmas' for built-in, library name for
             external, or 'unknown' if not specified).
+        description: Markdown-formatted description of the class (typically from docstring).
+            Empty string if no description is available.
         params: Constructor parameters for creating instances via Registry.create().
         tags: A set of string tags for categorization and filtering.
         extra: Additional key-value pairs for custom properties.
@@ -273,6 +275,7 @@ class RegistryInfo:
     full_type_name: str
     cls: type
     source: str = "unknown"
+    description: str = ""
     params: dict[str, Any] = field(default_factory=dict)
     tags: set[str] = field(default_factory=set)
     extra: dict[str, Any] = field(default_factory=dict)
@@ -371,6 +374,8 @@ class ScenarioInfo:
         path: The full path to the scenario file or folder.
         source: The origin of this registration ('negmas' for built-in, library name for
             external, or 'unknown' if not specified).
+        description: Markdown-formatted description of the scenario.
+            Empty string if no description is available.
         tags: A set of string tags for categorization and filtering.
         n_outcomes: The number of possible outcomes (if known).
         n_negotiators: The number of negotiators in the scenario (if known).
@@ -381,6 +386,7 @@ class ScenarioInfo:
     name: str
     path: Path
     source: str = "unknown"
+    description: str = ""
     tags: set[str] = field(default_factory=set)
     n_outcomes: int | None = None
     n_negotiators: int | None = None
@@ -446,6 +452,7 @@ class Registry(Generic[T], dict[str, T]):
         cls: type | str,
         short_name: str | None = None,
         source: str = "unknown",
+        description: str | None = None,
         params: dict[str, Any] | None = None,
         tags: set[str] | list[str] | tuple[str, ...] | None = None,
         **kwargs,
@@ -463,6 +470,8 @@ class Registry(Generic[T], dict[str, T]):
                 - 'AggressiveAspiration' (virtual negotiator with specific params)
             source: The origin of this registration ('negmas' for built-in, library
                 name for external, or 'unknown' if not specified).
+            description: Markdown-formatted description of the class. If None,
+                automatically extracts from the class docstring.
             params: Constructor parameters for creating instances via create().
                 This enables "virtual" negotiators that share a class but have
                 different default parameters.
@@ -491,7 +500,14 @@ class Registry(Generic[T], dict[str, T]):
                 short_name='AggressiveAspiration',
                 params={'aspiration_type': 'boulware', 'max_aspiration': 0.95},
             )
+
+            # Register with custom description
+            key4 = registry.register(
+                MyNegotiator,
+                description='# MyNegotiator\n\nA custom negotiator for testing.',
+            )
         """
+        import inspect
         import uuid
 
         from negmas.helpers import get_class, get_full_type_name
@@ -508,6 +524,10 @@ class Registry(Generic[T], dict[str, T]):
 
         if short_name is None:
             short_name = cls.__name__
+
+        # Auto-extract description from docstring if not provided
+        if description is None:
+            description = inspect.getdoc(cls) or ""
 
         # Generate a unique key using UUID
         uuid_suffix = uuid.uuid4().hex[:8]
@@ -573,6 +593,7 @@ class Registry(Generic[T], dict[str, T]):
             full_type_name=full_type_name,
             cls=cls,
             source=source,
+            description=description,
             params=params_dict,
             tags=tags_set,
             extra=extra_dict,
@@ -1028,6 +1049,7 @@ class ScenarioRegistry(dict[str, ScenarioInfo]):
         path: str | Path,
         name: str | None = None,
         source: str = "unknown",
+        description: str = "",
         tags: set[str] | list[str] | tuple[str, ...] | None = None,
         n_outcomes: int | None = None,
         n_negotiators: int | None = None,
@@ -1046,6 +1068,8 @@ class ScenarioRegistry(dict[str, ScenarioInfo]):
             name: A short name for the scenario. If None, uses the file/folder name.
             source: The origin of this registration ('negmas' for built-in, library
                 name for external, or 'unknown' if not specified).
+            description: Markdown-formatted description of the scenario.
+                Can be loaded from _info.yaml or provided explicitly.
             tags: Optional set of tags for categorization and filtering.
             n_outcomes: The number of possible outcomes.
             n_negotiators: The number of negotiators in the scenario.
@@ -1167,6 +1191,9 @@ class ScenarioRegistry(dict[str, ScenarioInfo]):
                     n_negotiators = info_data["n_negotiators"]
                 if opposition_level is None and "opposition_level" in info_data:
                     opposition_level = info_data["opposition_level"]
+                # Load description from _info.yaml if not provided
+                if not description and "description" in info_data:
+                    description = info_data["description"]
                 # Also check for format in info file
                 if "format" in info_data and info_data["format"] != "unknown":
                     all_tags.add(info_data["format"])
@@ -1178,6 +1205,7 @@ class ScenarioRegistry(dict[str, ScenarioInfo]):
             name=name,
             path=path,
             source=source,
+            description=description,
             tags=all_tags,
             n_outcomes=n_outcomes,
             n_negotiators=n_negotiators,
