@@ -44,31 +44,17 @@ class ChainNMI(NegotiatorMechanismInterface):
     def __init__(
         self,
         *args,
-        parent: ChainNegotiationsMechanism,
-        negotiator: ChainNegotiator,
+        parent: ChainNegotiationsMechanism | MultiChainNegotiationsMechanism,
+        negotiator: ChainNegotiator | MultiChainNegotiator,
         level: int,
         **kwargs,
     ):
-        """Initialize the instance.
-
-        Args:
-            *args: Additional positional arguments.
-            **kwargs: Additional keyword arguments.
-        """
         super().__init__(*args, **kwargs)
         self.__parent = parent
         self.__negotiator = negotiator
         self.__level = level
 
     def confirm(self, parent: bool) -> bool:
-        """Confirm.
-
-        Args:
-            parent: Parent.
-
-        Returns:
-            bool: The result.
-        """
         return self.__parent.on_confirm(self.__level, parent)
 
 
@@ -267,10 +253,9 @@ class ChainNegotiationsMechanism(
         self.__last_proposer_index: int = -1
         self.__agreements: dict[int, Outcome | None] = defaultdict(lambda: None)
         self.__temp_agreements: dict[int, Outcome | None] = defaultdict(lambda: None)
+        self.__neg_roles: dict[str, str] = dict()
 
-    def _get_ami(
-        self, negotiator: ChainNegotiator, role: str
-    ) -> NegotiatorMechanismInterface:
+    def _get_nmi(self, negotiator: ChainNegotiator) -> ChainNMI:
         """
         Returns a chain AMI instead of the standard AMI.
 
@@ -290,16 +275,16 @@ class ChainNegotiationsMechanism(
             step_time_limit=self.nmi.step_time_limit,
             n_steps=self.nmi.n_steps,
             dynamic_entry=self.nmi.dynamic_entry,
-            max_n_agents=self.nmi.max_n_agents,
+            # max_n_agents=self.nmi.max_n_agents,
             annotation=self.nmi.annotation,
             parent=self,
             negotiator=negotiator,  #
-            level=int(role) + 1,
+            level=int(self.__neg_roles[negotiator.id]) + 1,
         )
 
     def add(
         self,
-        negotiator: Negotiator,
+        negotiator: ChainNegotiator,
         *,
         preferences: Preferences | None = None,
         role: str | None = None,
@@ -327,27 +312,20 @@ class ChainNegotiationsMechanism(
             if self.__chain[level] is not None:
                 raise ValueError(f"A negotiator already exist in the role {role}")
             self.__chain[level] = negotiator
+            self.__neg_roles[negotiator.id] = role
             return
         self.__chain += [None] * (level - len(self.__chain) + 1)
         self.__chain[level] = negotiator
+        self.__neg_roles[negotiator.id] = role
 
     def _update_next(self) -> None:
+        assert self.__last_proposal is not None, "Last proposal is None"
         if self.__last_proposal.left:
             self.__next_agent = (self.__last_proposer_index - 1) % len(self.__chain)
         else:
             self.__next_agent = (self.__last_proposer_index + 1) % len(self.__chain)
 
     def __call__(self, state, action=None) -> MechanismStepResult:
-        # check that the chain is complete
-        """Make instance callable.
-
-        Args:
-            state: Current state.
-            action: Action.
-
-        Returns:
-            MechanismStepResult: The result.
-        """
         if not all(self.__chain):
             if self.dynamic_entry:
                 state.has_error = True
@@ -362,6 +340,7 @@ class ChainNegotiationsMechanism(
 
         # if this is the first proposal, get it from the left most agent and ask the next one to respond
         if self.__last_proposal is None:
+            assert negotiator is not None, "Negotiator is None"
             self.__last_proposal = negotiator.propose(self.state)
             self._update_next()
             assert self.__next_agent == 1
@@ -375,8 +354,10 @@ class ChainNegotiationsMechanism(
         ]
 
         if len(agreements) == len(self.__chain) - 1:
-            state.agreement = agreements
+            state.agreement = tuple(agreements)
+            state.results = tuple(agreements)
             return MechanismStepResult(state)
+        assert negotiator is not None, "Negotiator is None"
         response = negotiator.respond(
             self.state,
             self.__last_proposal.outcome,
@@ -419,18 +400,22 @@ class ChainNegotiationsMechanism(
             else:
                 assert self.__temp_agreements[agreement_index] is None
                 self.__temp_agreements[agreement_index] = self.__last_proposal.outcome
-            self.__last_proposal = self.__chain[
-                self.__last_proposer_index
-            ].on_acceptance(self.state, self.__last_proposal)
+            negotiator = self.__chain[self.__last_proposer_index]
+            assert negotiator is not None, "Negotiator is None"
+            self.__last_proposal = negotiator.on_acceptance(
+                self.state, self.__last_proposal
+            )
             self.__last_proposer_index = self.__next_agent
             self._update_next()
             return MechanismStepResult(state)
 
         # now it must be a rejection, ask the one who rejected to propose (in either direction)
-        self.__last_proposal = self.__chain[self.__next_agent].propose(self.state)
+        negotiator = self.__chain[self.__next_agent]
+        assert negotiator is not None, "Negotiator is None"
+        self.__last_proposal = negotiator.propose(self.state)
         self.__last_proposer_index = self.__next_agent
         self._update_next()
-        return MechanismStepResult()
+        return MechanismStepResult(self.state)
 
     def on_confirm(self, level: int, left: bool) -> bool:
         """
@@ -463,17 +448,16 @@ class MultiChainNegotiationsMechanism(
         self.__chain: list[list[MultiChainNegotiator]] = []
         self.__next_agent_level = 0
         self.__next_agent_number = 0
-        self.__last_proposal: Offer = None
+        self.__last_proposal: Offer | None = None
         self.__last_proposer_level: int = -1
         self.__last_proposer_number: int = -1
-        self.__agreements: dict[int, Agreement] = defaultdict(lambda: None)
-        self.__temp_agreements: dict[int, Agreement] = defaultdict(lambda: None)
+        self.__agreements: dict[int, Agreement] = defaultdict(lambda: None)  # type: ignore
+        self.__temp_agreements: dict[int, Agreement] = defaultdict(lambda: None)  # type: ignore
         self.__level: dict[str, int] = {}
         self.__number: dict[str, int] = {}
+        self.__neg_roles: dict[str, str] = dict()
 
-    def _get_ami(
-        self, negotiator: Negotiator, role: str
-    ) -> NegotiatorMechanismInterface:
+    def _get_ami(self, negotiator: MultiChainNegotiator) -> ChainNMI:
         """
         Returns a chain AMI instead of the standard AMI.
 
@@ -497,26 +481,17 @@ class MultiChainNegotiationsMechanism(
             annotation=self.nmi.annotation,
             parent=self,
             negotiator=negotiator,
-            level=int(role) + 1,
+            level=int(self.__neg_roles[negotiator.id]) + 1,
         )
 
     def add(
         self,
-        negotiator: Negotiator,
+        negotiator: MultiChainNegotiator,
         *,
         preferences: Preferences | None = None,
         role: str | None = None,
         **kwargs,
     ) -> bool | None:
-        """Add.
-
-        Args:
-            negotiator: Negotiator.
-            **kwargs: Additional keyword arguments.
-
-        Returns:
-            bool | None: The result.
-        """
         if role is None:
             raise ValueError(
                 "You cannot join this protocol without specifying the role. "
@@ -527,9 +502,9 @@ class MultiChainNegotiationsMechanism(
             return added
         level = int(role) + 1
         if len(self.__chain) > level:
-            if self.__chain[level] is not None:
+            if self.__chain[level]:
                 raise ValueError(f"A negotiator already exist in the role {role}")
-            self.__chain[level] = negotiator
+            self.__chain[level] = [negotiator]
             return
         self.__chain += [list() for _ in range(level - len(self.__chain) + 1)]
         self.__chain[level].append(negotiator)
@@ -537,6 +512,7 @@ class MultiChainNegotiationsMechanism(
         self.__number[negotiator.id] = len(self.__chain[level]) - 1
 
     def _update_next(self) -> None:
+        assert self.__last_proposal is not None, "Last proposal is None"
         if self.__last_proposal.left:
             self.__next_agent_level = (self.__last_proposer_level - 1) % len(
                 self.__chain
@@ -545,6 +521,9 @@ class MultiChainNegotiationsMechanism(
             self.__next_agent_level = (self.__last_proposer_level + 1) % len(
                 self.__chain
             )
+        assert (
+            self.__last_proposal.partner is not None
+        ), "Last Proposal's Partner is None"
         self.__next_agent_number = self.__number[self.__last_proposal.partner]
 
     def __call__(self, state, action=None) -> MechanismStepResult:
@@ -585,7 +564,8 @@ class MultiChainNegotiationsMechanism(
         ]
 
         if len(agreements) == len(self.__chain) - 1:
-            state.agreement = agreements
+            state.agreement = tuple(agreements)
+            state.results = tuple(agreements)
             return MechanismStepResult(state)
         response = negotiator.respond(
             self.state,
@@ -616,10 +596,11 @@ class MultiChainNegotiationsMechanism(
                 state.erred_agent = (
                     negotiator.owner.id if negotiator.owner is not None else ""
                 )
-                stae.error_details = (
-                    "Cannot end a negotiation chain with some agreements",
+                state.error_details = (
+                    "Cannot end a negotiation chain with some agreements"
                 )
-                return MechanismStepResult(stae)
+
+                return MechanismStepResult(state)
             state.broken = True
             return MechanismStepResult(state)
 
@@ -633,10 +614,20 @@ class MultiChainNegotiationsMechanism(
             )
             if not self.__last_proposal.temp:
                 assert agreement_index >= 0
-                self.__agreements[agreement_index] = self.__last_proposal.outcome
+                # TODO : check this. It is almost certainly wrong. I have no idea how to set negotiators here.
+                self.__agreements[agreement_index] = Agreement(
+                    outcome=self.__last_proposal.outcome,
+                    negotiators=self.__last_proposal.partner,
+                    level=agreement_index,
+                )
             else:
                 assert self.__temp_agreements[agreement_index] is None
-                self.__temp_agreements[agreement_index] = self.__last_proposal.outcome
+                self.__temp_agreements[agreement_index] = Agreement(
+                    outcome=self.__last_proposal.outcome,
+                    negotiators=self.__last_proposal.partner,
+                    level=agreement_index,
+                )
+
             self.__last_proposal = self.__chain[self.__last_proposer_level][
                 self.__last_proposer_number
             ].on_acceptance(self.state, self.__last_proposal)
@@ -654,7 +645,7 @@ class MultiChainNegotiationsMechanism(
         self._update_next()
         return MechanismStepResult(state)
 
-    def on_confirm(self, level: int, left: bool) -> None:
+    def on_confirm(self, level: int, left: bool) -> bool:
         """
         Called by negotiators to confirm their temporary accepted agreements
 
@@ -671,3 +662,4 @@ class MultiChainNegotiationsMechanism(
         if self.__agreements[level] is not None:
             raise ValueError(f"An agreement already exists at level {level}")
         self.__agreements[level] = self.__temp_agreements[level]
+        return True

@@ -333,7 +333,7 @@ class NegotiatorMechanismInterface:
     """Maximum allowed number of negotiators in the session. None indicates no limit"""
     _mechanism: Mechanism = field(alias="_mechanism")
     """A reference to the mechanism. MUST NEVER BE USED BY NEGOTIATORS. **must be treated as a private member**"""
-    annotation: dict[str, Any] = field(default=dict)
+    annotation: dict[str, Any] = field(factory=dict)
     """An arbitrary annotation as a `dict[str, Any]` that is always available for all negotiators"""
 
     #     def __copy__(self):
@@ -548,12 +548,12 @@ class NegotiatorMechanismInterface:
     #     return self.mechanism.negotiator_names
 
     @property
-    def agent_ids(self) -> list[str]:
+    def agent_ids(self) -> list[str | None]:
         """Gets the IDs of all agents owning all negotiators"""
         return self._mechanism.agent_ids
 
     @property
-    def agent_names(self) -> list[str]:
+    def agent_names(self) -> list[str | None]:
         """Gets the names of all agents owning all negotiators"""
         return self._mechanism.agent_names
 

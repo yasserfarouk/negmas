@@ -1509,9 +1509,13 @@ class ScenarioRegistry(dict[str, ScenarioInfo]):
 
 # Global registries
 mechanism_registry: Registry[MechanismInfo] = Registry(MechanismInfo)
+"""The gloabal mechanism registry."""
 negotiator_registry: Registry[NegotiatorInfo] = Registry(NegotiatorInfo)
+"""The global negotiator registry."""
 component_registry: Registry[ComponentInfo] = Registry(ComponentInfo)
+"""The global component registry."""
 scenario_registry: ScenarioRegistry = ScenarioRegistry()
+"""The global scenario registry."""
 
 
 def register_mechanism(

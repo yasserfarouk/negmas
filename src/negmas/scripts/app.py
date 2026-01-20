@@ -13,7 +13,8 @@ import urllib.request
 import zipfile
 from functools import partial
 from pathlib import Path
-from time import perf_counter
+from time import perf_counter, sleep
+from typing import TYPE_CHECKING
 
 import click
 import click_config_file
@@ -34,6 +35,14 @@ from negmas.tournaments import (
     evaluate_tournament,
     run_tournament,
 )
+from negmas.genius.bridge import (
+    genius_bridge_is_running,
+    genius_bridge_is_installed,
+    init_genius_bridge,
+)
+
+if TYPE_CHECKING:
+    from negmas.registry import RegistryInfo, Registry
 
 try:
     from .vendor.quick.quick import gui_option  # type: ignore
@@ -896,10 +905,10 @@ def genius(
     allow_agent_print: bool = False,
     # capture_output: bool = False,
 ):
-    if port and negmas.genius_bridge_is_running(port):
+    if port and genius_bridge_is_running(port):
         print(f"Genius Bridge is already running on port {port} ... exiting")
         sys.exit()
-    port = negmas.init_genius_bridge(
+    port = init_genius_bridge(
         path=path if path != "auto" else None,
         port=port,
         debug=debug,
@@ -925,6 +934,290 @@ def genius(
         exit(0)
     while True:
         pass
+
+
+@cli.command(help="Kill the genius bridge running on a specific port")
+@click.option(
+    "--port",
+    "-p",
+    default=DEFAULT_JAVA_PORT,
+    type=int,
+    help="Port number where the genius bridge is running. Pass 0 for the default value",
+)
+@click.option("--verbose/--silent", default=True, help="Verbose output")
+def kill_genius(port: int, verbose: bool = True):
+    """Kill the genius bridge running on the specified port.
+
+    This command first checks if something is listening on the port.
+    If yes, it tries to kill the bridge gracefully using kill().
+    If that fails, it kills whatever process is listening on the port using OS commands.
+    """
+    if port == 0:
+        port = DEFAULT_JAVA_PORT
+
+    # Check if something is listening on the port
+    import socket
+
+    s = socket.socket()
+    s.setsockopt(socket.SOL_SOCKET, socket.SO_REUSEADDR, 1)
+    try:
+        s.connect(("127.0.0.1", port))
+        s.close()
+    except (ConnectionRefusedError, OSError):
+        s.close()
+        if verbose:
+            print(f"[yellow]Warning: Nothing is listening on port {port}[/yellow]")
+        return
+
+    # Try to kill the bridge gracefully first
+    from negmas.genius.bridge import GeniusBridge, genius_bridge_is_running
+
+    if verbose:
+        print(f"Attempting to kill genius bridge on port {port}...")
+
+    # Try the graceful kill first
+    if GeniusBridge.kill(port, wait=True):
+        if not genius_bridge_is_running(port):
+            if verbose:
+                print(f"Successfully killed genius bridge on port {port}")
+            return
+
+    # If graceful kill failed, try forced kill (if we started the process)
+    if GeniusBridge.kill_forced(port, wait=True):
+        if not genius_bridge_is_running(port):
+            if verbose:
+                print(f"Successfully force-killed genius bridge on port {port}")
+            return
+
+    # If both failed, use OS-level commands to kill whatever is on the port
+    if verbose:
+        print("Graceful kill failed, attempting OS-level kill...")
+
+    try:
+        import subprocess
+        import platform
+
+        system = platform.system()
+
+        if system == "Darwin" or system == "Linux":
+            # Use lsof to find the process
+            result = subprocess.run(
+                ["lsof", "-ti", f":{port}"], capture_output=True, text=True, timeout=5
+            )
+
+            if result.returncode == 0 and result.stdout.strip():
+                pids = result.stdout.strip().split("\n")
+                for pid in pids:
+                    try:
+                        subprocess.run(["kill", "-9", pid], timeout=5)
+                        if verbose:
+                            print(f"Killed process {pid} listening on port {port}")
+                    except Exception as e:
+                        if verbose:
+                            print(f"Failed to kill process {pid}: {e}")
+
+                # Verify it's dead
+                sleep(0.5)
+                if not genius_bridge_is_running(port):
+                    if verbose:
+                        print(f"Successfully killed process on port {port}")
+                    return
+            else:
+                if verbose:
+                    print(f"Could not find process listening on port {port}")
+
+        elif system == "Windows":
+            # Use netstat to find the process
+            result = subprocess.run(
+                ["netstat", "-ano"], capture_output=True, text=True, timeout=5
+            )
+
+            if result.returncode == 0:
+                for line in result.stdout.split("\n"):
+                    if f":{port}" in line and "LISTENING" in line:
+                        parts = line.split()
+                        if parts:
+                            pid = parts[-1]
+                            try:
+                                subprocess.run(
+                                    ["taskkill", "/F", "/PID", pid], timeout=5
+                                )
+                                if verbose:
+                                    print(
+                                        f"Killed process {pid} listening on port {port}"
+                                    )
+
+                                # Verify it's dead
+                                sleep(0.5)
+                                if not genius_bridge_is_running(port):
+                                    if verbose:
+                                        print(
+                                            f"Successfully killed process on port {port}"
+                                        )
+                                    return
+                            except Exception as e:
+                                if verbose:
+                                    print(f"Failed to kill process {pid}: {e}")
+                        break
+        else:
+            if verbose:
+                print(f"Unsupported platform: {system}")
+            return
+
+    except FileNotFoundError as e:
+        if verbose:
+            print(f"Required command not found: {e}")
+    except Exception as e:
+        if verbose:
+            print(f"Failed to kill process on port {port}: {e}")
+
+    # Final check
+    if genius_bridge_is_running(port):
+        if verbose:
+            print(f"Failed to kill process on port {port}")
+        sys.exit(1)
+    else:
+        if verbose:
+            print(f"Process on port {port} is no longer running")
+
+
+@cli.command(help="Restart the genius bridge on a specific port")
+@click.option(
+    "--port",
+    "-p",
+    default=DEFAULT_JAVA_PORT,
+    type=int,
+    help="Port number where the genius bridge should run. Pass 0 for the default value",
+)
+@click.option(
+    "--path",
+    default="auto",
+    help='Path to geniusbridge.jar with embedded NegLoader. Use "auto" to '
+    "read the path from ~/negmas/config.json"
+    "\n\tConfig key is genius_bridge_jar"
+    "\nYou can download this jar from: "
+    f"{BASE_WEBSITE}geniusbridge.jar",
+)
+@click.option(
+    "--debug/--no-debug",
+    default=False,
+    help="Run the bridge in debug mode if --debug else silently",
+)
+@click.option("--verbose/--silent", default=True, help="Verbose output")
+@click.option("--save-logs/--no-logs", default=False, help="Save logs")
+@click.option(
+    "--die-on-exit/--no-die-on-exit",
+    type=bool,
+    default=False,
+    help="Whether to kill the bridge on exit. For future use. Currently it does nothing.",
+)
+@click.option(
+    "--use-shell/--no-shell",
+    type=bool,
+    default=False,
+    help="Whether to start the new process in a shell",
+)
+@click.option(
+    "--force-timeout/--no-forced-timeout",
+    type=bool,
+    default=True,
+    help="Whether to force a timeout on the bridge",
+)
+@click.option(
+    "--timeout",
+    default=0,
+    type=float,
+    help="The timeout to pass. Zero or negative numbers to disable and use the bridge's global timeout.",
+)
+@click.option(
+    "--log-path",
+    default=None,
+    type=click.Path(file_okay=False),
+    help="Directory to save logs within. Only used if --save-logs. If not given, ~/negmas/logs will be used",
+)
+def restart_genius(
+    port: int,
+    path: str,
+    debug: bool,
+    timeout: float,
+    force_timeout: bool = True,
+    save_logs: bool = False,
+    log_path: os.PathLike | None = None,
+    die_on_exit: bool = False,
+    use_shell: bool = False,
+    verbose: bool = False,
+    allow_agent_print: bool = False,
+):
+    """Restart the genius bridge on the specified port.
+
+    This command kills any existing bridge on the port and then starts a new one.
+    """
+    if port == 0:
+        port = DEFAULT_JAVA_PORT
+
+    from negmas.genius.bridge import GeniusBridge, genius_bridge_is_running
+
+    # First, kill any existing bridge on this port
+    if genius_bridge_is_running(port):
+        if verbose:
+            print(f"Killing existing genius bridge on port {port}...")
+
+        # Use the kill_genius logic
+        import socket
+
+        s = socket.socket()
+        s.setsockopt(socket.SOL_SOCKET, socket.SO_REUSEADDR, 1)
+        try:
+            s.connect(("127.0.0.1", port))
+            s.close()
+
+            # Try graceful kill
+            if not GeniusBridge.kill(port, wait=True):
+                # Try forced kill
+                GeniusBridge.kill_forced(port, wait=True)
+
+            # Wait a bit for the port to be released
+            sleep(1.0)
+
+            if genius_bridge_is_running(port):
+                print(
+                    f"[yellow]Warning: Failed to kill existing bridge on port {port}[/yellow]"
+                )
+                sys.exit(1)
+
+            if verbose:
+                print(f"Successfully killed existing bridge on port {port}")
+        except (ConnectionRefusedError, OSError):
+            s.close()
+
+    # Now start the bridge
+    if verbose:
+        print(f"Starting genius bridge on port {port}...")
+
+    result_port = init_genius_bridge(
+        path=path if path != "auto" else None,
+        port=port,
+        debug=debug,
+        timeout=timeout,
+        force_timeout=force_timeout,
+        save_logs=save_logs,
+        log_path=log_path,
+        die_on_exit=die_on_exit,
+        use_shell=use_shell,
+        verbose=verbose,
+        allow_agent_print=allow_agent_print,
+    )
+
+    if result_port > 0:
+        print(f"Successfully restarted genius bridge on port {result_port}")
+    elif result_port == 0:
+        print(
+            "[red]Failed to start. Try running 'java -jar $HOME/negmas/files/geniusbridge.jar' directly.[/red]"
+        )
+        sys.exit(1)
+    else:
+        print(f"[yellow]A bridge is already running on port {port}[/yellow]")
+        sys.exit(1)
 
 
 def download_and_set(key, url, file_name, extract=False):
@@ -1015,6 +1308,547 @@ def version():
     print(negmas.__version__)
 
 
+def _resolve_negotiator(spec: str, verbose: bool = False):
+    """Resolve a negotiator specification to a class or instance.
+
+    Supports multiple formats:
+    - source@negotiator: Registry lookup by source (e.g., 'negmas@AspirationNegotiator')
+    - source>negotiator: Registry lookup by source (DEPRECATED, use @ instead)
+    - source@key: Registry lookup by unique key (e.g., 'negmas@AspirationNegotiator#a1b2c3d4')
+    - short_name or key: Direct registry lookup (e.g., 'AspirationNegotiator' or 'AspirationNegotiator#a1b2c3d4')
+    - module.ClassName: Full Python class path (e.g., 'negmas.sao.AspirationNegotiator')
+    - genius:ClassName: Genius Java class (returns string for Genius bridge)
+
+    Returns:
+        For NegMAS negotiators: A negotiator class or the full type name string
+        For Genius negotiators: The Java class name string (without 'genius:' prefix)
+    """
+    from negmas import negotiator_registry
+    from negmas.helpers import get_class
+
+    # Handle genius: prefix
+    if spec.startswith("genius:"):
+        return spec[7:]  # Return Java class name without prefix
+
+    # Handle source@negotiator or source>negotiator format
+    # Support both @ (new) and > (deprecated, requires shell quoting)
+    separator = None
+    if "@" in spec:
+        separator = "@"
+    elif ">" in spec:
+        separator = ">"
+        if verbose:
+            click.echo(
+                f"  Warning: Using deprecated '>' separator. Consider using '@' instead (e.g., '{spec.replace('>', '@')}')",
+                err=True,
+            )
+
+    if separator:
+        source, name = spec.split(separator, 1)
+        source = source.strip()
+        name = name.strip()
+
+        # Query registry by source and name
+        results = negotiator_registry.query(source=source)
+
+        # Try exact key match first
+        if name in results:
+            info = results[name]
+            if verbose:
+                print(f"  Resolved '{spec}' to {info.full_type_name} (key: {name})")
+            return info.full_type_name
+
+        # Try short_name match
+        for key, info in results.items():
+            if info.short_name == name:
+                if verbose:
+                    print(f"  Resolved '{spec}' to {info.full_type_name} (key: {key})")
+                return info.full_type_name
+
+        # Not found in registry with that source
+        if verbose:
+            print(f"  Warning: '{name}' not found in registry with source '{source}'")
+        # Fall through to try as direct class name
+
+    # Try direct registry lookup (by key or short_name)
+    info = negotiator_registry.get(spec)
+    if info:
+        if verbose:
+            print(f"  Resolved '{spec}' to {info.full_type_name}")
+        return info.full_type_name
+
+    # Try short_name lookup
+    matches = negotiator_registry.get_by_short_name(spec)
+    if matches:
+        info = matches[0]
+        if verbose:
+            print(f"  Resolved '{spec}' to {info.full_type_name}")
+            if len(matches) > 1:
+                print("  Note: Multiple matches found, using first one")
+        return info.full_type_name
+
+    # Try as full class path
+    try:
+        cls = get_class(spec)
+        if cls is not None:
+            if verbose:
+                print(f"  Resolved '{spec}' to class {spec}")
+            return spec
+    except (ModuleNotFoundError, AttributeError, ImportError):
+        pass
+
+    # Assume it's a Genius Java class name if nothing else worked
+    if verbose:
+        print(f"  Treating '{spec}' as Genius Java class name")
+    return spec
+
+
+def _complete_negotiator(ctx, param, incomplete):
+    """Shell completion for negotiator specifications."""
+    from negmas import negotiator_registry
+
+    completions = []
+
+    # Determine which separator is being used (@ or >)
+    separator = "@" if "@" in incomplete else ">" if ">" in incomplete else None
+
+    # If incomplete contains separator, complete after the separator
+    if separator:
+        source, partial_name = incomplete.split(separator, 1)
+        # Query registry by source
+        results = negotiator_registry.query(source=source)
+
+        # Get unique short names
+        short_names = set()
+        for info in results.values():
+            if info.short_name.startswith(partial_name):
+                short_names.add(info.short_name)
+
+        # Return completions with source+separator prefix
+        for name in sorted(short_names):
+            completions.append(f"{source}{separator}{name}")
+    else:
+        # Complete source names first (prefer @ but also show >)
+        sources = set()
+        for info in negotiator_registry.values():
+            sources.add(info.source)
+
+        for source in sorted(sources):
+            if source.startswith(incomplete):
+                completions.append(f"{source}@")  # Prefer @ separator
+
+        # Also complete short names directly
+        short_names = set()
+        for info in negotiator_registry.values():
+            if info.short_name.startswith(incomplete):
+                short_names.add(info.short_name)
+
+        for name in sorted(short_names):
+            completions.append(name)
+
+    return completions[:50]  # Limit to 50 completions
+
+
+@cli.command(help="Run a negotiation between agents")
+@click.option(
+    "--agents",
+    "-a",
+    required=False,
+    shell_complete=_complete_negotiator,
+    help="Comma-separated list of agent specifications. Supports multiple formats:\\n"
+    "  - Registry with source: 'negmas@AspirationNegotiator' or 'anl@MyAgent'\\n"
+    "  - Registry key: 'AspirationNegotiator#a1b2c3d4'\\n"
+    "  - Registry short name: 'AspirationNegotiator'\\n"
+    "  - Full Python path: 'negmas.sao.AspirationNegotiator'\\n"
+    "  - Genius Java class: 'genius:agents.anac.y2015.Atlas3.Atlas3' or just 'agents.anac.y2015.Atlas3.Atlas3' in --in-genius mode",
+)
+@click.option(
+    "--scenario",
+    "-s",
+    required=False,
+    type=click.Path(exists=True),
+    help="Path to negotiation scenario (folder or file containing domain and profiles)",
+)
+@click.option(
+    "--steps",
+    "-n",
+    type=int,
+    default=-1,
+    help="Number of negotiation rounds (specify either --steps or --time, not both)",
+)
+@click.option(
+    "--time",
+    "-t",
+    type=int,
+    default=-1,
+    help="Time limit in seconds (specify either --steps or --time, not both)",
+)
+@click.option(
+    "--in-genius",
+    is_flag=True,
+    default=False,
+    help="Run the negotiation natively in Genius (all agents must be Genius agents). "
+    "In this mode, agents without 'genius:' prefix are treated as Genius Java class names.",
+)
+@click.option(
+    "--mechanism",
+    "-m",
+    default="genius.core.protocol.StackedAlternatingOffersProtocol",
+    help="Mechanism/protocol to use (Java class name for --in-genius mode)",
+)
+@click.option(
+    "--port",
+    "-p",
+    type=int,
+    default=DEFAULT_JAVA_PORT,
+    help="Port for Genius bridge (only used with --in-genius)",
+)
+@click.option("--verbose/--silent", default=True, help="Verbose output")
+@click.option(
+    "--list-agents",
+    is_flag=True,
+    default=False,
+    help="List available agents from the registry and exit (can filter by --source)",
+)
+@click.option(
+    "--source",
+    default=None,
+    help="Filter agents by source (e.g., 'negmas', 'anl'). Used with --list-agents or for validation.",
+)
+@click.option(
+    "--refresh-registry",
+    is_flag=True,
+    default=False,
+    help="Reload the registry from disk before running",
+)
+def negotiate(
+    agents: str,
+    scenario: str,
+    steps: int,
+    time: int,
+    in_genius: bool,
+    mechanism: str,
+    port: int,
+    verbose: bool,
+    list_agents: bool,
+    source: str | None,
+    refresh_registry: bool,
+):
+    """Run a negotiation between agents using a given scenario.
+
+    Examples:
+        # Run Genius agents in Genius
+        negmas negotiate --in-genius \\
+            --agents "agents.anac.y2015.Atlas3.Atlas3,agents.anac.y2015.RandomDance.RandomDance" \\
+            --scenario ~/negmas/scenarios/Laptop \\
+            --steps 100
+
+        # Run NegMAS agents from registry
+        negmas negotiate \\
+            --agents "negmas>AspirationNegotiator,negmas>NaiveTitForTatNegotiator" \\
+            --scenario ~/negmas/scenarios/Laptop \\
+            --steps 100
+
+        # Run NegMAS agents with full paths
+        negmas negotiate \\
+            --agents "negmas.sao.AspirationNegotiator,negmas.sao.NaiveTitForTatNegotiator" \\
+            --scenario ~/negmas/scenarios/Laptop \\
+            --steps 100
+
+        # Mix registry and full paths
+        negmas negotiate \\
+            --agents "negmas>AspirationNegotiator,negmas.sao.RandomNegotiator" \\
+            --scenario ~/negmas/scenarios/Laptop \\
+            --steps 100
+    """
+    from pathlib import Path
+    from negmas import negotiator_registry
+
+    # Validate required parameters if not listing agents
+    if not list_agents:
+        if not agents:
+            print("[red]Error: --agents is required (unless using --list-agents)[/red]")
+            sys.exit(1)
+        if not scenario:
+            print(
+                "[red]Error: --scenario is required (unless using --list-agents)[/red]"
+            )
+            sys.exit(1)
+
+    # Handle --refresh-registry flag
+    if refresh_registry:
+        from negmas.registry import load_registry
+
+        if verbose:
+            print("[yellow]Refreshing registry from disk...[/yellow]")
+        try:
+            # Try to load from default location
+            registry_path = Path.home() / ".negmas" / "registry"
+            if registry_path.exists():
+                load_registry(registry_path, registry_type="negotiator")
+                if verbose:
+                    print(f"[green]Registry reloaded from {registry_path}[/green]")
+            else:
+                if verbose:
+                    print(
+                        f"[yellow]No registry found at {registry_path}, using current registry[/yellow]"
+                    )
+        except Exception as e:
+            print(f"[yellow]Warning: Could not reload registry: {e}[/yellow]")
+
+    # Handle --list-agents flag
+    if list_agents:
+        print("\n[bold]Available Negotiators in Registry[/bold]\n")
+
+        # Query registry with source filter if provided
+        if source:
+            results = negotiator_registry.query(source=source)
+            print(f"Filtered by source: [cyan]{source}[/cyan]")
+        else:
+            results = dict(negotiator_registry)
+
+        if not results:
+            print(
+                f"[yellow]No negotiators found{f' with source {source}' if source else ''}[/yellow]"
+            )
+            sys.exit(0)
+
+        # Group by short_name
+        by_short_name: dict[str, list[tuple[str, object]]] = {}
+        for key, info in results.items():
+            short_name = info.short_name
+            if short_name not in by_short_name:
+                by_short_name[short_name] = []
+            by_short_name[short_name].append((key, info))
+
+        print(
+            f"Total: {len(results)} entries, {len(by_short_name)} unique negotiators\n"
+        )
+
+        # Display in table format
+        table_data = []
+        for short_name in sorted(by_short_name.keys()):
+            entries = by_short_name[short_name]
+            # Show first entry details
+            key, info = entries[0]
+            row = [
+                short_name,
+                info.source,
+                info.full_type_name.split(".")[-1]
+                if "." in info.full_type_name
+                else info.full_type_name,
+                f"{len(entries)} variant(s)" if len(entries) > 1 else "",
+            ]
+            table_data.append(row)
+
+        print(
+            tabulate(
+                table_data,
+                headers=["Short Name", "Source", "Class", "Notes"],
+                tablefmt="simple",
+            )
+        )
+
+        print("\n[dim]Usage examples:[/dim]")
+        if source:
+            print(
+                f"  negmas negotiate --agents '{source}>AspirationNegotiator,...' --scenario PATH --steps 100"
+            )
+        else:
+            print(
+                "  negmas negotiate --agents 'negmas>AspirationNegotiator,...' --scenario PATH --steps 100"
+            )
+        print(
+            "  negmas negotiate --agents 'AspirationNegotiator,...' --scenario PATH --steps 100"
+        )
+        sys.exit(0)
+
+    # Validate inputs
+    if (steps >= 0 and time >= 0) or (steps < 0 and time < 0):
+        print(
+            "[red]Error: Must specify exactly one of --steps or --time (not both, not neither)[/red]"
+        )
+        sys.exit(1)
+
+    # Parse agents list
+    agent_specs = [a.strip() for a in agents.split(",")]
+
+    # Resolve all agent specifications with validation
+    if verbose:
+        print(f"\nResolving {len(agent_specs)} agent specifications...")
+
+    agent_list = []
+    has_genius_negotiators = False
+
+    for spec in agent_specs:
+        resolved = _resolve_negotiator(spec, verbose=verbose)
+        agent_list.append(resolved)
+
+        # Validation: Check if resolved negotiator exists in registry (if not a Genius class)
+        if not in_genius and "." in resolved:  # Likely a Python class path
+            from negmas.helpers import get_class
+
+            try:
+                cls = get_class(resolved)
+                if cls is None:
+                    print(
+                        f"[yellow]Warning: Could not load class '{resolved}' for spec '{spec}'[/yellow]"
+                    )
+                else:
+                    # Check if this is a GeniusNegotiator subclass
+                    try:
+                        from negmas.genius.negotiator import GeniusNegotiator
+
+                        if issubclass(cls, GeniusNegotiator):
+                            has_genius_negotiators = True
+                            if verbose:
+                                print(f"  Detected Genius negotiator: {resolved}")
+                    except (ImportError, TypeError):
+                        pass
+            except Exception as e:
+                print(f"[yellow]Warning: Error validating '{spec}': {e}[/yellow]")
+
+    # If we have Genius negotiators in NegMAS mode, ensure bridge is running
+    if not in_genius and has_genius_negotiators:
+        if not genius_bridge_is_running(port):
+            if verbose:
+                print(
+                    f"\n[yellow]Genius negotiators detected but bridge is not running on port {port}[/yellow]"
+                )
+
+            # Check if bridge is installed
+            if not genius_bridge_is_installed():
+                print("[red]Error: Genius bridge is not installed[/red]")
+                print(
+                    "\n[yellow]Please install the bridge first with:[/yellow] negmas genius-setup"
+                )
+                print(
+                    "[dim]This will download the geniusbridge.jar file to ~/negmas/files/[/dim]"
+                )
+                sys.exit(1)
+
+            if verbose:
+                print("[yellow]Starting Genius bridge automatically...[/yellow]")
+            try:
+                init_genius_bridge(port=port, verbose=verbose)
+                if verbose:
+                    print(
+                        f"[green]Genius bridge started successfully on port {port}[/green]"
+                    )
+                # Give it a moment to fully initialize
+                sleep(0.5)
+            except Exception as e:
+                print(f"[red]Error starting Genius bridge: {e}[/red]")
+                print(
+                    "\n[yellow]Try starting the bridge manually with:[/yellow] negmas genius"
+                )
+                sys.exit(1)
+        elif verbose and has_genius_negotiators:
+            print(f"[green]Genius bridge is already running on port {port}[/green]")
+
+    if verbose:
+        print(f"\nRunning negotiation with {len(agent_list)} agents")
+        print(f"Scenario: {scenario}")
+        print(f"Steps: {steps if steps >= 0 else 'N/A'}")
+        print(f"Time limit: {time if time >= 0 else 'N/A'}")
+        print(f"Mode: {'Genius (native)' if in_genius else 'NegMAS'}")
+
+    scenario_path = Path(scenario)
+
+    if in_genius:
+        # Run negotiation in Genius
+        from negmas.inout import load_genius_domain_from_folder
+        from negmas.genius.bridge import run_native_genius_negotiation
+
+        # Load scenario
+        try:
+            if scenario_path.is_dir():
+                scen = load_genius_domain_from_folder(scenario_path)
+            else:
+                print(
+                    "[red]Error: Scenario must be a directory for --in-genius mode[/red]"
+                )
+                sys.exit(1)
+        except Exception as e:
+            print(f"[red]Error loading scenario: {e}[/red]")
+            sys.exit(1)
+
+        if verbose:
+            print("\nUsing Genius agents:")
+            for i, agent in enumerate(agent_list):
+                print(f"  {i + 1}. {agent}")
+
+        # Check if genius bridge is running, start if needed
+        if not genius_bridge_is_running(port):
+            if verbose:
+                print(f"\n[yellow]Genius bridge is not running on port {port}[/yellow]")
+
+            # Check if bridge is installed
+            if not genius_bridge_is_installed():
+                print("[red]Error: Genius bridge is not installed[/red]")
+                print(
+                    "\n[yellow]Please install the bridge first with:[/yellow] negmas genius-setup"
+                )
+                print(
+                    "[dim]This will download the geniusbridge.jar file to ~/negmas/files/[/dim]"
+                )
+                sys.exit(1)
+
+            if verbose:
+                print("[yellow]Starting Genius bridge automatically...[/yellow]")
+            try:
+                init_genius_bridge(port=port, verbose=verbose)
+                if verbose:
+                    print(
+                        f"[green]Genius bridge started successfully on port {port}[/green]"
+                    )
+                # Give it a moment to fully initialize
+                sleep(0.5)
+            except Exception as e:
+                print(f"[red]Error starting Genius bridge: {e}[/red]")
+                print(
+                    "\n[yellow]Try starting the bridge manually with:[/yellow] negmas genius"
+                )
+                sys.exit(1)
+        elif verbose:
+            print(f"[green]Genius bridge is already running on port {port}[/green]")
+
+        # Run negotiation
+        try:
+            state = run_native_genius_negotiation(
+                negotiators=agent_list,
+                scenario=scen,
+                n_steps=steps if steps >= 0 else -1,
+                time_limit=time if time >= 0 else -1,
+                mechanism_type=mechanism,
+                port=port,
+                auto_start_bridge=False,  # We already started it above
+            )
+
+            if verbose:
+                print("\n[green]Negotiation completed successfully![/green]")
+                print(f"Final step: {state.step}")
+                print(f"Agreement: {state.agreement}")
+                if state.agreement:
+                    print("[green]Agreement reached![/green]")
+                else:
+                    print("[yellow]No agreement reached[/yellow]")
+        except Exception as e:
+            print(f"[red]Error running negotiation: {e}[/red]")
+            import traceback
+
+            if verbose:
+                traceback.print_exc()
+            sys.exit(1)
+    else:
+        # Run negotiation in NegMAS
+        print("[yellow]NegMAS-native negotiation not yet implemented in CLI[/yellow]")
+        print(
+            "[yellow]Use --in-genius flag to run in Genius, or use the Python API[/yellow]"
+        )
+        sys.exit(1)
+
+
 # ============================================================================
 # Registry commands
 # ============================================================================
@@ -1026,7 +1860,7 @@ def registry():
     pass
 
 
-def _get_registry(registry_type: str):
+def _get_registry(registry_type: str) -> Registry[RegistryInfo] | None:
     """Get the appropriate registry based on type."""
     from negmas import (
         mechanism_registry,
@@ -1035,15 +1869,15 @@ def _get_registry(registry_type: str):
         scenario_registry,
     )
 
-    registries = {
-        "mechanism": mechanism_registry,
-        "mechanisms": mechanism_registry,
-        "negotiator": negotiator_registry,
-        "negotiators": negotiator_registry,
-        "component": component_registry,
-        "components": component_registry,
-        "scenario": scenario_registry,
-        "scenarios": scenario_registry,
+    registries: dict[str, Registry[RegistryInfo]] = {
+        "mechanism": mechanism_registry,  # type: ignore[dict-item]
+        "mechanisms": mechanism_registry,  # type: ignore[dict-item]
+        "negotiator": negotiator_registry,  # type: ignore[dict-item]
+        "negotiators": negotiator_registry,  # type: ignore[dict-item]
+        "component": component_registry,  # type: ignore[dict-item]
+        "components": component_registry,  # type: ignore[dict-item]
+        "scenario": scenario_registry,  # type: ignore[dict-item]
+        "scenarios": scenario_registry,  # type: ignore[dict-item]
     }
     return registries.get(registry_type.lower())
 
@@ -1536,7 +2370,7 @@ def search(
         for name, info in reg.items():
             # For scenarios, match against the scenario name, not the path
             if reg_type == "scenario":
-                match_name = info.name if case_sensitive else info.name.lower()
+                match_name = info.name if case_sensitive else info.name.lower()  # type: ignore[attr-defined]
             else:
                 match_name = name if case_sensitive else name.lower()
             match_pattern = pattern if case_sensitive else pattern.lower()
@@ -1787,19 +2621,19 @@ def tags(registry_type, output_format, count):
     # Component subtypes filter components by component_type
     component_subtypes = {"acceptance", "offering", "model"}
 
-    registries = []
+    registries: list[tuple[str, Registry[RegistryInfo]]] = []
     component_filter = None  # For filtering component subtypes
 
     if registry_type in ("all", "any"):
         registries = [
-            ("mechanisms", mechanism_registry),
-            ("negotiators", negotiator_registry),
-            ("components", component_registry),
-            ("scenarios", scenario_registry),
+            ("mechanisms", mechanism_registry),  # type: ignore[list-item]
+            ("negotiators", negotiator_registry),  # type: ignore[list-item]
+            ("components", component_registry),  # type: ignore[list-item]
+            ("scenarios", scenario_registry),  # type: ignore[list-item]
         ]
     elif registry_type in component_subtypes:
         # Filter components by component_type
-        registries = [(registry_type, component_registry)]
+        registries = [(registry_type, component_registry)]  # type: ignore[list-item]
         component_filter = registry_type
     else:
         reg = _get_registry(registry_type)
@@ -1815,7 +2649,7 @@ def tags(registry_type, output_format, count):
                 if component_filter is not None:
                     if (
                         not hasattr(info, "component_type")
-                        or info.component_type != component_filter
+                        or info.component_type != component_filter  # type: ignore[attr-defined]
                     ):
                         continue
                 for tag in info.tags:
@@ -1841,7 +2675,7 @@ def tags(registry_type, output_format, count):
                 columns = [registry_type]
 
             for tag in sorted(tag_counts.keys()):
-                row = {"tag": tag}
+                row: dict[str, str | int] = {"tag": tag}
                 total = 0
                 for col in columns:
                     c = tag_counts[tag].get(col, 0)
@@ -1859,7 +2693,7 @@ def tags(registry_type, output_format, count):
                 for info in reg.values():
                     if (
                         hasattr(info, "component_type")
-                        and info.component_type == component_filter
+                        and info.component_type == component_filter  # type: ignore[attr-defined]
                     ):
                         all_tags |= info.tags
             else:

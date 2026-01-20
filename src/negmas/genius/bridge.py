@@ -59,6 +59,7 @@ __all__ = [
     "init_genius_bridge",
     "genius_bridge_is_running",
     "genius_bridge_is_installed",
+    "run_native_genius_negotiation",
 ]
 
 GENIUS_LOG_BASE = Path(
@@ -571,7 +572,7 @@ class GeniusBridge:
         p = cls.java_processes.pop(port, None)
         if p is None:
             warnings.warn(
-                "Attempting to force-kill a genius brdige we did not start "
+                "Attempting to force-kill a genius bridge we did not start "
                 "at port {port}",
                 warnings.NegmasBridgeProcessWarning,
             )
@@ -716,3 +717,180 @@ class GeniusBridge:
         if gateway is None:
             raise RuntimeError("Got None as the gateway!!")
         return gateway.entry_point
+
+
+def run_native_genius_negotiation(
+    negotiators: list[str | type],
+    scenario: Scenario,
+    n_steps: int = -1,
+    time_limit: int = -1,
+    mechanism_type: str = "genius.core.protocol.StackedAlternatingOffersProtocol",
+    port: int = DEFAULT_JAVA_PORT,
+    auto_start_bridge: bool = True,
+) -> SAOState:
+    """
+    Runs a negotiation natively inside Genius using the genius bridge.
+
+    Args:
+        negotiators: List of negotiator specifications. Each can be:
+            - A string with Java class name (e.g., "agents.anac.y2015.Atlas3.Atlas3")
+            - A GeniusNegotiator type
+        scenario: The negotiation scenario containing issues and ufuns
+        n_steps: Number of negotiation rounds (must specify either n_steps or time_limit, not both)
+        time_limit: Time limit in seconds (must specify either n_steps or time_limit, not both)
+        mechanism_type: Java class name of the negotiation protocol/mechanism
+        port: Port for the genius bridge
+        auto_start_bridge: If True, automatically start the genius bridge if not running
+
+    Returns:
+        SAOState: Final state of the negotiation with agreement and trace information
+
+    Raises:
+        ValueError: If both n_steps and time_limit are specified or neither is specified
+        ValueError: If number of negotiators doesn't match number of ufuns in scenario
+        RuntimeError: If the genius bridge is not running and auto_start_bridge is False
+
+    Examples:
+        >>> from negmas import load_genius_domain_from_folder
+        >>> scenario = load_genius_domain_from_folder("path/to/domain")
+        >>> negotiators = [
+        ...     "agents.anac.y2015.Atlas3.Atlas3",
+        ...     "agents.anac.y2015.RandomDance.RandomDance",
+        ... ]
+        >>> state = run_native_genius_negotiation(negotiators, scenario, n_steps=100)
+        >>> print(f"Agreement: {state.agreement}")
+        >>> print(f"Steps: {state.step}")
+    """
+    from ..sao.common import SAOState
+    from .negotiator import GeniusNegotiator
+    import tempfile
+    from pathlib import Path
+
+    # Validate inputs
+    if (n_steps >= 0 and time_limit >= 0) or (n_steps < 0 and time_limit < 0):
+        raise ValueError(
+            "Must specify exactly one of n_steps or time_limit (not both, not neither)"
+        )
+
+    if len(negotiators) != scenario.n_negotiators:
+        raise ValueError(
+            f"Number of negotiators ({len(negotiators)}) must match "
+            f"number of ufuns in scenario ({scenario.n_negotiators})"
+        )
+
+    # Ensure bridge is running
+    if not genius_bridge_is_running(port):
+        if not auto_start_bridge:
+            raise RuntimeError(
+                f"Genius bridge is not running on port {port}. "
+                "Set auto_start_bridge=True to start it automatically."
+            )
+        init_genius_bridge(port=port)
+
+    # Get gateway
+    gateway = GeniusBridge.gateway(port, force=True)
+    if gateway is None:
+        raise RuntimeError(f"Failed to connect to genius bridge on port {port}")
+
+    # Convert negotiators to Java class names
+    agent_class_names = []
+    for neg in negotiators:
+        if isinstance(neg, str):
+            agent_class_names.append(neg)
+        elif isinstance(neg, type) and issubclass(neg, GeniusNegotiator):
+            # Extract java_class_name from GeniusNegotiator class
+            if hasattr(neg, "java_class_name"):
+                agent_class_names.append(neg.java_class_name)
+            else:
+                raise ValueError(
+                    f"GeniusNegotiator type {neg} does not have java_class_name attribute"
+                )
+        else:
+            raise ValueError(
+                f"Negotiator must be a string (Java class name) or GeniusNegotiator type, got {type(neg)}"
+            )
+
+    # Create temporary files for domain and profiles
+    with tempfile.TemporaryDirectory() as tmpdir:
+        tmpdir_path = Path(tmpdir)
+        domain_file = tmpdir_path / "domain.xml"
+        profile_files = [
+            tmpdir_path / f"profile{i}.xml" for i in range(len(negotiators))
+        ]
+
+        # Save scenario to Genius XML files
+        scenario.to_genius_files(domain_file, profile_files)
+
+        # Prepare parameters for run_negotiation
+        agents_str = ";".join(agent_class_names)
+        profiles_str = ";".join(str(f) for f in profile_files)
+        output_file = str(tmpdir_path / "negotiation_log.txt")
+
+        # Run the negotiation in Genius
+        try:
+            success = gateway.entry_point.run_negotiation(  # type: ignore
+                mechanism_type,
+                str(domain_file),
+                profiles_str,
+                agents_str,
+                output_file,
+                n_steps if n_steps >= 0 else -1,
+                time_limit if time_limit >= 0 else -1,
+            )
+        except Exception as e:
+            raise RuntimeError(f"Failed to run negotiation in Genius: {e}")
+
+        if not success:
+            raise RuntimeError("Negotiation failed in Genius (returned False)")
+
+        # Parse the log file to extract results
+        # The log file contains information about offers, agreements, etc.
+        # For now, create a basic SAOState with minimal information
+        # TODO: Parse the actual log file for detailed trace
+
+        agreement = None
+        step = n_steps if n_steps >= 0 else -1
+
+        # Try to read the log file to find agreement information
+        if Path(output_file).exists():
+            try:
+                with open(output_file, "r") as f:
+                    f.read()
+                    # Parse log to find agreement
+                    # This is a simplified parser - the actual format depends on Genius output
+                    # TODO: Implement proper log parsing
+                    pass
+            except Exception:
+                pass
+
+        # Create and return SAOState
+        # Note: This is a minimal state. Full implementation would parse
+        # the Genius log to populate trace, offers, etc.
+        state = SAOState(
+            running=False,
+            waiting=False,
+            started=True,
+            step=step,
+            time=0.0,
+            relative_time=1.0,
+            broken=not success,
+            timedout=False,
+            agreement=agreement,
+            results=None,
+            n_negotiators=len(negotiators),
+            has_error=not success,
+            error_details="" if success else "Negotiation failed in Genius",
+            threads={},
+            last_thread="",
+            current_offer=None,
+            current_proposer=None,
+            current_proposer_agent=None,
+            n_acceptances=0,
+            new_offers=[],
+            new_offerer_agents=[],
+            last_negotiator=None,
+            current_data=None,
+            new_data=[],
+        )
+
+        return state

@@ -5,7 +5,7 @@ from __future__ import annotations
 from abc import abstractmethod
 from typing import TYPE_CHECKING
 
-from negmas.common import Distribution
+from negmas.common import Distribution, Value
 
 if TYPE_CHECKING:
     from negmas.common import MechanismState, NegotiatorMechanismInterface
@@ -80,10 +80,10 @@ class StateDependentUFunMixin:
         offer: Outcome,
         nmi: NegotiatorMechanismInterface | None = None,
         state: MechanismState | None = None,
-    ) -> Value | None:
+    ) -> Value:
         """Evaluates the offer given a session and state"""
 
-    def eval(self, offer: Outcome) -> Distribution:
+    def eval(self, offer: Outcome) -> Value:
         """Eval.
 
         Args:

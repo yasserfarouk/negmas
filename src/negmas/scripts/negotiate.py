@@ -467,6 +467,56 @@ def complete_negotiator(incomplete: str) -> list[str]:
     return sorted(completions[:50])  # Limit to 50 completions
 
 
+def complete_scenario(incomplete: str) -> list[str]:
+    """Provide tab completion for scenario names.
+
+    This function provides completions for:
+    - Scenario names (e.g., CameraB)
+    - Source@name format (e.g., negmas@CameraB)
+    """
+    completions = []
+
+    try:
+        from negmas import scenario_registry
+    except ImportError:
+        return completions
+
+    # If typing source@ or source>, complete with source names and scenario names
+    if "@" in incomplete or ">" in incomplete:
+        sep = "@" if "@" in incomplete else ">"
+        parts = incomplete.split(sep)
+        if len(parts) == 2:
+            source, partial_name = parts
+            # Get scenarios from that source
+            try:
+                results = {
+                    k: v for k, v in scenario_registry.items() if v.source == source
+                }
+                for info in results.values():
+                    full = f"{source}{sep}{info.name}"
+                    if full.startswith(incomplete):
+                        completions.append(full)
+            except Exception:
+                pass
+        else:
+            # Just started typing source, show source names
+            sources = set()
+            for info in scenario_registry.values():
+                sources.add(info.source)
+            for source in sorted(sources):
+                completions.append(f"{source}{sep}")
+    else:
+        # Complete with scenario names
+        seen = set()
+        for info in scenario_registry.values():
+            name = info.name
+            if name not in seen and name.startswith(incomplete):
+                completions.append(name)
+                seen.add(name)
+
+    return sorted(completions[:50])  # Limit to 50 completions
+
+
 def resolve_negotiator_from_registry(
     spec: str, verbose: bool = False, on_multiple_matches: str = "warn"
 ) -> str | None:
@@ -639,6 +689,194 @@ def _show_match_table(spec: str, matches: list, selected) -> None:
     print()
 
 
+def resolve_scenario_from_registry(
+    spec: str, verbose: bool = False, on_multiple_matches: str = "warn"
+) -> Path | None:
+    """Try to resolve a scenario specification from the registry.
+
+    Supports multiple formats:
+    - source@scenario: Registry lookup by source (e.g., 'negmas@CameraB')
+    - source>scenario: Registry lookup by source (DEPRECATED, use @ instead)
+    - name: Direct registry lookup by name (e.g., 'CameraB')
+
+    When multiple matches are found (without explicit source), preference is given to:
+    1. source='negmas' (native implementation)
+    2. Any non-genius source (native before genius wrappers)
+    3. Any source (if no native found)
+
+    Args:
+        spec: Scenario specification string
+        verbose: Print resolution details
+        on_multiple_matches: What to do when multiple matches found: 'fail', 'warn', or 'silent'
+
+    Returns:
+        Path to scenario if found in registry, None otherwise
+    """
+    try:
+        from negmas import scenario_registry
+    except ImportError:
+        return None
+
+    # Handle source@scenario or source>scenario format
+    # Support both @ (new) and > (deprecated, requires shell quoting)
+    separator = None
+    if "@" in spec:
+        separator = "@"
+    elif ">" in spec:
+        separator = ">"
+        if verbose:
+            print(
+                f"[yellow]  Note: '>' separator is deprecated, use '@' instead: {spec.replace('>', '@')}[/yellow]"
+            )
+
+    if separator:
+        source, _, scenario_spec = spec.partition(separator)
+
+        # Check if it's a direct path lookup (source@key where key is the full path)
+        if scenario_spec in scenario_registry:
+            info = scenario_registry[scenario_spec]
+            if info.source == source or source == "any":
+                if verbose:
+                    print(
+                        f"[green]  Found scenario by path: {info.name} ({info.path})[/green]"
+                    )
+                return info.path
+
+        # Try lookup by name within specified source
+        matches = [
+            info
+            for info in scenario_registry.values()
+            if info.name == scenario_spec and (info.source == source or source == "any")
+        ]
+
+        if not matches:
+            if verbose:
+                print(
+                    f"[yellow]  No scenario found for: {source}{separator}{scenario_spec}[/yellow]"
+                )
+            return None
+
+        if len(matches) == 1:
+            if verbose:
+                print(
+                    f"[green]  Found: {matches[0].name} from {matches[0].source}[/green]"
+                )
+            return matches[0].path
+
+        # Multiple matches with explicit source - shouldn't happen, but handle it
+        if on_multiple_matches == "silent" and not verbose:
+            return matches[0].path
+
+        print(
+            f"[yellow]  Multiple scenarios match '{scenario_spec}' in source '{source}'[/yellow]"
+        )
+        _show_scenario_match_table(spec, matches, matches[0])
+        if on_multiple_matches == "fail":
+            raise ValueError(
+                f"Multiple scenarios match '{spec}'. Specify the full path to choose one."
+            )
+        return matches[0].path
+
+    # No explicit source - try direct lookup
+    # First try exact key match
+    if spec in scenario_registry:
+        info = scenario_registry[spec]
+        if verbose:
+            print(f"[green]  Found scenario by key: {info.name} ({info.path})[/green]")
+        return info.path
+
+    # Try lookup by name
+    matches = scenario_registry.get_by_name(spec)
+
+    if not matches:
+        return None
+
+    if len(matches) == 1:
+        if verbose:
+            print(f"[green]  Found: {matches[0].name} from {matches[0].source}[/green]")
+        return matches[0].path
+
+    # Multiple matches - apply priority rules
+    # Priority 1: source='negmas'
+    negmas_matches = [m for m in matches if m.source == "negmas"]
+    if negmas_matches:
+        info = negmas_matches[0]
+        if on_multiple_matches != "silent" or verbose:
+            print(
+                f"[yellow]  Multiple scenarios match '{spec}', using 'negmas' source[/yellow]"
+            )
+            if on_multiple_matches == "warn" or on_multiple_matches == "fail":
+                _show_scenario_match_table(spec, matches, info)
+        if on_multiple_matches == "fail":
+            raise ValueError(
+                f"Multiple scenarios match '{spec}'. Use source@name format to specify which one."
+            )
+        return info.path
+
+    # Priority 2: non-genius sources
+    non_genius_matches = [m for m in matches if m.source != "genius"]
+    if non_genius_matches:
+        info = non_genius_matches[0]
+        if on_multiple_matches != "silent" or verbose:
+            print(
+                f"[yellow]  Multiple scenarios match '{spec}', using non-genius source[/yellow]"
+            )
+            if on_multiple_matches == "warn" or on_multiple_matches == "fail":
+                _show_scenario_match_table(spec, matches, info)
+        if on_multiple_matches == "fail":
+            raise ValueError(
+                f"Multiple scenarios match '{spec}'. Use source@name format to specify which one."
+            )
+        return info.path
+
+    # All are genius wrappers - use first one
+    info = matches[0]
+    if verbose or on_multiple_matches != "silent":
+        print(
+            f"[yellow]  Multiple Genius scenarios match '{spec}', using first: {info.path}[/yellow]"
+        )
+        if on_multiple_matches == "fail" or (
+            on_multiple_matches == "warn" and not verbose
+        ):
+            _show_scenario_match_table(spec, matches, info)
+    if on_multiple_matches == "fail":
+        raise ValueError(
+            f"Multiple scenarios match '{spec}'. Use source@name format to specify which one."
+        )
+    return info.path
+
+
+def _show_scenario_match_table(spec: str, matches: list, selected) -> None:
+    """Show a table of all scenario matches with the selected one highlighted."""
+    from tabulate import tabulate
+
+    print(f"\n  [bold]Available options for '{spec}':[/bold]")
+    table_data = []
+    for m in matches:
+        is_selected = m.path == selected.path
+        marker = "→ " if is_selected else "  "
+        # Determine how to invoke this specific option
+        invoke_as = f"{m.source}@{m.name}"
+        # Show path relative to current directory if possible
+        try:
+            rel_path = m.path.relative_to(Path.cwd())
+            path_display = str(rel_path)
+        except ValueError:
+            path_display = str(m.path)
+
+        row = [f"{marker}{m.name}", m.source, path_display, invoke_as]
+        table_data.append(row)
+
+    print(
+        tabulate(
+            table_data,
+            headers=["Name", "Source", "Path", "Invoke As"],
+            tablefmt="simple",
+        )
+    )
+    print()
+
+
 def get_negotiator(
     class_name: str, on_multiple_matches: str = "warn"
 ) -> type[Negotiator] | Callable[[str], Negotiator]:
@@ -785,12 +1023,13 @@ def diff(x: tuple[float, ...], lst: list[tuple[float, ...]]):
 
 @app.command()
 def run(
-    scenario: Optional[Path] = typer.Option(
+    scenario: Optional[str] = typer.Option(
         None,
         "--scenario",
         "-S",
         show_default="Generate A new Scenario",
-        help="The scenario to negotiate about",
+        autocompletion=complete_scenario,
+        help="The scenario to negotiate about. Can specify as: scenario name (e.g. CameraB), source@name (e.g. negmas@CameraB), or a file path",
     ),
     protocol: str = typer.Option(
         "SAO",
@@ -1238,7 +1477,32 @@ def run(
         steps = float("inf")
     if timelimit is None:
         timelimit = float("inf")
-    if scenario is None:
+
+    # Try to resolve scenario from registry if needed
+    scenario_path: Path | None = None
+    if scenario is not None:
+        # Check if it's a registry spec (contains @ or >) or a name in the registry
+        if "@" in scenario or ">" in scenario or not Path(scenario).exists():
+            resolved_path = resolve_scenario_from_registry(
+                scenario, verbose=verbosity > 0, on_multiple_matches=on_multiple_matches
+            )
+            if resolved_path:
+                scenario_path = resolved_path
+                if verbosity > 0:
+                    print(
+                        f"[green]Resolved scenario '{scenario}' to {scenario_path}[/green]"
+                    )
+            elif not Path(scenario).exists():
+                print(
+                    f"[red]Scenario '{scenario}' not found in registry or as a file[/red]"
+                )
+                exit(1)
+            else:
+                scenario_path = Path(scenario)
+        else:
+            scenario_path = Path(scenario)
+
+    if scenario_path is None:
         n_ufuns = len(negotiators)
         if not n_ufuns:
             print("[red]You must either specify a domain or negotiators[/red]")
@@ -1274,12 +1538,12 @@ def run(
         current_scenario = Scenario(os, ufuns, mechanism_type=get_protocol(protocol))
     else:
         current_scenario = Scenario.from_genius_folder(
-            scenario, ignore_reserved=False, ignore_discount=not discount
+            scenario_path, ignore_reserved=False, ignore_discount=not discount
         )
     assert current_scenario is not None
     saved_scenario: Scenario = deepcopy(current_scenario)
     if not current_scenario:
-        print(f"Failed to load scenario from {scenario}")
+        print(f"Failed to load scenario from {scenario_path}")
         return
     if normalize:
         current_scenario.normalize()
