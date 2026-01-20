@@ -43,6 +43,7 @@ from negmas.genius.bridge import (
 from negmas.scripts.negotiate_core import (
     resolve_negotiator_from_registry,
     resolve_scenario_from_registry,
+    list_scenarios as list_scenarios_from_registry,
 )
 
 if TYPE_CHECKING:
@@ -1420,9 +1421,20 @@ def _complete_negotiator(ctx, param, incomplete):
     help="List available agents from the registry and exit (can filter by --source)",
 )
 @click.option(
+    "--list-scenarios",
+    is_flag=True,
+    default=False,
+    help="List available scenarios from the registry and exit (can filter by --scenario-source)",
+)
+@click.option(
     "--source",
     default=None,
     help="Filter agents by source (e.g., 'negmas', 'anl'). Used with --list-agents or for validation.",
+)
+@click.option(
+    "--scenario-source",
+    default=None,
+    help="Filter scenarios by source (e.g., 'negmas', 'genius'). Used with --list-scenarios.",
 )
 @click.option(
     "--refresh-registry",
@@ -1446,7 +1458,9 @@ def negotiate(
     port: int,
     verbose: bool,
     list_agents: bool,
+    list_scenarios: bool,
     source: str | None,
+    scenario_source: str | None,
     refresh_registry: bool,
     on_multiple_matches: str,
 ):
@@ -1480,14 +1494,16 @@ def negotiate(
     from pathlib import Path
     from negmas import negotiator_registry
 
-    # Validate required parameters if not listing agents
-    if not list_agents:
+    # Validate required parameters if not listing agents or scenarios
+    if not list_agents and not list_scenarios:
         if not agents:
-            print("[red]Error: --agents is required (unless using --list-agents)[/red]")
+            print(
+                "[red]Error: --agents is required (unless using --list-agents or --list-scenarios)[/red]"
+            )
             sys.exit(1)
         if not scenario:
             print(
-                "[red]Error: --scenario is required (unless using --list-agents)[/red]"
+                "[red]Error: --scenario is required (unless using --list-agents or --list-scenarios)[/red]"
             )
             sys.exit(1)
 
@@ -1577,6 +1593,11 @@ def negotiate(
         print(
             "  negmas negotiate --agents 'AspirationNegotiator,...' --scenario PATH --steps 100"
         )
+        sys.exit(0)
+
+    # Handle --list-scenarios flag
+    if list_scenarios:
+        list_scenarios_from_registry(scenario_source)
         sys.exit(0)
 
     # Validate inputs

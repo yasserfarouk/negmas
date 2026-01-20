@@ -327,3 +327,54 @@ def print_negotiator_info(negotiators: list, specs: list[str]) -> None:
         else:
             print(f"  [{i + 1}] {name}: {full_type}")
     print()
+
+
+def list_scenarios(source_filter: str | None = None) -> None:
+    """
+    List all available scenarios from the scenario registry.
+
+    Args:
+        source_filter: Optional source to filter by (e.g., 'negmas', 'genius')
+    """
+    from negmas import scenario_registry
+
+    print("\n[bold]Available Scenarios in Registry[/bold]\n")
+
+    # Query with source filter if provided
+    if source_filter:
+        results = scenario_registry.query(source=source_filter)
+        print(f"Filtered by source: [cyan]{source_filter}[/cyan]")
+    else:
+        results = dict(scenario_registry)
+
+    if not results:
+        print(
+            f"[yellow]No scenarios found{f' with source {source_filter}' if source_filter else ''}[/yellow]"
+        )
+        return
+
+    print(f"Total: {len(results)} scenarios\n")
+
+    # Display table
+    table_data = []
+    for name in sorted(results.keys()):
+        info = results[name]
+        tags_str = ", ".join(sorted(info.tags)) if info.tags else ""
+        n_negotiators = (
+            str(info.n_negotiators) if hasattr(info, "n_negotiators") else "?"
+        )
+        row = [
+            name,
+            info.source,
+            tags_str[:40] + "..." if len(tags_str) > 43 else tags_str,
+            n_negotiators,
+        ]
+        table_data.append(row)
+
+    print(
+        tabulate(table_data, headers=["Name", "Source", "Tags", "N"], tablefmt="simple")
+    )
+
+    print("\n[dim]Usage examples:[/dim]")
+    print("  negotiate -S negmas@CameraB -n AspirationNegotiator -n RandomNegotiator")
+    print("  negotiate -S CameraB -n AspirationNegotiator -n RandomNegotiator -s 100")

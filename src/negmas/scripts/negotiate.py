@@ -47,6 +47,7 @@ from negmas.scripts.negotiate_core import (
     resolve_negotiator_from_registry,
     resolve_scenario_from_registry,
     print_negotiator_info,
+    list_scenarios as list_scenarios_from_registry,
 )
 
 app = typer.Typer()
@@ -991,11 +992,23 @@ def run(
         help="List available agents from the registry and exit (can filter by --agent-source)",
         rich_help_panel="Registry Options",
     ),
+    list_scenarios: bool = typer.Option(
+        False,
+        "--list-scenarios",
+        help="List available scenarios from the registry and exit (can filter by --scenario-source)",
+        rich_help_panel="Registry Options",
+    ),
     agent_source: Optional[str] = typer.Option(
         None,
         "--agent-source",
         "--source",
         help="Filter agents by source (e.g., 'negmas', 'anl'). Used with --list-agents.",
+        rich_help_panel="Registry Options",
+    ),
+    scenario_source: Optional[str] = typer.Option(
+        None,
+        "--scenario-source",
+        help="Filter scenarios by source (e.g., 'negmas', 'genius'). Used with --list-scenarios.",
         rich_help_panel="Registry Options",
     ),
     refresh_registry: bool = typer.Option(
@@ -1102,6 +1115,11 @@ def run(
         print(
             "  negotiate -n AspirationNegotiator -n NaiveTitForTatNegotiator -s 100 -i 3"
         )
+        return
+
+    # Handle --list-scenarios
+    if list_scenarios:
+        list_scenarios_from_registry(scenario_source)
         return
 
     kwargs = dict()
