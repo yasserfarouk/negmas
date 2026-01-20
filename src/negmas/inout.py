@@ -118,6 +118,8 @@ class Scenario:
         """
         Save domain and ufun files to the `path` as XML.
         """
+        from negmas.preferences.discounted import DiscountedUtilityFunction
+
         domain_path = Path(domain_path)
         ufun_paths = [Path(_) for _ in ufun_paths]
         if len(self.ufuns) != len(ufun_paths):
@@ -127,13 +129,22 @@ class Scenario:
         domain_path.parent.mkdir(parents=True, exist_ok=True)
         self.outcome_space.to_genius(domain_path)
         for ufun, path in zip(self.ufuns, ufun_paths):
-            ufun.to_genius(path, issues=self.issues)
+            # Extract discount factor if ufun is discounted
+            # Genius requires <discount_factor> tag even when factor=1.0 (no discount)
+            discount = 1.0  # Default: no discount
+            if isinstance(ufun, DiscountedUtilityFunction):
+                discount = ufun.discount_factor
+
+            # Always pass discount_factor to ensure <discount_factor> tag is included
+            ufun.to_genius(path, issues=self.issues, discount_factor=discount)
         return self
 
     def to_genius_folder(self, path: Path):
         """
         Save domain and ufun files to the `path` as XML.
         """
+        from negmas.preferences.discounted import DiscountedUtilityFunction
+
         path.mkdir(parents=True, exist_ok=True)
         domain_name = (
             self.outcome_space.name.split("/")[-1]
@@ -143,7 +154,14 @@ class Scenario:
         ufun_names = [_.name.split("/")[-1] for _ in self.ufuns]
         self.outcome_space.to_genius(path / domain_name)
         for ufun, name in zip(self.ufuns, ufun_names):
-            ufun.to_genius(path / name, issues=self.issues)
+            # Extract discount factor if ufun is discounted
+            # Genius requires <discount_factor> tag even when factor=1.0 (no discount)
+            discount = 1.0  # Default: no discount
+            if isinstance(ufun, DiscountedUtilityFunction):
+                discount = ufun.discount_factor
+
+            # Always pass discount_factor to ensure <discount_factor> tag is included
+            ufun.to_genius(path / name, issues=self.issues, discount_factor=discount)
         return self
 
     @property
