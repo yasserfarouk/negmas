@@ -60,7 +60,34 @@ __all__ = [
     "genius_bridge_is_running",
     "genius_bridge_is_installed",
     "run_native_genius_negotiation",
+    "GeniusNegotiationResults",
 ]
+
+
+class GeniusNegotiationResults:
+    """Results from a native Genius negotiation.
+
+    Attributes:
+        state: Final SAOState of the negotiation
+        full_trace: List of TraceElement objects (if trace_mode='full'), otherwise None
+        full_trace_with_utils: List of TraceElement objects with utility info (if trace_mode='full_with_utils'), otherwise None
+    """
+
+    def __init__(self, state, full_trace=None, full_trace_with_utils=None):
+        self.state = state
+        self.full_trace = full_trace
+        self.full_trace_with_utils = full_trace_with_utils
+
+    def __repr__(self):
+        trace_info = ""
+        if self.full_trace is not None:
+            trace_info = f", full_trace={len(self.full_trace)} entries"
+        elif self.full_trace_with_utils is not None:
+            trace_info = (
+                f", full_trace_with_utils={len(self.full_trace_with_utils)} entries"
+            )
+        return f"GeniusNegotiationResults(state={self.state}{trace_info})"
+
 
 GENIUS_LOG_BASE = Path(
     negmas_config("genius_log_base", Path.home() / "negmas" / "geniusbridge" / "logs")  # type: ignore
@@ -849,7 +876,7 @@ def run_native_genius_negotiation(
     port: int = DEFAULT_JAVA_PORT,
     auto_start_bridge: bool = True,
     trace_mode: str = "none",
-) -> SAOState:
+) -> GeniusNegotiationResults:
     """
     Runs a negotiation natively inside Genius using the genius bridge.
 
@@ -863,13 +890,18 @@ def run_native_genius_negotiation(
         mechanism_type: Java class name of the negotiation protocol/mechanism
         port: Port for the genius bridge
         auto_start_bridge: If True, automatically start the genius bridge if not running
+        trace_mode: Trace collection mode - 'none', 'full', or 'full_with_utils'
 
     Returns:
-        SAOState: Final state of the negotiation with agreement and trace information
+        GeniusNegotiationResults: Object containing:
+            - state: Final SAOState of the negotiation
+            - full_trace: List of TraceElement (if trace_mode='full'), else None
+            - full_trace_with_utils: List of TraceElement with utilities (if trace_mode='full_with_utils'), else None
 
     Raises:
         ValueError: If both n_steps and time_limit are specified or neither is specified
         ValueError: If number of negotiators doesn't match number of ufuns in scenario
+        ValueError: If trace_mode is not 'none', 'full', or 'full_with_utils'
         RuntimeError: If the genius bridge is not running and auto_start_bridge is False
 
     Examples:
@@ -879,9 +911,14 @@ def run_native_genius_negotiation(
         ...     "agents.anac.y2015.Atlas3.Atlas3",
         ...     "agents.anac.y2015.RandomDance.RandomDance",
         ... ]
-        >>> state = run_native_genius_negotiation(negotiators, scenario, n_steps=100)
-        >>> print(f"Agreement: {state.agreement}")
-        >>> print(f"Steps: {state.step}")
+        >>> results = run_native_genius_negotiation(negotiators, scenario, n_steps=100)
+        >>> print(f"Agreement: {results.state.agreement}")
+        >>> print(f"Steps: {results.state.step}")
+        >>> # With trace collection
+        >>> results = run_native_genius_negotiation(
+        ...     negotiators, scenario, n_steps=100, trace_mode="full"
+        ... )
+        >>> print(f"Trace entries: {len(results.full_trace)}")
     """
     from ..sao.common import SAOState
     from .negotiator import GeniusNegotiator
@@ -1097,10 +1134,12 @@ def run_native_genius_negotiation(
             new_data=[],
         )
 
-        # Add trace history if available
-        if trace_history:
-            # Note: SAOState doesn't have a history attribute by default
-            # We'll attach it as a custom attribute for compatibility
-            state._history = trace_history  # type: ignore
-
-        return state
+        # Return results based on trace mode
+        if trace_mode == "full":
+            return GeniusNegotiationResults(state=state, full_trace=trace_history)
+        elif trace_mode == "full_with_utils":
+            return GeniusNegotiationResults(
+                state=state, full_trace_with_utils=trace_history
+            )
+        else:
+            return GeniusNegotiationResults(state=state)

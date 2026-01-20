@@ -1219,7 +1219,7 @@ class BaseUtilityFunction(Preferences, ABC):
             issues = list(issues)
             n_issues = len(issues)
         output = (
-            f'<utility_space type="any" number_of_issues="{n_issues}">\n'
+            f'<utility_space number_of_issues="{n_issues}">\n'
             f'<objective index="1" etype="objective" type="objective" description="" name="any">\n'
         )
 

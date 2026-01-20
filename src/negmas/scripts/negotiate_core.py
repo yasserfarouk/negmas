@@ -378,3 +378,369 @@ def list_scenarios(source_filter: str | None = None) -> None:
     print("\n[dim]Usage examples:[/dim]")
     print("  negotiate -S negmas@CameraB -n AspirationNegotiator -n RandomNegotiator")
     print("  negotiate -S CameraB -n AspirationNegotiator -n RandomNegotiator -s 100")
+
+
+# ============================================================================
+# Negotiator Factory Functions
+# ============================================================================
+
+
+def get_protocol(name: str):
+    """
+    Get a mechanism (protocol) class by name.
+
+    Args:
+        name: Protocol name (e.g., 'SAO', 'TAU', 'GTAU', 'GAO') or full class path
+
+    Returns:
+        The mechanism class
+    """
+    from negmas.helpers import get_class
+
+    if name.lower() == "sao":
+        return get_class("negmas.sao.mechanism.SAOMechanism")
+    if name.lower() == "tau":
+        return get_class("negmas.gb.mechanisms.TAUMechanism")
+    if name.lower() == "gtau":
+        return get_class("negmas.gb.mechanisms.GeneralizedTAUMechanism")
+    if name.lower() == "gao":
+        return get_class("negmas.gb.mechanisms.GAOMechanism")
+    if "." not in name:
+        name = f"negmas.{name}"
+    return get_class(name)
+
+
+def get_proper_class_name(s: str) -> str:
+    """Extract the class name from a marker-prefixed string."""
+    if s.startswith("genius"):
+        return s.split("genius")[-1]
+    if s.startswith("anl"):
+        return s.split("anl")[-1]
+    raise RuntimeError(f"{s} does not start with a known marker")
+
+
+def create_adapter(adapter_type, negotiator_type, name: str):
+    """Create an adapter wrapping a negotiator."""
+    return adapter_type(name=name, base=negotiator_type(name=name))
+
+
+def make_genius_negotiator(*args, java_class_name: str, **kwargs):
+    """Create a Genius negotiator via the bridge."""
+    from negmas.genius.negotiator import GeniusNegotiator
+
+    return GeniusNegotiator(*args, **kwargs, java_class_name=java_class_name)
+
+
+def make_anl_negotiator(class_name: str, **kwargs):
+    """Create a negotiator from the anl_agents package."""
+    from negmas.helpers import instantiate
+
+    return instantiate(class_name, module_name="anl_agents", **kwargs)
+
+
+def make_llm_negotiator(class_name: str, **kwargs):
+    """Create a negotiator from negmas-llm package."""
+    try:
+        from importlib import import_module
+
+        import_module("negmas_llm")
+    except ImportError:
+        print("[red]Error: negmas-llm package is not installed.[/red]")
+        print("[yellow]To use LLM negotiators, install the package:[/yellow]")
+        print("  pip install negmas-llm")
+        print("  or: uv add negmas-llm")
+        raise SystemExit(1)
+
+    from negmas.helpers import instantiate
+
+    return instantiate(class_name, module_name="negmas_llm", **kwargs)
+
+
+def make_negolog_negotiator(class_name: str, **kwargs):
+    """Create a negotiator from negmas-negolog package."""
+    try:
+        from importlib import import_module
+
+        import_module("negmas_negolog")
+    except ImportError:
+        print("[red]Error: negmas-negolog package is not installed.[/red]")
+        print("[yellow]To use Negolog negotiators, install the package:[/yellow]")
+        print("  pip install negmas-negolog")
+        print("  or: uv add negmas-negolog")
+        raise SystemExit(1)
+
+    from negmas.helpers import instantiate
+
+    return instantiate(class_name, module_name="negmas_negolog", **kwargs)
+
+
+def make_ga_negotiator(class_name: str, **kwargs):
+    """Create a negotiator from negmas-genius-agents package."""
+    try:
+        from importlib import import_module
+
+        import_module("genius_agents")
+    except ImportError:
+        print("[red]Error: negmas-genius-agents package is not installed.[/red]")
+        print("[yellow]To use Genius Agents negotiators, install the package:[/yellow]")
+        print("  pip install negmas-genius-agents")
+        print("  or: uv add negmas-genius-agents")
+        raise SystemExit(1)
+
+    from negmas.helpers import instantiate
+
+    return instantiate(class_name, module_name="genius_agents", **kwargs)
+
+
+def parse_component_spec(spec: str) -> tuple[str, dict[str, Any]]:
+    """
+    Parse a component specification like 'GTimeDependentOffering(e=0.2, k=0.0)'.
+
+    Returns:
+        A tuple of (class_name, kwargs_dict)
+    """
+    spec = spec.strip()
+    if "(" not in spec:
+        return spec, {}
+
+    # Extract class name and params
+    paren_idx = spec.index("(")
+    class_name = spec[:paren_idx].strip()
+    params_str = spec[paren_idx + 1 : -1].strip()  # Remove ( and )
+
+    if not params_str:
+        return class_name, {}
+
+    # Parse key=value pairs
+    kwargs: dict[str, Any] = {}
+    # Handle nested parentheses by tracking depth
+    depth = 0
+    current_param = ""
+    for char in params_str + ",":
+        if char in "([{":
+            depth += 1
+            current_param += char
+        elif char in ")]}":
+            depth -= 1
+            current_param += char
+        elif char == "," and depth == 0:
+            if current_param.strip():
+                key, _, value = current_param.partition("=")
+                key = key.strip()
+                value = value.strip()
+                # Try to evaluate the value
+                try:
+                    kwargs[key] = eval(value)
+                except Exception:
+                    kwargs[key] = value
+            current_param = ""
+        else:
+            current_param += char
+
+    return class_name, kwargs
+
+
+def get_component(class_name: str, module_prefix: str = "negmas.gb.components"):
+    """
+    Get a component class by name.
+
+    Args:
+        class_name: The class name (e.g., 'GTimeDependentOffering', 'ACNext')
+        module_prefix: The module prefix to search in
+
+    Returns:
+        The component class
+    """
+    from negmas.helpers import get_class
+
+    # Try direct import from negmas first
+    try:
+        return get_class(f"negmas.{class_name}")
+    except Exception:
+        pass
+
+    # Try from gb.components
+    try:
+        return get_class(f"{module_prefix}.{class_name}")
+    except Exception:
+        pass
+
+    # Try from gb.components.genius
+    try:
+        return get_class(f"{module_prefix}.genius.{class_name}")
+    except Exception:
+        pass
+
+    # Try from sao.components
+    try:
+        return get_class(f"negmas.sao.components.{class_name}")
+    except Exception:
+        pass
+
+    raise ValueError(f"Cannot find component class: {class_name}")
+
+
+def make_boa_negotiator(spec: str, is_map: bool = False, **kwargs):
+    """
+    Create a BOA or MAP negotiator from a specification string.
+
+    Args:
+        spec: Component specification like 'offering=GTimeDependentOffering(e=0.2),acceptance=GACNext'
+        is_map: If True, create a MAPNegotiator, otherwise create a BOANegotiator
+        **kwargs: Additional arguments passed to the negotiator
+
+    Returns:
+        A configured BOA or MAP negotiator
+
+    Examples:
+        - 'offering=GTimeDependentOffering(e=0.2),acceptance=GACNext'
+        - 'offering=TimeBasedOfferingPolicy,acceptance=ACNext,model=GHardHeadedFrequencyModel'
+    """
+    from negmas.gb.negotiators.modular import MAPNegotiator, make_boa
+
+    # First pass: collect all component specs
+    component_specs: dict[str, tuple[str, dict[str, Any]]] = {}
+
+    # Parse comma-separated component specs
+    # Handle nested parentheses
+    depth = 0
+    current_spec = ""
+    specs = []
+    for char in spec + ",":
+        if char in "([{":
+            depth += 1
+            current_spec += char
+        elif char in ")]}":
+            depth -= 1
+            current_spec += char
+        elif char == "," and depth == 0:
+            if current_spec.strip():
+                specs.append(current_spec.strip())
+            current_spec = ""
+        else:
+            current_spec += char
+
+    for component_spec in specs:
+        if "=" not in component_spec:
+            raise ValueError(
+                f"Invalid component spec '{component_spec}'. Expected 'key=ComponentClass(args)'"
+            )
+
+        key, _, value = component_spec.partition("=")
+        key = key.strip().lower()
+        value = value.strip()
+
+        class_name, component_kwargs = parse_component_spec(value)
+        component_specs[key] = (class_name, component_kwargs)
+
+    # Second pass: instantiate components in the right order
+    # Offering policy first (acceptance may depend on it)
+    components: dict[str, Any] = {}
+
+    # Instantiate offering policy first
+    if "offering" in component_specs:
+        class_name, component_kwargs = component_specs["offering"]
+        component_class = get_component(class_name)
+        components["offering"] = component_class(**component_kwargs)
+
+    # Instantiate acceptance policy (may need offering policy)
+    if "acceptance" in component_specs:
+        class_name, component_kwargs = component_specs["acceptance"]
+        component_class = get_component(class_name)
+
+        # Check if acceptance policy needs offering_policy or offering_strategy parameter
+        import inspect
+
+        sig = inspect.signature(component_class.__init__)
+        if "offering" in components:
+            if "offering_policy" in sig.parameters:
+                component_kwargs["offering_policy"] = components["offering"]
+            elif "offering_strategy" in sig.parameters:
+                component_kwargs["offering_strategy"] = components["offering"]
+
+        components["acceptance"] = component_class(**component_kwargs)
+
+    # Instantiate model
+    if "model" in component_specs:
+        class_name, component_kwargs = component_specs["model"]
+        component_class = get_component(class_name)
+        components["model"] = component_class(**component_kwargs)
+
+    # Instantiate any other components
+    for key, (class_name, component_kwargs) in component_specs.items():
+        if key not in components:
+            component_class = get_component(class_name)
+            components[key] = component_class(**component_kwargs)
+
+    # Extract known component types
+    offering = components.pop("offering", None)
+    acceptance = components.pop("acceptance", None)
+    model = components.pop("model", None)
+
+    if is_map:
+        # For MAP, we may have multiple models and extra components
+        models = [model] if model else None
+        model_names = ["model"] if model else None
+
+        # Any remaining components go to extra_components
+        extra_components = list(components.values()) if components else None
+        extra_component_names = list(components.keys()) if components else None
+
+        return MAPNegotiator(
+            offering=offering,
+            acceptance=acceptance,
+            models=models,
+            model_names=model_names,
+            extra_components=extra_components,
+            extra_component_names=extra_component_names,
+            **kwargs,
+        )
+    else:
+        return make_boa(offering=offering, acceptance=acceptance, model=model, **kwargs)
+
+
+# Track whether we started the genius bridge ourselves
+_genius_bridge_started_by_cli = False
+
+
+def ensure_genius_bridge_running() -> bool:
+    """
+    Ensures the Genius bridge is running, starting it if necessary.
+
+    Returns:
+        True if the bridge is running, False otherwise.
+
+    Side effects:
+        Sets _genius_bridge_started_by_cli to True if we started the bridge.
+    """
+    global _genius_bridge_started_by_cli
+
+    from negmas.genius.bridge import genius_bridge_is_running, init_genius_bridge
+    from negmas.genius.common import DEFAULT_JAVA_PORT
+
+    if genius_bridge_is_running(DEFAULT_JAVA_PORT):
+        return True
+
+    # Try to start the bridge
+    print("[yellow]Genius bridge not running. Attempting to start...[/yellow]")
+    port = init_genius_bridge(port=DEFAULT_JAVA_PORT, die_on_exit=True)
+
+    if port > 0:
+        print(f"[green]Genius bridge started on port {port}[/green]")
+        _genius_bridge_started_by_cli = True
+        return True
+    elif port == -1:
+        # Bridge was already running (race condition)
+        return True
+    else:
+        print("[red]Failed to start Genius bridge.[/red]")
+        print(
+            "[yellow]Please ensure the bridge is installed and Java is available.[/yellow]"
+        )
+        from negmas.genius.bridge import genius_bridge_is_installed
+
+        if not genius_bridge_is_installed():
+            print(
+                "[yellow]Run 'negmas genius-setup' to install the Genius bridge.[/yellow]"
+            )
+        return False
