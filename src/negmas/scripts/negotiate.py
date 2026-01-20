@@ -18,7 +18,11 @@ from stringcase import titlecase
 
 from negmas.genius.ginfo import get_java_class
 from negmas.genius.negotiator import GeniusNegotiator
-from negmas.genius.bridge import genius_bridge_is_running, init_genius_bridge
+from negmas.genius.bridge import (
+    genius_bridge_is_running,
+    genius_bridge_is_installed,
+    init_genius_bridge,
+)
 from negmas.genius.common import DEFAULT_JAVA_PORT
 from negmas.helpers import get_class, instantiate
 from negmas.helpers.inout import dump
@@ -408,7 +412,255 @@ def shutdown_genius_bridge_if_started() -> None:
         _genius_bridge_started_by_cli = False
 
 
-def get_negotiator(class_name: str) -> type[Negotiator] | Callable[[str], Negotiator]:
+def complete_negotiator(incomplete: str) -> list[str]:
+    """Provide tab completion for negotiator names.
+
+    This function provides completions for:
+    - Registry short names (e.g., AspirationNegotiator)
+    - Source@name format (e.g., negmas@AspirationNegotiator)
+    - Special prefixes (genius:, anl:, etc.)
+    """
+    completions = []
+
+    try:
+        from negmas import negotiator_registry
+    except ImportError:
+        return completions
+
+    # If typing source@ or source>, complete with source names and negotiator names
+    if "@" in incomplete or ">" in incomplete:
+        sep = "@" if "@" in incomplete else ">"
+        parts = incomplete.split(sep)
+        if len(parts) == 2:
+            source, partial_name = parts
+            # Get negotiators from that source
+            try:
+                results = negotiator_registry.query(source=source)
+                for info in results.values():
+                    full = f"{source}{sep}{info.short_name}"
+                    if full.startswith(incomplete):
+                        completions.append(full)
+            except Exception:
+                pass
+        else:
+            # Just started typing source, show source names
+            sources = set()
+            for info in negotiator_registry.values():
+                sources.add(info.source)
+            for source in sorted(sources):
+                completions.append(f"{source}{sep}")
+    else:
+        # Complete with short names and special prefixes
+        # Add special prefixes
+        for prefix in ["genius:", "anl:", "boa:", "map:", "llm:", "negolog:", "ga:"]:
+            if prefix.startswith(incomplete):
+                completions.append(prefix)
+
+        # Add registry short names
+        seen = set()
+        for info in negotiator_registry.values():
+            name = info.short_name
+            if name not in seen and name.startswith(incomplete):
+                completions.append(name)
+                seen.add(name)
+
+    return sorted(completions[:50])  # Limit to 50 completions
+
+
+def resolve_negotiator_from_registry(
+    spec: str, verbose: bool = False, on_multiple_matches: str = "warn"
+) -> str | None:
+    """Try to resolve a negotiator specification from the registry.
+
+    Supports multiple formats:
+    - source@negotiator: Registry lookup by source (e.g., 'negmas@AspirationNegotiator')
+    - source>negotiator: Registry lookup by source (DEPRECATED, use @ instead)
+    - source@key: Registry lookup by unique key (e.g., 'negmas@AspirationNegotiator#a1b2c3d4')
+    - short_name or key: Direct registry lookup (e.g., 'AspirationNegotiator' or 'AspirationNegotiator#a1b2c3d4')
+
+    When multiple matches are found (without explicit source), preference is given to:
+    1. source='negmas' (native implementation)
+    2. Any non-genius source (native before genius wrappers)
+    3. Any source (if no native found)
+
+    Args:
+        spec: Negotiator specification string
+        verbose: Print resolution details
+        on_multiple_matches: What to do when multiple matches found: 'fail', 'warn', or 'silent'
+
+    Returns:
+        Full type name if found in registry, None otherwise
+    """
+    try:
+        from negmas import negotiator_registry
+    except ImportError:
+        return None
+
+    # Handle source@negotiator or source>negotiator format
+    # Support both @ (new) and > (deprecated, requires shell quoting)
+    separator = None
+    if "@" in spec:
+        separator = "@"
+    elif ">" in spec:
+        separator = ">"
+        if verbose:
+            print(
+                f"  Warning: Using deprecated '>' separator. Consider using '@' instead (e.g., '{spec.replace('>', '@')}')"
+            )
+
+    if separator:
+        source, name = spec.split(separator, 1)
+        source = source.strip()
+        name = name.strip()
+
+        # Query registry by source and name
+        results = negotiator_registry.query(source=source)
+
+        # Try exact key match first
+        if name in results:
+            info = results[name]
+            if verbose:
+                print(f"  Resolved '{spec}' to {info.full_type_name} (key: {name})")
+            return info.full_type_name
+
+        # Try short_name match
+        for key, info in results.items():
+            if info.short_name == name:
+                if verbose:
+                    print(f"  Resolved '{spec}' to {info.full_type_name} (key: {key})")
+                return info.full_type_name
+
+        # Not found in registry with that source
+        return None
+
+    # No explicit source - query entire registry
+    # Try direct key lookup first
+    info = negotiator_registry.get(spec)
+    if info:
+        if verbose:
+            print(f"  Resolved '{spec}' to {info.full_type_name} (exact key match)")
+        return info.full_type_name
+
+    # Try short_name lookup - may return multiple matches
+    matches = negotiator_registry.get_by_short_name(spec)
+    if not matches:
+        return None
+
+    if len(matches) == 1:
+        info = matches[0]
+        if verbose:
+            print(f"  Resolved '{spec}' to {info.full_type_name}")
+        return info.full_type_name
+
+    # Multiple matches found - apply priority rules
+    # Priority: 1) source='negmas', 2) non-genius sources, 3) any source
+
+    # First, try to find exact match in 'negmas' source
+    negmas_matches = [m for m in matches if m.source == "negmas"]
+    if negmas_matches:
+        info = negmas_matches[0]
+        if verbose or on_multiple_matches != "silent":
+            print(
+                f"[yellow]  Multiple matches for '{spec}', using native negmas implementation: {info.full_type_name}[/yellow]"
+            )
+            if on_multiple_matches == "fail" or (
+                on_multiple_matches == "warn" and not verbose
+            ):
+                _show_match_table(spec, matches, info)
+        if on_multiple_matches == "fail":
+            raise ValueError(
+                f"Multiple negotiators match '{spec}'. Use source@name format to specify which one."
+            )
+        return info.full_type_name
+
+    # Next, try to find non-genius implementations
+    non_genius_matches = [
+        m for m in matches if not m.full_type_name.startswith("negmas.genius.")
+    ]
+    if non_genius_matches:
+        info = non_genius_matches[0]
+        if verbose or on_multiple_matches != "silent":
+            print(
+                f"[yellow]  Multiple matches for '{spec}', preferring native implementation over Genius: {info.full_type_name}[/yellow]"
+            )
+            if on_multiple_matches == "fail" or (
+                on_multiple_matches == "warn" and not verbose
+            ):
+                _show_match_table(spec, matches, info)
+        if on_multiple_matches == "fail":
+            raise ValueError(
+                f"Multiple negotiators match '{spec}'. Use source@name format to specify which one."
+            )
+        return info.full_type_name
+
+    # All are genius wrappers - use first one
+    info = matches[0]
+    if verbose or on_multiple_matches != "silent":
+        print(
+            f"[yellow]  Multiple Genius wrappers match '{spec}', using first: {info.full_type_name}[/yellow]"
+        )
+        if on_multiple_matches == "fail" or (
+            on_multiple_matches == "warn" and not verbose
+        ):
+            _show_match_table(spec, matches, info)
+    if on_multiple_matches == "fail":
+        raise ValueError(
+            f"Multiple negotiators match '{spec}'. Use source@name format to specify which one."
+        )
+    return info.full_type_name
+
+
+def _show_match_table(spec: str, matches: list, selected) -> None:
+    """Show a table of all matches with the selected one highlighted."""
+    from tabulate import tabulate
+
+    print(f"\n  [bold]Available options for '{spec}':[/bold]")
+    table_data = []
+    for m in matches:
+        is_selected = m.key == selected.key
+        marker = "→ " if is_selected else "  "
+        # Determine how to invoke this specific option
+        invoke_as = f"{m.source}@{m.short_name}"
+        row = [
+            f"{marker}{m.short_name}",
+            m.source,
+            m.full_type_name.split(".")[-1],
+            invoke_as,
+        ]
+        table_data.append(row)
+
+    print(
+        tabulate(
+            table_data,
+            headers=["Name", "Source", "Class", "Invoke As"],
+            tablefmt="simple",
+        )
+    )
+    print()
+
+
+def get_negotiator(
+    class_name: str, on_multiple_matches: str = "warn"
+) -> type[Negotiator] | Callable[[str], Negotiator]:
+    # First, try to resolve from registry (if not using a special prefix)
+    if not any(
+        class_name.startswith(f"{marker}.") or class_name.startswith(f"{marker}:")
+        for marker in [
+            GENIUSMARKER,
+            ANLMARKER,
+            BOAMARKER,
+            MAPMARKER,
+            LLMMARKER,
+            NEGOLOGMARKER,
+            GAMARKER,
+        ]
+    ):
+        resolved = resolve_negotiator_from_registry(
+            class_name, verbose=False, on_multiple_matches=on_multiple_matches
+        )
+        if resolved:
+            class_name = resolved
+
     if class_name.startswith(GENIUSMARKER):
         # Ensure Genius bridge is running before creating Genius negotiators
         if not ensure_genius_bridge_running():
@@ -481,7 +733,7 @@ def get_negotiator(class_name: str) -> type[Negotiator] | Callable[[str], Negoti
     if "/" in class_name:
         adapter_name, _, negotiator_name = class_name.partition("/")
         adapter_type = get_adapter(adapter_name)
-        negotiator_type = get_negotiator(negotiator_name)
+        negotiator_type = get_negotiator(negotiator_name, on_multiple_matches)
         return functools.partial(create_adapter, adapter_type, negotiator_type)
     if "." not in class_name:
         if "_" in class_name:
@@ -534,7 +786,9 @@ def diff(x: tuple[float, ...], lst: list[tuple[float, ...]]):
 @app.command()
 def run(
     scenario: Optional[Path] = typer.Option(
-        default=None,
+        None,
+        "--scenario",
+        "-S",
         show_default="Generate A new Scenario",
         help="The scenario to negotiate about",
     ),
@@ -542,19 +796,25 @@ def run(
         "SAO",
         "--protocol",
         "--mechanism",
-        "-p",
         "-m",
         help="The protocol (Mechanism to use)",
         rich_help_panel="Basic Options",
     ),
     negotiators: list[str] = typer.Option(
         ["AspirationNegotiator", "NaiveTitForTatNegotiator"],
-        "--agent",
         "--negotiator",
+        "--agent",
+        "--agents",
         "-n",
         "-a",
+        autocompletion=complete_negotiator,
         help=(
-            "Negotiator (agent) type. Supports the following prefixes: "
+            "Negotiator (agent) type. Can specify as: "
+            "registry short name (e.g. AspirationNegotiator), "
+            "source@name (e.g. negmas@AspirationNegotiator), "
+            "registry key (e.g. AspirationNegotiator#a1b2c3d4), "
+            "full Python path (e.g. negmas.sao.AspirationNegotiator), or "
+            "with prefixes: "
             "genius: (Genius negotiators via bridge), "
             "anl: (ANL agents), "
             "boa: (BOA negotiators), "
@@ -563,7 +823,8 @@ def run(
             "negolog: (Negolog negotiators from negmas-negolog), "
             "ga: (Genius Agents from negmas-genius-agents). "
             "To use an adapter, put the adapter name first separated by a slash "
-            "(e.g. TAUAdapter/AspirationNegotiator)"
+            "(e.g. TAUAdapter/AspirationNegotiator). "
+            "Use --list-agents to see all available registry entries."
         ),
         rich_help_panel="Basic Options",
     ),
@@ -839,7 +1100,126 @@ def run(
     raise_exceptions: bool = typer.Option(
         False, help="Raise Exceptions on Failure", rich_help_panel="Advanced"
     ),
+    # Registry Options
+    list_agents: bool = typer.Option(
+        False,
+        "--list-agents",
+        help="List available agents from the registry and exit (can filter by --agent-source)",
+        rich_help_panel="Registry Options",
+    ),
+    agent_source: Optional[str] = typer.Option(
+        None,
+        "--agent-source",
+        "--source",
+        help="Filter agents by source (e.g., 'negmas', 'anl'). Used with --list-agents.",
+        rich_help_panel="Registry Options",
+    ),
+    refresh_registry: bool = typer.Option(
+        False,
+        "--refresh-registry",
+        help="Reload the registry from disk before running",
+        rich_help_panel="Registry Options",
+    ),
+    on_multiple_matches: str = typer.Option(
+        "warn",
+        "--on-multiple-matches",
+        help="What to do when multiple registry entries match a short name: 'fail' (show table and exit), 'warn' (show table but continue), 'silent' (use first match silently)",
+        rich_help_panel="Registry Options",
+    ),
+    in_genius: bool = typer.Option(
+        False,
+        "--in-genius",
+        help="Run the negotiation natively in Genius (all agents must be Genius agents)",
+        rich_help_panel="Basic Options",
+    ),
+    genius_port: int = typer.Option(
+        DEFAULT_JAVA_PORT,
+        "--port",
+        "-p",
+        help=f"Port for Genius bridge (default: {DEFAULT_JAVA_PORT})",
+        rich_help_panel="Basic Options",
+    ),
 ):
+    # Handle --refresh-registry
+    if refresh_registry:
+        from negmas.registry import load_registry
+
+        registry_path = Path.home() / ".negmas" / "registry"
+        if registry_path.exists():
+            try:
+                load_registry(
+                    registry_path,
+                    include_negotiators=True,
+                    include_mechanisms=False,
+                    include_components=False,
+                    include_scenarios=False,
+                )
+                print(f"[green]Registry reloaded from {registry_path}[/green]")
+            except Exception as e:
+                print(f"[yellow]Warning: Could not reload registry: {e}[/yellow]")
+
+    # Handle --list-agents
+    if list_agents:
+        from negmas import negotiator_registry
+        from tabulate import tabulate
+
+        print("\n[bold]Available Negotiators in Registry[/bold]\n")
+
+        # Query with source filter if provided
+        if agent_source:
+            results = negotiator_registry.query(source=agent_source)
+            print(f"Filtered by source: [cyan]{agent_source}[/cyan]")
+        else:
+            results = dict(negotiator_registry)
+
+        if not results:
+            print(
+                f"[yellow]No negotiators found{f' with source {agent_source}' if agent_source else ''}[/yellow]"
+            )
+            return
+
+        # Group by short_name
+        by_short_name = {}
+        for key, info in results.items():
+            short_name = info.short_name
+            if short_name not in by_short_name:
+                by_short_name[short_name] = []
+            by_short_name[short_name].append((key, info))
+
+        print(
+            f"Total: {len(results)} entries, {len(by_short_name)} unique negotiators\n"
+        )
+
+        # Display table
+        table_data = []
+        for short_name in sorted(by_short_name.keys()):
+            entries = by_short_name[short_name]
+            key, info = entries[0]
+            row = [
+                short_name,
+                info.source,
+                info.full_type_name.split(".")[-1]
+                if "." in info.full_type_name
+                else info.full_type_name,
+                f"{len(entries)} variant(s)" if len(entries) > 1 else "",
+            ]
+            table_data.append(row)
+
+        print(
+            tabulate(
+                table_data,
+                headers=["Short Name", "Source", "Class", "Notes"],
+                tablefmt="simple",
+            )
+        )
+
+        print("\n[dim]Usage examples:[/dim]")
+        print("  negotiate -n negmas@AspirationNegotiator -n RandomNegotiator -s 100")
+        print(
+            "  negotiate -n AspirationNegotiator -n NaiveTitForTatNegotiator -s 100 -i 3"
+        )
+        return
+
     kwargs = dict()
     if extra_params:
         extra_params = "dict(" + extra_params + ")"
@@ -951,11 +1331,49 @@ def run(
                 u.reserved_value = float("nan")
     else:
         opp_ufuns = [None] * len(negotiators)
+
+    # Check if we need Genius bridge and ensure it's running
+    if in_genius:
+        if not genius_bridge_is_running(genius_port):
+            if not genius_bridge_is_installed():
+                print("[red]Error: Genius bridge is not installed[/red]")
+                print(
+                    "\n[yellow]Please install the bridge first with:[/yellow] negmas genius-setup"
+                )
+                return
+
+            print("[yellow]Starting Genius bridge automatically...[/yellow]")
+            try:
+                init_genius_bridge(port=genius_port, verbose=verbosity > 0)
+                print(
+                    f"[green]Genius bridge started successfully on port {genius_port}[/green]"
+                )
+            except Exception as e:
+                print(f"[red]Error starting Genius bridge: {e}[/red]")
+                return
+
+    # Validate and warn about negotiator specifications
+    if verbosity > 0:
+        print("\n[dim]Resolving negotiators...[/dim]")
+        for i, neg_spec in enumerate(negotiators):
+            resolved = resolve_negotiator_from_registry(
+                neg_spec, verbose=True, on_multiple_matches=on_multiple_matches
+            )
+            if resolved:
+                print(f"  [{i + 1}] {neg_spec} -> {resolved}")
+            elif "@" in neg_spec or ">" in neg_spec:
+                print(
+                    f"  [yellow]Warning: Could not resolve '{neg_spec}' from registry[/yellow]"
+                )
+        print()
+
     try:
         agents = [
-            get_negotiator(_)(name=name)  # type: ignore
+            get_negotiator(_, on_multiple_matches)(name=name)  # type: ignore
             if ou is None
-            else get_negotiator(_)(name=name, private_info=dict(opponent_ufun=ou))  # type: ignore
+            else get_negotiator(_, on_multiple_matches)(
+                name=name, private_info=dict(opponent_ufun=ou)
+            )  # type: ignore
             for _, name, ou in zip(
                 negotiators, negotiator_names, opp_ufuns, strict=True
             )  # type: ignore
@@ -965,6 +1383,34 @@ def run(
                 f"At least 2 negotiators are needed: found {[_.__class__.__name__ for _ in agents]}"
             )
             return
+
+        # Check if we have any GeniusNegotiator instances and ensure bridge is running
+        if not in_genius:  # Only check if not already handled above
+            has_genius = any(isinstance(agent, GeniusNegotiator) for agent in agents)
+
+            if has_genius and not genius_bridge_is_running(genius_port):
+                if not genius_bridge_is_installed():
+                    print("[red]Error: Genius bridge is not installed[/red]")
+                    print(
+                        "[yellow]One or more agents require the Genius bridge.[/yellow]"
+                    )
+                    print(
+                        "[yellow]Please install the bridge first with:[/yellow] negmas genius-setup"
+                    )
+                    return
+
+                print(
+                    "[yellow]Detected Genius negotiators. Starting Genius bridge automatically...[/yellow]"
+                )
+                try:
+                    init_genius_bridge(port=genius_port, verbose=verbosity > 0)
+                    print(
+                        f"[green]Genius bridge started successfully on port {genius_port}[/green]"
+                    )
+                except Exception as e:
+                    print(f"[red]Error starting Genius bridge: {e}[/red]")
+                    return
+
         if reserved and not extend_negotiators:
             assert len(reserved) == len(negotiators), f"{reserved=} but {negotiators=}"
         if reserved:
