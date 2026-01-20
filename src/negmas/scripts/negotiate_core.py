@@ -380,6 +380,147 @@ def list_scenarios(source_filter: str | None = None) -> None:
     print("  negotiate -S CameraB -n AspirationNegotiator -n RandomNegotiator -s 100")
 
 
+def show_negotiator_info(spec: str, on_multiple_matches: str = "warn") -> bool:
+    """
+    Display detailed information about a negotiator from the registry.
+
+    Args:
+        spec: Negotiator specification (short name, source@name, or full path)
+        on_multiple_matches: What to do when multiple matches found ("warn", "fail", "silent")
+
+    Returns:
+        True if negotiator found and displayed, False otherwise
+    """
+    from negmas import negotiator_registry
+
+    # Try to resolve the negotiator
+    full_type_name = resolve_negotiator_from_registry(
+        spec, verbose=False, on_multiple_matches=on_multiple_matches
+    )
+
+    if not full_type_name:
+        print(f"[red]Error: No negotiator found matching '{spec}'[/red]")
+        print("\n[dim]Use --list-agents to see all available negotiators[/dim]")
+        return False
+
+    # Find the registry entry
+    results = negotiator_registry.query(full_type_name=full_type_name)
+    if not results:
+        print(f"[red]Error: Negotiator '{full_type_name}' not in registry[/red]")
+        return False
+
+    # Get the first match (should be only one for full_type_name)
+    key, info = list(results.items())[0]
+
+    # Display the information
+    print(f"\n[bold cyan]{info.short_name}[/bold cyan]")
+    print("=" * 70)
+    print(f"[bold]Type:[/bold] {info.full_type_name}")
+    print(f"[bold]Source:[/bold] {info.source}")
+
+    if info.tags:
+        print(f"[bold]Tags:[/bold] {', '.join(sorted(info.tags))}")
+
+    if info.params:
+        print("[bold]Default Parameters:[/bold]")
+        for key, value in info.params.items():
+            print(f"  • {key}: {value}")
+
+    # Display description
+    if info.description:
+        print("\n[bold]Description:[/bold]")
+        print()
+        # Use rich markdown rendering if available
+        try:
+            from rich.markdown import Markdown
+            from rich.console import Console
+
+            console = Console()
+            md = Markdown(info.description)
+            console.print(md)
+        except ImportError:
+            # Fallback to plain text
+            print(info.description)
+    else:
+        print("\n[dim]No description available[/dim]")
+
+    print("\n" + "=" * 70)
+
+    return True
+
+
+def show_scenario_info(spec: str, on_multiple_matches: str = "warn") -> bool:
+    """
+    Display detailed information about a scenario from the registry.
+
+    Args:
+        spec: Scenario specification (name, source@name, or path)
+        on_multiple_matches: What to do when multiple matches found ("warn", "fail", "silent")
+
+    Returns:
+        True if scenario found and displayed, False otherwise
+    """
+    from negmas import scenario_registry
+
+    # Try to resolve the scenario
+    scenario_path = resolve_scenario_from_registry(
+        spec, verbose=False, on_multiple_matches=on_multiple_matches
+    )
+
+    if not scenario_path:
+        print(f"[red]Error: No scenario found matching '{spec}'[/red]")
+        print("\n[dim]Use --list-scenarios to see all available scenarios[/dim]")
+        return False
+
+    # Find the registry entry
+    scenario_key = str(scenario_path)
+    if scenario_key not in scenario_registry:
+        print(f"[red]Error: Scenario '{scenario_path}' not in registry[/red]")
+        return False
+
+    info = scenario_registry[scenario_key]
+
+    # Display the information
+    print(f"\n[bold cyan]{info.name}[/bold cyan]")
+    print("=" * 70)
+    print(f"[bold]Path:[/bold] {info.path}")
+    print(f"[bold]Source:[/bold] {info.source}")
+
+    if info.tags:
+        print(f"[bold]Tags:[/bold] {', '.join(sorted(info.tags))}")
+
+    if info.n_negotiators is not None:
+        print(f"[bold]Negotiators:[/bold] {info.n_negotiators}")
+
+    if info.n_outcomes is not None:
+        print(f"[bold]Outcomes:[/bold] {info.n_outcomes}")
+
+    if info.opposition_level is not None:
+        print(f"[bold]Opposition Level:[/bold] {info.opposition_level:.2f}")
+
+    # Display description
+    if info.description:
+        print("\n[bold]Description:[/bold]")
+        print()
+        # Use rich markdown rendering if available
+        try:
+            from rich.markdown import Markdown
+            from rich.console import Console
+
+            console = Console()
+            md = Markdown(info.description)
+            console.print(md)
+        except ImportError:
+            # Fallback to plain text
+            print(info.description)
+    else:
+        print("\n[dim]No description available[/dim]")
+
+    print("\n" + "=" * 70)
+
+    return True
+
+
 # ============================================================================
 # Negotiator Factory Functions
 # ============================================================================

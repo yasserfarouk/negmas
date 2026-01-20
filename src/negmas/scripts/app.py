@@ -44,6 +44,8 @@ from negmas.scripts.negotiate_core import (
     resolve_negotiator_from_registry,
     resolve_scenario_from_registry,
     list_scenarios as list_scenarios_from_registry,
+    show_negotiator_info,
+    show_scenario_info,
 )
 
 if TYPE_CHECKING:
@@ -1427,6 +1429,17 @@ def _complete_negotiator(ctx, param, incomplete):
     help="List available scenarios from the registry and exit (can filter by --scenario-source)",
 )
 @click.option(
+    "--info",
+    "--info-agent",
+    default=None,
+    help="Display detailed information about a negotiator and exit",
+)
+@click.option(
+    "--info-scenario",
+    default=None,
+    help="Display detailed information about a scenario and exit",
+)
+@click.option(
     "--source",
     default=None,
     help="Filter agents by source (e.g., 'negmas', 'anl'). Used with --list-agents or for validation.",
@@ -1459,6 +1472,8 @@ def negotiate(
     verbose: bool,
     list_agents: bool,
     list_scenarios: bool,
+    info: str | None,
+    info_scenario: str | None,
     source: str | None,
     scenario_source: str | None,
     refresh_registry: bool,
@@ -1495,15 +1510,15 @@ def negotiate(
     from negmas import negotiator_registry
 
     # Validate required parameters if not listing agents or scenarios
-    if not list_agents and not list_scenarios:
+    if not list_agents and not list_scenarios and not info and not info_scenario:
         if not agents:
             print(
-                "[red]Error: --agents is required (unless using --list-agents or --list-scenarios)[/red]"
+                "[red]Error: --agents is required (unless using --list-agents, --list-scenarios, --info, or --info-scenario)[/red]"
             )
             sys.exit(1)
         if not scenario:
             print(
-                "[red]Error: --scenario is required (unless using --list-agents or --list-scenarios)[/red]"
+                "[red]Error: --scenario is required (unless using --list-agents, --list-scenarios, --info, or --info-scenario)[/red]"
             )
             sys.exit(1)
 
@@ -1598,6 +1613,16 @@ def negotiate(
     # Handle --list-scenarios flag
     if list_scenarios:
         list_scenarios_from_registry(scenario_source)
+        sys.exit(0)
+
+    # Handle --info (negotiator info)
+    if info:
+        show_negotiator_info(info, on_multiple_matches)
+        sys.exit(0)
+
+    # Handle --info-scenario
+    if info_scenario:
+        show_scenario_info(info_scenario, on_multiple_matches)
         sys.exit(0)
 
     # Validate inputs

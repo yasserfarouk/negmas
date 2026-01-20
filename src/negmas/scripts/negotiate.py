@@ -48,6 +48,8 @@ from negmas.scripts.negotiate_core import (
     resolve_scenario_from_registry,
     print_negotiator_info,
     list_scenarios as list_scenarios_from_registry,
+    show_negotiator_info,
+    show_scenario_info,
     get_protocol,
     create_adapter,
     make_genius_negotiator,
@@ -674,6 +676,19 @@ def run(
         help="List available scenarios from the registry and exit (can filter by --scenario-source)",
         rich_help_panel="Registry Options",
     ),
+    info_agent: Optional[str] = typer.Option(
+        None,
+        "--info",
+        "--info-agent",
+        help="Display detailed information about a negotiator and exit (e.g., 'AspirationNegotiator' or 'negmas@AspirationNegotiator')",
+        rich_help_panel="Registry Options",
+    ),
+    info_scenario: Optional[str] = typer.Option(
+        None,
+        "--info-scenario",
+        help="Display detailed information about a scenario and exit (e.g., 'CameraB' or 'negmas@CameraB')",
+        rich_help_panel="Registry Options",
+    ),
     agent_source: Optional[str] = typer.Option(
         None,
         "--agent-source",
@@ -796,6 +811,16 @@ def run(
     # Handle --list-scenarios
     if list_scenarios:
         list_scenarios_from_registry(scenario_source)
+        return
+
+    # Handle --info (negotiator info)
+    if info_agent:
+        show_negotiator_info(info_agent, on_multiple_matches)
+        return
+
+    # Handle --info-scenario
+    if info_scenario:
+        show_scenario_info(info_scenario, on_multiple_matches)
         return
 
     kwargs = dict()
