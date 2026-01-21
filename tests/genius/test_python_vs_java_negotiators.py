@@ -466,12 +466,12 @@ class TestPythonVsJavaLinear:
         # Both should show roughly linear decline
         if len(python_utilities) > 2 and len(java_utilities) > 2:
             # Just verify both are conceding
-            assert (
-                python_utilities[0] >= python_utilities[-1]
-            ), "Python Linear should concede over time"
-            assert (
-                java_utilities[0] >= java_utilities[-1]
-            ), "Java Linear should concede over time"
+            assert python_utilities[0] >= python_utilities[-1], (
+                "Python Linear should concede over time"
+            )
+            assert java_utilities[0] >= java_utilities[-1], (
+                "Java Linear should concede over time"
+            )
 
 
 # ============================================================================
@@ -545,12 +545,12 @@ class TestPythonVsJavaHardliner:
             java_variation = max(java_utilities) - min(java_utilities)
 
             # Allow some variation due to discrete outcome space
-            assert (
-                python_variation < 0.3
-            ), f"Python Hardliner conceded too much: {python_variation}"
-            assert (
-                java_variation < 0.3
-            ), f"Java Hardliner conceded too much: {java_variation}"
+            assert python_variation < 0.3, (
+                f"Python Hardliner conceded too much: {python_variation}"
+            )
+            assert java_variation < 0.3, (
+                f"Java Hardliner conceded too much: {java_variation}"
+            )
 
 
 # ============================================================================

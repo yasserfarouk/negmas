@@ -119,8 +119,7 @@ signature of this method:
 
 .. code:: python
 
-   def propose(self, state: SAOState, dest: str | None = None) -> Outcome:
-       ...
+   def propose(self, state: SAOState, dest: str | None = None) -> Outcome: ...
 
 It receives the negotiation ``state`` which has all information
 available to the negotiator about the current state of the negotiation
@@ -279,8 +278,7 @@ following signature:
 
 .. code:: python
 
-   def respond(self, state: SAOState, offer: Outcome, nid: str) -> ResponseType:
-       ...
+   def respond(self, state: SAOState, offer: Outcome, nid: str) -> ResponseType: ...
 
 The ``ResponseType`` returned is an enum with different possible
 options. We are only interested in three of them:

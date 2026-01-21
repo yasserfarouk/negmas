@@ -182,9 +182,9 @@ class SAOMechanism(
         self.params["offering_is_accepting"] = offering_is_accepting
         self.params["enforce_issue_types"] = enforce_issue_types
         self.params["cast_offers"] = cast_offers
-        self.params[
-            "allow_offering_just_rejected_outcome"
-        ] = allow_offering_just_rejected_outcome
+        self.params["allow_offering_just_rejected_outcome"] = (
+            allow_offering_just_rejected_outcome
+        )
         self._n_max_waits = max_wait if max_wait is not None else float("inf")
         self.params["max_wait"] = self._n_max_waits
         self.allow_offering_just_rejected_outcome = allow_offering_just_rejected_outcome
@@ -343,9 +343,9 @@ class SAOMechanism(
     ) -> tuple[SAOResponse | None, bool]:
         if kwargs is None:
             kwargs = dict()
-        assert (
-            not state.waiting or negotiator.id == state.current_proposer
-        ), f"We are waiting with {state.current_proposer} as the last offerer but we are asking {negotiator.id} to offer\n{state}"
+        assert not state.waiting or negotiator.id == state.current_proposer, (
+            f"We are waiting with {state.current_proposer} as the last offerer but we are asking {negotiator.id} to offer\n{state}"
+        )
         if self.verbosity > 2:
             print(
                 f"{self.name}: {negotiator.name} called after {humanize_time(time.perf_counter() - self._start_time, show_ms=True) if self._start_time else 0}",
@@ -668,10 +668,9 @@ class SAOMechanism(
                     ].name
                 else:
                     state.last_negotiator = ""
-                (
-                    self._current_proposer_agent,
-                    state.new_offerer_agents,
-                ) = self._agent_info()
+                (self._current_proposer_agent, state.new_offerer_agents) = (
+                    self._agent_info()
+                )
 
         # if action is not None:
         #     assert (

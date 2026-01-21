@@ -429,12 +429,12 @@ class PresortingInverseUtilityFunction(InverseUFun):
         waypoint_values: NDArray[floating[Any]] = (
             ur_sorted[waypoints] if self.__nwaypoints > 0 else np.empty(0, dtype=float)
         )
-        assert not any(
-            _ is None for _ in waypoints
-        ), f"{waypoints=}\n{waypoint_values}\n{self._last_rational}"
-        assert not any(
-            a < b for a, b in zip(waypoints[1:], waypoints[:-1])
-        ), f"{waypoints=}\n{waypoint_values}\n{self._last_rational}"
+        assert not any(_ is None for _ in waypoints), (
+            f"{waypoints=}\n{waypoint_values}\n{self._last_rational}"
+        )
+        assert not any(a < b for a, b in zip(waypoints[1:], waypoints[:-1])), (
+            f"{waypoints=}\n{waypoint_values}\n{self._last_rational}"
+        )
         assert not any(
             a < b for a, b in zip(waypoint_values[1:], waypoint_values[:-1])
         ), f"{waypoints=}\n{waypoint_values}\n{self._last_rational}"

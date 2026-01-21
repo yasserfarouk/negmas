@@ -1878,9 +1878,9 @@ class Mechanism(
             allindices = list(range(len(list(mechanisms))))
             indices = allindices if not ordering else list(ordering)
             notmentioned = set(allindices).difference(indices)
-            assert (
-                len(notmentioned) == 0
-            ), f"Mechanisms {notmentioned} are never mentioned in the ordering."
+            assert len(notmentioned) == 0, (
+                f"Mechanisms {notmentioned} are never mentioned in the ordering."
+            )
             if ordering_fun:
                 j = 0
                 while not all(completed):

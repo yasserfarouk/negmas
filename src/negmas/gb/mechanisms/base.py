@@ -564,9 +564,9 @@ class GBMechanism(BaseGBMechanism):
             if constraint_type
             else None
         )
-        self._local_constraint_type: type[
-            LocalOfferingConstraint
-        ] | None = local_constraint_type
+        self._local_constraint_type: type[LocalOfferingConstraint] | None = (
+            local_constraint_type
+        )
         self._local_constraint_params = (
             local_constraint_params if local_constraint_params else dict()
         )

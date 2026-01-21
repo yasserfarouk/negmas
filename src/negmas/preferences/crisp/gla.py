@@ -81,7 +81,10 @@ class GLAUtilityFunction(StationaryMixin, UtilityFunction):
         ...         # Factor on issues A and B (dict mapping)
         ...         (("A", "B"), {(0, 0): 1.0, (0, 1): 2.0, (1, 0): 3.0, (1, 1): 4.0}),
         ...         # Factor on issues A, C, E (lambda function)
-        ...         (("A", "C", "E"), lambda x: x[0] + (1 if x[1] == "x" else 0) + x[2]),
+        ...         (
+        ...             ("A", "C", "E"),
+        ...             lambda x: x[0] + (1 if x[1] == "x" else 0) + x[2],
+        ...         ),
         ...         # Factor on issue D only
         ...         (("D",), lambda x: x * 10),
         ...         # Factor on issues B and C (multivariate polynomial-like)

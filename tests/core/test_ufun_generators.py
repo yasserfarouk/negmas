@@ -184,9 +184,9 @@ def test_generate_utility_values(n_pareto, n_non, generator):
                 all(a == b for a, b in zip(p1, p2))
             ), f"{p1} and {p2} should be Pareto optimal but neither dominates the other"
     for y in non_paretos:
-        assert any(
-            dominates(x, y) for x in pareto
-        ), f"{y} is non-pareto but not dominated by any pareto outcome"
+        assert any(dominates(x, y) for x in pareto), (
+            f"{y} is non-pareto but not dominated by any pareto outcome"
+        )
 
 
 @pytest.mark.parametrize(

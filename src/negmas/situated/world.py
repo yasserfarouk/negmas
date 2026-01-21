@@ -1830,9 +1830,9 @@ class World(
             if negotiation is not None:
                 self.on_negotiation_end(negotiation)
             if self._debug:
-                assert (
-                    negotiation is not None
-                ), f"{mechanism.id} just finished but it is not in the set of running negotiations!!"
+                assert negotiation is not None, (
+                    f"{mechanism.id} just finished but it is not in the set of running negotiations!!"
+                )
             if agreement is None:
                 self._register_failed_negotiation(mechanism.nmi, negotiation)
                 contract = None
@@ -2016,7 +2016,9 @@ class World(
             }
             passed = set(neg_actions.keys()) if neg_actions else set()
             missing = passed.difference(existing)
-            assert not missing, f"Mechanisms not found:\n{existing=} ({len(existing)})\n{passed=} ({len(passed)})\n{missing=} ({len(missing)})"
+            assert not missing, (
+                f"Mechanisms not found:\n{existing=} ({len(existing)})\n{passed=} ({len(passed)})\n{missing=} ({len(missing)})"
+            )
 
         #
         _n_registered_negotiations_before = len(self._negotiations)
@@ -2300,9 +2302,9 @@ class World(
                         self._saved_contracts[contract.id]["executed_at"] = -1
                         self._saved_contracts[contract.id]["dropped_at"] = -1
                         self._saved_contracts[contract.id]["nullified_at"] = -1
-                        self._saved_contracts[contract.id][
-                            "erred_at"
-                        ] = self._current_step
+                        self._saved_contracts[contract.id]["erred_at"] = (
+                            self._current_step
+                        )
                         self._add_edges(
                             contract.partners[0],
                             contract.partners,
@@ -2328,9 +2330,9 @@ class World(
                         self._saved_contracts[contract.id]["breaches"] = ""
                         self._saved_contracts[contract.id]["executed_at"] = -1
                         self._saved_contracts[contract.id]["dropped_at"] = -1
-                        self._saved_contracts[contract.id][
-                            "nullified_at"
-                        ] = self._current_step
+                        self._saved_contracts[contract.id]["nullified_at"] = (
+                            self._current_step
+                        )
                         self._add_edges(
                             contract.partners[0],
                             contract.partners,
@@ -2348,9 +2350,9 @@ class World(
                             self.contracts_executed[p] += 1
                         self._saved_contracts[contract.id]["breaches"] = ""
                         self._saved_contracts[contract.id]["dropped_at"] = -1
-                        self._saved_contracts[contract.id][
-                            "executed_at"
-                        ] = self._current_step
+                        self._saved_contracts[contract.id]["executed_at"] = (
+                            self._current_step
+                        )
                         self._add_edges(
                             contract.partners[0],
                             contract.partners,

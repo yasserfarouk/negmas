@@ -1361,9 +1361,9 @@ class TestBuiltInTags:
             infos = negotiator_registry.get_by_short_name(name)
             assert len(infos) > 0, f"{name} not found"
             assert infos[0].has_tag("genius"), f"{name} missing 'genius' tag"
-            assert not infos[0].has_tag(
-                "builtin"
-            ), f"{name} should not have 'builtin' tag"
+            assert not infos[0].has_tag("builtin"), (
+                f"{name} should not have 'builtin' tag"
+            )
 
     def test_genius_negotiators_have_anac_year_tags(self):
         """Test that Genius negotiators have ANAC year tags."""
@@ -1381,9 +1381,9 @@ class TestBuiltInTags:
         for name, expected_year_tag in anac_negotiators.items():
             infos = negotiator_registry.get_by_short_name(name)
             assert len(infos) > 0, f"{name} not found"
-            assert infos[0].has_tag(
-                expected_year_tag
-            ), f"{name} missing '{expected_year_tag}' tag"
+            assert infos[0].has_tag(expected_year_tag), (
+                f"{name} missing '{expected_year_tag}' tag"
+            )
             assert infos[0].has_tag("anac"), f"{name} missing 'anac' tag"
 
     def test_query_builtin_vs_genius(self):
@@ -1394,17 +1394,17 @@ class TestBuiltInTags:
         builtin = negotiator_registry.query_by_tag("builtin")
         assert len(builtin) > 0
         for key, info in builtin.items():
-            assert not info.has_tag(
-                "genius"
-            ), f"{info.short_name} has both builtin and genius"
+            assert not info.has_tag("genius"), (
+                f"{info.short_name} has both builtin and genius"
+            )
 
         # Query for genius negotiators
         genius = negotiator_registry.query_by_tag("genius")
         assert len(genius) > 0
         for key, info in genius.items():
-            assert not info.has_tag(
-                "builtin"
-            ), f"{info.short_name} has both genius and builtin"
+            assert not info.has_tag("builtin"), (
+                f"{info.short_name} has both genius and builtin"
+            )
 
     def test_genius_boa_components_have_tags(self):
         """Test that Genius BOA components have appropriate tags."""

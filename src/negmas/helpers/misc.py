@@ -76,9 +76,9 @@ def distribute_integer_randomly(
     # just distribute as much as possible if min_per_bin cannot be achieved
     if min_per_bin is not None and n < m * min_per_bin:
         n_active = int(n // min_per_bin)
-        assert (
-            0 <= n_active <= n
-        ), f"Distributing {n} over {m} with {min_per_bin=} leads to {n_active} values which should be between {0} and {n}!!"
+        assert 0 <= n_active <= n, (
+            f"Distributing {n} over {m} with {min_per_bin=} leads to {n_active} values which should be between {0} and {n}!!"
+        )
         lst = [min_per_bin] * n_active + [0] * (m - n_active)
         random.shuffle(lst)
         return lst

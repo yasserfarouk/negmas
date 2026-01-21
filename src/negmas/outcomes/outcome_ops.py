@@ -431,7 +431,10 @@ def outcome_in_range(
         ...     "type": ["a", "b"],
         ...     "area": 3,
         ... }
-        >>> outcome_range_2 = {"price": [(0.0, 1.0), (1.5, 2.0)], "area": [(3, 4), (7, 9)]}
+        >>> outcome_range_2 = {
+        ...     "price": [(0.0, 1.0), (1.5, 2.0)],
+        ...     "area": [(3, 4), (7, 9)],
+        ... }
         >>> outcome_in_range({"price": 3.0}, outcome_range)
         False
         >>> outcome_in_range({"date": "2018.10.4"}, outcome_range)

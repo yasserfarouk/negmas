@@ -218,9 +218,9 @@ class TestTimeDependentOfferingMathematics:
         for e, k, t, expected in test_cases:
             policy = GTimeDependentOffering(e=e, k=k)
             actual = policy._f(t)
-            assert (
-                abs(actual - expected) < 1e-9
-            ), f"f({t}) = {actual} != {expected} for e={e}, k={k}"
+            assert abs(actual - expected) < 1e-9, (
+                f"f({t}) = {actual} != {expected} for e={e}, k={k}"
+            )
 
     def test_p_function_formula_verification(self):
         """Verify target(t) = Pmin + (Pmax - Pmin) * (1 - f(t))."""
@@ -264,9 +264,9 @@ class TestTimeDependentOfferingMathematics:
         drop_early = target_01 - target_03  # Small drop early
         drop_late = target_07 - target_09  # Larger drop late
 
-        assert (
-            drop_late > drop_early
-        ), f"Boulware should concede faster later: early drop={drop_early}, late drop={drop_late}"
+        assert drop_late > drop_early, (
+            f"Boulware should concede faster later: early drop={drop_early}, late drop={drop_late}"
+        )
 
         # Target at t=0.5 should still be quite high (> 0.9)
         assert target_05 > 0.9, f"Boulware at t=0.5 should be > 0.9, got {target_05}"
@@ -290,9 +290,9 @@ class TestTimeDependentOfferingMathematics:
         drop_early = 1.0 - target_01  # Large drop early
         drop_mid = target_03 - target_05  # Smaller drop in middle
 
-        assert (
-            drop_early > drop_mid
-        ), f"Conceder should concede faster early: early drop={drop_early}, mid drop={drop_mid}"
+        assert drop_early > drop_mid, (
+            f"Conceder should concede faster early: early drop={drop_early}, mid drop={drop_mid}"
+        )
 
         # Target at t=0.5 should be relatively low (< 0.3)
         assert target_05 < 0.3, f"Conceder at t=0.5 should be < 0.3, got {target_05}"
@@ -307,9 +307,9 @@ class TestTimeDependentOfferingMathematics:
         for t in [0.0, 0.2, 0.4, 0.5, 0.6, 0.8, 1.0]:
             expected = 1.0 - t
             actual = policy._p(t)
-            assert (
-                abs(actual - expected) < 1e-9
-            ), f"Linear target({t}) = {actual} != {expected}"
+            assert abs(actual - expected) < 1e-9, (
+                f"Linear target({t}) = {actual} != {expected}"
+            )
 
     def test_hardliner_always_max(self):
         """Hardliner (e=0): should always offer at maximum utility."""
@@ -320,9 +320,9 @@ class TestTimeDependentOfferingMathematics:
         # f(t) = k = 0 when e=0, so target = Pmax always
         for t in [0.0, 0.3, 0.5, 0.7, 0.99, 1.0]:
             target = policy._p(t)
-            assert (
-                abs(target - 0.95) < 1e-9
-            ), f"Hardliner target({t}) = {target} != 0.95"
+            assert abs(target - 0.95) < 1e-9, (
+                f"Hardliner target({t}) = {target} != 0.95"
+            )
 
 
 class TestAcceptancePolicyMathematics:
@@ -452,14 +452,14 @@ class TestOpponentModelMathematics:
         if model._initialized and model._n_issues > 0:
             # Check that weights sum to 1
             total_weight = sum(model._issue_weights.values())
-            assert (
-                abs(total_weight - 1.0) < 1e-6
-            ), f"Weights should sum to 1, got {total_weight}"
+            assert abs(total_weight - 1.0) < 1e-6, (
+                f"Weights should sum to 1, got {total_weight}"
+            )
 
             # Check that value_weights were updated
-            assert (
-                len(model._value_weights) > 0
-            ), "Model should have learned value weights"
+            assert len(model._value_weights) > 0, (
+                "Model should have learned value weights"
+            )
 
     def test_default_model_always_returns_half(self):
         """GDefaultModel should always return 0.5 utility."""
@@ -471,9 +471,9 @@ class TestOpponentModelMathematics:
         outcomes = [(0, 0, 0), (1, 2, 3), (9, 9, 9), (0, 5, 2)]
         for outcome in outcomes:
             utility = model.eval(outcome)
-            assert (
-                float(utility) == 0.5
-            ), f"GDefaultModel.eval({outcome}) = {utility} != 0.5"
+            assert float(utility) == 0.5, (
+                f"GDefaultModel.eval({outcome}) = {utility} != 0.5"
+            )
 
         # None should return 0.0
         assert float(model.eval(None)) == 0.0
@@ -493,9 +493,9 @@ class TestOpponentModelMathematics:
             outcome = (1, 2, 3)
             opponent_util = model.eval(outcome)
             expected = 1.0 - our_util
-            assert (
-                abs(float(opponent_util) - expected) < 1e-9
-            ), f"GOppositeModel: expected {expected}, got {opponent_util}"
+            assert abs(float(opponent_util) - expected) < 1e-9, (
+                f"GOppositeModel: expected {expected}, got {opponent_util}"
+            )
 
     def test_frequency_model_normalization(self):
         """Test that frequency-based model utilities are normalized to [0, 1]."""
@@ -527,9 +527,9 @@ class TestOpponentModelMathematics:
             test_outcomes = list(mechanism.outcome_space.enumerate())[:5]
             for outcome in test_outcomes:
                 utility = float(model.eval(outcome))
-                assert (
-                    0.0 <= utility <= 1.0
-                ), f"Utility {utility} for {outcome} not in [0, 1]"
+                assert 0.0 <= utility <= 1.0, (
+                    f"Utility {utility} for {outcome} not in [0, 1]"
+                )
 
 
 class TestGBOANegotiatorBehavior:
@@ -635,9 +635,9 @@ class TestGBOANegotiatorBehavior:
                 unique_offers.add(tuple(my_offers[-1]))
 
         # Hardliner should make only 1 unique offer (the best one)
-        assert (
-            len(unique_offers) <= 2
-        ), f"Hardliner made {len(unique_offers)} unique offers, expected <=2"
+        assert len(unique_offers) <= 2, (
+            f"Hardliner made {len(unique_offers)} unique offers, expected <=2"
+        )
 
     def test_grandom_makes_varied_offers(self):
         """GRandom should make diverse random offers."""
@@ -680,9 +680,9 @@ class TestGBOANegotiatorBehavior:
                 unique_offers.add(tuple(my_offers[-1]))
 
         # Random should make multiple different offers (with large outcome space)
-        assert (
-            len(unique_offers) >= 2
-        ), f"Random made only {len(unique_offers)} unique offers, expected >= 2"
+        assert len(unique_offers) >= 2, (
+            f"Random made only {len(unique_offers)} unique offers, expected >= 2"
+        )
 
     def test_in_negotiation_conceder(self, simple_mechanism, buyer_ufun):
         """Test GTimeDependentOffering in actual negotiation with Conceder."""
@@ -786,9 +786,9 @@ class TestGHardHeadedFrequencyModel:
         outcomes = list(simple_mechanism.outcome_space.enumerate())[:10]
         for outcome in outcomes:
             value = model.eval(outcome)
-            assert (
-                0.0 <= float(value) <= 1.0
-            ), f"eval({outcome}) = {value} not in [0, 1]"
+            assert 0.0 <= float(value) <= 1.0, (
+                f"eval({outcome}) = {value} not in [0, 1]"
+            )
 
     def test_in_negotiation_with_model(self, simple_mechanism, buyer_ufun, seller_ufun):
         """Test GHardHeadedFrequencyModel in actual negotiation."""
@@ -2155,9 +2155,9 @@ class TestBayesianModelMathematics:
             # Each hypothesis should have weights summing to 1
             for hypothesis in model._issue_weight_hypotheses:
                 total = sum(hypothesis.values())
-                assert (
-                    abs(total - 1.0) < 1e-6
-                ), f"Hypothesis weights should sum to 1, got {total}"
+                assert abs(total - 1.0) < 1e-6, (
+                    f"Hypothesis weights should sum to 1, got {total}"
+                )
 
             # Prior probabilities should be uniform and sum to 1
             assert len(model._hypothesis_probs) == 5
@@ -2186,9 +2186,9 @@ class TestBayesianModelMathematics:
         if model._initialized:
             # Probabilities should still sum to 1 after updates
             total_prob = sum(model._hypothesis_probs)
-            assert (
-                abs(total_prob - 1.0) < 1e-6
-            ), f"Posterior probabilities should sum to 1, got {total_prob}"
+            assert abs(total_prob - 1.0) < 1e-6, (
+                f"Posterior probabilities should sum to 1, got {total_prob}"
+            )
 
             # All probabilities should be non-negative
             for prob in model._hypothesis_probs:
@@ -2445,9 +2445,9 @@ class TestOfferingStrategyMathematicsExtended:
                 unique_offers.add(tuple(offers[-1]))
 
         # Should produce multiple unique offers with large outcome space
-        assert (
-            len(unique_offers) >= 2
-        ), f"Random should produce diverse offers, got {len(unique_offers)}"
+        assert len(unique_offers) >= 2, (
+            f"Random should produce diverse offers, got {len(unique_offers)}"
+        )
 
     def test_specialized_offerings_have_correct_e(self):
         """Test that GBoulwareOffering, GConcederOffering, etc. have correct e values."""
@@ -2513,9 +2513,9 @@ class TestFrequencyModelMathematicsExtended:
 
             if model._initialized and model._issue_weights:
                 total = sum(model._issue_weights.values())
-                assert (
-                    abs(total - 1.0) < 1e-6
-                ), f"Step {step}: weights should sum to 1, got {total}"
+                assert abs(total - 1.0) < 1e-6, (
+                    f"Step {step}: weights should sum to 1, got {total}"
+                )
 
     def test_agentx_exponential_smoothing(self):
         """Test that GAgentXFrequencyModel uses correct exponential smoothing."""
@@ -2543,9 +2543,9 @@ class TestFrequencyModelMathematicsExtended:
         if model._initialized:
             # Weights should still sum to 1 after all updates
             total = sum(model._issue_weights.values())
-            assert (
-                abs(total - 1.0) < 1e-6
-            ), f"Final weights should sum to 1, got {total}"
+            assert abs(total - 1.0) < 1e-6, (
+                f"Final weights should sum to 1, got {total}"
+            )
 
     def test_nash_model_targets_pareto_efficiency(self):
         """Test GNashFrequencyModel behavior."""
@@ -2799,9 +2799,9 @@ class TestGeniusBOANegotiators:
         ]
 
         for neg_cls in negotiators:
-            assert issubclass(
-                neg_cls, BOANegotiator
-            ), f"{neg_cls.__name__} should inherit from BOANegotiator"
+            assert issubclass(neg_cls, BOANegotiator), (
+                f"{neg_cls.__name__} should inherit from BOANegotiator"
+            )
 
     # ==========================================================================
     # Classic Time-Dependent Agents Tests

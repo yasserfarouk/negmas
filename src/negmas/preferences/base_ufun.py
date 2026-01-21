@@ -726,9 +726,9 @@ class BaseUtilityFunction(Preferences, ABC):
         for o in outcome_space.sample(n_trials, with_replacement=False):
             if o is None:
                 continue
-            assert (
-                o in outcome_space
-            ), f"Sampled outcome {o} which is not in the outcome-space {outcome_space}"
+            assert o in outcome_space, (
+                f"Sampled outcome {o} which is not in the outcome-space {outcome_space}"
+            )
             if rng[0] - 1e-6 <= float(self(o)) <= rng[1] + 1e-6:
                 return o
         return None
@@ -781,8 +781,13 @@ class BaseUtilityFunction(Preferences, ABC):
             ...     "r",
             ... ) as ff:
             ...     u, _ = UtilityFunction.from_xml_str(ff.read(), issues=domain.issues)
-            >>> assert abs(u(("Dell", "60 Gb", "19'' LCD")) - 21.987727736172488) < 0.000001
-            >>> assert abs(u(("HP", "80 Gb", "20'' LCD")) - 22.68559475583014) < 0.000001
+            >>> assert (
+            ...     abs(u(("Dell", "60 Gb", "19'' LCD")) - 21.987727736172488)
+            ...     < 0.000001
+            ... )
+            >>> assert (
+            ...     abs(u(("HP", "80 Gb", "20'' LCD")) - 22.68559475583014) < 0.000001
+            ... )
 
 
         """
@@ -1274,7 +1279,8 @@ class BaseUtilityFunction(Preferences, ABC):
             >>> u.to_genius(
             ...     discount_factor=d,
             ...     file_name=pkg_resources.resource_filename(
-            ...         "negmas", resource_name="tests/data/LaptopConv/Laptop-C-prof1.xml"
+            ...         "negmas",
+            ...         resource_name="tests/data/LaptopConv/Laptop-C-prof1.xml",
             ...     ),
             ...     issues=domain.issues,
             ... )

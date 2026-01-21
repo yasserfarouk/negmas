@@ -84,9 +84,9 @@ class GBNegotiator(Negotiator[GBNMI, GBState], Generic[TNMI, TState]):
         )
         self.add_capabilities({"respond": True, "propose": True, "max-proposals": 1})
         self.__end_negotiation = False
-        self.__received_offer: dict[
-            str | None, Outcome | ExtendedOutcome | None
-        ] = defaultdict(none_return)
+        self.__received_offer: dict[str | None, Outcome | ExtendedOutcome | None] = (
+            defaultdict(none_return)
+        )
 
     @abstractmethod
     def propose(

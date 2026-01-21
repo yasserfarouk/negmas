@@ -346,21 +346,21 @@ def test_basic_sao():
     for i in range(n_steps):
         if not session.step().running:
             break
-        assert (
-            session.state.started and session.state.running
-        ), f"{session.state=}\n{session.extended_trace=}"
-        assert (
-            session.current_step == i + 1
-        ), f"{session.state=}\n{session.extended_trace=}"
-        assert session.expected_remaining_steps == (
-            n_steps - i - 1
-        ), f"{session.state=}\n{session.extended_trace=}"
-        assert (
-            session.remaining_steps == n_steps - i - 1
-        ), f"{session.state=}\n{session.extended_trace=}"
-        assert (
-            abs(session.relative_time - ((i + 2) / (n_steps + 1))) < 1e-6
-        ), f"{session.state=}\n{session.extended_trace=}"
+        assert session.state.started and session.state.running, (
+            f"{session.state=}\n{session.extended_trace=}"
+        )
+        assert session.current_step == i + 1, (
+            f"{session.state=}\n{session.extended_trace=}"
+        )
+        assert session.expected_remaining_steps == (n_steps - i - 1), (
+            f"{session.state=}\n{session.extended_trace=}"
+        )
+        assert session.remaining_steps == n_steps - i - 1, (
+            f"{session.state=}\n{session.extended_trace=}"
+        )
+        assert abs(session.relative_time - ((i + 2) / (n_steps + 1))) < 1e-6, (
+            f"{session.state=}\n{session.extended_trace=}"
+        )
         assert session.remaining_time is None
     assert session.state.started and not session.state.running
     assert session.state.step <= n_steps
@@ -398,21 +398,21 @@ def test_basic_sao_hybrid():
     for i in range(n_steps + 1):
         if not session.step().running:
             break
-        assert (
-            session.state.started and session.state.running
-        ), f"{session.state=}\n{session.extended_trace=}"
-        assert (
-            session.current_step == i + 1
-        ), f"{session.state=}\n{session.extended_trace=}"
-        assert session.expected_remaining_steps == (
-            n_steps - i - 1
-        ), f"{session.state=}\n{session.extended_trace=}"
-        assert (
-            session.remaining_steps == n_steps - i - 1
-        ), f"{session.state=}\n{session.extended_trace=}"
-        assert (
-            abs(session.relative_time - ((i + 2) / (n_steps + 1))) < 1e-6
-        ), f"{session.state=}\n{session.extended_trace=}"
+        assert session.state.started and session.state.running, (
+            f"{session.state=}\n{session.extended_trace=}"
+        )
+        assert session.current_step == i + 1, (
+            f"{session.state=}\n{session.extended_trace=}"
+        )
+        assert session.expected_remaining_steps == (n_steps - i - 1), (
+            f"{session.state=}\n{session.extended_trace=}"
+        )
+        assert session.remaining_steps == n_steps - i - 1, (
+            f"{session.state=}\n{session.extended_trace=}"
+        )
+        assert abs(session.relative_time - ((i + 2) / (n_steps + 1))) < 1e-6, (
+            f"{session.state=}\n{session.extended_trace=}"
+        )
         assert session.remaining_time is None
     assert session.state.started and not session.state.running
     assert session.state.step <= n_steps
@@ -456,28 +456,28 @@ def test_basic_sao_with_action():
             state: SAOState = session.state  # type: ignore
             assert state.current_offer == offers[i]
             assert state.current_proposer == ids[0]
-        assert (
-            session.state.started and session.state.running
-        ), f"{session.state=}\n{session.extended_trace=}"
-        assert (
-            session.current_step == i + 1
-        ), f"{session.state=}\n{session.extended_trace=}"
-        assert session.expected_remaining_steps == (
-            n_steps - i - 1
-        ), f"{session.state=}\n{session.extended_trace=}"
-        assert (
-            session.remaining_steps == n_steps - i - 1
-        ), f"{session.state=}\n{session.extended_trace=}"
-        assert (
-            abs(session.relative_time - ((i + 2) / (n_steps + 1))) < 1e-6
-        ), f"{session.state=}\n{session.extended_trace=}"
+        assert session.state.started and session.state.running, (
+            f"{session.state=}\n{session.extended_trace=}"
+        )
+        assert session.current_step == i + 1, (
+            f"{session.state=}\n{session.extended_trace=}"
+        )
+        assert session.expected_remaining_steps == (n_steps - i - 1), (
+            f"{session.state=}\n{session.extended_trace=}"
+        )
+        assert session.remaining_steps == n_steps - i - 1, (
+            f"{session.state=}\n{session.extended_trace=}"
+        )
+        assert abs(session.relative_time - ((i + 2) / (n_steps + 1))) < 1e-6, (
+            f"{session.state=}\n{session.extended_trace=}"
+        )
         assert session.remaining_time is None
     assert session.state.started and (
         not session.state.running or session.state.step >= n_steps
     ), f"Did not finish running:\n{session.extended_trace}"
-    assert (
-        session.state.step <= n_steps
-    ), f"Ran for too long {session.state.step} but max expected is {n_steps} steps:\n{session.extended_trace}"
+    assert session.state.step <= n_steps, (
+        f"Ran for too long {session.state.step} but max expected is {n_steps} steps:\n{session.extended_trace}"
+    )
 
 
 class MyNeg(AspirationNegotiator):
@@ -577,9 +577,9 @@ def test_relative_time():
     session.run()
     for agent in agents:
         for step, relative_time, time, expected_rt in agent.records:
-            assert (
-                abs(relative_time - expected_rt) < 1e-5
-            ), f"{(step, relative_time, time, expected_rt)}"
+            assert abs(relative_time - expected_rt) < 1e-5, (
+                f"{(step, relative_time, time, expected_rt)}"
+            )
 
 
 def test_extended_outcome_with_text():
@@ -648,9 +648,9 @@ def test_extended_outcome_with_text():
     # Verify texts were generated
     assert len(generated_texts) > 0, "No texts were generated during negotiation"
     assert len(text_offering.texts) > 0, "TextOfferingPolicy did not track texts"
-    assert (
-        text_offering.texts == generated_texts
-    ), "Generated texts do not match tracked texts"
+    assert text_offering.texts == generated_texts, (
+        "Generated texts do not match tracked texts"
+    )
 
     # Verify each text has expected format
     for text in generated_texts:
@@ -658,9 +658,9 @@ def test_extended_outcome_with_text():
 
     # Verify negotiation completed (either agreement or timeout)
     assert session.state.started, "Negotiation did not start"
-    assert (
-        session.state.ended or session.state.timedout or session.state.agreement
-    ), "Negotiation did not complete properly"
+    assert session.state.ended or session.state.timedout or session.state.agreement, (
+        "Negotiation did not complete properly"
+    )
 
 
 def test_sao_response_from_extended():
@@ -843,9 +843,9 @@ def test_extended_response_type_in_negotiation():
 
     # Verify negotiation completed
     assert session.state.started, "Negotiation did not start"
-    assert (
-        session.state.ended or session.state.timedout or session.state.agreement
-    ), "Negotiation did not complete properly"
+    assert session.state.ended or session.state.timedout or session.state.agreement, (
+        "Negotiation did not complete properly"
+    )
 
 
 def test_boa_negotiator_text_combinations():
@@ -992,17 +992,17 @@ def test_boa_negotiator_text_combinations():
     session3.run()
 
     assert session3.state.started, "Test 3: Negotiation did not start"
-    assert (
-        len(text_acceptance3.generated_texts) > 0
-    ), "Test 3: No response texts generated"
+    assert len(text_acceptance3.generated_texts) > 0, (
+        "Test 3: No response texts generated"
+    )
     # Verify text format and that responses contain decision info
     for text in text_acceptance3.generated_texts:
-        assert text.startswith(
-            "response_step"
-        ), f"Test 3: Unexpected text format: {text}"
-        assert (
-            "ACCEPT" in text or "REJECT" in text
-        ), f"Test 3: Missing decision in text: {text}"
+        assert text.startswith("response_step"), (
+            f"Test 3: Unexpected text format: {text}"
+        )
+        assert "ACCEPT" in text or "REJECT" in text, (
+            f"Test 3: Missing decision in text: {text}"
+        )
 
     # --------------------------------------------------------------------------
     # Test 4: Text offering + Text acceptance (both negotiators)
@@ -1026,33 +1026,33 @@ def test_boa_negotiator_text_combinations():
     assert session4.state.started, "Test 4: Negotiation did not start"
 
     # Both negotiators should have generated texts
-    assert (
-        len(text_offering4a.generated_texts) > 0
-    ), "Test 4: Negotiator A generated no offer texts"
-    assert (
-        len(text_acceptance4a.generated_texts) > 0
-    ), "Test 4: Negotiator A generated no response texts"
-    assert (
-        len(text_offering4b.generated_texts) > 0
-    ), "Test 4: Negotiator B generated no offer texts"
-    assert (
-        len(text_acceptance4b.generated_texts) > 0
-    ), "Test 4: Negotiator B generated no response texts"
+    assert len(text_offering4a.generated_texts) > 0, (
+        "Test 4: Negotiator A generated no offer texts"
+    )
+    assert len(text_acceptance4a.generated_texts) > 0, (
+        "Test 4: Negotiator A generated no response texts"
+    )
+    assert len(text_offering4b.generated_texts) > 0, (
+        "Test 4: Negotiator B generated no offer texts"
+    )
+    assert len(text_acceptance4b.generated_texts) > 0, (
+        "Test 4: Negotiator B generated no response texts"
+    )
 
     # Verify the state contains data when extended types are used
     has_data = False
     for step_state in session4.history:
         if step_state.current_data is not None:
             has_data = True
-            assert isinstance(
-                step_state.current_data, dict
-            ), "Test 4: Data should be a dict"
+            assert isinstance(step_state.current_data, dict), (
+                "Test 4: Data should be a dict"
+            )
             break
 
     # At least some states should have data
-    assert (
-        has_data or session4.state.agreement is not None
-    ), "Test 4: Expected data in history or agreement"
+    assert has_data or session4.state.agreement is not None, (
+        "Test 4: Expected data in history or agreement"
+    )
 
     # --------------------------------------------------------------------------
     # Test 5: Verify text combination when both offer and response have text
@@ -1161,9 +1161,9 @@ def test_sao_state_data_population():
     session.run()
 
     assert session.state.started, "Negotiation did not start"
-    assert (
-        session.state.ended or session.state.agreement
-    ), "Negotiation did not complete"
+    assert session.state.ended or session.state.agreement, (
+        "Negotiation did not complete"
+    )
 
     # Verify that current_data was populated at some point
     # Check history for states with data
@@ -1189,20 +1189,20 @@ def test_sao_state_data_population():
         # The data should contain merged text from both response and offer
         if "text" in data:
             # Text should exist
-            assert isinstance(
-                data["text"], str
-            ), f"text should be str, got {type(data['text'])}"
+            assert isinstance(data["text"], str), (
+                f"text should be str, got {type(data['text'])}"
+            )
 
     # Verify new_data contains tuples of (negotiator_id, data)
     for state in states_with_new_data:
         for neg_id, data in state.new_data:
-            assert isinstance(
-                neg_id, str
-            ), f"negotiator_id should be str, got {type(neg_id)}"
+            assert isinstance(neg_id, str), (
+                f"negotiator_id should be str, got {type(neg_id)}"
+            )
             if data is not None:
-                assert isinstance(
-                    data, dict
-                ), f"data should be dict or None, got {type(data)}"
+                assert isinstance(data, dict), (
+                    f"data should be dict or None, got {type(data)}"
+                )
 
     # Verify that at least one step had data from our negotiator
     found_our_data = False

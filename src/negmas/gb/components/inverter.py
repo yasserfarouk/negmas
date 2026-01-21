@@ -176,9 +176,9 @@ class UtilityBasedOutcomeSetRecommender(GBComponent):
             adjusted[0] -= self.eps
             adjusted[-1] += self.eps
         adjusted = [max(self.min, min(self.max, _)) for _ in adjusted]
-        assert (
-            adjusted[0] <= adjusted[1]
-        ), f"{urange=} adjusted to {adjusted=} ({self.min=}, {self.max=})"
+        assert adjusted[0] <= adjusted[1], (
+            f"{urange=} adjusted to {adjusted=} ({self.min=}, {self.max=})"
+        )
         return tuple(adjusted)
 
     @property

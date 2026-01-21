@@ -278,18 +278,18 @@ def test_agentk_perceives_time():
     current_time = 0
     for _ in range(n_steps):
         assert gagent.relative_time is not None
-        assert (
-            gagent.relative_time >= current_time
-        ), f"Failed to get time before step {_}"
+        assert gagent.relative_time >= current_time, (
+            f"Failed to get time before step {_}"
+        )
         neg.step()
         if neg.nmi.state.ended:
             break
         if _ == n_steps - 1:
             assert gagent.relative_time is None, "Got a time after the last step"
         else:
-            assert (
-                gagent.relative_time > current_time
-            ), f"Failed to get time after step {_}"
+            assert gagent.relative_time > current_time, (
+                f"Failed to get time after step {_}"
+            )
         if neg.nmi.state.ended:
             break
         current_time = gagent.relative_time
@@ -406,9 +406,9 @@ def test_caudacius_caudacius():
         if state.agreement is not None:
             break
         new_offers = [_[1] for _ in state.new_offers]
-        assert all(
-            _ is not None for _ in new_offers
-        ), f"failed at {neg.current_step}: {new_offers}"
+        assert all(_ is not None for _ in new_offers), (
+            f"failed at {neg.current_step}: {new_offers}"
+        )
 
     assert not all(
         [len(set(neg.negotiator_offers(_))) == 1 for _ in neg.negotiator_ids]

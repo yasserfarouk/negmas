@@ -28,9 +28,9 @@ class TAUMechanism(BaseGBMechanism):
         super().__init__(*args, parallel=parallel, **kwargs)
         self._offers: dict[str, set[Outcome]] = defaultdict(set)
         self._acceptances: dict[Outcome, set[str]] = defaultdict(set)
-        self._acceptances_per_negotiator: dict[
-            Outcome, dict[str, set[str]]
-        ] = defaultdict(lambda: defaultdict(set))
+        self._acceptances_per_negotiator: dict[Outcome, dict[str, set[str]]] = (
+            defaultdict(lambda: defaultdict(set))
+        )
         self._proposals: dict[Outcome, set[str]] = defaultdict(set)
         self._last_offer: dict[str, Outcome] = dict()
         self._accept_in_any_thread = accept_in_any_thread
@@ -45,9 +45,9 @@ class TAUMechanism(BaseGBMechanism):
         Returns:
             MechanismStepResult: The result.
         """
-        assert (
-            action is None
-        ), "passing action != None to TAUMechanism is not yet supported"
+        assert action is None, (
+            "passing action != None to TAUMechanism is not yet supported"
+        )
         n = len(self.negotiators)
 
         def _check_agreement(offer, acceptor, n=n):

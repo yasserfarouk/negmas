@@ -226,9 +226,9 @@ class AgreeableAgent2018(GeniusNegotiator):
 
     def __init__(self, **kwargs):
         """Initializes the instance."""
-        kwargs[
-            "java_class_name"
-        ] = "agents.anac.y2018.agreeableagent2018.AgreeableAgent2018"
+        kwargs["java_class_name"] = (
+            "agents.anac.y2018.agreeableagent2018.AgreeableAgent2018"
+        )
         super().__init__(**kwargs)
 
 

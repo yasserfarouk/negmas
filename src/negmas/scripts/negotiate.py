@@ -950,9 +950,9 @@ def run(
 
     negotiator_names = shortest_unique_names(negotiators, guarantee_unique=True)
     if share_ufuns:
-        assert (
-            len(current_scenario.ufuns) == 2 and len(negotiators) == 2
-        ), "Sharing ufuns in multilateral negotiations is not yet supported"
+        assert len(current_scenario.ufuns) == 2 and len(negotiators) == 2, (
+            "Sharing ufuns in multilateral negotiations is not yet supported"
+        )
         opp_ufuns = list(reversed(deepcopy(current_scenario.ufuns)))
         if not share_reserved_values:
             for u in opp_ufuns:

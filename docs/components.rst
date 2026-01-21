@@ -429,6 +429,7 @@ Building a Custom Negotiator
    )
    from negmas.negotiators.helpers import PolyAspiration
 
+
    # Create a negotiator with custom components
    class MyNegotiator(SAONegotiator):
        def __init__(self, *args, **kwargs):
@@ -451,6 +452,7 @@ Genius BOA components can be used to build custom negotiators without Java.
        GACCombi,
        GHardHeadedFrequencyModel,
    )
+
 
    # Create a custom HardHeaded-style negotiator
    class MyHardHeadedAgent(BOANegotiator):

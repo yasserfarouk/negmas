@@ -56,12 +56,10 @@ class AWI(AgentWorldInterface):
 
 class Person(Agent[AWI], ABC):
     @abstractmethod
-    def step(self):
-        ...
+    def step(self): ...
 
     @abstractmethod
-    def init(self):
-        ...
+    def init(self): ...
 
     @abstractmethod
     def respond_to_negotiation_request(
@@ -69,8 +67,7 @@ class Person(Agent[AWI], ABC):
         initiator: str,
         partners: list[str],
         mechanism: NegotiatorMechanismInterface,
-    ) -> Negotiator | None:
-        ...
+    ) -> Negotiator | None: ...
 
     def _respond_to_negotiation_request(
         self,

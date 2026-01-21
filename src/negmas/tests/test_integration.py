@@ -67,9 +67,9 @@ def test_buy_sell_session():
     # run the negotiation and show the results
     state = session.run()
 
-    assert (
-        state.agreement is not None
-    ), f"{session.plot(show=True)}{session.extended_trace}"
+    assert state.agreement is not None, (
+        f"{session.plot(show=True)}{session.extended_trace}"
+    )
 
 
 if __name__ == "__main__":

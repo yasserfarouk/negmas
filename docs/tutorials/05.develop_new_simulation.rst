@@ -145,8 +145,9 @@ This is done here using the following method:
 
 .. code:: python
 
-       def request_negotiation(self, partners: List[str], negotiator: SAONegotiator) -> bool:
-           ...
+       def request_negotiation(
+           self, partners: List[str], negotiator: SAONegotiator
+       ) -> bool: ...
 
 Here the agent is asked to provide only a list of ``partners`` and a
 ``negotiator`` to use.
@@ -442,44 +443,35 @@ The callbacks related to this are:
 
 .. code:: python
 
-       def on_contract_signed(self, contract: Contract) -> None:
-           ...
+       def on_contract_signed(self, contract: Contract) -> None: ...
 
 
-       def executable_contracts(self) -> Collection[Contract]:
-           ...
+       def executable_contracts(self) -> Collection[Contract]: ...
 
 
        def order_contracts_for_execution(
            self, contracts: Collection[Contract]
-       ) -> Collection[Contract]:
-           ...
+       ) -> Collection[Contract]: ...
 
 
-       def start_contract_execution(self, contract: Contract) -> Optional[Set[Breach]]:
-           ...
+       def start_contract_execution(self, contract: Contract) -> Optional[Set[Breach]]: ...
 
 
        def complete_contract_execution(
            self, contract: Contract, breaches: List[Breach], resolution: Contract
-       ) -> None:
-           ...
+       ) -> None: ...
 
 
-       def delete_executed_contracts(self) -> None:
-           ...
+       def delete_executed_contracts(self) -> None: ...
 
 
-       def contract_record(self, contract: Contract) -> Dict[str, Any]:
-           ...
+       def contract_record(self, contract: Contract) -> Dict[str, Any]: ...
 
 
-       def breach_record(self, breach: Breach) -> Dict[str, Any]:
-           ...
+       def breach_record(self, breach: Breach) -> Dict[str, Any]: ...
 
 
-       def contract_size(self, contract: Contract) -> float:
-           ...
+       def contract_size(self, contract: Contract) -> float: ...
 
 The names are almost self-explanatory and we will go through them one by
 one:
@@ -702,13 +694,11 @@ based agents to provide some implementation for them
 .. code:: python
 
        @abstractmethod
-       def step(self):
-           ...
+       def step(self): ...
 
 
        @abstractmethod
-       def init(self):
-           ...
+       def init(self): ...
 
 We then add a third method for responding to negotiation requests:
 
@@ -720,8 +710,7 @@ We then add a third method for responding to negotiation requests:
            initiator: str,
            partners: List[str],
            mechanism: AgentMechanismInterface,
-       ) -> Optional[Negotiator]:
-           ...
+       ) -> Optional[Negotiator]: ...
 
 ``World`` and ``TripWorld`` classes know nothing about this method, our
 base ``Person`` class will call it when it receives a request to respond
@@ -742,12 +731,10 @@ during the simulation. These are:
 
 .. code:: python
 
-       def on_neg_request_rejected(self, req_id: str, by: Optional[List[str]]):
-           ...
+       def on_neg_request_rejected(self, req_id: str, by: Optional[List[str]]): ...
 
 
-       def on_neg_request_accepted(self, req_id: str, mechanism: AgentMechanismInterface):
-           ...
+       def on_neg_request_accepted(self, req_id: str, mechanism: AgentMechanismInterface): ...
 
 
        def on_negotiation_failure(
@@ -756,34 +743,28 @@ during the simulation. These are:
            annotation: Dict[str, Any],
            mechanism: AgentMechanismInterface,
            state: MechanismState,
-       ):
-           ...
+       ): ...
 
 
        def on_negotiation_success(
            self, contract: Contract, mechanism: AgentMechanismInterface
-       ):
-           ...
+       ): ...
 
 
        def set_renegotiation_agenda(
            self, contract: Contract, breaches: List[Breach]
-       ) -> Optional[RenegotiationRequest]:
-           ...
+       ) -> Optional[RenegotiationRequest]: ...
 
 
        def respond_to_renegotiation_request(
            self, contract: Contract, breaches: List[Breach], agenda: RenegotiationRequest
-       ) -> Optional[Negotiator]:
-           ...
+       ) -> Optional[Negotiator]: ...
 
 
-       def on_contract_executed(self, contract: Contract):
-           ...
+       def on_contract_executed(self, contract: Contract): ...
 
 
-       def on_contract_breached(self, contract: Contract, breaches: List[Breach]):
-           ...
+       def on_contract_breached(self, contract: Contract, breaches: List[Breach]): ...
 
 These callbacks are called by the world at key points of the process
 from a negotiation request to an exeucted/breached contract. The names

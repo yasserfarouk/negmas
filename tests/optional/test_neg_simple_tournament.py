@@ -295,18 +295,18 @@ def test_load_save_combine(tmp_path: Path):
         return True
 
     r = SimpleTournamentResults.load(path, must_have_details=True)
-    assert compare_frames(
-        final_scores, r.final_scores
-    ), f"{final_scores}\n{r.final_scores}"
+    assert compare_frames(final_scores, r.final_scores), (
+        f"{final_scores}\n{r.final_scores}"
+    )
     results.save(tmp_path / "t1")
     r = SimpleTournamentResults.load(tmp_path / "t1", must_have_details=True)
-    assert compare_frames(
-        final_scores, r.final_scores
-    ), f"{final_scores}\n{r.final_scores}"
+    assert compare_frames(final_scores, r.final_scores), (
+        f"{final_scores}\n{r.final_scores}"
+    )
     r, _ = SimpleTournamentResults.combine((path, tmp_path / "t1"))
-    assert compare_frames(
-        final_scores, r.final_scores
-    ), f"{final_scores}\n{r.final_scores}"
+    assert compare_frames(final_scores, r.final_scores), (
+        f"{final_scores}\n{r.final_scores}"
+    )
 
 
 # ===== Callback Tests =====
@@ -351,9 +351,9 @@ def test_callback_before_start_is_called():
 
     # Expected: n_scenarios * n_competitors^2 * n_repetitions
     expected_calls = len(scenarios) * len(competitors) ** 2 * n_repetitions
-    assert (
-        call_count["count"] == expected_calls
-    ), f"Expected {expected_calls} calls, got {call_count['count']}"
+    assert call_count["count"] == expected_calls, (
+        f"Expected {expected_calls} calls, got {call_count['count']}"
+    )
     assert len(run_infos) == expected_calls
 
     # Verify RunInfo structure
@@ -700,9 +700,9 @@ def test_opponents_no_self_play_among_competitors():
     competitor_names = {_.__name__ for _ in competitors}
     for partners in partners_sets:
         # Should not have both competitors in same negotiation
-        assert (
-            len(partners & competitor_names) == 1
-        ), f"Found competitors playing each other: {partners}"
+        assert len(partners & competitor_names) == 1, (
+            f"Found competitors playing each other: {partners}"
+        )
 
 
 def test_opponents_with_rotate_ufuns():
@@ -1030,12 +1030,12 @@ def test_storage_optimization_balanced(tmp_path: Path):
     # results/ folder should be removed
     assert not (path / "results").exists(), "results/ folder should be removed"
     # Files should exist (in gzip format for balanced optimization)
-    assert (
-        _find_dataframe_file(path, "all_scores") is not None
-    ), "all_scores file should exist"
-    assert (
-        _find_dataframe_file(path, "details") is not None
-    ), "details file should exist"
+    assert _find_dataframe_file(path, "all_scores") is not None, (
+        "all_scores file should exist"
+    )
+    assert _find_dataframe_file(path, "details") is not None, (
+        "details file should exist"
+    )
     # scores.csv always uses plain CSV format
     assert (path / "scores.csv").exists(), "scores.csv should exist"
 
@@ -1074,13 +1074,13 @@ def test_storage_optimization_space(tmp_path: Path):
 
     # results/ folder and all_scores should be removed
     assert not (path / "results").exists(), "results/ folder should be removed"
-    assert (
-        _find_dataframe_file(path, "all_scores") is None
-    ), "all_scores should be removed"
+    assert _find_dataframe_file(path, "all_scores") is None, (
+        "all_scores should be removed"
+    )
     # Essential files should still exist (parquet format for space optimization)
-    assert (
-        _find_dataframe_file(path, "details") is not None
-    ), "details file should exist"
+    assert _find_dataframe_file(path, "details") is not None, (
+        "details file should exist"
+    )
     # scores.csv always uses plain CSV format
     assert (path / "scores.csv").exists(), "scores.csv should exist"
 
@@ -1334,9 +1334,9 @@ def test_scores_reconstructed_from_details_csv_only(tmp_path: Path):
     loaded_results = SimpleTournamentResults.load(path)
 
     # Verify scores were reconstructed
-    assert len(loaded_results.scores) == len(
-        original_scores
-    ), f"Expected {len(original_scores)} scores, got {len(loaded_results.scores)}"
+    assert len(loaded_results.scores) == len(original_scores), (
+        f"Expected {len(original_scores)} scores, got {len(loaded_results.scores)}"
+    )
 
     # Verify key score columns match
     for col in ["strategy", "utility", "reserved_value", "scenario"]:
@@ -1377,12 +1377,12 @@ def test_competitor_names_parameter():
 
     # Check that custom names appear in the results
     strategies_in_scores = set(results.scores["strategy"].unique())
-    assert (
-        "MyRandom" in strategies_in_scores
-    ), f"Expected 'MyRandom' in {strategies_in_scores}"
-    assert (
-        "MyAspiration" in strategies_in_scores
-    ), f"Expected 'MyAspiration' in {strategies_in_scores}"
+    assert "MyRandom" in strategies_in_scores, (
+        f"Expected 'MyRandom' in {strategies_in_scores}"
+    )
+    assert "MyAspiration" in strategies_in_scores, (
+        f"Expected 'MyAspiration' in {strategies_in_scores}"
+    )
 
     # Check final scores also use custom names
     final_strategies = set(results.final_scores["strategy"].unique())
@@ -1424,9 +1424,9 @@ def test_opponent_names_parameter():
 
     # Only competitors should appear in scores (not opponents)
     strategies_in_scores = set(results.scores["strategy"].unique())
-    assert (
-        "TestCompetitor" in strategies_in_scores
-    ), f"Expected 'TestCompetitor' in {strategies_in_scores}"
+    assert "TestCompetitor" in strategies_in_scores, (
+        f"Expected 'TestCompetitor' in {strategies_in_scores}"
+    )
 
     # Opponent names should appear in partner columns
     all_partners = set()
@@ -1604,9 +1604,9 @@ def test_shorten_names_deprecation_warning():
         deprecation_warnings = [
             warning for warning in w if "shorten_names" in str(warning.message).lower()
         ]
-        assert (
-            len(deprecation_warnings) > 0
-        ), f"Expected deprecation warning for shorten_names, got: {[str(x.message) for x in w]}"
+        assert len(deprecation_warnings) > 0, (
+            f"Expected deprecation warning for shorten_names, got: {[str(x.message) for x in w]}"
+        )
 
     # Tournament should still work
     assert len(results.scores) > 0

@@ -1083,9 +1083,9 @@ def run_world(
     world_generator = world_params.get("__world_generator", None)
     score_calculator = world_params.get("__score_calculator", None)
     tournament_name = world_params.get("__tournament_name", unique_name(base=""))
-    assert (
-        world_generator and score_calculator
-    ), "Cannot run without specifying both a world generator and a score calculator"
+    assert world_generator and score_calculator, (
+        "Cannot run without specifying both a world generator and a score calculator"
+    )
 
     world_generator = import_by_name(world_generator)
     score_calculator = import_by_name(score_calculator)
@@ -1482,14 +1482,9 @@ def _run_parallel(
         if total_timeout is not None and time.perf_counter() - strt > total_timeout:
             break
         try:
-            (
-                run_id,
-                world_paths,
-                score_,
-                world_stats_,
-                type_stats_,
-                agent_stats_,
-            ) = future.result(timeout=timeout)
+            (run_id, world_paths, score_, world_stats_, type_stats_, agent_stats_) = (
+                future.result(timeout=timeout)
+            )
             save_run_results(
                 run_id,
                 score_,
@@ -1753,12 +1748,12 @@ def run_tournament(
     # serial_timeout_options = ("serial-timeout", "serial_timeout", "t")
     if parallelism is None:
         parallelism = "serial"
-    assert (
-        total_timeout is None or parallelism not in dask_options
-    ), f"Cannot use {parallelism} with a total-timeout"
-    assert (
-        world_progress_callback is None or parallelism not in dask_options
-    ), f"Cannot use {parallelism} with a world callback"
+    assert total_timeout is None or parallelism not in dask_options, (
+        f"Cannot use {parallelism} with a total-timeout"
+    )
+    assert world_progress_callback is None or parallelism not in dask_options, (
+        f"Cannot use {parallelism} with a world callback"
+    )
 
     n_world_configs = len(assigned)
     n_already_done = len(run_ids)

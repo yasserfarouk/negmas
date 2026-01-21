@@ -32,9 +32,9 @@ def test_inv_simple_case_sort_all(cls):
     inverter.init()
     inverted_outcomes = [outcomes[-i] for i in range(1, len(outcomes) + 1)]
     for i in range(len(outcomes)):
-        assert (
-            inverter.outcome_at(i) == inverted_outcomes[i]
-        ), f"{i}: found {inverter.outcome_at(i)} expected {inverted_outcomes[i]}"
+        assert inverter.outcome_at(i) == inverted_outcomes[i], (
+            f"{i}: found {inverter.outcome_at(i)} expected {inverted_outcomes[i]}"
+        )
 
 
 @pytest.mark.parametrize(
@@ -47,13 +47,13 @@ def test_inv_simple_case_sort_rational(cls):
     inverter.init()
     inverted_outcomes = [outcomes[-i] for i in range(1, len(outcomes) + 1)]
     for i in range(5):
-        assert (
-            inverter.outcome_at(i) == inverted_outcomes[i]
-        ), f"{i}: found {inverter.outcome_at(i)} expected {inverted_outcomes[i]}"
+        assert inverter.outcome_at(i) == inverted_outcomes[i], (
+            f"{i}: found {inverter.outcome_at(i)} expected {inverted_outcomes[i]}"
+        )
     for i in range(6, 10):
-        assert (
-            inverter.outcome_at(i) == outcomes[i - 6]
-        ), f"{i}: found {inverter.outcome_at(i)} expected {outcomes[i]}"
+        assert inverter.outcome_at(i) == outcomes[i - 6], (
+            f"{i}: found {inverter.outcome_at(i)} expected {outcomes[i]}"
+        )
 
 
 @given(
@@ -208,15 +208,15 @@ def test_inv_matches_bruteforce_best_worst(rational_only, nissues, nvalues, mn, 
     x = fast.best_in(rng, normalized=False, cycle=False)
     assert rng[0] <= ufun(x) <= rng[1], f"{x=}, {ufun(x)=} not in {rng}"
     y = brute.best_in(rng, normalized=False)
-    assert ufun(x) >= ufun(
-        y
-    ), f"Best failed for range {rng} ({ufun(x)=}, {ufun(y)=}, {x=}, {y=}): {ufun}"
+    assert ufun(x) >= ufun(y), (
+        f"Best failed for range {rng} ({ufun(x)=}, {ufun(y)=}, {x=}, {y=}): {ufun}"
+    )
     x = fast.worst_in(rng, normalized=False, cycle=False)
     assert rng[0] <= ufun(x) <= rng[1], f"{x=}, {ufun(x)=} not in {rng}"
     y = brute.worst_in(rng, normalized=False)
-    assert ufun(x) <= ufun(
-        y
-    ), f"Worst failed for range {rng} ({ufun(x)=}, {ufun(y)=}, {x=}, {y=}): {ufun}"
+    assert ufun(x) <= ufun(y), (
+        f"Worst failed for range {rng} ({ufun(x)=}, {ufun(y)=}, {x=}, {y=}): {ufun}"
+    )
 
 
 @given(
@@ -293,5 +293,7 @@ def test_inv_one_in(rational_only, normalized, nissues, nvalues, mn, mx, r):
         or true_range[1] < umn
         or (not outcome_found)
         or r > umn
-    ), f"We should always find an outcome if the range {true_range} is within {umn, umx}\n{all_values=}\n{outcome_found=}, ufun range: {(umn, umx)}"
+    ), (
+        f"We should always find an outcome if the range {true_range} is within {umn, umx}\n{all_values=}\n{outcome_found=}, ufun range: {(umn, umx)}"
+    )
     assert o is None or true_range[0] - 1e-4 <= ufun(o) <= true_range[1] + 1e-4

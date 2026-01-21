@@ -44,9 +44,9 @@ def test_world_auto_checkpoint(tmp_path, single_checkpoint, checkpoint_every, ex
 
     if 0 < checkpoint_every <= n_steps:
         if single_checkpoint:
-            assert (
-                len(list(new_folder.glob("*"))) == 2
-            ), f"World ran for: {world.current_step}"
+            assert len(list(new_folder.glob("*"))) == 2, (
+                f"World ran for: {world.current_step}"
+            )
         else:
             assert len(list(new_folder.glob("*"))) >= 2 * (
                 max(1, world.current_step // checkpoint_every)
@@ -95,13 +95,13 @@ def test_combine_stats(pertype, n_step, method, n):
         )
         for k, v in x.items():
             if n_step is None:
-                assert len(v) == max(
-                    n_steps
-                ), f"{k=}: {len(v)=} but {max(n_steps)=} and None"
+                assert len(v) == max(n_steps), (
+                    f"{k=}: {len(v)=} but {max(n_steps)=} and None"
+                )
             elif n_step < 0:
-                assert len(v) == max(
-                    n_steps
-                ), f"{k=}: {len(v)=} but {max(n_steps)=} and < 0"
+                assert len(v) == max(n_steps), (
+                    f"{k=}: {len(v)=} but {max(n_steps)=} and < 0"
+                )
             else:
                 assert len(v) == n_step, f"{k=}: {len(v)=} but {n_step=}"
 

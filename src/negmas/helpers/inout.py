@@ -116,9 +116,9 @@ class ConfigReader:
                 if class_name is None:
                     class_name = stringcase.pascalcase(k)
                 the_class = get_class(class_name=class_name, scope=scope)
-                assert hasattr(
-                    the_class, "from_config"
-                ), f"{the_class} does not have a from_config attribute"
+                assert hasattr(the_class, "from_config"), (
+                    f"{the_class} does not have a from_config attribute"
+                )
                 obj, obj_children = the_class.from_config(  # type: ignore
                     config=v,
                     ignore_children=False,
@@ -142,9 +142,9 @@ class ConfigReader:
                 objs = []
                 for current in list(v):
                     the_class = get_class(class_name=class_name, scope=scope)
-                    assert hasattr(
-                        the_class, "from_config"
-                    ), f"{the_class} does not have a from_config attribute"
+                    assert hasattr(the_class, "from_config"), (
+                        f"{the_class} does not have a from_config attribute"
+                    )
                     obj = the_class.from_config(  # type: ignore
                         config=current,
                         ignore_children=True,
@@ -619,7 +619,8 @@ def save_table(
         >>> # Save a list of dicts as CSV
         >>> with tempfile.TemporaryDirectory() as tmpdir:
         ...     path = save_table(
-        ...         [{"a": 1, "b": 2}, {"a": 3, "b": 4}], os.path.join(tmpdir, "data.csv")
+        ...         [{"a": 1, "b": 2}, {"a": 3, "b": 4}],
+        ...         os.path.join(tmpdir, "data.csv"),
         ...     )
         ...     path.exists()
         True

@@ -390,8 +390,7 @@ class Issue(HasMinMax, Iterable, ABC):
         )
 
     @abstractmethod
-    def _to_xml_str(self, indx: int) -> str:
-        ...
+    def _to_xml_str(self, indx: int) -> str: ...
 
     @abstractmethod
     def value_at(self, index: int):

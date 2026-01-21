@@ -210,9 +210,9 @@ class RandomCounterOfferNegotiationParty(GeniusNegotiator):
 
     def __init__(self, **kwargs):
         """Initializes the instance."""
-        kwargs[
-            "java_class_name"
-        ] = "negotiator.parties.RandomCounterOfferNegotiationParty"
+        kwargs["java_class_name"] = (
+            "negotiator.parties.RandomCounterOfferNegotiationParty"
+        )
         super().__init__(**kwargs)
 
 

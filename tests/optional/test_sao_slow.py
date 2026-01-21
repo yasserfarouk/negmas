@@ -1496,7 +1496,9 @@ def _run_neg(agents, utils, outcome_space):
             or isinstance(a, AdditiveParetoFollowingTBNegotiator)
             or isinstance(a, MultiplicativeParetoFollowingTBNegotiator)
             or u(offers[0]) >= (u(best) - 1e-4)
-        ), f"Did not start with its best offer {best} (u = {u(best)}) but used {offers[0]} (u = {u(offers[0])})"
+        ), (
+            f"Did not start with its best offer {best} (u = {u(best)}) but used {offers[0]} (u = {u(offers[0])})"
+        )
         if isinstance(a, AspirationNegotiator):
             for i, offer in enumerate(_ for _ in offers):
                 assert i == 0 or u(offer) <= u(offers[i - 1]), "Not always conceding"

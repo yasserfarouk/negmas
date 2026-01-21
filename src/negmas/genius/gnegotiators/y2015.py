@@ -1002,9 +1002,9 @@ class TUDMixedStrategyAgent(GeniusNegotiator):
 
     def __init__(self, **kwargs):
         """Initializes the instance."""
-        kwargs[
-            "java_class_name"
-        ] = "agents.anac.y2015.TUDMixedStrategyAgent.TUDMixedStrategyAgent"
+        kwargs["java_class_name"] = (
+            "agents.anac.y2015.TUDMixedStrategyAgent.TUDMixedStrategyAgent"
+        )
         super().__init__(**kwargs)
 
 

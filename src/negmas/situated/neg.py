@@ -459,9 +459,9 @@ class NegWorld(NoContractExecutionMixin, World):
             for index in scored_indices:
                 current_aid = getid(index, aid)
                 if index == self._scenario.index:
-                    assert (
-                        current_aid == aid
-                    ), f"{index=}, {self._scenario.index=} but the IDS are not equal: {aid=}, {current_aid=}"
+                    assert current_aid == aid, (
+                        f"{index=}, {self._scenario.index=} but the IDS are not equal: {aid=}, {current_aid=}"
+                    )
                 ufun = self._scenario.ufuns[index]
                 u = float(
                     calcu(ufun, index, agreement)

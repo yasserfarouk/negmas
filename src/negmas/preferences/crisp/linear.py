@@ -209,7 +209,10 @@ class AffineUtilityFunction(StationaryMixin, UtilityFunction):
         Examples:
 
             >>> from negmas.outcomes import make_issue
-            >>> issues = [make_issue(values=10, name="i1"), make_issue(values=4, name="i2")]
+            >>> issues = [
+            ...     make_issue(values=10, name="i1"),
+            ...     make_issue(values=4, name="i2"),
+            ... ]
             >>> f = LinearUtilityFunction(weights=[1.0, 4.0], issues=issues)
             >>> print(f.xml(issues))
             <issue index="1" etype="discrete" type="discrete" vtype="integer" name="i1">

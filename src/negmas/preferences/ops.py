@@ -73,8 +73,7 @@ def sort_by_utility(
     best_first: bool = True,
     rational_only: bool = False,
     return_sorted_outcomes: Literal[True] = True,
-) -> tuple[NDArray[np.floating[Any]], list[Outcome]]:
-    ...
+) -> tuple[NDArray[np.floating[Any]], list[Outcome]]: ...
 
 
 @overload
@@ -86,8 +85,7 @@ def sort_by_utility(
     best_first: bool = True,
     rational_only: bool = False,
     return_sorted_outcomes: Literal[False],
-) -> NDArray[np.floating[Any]]:
-    ...
+) -> NDArray[np.floating[Any]]: ...
 
 
 def sort_by_utility(

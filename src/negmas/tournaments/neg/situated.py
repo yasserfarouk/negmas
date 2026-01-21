@@ -484,7 +484,9 @@ def _make_negs(
 
     try:
         intersection = set(non_competitors).intersection(set(competitors))
-        assert not intersection, f"Non-competitors and competitors must be disjoint. This is the intersection between them now: {intersection}"
+        assert not intersection, (
+            f"Non-competitors and competitors must be disjoint. This is the intersection between them now: {intersection}"
+        )
     except Exception:
         pass
 
@@ -502,9 +504,9 @@ def _make_negs(
         negs = []
         for s in scenarios:
             k = 0
-            assert (
-                len(s.ufuns) == 2
-            ), f"Only supporting bilateral negotiations: Scenario {s.outcome_space.name} has {len(s.ufuns)} ufuns"
+            assert len(s.ufuns) == 2, (
+                f"Only supporting bilateral negotiations: Scenario {s.outcome_space.name} has {len(s.ufuns)} ufuns"
+            )
             for typ, params, score in chain(
                 zip(competitors, competitor_params, repeat(True)),
                 zip(non_competitors, competitor_params, repeat(False)),

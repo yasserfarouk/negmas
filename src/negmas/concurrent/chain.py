@@ -521,9 +521,9 @@ class MultiChainNegotiationsMechanism(
             self.__next_agent_level = (self.__last_proposer_level + 1) % len(
                 self.__chain
             )
-        assert (
-            self.__last_proposal.partner is not None
-        ), "Last Proposal's Partner is None"
+        assert self.__last_proposal.partner is not None, (
+            "Last Proposal's Partner is None"
+        )
         self.__next_agent_number = self.__number[self.__last_proposal.partner]
 
     def __call__(self, state, action=None) -> MechanismStepResult:

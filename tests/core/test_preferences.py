@@ -227,9 +227,9 @@ def test_calc_reserved(n_outcomes, r0, f):
     r = calc_reserved_value(ufun, f)
     ufun.reserved_value = r
     nrational = sum(is_rational([ufun], _) for _ in outcomes)
-    assert (
-        nrational == math.ceil(f * n_outcomes)
-    ), f"Got {nrational} outcomes for reserved value {r} of {n_outcomes} outcomes when using fraction {f}"
+    assert nrational == math.ceil(f * n_outcomes), (
+        f"Got {nrational} outcomes for reserved value {r} of {n_outcomes} outcomes when using fraction {f}"
+    )
 
 
 def test_calc_reserved_fifty_fifty():
@@ -245,9 +245,9 @@ def test_calc_reserved_fifty_fifty():
         r = calc_reserved_value(ufun, f)
         ufun.reserved_value = r
         nrational = sum(is_rational([ufun], _) for _ in outcomes)
-        assert (
-            nrational == math.ceil(f * n_outcomes)
-        ), f"Got {nrational} outcomes for reserved value {r} of {n_outcomes} outcomes when using fraction {f}"
+        assert nrational == math.ceil(f * n_outcomes), (
+            f"Got {nrational} outcomes for reserved value {r} of {n_outcomes} outcomes when using fraction {f}"
+        )
         assert r <= 0.0, f"{r=}"
 
 
@@ -390,20 +390,20 @@ def test_mechanism_pareto_frontier_matches_global(
         assert set(x) == set(bf), f"bf:{bf}\nglobal:{x}"
 
     assert len(xoutcomes) == len(bfoutcomes), f"mech:{bfoutcomes}\nglobal:{xoutcomes}"
-    assert len(bfoutcomes) == len(
-        set(bfoutcomes)
-    ), f"mech:{bfoutcomes}\nglobal:{xoutcomes}"
-    assert len(xoutcomes) == len(
-        set(xoutcomes)
-    ), f"mech:{bfoutcomes}\nglobal:{xoutcomes}"
+    assert len(bfoutcomes) == len(set(bfoutcomes)), (
+        f"mech:{bfoutcomes}\nglobal:{xoutcomes}"
+    )
+    assert len(xoutcomes) == len(set(xoutcomes)), (
+        f"mech:{bfoutcomes}\nglobal:{xoutcomes}"
+    )
     if sort:
-        assert all(
-            list(a == b for a, b in zip(xoutcomes, bfoutcomes))
-        ), f"bfoutcomes:{bfoutcomes}\nglobal:{xoutcomes}"
+        assert all(list(a == b for a, b in zip(xoutcomes, bfoutcomes))), (
+            f"bfoutcomes:{bfoutcomes}\nglobal:{xoutcomes}"
+        )
     else:
-        assert set(xoutcomes) == set(
-            bfoutcomes
-        ), f"bfoutcomes:{bfoutcomes}\nglobal:{xoutcomes}"
+        assert set(xoutcomes) == set(bfoutcomes), (
+            f"bfoutcomes:{bfoutcomes}\nglobal:{xoutcomes}"
+        )
 
 
 @given(
@@ -729,9 +729,9 @@ def test_can_normalize_affine_and_linear_ufun(weights, bias, rng):
     f"LinearUtilityFunction should generate an IndependentIssuesUFun but we got {type(nfun).__name__}"
     u2 = [nfun(w) for w in outcomes]
 
-    assert (
-        max(u2) < rng[1] + 1e-3 and min(u2) > rng[0] - 1e-3
-    ), f"Limits are not correct\n{u1}\n{u2}"
+    assert max(u2) < rng[1] + 1e-3 and min(u2) > rng[0] - 1e-3, (
+        f"Limits are not correct\n{u1}\n{u2}"
+    )
 
     if rng[0] == float("-inf") and rng[1] == float("inf"):
         assert ufun is nfun, "Normalizing with an infinite range should do nothing"
@@ -756,9 +756,9 @@ def test_can_normalize_affine_and_linear_ufun(weights, bias, rng):
     ):
         relative1 = _relative_fraction(u1)
         relative2 = _relative_fraction(u2)
-        assert (
-            np.abs(relative1 - relative2).max() < 1e-3
-        ), f"One side normalization should not change the result of dividing outcomes\n{u1}\n{u2}"
+        assert np.abs(relative1 - relative2).max() < 1e-3, (
+            f"One side normalization should not change the result of dividing outcomes\n{u1}\n{u2}"
+        )
 
 
 def test_normalization():
@@ -825,15 +825,15 @@ def test_rank_only_ufun_randomize_no_reserve():
     assert ro.reserved_value == ro(None) == float("-inf")
     assert min(ro._mapping.values()) == 0
     assert max(ro._mapping.values()) == 10 * 5 - 1
-    assert any(
-        ro((0, _)) == 0 for _ in range(1, 6)
-    ), f"{[(_, ro(_)) for _ in [None] + outcomes]}"
+    assert any(ro((0, _)) == 0 for _ in range(1, 6)), (
+        f"{[(_, ro(_)) for _ in [None] + outcomes]}"
+    )
     assert ro((9, 5)) == 10 * 5 - 1
     mapping = ro.to_mapping_ufun()
     assert mapping.reserved_value == ro(None)
-    assert any(
-        mapping((0, _)) == 0 for _ in range(1, 6)
-    ), f"{[(_, mapping(_)) for _ in [None] + outcomes]}"
+    assert any(mapping((0, _)) == 0 for _ in range(1, 6)), (
+        f"{[(_, mapping(_)) for _ in [None] + outcomes]}"
+    )
     assert mapping((9, 5)) == 10 * 5 - 1
 
 
@@ -850,17 +850,17 @@ def test_rank_only_ufun_randomize():
     assert ro.reserved_value == ro(None)
     assert min(ro._mapping.values()) == 0
     assert max(ro._mapping.values()) == 10 * 5
-    assert any(
-        ro((0, _)) == 0 for _ in range(1, 6)
-    ), f"{[(_, ro(_)) for _ in [None] + outcomes]}"
+    assert any(ro((0, _)) == 0 for _ in range(1, 6)), (
+        f"{[(_, ro(_)) for _ in [None] + outcomes]}"
+    )
     assert ro((9, 5)) == 10 * 5
     mapping = ro.to_mapping_ufun()
     assert isinstance(mapping(None), int)
     assert isinstance(mapping.reserved_value, int)
     assert mapping.reserved_value == ro(None)
-    assert any(
-        mapping((0, _)) == 0 for _ in range(1, 6)
-    ), f"{[(_, mapping(_)) for _ in [None] + outcomes]}"
+    assert any(mapping((0, _)) == 0 for _ in range(1, 6)), (
+        f"{[(_, mapping(_)) for _ in [None] + outcomes]}"
+    )
     assert mapping((9, 5)) == 10 * 5
 
 
@@ -876,16 +876,16 @@ def test_rank_only_ufun_no_randomize():
     assert max(ro._mapping.values()) < 10 * 5
     assert ro((1, 1)) == ro((0, 2))
     assert ro((2, 1)) == ro((1, 2)) == ro((0, 3))
-    assert all(
-        ro((9, 5)) > ro(_) for _ in outcomes if _ != (9, 5)
-    ), f"{[(_, ro(_)) for _ in outcomes]}"
+    assert all(ro((9, 5)) > ro(_) for _ in outcomes if _ != (9, 5)), (
+        f"{[(_, ro(_)) for _ in outcomes]}"
+    )
     mapping = ro.to_mapping_ufun()
     assert isinstance(mapping(None), int)
     assert isinstance(mapping.reserved_value, int)
     assert mapping.reserved_value == ro(None)
-    assert all(
-        mapping((9, 5)) > mapping(_) for _ in outcomes if _ != (9, 5)
-    ), f"{[(_, mapping(_)) for _ in outcomes]}"
+    assert all(mapping((9, 5)) > mapping(_) for _ in outcomes if _ != (9, 5)), (
+        f"{[(_, mapping(_)) for _ in outcomes]}"
+    )
     assert mapping((1, 1)) == mapping((0, 2))
     assert mapping((2, 1)) == mapping((1, 2)) == mapping((0, 3))
 
