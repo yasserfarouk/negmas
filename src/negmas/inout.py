@@ -295,9 +295,9 @@ class Scenario:
             return m
         negs: list[Negotiator]
         if share_ufuns:
-            assert (
-                len(self.ufuns) == 2
-            ), "Sharing ufuns in multilateral negotiations is not yet supported"
+            assert len(self.ufuns) == 2, (
+                "Sharing ufuns in multilateral negotiations is not yet supported"
+            )
             opp_ufuns = reversed(deepcopy(self.ufuns))
             if not share_reserved_values:
                 for u in opp_ufuns:
@@ -644,6 +644,44 @@ class Scenario:
             folder: The destination path
         """
         self.dumpas(folder, "json")
+
+    def save_info(self, folder: Path | str) -> None:
+        f"""
+        Save info to the given path under {INFO_FILE_NAME}
+
+        Args:
+            folder: Destination folder path.
+        """
+        if not self.info:
+            return
+        folder = Path(folder)
+        folder.mkdir(parents=True, exist_ok=True)
+        dump(self.info, folder / f"{INFO_FILE_NAME}.{type}")
+
+    def save_stats(
+        self,
+        folder: Path | str,
+        compact: bool = False,
+        include_pareto_frontier: bool = True,
+    ) -> None:
+        f"""
+        Save stats to the given path under {STATS_FILE_NAME}
+
+        Args:
+            folder: Destination folder path.
+            compact: If True, use compact JSON formatting.
+            include_pareto_frontier: If True, include pareto_utils and pareto_outcomes
+                in stats.json. If False, exclude them to save disk space. Default is True.
+        """
+        if not self.stats:
+            return
+        folder = Path(folder)
+        folder.mkdir(parents=True, exist_ok=True)
+        dump(
+            self.stats.to_dict(include_pareto_frontier=include_pareto_frontier),
+            folder / STATS_FILE_NAME,
+            compact=compact,
+        )
 
     def dumpas(
         self,
@@ -1196,13 +1234,17 @@ def load_genius_domain_from_folder(
 
         Try loading and running a domain with predetermined agents:
         >>> domain = load_genius_domain_from_folder(
-        ...     pkg_resources.resource_filename("negmas", resource_name="tests/data/Laptop")
+        ...     pkg_resources.resource_filename(
+        ...         "negmas", resource_name="tests/data/Laptop"
+        ...     )
         ... )
 
 
         Try loading a domain and check the resulting ufuns
         >>> domain = load_genius_domain_from_folder(
-        ...     pkg_resources.resource_filename("negmas", resource_name="tests/data/Laptop")
+        ...     pkg_resources.resource_filename(
+        ...         "negmas", resource_name="tests/data/Laptop"
+        ...     )
         ... )
 
         >>> domain.n_issues, domain.n_negotiators
@@ -1213,7 +1255,9 @@ def load_genius_domain_from_folder(
 
         Try loading a domain forcing a single issue space
         >>> domain = load_genius_domain_from_folder(
-        ...     pkg_resources.resource_filename("negmas", resource_name="tests/data/Laptop")
+        ...     pkg_resources.resource_filename(
+        ...         "negmas", resource_name="tests/data/Laptop"
+        ...     )
         ... ).to_single_issue()
         >>> domain.n_issues, domain.n_negotiators
         (1, 2)
