@@ -261,22 +261,25 @@ class TestLinearAdditiveNormalization:
     """Test LinearAdditiveUtilityFunction.normalize_for() thoroughly."""
 
     def test_normalize_handles_negative_weights(self):
-        """Test that negative weights are made positive."""
+        """Test that negative value functions are handled correctly."""
         issues = (make_issue(10), make_issue(10))
-        values = [LinearFun(1.0), LinearFun(-1.0)]  # Second is negative
+        values = [LinearFun(1.0), LinearFun(-1.0)]  # Second has negative slope
         weights = [1.0, 1.0]
 
         u = LinearAdditiveUtilityFunction(values=values, weights=weights, issues=issues)
 
-        # Before normalization, utilities can be negative
-        assert u((9, 0)) < 0  # 1*9 + 1*(-1*0) = 9 - 0 = 9... hmm
+        # u((9, 0)) = 1.0 * (1.0 * 9) + 1.0 * (-1.0 * 0) = 9 + 0 = 9
+        assert u((9, 0)) > 0
+        # u((0, 9)) = 1.0 * (1.0 * 0) + 1.0 * (-1.0 * 9) = 0 - 9 = -9
+        assert u((0, 9)) < 0
 
         normalized = u.normalize_for(to=(0.0, 1.0))
 
-        # After normalization, all weights should be positive
+        # After normalization, the value functions should be adjusted to be non-negative
         assert isinstance(normalized, LinearAdditiveUtilityFunction)
-        for w in normalized.weights:
-            assert w >= 0
+        # All normalized values should be in [0, 1]
+        assert normalized((9, 0)) <= 1.0 + 1e-6
+        assert normalized((0, 9)) >= 0.0 - 1e-6
 
     def test_normalize_makes_weights_sum_to_one(self):
         """Test that weights are normalized to sum to 1."""
@@ -313,16 +316,17 @@ class TestLinearAdditiveNormalization:
 class TestEdgeCases:
     """Test edge cases and boundary conditions."""
 
-    def test_normalize_zero_range_becomes_const(self):
-        """Test that ufun with zero range becomes ConstUtilityFunction."""
+    def test_normalize_zero_range_raises_error(self):
+        """Test that ufun with zero range cannot be normalized to non-zero range."""
         issues = (make_issue(10),)
         u = LinearUtilityFunction(weights=[0.0], issues=issues)  # Always returns 0
 
         mn, mx = u.minmax()
         assert abs(mx - mn) < 1e-6
 
-        normalized = u.normalize(to=(0.0, 1.0))
-        assert isinstance(normalized, ConstUtilityFunction)
+        # Cannot normalize a zero-range ufun to a non-zero range
+        with pytest.raises(ValueError, match="zero weights"):
+            u.normalize(to=(0.0, 1.0))
 
     def test_affine_zero_weights_raises_error(self):
         """Test that affine with zero weights can't be normalized to non-zero range."""
