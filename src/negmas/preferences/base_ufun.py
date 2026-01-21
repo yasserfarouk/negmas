@@ -433,10 +433,10 @@ class BaseUtilityFunction(Preferences, ABC):
             from negmas.preferences.crisp.const import ConstUtilityFunction
 
             return ConstUtilityFunction(
-                0.0 if mx < self.reserved_value else 1.0,
+                to[0] if mx < self.reserved_value else to[1],
                 outcome_space=self.outcome_space,
                 name=self.name,
-                reserved_value=1.0 if mn < self.reserved_value else 0.0,
+                reserved_value=to[1] if mn < self.reserved_value else to[0],
             )
 
         scale = float(to[1] - to[0]) / d
@@ -470,9 +470,9 @@ class BaseUtilityFunction(Preferences, ABC):
         d = float(mx - mn)
         if d < 1e-8:
             return ConstUtilityFunction(
-                0.0 if mx < self.reserved_value else 1.0,
+                to[0] if mx < self.reserved_value else to[1],
                 name=self.name,
-                reserved_value=1.0 if mn < self.reserved_value else 0.0,
+                reserved_value=to[1] if mn < self.reserved_value else to[0],
             )
 
         scale = float(to[1] - to[0]) / d
@@ -480,6 +480,182 @@ class BaseUtilityFunction(Preferences, ABC):
         # u = self.shift_by(-mn, shift_reserved=True)
         u = self.scale_by(scale, scale_reserved=True)
         return u.shift_by(to[0] - scale * mn, shift_reserved=True)
+
+    @classmethod
+    def normalize_all_for(
+        cls: type[T],
+        ufuns: tuple[T, ...],
+        to: tuple[float | None, float | None] = (0.0, 1.0),
+        max_cardinality: int = MAX_CARDINALITY,
+        outcome_space: OutcomeSpace | None = None,
+        guarantee_max: bool = True,
+        guarantee_min: bool = False,
+    ) -> tuple[T | ConstUtilityFunction, ...]:
+        """Normalize multiple utility functions to a common scale.
+
+        This method normalizes a collection of utility functions together so that
+        they share the same scale. This is critical for multi-agent scenarios where
+        utility values need to be comparable across agents.
+
+        Args:
+            ufuns: Tuple of utility functions to normalize together.
+            to: Target range (min, max) for normalized utilities. If either is None,
+                only the other bound is enforced.
+            max_cardinality: Maximum number of outcomes to consider when computing
+                min/max values for outcome spaces.
+            outcome_space: The outcome space to normalize over. If None, uses each
+                ufun's own outcome space.
+            guarantee_max: If True, ensures at least one ufun reaches exactly to[1].
+            guarantee_min: If True, ensures at least one ufun reaches exactly to[0].
+
+        Returns:
+            Tuple of normalized utility functions on a common scale.
+
+        Raises:
+            ValueError: If both to[0] and to[1] are None.
+
+        Example:
+            >>> # Agent 1: utilities range [0, 10]
+            >>> u1 = LinearUtilityFunction(weights=[1.0, 0.0], issues=issues)
+            >>> # Agent 2: utilities range [5, 15]
+            >>> u2 = LinearUtilityFunction(weights=[0.0, 1.0], issues=issues)
+            >>> # Normalize to common scale
+            >>> n1, n2 = LinearUtilityFunction.normalize_all_for(
+            ...     (u1, u2), to=(0.0, 1.0)
+            ... )
+            >>> # Now n1 range [0, 0.67] and n2 range [0.33, 1.0]
+            >>> # Utilities are comparable across agents
+
+        Note:
+            - This method handles discounted utility functions by recursively
+              normalizing their base utility functions.
+            - When guarantee_max=True, the agent with the highest utility will
+              have its maximum map to exactly to[1].
+            - When guarantee_min=True, the agent with the lowest utility will
+              have its minimum map to exactly to[0].
+        """
+        from negmas.preferences.crisp.const import ConstUtilityFunction
+        from negmas.preferences.discounted import DiscountedUtilityFunction
+
+        epsilon = 1e-8
+
+        # Handle discounted utility functions recursively
+        roots, parents, children = [], [], []
+
+        def get_base_ufun(
+            u: BaseUtilityFunction,
+        ) -> tuple[
+            BaseUtilityFunction, BaseUtilityFunction | None, BaseUtilityFunction
+        ]:
+            root, parent, child = u, None, u
+            while isinstance(child, DiscountedUtilityFunction):
+                parent, child = child, child.ufun  # type: ignore
+            return root, parent, child
+
+        for u in ufuns:
+            r, p, c = get_base_ufun(u)
+            parents.append(p)
+            roots.append(r)
+            children.append(c)
+
+        # If any ufun is discounted, normalize the base ufuns and reconstruct
+        if any(_ is not None for _ in parents):
+            normalized = cls.normalize_all_for(
+                tuple(children),  # type: ignore
+                to=to,
+                max_cardinality=max_cardinality,
+                outcome_space=outcome_space,
+                guarantee_max=guarantee_max,
+                guarantee_min=guarantee_min,
+            )
+            new_ufuns = []
+            for root, parent, new_child in zip(roots, parents, normalized, strict=True):
+                if parent is not None:
+                    parent.ufun = new_child  # type: ignore
+                new_ufuns.append(root)
+            return tuple(new_ufuns)
+
+        # If no bounds specified, return unchanged
+        if not to or (to[0] is None and to[1] is None):
+            return ufuns
+
+        # Find global min and max across all ufuns
+        mn, mx = float("inf"), float("-inf")
+        minmaxs = []
+        for u in ufuns:
+            current_mn, current_mx = u.minmax(
+                outcome_space or u.outcome_space, max_cardinality=max_cardinality
+            )
+            minmaxs.append((current_mn, current_mx))
+            mn = min(current_mn, mn)
+            mx = max(current_mx, mx)
+
+        # If only max is given, just shift to make max equal to[1]
+        if to[1] is None:
+            return tuple(u.shift_by(to[0] - mn, shift_reserved=True) for u in ufuns)  # type: ignore
+
+        # If only min is given, just shift to make min equal to[0]
+        if to[0] is None:
+            return tuple(u.shift_by(to[1] - mx, shift_reserved=True) for u in ufuns)
+
+        # Find common scale
+        d = float(mx - mn)
+        if d < epsilon:
+            # All ufuns are constant - map to to[0] or to[1] based on reserved value
+            return tuple(
+                ConstUtilityFunction(
+                    to[0] if mx < u.reserved_value else to[1],
+                    outcome_space=u.outcome_space,
+                    name=u.name,
+                    reserved_value=to[1] if mx < u.reserved_value else to[0],
+                )
+                for u in ufuns
+            )
+
+        results = []
+        always_scale = guarantee_max and guarantee_min
+
+        def within_limits(
+            x: float, limit: float, limits: tuple[float, float], guarantee: bool
+        ) -> bool:
+            if always_scale:
+                return False
+            if guarantee:
+                return abs(x - limit) <= epsilon
+            return limits[0] - epsilon <= x <= limits[1] + epsilon
+
+        for (mymn, mymx), u in zip(minmaxs, ufuns):
+            myto = (to[0], to[1])
+
+            # Skip if already normalized exactly
+            if abs(mymn - to[0]) < epsilon and abs(mymx - to[1]) < epsilon:
+                results.append(u)
+                continue
+
+            # Skip if within limits and guarantees are satisfied
+            if within_limits(mymn, myto[0], myto, guarantee_min) and within_limits(
+                mymx, myto[1], myto, guarantee_max
+            ):
+                results.append(u)
+                continue
+
+            # If the minimum is negative, shift everything up to make the minimum zero
+            if mymn < 0:
+                u, mymn = u.shift_by(-mymn, shift_reserved=True), 0.0
+
+            # Scale everything to have a range of myto[1] - myto[0]
+            scale = float(myto[1] - myto[0]) / d
+            u = u.scale_by(scale, scale_reserved=True)
+
+            # Finally shift to align with target range
+            if guarantee_max:
+                # Align maximum with to[1]
+                results.append(u.shift_by(myto[1] - scale * mymx, shift_reserved=True))
+            else:
+                # Align minimum with to[0]
+                results.append(u.shift_by(myto[0] - scale * mymn, shift_reserved=True))
+
+        return tuple(results)
 
     def shift_by(
         self: T, offset: float, shift_reserved=True

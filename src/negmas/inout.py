@@ -27,10 +27,12 @@ from .negotiators import Negotiator
 from .outcomes import (
     CartesianOutcomeSpace,
     Issue,
+    OutcomeSpace,
     issues_from_genius,
     issues_from_geniusweb,
 )
 from .preferences import (
+    BaseUtilityFunction,
     DiscountedUtilityFunction,
     UtilityFunction,
     conflict_level,
@@ -369,16 +371,51 @@ class Scenario:
         return self
 
     def normalize(
-        self, to: tuple[float, float] = (0.0, 1.0), recalculate_stats: bool = True
+        self,
+        to: tuple[float, float] = (0.0, 1.0),
+        outcome_space: OutcomeSpace | None = None,
+        guarantee_max: bool = True,
+        guarantee_min: bool = False,
+        independent: bool = False,
+        recalculate_stats: bool = True,
     ) -> Scenario:
         """Normalizes all utility functions to the given range.
 
         Args:
             to: Target range (min, max) to normalize all utility functions to.
+            outcome_space: The outcome space to use for normalization. If None, uses the scenario's outcome space.
+            guarantee_max: If True, guarantees that the maximum value is exactly to[1].
+            guarantee_min: If True, guarantees that the minimum value is exactly to[0].
+            independent: If True, normalizes each utility function independently.
+                If False (default), uses common scale normalization via normalize_all_for().
             recalculate_stats: If True and stats exist, recalculate them after normalizing.
                 If False and stats exist, invalidate stats by setting them to None.
+
+        Remarks:
+            - If either value of `to` is `None`, then all ufuns will just be scaled to match the constraint of the other value.
+            - When independent=False (default), all utility functions are normalized to a common scale,
+              ensuring that utility values are comparable across agents.
         """
-        self.ufuns = tuple(_.normalize(to) for _ in self.ufuns)  #  The type is correct
+        if independent:
+            self.ufuns = tuple(
+                _.normalize_for(
+                    to,
+                    outcome_space=outcome_space,
+                    guarantee_max=guarantee_max,
+                    guarantee_min=guarantee_min,
+                )
+                for _ in self.ufuns
+            )  # type: ignore The type is correct
+        else:
+            self.ufuns = tuple(
+                BaseUtilityFunction.normalize_all_for(  # type: ignore
+                    ufuns=self.ufuns,
+                    to=to,
+                    outcome_space=outcome_space,
+                    guarantee_max=guarantee_max,
+                    guarantee_min=guarantee_min,
+                )
+            )
         if self.stats:
             if recalculate_stats:
                 self.calc_stats()

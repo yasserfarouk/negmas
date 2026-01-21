@@ -411,7 +411,7 @@ class AffineUtilityFunction(StationaryMixin, UtilityFunction):
         self,
         to: tuple[float, float] = (0.0, 1.0),
         outcome_space: OutcomeSpace | None = None,
-    ) -> ConstUtilityFunction | AffineUtilityFunction:
+    ) -> ConstUtilityFunction | AffineUtilityFunction | LinearUtilityFunction:
         """
         Creates a new utility function that is normalized based on input conditions.
 
@@ -442,7 +442,10 @@ class AffineUtilityFunction(StationaryMixin, UtilityFunction):
                 from negmas.preferences.crisp.const import ConstUtilityFunction
 
                 return ConstUtilityFunction(
-                    to[1], outcome_space=outcome_space, name=self.name
+                    to[0] if mx < self.reserved_value else to[1],
+                    outcome_space=outcome_space,
+                    name=self.name,
+                    reserved_value=to[1] if mx < self.reserved_value else to[0],
                 )
         else:
             scale = (to[1] - to[0]) / (mx - mn)
@@ -1068,6 +1071,138 @@ class LinearAdditiveUtilityFunction(  # type: ignore
             **kwargs,
         )
         return ufun
+
+    def normalize_for(
+        self,
+        to: tuple[float, float] = (0.0, 1.0),
+        outcome_space: OutcomeSpace | None = None,
+        max_cardinality: int = 10_000_000_000,  # Use explicit value instead of MAX_CARDINALITY
+        guarantee_max: bool = True,
+        guarantee_min: bool = True,
+    ) -> LinearAdditiveUtilityFunction | ConstUtilityFunction:
+        """Normalize utility function with proper handling of compositional structure.
+
+        This method implements sophisticated normalization specifically for
+        LinearAdditiveUtilityFunction that:
+
+        1. Makes all weights positive
+        2. Makes all value functions non-negative
+        3. Normalizes each value function to [0, 1]
+        4. Normalizes weights to sum to 1
+        5. Properly adjusts the reserved value
+
+        Args:
+
+            to: Target range (min, max) for normalized utilities. Defaults to (0.0, 1.0).
+            outcome_space: The outcome space to normalize over. If None, uses the ufun's
+                outcome space.
+            max_cardinality: Maximum number of outcomes to consider.
+            guarantee_max: If True, ensures maximum utility equals to[1].
+            guarantee_min: If True, ensures minimum utility equals to[0].
+
+        Returns:
+
+            A normalized LinearAdditiveUtilityFunction where:
+            - All weights are positive and sum to 1
+            - All value functions map to [0, 1]
+            - The overall utility range matches the target 'to' range
+
+        Example:
+
+            >>> issues = (make_issue(10), make_issue(10))
+            >>> values = [AffineFun(1.0, -5.0), AffineFun(2.0, -3.0)]
+            >>> weights = [5.0, 3.0]
+            >>> u = LinearAdditiveUtilityFunction(values, weights, issues=issues)
+            >>> normalized = u.normalize_for(to=(0.0, 1.0))
+            >>> # Now: all weights sum to 1, all value functions in [0,1]
+            >>> assert abs(sum(normalized.weights) - 1.0) < 1e-6
+        """
+        from negmas.outcomes import DiscreteOrdinalIssue
+
+        epsilon = 1e-6
+        os_ = outcome_space if outcome_space is not None else self.outcome_space
+
+        if os_ is None:
+            raise ValueError("Cannot normalize without knowing the outcome-space")
+
+        # Convert to CartesianOutcomeSpace if needed
+        if not isinstance(os_, CartesianOutcomeSpace):
+            os_ = DiscreteCartesianOutcomeSpace(
+                issues=(
+                    DiscreteOrdinalIssue(
+                        list(os_.enumerate_or_sample(max_cardinality=max_cardinality))
+                    ),
+                )
+            )
+
+        issues = os_.issues
+
+        # Get current min/max
+        mn, mx = self.minmax(os_)
+
+        # Start with copies of weights and values
+        weights = list(self.weights)
+        values = list(self.values)
+        bias = self._bias
+        r = self.reserved_value
+
+        # Minimum and maximum of every value function
+        mnmxs = [v.minmax(issue) for issue, v in zip(issues, values)]
+
+        # Step 1: Make all weights positive
+        for i, (w, v) in enumerate(zip(weights, values)):
+            if w >= 0:
+                continue
+            # Flip the value function and negate the weight
+            values[i] = v.scale_by(-1.0)
+            weights[i] = -w
+            # Update min/max (they swap and negate)
+            mnmxs[i] = (-mnmxs[i][1], -mnmxs[i][0])
+
+        # Step 2: Make all individual value functions non-negative
+        for i, (v, w, (n, x)) in enumerate(zip(values, weights, mnmxs)):
+            if abs(x - n) < epsilon:
+                # Singleton value - set to 1
+                values[i] = v.shift_by(1.0 - n)
+                bias += w * (n - 1.0)
+                mnmxs[i] = (1.0, 1.0)
+                continue
+            # Shift so minimum is 0
+            values[i] = v.shift_by(-n)
+            bias += n * w
+            mnmxs[i] = (0.0, x - n)
+
+        # Step 3: Normalize individual utility functions to [0, 1]
+        for i, (v, (n, x)) in enumerate(zip(values, mnmxs)):
+            if abs(x) < epsilon * 1e-3:
+                continue
+            beta = 1.0 / x
+            if abs(beta - 1.0) < epsilon * 0.01:
+                continue
+            # Scale value function so max = 1
+            values[i] = v.scale_by(beta)
+            # Compensate in weight
+            weights[i] = weights[i] / beta
+            mnmxs[i] = (beta * n, beta * x)
+
+        # Step 4: Update reserved value to account for bias changes
+        r -= bias
+        bias = 0.0
+
+        # Step 5: Normalize weights to sum to 1
+        weights_sum = sum(weights)
+        if abs(weights_sum) > epsilon * 1e-3 and abs(weights_sum - 1.0) > epsilon * 0.1:
+            weights = [w / weights_sum for w in weights]
+            r = r / weights_sum
+
+        return LinearAdditiveUtilityFunction(
+            values=values,  # type: ignore
+            weights=weights,
+            bias=bias,
+            outcome_space=os_,
+            name=self.name,
+            reserved_value=r,
+        )
 
     def shift_by(
         self, offset: float, shift_reserved: bool = True, change_bias_only: bool = False

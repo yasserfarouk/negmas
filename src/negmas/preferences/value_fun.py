@@ -609,9 +609,12 @@ class ConstFun(BaseFun):
         """Return a new ConstFun with the bias shifted by the given offset."""
         return ConstFun(bias=offset + self.bias)
 
-    def scale_by(self, scale: float) -> AffineFun:
-        """Return an AffineFun with slope=scale and same bias."""
-        return AffineFun(slope=scale, bias=self.bias)
+    def scale_by(self, scale: float) -> ConstFun:
+        """Return a new ConstFun with the bias scaled by the given factor.
+
+        Since f(x) = c for all x, scaling gives f'(x) = c * scale for all x.
+        """
+        return ConstFun(bias=self.bias * scale)
 
     def xml(self, indx: int, issue: Issue, bias=0.0) -> str:
         """Export this constant function to GENIUS XML format."""
