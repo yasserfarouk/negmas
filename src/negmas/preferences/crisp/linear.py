@@ -1109,6 +1109,8 @@ class LinearAdditiveUtilityFunction(  # type: ignore
 
         Example:
 
+            >>> from negmas import make_issue
+            >>> from negmas.preferences.value_fun import AffineFun
             >>> issues = (make_issue(10), make_issue(10))
             >>> values = [AffineFun(1.0, -5.0), AffineFun(2.0, -3.0)]
             >>> weights = [5.0, 3.0]

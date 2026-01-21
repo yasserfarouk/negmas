@@ -50,6 +50,7 @@ import negmas.warnings as warnings
 from ..config import CONFIG_KEY_GENIUS_BRIDGE_JAR, negmas_config
 from ..helpers import TimeoutCaller, TimeoutError, unique_name
 from .common import DEFAULT_JAVA_PORT, get_free_tcp_port
+from negmas.inout import Scenario
 
 if TYPE_CHECKING:
     from py4j.java_gateway import JavaGateway, JavaObject
@@ -905,20 +906,24 @@ def run_native_genius_negotiation(
         RuntimeError: If the genius bridge is not running and auto_start_bridge is False
 
     Examples:
-        >>> from negmas import load_genius_domain_from_folder
-        >>> scenario = load_genius_domain_from_folder("path/to/domain")
-        >>> negotiators = [
+        >>> from negmas import load_genius_domain_from_folder  # doctest: +SKIP
+        >>> scenario = load_genius_domain_from_folder(
+        ...     "path/to/domain"
+        ... )  # doctest: +SKIP
+        >>> negotiators = [  # doctest: +SKIP
         ...     "agents.anac.y2015.Atlas3.Atlas3",
         ...     "agents.anac.y2015.RandomDance.RandomDance",
         ... ]
-        >>> results = run_native_genius_negotiation(negotiators, scenario, n_steps=100)
-        >>> print(f"Agreement: {results.state.agreement}")
-        >>> print(f"Steps: {results.state.step}")
-        >>> # With trace collection
         >>> results = run_native_genius_negotiation(
+        ...     negotiators, scenario, n_steps=100
+        ... )  # doctest: +SKIP
+        >>> print(f"Agreement: {results.state.agreement}")  # doctest: +SKIP
+        >>> print(f"Steps: {results.state.step}")  # doctest: +SKIP
+        >>> # With trace collection
+        >>> results = run_native_genius_negotiation(  # doctest: +SKIP
         ...     negotiators, scenario, n_steps=100, trace_mode="full"
         ... )
-        >>> print(f"Trace entries: {len(results.full_trace)}")
+        >>> print(f"Trace entries: {len(results.full_trace)}")  # doctest: +SKIP
     """
     from ..sao.common import SAOState
     from .negotiator import GeniusNegotiator
@@ -964,7 +969,7 @@ def run_native_genius_negotiation(
         elif isinstance(neg, type) and issubclass(neg, GeniusNegotiator):
             # Extract java_class_name from GeniusNegotiator class
             if hasattr(neg, "java_class_name"):
-                agent_class_names.append(neg.java_class_name)
+                agent_class_names.append(neg.java_class_name)  # type: ignore
             else:
                 raise ValueError(
                     f"GeniusNegotiator type {neg} does not have java_class_name attribute"

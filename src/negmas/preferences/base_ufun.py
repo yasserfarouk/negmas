@@ -515,6 +515,9 @@ class BaseUtilityFunction(Preferences, ABC):
             ValueError: If both to[0] and to[1] are None.
 
         Example:
+            >>> from negmas import make_issue
+            >>> from negmas.preferences import LinearUtilityFunction
+            >>> issues = [make_issue([0, 5, 10], "x"), make_issue([5, 10, 15], "y")]
             >>> # Agent 1: utilities range [0, 10]
             >>> u1 = LinearUtilityFunction(weights=[1.0, 0.0], issues=issues)
             >>> # Agent 2: utilities range [5, 15]
