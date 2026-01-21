@@ -181,7 +181,8 @@ class TestNativeVsBridgeComparison:
         GeniusBridge.clean()
 
     @pytest.mark.skip(
-        reason="Requires run_negotiation_with_trace() method in geniusbridge.jar (not yet implemented)"
+        reason="Requires run_negotiation_with_trace() method in deployed geniusbridge.jar. "
+        "Method exists in negmas-genius-bridge source but jar needs to be rebuilt and redeployed."
     )
     @settings(max_examples=5, deadline=60000)
     @given(
@@ -247,7 +248,8 @@ class TestNativeVsBridgeComparison:
         ), f"Negotiations differ significantly: {comparison}"
 
     @pytest.mark.skip(
-        reason="Requires run_negotiation_with_trace() method in geniusbridge.jar (not yet implemented)"
+        reason="Requires run_negotiation_with_trace() method in deployed geniusbridge.jar. "
+        "Method exists in negmas-genius-bridge source but jar needs to be rebuilt and redeployed."
     )
     def test_native_vs_bridge_determinism_check(self):
         """Test that we can at least run both types of negotiations."""
