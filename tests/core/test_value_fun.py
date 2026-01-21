@@ -64,11 +64,13 @@ class TestConstFun:
         assert f2(0) == 7.0
 
     def test_scale_by(self):
-        """Scaling a ConstFun returns an AffineFun."""
+        """Scaling a ConstFun returns a ConstFun with scaled bias."""
         f = ConstFun(bias=5.0)
         f2 = f.scale_by(2.0)
-        # scale_by on ConstFun returns AffineFun(slope=scale, bias=self.bias)
-        assert isinstance(f2, AffineFun)
+        # scale_by on ConstFun returns ConstFun with scaled bias
+        assert isinstance(f2, ConstFun)
+        assert f2(0) == 10.0  # 5.0 * 2.0
+        assert f2(100) == 10.0  # Still constant
 
 
 class TestIdentityFun:

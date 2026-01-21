@@ -1125,7 +1125,7 @@ class TestCLIParsing:
 
     def test_parse_component_spec_simple(self):
         """Test parsing a simple component spec without parameters."""
-        from negmas.scripts.negotiate import parse_component_spec
+        from negmas.scripts.negotiate_core import parse_component_spec
 
         name, kwargs = parse_component_spec("GTimeDependentOffering")
         assert name == "GTimeDependentOffering"
@@ -1133,7 +1133,7 @@ class TestCLIParsing:
 
     def test_parse_component_spec_with_params(self):
         """Test parsing a component spec with parameters."""
-        from negmas.scripts.negotiate import parse_component_spec
+        from negmas.scripts.negotiate_core import parse_component_spec
 
         name, kwargs = parse_component_spec("GTimeDependentOffering(e=0.2, k=0.0)")
         assert name == "GTimeDependentOffering"
@@ -1141,7 +1141,7 @@ class TestCLIParsing:
 
     def test_get_component_genius(self):
         """Test getting Genius component classes."""
-        from negmas.scripts.negotiate import get_component
+        from negmas.scripts.negotiate_core import get_component
 
         cls = get_component("GTimeDependentOffering")
         assert cls.__name__ == "GTimeDependentOffering"
@@ -1154,7 +1154,7 @@ class TestCLIParsing:
 
     def test_get_component_builtin(self):
         """Test getting built-in component classes."""
-        from negmas.scripts.negotiate import get_component
+        from negmas.scripts.negotiate_core import get_component
 
         cls = get_component("TimeBasedOfferingPolicy")
         assert cls.__name__ == "TimeBasedOfferingPolicy"
