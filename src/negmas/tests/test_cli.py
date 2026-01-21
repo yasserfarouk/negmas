@@ -221,22 +221,27 @@ class TestExternalPackageNegotiators:
 
     def test_make_llm_negotiator_missing_package(self):
         """Test that make_llm_negotiator shows helpful error when package missing."""
-        # Mock builtins.__import__ to raise ImportError for negmas_llm
-        original_import = (
-            __builtins__["__import__"]
-            if isinstance(__builtins__, dict)
-            else __builtins__.__import__
-        )
+        # Save original sys.modules entry
+        import sys
 
-        def mock_import(name, *args, **kwargs):
-            if name == "negmas_llm":
-                raise ImportError("No module named 'negmas_llm'")
-            return original_import(name, *args, **kwargs)
+        original_module = sys.modules.get("negmas_llm")
 
-        with mock.patch("builtins.__import__", side_effect=mock_import):
-            with pytest.raises(SystemExit) as exc_info:
-                make_llm_negotiator("SomeClass")
-            assert exc_info.value.code == 1
+        try:
+            # Remove negmas_llm from sys.modules to simulate it not being installed
+            if "negmas_llm" in sys.modules:
+                del sys.modules["negmas_llm"]
+
+            # Mock importlib.import_module to raise ImportError
+            with mock.patch("importlib.import_module") as mock_import:
+                mock_import.side_effect = ImportError("No module named 'negmas_llm'")
+
+                with pytest.raises(SystemExit) as exc_info:
+                    make_llm_negotiator("SomeClass")
+                assert exc_info.value.code == 1
+        finally:
+            # Restore original module if it existed
+            if original_module is not None:
+                sys.modules["negmas_llm"] = original_module
 
     def test_make_negolog_negotiator_missing_package(self):
         """Test that make_negolog_negotiator shows helpful error when package missing."""

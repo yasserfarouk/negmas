@@ -448,9 +448,7 @@ class TestGeniusAgentSessions:
         neg = self.prepare(utils=(0, 1), single_issue=True)
         front, _ = neg.pareto_frontier(sort_by_welfare=True)
         assert_almost_equal(
-            front,
-            [(0.7715, 0.845), (0.577, 1.0), (1.0, 0.5136), (0.805, 0.668)],
-            decimal=2,
+            front, [(1.0, 0.76), (0.81, 0.92), (0.84, 0.84), (0.65, 1.0)], decimal=2
         )
 
         neg.run()

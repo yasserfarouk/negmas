@@ -1,4 +1,4 @@
-<utility_space type="any" number_of_issues="7">
+<utility_space number_of_issues="7">
 <objective index="1" etype="objective" type="objective" description="" name="any">
 <issue index="1" etype="discrete" type="discrete" vtype="discrete" name="Atmosphere">
     <item index="1" value="Cultural heritage" evaluation="0.0046176633605502" />

@@ -186,3 +186,7 @@ NUL*
 **/NUL:
 **/NUL*
 coding_agents/
+
+# Genius bridge generated files
+/etc/templates/
+/log/

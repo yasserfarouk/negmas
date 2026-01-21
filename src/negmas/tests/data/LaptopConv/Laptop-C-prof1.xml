@@ -1,4 +1,4 @@
-<utility_space type="any" number_of_issues="3">
+<utility_space number_of_issues="3">
 <objective index="1" etype="objective" type="objective" description="" name="any">
 <issue index="1" etype="discrete" type="discrete" vtype="discrete" name="Laptop">
     <item index="1" value="Dell" evaluation="12.0" />
