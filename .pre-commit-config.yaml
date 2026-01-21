@@ -1,6 +1,6 @@
 repos:
   - repo: https://github.com/pre-commit/pre-commit-hooks
-    rev: v4.0.1
+    rev: v6.0.0
     hooks:
       - id: debug-statements
       - id: check-yaml
@@ -28,7 +28,7 @@ repos:
     #   -   id: ssort
     #
 
-    rev: v0.2.1
+    rev: v0.14.13
     hooks:
       - id: ruff
         types_or: [python, pyi]
@@ -46,11 +46,11 @@ repos:
   #   hooks:
   #       - id: black
   - repo: https://github.com/asottile/blacken-docs
-    rev: v1.11.0
+    rev: 1.20.0
     hooks:
       - id: blacken-docs
         exclude: __init__.py
-        additional_dependencies: [black==20.8b1]
+        additional_dependencies: [black>=22.1]
   - repo: https://github.com/Lucas-C/pre-commit-hooks-markup
     rev: v1.0.1
     hooks:
