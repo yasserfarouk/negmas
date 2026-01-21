@@ -180,6 +180,9 @@ class TestNativeVsBridgeComparison:
         # Cleanup after all tests
         GeniusBridge.clean()
 
+    @pytest.mark.skip(
+        reason="Requires run_negotiation_with_trace() method in geniusbridge.jar (not yet implemented)"
+    )
     @settings(max_examples=5, deadline=60000)
     @given(
         n_steps=st.integers(min_value=10, max_value=50),
@@ -243,6 +246,9 @@ class TestNativeVsBridgeComparison:
             or comparison["utility_trends_similar"]
         ), f"Negotiations differ significantly: {comparison}"
 
+    @pytest.mark.skip(
+        reason="Requires run_negotiation_with_trace() method in geniusbridge.jar (not yet implemented)"
+    )
     def test_native_vs_bridge_determinism_check(self):
         """Test that we can at least run both types of negotiations."""
         from importlib.resources import files
