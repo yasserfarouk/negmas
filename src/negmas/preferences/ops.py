@@ -6,7 +6,16 @@ import itertools
 import math
 from functools import reduce
 from math import sqrt
-from typing import TYPE_CHECKING, Any, Iterable, Literal, Sequence, TypeVar, overload
+from typing import (
+    TYPE_CHECKING,
+    Any,
+    Callable,
+    Iterable,
+    Literal,
+    Sequence,
+    TypeVar,
+    overload,
+)
 
 import numpy as np
 from attrs import define, field
@@ -61,6 +70,7 @@ __all__ = [
     "sort_by_utility",
     "calc_reserved_value",
     "dominating_points",
+    "compare_ufuns",
 ]
 
 
@@ -2232,6 +2242,186 @@ def make_rank_ufun(ufun: UtilityFunction, normalize: bool = False) -> UtilityFun
         outcome_space=ufun.outcome_space,
         reserved_value=reserved,
     )
+
+
+def compare_ufuns(
+    ufun1: BaseUtilityFunction,
+    ufun2: BaseUtilityFunction,
+    method: Literal["kendall", "ndcg", "euclidean"]
+    | Callable[
+        [NDArray[np.floating[Any]], NDArray[np.floating[Any]]], float
+    ] = "kendall",
+    normalize: bool = True,
+    max_samples: int = 100_000,
+    outcome_space: OutcomeSpace | None = None,
+    issues: Sequence[Issue] | None = None,
+    outcomes: Sequence[Outcome] | None = None,
+) -> float:
+    """Compare two utility functions using various distance metrics.
+
+    This function compares utility functions by sampling outcomes and computing
+    a distance metric between the utility vectors.
+
+    Args:
+        ufun1: First utility function to compare
+        ufun2: Second utility function to compare
+        method: Comparison method to use. Options are:
+            - "kendall": Kendall's tau rank correlation coefficient (default)
+            - "ndcg": Normalized Discounted Cumulative Gain score
+            - "euclidean": Normalized Euclidean distance
+            - callable: Custom function taking two vectors and returning a float
+        normalize: If True, normalize both utility functions to [0, 1] range
+            independently before comparison. Default is True.
+        max_samples: Maximum number of outcomes to sample. If the outcome space
+            is smaller, all outcomes will be used. Default is 100,000.
+        outcome_space: The outcome space to sample from
+        issues: Issues to define the outcome space (alternative to outcome_space)
+        outcomes: Explicit list of outcomes to use (alternative to outcome_space)
+
+    Returns:
+        float: Distance measure between the utility functions. The interpretation
+            depends on the method:
+            - kendall: Value in [-1, 1], where 1 means perfect agreement,
+              -1 means perfect disagreement, 0 means no correlation
+            - ndcg: Value in [0, 1], where 1 means perfect agreement
+            - euclidean: Normalized distance in [0, 1], where 0 means identical,
+              1 means maximally different
+            - callable: Whatever the custom function returns
+
+    Examples:
+        >>> from negmas import make_issue
+        >>> from negmas.preferences import LinearAdditiveUtilityFunction
+        >>> issues = [make_issue([1, 2, 3], "price")]
+        >>> ufun1 = LinearAdditiveUtilityFunction({"price": lambda x: x}, issues=issues)
+        >>> ufun2 = LinearAdditiveUtilityFunction(
+        ...     {"price": lambda x: -x}, issues=issues
+        ... )
+        >>> # Kendall correlation (perfect negative correlation)
+        >>> compare_ufuns(ufun1, ufun2, method="kendall", issues=issues)
+        -1.0
+        >>> # Identical ufuns
+        >>> compare_ufuns(ufun1, ufun1, method="kendall", issues=issues)
+        1.0
+
+    Notes:
+        - Utility values are cast to float for comparison
+        - When normalize=True, each utility function is normalized independently
+          to [0, 1], guaranteeing that max and min values are respected
+        - For euclidean distance, the result is normalized relative to the distance
+          between the first vector and its negation
+        - NDCG requires utilities to be non-negative; negative utilities are
+          shifted to start from 0
+    """
+
+    # Determine outcome space
+    outcome_space = os_or_none(outcome_space, issues, outcomes)
+
+    # Get outcomes to sample
+    if outcomes is not None:
+        sampled_outcomes = list(outcomes)
+    elif outcome_space is not None:
+        # Sample or enumerate based on cardinality
+        cardinality = outcome_space.cardinality
+        if cardinality <= max_samples:
+            sampled_outcomes = list(
+                outcome_space.enumerate_or_sample(max_cardinality=float("inf"))
+            )  # type: ignore
+        else:
+            sampled_outcomes = list(
+                outcome_space.enumerate_or_sample(max_cardinality=max_samples)
+            )  # type: ignore
+    else:
+        # Try to get outcome space from utility functions
+        outcome_space = ufun1.outcome_space or ufun2.outcome_space
+        if outcome_space is None:
+            raise ValueError(
+                "Cannot determine outcome space. Please provide outcome_space, issues, or outcomes."
+            )
+        cardinality = outcome_space.cardinality
+        if cardinality <= max_samples:
+            sampled_outcomes = list(
+                outcome_space.enumerate_or_sample(max_cardinality=float("inf"))
+            )  # type: ignore
+        else:
+            sampled_outcomes = list(
+                outcome_space.enumerate_or_sample(max_cardinality=max_samples)
+            )  # type: ignore
+
+    if len(sampled_outcomes) == 0:
+        raise ValueError("No outcomes available for comparison")
+
+    # Compute utility vectors by casting to float
+    utils1 = np.array(
+        [float(ufun1(outcome)) for outcome in sampled_outcomes], dtype=np.float64
+    )
+    utils2 = np.array(
+        [float(ufun2(outcome)) for outcome in sampled_outcomes], dtype=np.float64
+    )
+
+    # Normalize if requested
+    if normalize:
+        # Normalize each vector independently to [0, 1]
+        min1, max1 = utils1.min(), utils1.max()
+        min2, max2 = utils2.min(), utils2.max()
+
+        # Avoid division by zero
+        if max1 - min1 > 1e-10:
+            utils1 = (utils1 - min1) / (max1 - min1)
+        else:
+            utils1 = np.zeros_like(utils1)
+
+        if max2 - min2 > 1e-10:
+            utils2 = (utils2 - min2) / (max2 - min2)
+        else:
+            utils2 = np.zeros_like(utils2)
+
+    # Apply comparison method
+    if callable(method) and not isinstance(method, str):
+        # Custom callable
+        return float(method(utils1, utils2))
+
+    if method == "kendall":
+        from scipy.stats import kendalltau
+
+        correlation, _ = kendalltau(utils1, utils2)
+        return float(correlation)
+
+    elif method == "ndcg":
+        from sklearn.metrics import ndcg_score
+
+        # NDCG requires non-negative values
+        # Shift to make all values non-negative
+        if utils1.min() < 0:
+            utils1 = utils1 - utils1.min()
+        if utils2.min() < 0:
+            utils2 = utils2 - utils2.min()
+
+        # ndcg_score expects (true_relevance, predicted_relevance)
+        # We treat utils1 as "true" and utils2 as "predicted"
+        # Need to reshape for sklearn: expects 2D arrays
+        score = ndcg_score(utils1.reshape(1, -1), utils2.reshape(1, -1))
+        return float(score)
+
+    elif method == "euclidean":
+        # Compute Euclidean distance
+        distance = np.linalg.norm(utils1 - utils2)
+
+        # Normalize by the distance between utils1 and its negation
+        # This gives a value in [0, 1] where 0 means identical
+        max_distance = np.linalg.norm(utils1 - (-utils1))
+
+        if max_distance > 1e-10:
+            normalized_distance = distance / max_distance
+        else:
+            # If utils1 is all zeros, distance is just the norm of utils2
+            normalized_distance = np.linalg.norm(utils2)
+
+        return float(normalized_distance)
+
+    else:
+        raise ValueError(
+            f"Unknown method: {method}. Must be 'kendall', 'ndcg', 'euclidean', or a callable."
+        )
 
 
 # pareto_frontier_active = pareto_frontier_bf if NUMBA_OK else pareto_frontier_of
