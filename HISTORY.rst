@@ -125,6 +125,14 @@ Release 0.14.0 (Unreleased)
   - Added fallback for unsupported ``~user`` tilde expansion syntax in ``Path.expanduser()``
   - Ensures tests pass reliably on Windows systems
 
+* [bugfix] Fix Jupyter notebook test timeouts caused by blocking ``fig.show()`` calls:
+
+  - Removed ``fig.show()`` calls from tutorials 03, 04, and 06 (figures auto-display in Jupyter)
+  - Added explicit ``fig`` as last line where needed to ensure figures display correctly
+  - Increased ``NOTEBOOK_CELL_TIMEOUT`` from 600s to 1200s (10 min → 20 min)
+  - Changed ``PLOTLY_RENDERER`` from ``'png'`` to ``'json'`` for non-blocking rendering
+  - Added ``PLOTLY_KALEIDO_NO_WAIT`` and ``PLOTLY_ORCA_SERVER`` environment variables to prevent hangs
+
 **Documentation:**
 
 * [docs] Add comprehensive ANAC competition documentation for 2010-2025
