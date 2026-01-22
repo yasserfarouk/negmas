@@ -507,28 +507,7 @@ def issues_to_xml_str(issues: Sequence[Issue]) -> str:
         <negotiation_template>
         <utility_space number_of_issues="3">
         <objective description="" etype="objective" index="0" name="root" type="objective">
-            <issue etype="discrete" index="1" name="i1" type="discrete" vtype="integer">
-                <item index="1" value="0" cost="0" description="0">
-                </item>
-                <item index="2" value="1" cost="0" description="1">
-                </item>
-                <item index="3" value="2" cost="0" description="2">
-                </item>
-                <item index="4" value="3" cost="0" description="3">
-                </item>
-                <item index="5" value="4" cost="0" description="4">
-                </item>
-                <item index="6" value="5" cost="0" description="5">
-                </item>
-                <item index="7" value="6" cost="0" description="6">
-                </item>
-                <item index="8" value="7" cost="0" description="7">
-                </item>
-                <item index="9" value="8" cost="0" description="8">
-                </item>
-                <item index="10" value="9" cost="0" description="9">
-                </item>
-            </issue>
+            <issue etype="integer" index="1" name="i1" type="integer" vtype="integer" lowerbound="0" upperbound="9" />
             <issue etype="discrete" index="2" name="i2" type="discrete" vtype="discrete">
                 <item index="1" value="a" cost="0" description="a">
                 </item>
@@ -546,14 +525,14 @@ def issues_to_xml_str(issues: Sequence[Issue]) -> str:
 
         >>> issues2, _ = issues_from_xml_str(s)
         >>> print([_.__class__.__name__ for _ in issues2])
-        ['CategoricalIssue', 'CategoricalIssue', 'ContinuousIssue']
+        ['ContiguousIssue', 'CategoricalIssue', 'ContinuousIssue']
 
         >>> print(len(issues2))
         3
         >>> print([str(_) for _ in issues2])
-        ["i1: ['0', '1', '2', '3', '4', '5', '6', '7', '8', '9']", "i2: ['a', 'b', 'c']", 'i3: (2.5, 3.5)']
+        ['i1: (0, 9)', "i2: ['a', 'b', 'c']", 'i3: (2.5, 3.5)']
         >>> print([_.values for _ in issues2])
-        [['0', '1', '2', '3', '4', '5', '6', '7', '8', '9'], ['a', 'b', 'c'], (2.5, 3.5)]
+        [(0, 9), ['a', 'b', 'c'], (2.5, 3.5)]
     """
     output = (
         f'<negotiation_template>\n<utility_space number_of_issues="{len(issues)}">\n'
