@@ -115,6 +115,15 @@ Release 0.14.0 (Unreleased)
 * [bugfix] Fix stats filename in ``dumpas`` and add tuple handling in ``convert_numpy``
 * [bugfix] Fix duplicate position creation in opponent mode tournaments
 * [bugfix] Fix loading scenarios by trying all folder types
+* [bugfix] Fix ``ContiguousIssue`` XML serialization to use efficient integer format with ``lowerbound``/``upperbound``
+  instead of expanding large ranges (e.g., 1-1,000,000) into millions of discrete items. This ensures proper
+  type round-tripping through XML and improves GeniusBridge test compatibility
+* [bugfix] Improve cross-platform path handling for Windows compatibility:
+
+  - Fixed filesystem path operations in logging, world, tournaments, and tests to use ``pathlib.Path`` methods
+  - Fixed string name handling in ``inout.py`` to normalize both forward/back slashes for arbitrary user-defined names
+  - Added fallback for unsupported ``~user`` tilde expansion syntax in ``Path.expanduser()``
+  - Ensures tests pass reliably on Windows systems
 
 **Documentation:**
 
