@@ -1,5 +1,24 @@
 # Agent Guidelines for negmas
 
+## ⚠️ CRITICAL: GIT PUSH POLICY ⚠️
+
+**NEVER NEVER NEVER NEVER PUSH WITHOUT EXPLICIT INSTRUCTION**
+
+**ABSOLUTELY NO EXCEPTIONS. NEVER PUSH TO GITHUB WITHOUT THE USER EXPLICITLY SAYING "PUSH" OR GIVING A DIRECT COMMAND TO PUSH.**
+
+**DO NOT PUSH EVEN IF:**
+- All tests pass locally
+- All tests pass on CI
+- The changes look good
+- You think it's ready
+- You want to check CI
+
+**ALWAYS:**
+1. Run tests locally
+2. Show results to user
+3. **WAIT FOR EXPLICIT "PUSH" COMMAND**
+4. Only then run `git push`
+
 ## Build/Test Commands
 ```bash
 pytest                                    # Run all tests
@@ -31,8 +50,6 @@ pre-commit run --all-files                # Run all pre-commit hooks
 
 ## Git Workflow
 - **Do not push**: Never push commits to origin without explicit user approval. Commit changes locally, but wait for the user to say "push" or similar before running `git push`.
-
-## Testing
 - **Always add tests**: Every new feature must have corresponding tests. Add tests to `tests/core/` for core functionality.
 - **Test naming**: Use `test_<feature_name>` naming convention for test functions.
 - **Run tests**: Always run relevant tests after implementing a feature to verify it works.
