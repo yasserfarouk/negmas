@@ -932,8 +932,9 @@ def genius(
     if port > 0:
         print(f"Started on port {port}")
     elif port == 0:
+        jar_path = Path.home() / "negmas" / "files" / "geniusbridge.jar"
         print(
-            "Failed to start. Try running 'java -jar $HOME/negmas/files/geniusbridge.jar' directly."
+            f"Failed to start. Try running 'java --add-opens java.base/java.lang=ALL-UNNAMED --add-opens java.base/java.util=ALL-UNNAMED -jar {jar_path}' directly."
         )
         exit(-1)
     else:
@@ -1218,8 +1219,9 @@ def restart_genius(
     if result_port > 0:
         print(f"Successfully restarted genius bridge on port {result_port}")
     elif result_port == 0:
+        jar_path = Path.home() / "negmas" / "files" / "geniusbridge.jar"
         print(
-            "[red]Failed to start. Try running 'java -jar $HOME/negmas/files/geniusbridge.jar' directly.[/red]"
+            f"[red]Failed to start. Try running 'java --add-opens java.base/java.lang=ALL-UNNAMED --add-opens java.base/java.util=ALL-UNNAMED -jar {jar_path}' directly.[/red]"
         )
         sys.exit(1)
     else:

@@ -6,13 +6,15 @@ on:
     branches: ["*"]
 jobs:
   tests:
-    name: "Python ${{ matrix.python-version }}"
-    runs-on: "ubuntu-latest"
+    name: "Python ${{ matrix.python-version }} on ${{ matrix.os }}"
+    runs-on: ${{ matrix.os }}
     timeout-minutes: 120
     env:
       USING_COVERAGE: "3.13"
     strategy:
+      fail-fast: false
       matrix:
+        os: [ubuntu-latest, windows-latest, macos-latest]
         python-version: ["3.13"]
     steps:
       - uses: "actions/checkout@v4"
@@ -33,7 +35,13 @@ jobs:
           distribution: "zulu"
           java-version: "21"
       - name: "running genius bridge"
-        run: "java -jar $HOME/negmas/files/geniusbridge.jar --silent --no-logs &"
+        shell: bash
+        run: |
+          if [ "$RUNNER_OS" == "Windows" ]; then
+            java --add-opens java.base/java.lang=ALL-UNNAMED --add-opens java.base/java.util=ALL-UNNAMED -jar "$USERPROFILE/negmas/files/geniusbridge.jar" --silent --no-logs &
+          else
+            java --add-opens java.base/java.lang=ALL-UNNAMED --add-opens java.base/java.util=ALL-UNNAMED -jar "$HOME/negmas/files/geniusbridge.jar" --silent --no-logs &
+          fi
       - name: "Run pytest for ${{ matrix.python-version }}"
         env:
           NEGMAS_IGNORE_TEST_NOTEBOOKS: "True"
