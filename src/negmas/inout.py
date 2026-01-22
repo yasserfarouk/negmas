@@ -103,6 +103,52 @@ class Scenario:
         """The negotiation issues defining the outcome space."""
         return self.outcome_space.issues
 
+    @property
+    def is_linear(self) -> bool:
+        """Checks if all utility functions in the scenario are linear.
+
+        Returns:
+            True if all utility functions are linear (including LinearAdditiveUtilityFunction,
+            AffineUtilityFunction, LinearUtilityFunction, LinearUtilityAggregationFunction,
+            or ConstUtilityFunction). Handles DiscountedUtilityFunction by checking the
+            base utility function.
+
+        Examples:
+            >>> from negmas import make_issue, Scenario
+            >>> from negmas.preferences import LinearUtilityFunction
+            >>> issues = [make_issue([0, 1, 2], "x")]
+            >>> u1 = LinearUtilityFunction(weights=[1.0], issues=issues)
+            >>> u2 = LinearUtilityFunction(weights=[0.5], issues=issues)
+            >>> scenario = Scenario(outcome_space=make_os(issues), ufuns=(u1, u2))
+            >>> scenario.is_linear
+            True
+        """
+        from negmas.preferences.crisp.const import ConstUtilityFunction
+        from negmas.preferences.crisp.linear import (
+            AffineUtilityFunction,
+            LinearAdditiveUtilityFunction,
+            LinearUtilityAggregationFunction,
+            LinearUtilityFunction,
+        )
+        from negmas.preferences.discounted import DiscountedUtilityFunction
+
+        def is_linear_ufun(ufun: BaseUtilityFunction) -> bool:
+            """Recursively check if a ufun (possibly discounted) is linear."""
+            if isinstance(ufun, DiscountedUtilityFunction):
+                return is_linear_ufun(ufun.ufun)
+            return isinstance(
+                ufun,
+                (
+                    LinearAdditiveUtilityFunction,
+                    AffineUtilityFunction,
+                    LinearUtilityAggregationFunction,
+                    LinearUtilityFunction,
+                    ConstUtilityFunction,
+                ),
+            )
+
+        return all(is_linear_ufun(u) for u in self.ufuns)
+
     def plot(self, **kwargs):
         """Visualizes the scenario's utility space using a 2D plot."""
         from negmas.plots.util import plot_2dutils
@@ -338,15 +384,37 @@ class Scenario:
 
         return m
 
-    def scale_min(self, to: float = 1.0, recalculate_stats: bool = True) -> Scenario:
+    def scale_min(
+        self,
+        to: float = 0.0,
+        outcome_space: OutcomeSpace | None = None,
+        recalculate_stats: bool = True,
+    ) -> Scenario:
         """Scales all utility functions so their minimum value equals the given target.
+
+        This method scales each utility function independently by finding its minimum
+        over the specified outcome space and multiplying by an appropriate scale factor.
 
         Args:
             to: Target minimum value for all utility functions.
+            outcome_space: The outcome space to use when computing min/max values.
+                If None, uses each ufun's own outcome space (which should match the
+                scenario's outcome space).
             recalculate_stats: If True and stats exist, recalculate them after scaling.
                 If False and stats exist, invalidate stats by setting them to None.
+
+        Returns:
+            Self for method chaining.
+
+        Note:
+            Each utility function is scaled independently. This is different from
+            normalize() which can perform common-scale normalization across all ufuns.
+
+        Example:
+            >>> scenario.scale_min(to=0.0)  # Scale so all ufuns have min=0
         """
-        self.ufuns = tuple(_.scale_min(to) for _ in self.ufuns)
+        os = outcome_space or self.outcome_space
+        self.ufuns = tuple(_.scale_min_for(to, outcome_space=os) for _ in self.ufuns)
         if self.stats:
             if recalculate_stats:
                 self.calc_stats()
@@ -354,15 +422,37 @@ class Scenario:
                 self.stats = None
         return self
 
-    def scale_max(self, to: float = 1.0, recalculate_stats: bool = True) -> Scenario:
+    def scale_max(
+        self,
+        to: float = 1.0,
+        outcome_space: OutcomeSpace | None = None,
+        recalculate_stats: bool = True,
+    ) -> Scenario:
         """Scales all utility functions so their maximum value equals the given target.
+
+        This method scales each utility function independently by finding its maximum
+        over the specified outcome space and multiplying by an appropriate scale factor.
 
         Args:
             to: Target maximum value for all utility functions.
+            outcome_space: The outcome space to use when computing min/max values.
+                If None, uses each ufun's own outcome space (which should match the
+                scenario's outcome space).
             recalculate_stats: If True and stats exist, recalculate them after scaling.
                 If False and stats exist, invalidate stats by setting them to None.
+
+        Returns:
+            Self for method chaining.
+
+        Note:
+            Each utility function is scaled independently. This is different from
+            normalize() which can perform common-scale normalization across all ufuns.
+
+        Example:
+            >>> scenario.scale_max(to=1.0)  # Scale so all ufuns have max=1
         """
-        self.ufuns = tuple(_.scale_max(to) for _ in self.ufuns)  #  The type is correct
+        os = outcome_space or self.outcome_space
+        self.ufuns = tuple(_.scale_max_for(to, outcome_space=os) for _ in self.ufuns)
         if self.stats:
             if recalculate_stats:
                 self.calc_stats()
@@ -375,8 +465,9 @@ class Scenario:
         to: tuple[float, float] = (0.0, 1.0),
         outcome_space: OutcomeSpace | None = None,
         guarantee_max: bool = True,
-        guarantee_min: bool = False,
-        independent: bool = False,
+        guarantee_min: bool | None = None,
+        independent: bool | None = None,
+        common_range: bool | None = None,
         recalculate_stats: bool = True,
     ) -> Scenario:
         """Normalizes all utility functions to the given range.
@@ -386,32 +477,90 @@ class Scenario:
             outcome_space: The outcome space to use for normalization. If None, uses the scenario's outcome space.
             guarantee_max: If True, guarantees that the maximum value is exactly to[1].
             guarantee_min: If True, guarantees that the minimum value is exactly to[0].
-            independent: If True, normalizes each utility function independently.
-                If False (default), uses common scale normalization via normalize_all_for().
+                When None (default), automatically set to True for common_range=True, False for common_range=False.
+            common_range: If True (default), normalizes all utility functions to a common scale.
+                If False, normalizes each utility function independently to span the full range.
+            independent: Deprecated. Use common_range instead. If True, normalizes each utility function independently.
+                If False, uses common scale normalization. This parameter will be removed in a future version.
             recalculate_stats: If True and stats exist, recalculate them after normalizing.
                 If False and stats exist, invalidate stats by setting them to None.
 
         Remarks:
             - If either value of `to` is `None`, then all ufuns will just be scaled to match the constraint of the other value.
-            - When independent=False (default), all utility functions are normalized to a common scale,
+            - When common_range=True (default), all utility functions are normalized to a common scale,
               ensuring that utility values are comparable across agents.
+            - When common_range=False, each utility function is normalized independently to span the full range.
+
+        Examples:
+            Common range normalization (default):
+            >>> scenario.normalize(common_range=True)  # All ufuns share a scale
+
+            Independent normalization:
+            >>> scenario.normalize(common_range=False)  # Each ufun spans full range
         """
-        if independent:
-            self.ufuns = tuple(
-                _.normalize_for(
-                    to,
-                    outcome_space=outcome_space,
-                    guarantee_max=guarantee_max,
-                    guarantee_min=guarantee_min,
-                )
-                for _ in self.ufuns
-            )  # type: ignore The type is correct
+        # Handle parameter conflicts and deprecation
+        if independent is not None and common_range is not None:
+            raise ValueError(
+                "Cannot specify both 'independent' and 'common_range'. "
+                "Use 'common_range' only (independent is deprecated)."
+            )
+
+        # Convert parameters: common_range takes precedence
+        if common_range is not None:
+            normalize_independently = not common_range
+        elif independent is not None:
+            from negmas.warnings import deprecated
+
+            deprecated(
+                "The 'independent' parameter is deprecated. Use 'common_range' instead. "
+                "independent=True is equivalent to common_range=False, and "
+                "independent=False is equivalent to common_range=True."
+            )
+            normalize_independently = independent
         else:
+            # Default: common_range=True (i.e., independent=False)
+            normalize_independently = False
+
+        # Set guarantee_min based on normalization mode if not specified
+        if guarantee_min is None:
+            # For common range, we want to guarantee min for proper scaling
+            # For independent, we don't need it (defaults work fine)
+            guarantee_min = not normalize_independently
+
+        if normalize_independently:
+            # Use scenario's outcome space if not provided
+            os_for_norm = (
+                outcome_space if outcome_space is not None else self.outcome_space
+            )
+            normalized_ufuns = []
+            for ufun in self.ufuns:
+                # Check if the ufun's normalize_for() supports guarantee_max/guarantee_min
+                # Only LinearAdditiveUtilityFunction has these parameters
+                from inspect import signature
+
+                sig = signature(ufun.normalize_for)
+                if "guarantee_max" in sig.parameters:
+                    normalized = ufun.normalize_for(
+                        to,
+                        outcome_space=os_for_norm,
+                        guarantee_max=guarantee_max,
+                        guarantee_min=guarantee_min,
+                    )
+                else:
+                    # Fall back to basic normalize_for for other ufun types
+                    normalized = ufun.normalize_for(to, outcome_space=os_for_norm)
+                normalized_ufuns.append(normalized)
+            self.ufuns = tuple(normalized_ufuns)  # type: ignore The type is correct
+        else:
+            # Use scenario's outcome space if not provided
+            os_for_norm = (
+                outcome_space if outcome_space is not None else self.outcome_space
+            )
             self.ufuns = tuple(
                 BaseUtilityFunction.normalize_all_for(  # type: ignore
                     ufuns=self.ufuns,
                     to=to,
-                    outcome_space=outcome_space,
+                    outcome_space=os_for_norm,
                     guarantee_max=guarantee_max,
                     guarantee_min=guarantee_min,
                 )
@@ -427,16 +576,94 @@ class Scenario:
         self,
         to: tuple[float | None, float | None] = (None, 1.0),
         positive: bool = True,
+        independent: bool | None = None,
+        common_range: bool | None = None,
         eps: float = 1e-6,
     ) -> bool:
-        """Checks that all ufuns are normalized in the given range"""
+        """Checks that all ufuns are normalized in the given range.
+
+        Args:
+            to: Target range (min, max) to check. None means no constraint on that bound.
+            positive: If True, checks that all minimums are non-negative.
+            common_range: If True (default), checks common-scale normalization (all ufuns within range,
+                at least one reaches each bound). If False, checks that each ufun individually spans the full range.
+            independent: Deprecated. Use common_range instead. If True, checks that each ufun individually spans the full range.
+                If False, checks common-scale normalization. This parameter will be removed in a future version.
+            eps: Tolerance for floating point comparisons.
+
+        Returns:
+            True if the scenario is normalized according to the specified criteria.
+
+        Examples:
+            After independent normalization, each ufun should span [0, 1]:
+            >>> scenario.normalize(common_range=False)
+            >>> scenario.is_normalized((0.0, 1.0), common_range=False)
+            True
+
+            After common-scale normalization, ufuns share a scale but may not all reach both bounds:
+            >>> scenario.normalize(common_range=True)
+            >>> scenario.is_normalized((0.0, 1.0), common_range=True)
+            True
+        """
+        # Handle parameter conflicts and deprecation
+        if independent is not None and common_range is not None:
+            raise ValueError(
+                "Cannot specify both 'independent' and 'common_range'. "
+                "Use 'common_range' only (independent is deprecated)."
+            )
+
+        # Convert parameters: common_range takes precedence
+        if common_range is not None:
+            check_independently = not common_range
+        elif independent is not None:
+            from negmas.warnings import deprecated
+
+            deprecated(
+                "The 'independent' parameter is deprecated. Use 'common_range' instead. "
+                "independent=True is equivalent to common_range=False, and "
+                "independent=False is equivalent to common_range=True."
+            )
+            check_independently = independent
+        else:
+            # Default: common_range=True (i.e., independent=False)
+            check_independently = False
+
         mnmx = [_.minmax() for _ in self.ufuns]
-        return all(
-            (to[0] is None or abs(a - to[0]) < eps)
-            and (to[1] is None or abs(b - to[1]) < eps)
-            and (not positive or a >= -eps)
-            for a, b in mnmx
-        )
+
+        if check_independently:
+            # Independent mode: Each ufun must individually span [to[0], to[1]]
+            return all(
+                (to[0] is None or abs(a - to[0]) < eps)
+                and (to[1] is None or abs(b - to[1]) < eps)
+                and (not positive or a >= -eps)
+                for a, b in mnmx
+            )
+        else:
+            # Common-scale mode: All ufuns within range, at least one reaches each bound
+            mins = [a for a, _ in mnmx]
+            maxs = [b for _, b in mnmx]
+
+            # Check all ufuns are within the range
+            if to[0] is not None:
+                if not all(a >= to[0] - eps for a in mins):
+                    return False
+                # At least one ufun should reach the minimum
+                if not any(abs(a - to[0]) < eps for a in mins):
+                    return False
+
+            if to[1] is not None:
+                if not all(b <= to[1] + eps for b in maxs):
+                    return False
+                # At least one ufun should reach the maximum
+                if not any(abs(b - to[1]) < eps for b in maxs):
+                    return False
+
+            # Check positivity constraint
+            if positive:
+                if not all(a >= -eps for a in mins):
+                    return False
+
+            return True
 
     def discretize(self, levels: int = 10, recalculate_stats: bool = True):
         """Discretizes all continuous issues in the outcome space.
