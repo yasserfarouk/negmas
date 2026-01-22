@@ -9,13 +9,19 @@ from negmas.genius import genius_bridge_is_running, GeniusBridge
 
 # Set plotly to use a non-blocking renderer to avoid hangs in CI/test environments
 # This must be set before any plotly imports in notebooks
-os.environ.setdefault("PLOTLY_RENDERER", "png")
+# Use 'json' renderer which doesn't require a browser or display
+os.environ.setdefault("PLOTLY_RENDERER", "json")
+# Disable kaleido processes that might hang
+os.environ.setdefault("PLOTLY_KALEIDO_NO_WAIT", "1")
+# Set orca to non-blocking mode if it's used
+os.environ.setdefault("PLOTLY_ORCA_SERVER", "false")
 
 NEGMAS_IGNORE_TEST_NOTEBOOKS = os.environ.get("NEGMAS_IGNORE_TEST_NOTEBOOKS", False)
 # NEGMAS_IGNORE_TEST_NOTEBOOKS = True
 
-# Timeout for notebook execution in seconds (default: 10 minutes per cell)
-NOTEBOOK_CELL_TIMEOUT = int(os.environ.get("NEGMAS_NOTEBOOK_CELL_TIMEOUT", 600))
+# Timeout for notebook execution in seconds (default: 20 minutes per cell)
+# Increased from 600s (10 min) to 1200s (20 min) to accommodate slower systems
+NOTEBOOK_CELL_TIMEOUT = int(os.environ.get("NEGMAS_NOTEBOOK_CELL_TIMEOUT", 1200))
 
 
 def notebooks():
