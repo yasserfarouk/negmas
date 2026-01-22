@@ -409,9 +409,6 @@ class Scenario:
         Note:
             Each utility function is scaled independently. This is different from
             normalize() which can perform common-scale normalization across all ufuns.
-
-        Example:
-            >>> scenario.scale_min(to=0.0)  # Scale so all ufuns have min=0
         """
         os = outcome_space or self.outcome_space
         self.ufuns = tuple(_.scale_min_for(to, outcome_space=os) for _ in self.ufuns)
@@ -447,9 +444,6 @@ class Scenario:
         Note:
             Each utility function is scaled independently. This is different from
             normalize() which can perform common-scale normalization across all ufuns.
-
-        Example:
-            >>> scenario.scale_max(to=1.0)  # Scale so all ufuns have max=1
         """
         os = outcome_space or self.outcome_space
         self.ufuns = tuple(_.scale_max_for(to, outcome_space=os) for _ in self.ufuns)
@@ -490,13 +484,6 @@ class Scenario:
             - When common_range=True (default), all utility functions are normalized to a common scale,
               ensuring that utility values are comparable across agents.
             - When common_range=False, each utility function is normalized independently to span the full range.
-
-        Examples:
-            Common range normalization (default):
-            >>> scenario.normalize(common_range=True)  # All ufuns share a scale
-
-            Independent normalization:
-            >>> scenario.normalize(common_range=False)  # Each ufun spans full range
         """
         # Handle parameter conflicts and deprecation
         if independent is not None and common_range is not None:
@@ -593,17 +580,6 @@ class Scenario:
 
         Returns:
             True if the scenario is normalized according to the specified criteria.
-
-        Examples:
-            After independent normalization, each ufun should span [0, 1]:
-            >>> scenario.normalize(common_range=False)
-            >>> scenario.is_normalized((0.0, 1.0), common_range=False)
-            True
-
-            After common-scale normalization, ufuns share a scale but may not all reach both bounds:
-            >>> scenario.normalize(common_range=True)
-            >>> scenario.is_normalized((0.0, 1.0), common_range=True)
-            True
         """
         # Handle parameter conflicts and deprecation
         if independent is not None and common_range is not None:

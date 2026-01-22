@@ -30,6 +30,9 @@ from negmas.preferences.ops import (
     pareto_frontier,
 )
 
+DEFAULT_IMAGE_FORMAT = "webp"
+SUPPORTED_IMAGE_FORMATS = {"webp", "png", "jpg", "jpeg", "svg", "pdf"}
+
 if TYPE_CHECKING:
     pass
 
@@ -1043,6 +1046,7 @@ def plot_offline_run(
     save_fig: bool = False,
     path: str | None = None,
     fig_name: str | None = None,
+    image_format: str = DEFAULT_IMAGE_FORMAT,
     ignore_none_offers: bool = True,
     with_lines: bool = True,
     show_agreement: bool = False,
@@ -1091,6 +1095,14 @@ def plot_offline_run(
         has_error: Whether an error occurred during negotiation.
         errstr: Error message string if has_error is True.
         names: Display names for negotiators (defaults to IDs if None).
+        save_fig: If True, save the figure to disk.
+        path: Directory path where to save the figure (if save_fig is True).
+        fig_name: Filename for the saved figure. If provided with an extension (e.g., "plot.png"),
+                 that extension is used. If provided without an extension or None, the image_format
+                 parameter determines the extension.
+        image_format: Image format to use when auto-generating filenames (default: webp).
+                     Supported formats: webp, png, jpg, jpeg, svg, pdf. Only used if fig_name
+                     is None or doesn't have an extension.
     """
     if names is None:
         names = [_ for _ in ids]
@@ -1235,7 +1247,12 @@ def plot_offline_run(
 
     if save_fig:
         if fig_name is None:
-            fig_name = str(uuid.uuid4()) + ".png"
+            fig_name = str(uuid.uuid4()) + f".{image_format}"
+        elif not pathlib.Path(fig_name).suffix:
+            # User provided name without extension, add image_format
+            fig_name = f"{fig_name}.{image_format}"
+        # else: User provided name with extension, use as-is
+
         if path is None:
             path_ = pathlib.Path().absolute()
         else:
@@ -1257,6 +1274,7 @@ def plot_mechanism_run(
     save_fig: bool = False,
     path: str | None = None,
     fig_name: str | None = None,
+    image_format: str = DEFAULT_IMAGE_FORMAT,
     ignore_none_offers: bool = True,
     with_lines: bool = True,
     show_agreement: bool = False,
@@ -1462,7 +1480,12 @@ def plot_mechanism_run(
 
     if save_fig:
         if fig_name is None:
-            fig_name = str(uuid.uuid4()) + ".png"
+            fig_name = str(uuid.uuid4()) + f".{image_format}"
+        elif not pathlib.Path(fig_name).suffix:
+            # User provided name without extension, add image_format
+            fig_name = f"{fig_name}.{image_format}"
+        # else: User provided name with extension, use as-is
+
         if path is None:
             path_ = pathlib.Path().absolute()
         else:

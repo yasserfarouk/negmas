@@ -272,6 +272,9 @@ MAX_TASKS_PER_CHILD = 10
 LOG_UNIFORM_LIMIT = 10
 TERMINATION_WAIT_TIME = 10.0
 
+DEFAULT_IMAGE_FORMAT = "webp"
+SUPPORTED_IMAGE_FORMATS = {"webp", "png", "jpg", "jpeg", "svg", "pdf"}
+
 EXTENSION = ".csv"
 ALL_SCORES_FILE_NAME = f"all_scores{EXTENSION}"
 ALL_RESULTS_FILE_NAME = f"details{EXTENSION}"
@@ -1839,16 +1842,39 @@ def _save_record(
 
 
 def _plot_run(
-    m, partner_names, real_scenario_name, rep, run_id, path, plot, plot_params
+    m,
+    partner_names,
+    real_scenario_name,
+    rep,
+    run_id,
+    path,
+    plot,
+    plot_params,
+    image_format=DEFAULT_IMAGE_FORMAT,
 ):
-    """Save a plot of the negotiation mechanism to disk."""
+    """Save a plot of the negotiation mechanism to disk.
+
+    Args:
+        image_format: Format for saving the figure. Used only if plot_params doesn't specify
+                     a fig_name with an extension. If fig_name in plot_params has an extension,
+                     that extension is respected.
+    """
     file_name = _get_run_file_name(real_scenario_name, partner_names, rep, run_id)
     if not path or not plot:
         return
     if plot_params is None:
         plot_params = dict()
     plot_params["save_fig"] = (True,)
-    full_name = path / PLOTS_DIR_NAME / f"{file_name}.png"
+
+    # Check if user provided a fig_name with an extension
+    fig_name = plot_params.get("fig_name")
+    if fig_name and Path(str(fig_name)).suffix:
+        # User provided a filename with extension, respect it
+        full_name = path / PLOTS_DIR_NAME / fig_name
+    else:
+        # Auto-generate filename with image_format
+        full_name = path / PLOTS_DIR_NAME / f"{file_name}.{image_format}"
+
     m.plot(path=path, fig_name=full_name, show=False, **plot_params)
 
 
@@ -1880,6 +1906,7 @@ def run_negotiation(
     after_construction_callback: AfterConstructionCallback | None = None,
     after_end_callback: AfterEndCallback | None = None,
     config: dict[str, Any] | None = None,
+    image_format: str = DEFAULT_IMAGE_FORMAT,
 ) -> dict[str, Any]:
     """Run a single negotiation session and return comprehensive results.
 
@@ -2064,7 +2091,15 @@ def run_negotiation(
                 print(f"After end callback failed for {run_id}: {e}")
     _save_record(run_record, m, partner_names, real_scenario_name, rep, run_id, path)
     _plot_run(
-        m, partner_names, real_scenario_name, rep, run_id, path, plot, plot_params
+        m,
+        partner_names,
+        real_scenario_name,
+        rep,
+        run_id,
+        path,
+        plot,
+        plot_params,
+        image_format,
     )
     return run_record
 
@@ -2416,6 +2451,7 @@ def cartesian_tournament(
     save_every: int = 0,
     save_stats: bool = True,
     save_scenario_figs: bool = True,
+    image_format: str = DEFAULT_IMAGE_FORMAT,
     final_score: tuple[str, str] = ("advantage", "mean"),
     id_reveals_type: bool = False,
     name_reveals_type: bool = True,
@@ -2491,7 +2527,9 @@ def cartesian_tournament(
         sort_runs: If True, sort runs by scenario size before execution.
         save_every: Save results to disk after this many negotiations (0 to disable periodic saving).
         save_stats: If True, calculate optimality statistics (Pareto, Nash, Kalai-Smorodinsky, etc.).
-        save_scenario_figs: If True, save PNG visualizations of scenarios in utility space.
+        save_scenario_figs: If True, save visualizations of scenarios in utility space.
+        image_format: Format for saving figures. Supported formats: 'webp', 'png', 'jpg', 'jpeg', 'svg', 'pdf'.
+                     Default is 'webp'. Applies to both scenario figures and run plots.
         final_score: Tuple of (metric, statistic) for ranking. Metric can be 'advantage', 'utility',
                     'partner_welfare', 'welfare', or any calculated statistic. Statistic can be
                     'mean', 'median', 'min', 'max', or 'std'. Default: ('advantage', 'mean').
@@ -2622,6 +2660,12 @@ def cartesian_tournament(
         mechanism_params = dict()
     mechanism_params["ignore_negotiator_exceptions"] = not raise_exceptions
 
+    # Validate image_format
+    if image_format not in SUPPORTED_IMAGE_FORMATS:
+        raise ValueError(
+            f"image_format must be one of {SUPPORTED_IMAGE_FORMATS}, got '{image_format}'"
+        )
+
     # Normalize optimization levels (treat "time"/"none" as "speed", "max" as "space")
     storage_optimization = _normalize_optimization_level(storage_optimization)
     memory_optimization = _normalize_optimization_level(memory_optimization)
@@ -2725,6 +2769,7 @@ def cartesian_tournament(
         save_every=save_every,
         save_stats=save_stats,
         save_scenario_figs=save_scenario_figs,
+        image_format=image_format,
         final_score=final_score,
         id_reveals_type=id_reveals_type,
         name_reveals_type=name_reveals_type,
@@ -2946,7 +2991,7 @@ def cartesian_tournament(
                         names=["First", "Second"],
                         save_fig=True,
                         path=str(this_path),
-                        fig_name="fig.webp",
+                        fig_name=f"fig.{image_format}",
                         only2d=True,
                         show_annotations=False,
                         show_agreement=False,
@@ -3017,6 +3062,7 @@ def cartesian_tournament(
                         private_infos=pinfo_tuple,
                         scored_indices=scored_indices,
                         config=config,
+                        image_format=image_format,
                     )
                     # Add run_id for identifying completed runs
                     run_dict["run_id"] = hash(
@@ -3125,9 +3171,11 @@ def cartesian_tournament(
         for i, info in enumerate(
             track(runs, total=len(runs), description=NEGOTIATIONS_DIR_NAME)
         ):
+            # Remove run_id from info before unpacking to avoid duplicate argument error
+            info_copy = {k: v for k, v in info.items() if k != "run_id"}
             process_record(
                 run_negotiation(
-                    **info,
+                    **info_copy,
                     before_start_callback=before_start_callback,
                     after_construction_callback=after_construction_callback,
                     after_end_callback=after_end_callback,
@@ -3179,13 +3227,16 @@ def cartesian_tournament(
 
         with ProcessPoolExecutor(**kwargs_) as pool:  # type: ignore
             for info in runs:
+                # Remove run_id from info before unpacking to avoid duplicate argument error
+                info_copy = {k: v for k, v in info.items() if k != "run_id"}
                 futures[
                     pool.submit(
                         run_negotiation,
-                        **info,
+                        **info_copy,
                         before_start_callback=before_start_callback,
                         after_construction_callback=after_construction_callback,
                         after_end_callback=after_end_callback,
+                        run_id=info["run_id"],  # Pass the pre-computed run_id
                     )
                 ] = info
             for i, f in enumerate(
@@ -3508,6 +3559,7 @@ def continue_cartesian_tournament(
             save_every=config["save_every"],
             save_stats=config["save_stats"],
             save_scenario_figs=config["save_scenario_figs"],
+            image_format=config.get("image_format", DEFAULT_IMAGE_FORMAT),
             final_score=config["final_score"],
             id_reveals_type=config["id_reveals_type"],
             name_reveals_type=config["name_reveals_type"],

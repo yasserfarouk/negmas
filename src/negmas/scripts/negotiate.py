@@ -9,6 +9,7 @@ from typing import Any, Optional
 from pathlib import Path
 from time import perf_counter
 from negmas.inout import serialize
+from negmas.plots.util import DEFAULT_IMAGE_FORMAT
 
 import typer
 import functools
@@ -1232,7 +1233,7 @@ def run(
             plot_path = Path(plot_path).absolute()
             plot_path.parent.mkdir(parents=True, exist_ok=True)
         elif save_path:
-            plot_path = save_path / "session.png"
+            plot_path = save_path / f"session.{DEFAULT_IMAGE_FORMAT}"
             plot_path.parent.mkdir(parents=True, exist_ok=True)
         if plot:
             # Note: plot_backend and plot_interactive are deprecated (matplotlib-specific)
