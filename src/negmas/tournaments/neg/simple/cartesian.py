@@ -256,6 +256,7 @@ def _find_dataframe_file(path: Path, base_name: str) -> Path | None:
 __all__ = [
     "run_negotiation",
     "cartesian_tournament",
+    "continue_cartesian_tournament",
     "SimpleTournamentResults",
     "combine_tournaments",
     "RunInfo",
@@ -1755,7 +1756,7 @@ def _save_record(
     python_class_identifier=PYTHON_CLASS_IDENTIFIER,
 ):
     """Save negotiation record to disk as JSON and/or pickle."""
-    file_name = f"{real_scenario_name}_{'_'.join(partner_names)}_{rep}_{run_id}"
+    file_name = _get_run_file_name(real_scenario_name, partner_names, rep, run_id)
     if not path:
         return
 
@@ -1841,7 +1842,7 @@ def _plot_run(
     m, partner_names, real_scenario_name, rep, run_id, path, plot, plot_params
 ):
     """Save a plot of the negotiation mechanism to disk."""
-    file_name = f"{real_scenario_name}_{'_'.join(partner_names)}_{rep}_{run_id}"
+    file_name = _get_run_file_name(real_scenario_name, partner_names, rep, run_id)
     if not path or not plot:
         return
     if plot_params is None:
@@ -2261,6 +2262,124 @@ def make_scores(
     return scores
 
 
+def _get_run_file_name(
+    scenario_name: str,
+    partner_names: tuple[str, ...] | list[str],
+    rep: int,
+    run_id: int | str,
+) -> str:
+    """Generate the file name for a run result.
+
+    Args:
+        scenario_name: Name of the scenario.
+        partner_names: Names of the negotiators.
+        rep: Repetition number.
+        run_id: Unique run identifier.
+
+    Returns:
+        File name string (without extension).
+    """
+    return f"{scenario_name}_{'_'.join(partner_names)}_{rep}_{run_id}"
+
+
+def _load_existing_results(
+    path: Path, python_class_identifier=PYTHON_CLASS_IDENTIFIER
+) -> tuple[list[dict[str, Any]], list[dict[str, Any]]]:
+    """Load existing results from a tournament results/ folder.
+
+    Args:
+        path: Path to the tournament directory.
+        python_class_identifier: Function to convert classes to string identifiers.
+
+    Returns:
+        Tuple of (results_list, scores_list) where each is a list of dictionaries.
+        Returns ([], []) if results/ folder doesn't exist or is empty.
+    """
+    results_dir = path / RESULTS_DIR_NAME
+    if not results_dir.exists():
+        return [], []
+
+    results = []
+    scores = []
+
+    # Load all JSON files from results/ folder
+    for result_file in results_dir.glob("*.json"):
+        try:
+            record = load(result_file)
+            if record and isinstance(record, dict):
+                results.append(record)
+                # Generate scores from this record
+                scored_indices = record.get("scored_indices")
+                scores += make_scores(record, scored_indices=scored_indices)
+        except Exception:
+            # Skip corrupted or incomplete files
+            continue
+
+    return results, scores
+
+
+def _check_completed_runs(
+    path: Path, python_class_identifier=PYTHON_CLASS_IDENTIFIER
+) -> set[str]:
+    """Check which runs have been completed based on results/ folder.
+
+    Args:
+        path: Path to the tournament directory.
+        python_class_identifier: Function to convert classes to string identifiers.
+
+    Returns:
+        Set of file names (without extension) for completed runs.
+    """
+    results_dir = path / RESULTS_DIR_NAME
+    if not results_dir.exists():
+        return set()
+
+    completed = set()
+    for result_file in results_dir.glob("*.json"):
+        # Extract file name without extension
+        file_name = result_file.stem
+        try:
+            # Verify the file is non-empty and valid JSON
+            record = load(result_file)
+            if record and isinstance(record, dict):
+                completed.add(file_name)
+        except Exception:
+            # Skip corrupted or incomplete files
+            continue
+
+    return completed
+
+
+def _is_run_completed(
+    run_info: dict[str, Any],
+    completed_runs: set[str],
+    python_class_identifier=PYTHON_CLASS_IDENTIFIER,
+) -> bool:
+    """Check if a specific run has been completed.
+
+    Args:
+        run_info: Run information dictionary.
+        completed_runs: Set of completed run file names.
+        python_class_identifier: Function to convert classes to string identifiers.
+
+    Returns:
+        True if this run has been completed, False otherwise.
+    """
+    # Generate the run_id if not present
+    if "run_id" not in run_info:
+        run_info["run_id"] = hash(
+            str(serialize(run_info, python_class_identifier=python_class_identifier))
+        )
+
+    file_name = _get_run_file_name(
+        scenario_name=run_info["s"].outcome_space.name,
+        partner_names=run_info["partner_names"],
+        rep=run_info["rep"],
+        run_id=run_info["run_id"],
+    )
+    return file_name in completed_runs
+
+
 def cartesian_tournament(
     competitors: list[type[Negotiator] | str] | tuple[type[Negotiator] | str, ...],
     scenarios: list[Scenario] | tuple[Scenario, ...],
@@ -2275,6 +2394,7 @@ def cartesian_tournament(
     rotate_private_infos: bool = True,
     n_repetitions: int = 1,
     path: Path | None = None,
+    path_exists: Literal["continue", "overwrite", "fail"] = "continue",
     njobs: int = 0,
     mechanism_type: type[Mechanism] = SAOMechanism,
     mechanism_params: dict[str, Any] | None = None,
@@ -2346,6 +2466,10 @@ def cartesian_tournament(
         rotate_private_infos: If True and rotate_ufuns is True, rotate private information with ufuns.
         n_repetitions: Number of times to repeat each scenario/partner combination.
         path: Directory path to save tournament results. If None, results are not saved to disk.
+        path_exists: Controls behavior when path already exists (default: "continue"):
+                 - "continue": Resume incomplete tournament by skipping completed negotiations
+                 - "overwrite": Delete existing tournament and start fresh
+                 - "fail": Raise FileExistsError if tournament directory exists
         njobs: Parallelization level. -1 for serial execution (good for debugging),
               0 for all available cores, positive integer for specific number of processes.
         mechanism_type: The negotiation protocol/mechanism class to use (default: SAOMechanism).
@@ -2467,6 +2591,22 @@ def cartesian_tournament(
             before_start_callback=log_start,
             after_end_callback=log_end,
         )
+        ```
+
+        Resuming an interrupted tournament:
+        ```python
+        # Start a tournament
+        results = cartesian_tournament(
+            competitors=[MyNegotiator, TheirNegotiator],
+            scenarios=scenarios,
+            n_repetitions=100,
+            path=Path("results/"),
+            path_exists="continue",  # Resume if interrupted (default)
+        )
+
+        # If interrupted and restarted, only remaining negotiations will run
+        # Use path_exists="overwrite" to delete and restart from scratch
+        # Use path_exists="fail" to raise error if directory exists
         ```
     """
 
@@ -2605,9 +2745,50 @@ def cartesian_tournament(
         metadata=serialize(metadata),
     )
 
+    # Handle existing tournament directory based on path_exists mode
+    existing_results: list[dict[str, Any]] = []
+    existing_scores: list[dict[str, Any]] = []
+    completed_runs: set[str] = set()
+
+    if path:
+        path_obj = Path(path)
+
+        # Check if tournament directory already exists
+        tournament_exists = path_obj.exists() and any(path_obj.iterdir())
+
+        if tournament_exists:
+            if path_exists == "fail":
+                raise FileExistsError(
+                    f"Tournament directory already exists at {path}. "
+                    "Use path_exists='continue' to resume or path_exists='overwrite' to delete and restart."
+                )
+            elif path_exists == "overwrite":
+                if verbosity > 0:
+                    print(f"[yellow]Deleting existing tournament at {path}...[/yellow]")
+                shutil.rmtree(path_obj)
+                path_obj.mkdir(parents=True, exist_ok=True)
+            elif path_exists == "continue":
+                # Load existing results from results/ folder for partial completion
+                # We'll check if it's complete after we know what runs we need
+                existing_results, existing_scores = _load_existing_results(
+                    path_obj, python_class_identifier
+                )
+                completed_runs = _check_completed_runs(
+                    path_obj, python_class_identifier
+                )
+
+                if completed_runs and verbosity > 0:
+                    print(
+                        f"[yellow]Found {len(completed_runs)} completed negotiations.[/yellow]"
+                    )
+
+        # Create directory if it doesn't exist
+        path_obj.mkdir(parents=True, exist_ok=True)
+
     # Save config to disk if path is provided
     if path:
         dump(config, Path(path) / CONFIG_FILE_NAME)
+
     # Report progress: competitors loaded
     if progress_callback:
         try:
@@ -2765,7 +2946,7 @@ def cartesian_tournament(
                         names=["First", "Second"],
                         save_fig=True,
                         path=str(this_path),
-                        fig_name="fig.png",
+                        fig_name="fig.webp",
                         only2d=True,
                         show_annotations=False,
                         show_agreement=False,
@@ -2814,8 +2995,8 @@ def cartesian_tournament(
                     # Score all positions in normal mode
                     scored_indices = None
 
-                runs += [
-                    dict(
+                for i in range(n_repetitions):
+                    run_dict = dict(
                         s=scenario,
                         partners=[_[0] for _ in partners],
                         partner_names=[_[2] for _ in partners],
@@ -2837,12 +3018,61 @@ def cartesian_tournament(
                         scored_indices=scored_indices,
                         config=config,
                     )
-                    for i in range(n_repetitions)
-                ]
+                    # Add run_id for identifying completed runs
+                    run_dict["run_id"] = hash(
+                        str(
+                            serialize(
+                                run_dict,
+                                python_class_identifier=python_class_identifier,
+                            )
+                        )
+                    )
+                    runs.append(run_dict)
     if randomize_runs:
         shuffle(runs)
     if sort_runs:
         runs = sorted(runs, key=lambda x: scenario_size(x["s"]))
+
+    # Filter out already completed runs if continuing an existing tournament
+    if completed_runs:
+        initial_run_count = len(runs)
+        runs = [
+            r
+            for r in runs
+            if not _is_run_completed(r, completed_runs, python_class_identifier)
+        ]
+        skipped_count = initial_run_count - len(runs)
+        if verbosity > 0 and skipped_count > 0:
+            print(
+                f"[yellow]Skipping {skipped_count} already completed negotiations[/yellow]"
+            )
+
+        # If all runs are complete, load and return existing results
+        if len(runs) == 0 and path:
+            if verbosity > 0:
+                print(
+                    f"[green]All {initial_run_count} negotiations are already complete. Loading existing results...[/green]"
+                )
+            # Try to load the complete tournament
+            try:
+                tresults = SimpleTournamentResults.load(
+                    Path(path),
+                    memory_optimization=memory_optimization,
+                    storage_optimization=storage_optimization,
+                    storage_format=effective_storage_format,
+                )
+                if verbosity > 0:
+                    print(
+                        "[green]Successfully loaded existing tournament results.[/green]"
+                    )
+                return tresults
+            except Exception as e:
+                # If loading fails, reconstruct from existing results
+                if verbosity > 0:
+                    print(
+                        f"[yellow]Could not load saved results ({e}). Reconstructing from individual negotiations...[/yellow]"
+                    )
+                # Continue to reconstruct results from existing_results
 
     # Report progress: setup complete, ready to start negotiations
     if progress_callback:
@@ -2956,7 +3186,6 @@ def cartesian_tournament(
                         before_start_callback=before_start_callback,
                         after_construction_callback=after_construction_callback,
                         after_end_callback=after_end_callback,
-                        run_id=get_run_id(info),
                     )
                 ] = info
             for i, f in enumerate(
@@ -3024,6 +3253,15 @@ def cartesian_tournament(
             pool.shutdown(wait=False)
             # _stop_process_pool(pool)
 
+    # Merge with existing results if continuing a tournament
+    if existing_results:
+        results = existing_results + results
+        scores = existing_scores + scores
+        if verbosity > 0:
+            print(
+                f"[green]Merged {len(existing_results)} existing results with {len(results) - len(existing_results)} new results[/green]"
+            )
+
     tresults = SimpleTournamentResults.from_records(
         config, scores, results, final_score_stat=final_score, path=path
     )
@@ -3087,6 +3325,214 @@ def cartesian_tournament(
         )
 
     return tresults
+
+
+def continue_cartesian_tournament(
+    path: Path | str, verbosity: int | None = None, njobs: int | None = None
+) -> SimpleTournamentResults | None:
+    """
+    Continue or load a cartesian tournament from a saved path.
+
+    This is a convenience function that:
+    1. Checks if the path contains a valid tournament (config.yaml and scenarios/)
+    2. If incomplete, continues the tournament by running remaining negotiations
+    3. If complete, loads and returns the existing results
+    4. If invalid, returns None
+
+    Args:
+        path: Directory path containing the tournament (must have config.yaml and scenarios/)
+        verbosity: Optional verbosity level to override the one in config.yaml
+        njobs: Optional parallelization level to override the one in config.yaml
+
+    Returns:
+        SimpleTournamentResults if tournament is valid, None otherwise
+
+    Examples:
+        ```python
+        # Start a tournament
+        results = cartesian_tournament(
+            competitors=[MyNegotiator, TheirNegotiator],
+            scenarios=scenarios,
+            n_repetitions=100,
+            path=Path("my_tournament/"),
+        )
+
+        # Later, continue or load it
+        results = continue_cartesian_tournament(Path("my_tournament/"))
+        if results is None:
+            print("Invalid tournament path")
+        ```
+
+        ```python
+        # Continue with different verbosity/parallelization
+        results = continue_cartesian_tournament(
+            Path("my_tournament/"),
+            verbosity=2,
+            njobs=-1,  # Serial execution for debugging
+        )
+        ```
+    """
+    path = Path(path)
+
+    # Check if path exists
+    if not path.exists() or not path.is_dir():
+        return None
+
+    # Check if config.yaml exists
+    config_path = path / CONFIG_FILE_NAME
+    if not config_path.exists():
+        return None
+
+    # Check if scenarios/ directory exists
+    scenarios_path = path / SCENARIOS_DIR_NAME
+    if not scenarios_path.exists() or not scenarios_path.is_dir():
+        return None
+
+    # Load config
+    try:
+        config = load(config_path)
+    except Exception:
+        return None
+
+    # Validate config has required fields
+    required_fields = ["n_scenarios", "competitors"]
+    if not all(field in config for field in required_fields):
+        return None
+
+    # Load scenarios from scenarios/ directory
+    try:
+        scenario_dirs = sorted(
+            [d for d in scenarios_path.iterdir() if d.is_dir()], key=lambda x: x.name
+        )
+
+        # Note: n_scenarios in config is the number of BASE scenarios (before rotation)
+        # The scenarios/ directory might contain rotated versions (e.g., S0, S0-1, S0-2)
+        # We only load the base scenarios (those without "-" suffix for rotation > 0)
+        base_scenario_dirs = [
+            d
+            for d in scenario_dirs
+            if "-" not in d.name or d.name.split("-")[-1] == "0"
+        ]
+
+        # If no base scenarios found, try loading all (backwards compatibility)
+        if not base_scenario_dirs:
+            base_scenario_dirs = scenario_dirs
+
+        scenarios = []
+        for scenario_dir in base_scenario_dirs:
+            scenario = Scenario.load(scenario_dir)
+            if scenario is None:
+                # Failed to load a scenario
+                return None
+            scenarios.append(scenario)
+
+    except Exception:
+        return None
+
+        scenarios = []
+        for scenario_dir in scenario_dirs:
+            scenario = Scenario.load(scenario_dir)
+            if scenario is None:
+                # Failed to load a scenario
+                return None
+            scenarios.append(scenario)
+
+    except Exception:
+        return None
+
+    # Extract parameters from config
+    try:
+        # First, try to load pre-computed results if they exist
+        # This is faster and avoids potential reconstruction issues
+        try:
+            existing_results = SimpleTournamentResults.load(
+                path,
+                memory_optimization=config.get("memory_optimization", "balanced"),
+                storage_optimization=config.get("storage_optimization", "balanced"),
+                storage_format=config.get("storage_format"),
+            )
+            if verbosity and verbosity > 0:
+                print("[green]Loaded existing tournament results.[/green]")
+            return existing_results
+        except Exception:
+            # Pre-computed results not available or incomplete, continue to reconstruct
+            pass
+
+        # Get negotiator classes
+        competitors = [get_class(name) for name in config["competitors"]]
+        opponents = (
+            [get_class(name) for name in config["opponents"]]
+            if config.get("opponents")
+            else []
+        )
+
+        # Override verbosity and njobs if provided
+        final_verbosity = (
+            verbosity if verbosity is not None else config.get("verbosity", 1)
+        )
+        final_njobs = njobs if njobs is not None else config.get("njobs", 0)
+
+        # Call cartesian_tournament with path_exists="continue"
+        # Use config values directly; only provide defaults for truly optional parameters
+        return cartesian_tournament(
+            competitors=competitors,
+            scenarios=scenarios,
+            opponents=opponents if opponents else None,
+            competitor_params=config.get("competitor_params"),
+            opponent_params=config.get("opponent_params"),
+            competitor_names=config.get("competitor_names"),
+            opponent_names=config.get("opponent_names"),
+            private_infos=config.get("private_infos"),
+            rotate_ufuns=config["rotate_ufuns"],
+            rotate_private_infos=config["rotate_private_infos"],
+            n_repetitions=config["n_repetitions"],
+            path=path,
+            path_exists="continue",
+            njobs=final_njobs,
+            mechanism_type=get_class(config["mechanism_type"]),
+            mechanism_params=config.get("mechanism_params"),
+            n_steps=config["n_steps"],
+            time_limit=config.get("time_limit"),
+            pend=config["pend"],
+            pend_per_second=config["pend_per_second"],
+            step_time_limit=config.get("step_time_limit"),
+            negotiator_time_limit=config.get("negotiator_time_limit"),
+            hidden_time_limit=config.get("hidden_time_limit"),
+            external_timeout=config.get("external_timeout"),
+            plot_fraction=config["plot_fraction"],
+            plot_params=config.get("plot_params"),
+            verbosity=final_verbosity,
+            self_play=config["self_play"],
+            randomize_runs=config["randomize_runs"],
+            sort_runs=config["sort_runs"],
+            save_every=config["save_every"],
+            save_stats=config["save_stats"],
+            save_scenario_figs=config["save_scenario_figs"],
+            final_score=config["final_score"],
+            id_reveals_type=config["id_reveals_type"],
+            name_reveals_type=config["name_reveals_type"],
+            raise_exceptions=config["raise_exceptions"],
+            mask_scenario_names=config["mask_scenario_names"],
+            only_failures_on_self_play=config.get("only_failures_on_self_play", False),
+            ignore_discount=config["ignore_discount"],
+            ignore_reserved=config["ignore_reserved"],
+            storage_optimization=config["storage_optimization"],
+            memory_optimization=config["memory_optimization"],
+            storage_format=config.get("storage_format"),
+            python_class_identifier=config.get(
+                "python_class_identifier", PYTHON_CLASS_IDENTIFIER
+            ),
+            metadata=config.get("metadata"),
+        )
+    except Exception as e:
+        # Failed to reconstruct tournament parameters
+        # Debug: print exception in verbose mode
+        if verbosity and verbosity > 0:
+            import traceback
+
+            print(f"[yellow]Warning: Failed to continue tournament: {e}[/yellow]")
+            traceback.print_exc()
+        return None
 
 
 if __name__ == "__main__":
