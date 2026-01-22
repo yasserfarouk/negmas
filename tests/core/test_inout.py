@@ -83,7 +83,8 @@ def get_all_scenarios():
     for root, dirs, filenames in walk(base):
         if len(filenames) == 0 or len(dirs) != 0:
             continue
-        if root.split("/")[-1] in SCENARIOS_TO_IGNORE:
+        # Use Path().name for cross-platform compatibility (handles both / and \)
+        if Path(root).name in SCENARIOS_TO_IGNORE:
             continue
         data.append(root)
     return data

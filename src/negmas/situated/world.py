@@ -85,8 +85,14 @@ LOG_BASE = negmas_config("log_base", Path.home() / "negmas" / "logs")
 def _path(path) -> Path:
     """Creates an absolute path from given path which can be a string"""
     if isinstance(path, str):
-        if path.startswith("~"):
-            path = Path.home() / ("/".join(path.split("/")[1:]))
+        # expanduser() handles tilde expansion cross-platform
+        # It works with both forward slashes (Unix/Python convention)
+        # and backslashes (Windows native), but may fail on ~user syntax
+        try:
+            path = Path(path).expanduser()
+        except RuntimeError:
+            # Fallback for unsupported ~user syntax: just use Path as-is
+            path = Path(path)
     return Path(path).absolute()
 
 

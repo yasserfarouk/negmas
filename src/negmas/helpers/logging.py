@@ -59,7 +59,7 @@ def create_loggers(
 
     """
     if module_name is None:
-        module_name = __file__.split("/")[-1][:-3]
+        module_name = Path(__file__).stem
     # create logger if it does not already exist
     logger = None
     if module_wide_log_file or app_wide_log_file:

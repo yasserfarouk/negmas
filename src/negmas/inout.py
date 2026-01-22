@@ -195,11 +195,11 @@ class Scenario:
 
         path.mkdir(parents=True, exist_ok=True)
         domain_name = (
-            self.outcome_space.name.split("/")[-1]
+            self.outcome_space.name.replace("\\", "/").split("/")[-1]
             if self.outcome_space.name
             else "domain"
         )
-        ufun_names = [_.name.split("/")[-1] for _ in self.ufuns]
+        ufun_names = [_.name.replace("\\", "/").split("/")[-1] for _ in self.ufuns]
         self.outcome_space.to_genius(path / domain_name)
         for ufun, name in zip(self.ufuns, ufun_names):
             # Extract discount factor if ufun is discounted
@@ -815,7 +815,8 @@ class Scenario:
             """Extracts a clean name from a path-like string."""
             if not x:
                 return str(default)
-            return x.split("/")[-1].replace(".xml", "")
+            # Handle both forward and back slashes for cross-platform compatibility
+            return x.replace("\\", "/").split("/")[-1].replace(".xml", "")
 
         def adjust(
             d,
