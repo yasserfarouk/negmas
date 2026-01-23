@@ -153,6 +153,8 @@ Release 0.14.0 (Unreleased)
 **Other Changes:**
 
 * [chore] Add pyarrow dependency for parquet support
+* [security] Update wheel from 0.45.1 to 0.46.3 to fix CVE: Arbitrary File Permission Modification
+  via Path Traversal vulnerability in wheel unpack command (high severity, Dependabot alert #9)
 * [chore] Add full license text
 
 Release 0.13.1
