@@ -9,6 +9,7 @@ from random import shuffle
 from typing import Any, Iterable, Sequence
 import xml.etree.ElementTree as ET
 
+from negmas.plots.util import DEFAULT_IMAGE_FORMAT
 from attrs import define, field, evolve
 
 from negmas.helpers.inout import dump, load
@@ -220,27 +221,41 @@ class Scenario:
         )
 
     def save_plots(
-        self, folder: Path | str, ext: str = "png", **plot_kwargs
+        self,
+        folder: Path | str,
+        ext: str = DEFAULT_IMAGE_FORMAT,
+        backend: str = "matplotlib",
+        **plot_kwargs,
     ) -> list[Path]:
         """Saves utility space plots for all pairs of utility functions.
 
         Args:
             folder: Destination folder where plots will be saved.
-            ext: Image file extension (e.g., 'png', 'jpg', 'svg', 'pdf'). Default is 'png'.
+            ext: Image file extension (e.g., 'png', 'jpg', 'svg', 'pdf', 'webp').
+                Defaults to DEFAULT_IMAGE_FORMAT from negmas.plots.util (currently 'webp').
+            backend: Plotting backend to use. Either "matplotlib" or "plotly". Default is "matplotlib".
             **plot_kwargs: Additional arguments passed to plot() method.
 
         Returns:
             List of Path objects for all saved plot files.
 
         Raises:
-            ValueError: If the scenario has fewer than 2 utility functions.
+            ValueError: If the scenario has fewer than 2 utility functions, or if backend is invalid.
 
         Remarks:
             - For scenarios with exactly 2 ufuns: saves a single plot as "_plot.{ext}"
             - For scenarios with >2 ufuns: creates a "_plots/" subfolder and saves plots with names:
               "{u0_name}-{u1_name}.{ext}", "{u1_name}-{u2_name}.{ext}", ..., "{u{n-1}_name}-{u0_name}.{ext}"
               This creates a circular sequence of plots for all consecutive pairs plus the wraparound.
+            - For matplotlib backend, uses Figure.savefig() to save plots.
+            - For plotly backend, uses Figure.write_image() to save plots.
         """
+
+        if backend not in ("matplotlib", "plotly"):
+            raise ValueError(
+                f"Invalid backend '{backend}'. Must be 'matplotlib' or 'plotly'."
+            )
+
         if len(self.ufuns) < 2:
             raise ValueError(
                 f"Cannot save plots for scenario with {len(self.ufuns)} utility function(s). Need at least 2."
@@ -258,8 +273,11 @@ class Scenario:
         if len(self.ufuns) == 2:
             # Single plot: save as _plot.{ext}
             plot_path = folder / f"_plot{ext}"
-            fig = self.plot(ufun_indices=(0, 1), **plot_kwargs)
-            fig.write_image(str(plot_path))
+            fig = self.plot(ufun_indices=(0, 1), backend=backend, **plot_kwargs)
+            if backend == "matplotlib":
+                fig.savefig(str(plot_path), bbox_inches="tight")
+            else:  # plotly
+                fig.write_image(str(plot_path))
             saved_files.append(plot_path)
         else:
             # Multiple plots: create _plots/ subfolder
@@ -278,8 +296,11 @@ class Scenario:
                 u_j_name = u_j_name.replace("/", "-").replace("\\", "-")
 
                 plot_path = plots_folder / f"{u_i_name}-{u_j_name}{ext}"
-                fig = self.plot(ufun_indices=(i, j), **plot_kwargs)
-                fig.write_image(str(plot_path))
+                fig = self.plot(ufun_indices=(i, j), backend=backend, **plot_kwargs)
+                if backend == "matplotlib":
+                    fig.savefig(str(plot_path), bbox_inches="tight")
+                else:  # plotly
+                    fig.write_image(str(plot_path))
                 saved_files.append(plot_path)
 
         return saved_files
@@ -1055,7 +1076,7 @@ class Scenario:
         save_info=True,
         save_plot=False,
         include_pareto_frontier: bool = True,
-        plot_extension: str = "png",
+        plot_extension: str | None = None,
         plot_kwargs: dict | None = None,
     ) -> None:
         """
@@ -1070,7 +1091,8 @@ class Scenario:
             save_plot: If True, save utility space plots. Default is False.
             include_pareto_frontier: If True, include pareto_utils and pareto_outcomes
                 in stats.json. If False, exclude them to save disk space. Default is True.
-            plot_extension: File extension for plots (e.g., 'png', 'jpg', 'svg', 'pdf'). Default is 'png'.
+            plot_extension: File extension for plots (e.g., 'png', 'jpg', 'svg', 'pdf', 'webp').
+                If None, uses DEFAULT_IMAGE_FORMAT from negmas.plots.util (currently 'webp').
             plot_kwargs: Additional keyword arguments to pass to the plot() method. Default is None.
         """
         if type.startswith("."):
@@ -1079,7 +1101,10 @@ class Scenario:
         if type == "xml":
             self.to_genius_folder(folder)
             if save_plot and len(self.ufuns) >= 2:
-                self.save_plots(folder, ext=plot_extension, **(plot_kwargs or {}))
+                kwargs = plot_kwargs or {}
+                if plot_extension is not None:
+                    kwargs["ext"] = plot_extension
+                self.save_plots(folder, **kwargs)
             return
         folder.mkdir(parents=True, exist_ok=True)
         serialized = self.serialize()
@@ -1094,7 +1119,10 @@ class Scenario:
                 folder / STATS_FILE_NAME,
             )
         if save_plot and len(self.ufuns) >= 2:
-            self.save_plots(folder, ext=plot_extension, **(plot_kwargs or {}))
+            kwargs = plot_kwargs or {}
+            if plot_extension is not None:
+                kwargs["ext"] = plot_extension
+            self.save_plots(folder, **kwargs)
 
     def update(
         self,
@@ -1103,7 +1131,7 @@ class Scenario:
         save_info=True,
         save_plot=False,
         include_pareto_frontier: bool = True,
-        plot_extension: str = "png",
+        plot_extension: str | None = None,
         plot_kwargs: dict | None = None,
     ) -> bool:
         """
@@ -1116,7 +1144,8 @@ class Scenario:
             save_plot: If True, save utility space plots. Default is False.
             include_pareto_frontier: If True, include pareto_utils and pareto_outcomes
                 in stats.json. If False, exclude them to save disk space. Default is True.
-            plot_extension: File extension for plots (e.g., 'png', 'jpg', 'svg', 'pdf'). Default is 'png'.
+            plot_extension: File extension for plots (e.g., 'png', 'jpg', 'svg', 'pdf', 'webp').
+                If None, uses DEFAULT_IMAGE_FORMAT from negmas.plots.util (currently 'webp').
             plot_kwargs: Additional keyword arguments to pass to the plot() method. Default is None.
 
         Returns:

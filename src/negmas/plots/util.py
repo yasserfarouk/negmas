@@ -156,6 +156,45 @@ def hex_to_rgba(hex_color: str, alpha: float = 1.0) -> str:
     return f"rgba({r},{g},{b},{alpha})"
 
 
+def plotly_to_mpl_color(color):
+    """Convert Plotly color format to matplotlib color format.
+
+    Args:
+        color: Color in various formats (hex, rgb/rgba string, named color, tuple).
+
+    Returns:
+        Color in matplotlib-compatible format (hex string, named color, or RGB tuple).
+    """
+    if isinstance(color, str):
+        if color.startswith("#"):
+            # Hex color - matplotlib supports directly
+            return color
+        elif color.startswith("rgb"):
+            # Parse rgb(...) or rgba(...)
+            import re
+
+            match = re.match(
+                r"rgba?\((\d+),\s*(\d+),\s*(\d+)(?:,\s*([\d.]+))?\)", color
+            )
+            if match:
+                r, g, b = int(match.group(1)), int(match.group(2)), int(match.group(3))
+                # Convert to 0-1 range for matplotlib
+                return (r / 255.0, g / 255.0, b / 255.0)
+            return "black"  # fallback
+        else:
+            # Named color - matplotlib should support directly
+            return color
+    elif isinstance(color, (tuple, list)):
+        # Already a tuple - check if 0-1 range or 0-255 range
+        if len(color) >= 3:
+            if all(0 <= c <= 1 for c in color[:3]):
+                return tuple(color[:3])  # Already in matplotlib format
+            else:
+                # Convert from 0-255 to 0-1
+                return (color[0] / 255.0, color[1] / 255.0, color[2] / 255.0)
+    return "black"  # fallback
+
+
 def color_to_rgba(color, alpha: float = 1.0) -> str:
     """Convert various color formats to rgba string.
 
@@ -591,6 +630,7 @@ def plot_2dutils(
     col: int = 1,
     colorizer: Colorizer | None = None,
     fast: bool = False,
+    backend: str = "plotly",
 ):
     """Plots negotiation trace in 2D utility space for two negotiators.
 
@@ -628,12 +668,594 @@ def plot_2dutils(
         colors: List of colors for each negotiator's markers.
         markers: List of marker symbols for each negotiator.
         colormap: Colormap name for auto-generating colors.
-        fig: Existing Plotly figure to add traces to, or None to create new.
-        row: Row index in subplot grid (1-indexed).
-        col: Column index in subplot grid (1-indexed).
+        fig: Existing figure to add traces to, or None to create new (type depends on backend).
+        row: Row index in subplot grid (1-indexed) - only used for plotly backend.
+        col: Column index in subplot grid (1-indexed) - only used for plotly backend.
         colorizer: Function to compute opacity for each trace element.
         fast: Whether to skip expensive calculations (Pareto, Nash, etc.).
+        backend: Plotting backend to use. Either "matplotlib" or "plotly". Default is "plotly".
+
+    Returns:
+        A matplotlib Figure object if backend="matplotlib", or a plotly Figure object if backend="plotly".
+
+    Raises:
+        ValueError: If backend is not "matplotlib" or "plotly".
     """
+    # Route to appropriate backend
+    if backend == "matplotlib":
+        return _plot_2dutils_matplotlib(
+            trace=trace,
+            plotting_ufuns=plotting_ufuns,
+            plotting_negotiators=plotting_negotiators,
+            offering_negotiators=offering_negotiators,
+            agreement=agreement,
+            outcome_space=outcome_space,
+            issues=issues,
+            outcomes=outcomes,
+            with_lines=with_lines,
+            show_annotations=show_annotations,
+            show_agreement=show_agreement,
+            show_pareto_distance=show_pareto_distance,
+            show_nash_distance=show_nash_distance,
+            show_kalai_distance=show_kalai_distance,
+            show_ks_distance=show_ks_distance,
+            show_max_welfare_distance=show_max_welfare_distance,
+            mark_pareto_points=mark_pareto_points,
+            mark_all_outcomes=mark_all_outcomes,
+            mark_nash_points=mark_nash_points,
+            mark_kalai_points=mark_kalai_points,
+            mark_ks_points=mark_ks_points,
+            mark_max_welfare_points=mark_max_welfare_points,
+            show_max_relative_welfare_distance=show_max_relative_welfare_distance,
+            show_reserved=show_reserved,
+            show_total_time=show_total_time,
+            show_relative_time=show_relative_time,
+            show_n_steps=show_n_steps,
+            end_reason=end_reason,
+            extra_annotation=extra_annotation,
+            name_map=name_map,
+            colors=colors,
+            markers=markers,
+            colormap=colormap,
+            fig=fig,
+            colorizer=colorizer,
+            fast=fast,
+        )
+    elif backend == "plotly":
+        return _plot_2dutils_plotly(
+            trace=trace,
+            plotting_ufuns=plotting_ufuns,
+            plotting_negotiators=plotting_negotiators,
+            offering_negotiators=offering_negotiators,
+            agreement=agreement,
+            outcome_space=outcome_space,
+            issues=issues,
+            outcomes=outcomes,
+            with_lines=with_lines,
+            show_annotations=show_annotations,
+            show_agreement=show_agreement,
+            show_pareto_distance=show_pareto_distance,
+            show_nash_distance=show_nash_distance,
+            show_kalai_distance=show_kalai_distance,
+            show_ks_distance=show_ks_distance,
+            show_max_welfare_distance=show_max_welfare_distance,
+            mark_pareto_points=mark_pareto_points,
+            mark_all_outcomes=mark_all_outcomes,
+            mark_nash_points=mark_nash_points,
+            mark_kalai_points=mark_kalai_points,
+            mark_ks_points=mark_ks_points,
+            mark_max_welfare_points=mark_max_welfare_points,
+            show_max_relative_welfare_distance=show_max_relative_welfare_distance,
+            show_reserved=show_reserved,
+            show_total_time=show_total_time,
+            show_relative_time=show_relative_time,
+            show_n_steps=show_n_steps,
+            end_reason=end_reason,
+            extra_annotation=extra_annotation,
+            name_map=name_map,
+            colors=colors,
+            markers=markers,
+            colormap=colormap,
+            fig=fig,
+            row=row,
+            col=col,
+            colorizer=colorizer,
+            fast=fast,
+        )
+    else:
+        raise ValueError(
+            f"Invalid backend '{backend}'. Must be 'matplotlib' or 'plotly'."
+        )
+
+
+def _plot_2dutils_matplotlib(
+    trace: list[TraceElement],
+    plotting_ufuns: list[UtilityFunction] | tuple[UtilityFunction, ...],
+    plotting_negotiators: list[str] | tuple[str, ...],
+    offering_negotiators: list[str] | tuple[str, ...] | None = None,
+    agreement: Outcome | None = None,
+    outcome_space: OutcomeSpace | None = None,
+    issues: list[Issue] | tuple[Issue, ...] | None = None,
+    outcomes: list[Outcome] | tuple[Outcome, ...] | None = None,
+    with_lines: bool = True,
+    show_annotations: bool = True,
+    show_agreement: bool = False,
+    show_pareto_distance: bool = True,
+    show_nash_distance: bool = True,
+    show_kalai_distance: bool = True,
+    show_ks_distance: bool = True,
+    show_max_welfare_distance: bool = True,
+    mark_pareto_points: bool = True,
+    mark_all_outcomes: bool = True,
+    mark_nash_points: bool = True,
+    mark_kalai_points: bool = True,
+    mark_ks_points: bool = True,
+    mark_max_welfare_points: bool = True,
+    show_max_relative_welfare_distance: bool = True,
+    show_reserved: bool = True,
+    show_total_time: bool = True,
+    show_relative_time: bool = True,
+    show_n_steps: bool = True,
+    end_reason: str | None = None,
+    extra_annotation: str | None = None,
+    name_map: dict[str, str] | Callable[[str], str] | None = None,
+    colors: list | None = None,
+    markers: list[str] | None = None,
+    colormap: str = DEFAULT_COLORMAP,
+    fig=None,
+    colorizer: Colorizer | None = None,
+    fast: bool = False,
+):
+    """Matplotlib implementation of 2D utility space plotting."""
+    import matplotlib.pyplot as plt
+    from matplotlib import patches
+
+    if not colorizer:
+        colorizer = default_colorizer
+
+    if fig is None:
+        fig, ax = plt.subplots(figsize=(10, 8))
+    else:
+        ax = fig.gca() if hasattr(fig, "gca") else fig.axes[0] if fig.axes else None
+        if ax is None:
+            ax = fig.add_subplot(111)
+
+    map_ = make_callable(name_map)
+    if not outcomes:
+        outcome_space = os_or_none(outcome_space, issues, outcomes)
+        if outcome_space:
+            outcomes = list(outcome_space.enumerate_or_sample(10, 1000))
+    if not outcomes:
+        outcomes = list({_.offer for _ in trace})
+    if not outcome_space:
+        outcome_space = make_os(issues=issues, outcomes=outcomes)
+    if not offering_negotiators:
+        offering_negotiators = list({_.negotiator for _ in trace})
+
+    utils = [tuple(f(o) for f in plotting_ufuns) for o in outcomes]
+    colors_list, markers_list = make_colors_and_markers(
+        colors, markers, len(offering_negotiators), colormap
+    )
+
+    # Convert plotly colors to matplotlib format
+    colors_list = [plotly_to_mpl_color(c) for c in colors_list]
+
+    # Convert plotly markers to matplotlib markers
+    marker_map = {
+        "circle": "o",
+        "square": "s",
+        "diamond": "D",
+        "cross": "x",
+        "x": "X",
+        "triangle-up": "^",
+        "triangle-down": "v",
+        "triangle-left": "<",
+        "triangle-right": ">",
+        "star": "*",
+    }
+
+    agreement_utility = tuple(u(agreement) for u in plotting_ufuns)
+    unknown_agreement_utility = None in agreement_utility
+    if unknown_agreement_utility:
+        show_pareto_distance = show_nash_distance = False
+
+    # Plot all outcomes
+    if mark_all_outcomes:
+        ax.plot(
+            [_[0] for _ in utils],
+            [_[1] for _ in utils],
+            "o",
+            color="gray",
+            markersize=OUTCOMES_SCALE / 2,
+            alpha=0.3,
+            label="Outcomes",
+        )
+
+    agent_names = [map_(_) for _ in plotting_negotiators]
+    if fast:
+        frontier, frontier_outcome = [], []
+        nash_pts = []
+        kalai_pts = []
+        ks_pts = []
+        mwelfare_pts = []
+        mrwelfare_pts = []
+    else:
+        frontier, frontier_outcome = pareto_frontier(
+            ufuns=plotting_ufuns,
+            issues=outcome_space.issues,  # type: ignore
+            outcomes=outcomes if not issues else None,  # type: ignore
+            sort_by_welfare=True,
+        )
+        frontier_indices = [
+            i
+            for i, _ in enumerate(frontier)
+            if _[0] is not None
+            and _[0] > float("-inf")
+            and _[1] is not None
+            and _[1] > float("-inf")
+        ]
+        frontier = [frontier[i] for i in frontier_indices]
+        frontier_outcome = [frontier_outcome[i] for i in frontier_indices]
+
+        nash_pts = nash_points(plotting_ufuns, frontier, outcome_space=outcome_space)
+        kalai_pts = kalai_points(plotting_ufuns, frontier, outcome_space=outcome_space)
+        ks_pts = ks_points(plotting_ufuns, frontier, outcome_space=outcome_space)
+        mwelfare_pts = max_welfare_points(
+            plotting_ufuns, frontier, outcome_space=outcome_space
+        )
+        mrwelfare_pts = max_relative_welfare_points(
+            plotting_ufuns, frontier, outcome_space=outcome_space
+        )
+
+    if not nash_pts:
+        show_nash_distance = False
+    if not kalai_pts:
+        show_kalai_distance = False
+    if not ks_pts:
+        show_ks_distance = False
+    if not mwelfare_pts:
+        show_max_welfare_distance = False
+    if not mrwelfare_pts:
+        show_max_relative_welfare_distance = False
+
+    pareto_distance = float("inf")
+    nash_distance, kalai_distance = float("inf"), float("inf")
+    ks_distance = float("inf")
+    max_welfare_distance, max_relative_welfare_distance = float("inf"), float("inf")
+
+    # Plot Pareto frontier
+    if mark_pareto_points and frontier:
+        f1, f2 = [_[0] for _ in frontier], [_[1] for _ in frontier]
+        ax.plot(
+            f1,
+            f2,
+            "o",
+            color="gold",
+            markersize=PARETO_SCALE / 2,
+            alpha=PARETO_ALPHA,
+            label="Pareto",
+        )
+
+    cu = agreement_utility
+    if not unknown_agreement_utility and not fast:
+        for nash, _ in nash_pts:
+            nash_distance = min(
+                nash_distance, ((nash[0] - cu[0]) ** 2 + (nash[1] - cu[1]) ** 2) ** 0.5
+            )
+        for kalai, _ in kalai_pts:
+            kalai_distance = min(
+                kalai_distance,
+                ((kalai[0] - cu[0]) ** 2 + (kalai[1] - cu[1]) ** 2) ** 0.5,
+            )
+        for ks, _ in ks_pts:
+            ks_distance = min(
+                ks_distance, ((ks[0] - cu[0]) ** 2 + (ks[1] - cu[1]) ** 2) ** 0.5
+            )
+        for pt, _ in mwelfare_pts:
+            max_welfare_distance = min(
+                max_welfare_distance,
+                ((pt[0] - cu[0]) ** 2 + (pt[1] - cu[1]) ** 2) ** 0.5,
+            )
+        for pt, _ in mrwelfare_pts:
+            max_relative_welfare_distance = min(
+                max_relative_welfare_distance,
+                ((pt[0] - cu[0]) ** 2 + (pt[1] - cu[1]) ** 2) ** 0.5,
+            )
+        for pu in frontier:
+            dist = ((pu[0] - cu[0]) ** 2 + (pu[1] - cu[1]) ** 2) ** 0.5
+            if dist < pareto_distance:
+                pareto_distance = dist
+
+    if trace:
+        n_steps = trace[-1].step + 1
+        relative_time = trace[-1].relative_time
+        total_time = trace[-1].time
+    else:
+        n_steps = relative_time = total_time = 0
+
+    # Build annotation text
+    txt_lines = []
+    if show_agreement:
+        txt_lines.append(f"Agreement:{agreement}")
+    if not fast and show_pareto_distance and agreement is not None:
+        txt_lines.append(f"Pareto-distance={pareto_distance:5.2f}")
+    if not fast and show_nash_distance and agreement is not None:
+        txt_lines.append(f"Nash-distance={nash_distance:5.2f}")
+    if not fast and show_kalai_distance and agreement is not None:
+        txt_lines.append(f"Kalai-distance={kalai_distance:5.2f}")
+    if not fast and show_ks_distance and agreement is not None:
+        txt_lines.append(f"KS-distance={ks_distance:5.2f}")
+    if not fast and show_max_welfare_distance and agreement is not None:
+        txt_lines.append(f"MaxWelfare-distance={max_welfare_distance:5.2f}")
+    if not fast and show_max_relative_welfare_distance and agreement is not None:
+        txt_lines.append(
+            f"MaxRelativeWelfare-distance={max_relative_welfare_distance:5.2f}"
+        )
+    if show_relative_time and relative_time:
+        txt_lines.append(f"Relative Time={relative_time:5.2f}")
+    if show_total_time:
+        txt_lines.append(f"Total Time={humanize_time(total_time, show_ms=True)}")
+    if show_n_steps:
+        txt_lines.append(f"N. Steps={n_steps}")
+    if end_reason:
+        txt_lines.append(f"{end_reason}")
+    if extra_annotation:
+        txt_lines.append(f"{extra_annotation}")
+
+    if txt_lines and show_annotations:
+        ax.text(
+            0.02,
+            0.02,
+            "\n".join(txt_lines),
+            transform=ax.transAxes,
+            fontsize=9,
+            verticalalignment="bottom",
+            bbox=dict(boxstyle="round", facecolor="wheat", alpha=0.5),
+        )
+
+    # Draw reserved value regions
+    if show_reserved:
+        ranges = [
+            plotting_ufuns[_].minmax(outcome_space=outcome_space)
+            for _ in range(len(plotting_ufuns))
+        ]
+        for i, (mn, mx) in enumerate(ranges):
+            if any(_ is None or not math.isfinite(_) for _ in (mn, mx)):
+                x_vals = []
+                for a, neg in enumerate(offering_negotiators):
+                    negtrace = [_ for _ in trace if _.negotiator == neg]
+                    x_vals += [plotting_ufuns[i](_.offer) for _ in negtrace]
+                if x_vals:
+                    ranges[i] = (min(x_vals), max(x_vals))
+                else:
+                    ranges[i] = (0, 1)
+
+        for i, (mn, mx) in enumerate(ranges):
+            r = plotting_ufuns[i].reserved_value
+            if r is None or not math.isfinite(r):
+                r = mn
+            if i == 0:
+                x0, x1 = r, mx
+                y0, y1 = ranges[1 - i][0], ranges[1 - i][1]
+            else:
+                x0, x1 = ranges[1 - i][0], ranges[1 - i][1]
+                y0, y1 = r, mx
+
+            # Convert hex/rgb to matplotlib color
+            color = colors_list[i % len(colors_list)]
+            rect = patches.Rectangle(
+                (x0, y0),
+                x1 - x0,
+                y1 - y0,
+                linewidth=0,
+                facecolor=color,
+                alpha=RESERVED_ALPHA,
+                zorder=0,
+            )
+            ax.add_patch(rect)
+
+    # Plot offers from each negotiator
+    for a, neg in enumerate(offering_negotiators):
+        negtrace = [_ for _ in trace if _.negotiator == neg]
+        x = [plotting_ufuns[0](_.offer) for _ in negtrace]
+        y = [plotting_ufuns[1](_.offer) for _ in negtrace]
+        alphas = [colorizer(_) for _ in negtrace]
+
+        color = colors_list[a % len(colors_list)]
+        marker = marker_map.get(
+            markers_list[a % len(markers_list)], markers_list[a % len(markers_list)]
+        )
+
+        # Plot markers with varying alpha (use plot for speed)
+        for xi, yi, alpha in zip(x, y, alphas):
+            ax.plot(
+                [xi],
+                [yi],
+                marker=marker,
+                color=color,
+                markersize=8,
+                alpha=PROPOSALS_ALPHA * alpha,
+                linestyle="",
+                zorder=2,
+            )
+
+        # Plot lines
+        if with_lines and len(x) > 1:
+            ax.plot(x, y, color=color, linestyle=":", linewidth=1, alpha=0.5, zorder=1)
+
+        # Add to legend (just once per negotiator)
+        ax.plot(
+            [],
+            [],
+            marker=marker,
+            color=color,
+            markersize=8,
+            linestyle="",
+            label=f"{map_(neg)}",
+        )
+
+    # Plot special points
+    if not fast:
+        if mwelfare_pts and mark_max_welfare_points:
+            ax.plot(
+                [mwelfare[0] for mwelfare, _ in mwelfare_pts],
+                [mwelfare[1] for mwelfare, _ in mwelfare_pts],
+                marker=marker_map.get(WELFARE_MARKER, ">"),
+                color=WELFARE_COLOR,
+                markersize=WELFARE_SCALE,
+                alpha=WELFARE_ALPHA,
+                linestyle="",
+                label="Max Welfare Points",
+                zorder=3,
+            )
+            if show_annotations:
+                for mwelfare, _ in mwelfare_pts:
+                    ax.annotate(
+                        "Max Welfare",
+                        (mwelfare[0], mwelfare[1]),
+                        xytext=(5, 5),
+                        textcoords="offset points",
+                        fontsize=8,
+                    )
+
+        if kalai_pts and mark_kalai_points:
+            ax.plot(
+                [kalai[0] for kalai, _ in kalai_pts],
+                [kalai[1] for kalai, _ in kalai_pts],
+                marker=marker_map.get(KALAI_MARKER, "v"),
+                color=KALAI_COLOR,
+                markersize=KALAI_SCALE,
+                alpha=KALAI_ALPHA,
+                linestyle="",
+                label="Kalai Point",
+                zorder=3,
+            )
+            if show_annotations:
+                for kalai, _ in kalai_pts:
+                    ax.annotate(
+                        "Kalai",
+                        (kalai[0], kalai[1]),
+                        xytext=(5, 5),
+                        textcoords="offset points",
+                        fontsize=8,
+                    )
+
+        if ks_pts and mark_ks_points:
+            ax.plot(
+                [ks[0] for ks, _ in ks_pts],
+                [ks[1] for ks, _ in ks_pts],
+                marker=marker_map.get(KS_MARKER, "^"),
+                color=KS_COLOR,
+                markersize=KS_SCALE,
+                alpha=KS_ALPHA,
+                linestyle="",
+                label="KS Point",
+                zorder=3,
+            )
+            if show_annotations:
+                for ks, _ in ks_pts:
+                    ax.annotate(
+                        "KS",
+                        (ks[0], ks[1]),
+                        xytext=(5, 5),
+                        textcoords="offset points",
+                        fontsize=8,
+                    )
+
+        if nash_pts and mark_nash_points:
+            ax.plot(
+                [nash[0] for nash, _ in nash_pts],
+                [nash[1] for nash, _ in nash_pts],
+                marker=marker_map.get(NASH_MARKER, "<"),
+                color=NASH_COLOR,
+                markersize=NASH_SCALE,
+                alpha=NASH_ALPHA,
+                linestyle="",
+                label="Nash Point",
+                zorder=3,
+            )
+            if show_annotations:
+                for nash, _ in nash_pts:
+                    ax.annotate(
+                        "Nash",
+                        (nash[0], nash[1]),
+                        xytext=(5, 5),
+                        textcoords="offset points",
+                        fontsize=8,
+                    )
+
+    # Plot agreement
+    if agreement is not None:
+        ax.plot(
+            [plotting_ufuns[0](agreement)],
+            [plotting_ufuns[1](agreement)],
+            marker="*",
+            color="black",
+            markersize=AGREEMENT_SCALE,
+            alpha=AGREEMENT_ALPHA,
+            linestyle="",
+            label="Agreement",
+            zorder=4,
+        )
+        if show_annotations:
+            ax.annotate(
+                "Agreement",
+                (plotting_ufuns[0](agreement), plotting_ufuns[1](agreement)),
+                xytext=(5, 5),
+                textcoords="offset points",
+                fontsize=8,
+            )
+
+    # Set labels and legend
+    ax.set_xlabel(f"{agent_names[0]}(0) utility")
+    ax.set_ylabel(f"{agent_names[1]}(1) utility")
+    ax.legend(loc="best", fontsize=8)
+    ax.grid(True, alpha=0.3)
+
+    return fig
+
+
+def _plot_2dutils_plotly(
+    trace: list[TraceElement],
+    plotting_ufuns: list[UtilityFunction] | tuple[UtilityFunction, ...],
+    plotting_negotiators: list[str] | tuple[str, ...],
+    offering_negotiators: list[str] | tuple[str, ...] | None = None,
+    agreement: Outcome | None = None,
+    outcome_space: OutcomeSpace | None = None,
+    issues: list[Issue] | tuple[Issue, ...] | None = None,
+    outcomes: list[Outcome] | tuple[Outcome, ...] | None = None,
+    with_lines: bool = True,
+    show_annotations: bool = True,
+    show_agreement: bool = False,
+    show_pareto_distance: bool = True,
+    show_nash_distance: bool = True,
+    show_kalai_distance: bool = True,
+    show_ks_distance: bool = True,
+    show_max_welfare_distance: bool = True,
+    mark_pareto_points: bool = True,
+    mark_all_outcomes: bool = True,
+    mark_nash_points: bool = True,
+    mark_kalai_points: bool = True,
+    mark_ks_points: bool = True,
+    mark_max_welfare_points: bool = True,
+    show_max_relative_welfare_distance: bool = True,
+    show_reserved: bool = True,
+    show_total_time: bool = True,
+    show_relative_time: bool = True,
+    show_n_steps: bool = True,
+    end_reason: str | None = None,
+    extra_annotation: str | None = None,
+    name_map: dict[str, str] | Callable[[str], str] | None = None,
+    colors: list | None = None,
+    markers: list[str] | None = None,
+    colormap: str = DEFAULT_COLORMAP,
+    fig: go.Figure | None = None,
+    row: int = 1,
+    col: int = 1,
+    colorizer: Colorizer | None = None,
+    fast: bool = False,
+):
+    """Plotly implementation of 2D utility space plotting."""
     if not colorizer:
         colorizer = default_colorizer
 
