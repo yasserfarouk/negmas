@@ -841,17 +841,22 @@ def _plot_2dutils_matplotlib(
     colors_list = [plotly_to_mpl_color(c) for c in colors_list]
 
     # Convert plotly markers to matplotlib markers
+    # This mapping ensures matplotlib plots look identical to plotly plots
     marker_map = {
         "circle": "o",
         "square": "s",
         "diamond": "D",
-        "cross": "x",
-        "x": "X",
+        "cross": "+",
+        "x": "x",
         "triangle-up": "^",
         "triangle-down": "v",
         "triangle-left": "<",
         "triangle-right": ">",
         "star": "*",
+        "pentagon": "p",
+        "hexagon": "h",
+        "hourglass": "d",  # Using thin_diamond as approximation
+        "bowtie": "d",  # Using thin_diamond as approximation
     }
 
     agreement_utility = tuple(u(agreement) for u in plotting_ufuns)
@@ -866,7 +871,7 @@ def _plot_2dutils_matplotlib(
             [_[1] for _ in utils],
             "o",
             color="gray",
-            markersize=OUTCOMES_SCALE / 2,
+            markersize=OUTCOMES_SCALE,
             alpha=0.3,
             label="Outcomes",
         )
@@ -930,8 +935,12 @@ def _plot_2dutils_matplotlib(
             f1,
             f2,
             "o",
-            color="gold",
-            markersize=PARETO_SCALE / 2,
+            color=(
+                238 / 255,
+                232 / 255,
+                170 / 255,
+            ),  # rgb(238,232,170) - matches plotly
+            markersize=PARETO_SCALE,
             alpha=PARETO_ALPHA,
             label="Pareto",
         )
@@ -1189,7 +1198,7 @@ def _plot_2dutils_matplotlib(
         ax.plot(
             [plotting_ufuns[0](agreement)],
             [plotting_ufuns[1](agreement)],
-            marker="*",
+            marker="*",  # star marker - matches plotly
             color="black",
             markersize=AGREEMENT_SCALE,
             alpha=AGREEMENT_ALPHA,
