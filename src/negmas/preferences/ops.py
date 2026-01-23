@@ -2383,8 +2383,14 @@ def compare_ufuns(
     if method == "kendall":
         from scipy.stats import kendalltau
 
-        correlation, _ = kendalltau(utils1, utils2)
-        return float(correlation)
+        result = kendalltau(utils1, utils2)
+        correlation = float(result.statistic)  # type: ignore[attr-defined]
+        # Handle edge case where kendalltau returns NaN (e.g., when one ranking
+        # has all equal values) or throws an exception (e.g. division by zero).
+        # In this case, return -1.0 (anti correlation).
+        if np.isnan(correlation):
+            return -1.0
+        return correlation
 
     elif method == "ndcg":
         from sklearn.metrics import ndcg_score
