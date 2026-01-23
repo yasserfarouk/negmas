@@ -133,6 +133,14 @@ Release 0.14.0 (Unreleased)
   - Changed ``PLOTLY_RENDERER`` from ``'png'`` to ``'json'`` for non-blocking rendering
   - Added ``PLOTLY_KALEIDO_NO_WAIT`` and ``PLOTLY_ORCA_SERVER`` environment variables to prevent hangs
 
+* [bugfix] Fix NaN return value in ``compare_ufuns()`` when using Kendall's tau with constant utility functions:
+
+  - When one or both utility functions have constant utilities (all outcomes have equal utility),
+    ``scipy.stats.kendalltau`` returns NaN instead of a valid correlation value
+  - Now return -1.0 (anti-correlation) when ``kendalltau`` produces NaN
+  - Access ``result.statistic`` directly to fix Pyright type errors
+  - Prevents downstream code from propagating NaN values unexpectedly
+
 **Documentation:**
 
 * [docs] Add comprehensive ANAC competition documentation for 2010-2025
