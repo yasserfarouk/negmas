@@ -380,6 +380,7 @@ class ScenarioInfo:
         n_outcomes: The number of possible outcomes (if known).
         n_negotiators: The number of negotiators in the scenario (if known).
         opposition_level: The opposition level between negotiators (0=cooperative, 1=competitive).
+        rational_fraction: The fraction of rational outcomes (0-1) where all utilities are above reserved values.
         extra: Additional key-value pairs for custom properties.
     """
 
@@ -391,6 +392,7 @@ class ScenarioInfo:
     n_outcomes: int | None = None
     n_negotiators: int | None = None
     opposition_level: float | None = None
+    rational_fraction: float | None = None
     extra: dict[str, Any] = field(default_factory=dict)
 
     def has_tag(self, tag: str) -> bool:
@@ -1054,6 +1056,7 @@ class ScenarioRegistry(dict[str, ScenarioInfo]):
         n_outcomes: int | None = None,
         n_negotiators: int | None = None,
         opposition_level: float | None = None,
+        rational_fraction: float | None = None,
         # Deprecated params - converted to tags
         normalized: bool | None = None,
         anac: bool | None = None,
@@ -1074,6 +1077,7 @@ class ScenarioRegistry(dict[str, ScenarioInfo]):
             n_outcomes: The number of possible outcomes.
             n_negotiators: The number of negotiators in the scenario.
             opposition_level: The opposition level between negotiators (0-1).
+            rational_fraction: The fraction of rational outcomes (0-1).
             normalized: DEPRECATED. Use tags={'normalized'} instead.
             anac: DEPRECATED. Use tags={'anac'} instead.
             has_stats: DEPRECATED. Use tags={'has-stats'} instead.
@@ -1191,6 +1195,8 @@ class ScenarioRegistry(dict[str, ScenarioInfo]):
                     n_negotiators = info_data["n_negotiators"]
                 if opposition_level is None and "opposition_level" in info_data:
                     opposition_level = info_data["opposition_level"]
+                if rational_fraction is None and "rational_fraction" in info_data:
+                    rational_fraction = info_data["rational_fraction"]
                 # Load description from _info.yaml if not provided
                 if not description and "description" in info_data:
                     description = info_data["description"]
@@ -1210,6 +1216,7 @@ class ScenarioRegistry(dict[str, ScenarioInfo]):
             n_outcomes=n_outcomes,
             n_negotiators=n_negotiators,
             opposition_level=opposition_level,
+            rational_fraction=rational_fraction,
             extra=extra,
         )
 
@@ -1297,6 +1304,7 @@ class ScenarioRegistry(dict[str, ScenarioInfo]):
         n_outcomes: int | tuple[int | None, int | None] | None = None,
         n_negotiators: int | tuple[int | None, int | None] | None = None,
         opposition_level: float | tuple[float | None, float | None] | None = None,
+        rational_fraction: float | tuple[float | None, float | None] | None = None,
         # Deprecated params - use tags instead
         format: str | None = None,
         anac: bool | None = None,
@@ -1313,6 +1321,7 @@ class ScenarioRegistry(dict[str, ScenarioInfo]):
             n_outcomes: Filter by number of outcomes. Can be exact value or (min, max) tuple.
             n_negotiators: Filter by number of negotiators. Can be exact value or (min, max) tuple.
             opposition_level: Filter by opposition level. Can be exact value or (min, max) tuple.
+            rational_fraction: Filter by rational fraction. Can be exact value or (min, max) tuple.
             format: DEPRECATED. Use tags={'xml'} or tags={'json'} instead.
             anac: DEPRECATED. Use tags={'anac'} instead.
             normalized: DEPRECATED. Use tags={'normalized'} instead.
@@ -1398,6 +1407,12 @@ class ScenarioRegistry(dict[str, ScenarioInfo]):
 
             if opposition_level is not None:
                 if not _matches_numeric_filter(info.opposition_level, opposition_level):
+                    continue
+
+            if rational_fraction is not None:
+                if not _matches_numeric_filter(
+                    info.rational_fraction, rational_fraction
+                ):
                     continue
 
             # Check additional criteria
