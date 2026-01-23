@@ -3,15 +3,13 @@ Defines import/export functionality
 """
 
 from __future__ import annotations
-from copy import deepcopy
-import math
-import xml.etree.ElementTree as ET
 from os import PathLike, listdir
 from pathlib import Path
 from random import shuffle
-from typing import Any, Callable, Iterable, Sequence
+from typing import Any, Iterable, Sequence
+import xml.etree.ElementTree as ET
 
-from attrs import define, field
+from attrs import define, field, evolve
 
 from negmas.helpers.inout import dump, load
 from negmas.helpers.strings import unique_name
@@ -93,6 +91,17 @@ class Scenario:
     mechanism_params: dict = field(factory=dict)
     info: dict[str, Any] = field(factory=dict)
     stats: ScenarioStats | None = None
+    name: str | None = field(default=None)
+    source: Path | tuple[Path, ...] | None = field(default=None)
+
+    def __attrs_post_init__(self):
+        """Infer name from outcome_space if not explicitly provided."""
+        if self.name is None:
+            object.__setattr__(
+                self,
+                "name",
+                self.outcome_space.name if self.outcome_space.name else None,
+            )
 
     def __lt__(self, other: Scenario):
         """Compares scenarios by their size/complexity for sorting."""
@@ -149,18 +158,131 @@ class Scenario:
 
         return all(is_linear_ufun(u) for u in self.ufuns)
 
-    def plot(self, **kwargs):
-        """Visualizes the scenario's utility space using a 2D plot."""
+    def plot(
+        self,
+        ufun_indices: tuple[int, int] | None = None,
+        backend: str = "matplotlib",
+        **kwargs,
+    ):
+        """Visualizes the scenario's utility space using a 2D plot.
+
+        Args:
+            ufun_indices: Tuple of (i, j) specifying which pair of utility functions to plot.
+                If None, plots the first two ufuns (indices 0 and 1).
+                For scenarios with exactly 2 ufuns, this parameter is ignored.
+            backend: Plotting backend to use. Either "matplotlib" or "plotly". Default is "matplotlib".
+            **kwargs: Additional arguments passed to plot_2dutils.
+
+        Returns:
+            A matplotlib Figure object if backend="matplotlib", or a plotly Figure object if backend="plotly".
+
+        Raises:
+            ValueError: If the scenario has fewer than 2 utility functions, or if backend is invalid.
+            IndexError: If ufun_indices contains invalid indices.
+        """
         from negmas.plots.util import plot_2dutils
+
+        if backend not in ("matplotlib", "plotly"):
+            raise ValueError(
+                f"Invalid backend '{backend}'. Must be 'matplotlib' or 'plotly'."
+            )
+
+        if len(self.ufuns) < 2:
+            raise ValueError(
+                f"Cannot plot scenario with {len(self.ufuns)} utility function(s). Need at least 2."
+            )
+
+        # Determine which pair to plot
+        if ufun_indices is None:
+            i, j = 0, 1
+        else:
+            i, j = ufun_indices
+            if i < 0 or i >= len(self.ufuns) or j < 0 or j >= len(self.ufuns):
+                raise IndexError(
+                    f"Invalid ufun_indices ({i}, {j}). Must be in range [0, {len(self.ufuns) - 1}]."
+                )
+            if i == j:
+                raise ValueError(
+                    f"Cannot plot the same utility function twice: ufun_indices=({i}, {j})."
+                )
+
+        plotting_ufuns = (self.ufuns[i], self.ufuns[j])
+        plotting_names = (self.ufuns[i].name, self.ufuns[j].name)
 
         return plot_2dutils(
             [],
-            self.ufuns,  #
-            tuple(_.name for _ in self.ufuns),  #
-            offering_negotiators=tuple(_.name for _ in self.ufuns),  #
-            issues=self.outcome_space.issues,  #
+            plotting_ufuns,
+            plotting_names,
+            offering_negotiators=plotting_names,
+            issues=self.outcome_space.issues,
+            backend=backend,
             **kwargs,
         )
+
+    def save_plots(
+        self, folder: Path | str, ext: str = "png", **plot_kwargs
+    ) -> list[Path]:
+        """Saves utility space plots for all pairs of utility functions.
+
+        Args:
+            folder: Destination folder where plots will be saved.
+            ext: Image file extension (e.g., 'png', 'jpg', 'svg', 'pdf'). Default is 'png'.
+            **plot_kwargs: Additional arguments passed to plot() method.
+
+        Returns:
+            List of Path objects for all saved plot files.
+
+        Raises:
+            ValueError: If the scenario has fewer than 2 utility functions.
+
+        Remarks:
+            - For scenarios with exactly 2 ufuns: saves a single plot as "_plot.{ext}"
+            - For scenarios with >2 ufuns: creates a "_plots/" subfolder and saves plots with names:
+              "{u0_name}-{u1_name}.{ext}", "{u1_name}-{u2_name}.{ext}", ..., "{u{n-1}_name}-{u0_name}.{ext}"
+              This creates a circular sequence of plots for all consecutive pairs plus the wraparound.
+        """
+        if len(self.ufuns) < 2:
+            raise ValueError(
+                f"Cannot save plots for scenario with {len(self.ufuns)} utility function(s). Need at least 2."
+            )
+
+        folder = Path(folder)
+        folder.mkdir(parents=True, exist_ok=True)
+
+        # Ensure extension starts with a dot
+        if not ext.startswith("."):
+            ext = f".{ext}"
+
+        saved_files = []
+
+        if len(self.ufuns) == 2:
+            # Single plot: save as _plot.{ext}
+            plot_path = folder / f"_plot{ext}"
+            fig = self.plot(ufun_indices=(0, 1), **plot_kwargs)
+            fig.write_image(str(plot_path))
+            saved_files.append(plot_path)
+        else:
+            # Multiple plots: create _plots/ subfolder
+            plots_folder = folder / "_plots"
+            plots_folder.mkdir(parents=True, exist_ok=True)
+
+            # Generate circular pairs: (0,1), (1,2), (2,3), ..., (n-1,0)
+            n = len(self.ufuns)
+            for i in range(n):
+                j = (i + 1) % n
+                u_i_name = self.ufuns[i].name or f"u{i}"
+                u_j_name = self.ufuns[j].name or f"u{j}"
+
+                # Clean names to be filesystem-safe
+                u_i_name = u_i_name.replace("/", "-").replace("\\", "-")
+                u_j_name = u_j_name.replace("/", "-").replace("\\", "-")
+
+                plot_path = plots_folder / f"{u_i_name}-{u_j_name}{ext}"
+                fig = self.plot(ufun_indices=(i, j), **plot_kwargs)
+                fig.write_image(str(plot_path))
+                saved_files.append(plot_path)
+
+        return saved_files
 
     def to_genius_files(self, domain_path: Path, ufun_paths: list[Path]):
         """
@@ -931,7 +1053,10 @@ class Scenario:
         compact: bool = False,
         save_stats=True,
         save_info=True,
+        save_plot=False,
         include_pareto_frontier: bool = True,
+        plot_extension: str = "png",
+        plot_kwargs: dict | None = None,
     ) -> None:
         """
         Dumps the scenario in the given file format.
@@ -942,14 +1067,19 @@ class Scenario:
             compact: If True, use compact JSON formatting.
             save_stats: If True, save scenario statistics to stats.json.
             save_info: If True, save scenario info to info file.
+            save_plot: If True, save utility space plots. Default is False.
             include_pareto_frontier: If True, include pareto_utils and pareto_outcomes
                 in stats.json. If False, exclude them to save disk space. Default is True.
+            plot_extension: File extension for plots (e.g., 'png', 'jpg', 'svg', 'pdf'). Default is 'png'.
+            plot_kwargs: Additional keyword arguments to pass to the plot() method. Default is None.
         """
         if type.startswith("."):
             type = type[1:]
         folder = Path(folder)
         if type == "xml":
             self.to_genius_folder(folder)
+            if save_plot and len(self.ufuns) >= 2:
+                self.save_plots(folder, ext=plot_extension, **(plot_kwargs or {}))
             return
         folder.mkdir(parents=True, exist_ok=True)
         serialized = self.serialize()
@@ -963,6 +1093,82 @@ class Scenario:
                 self.stats.to_dict(include_pareto_frontier=include_pareto_frontier),
                 folder / STATS_FILE_NAME,
             )
+        if save_plot and len(self.ufuns) >= 2:
+            self.save_plots(folder, ext=plot_extension, **(plot_kwargs or {}))
+
+    def update(
+        self,
+        compact: bool = False,
+        save_stats=True,
+        save_info=True,
+        save_plot=False,
+        include_pareto_frontier: bool = True,
+        plot_extension: str = "png",
+        plot_kwargs: dict | None = None,
+    ) -> bool:
+        """
+        Updates the scenario at its source location.
+
+        Args:
+            compact: If True, use compact JSON formatting.
+            save_stats: If True, save scenario statistics to stats.json.
+            save_info: If True, save scenario info to info file.
+            save_plot: If True, save utility space plots. Default is False.
+            include_pareto_frontier: If True, include pareto_utils and pareto_outcomes
+                in stats.json. If False, exclude them to save disk space. Default is True.
+            plot_extension: File extension for plots (e.g., 'png', 'jpg', 'svg', 'pdf'). Default is 'png'.
+            plot_kwargs: Additional keyword arguments to pass to the plot() method. Default is None.
+
+        Returns:
+            True if successfully saved, False if no source is available.
+
+        Remarks:
+            - Only works if the scenario has a source (was loaded from somewhere).
+            - If source is a folder, saves to that folder.
+            - If source is a single file, saves to the parent directory of that file.
+            - If source is a tuple of files, saves to the parent directory of the first file.
+            - Auto-detects format based on source file extension (yml, json, xml).
+        """
+        if self.source is None:
+            return False
+
+        # Determine folder and format based on source
+        if isinstance(self.source, tuple):
+            # Multiple files: use parent of first file (domain file)
+            folder = self.source[0].parent
+            file_ext = self.source[0].suffix.lstrip(".")
+        else:
+            # Single path (either folder or file)
+            if self.source.is_dir():
+                folder = self.source
+                # Try to detect format from existing files
+                file_ext = "yml"  # default
+                for ext in ("yml", "yaml", "json", "xml"):
+                    if any(folder.glob(f"*.{ext}")):
+                        file_ext = ext
+                        break
+            else:
+                # Single file: use parent as folder
+                folder = self.source.parent
+                file_ext = self.source.suffix.lstrip(".")
+
+        # Default to yml if no extension detected
+        if not file_ext or file_ext not in ("yml", "yaml", "json", "xml"):
+            file_ext = "yml"
+
+        # Use dumpas to save
+        self.dumpas(
+            folder=folder,
+            type=file_ext,
+            compact=compact,
+            save_stats=save_stats,
+            save_info=save_info,
+            save_plot=save_plot,
+            include_pareto_frontier=include_pareto_frontier,
+            plot_extension=plot_extension,
+            plot_kwargs=plot_kwargs,
+        )
+        return True
 
     def load_info_file(self, file: Path):
         """Loads scenario info from a specific file path."""
@@ -1127,6 +1333,7 @@ class Scenario:
         ignore_discount=False,
         ignore_reserved=False,
         safe_parsing=True,
+        name: str | None = None,
     ) -> Scenario | None:
         """Loads a scenario from specific Genius-format XML file paths.
 
@@ -1137,6 +1344,7 @@ class Scenario:
             ignore_discount: If True, ignore time-based discounting.
             ignore_reserved: If True, set reserved values to -inf.
             safe_parsing: If True, apply more stringent validation during parsing.
+            name: Optional name for the scenario. If None, uses domain file stem.
 
         Returns:
             The loaded Scenario, or None if loading fails.
@@ -1149,6 +1357,7 @@ class Scenario:
             ignore_reserved=ignore_reserved,
             normalize_utilities=False,
             normalize_max_only=False,
+            name=name,  # Pass through the name parameter
         )
         if not s:
             return s
@@ -1196,6 +1405,7 @@ class Scenario:
         ignore_reserved=False,
         use_reserved_outcome=False,
         safe_parsing=True,
+        name: str | None = None,
     ) -> Scenario | None:
         """Loads a scenario from specific GeniusWeb-format JSON file paths.
 
@@ -1207,6 +1417,7 @@ class Scenario:
             ignore_reserved: If True, set reserved values to -inf.
             use_reserved_outcome: If True, use reserved outcome instead of reserved value.
             safe_parsing: If True, apply more stringent validation during parsing.
+            name: Optional name for the scenario. If None, uses domain file stem.
 
         Returns:
             The loaded Scenario, or None if loading fails.
@@ -1220,6 +1431,7 @@ class Scenario:
             use_reserved_outcome=use_reserved_outcome,
             normalize_utilities=False,
             normalize_max_only=False,
+            name=name,  # Pass through the name parameter
         )
         if not s:
             return s
@@ -1255,9 +1467,12 @@ class Scenario:
             ignore_discount=ignore_discount,
             ignore_reserved=ignore_reserved,
             safe_parsing=safe_parsing,
+            name=Path(path).name,  # Use folder name as scenario name
         )
         if not s:
             return s
+        # Override source to be the folder path instead of individual files
+        s = evolve(s, source=Path(path))
         return s.load_info(path)
 
     @classmethod
@@ -1270,6 +1485,7 @@ class Scenario:
         ignore_reserved=False,
         safe_parsing=True,
         python_class_identifier="type",
+        name: str | None = None,
     ) -> Scenario | None:
         """Loads a scenario from specific YAML file paths.
 
@@ -1281,6 +1497,7 @@ class Scenario:
             ignore_reserved: If True, set reserved values to -inf.
             safe_parsing: Unused; YAML parsing is always safe.
             python_class_identifier: Key used to identify the Python class type in YAML.
+            name: Optional name for the scenario. If None, uses name from YAML or domain file stem.
 
         Returns:
             The loaded Scenario, or None if loading fails.
@@ -1297,6 +1514,10 @@ class Scenario:
 
         domain_dict = adjust_type(load(domain))
         domain_dict["path"] = Path(domain)
+        # If outcome space has no name in YAML, use domain file stem
+        if "name" not in domain_dict or not domain_dict["name"]:
+            domain_dict["name"] = Path(domain).stem
+
         os = deserialize(
             domain_dict,
             base_module="negmas",
@@ -1329,7 +1550,19 @@ class Scenario:
         #     type_ = f"negmas.preferences.{type_}"
         #     utils.append(instantiate(type_, **d))
         assert isinstance(os, CartesianOutcomeSpace)
-        s = Scenario(outcome_space=os, ufuns=tuple(utils))  # type: ignore
+
+        # Determine scenario name: use provided name, or fallback to domain file stem
+        scenario_name = name if name is not None else Path(domain).stem
+
+        # Build source: tuple of (domain_path, ufun_path1, ufun_path2, ...)
+        source_paths = (Path(domain),) + tuple(Path(u) for u in ufuns)
+
+        s = Scenario(
+            outcome_space=os,
+            ufuns=tuple(utils),
+            name=scenario_name,
+            source=source_paths,
+        )  # type: ignore
         if s and ignore_discount:
             s = s.remove_discounting()
         if s and ignore_reserved:
@@ -1373,6 +1606,7 @@ def load_genius_domain(
     ignore_discount=False,
     ignore_reserved=False,
     safe_parsing=True,
+    name: str | None = None,
     **kwargs,
 ) -> Scenario:
     """
@@ -1384,6 +1618,7 @@ def load_genius_domain(
         ignore_reserved: Sets the reserved_value of all ufuns to -inf
         ignore_discount: Ignores discounting
         safe_parsing: Applies more stringent checks during parsing
+        name: Optional name for the scenario. If None, uses domain file stem.
 
     Returns:
         A `Domain` ready to run
@@ -1440,11 +1675,21 @@ def load_genius_domain(
     if issues is None:
         raise ValueError(f"Could not load domain {domain_file_name}")
 
+    # Use provided name, or fallback to domain file stem
+    scenario_name = name if name is not None else Path(domain_file_name).stem
+
+    # Build source: tuple of (domain_path, ufun_path1, ufun_path2, ...)
+    source_paths = (Path(domain_file_name),) + tuple(
+        Path(_["ufun_file_name"]) for _ in agent_info
+    )
+
     return Scenario(
         outcome_space=make_os(
             issues, name=Path(domain_file_name).stem, path=Path(domain_file_name)
         ),
         ufuns=tuple(_["ufun"] for _ in agent_info),
+        name=scenario_name,
+        source=source_paths,
     )
 
 
@@ -1529,6 +1774,7 @@ def load_genius_domain_from_folder(
         186.0
     """
     folder_name = str(folder_name)
+    folder_path = Path(folder_name)
     files = sorted(listdir(folder_name))
     domain_file_name = None
     utility_file_names = []
@@ -1544,14 +1790,17 @@ def load_genius_domain_from_folder(
             utility_file_names.append(full_name)
     if domain_file_name is None:
         raise ValueError("Cannot find a domain file")
-    return load_genius_domain(
+    s = load_genius_domain(
         domain_file_name=domain_file_name,
         utility_file_names=utility_file_names,
         safe_parsing=safe_parsing,
         ignore_reserved=ignore_reserved,
         ignore_discount=ignore_discount,
+        name=folder_path.name,  # Use folder name as scenario name
         **kwargs,
     )
+    # Override source to be the folder path instead of individual files
+    return evolve(s, source=folder_path)
 
 
 def find_domain_and_utility_files_yaml(
@@ -1639,21 +1888,25 @@ def load_geniusweb_domain_from_folder(
 
     """
     folder_name = str(folder_name)
+    folder_path = Path(folder_name)
     domain_file_name, utility_file_names = find_geniusweb_domain_and_utility_files(
         folder_name
     )
 
     if domain_file_name is None:
         raise ValueError("Cannot find a domain file")
-    return load_geniusweb_domain(
+    s = load_geniusweb_domain(
         domain_file_name=domain_file_name,
         utility_file_names=utility_file_names,
         safe_parsing=safe_parsing,
         ignore_reserved=ignore_reserved,
         ignore_discount=ignore_discount,
         use_reserved_outcome=use_reserved_outcome,
+        name=folder_path.name,  # Use folder name as scenario name
         **kwargs,
     )
+    # Override source to be the folder path instead of individual files
+    return evolve(s, source=folder_path)
 
 
 def find_geniusweb_domain_and_utility_files(
@@ -1704,17 +1957,20 @@ def load_geniusweb_domain(
     ignore_reserved=False,
     use_reserved_outcome=False,
     safe_parsing=True,
+    name: str | None = None,
     **kwargs,
 ) -> Scenario:
     """
     Loads a geniusweb domain, creates appropriate negotiators if necessary
 
     Args:
-        domain_file_name: XML file containing Genius-formatted domain spec
-        utility_file_names: XML files containing Genius-fromatted ufun spec
+        domain_file_name: JSON file containing GeniusWeb-formatted domain spec
+        utility_file_names: JSON files containing GeniusWeb-fromatted ufun spec
         ignore_reserved: Sets the reserved_value of all ufuns to -inf
         ignore_discount: Ignores discounting
+        use_reserved_outcome: If True, use reserved outcome instead of reserved value
         safe_parsing: Applies more stringent checks during parsing
+        name: Optional name for the scenario. If None, uses name from JSON or domain file stem.
         kwargs: Extra arguments to pass verbatim to SAOMechanism constructor
 
     Returns:
@@ -1723,7 +1979,10 @@ def load_geniusweb_domain(
     """
 
     issues = None
-    name = load(domain_file_name).get("name", domain_file_name)
+    # Read the domain file to get the embedded name (if any) for the outcome space
+    domain_data = load(domain_file_name)
+    os_name_from_file = domain_data.get("name", None)
+
     if domain_file_name is not None:
         issues, _ = issues_from_geniusweb(domain_file_name, safe_parsing=safe_parsing)
 
@@ -1768,7 +2027,20 @@ def load_geniusweb_domain(
     if issues is None:
         raise ValueError(f"Could not load domain {domain_file_name}")
 
+    # Determine outcome space name: use name from file if present, otherwise use file stem
+    os_name = os_name_from_file if os_name_from_file else Path(domain_file_name).stem
+
+    # Determine scenario name: use provided name, or fallback to domain file stem
+    scenario_name = name if name is not None else Path(domain_file_name).stem
+
+    # Build source: tuple of (domain_path, ufun_path1, ufun_path2, ...)
+    source_paths = (Path(domain_file_name),) + tuple(
+        Path(_["ufun_file_name"]) for _ in agent_info
+    )
+
     return Scenario(
-        outcome_space=make_os(issues, name=name, path=Path(domain_file_name)),
+        outcome_space=make_os(issues, name=os_name, path=Path(domain_file_name)),
         ufuns=[_["ufun"] for _ in agent_info],  # type: ignore We trust that the ufun will be loaded
+        name=scenario_name,
+        source=source_paths,
     )
