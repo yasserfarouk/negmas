@@ -381,6 +381,7 @@ class ScenarioInfo:
         n_negotiators: The number of negotiators in the scenario (if known).
         opposition_level: The opposition level between negotiators (0=cooperative, 1=competitive).
         rational_fraction: The fraction of rational outcomes (0-1) where all utilities are above reserved values.
+        read_only: Whether this scenario is read-only (cannot be unregistered). Built-in scenarios are read-only.
         extra: Additional key-value pairs for custom properties.
     """
 
@@ -393,6 +394,7 @@ class ScenarioInfo:
     n_negotiators: int | None = None
     opposition_level: float | None = None
     rational_fraction: float | None = None
+    read_only: bool = False
     extra: dict[str, Any] = field(default_factory=dict)
 
     def has_tag(self, tag: str) -> bool:
@@ -1057,6 +1059,7 @@ class ScenarioRegistry(dict[str, ScenarioInfo]):
         n_negotiators: int | None = None,
         opposition_level: float | None = None,
         rational_fraction: float | None = None,
+        read_only: bool = False,
         # Deprecated params - converted to tags
         normalized: bool | None = None,
         anac: bool | None = None,
@@ -1078,6 +1081,7 @@ class ScenarioRegistry(dict[str, ScenarioInfo]):
             n_negotiators: The number of negotiators in the scenario.
             opposition_level: The opposition level between negotiators (0-1).
             rational_fraction: The fraction of rational outcomes (0-1).
+            read_only: Whether this scenario is read-only (cannot be unregistered).
             normalized: DEPRECATED. Use tags={'normalized'} instead.
             anac: DEPRECATED. Use tags={'anac'} instead.
             has_stats: DEPRECATED. Use tags={'has-stats'} instead.
@@ -1217,6 +1221,7 @@ class ScenarioRegistry(dict[str, ScenarioInfo]):
             n_negotiators=n_negotiators,
             opposition_level=opposition_level,
             rational_fraction=rational_fraction,
+            read_only=read_only,
             extra=extra,
         )
 
@@ -1240,6 +1245,9 @@ class ScenarioRegistry(dict[str, ScenarioInfo]):
 
         Returns:
             True if at least one scenario was removed, False if none were found.
+
+        Note:
+            The read_only property is informational only and does not prevent unregistration.
 
         Example:
             # Unregister by path
@@ -1773,6 +1781,7 @@ def register_scenario(
     anac: bool | None = None,
     has_stats: bool = False,
     has_plot: bool = False,
+    read_only: bool = False,
     **extra,
 ) -> ScenarioInfo:
     """Register a scenario in the global scenario registry.
@@ -1792,6 +1801,7 @@ def register_scenario(
         anac: Whether this scenario is from an ANAC competition.
         has_stats: Whether the scenario has pre-computed statistics.
         has_plot: Whether the scenario has a pre-generated plot.
+        read_only: Whether this scenario is read-only (cannot be unregistered).
         **extra: Additional properties to store.
 
     Returns:
@@ -1819,6 +1829,7 @@ def register_scenario(
         anac=anac,
         has_stats=has_stats,
         has_plot=has_plot,
+        read_only=read_only,
         **extra,
     )
 
@@ -1828,6 +1839,7 @@ def register_all_scenarios(
     source: str = "unknown",
     tags: set[str] | list[str] | tuple[str, ...] | None = None,
     recursive: bool = True,
+    read_only: bool = False,
     registry: ScenarioRegistry | None = None,
 ) -> list[ScenarioInfo]:
     """Register all loadable scenarios from a directory.
@@ -1855,6 +1867,7 @@ def register_all_scenarios(
             scenarios registered from this directory.
         tags: Optional tags to add to all registered scenarios.
         recursive: If True, recursively search subdirectories.
+        read_only: Whether these scenarios should be read-only (cannot be unregistered).
         registry: The registry to use. If None, uses the global scenario_registry.
 
     Returns:
@@ -1942,6 +1955,7 @@ def register_all_scenarios(
                 normalized=normalized,
                 n_outcomes=n_outcomes,
                 n_negotiators=n_negotiators,
+                read_only=read_only,
             )
             return info
 

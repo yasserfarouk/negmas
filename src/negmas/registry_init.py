@@ -1335,6 +1335,7 @@ def _register_scenarios() -> None:
                 source=NEGMAS_SOURCE,
                 tags={"builtin"} | extra_tags,
                 n_negotiators=n_negotiators,
+                read_only=True,
             )
 
 

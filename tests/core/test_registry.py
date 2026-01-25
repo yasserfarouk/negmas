@@ -1477,6 +1477,7 @@ class TestScenarioInfo:
             n_outcomes=100,
             n_negotiators=2,
             opposition_level=0.5,
+            rational_fraction=0.75,
             extra={"year": 2019},
         )
         assert info.name == "anac_scenario"
@@ -1484,12 +1485,31 @@ class TestScenarioInfo:
         assert info.n_outcomes == 100
         assert info.n_negotiators == 2
         assert info.opposition_level == 0.5
+        assert info.rational_fraction == 0.75
         # Boolean fields are now tags
         assert info.has_tag("normalized")
         assert info.has_tag("anac")
         assert info.has_tag("has-stats")
         assert info.has_tag("has-plot")
         assert info.extra == {"year": 2019}
+
+    def test_scenario_info_with_rational_fraction(self):
+        """Test ScenarioInfo with rational_fraction field."""
+        from pathlib import Path
+        from negmas.registry import ScenarioInfo
+
+        info = ScenarioInfo(
+            name="rational_test", path=Path("/tmp/rational_test"), rational_fraction=0.6
+        )
+        assert info.rational_fraction == 0.6
+
+    def test_scenario_info_rational_fraction_defaults_to_none(self):
+        """Test that rational_fraction defaults to None if not provided."""
+        from pathlib import Path
+        from negmas.registry import ScenarioInfo
+
+        info = ScenarioInfo(name="test", path=Path("/tmp/test"))
+        assert info.rational_fraction is None
 
     def test_scenario_info_has_tag(self):
         """Test has_tag method on ScenarioInfo."""
@@ -1625,6 +1645,102 @@ class TestScenarioRegistry:
         # Query by format tag
         results = registry.query(tags={"xml"})
         assert len(results) == 1
+
+    def test_scenario_registry_with_rational_fraction(self):
+        """Test registering scenarios with rational_fraction field."""
+        from pathlib import Path
+        from negmas.registry import ScenarioRegistry
+
+        registry = ScenarioRegistry()
+        path = Path("/tmp/rational_scenario")
+
+        info = registry.register(path, name="rational_test", rational_fraction=0.8)
+        assert info.rational_fraction == 0.8
+
+    def test_scenario_registry_query_rational_fraction_exact(self):
+        """Test querying by exact rational_fraction value."""
+        from pathlib import Path
+        from negmas.registry import ScenarioRegistry
+
+        registry = ScenarioRegistry()
+        registry.register(Path("/tmp/rf1"), name="rf1", rational_fraction=0.5)
+        registry.register(Path("/tmp/rf2"), name="rf2", rational_fraction=0.8)
+        registry.register(Path("/tmp/rf3"), name="rf3", rational_fraction=0.5)
+        registry.register(Path("/tmp/rf4"), name="rf4")  # No rational_fraction
+
+        # Query for exact value
+        results = registry.query(rational_fraction=0.5)
+        assert len(results) == 2
+
+        results = registry.query(rational_fraction=0.8)
+        assert len(results) == 1
+
+    def test_scenario_registry_query_rational_fraction_range(self):
+        """Test querying by rational_fraction range."""
+        from pathlib import Path
+        from negmas.registry import ScenarioRegistry
+
+        registry = ScenarioRegistry()
+        registry.register(Path("/tmp/rf1"), name="rf1", rational_fraction=0.2)
+        registry.register(Path("/tmp/rf2"), name="rf2", rational_fraction=0.5)
+        registry.register(Path("/tmp/rf3"), name="rf3", rational_fraction=0.8)
+        registry.register(Path("/tmp/rf4"), name="rf4", rational_fraction=0.95)
+        registry.register(Path("/tmp/rf5"), name="rf5")  # No rational_fraction
+
+        # Query for range [0.4, 0.9]
+        results = registry.query(rational_fraction=(0.4, 0.9))
+        assert len(results) == 2
+        names = {info.name for info in results.values()}
+        assert names == {"rf2", "rf3"}
+
+        # Query for range with no lower bound
+        results = registry.query(rational_fraction=(None, 0.5))
+        assert len(results) == 2
+        names = {info.name for info in results.values()}
+        assert names == {"rf1", "rf2"}
+
+        # Query for range with no upper bound
+        results = registry.query(rational_fraction=(0.8, None))
+        assert len(results) == 2
+        names = {info.name for info in results.values()}
+        assert names == {"rf3", "rf4"}
+
+    def test_scenario_registry_query_combined_with_rational_fraction(self):
+        """Test querying with rational_fraction combined with other filters."""
+        from pathlib import Path
+        from negmas.registry import ScenarioRegistry
+
+        registry = ScenarioRegistry()
+        registry.register(
+            Path("/tmp/crf1"),
+            name="crf1",
+            rational_fraction=0.6,
+            n_negotiators=2,
+            tags={"bilateral"},
+        )
+        registry.register(
+            Path("/tmp/crf2"),
+            name="crf2",
+            rational_fraction=0.8,
+            n_negotiators=2,
+            tags={"bilateral"},
+        )
+        registry.register(
+            Path("/tmp/crf3"),
+            name="crf3",
+            rational_fraction=0.6,
+            n_negotiators=3,
+            tags={"multilateral"},
+        )
+
+        # Query for bilateral with rational_fraction >= 0.5
+        results = registry.query(tags={"bilateral"}, rational_fraction=(0.5, None))
+        assert len(results) == 2
+
+        # Query for bilateral with high rational_fraction
+        results = registry.query(tags={"bilateral"}, rational_fraction=(0.7, None))
+        assert len(results) == 1
+        assert list(results.values())[0].name == "crf2"
 
     def test_scenario_registry_list_tags(self):
         """Test list_tags method."""
@@ -2150,3 +2266,287 @@ class TestSaveLoadRegistry:
         from pathlib import Path
 
         assert DEFAULT_REGISTRY_PATH == Path.home() / "negmas" / "registry"
+
+
+class TestScenarioRegistryReadOnly:
+    """Tests for scenario registry read_only functionality."""
+
+    def test_scenario_info_read_only_default(self):
+        """Test ScenarioInfo read_only defaults to False."""
+        from pathlib import Path
+        from negmas.registry import ScenarioInfo
+
+        info = ScenarioInfo(name="test", path=Path("/tmp/test"))
+        assert info.read_only is False
+
+    def test_scenario_info_read_only_explicit(self):
+        """Test ScenarioInfo with read_only set to True."""
+        from pathlib import Path
+        from negmas.registry import ScenarioInfo
+
+        info = ScenarioInfo(name="test", path=Path("/tmp/test"), read_only=True)
+        assert info.read_only is True
+
+    def test_register_scenario_read_only(self):
+        """Test registering a scenario as read-only."""
+        from pathlib import Path
+        from negmas.registry import ScenarioRegistry
+
+        registry = ScenarioRegistry()
+        path = Path("/tmp/test_readonly")
+
+        info = registry.register(path, name="test_readonly", read_only=True)
+        assert info.read_only is True
+
+    def test_unregister_read_only_is_allowed(self):
+        """Test that read-only scenarios can be unregistered (read_only is informational only)."""
+        from pathlib import Path
+        from negmas.registry import ScenarioRegistry
+
+        registry = ScenarioRegistry()
+        path = Path("/tmp/test_readonly_unregister")
+
+        registry.register(path, name="test_readonly", read_only=True)
+
+        # read_only is informational, so unregister should succeed
+        result = registry.unregister(path)
+        assert result is True
+        assert str(path.resolve()) not in registry
+
+    def test_unregister_read_only_by_name_is_allowed(self):
+        """Test that read-only scenarios can be unregistered by name."""
+        from pathlib import Path
+        from negmas.registry import ScenarioRegistry
+
+        registry = ScenarioRegistry()
+        path = Path("/tmp/test_readonly_by_name")
+
+        registry.register(path, name="test_readonly_name", read_only=True)
+
+        # read_only is informational, so unregister should succeed
+        result = registry.unregister("test_readonly_name")
+        assert result is True
+        assert len(registry) == 0
+
+    def test_builtin_scenarios_are_readonly(self):
+        """Test that built-in scenarios are registered as read-only."""
+        from negmas.registry import scenario_registry
+
+        # Get a built-in scenario
+        builtin_scenarios = scenario_registry.query_by_tag("builtin")
+
+        if len(builtin_scenarios) > 0:
+            # Check that at least one built-in scenario is read-only
+            info = list(builtin_scenarios.values())[0]
+            assert info.read_only is True
+            assert info.source == "negmas"
+
+    def test_register_scenario_function_read_only(self):
+        """Test register_scenario function with read_only parameter."""
+        from pathlib import Path
+        from negmas.registry import register_scenario, scenario_registry
+
+        path = Path("/tmp/test_func_readonly")
+
+        try:
+            info = register_scenario(path, name="func_readonly", read_only=True)
+            assert info.read_only is True
+
+            # Verify it's in the registry
+            assert str(path.resolve()) in scenario_registry
+
+            # Verify we can unregister it (read_only is informational)
+            result = scenario_registry.unregister(path)
+            assert result is True
+        finally:
+            # Cleanup if needed
+            key = str(path.resolve())
+            if key in scenario_registry:
+                del scenario_registry[key]
+
+    def test_read_only_property_query(self):
+        """Test querying scenarios by read_only property."""
+        from pathlib import Path
+        from negmas.registry import ScenarioRegistry
+
+        registry = ScenarioRegistry()
+
+        # Register mix of read-only and non-read-only scenarios
+        registry.register(Path("/tmp/ro1"), name="ro1", read_only=True)
+        registry.register(Path("/tmp/ro2"), name="ro2", read_only=True)
+        registry.register(Path("/tmp/rw1"), name="rw1", read_only=False)
+
+        # Query for read-only scenarios
+        results = registry.query(read_only=True)
+        assert len(results) == 2
+        assert all(info.read_only is True for info in results.values())
+
+        # Query for non-read-only scenarios
+        results = registry.query(read_only=False)
+        assert len(results) == 1
+        assert all(info.read_only is False for info in results.values())
+
+
+class TestScenarioRegistryRangeQueries:
+    """Tests for scenario registry range query functionality."""
+
+    def test_query_n_outcomes_exact(self):
+        """Test querying scenarios by exact n_outcomes."""
+        from pathlib import Path
+        from negmas.registry import ScenarioRegistry
+
+        registry = ScenarioRegistry()
+        registry.register(Path("/tmp/s1"), name="s1", n_outcomes=100)
+        registry.register(Path("/tmp/s2"), name="s2", n_outcomes=200)
+        registry.register(Path("/tmp/s3"), name="s3", n_outcomes=100)
+
+        results = registry.query(n_outcomes=100)
+        assert len(results) == 2
+
+    def test_query_n_outcomes_range(self):
+        """Test querying scenarios by n_outcomes range."""
+        from pathlib import Path
+        from negmas.registry import ScenarioRegistry
+
+        registry = ScenarioRegistry()
+        registry.register(Path("/tmp/s1"), name="s1", n_outcomes=50)
+        registry.register(Path("/tmp/s2"), name="s2", n_outcomes=100)
+        registry.register(Path("/tmp/s3"), name="s3", n_outcomes=150)
+        registry.register(Path("/tmp/s4"), name="s4", n_outcomes=200)
+
+        # Query for scenarios with 75 to 175 outcomes
+        results = registry.query(n_outcomes=(75, 175))
+        assert len(results) == 2
+        for info in results.values():
+            assert info.n_outcomes is not None
+            assert 75 <= info.n_outcomes <= 175
+
+    def test_query_n_outcomes_range_no_min(self):
+        """Test querying scenarios with no minimum bound."""
+        from pathlib import Path
+        from negmas.registry import ScenarioRegistry
+
+        registry = ScenarioRegistry()
+        registry.register(Path("/tmp/s1"), name="s1", n_outcomes=50)
+        registry.register(Path("/tmp/s2"), name="s2", n_outcomes=100)
+        registry.register(Path("/tmp/s3"), name="s3", n_outcomes=150)
+
+        # Query for scenarios with at most 100 outcomes
+        results = registry.query(n_outcomes=(None, 100))
+        assert len(results) == 2
+        for info in results.values():
+            assert info.n_outcomes is not None
+            assert info.n_outcomes <= 100
+
+    def test_query_n_outcomes_range_no_max(self):
+        """Test querying scenarios with no maximum bound."""
+        from pathlib import Path
+        from negmas.registry import ScenarioRegistry
+
+        registry = ScenarioRegistry()
+        registry.register(Path("/tmp/s1"), name="s1", n_outcomes=50)
+        registry.register(Path("/tmp/s2"), name="s2", n_outcomes=100)
+        registry.register(Path("/tmp/s3"), name="s3", n_outcomes=150)
+
+        # Query for scenarios with at least 100 outcomes
+        results = registry.query(n_outcomes=(100, None))
+        assert len(results) == 2
+        for info in results.values():
+            assert info.n_outcomes is not None
+            assert info.n_outcomes >= 100
+
+    def test_query_n_negotiators_exact(self):
+        """Test querying scenarios by exact n_negotiators."""
+        from pathlib import Path
+        from negmas.registry import ScenarioRegistry
+
+        registry = ScenarioRegistry()
+        registry.register(Path("/tmp/s1"), name="s1", n_negotiators=2)
+        registry.register(Path("/tmp/s2"), name="s2", n_negotiators=3)
+        registry.register(Path("/tmp/s3"), name="s3", n_negotiators=2)
+
+        results = registry.query(n_negotiators=2)
+        assert len(results) == 2
+
+    def test_query_n_negotiators_range(self):
+        """Test querying scenarios by n_negotiators range."""
+        from pathlib import Path
+        from negmas.registry import ScenarioRegistry
+
+        registry = ScenarioRegistry()
+        registry.register(Path("/tmp/s1"), name="s1", n_negotiators=2)
+        registry.register(Path("/tmp/s2"), name="s2", n_negotiators=3)
+        registry.register(Path("/tmp/s3"), name="s3", n_negotiators=4)
+        registry.register(Path("/tmp/s4"), name="s4", n_negotiators=5)
+
+        # Query for scenarios with 3 to 4 negotiators
+        results = registry.query(n_negotiators=(3, 4))
+        assert len(results) == 2
+        for info in results.values():
+            assert info.n_negotiators is not None
+            assert 3 <= info.n_negotiators <= 4
+
+    def test_query_combined_ranges(self):
+        """Test querying scenarios with multiple range filters."""
+        from pathlib import Path
+        from negmas.registry import ScenarioRegistry
+
+        registry = ScenarioRegistry()
+        registry.register(Path("/tmp/s1"), name="s1", n_outcomes=100, n_negotiators=2)
+        registry.register(Path("/tmp/s2"), name="s2", n_outcomes=200, n_negotiators=3)
+        registry.register(Path("/tmp/s3"), name="s3", n_outcomes=150, n_negotiators=2)
+        registry.register(Path("/tmp/s4"), name="s4", n_outcomes=250, n_negotiators=4)
+
+        # Query for scenarios with 100-200 outcomes and 2-3 negotiators
+        results = registry.query(n_outcomes=(100, 200), n_negotiators=(2, 3))
+        assert len(results) == 3  # s1, s2, s3 all match
+        for info in results.values():
+            assert info.n_outcomes is not None
+            assert info.n_negotiators is not None
+            assert 100 <= info.n_outcomes <= 200
+            assert 2 <= info.n_negotiators <= 3
+
+    def test_query_range_excludes_none(self):
+        """Test that range queries exclude scenarios with None values."""
+        from pathlib import Path
+        from negmas.registry import ScenarioRegistry
+
+        registry = ScenarioRegistry()
+        registry.register(Path("/tmp/s1"), name="s1", n_outcomes=100)
+        registry.register(Path("/tmp/s2"), name="s2", n_outcomes=None)
+        registry.register(Path("/tmp/s3"), name="s3", n_outcomes=200)
+
+        # Query should only return scenarios with known n_outcomes in range
+        results = registry.query(n_outcomes=(50, 250))
+        assert len(results) == 2
+        assert all(info.n_outcomes is not None for info in results.values())
+
+    def test_query_opposition_level_range(self):
+        """Test querying scenarios by opposition_level range."""
+        from pathlib import Path
+        from negmas.registry import ScenarioRegistry
+
+        registry = ScenarioRegistry()
+        registry.register(Path("/tmp/s1"), name="s1", opposition_level=0.1)
+        registry.register(Path("/tmp/s2"), name="s2", opposition_level=0.5)
+        registry.register(Path("/tmp/s3"), name="s3", opposition_level=0.9)
+
+        # Query for moderately opposed scenarios
+        results = registry.query(opposition_level=(0.3, 0.7))
+        assert len(results) == 1
+        assert list(results.values())[0].opposition_level == 0.5
+
+    def test_query_rational_fraction_range(self):
+        """Test querying scenarios by rational_fraction range."""
+        from pathlib import Path
+        from negmas.registry import ScenarioRegistry
+
+        registry = ScenarioRegistry()
+        registry.register(Path("/tmp/s1"), name="s1", rational_fraction=0.2)
+        registry.register(Path("/tmp/s2"), name="s2", rational_fraction=0.5)
+        registry.register(Path("/tmp/s3"), name="s3", rational_fraction=0.8)
+
+        # Query for scenarios with moderate rationality
+        results = registry.query(rational_fraction=(0.4, 0.6))
+        assert len(results) == 1
+        assert list(results.values())[0].rational_fraction == 0.5
