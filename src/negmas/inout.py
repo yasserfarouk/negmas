@@ -3,6 +3,7 @@ Defines import/export functionality
 """
 
 from __future__ import annotations
+import math
 from os import PathLike, listdir
 from pathlib import Path
 from random import shuffle
