@@ -411,6 +411,9 @@ class AffineUtilityFunction(StationaryMixin, UtilityFunction):
         self,
         to: tuple[float, float] = (0.0, 1.0),
         outcome_space: OutcomeSpace | None = None,
+        guarantee_max: bool = True,
+        guarantee_min: bool = True,
+        max_cardinality: int = 10_000_000_000,
     ) -> ConstUtilityFunction | AffineUtilityFunction | LinearUtilityFunction:
         """
         Creates a new utility function that is normalized based on input conditions.
@@ -419,7 +422,20 @@ class AffineUtilityFunction(StationaryMixin, UtilityFunction):
             to: The minimum and maximum value to normalize to. If either is None, it is ignored.
                  This means that passing `(None, 1.0)` will normalize the ufun so that the maximum
                  is `1` but will not guarantee any limit for the minimum and so on.
-             outcome_space: the outcome space to normalize within
+            outcome_space: the outcome space to normalize within
+            guarantee_max: If True, ensures maximum utility equals to[1]. Defaults to True.
+                **Ignored by:** AffineUtilityFunction/LinearUtilityFunction (always guaranteed).
+            guarantee_min: If True, ensures minimum utility equals to[0]. Defaults to True.
+                **Ignored by:** AffineUtilityFunction/LinearUtilityFunction (always guaranteed).
+            max_cardinality: Maximum number of outcomes to consider when normalizing.
+                Defaults to 10 billion.
+                **Ignored by:** AffineUtilityFunction/LinearUtilityFunction (minmax is exact).
+
+        Remarks:
+            - AffineUtilityFunction and LinearUtilityFunction always guarantee both min and max
+              values exactly match the target range, so guarantee_max and guarantee_min are ignored.
+            - These classes compute exact min/max analytically without sampling, so max_cardinality
+              is also ignored.
         """
         epsilon: float = 1e-8
         if outcome_space is None:
@@ -1076,9 +1092,9 @@ class LinearAdditiveUtilityFunction(  # type: ignore
         self,
         to: tuple[float, float] = (0.0, 1.0),
         outcome_space: OutcomeSpace | None = None,
-        max_cardinality: int = 10_000_000_000,  # Use explicit value instead of MAX_CARDINALITY
         guarantee_max: bool = True,
         guarantee_min: bool = True,
+        max_cardinality: int = 10_000_000_000,
     ) -> LinearAdditiveUtilityFunction | ConstUtilityFunction:
         """Normalize utility function with proper handling of compositional structure.
 
@@ -1096,9 +1112,16 @@ class LinearAdditiveUtilityFunction(  # type: ignore
             to: Target range (min, max) for normalized utilities. Defaults to (0.0, 1.0).
             outcome_space: The outcome space to normalize over. If None, uses the ufun's
                 outcome space.
-            max_cardinality: Maximum number of outcomes to consider.
-            guarantee_max: If True, ensures maximum utility equals to[1].
-            guarantee_min: If True, ensures minimum utility equals to[0].
+            guarantee_max: If True, ensures maximum utility equals to[1]. Defaults to True.
+                **Active for:** LinearAdditiveUtilityFunction (this implementation).
+                When True, may result in non-uniform weight scaling to hit exact max.
+            guarantee_min: If True, ensures minimum utility equals to[0]. Defaults to True.
+                **Active for:** LinearAdditiveUtilityFunction (this implementation).
+                When True, may result in non-uniform weight scaling to hit exact min.
+            max_cardinality: Maximum number of outcomes to consider when normalizing.
+                Defaults to 10 billion.
+                **Active for:** LinearAdditiveUtilityFunction (used when converting
+                non-Cartesian outcome spaces).
 
         Returns:
 
@@ -1118,6 +1141,12 @@ class LinearAdditiveUtilityFunction(  # type: ignore
             >>> normalized = u.normalize_for(to=(0.0, 1.0))
             >>> # Now: all weights sum to 1, all value functions in [0,1]
             >>> assert abs(sum(normalized.weights) - 1.0) < 1e-6
+
+        Remarks:
+            - The guarantee_max and guarantee_min parameters control strict bounds enforcement.
+            - When both are True, the normalization ensures the actual min/max exactly match
+              the target range, which may require adjusting weights non-uniformly.
+            - When False, a simpler uniform scaling is used that may not hit exact bounds.
         """
         from negmas.outcomes import DiscreteOrdinalIssue
 

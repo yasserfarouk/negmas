@@ -403,6 +403,9 @@ class BaseUtilityFunction(Preferences, ABC):
         self: T,
         to: tuple[float, float] = (0.0, 1.0),
         outcome_space: OutcomeSpace | None = None,
+        guarantee_max: bool = True,
+        guarantee_min: bool = True,
+        max_cardinality: int = MAX_CARDINALITY,
     ) -> T | ConstUtilityFunction:
         """Normalize utilities to the target range over the given outcome space.
 
@@ -410,6 +413,15 @@ class BaseUtilityFunction(Preferences, ABC):
             to: The target (min, max) range for normalized utilities. Defaults to (0.0, 1.0).
             outcome_space: The outcome space to normalize over. If None, uses the ufun's
                 outcome space.
+            guarantee_max: If True, ensures maximum utility equals to[1]. Defaults to True.
+                **Active for:** LinearAdditiveUtilityFunction only.
+                **Ignored by:** BaseUtilityFunction (this implementation).
+            guarantee_min: If True, ensures minimum utility equals to[0]. Defaults to True.
+                **Active for:** LinearAdditiveUtilityFunction only.
+                **Ignored by:** BaseUtilityFunction (this implementation).
+            max_cardinality: Maximum number of outcomes to consider when normalizing.
+                Defaults to 10 billion.
+                **Active for:** All implementations (used in minmax()).
 
         Returns:
             A new normalized utility function. Returns a ConstUtilityFunction if the
@@ -417,8 +429,14 @@ class BaseUtilityFunction(Preferences, ABC):
 
         Raises:
             ValueError: If no outcome space is provided or defined for the ufun.
+
+        Remarks:
+            - This base implementation always guarantees both min and max, so the
+              guarantee_max and guarantee_min parameters are ignored.
+            - Subclasses like LinearAdditiveUtilityFunction use these parameters to
+              control whether strict guarantees are enforced at the cost of potentially
+              non-uniform weight scaling.
         """
-        max_cardinality: int = MAX_CARDINALITY
         if not outcome_space:
             outcome_space = self.outcome_space
         if not outcome_space:

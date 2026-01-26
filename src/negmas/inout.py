@@ -3,11 +3,12 @@ Defines import/export functionality
 """
 
 from __future__ import annotations
+from copy import deepcopy
 import math
 from os import PathLike, listdir
 from pathlib import Path
 from random import shuffle
-from typing import Any, Iterable, Sequence
+from typing import Any, Callable, Iterable, Sequence
 import xml.etree.ElementTree as ET
 
 from negmas.plots.util import DEFAULT_IMAGE_FORMAT
@@ -276,9 +277,9 @@ class Scenario:
             plot_path = folder / f"_plot{ext}"
             fig = self.plot(ufun_indices=(0, 1), backend=backend, **plot_kwargs)
             if backend == "matplotlib":
-                fig.savefig(str(plot_path), bbox_inches="tight")
+                fig.savefig(str(plot_path), bbox_inches="tight")  # type: ignore
             else:  # plotly
-                fig.write_image(str(plot_path))
+                fig.write_image(str(plot_path))  # type: ignore
             saved_files.append(plot_path)
         else:
             # Multiple plots: create _plots/ subfolder
@@ -299,9 +300,9 @@ class Scenario:
                 plot_path = plots_folder / f"{u_i_name}-{u_j_name}{ext}"
                 fig = self.plot(ufun_indices=(i, j), backend=backend, **plot_kwargs)
                 if backend == "matplotlib":
-                    fig.savefig(str(plot_path), bbox_inches="tight")
+                    fig.savefig(str(plot_path), bbox_inches="tight")  # type: ignore
                 else:  # plotly
-                    fig.write_image(str(plot_path))
+                    fig.write_image(str(plot_path))  # type: ignore
                 saved_files.append(plot_path)
 
         return saved_files
@@ -322,10 +323,12 @@ class Scenario:
         self.outcome_space.to_genius(domain_path)
         for ufun, path in zip(self.ufuns, ufun_paths):
             # Extract discount factor if ufun is discounted
-            # Genius requires <discount_factor> tag even when factor=1.0 (no discount)
+            # Genius only supports exponential discounting
             discount = 1.0  # Default: no discount
             if isinstance(ufun, DiscountedUtilityFunction):
-                discount = ufun.discount_factor
+                # ExpDiscountedUFun has 'discount' attribute, LinDiscountedUFun has 'cost'
+                # Genius only supports exponential discounting, so use discount if available
+                discount = getattr(ufun, "discount", 1.0) or 1.0
 
             # Always pass discount_factor to ensure <discount_factor> tag is included
             ufun.to_genius(path, issues=self.issues, discount_factor=discount)
@@ -347,10 +350,12 @@ class Scenario:
         self.outcome_space.to_genius(path / domain_name)
         for ufun, name in zip(self.ufuns, ufun_names):
             # Extract discount factor if ufun is discounted
-            # Genius requires <discount_factor> tag even when factor=1.0 (no discount)
+            # Genius only supports exponential discounting
             discount = 1.0  # Default: no discount
             if isinstance(ufun, DiscountedUtilityFunction):
-                discount = ufun.discount_factor
+                # ExpDiscountedUFun has 'discount' attribute, LinDiscountedUFun has 'cost'
+                # Genius only supports exponential discounting, so use discount if available
+                discount = getattr(ufun, "discount", 1.0) or 1.0
 
             # Always pass discount_factor to ensure <discount_factor> tag is included
             ufun.to_genius(path / name, issues=self.issues, discount_factor=discount)
@@ -665,21 +670,13 @@ class Scenario:
             )
             normalized_ufuns = []
             for ufun in self.ufuns:
-                # Check if the ufun's normalize_for() supports guarantee_max/guarantee_min
-                # Only LinearAdditiveUtilityFunction has these parameters
-                from inspect import signature
-
-                sig = signature(ufun.normalize_for)
-                if "guarantee_max" in sig.parameters:
-                    normalized = ufun.normalize_for(
-                        to,
-                        outcome_space=os_for_norm,
-                        guarantee_max=guarantee_max,
-                        guarantee_min=guarantee_min,
-                    )
-                else:
-                    # Fall back to basic normalize_for for other ufun types
-                    normalized = ufun.normalize_for(to, outcome_space=os_for_norm)
+                # All ufun types now support guarantee_max/guarantee_min parameters
+                normalized = ufun.normalize_for(
+                    to,
+                    outcome_space=os_for_norm,
+                    guarantee_max=guarantee_max,
+                    guarantee_min=guarantee_min,
+                )
                 normalized_ufuns.append(normalized)
             self.ufuns = tuple(normalized_ufuns)  # type: ignore The type is correct
         else:
