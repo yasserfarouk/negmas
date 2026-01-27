@@ -140,6 +140,15 @@ Release 0.14.0 (Unreleased)
   - Encapsulates history, scenario, agreement, and statistics
   - Supports save/load with multiple storage formats
   - Can be created from ``Mechanism.to_completed_run()``
+  - Includes ``plot()`` method for visualizing completed runs (equivalent to ``SAOMechanism.plot()``)
+
+* [feature] Add ``CompletedRun.plot()`` method for visualizing completed negotiation runs:
+
+  - Produces identical visualizations to ``SAOMechanism.plot()`` but works with saved/loaded runs
+  - Requires ``history_type='full_trace'`` (use ``Mechanism.to_completed_run(source="full_trace")``)
+  - Requires scenario with utility functions (load with ``load_scenario=True``)
+  - Supports all plotting parameters: 2D utility space, offer timelines, distance metrics, etc.
+  - Enables offline analysis and visualization of archived negotiation data
 
 * [feature] Add ``Mechanism.to_completed_run()`` method for creating ``CompletedRun`` from mechanism state
 * [feature] Add ``Mechanism.save()`` method for saving negotiation results to disk:

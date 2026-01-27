@@ -554,6 +554,203 @@ class CompletedRun(Generic[TState]):
             metadata=metadata if metadata else {},
         )
 
+    def plot(
+        self,
+        plotting_negotiators: tuple[int, int] | tuple[str, str] = (0, 1),
+        save_fig: bool = False,
+        path: str | None = None,
+        fig_name: str | None = None,
+        image_format: str = "webp",
+        ignore_none_offers: bool = True,
+        with_lines: bool = True,
+        show_agreement: bool = False,
+        show_pareto_distance: bool = True,
+        show_nash_distance: bool = True,
+        show_kalai_distance: bool = True,
+        show_ks_distance: bool = True,
+        show_max_welfare_distance: bool = True,
+        show_max_relative_welfare_distance: bool = False,
+        show_end_reason: bool = True,
+        show_annotations: bool = False,
+        show_reserved: bool = True,
+        show_total_time: bool = True,
+        show_relative_time: bool = True,
+        show_n_steps: bool = True,
+        colors: list | None = None,
+        markers: list[str] | None = None,
+        colormap: str = "tab10",
+        ylimits: tuple[float, float] | None = None,
+        common_legend: bool = True,
+        extra_annotation: str = "",
+        xdim: str = "relative_time",
+        colorizer: Any | None = None,
+        only2d: bool = False,
+        no2d: bool = False,
+        fast: bool = False,
+        simple_offers_view: bool = False,
+        mark_offers_view: bool = True,
+        mark_pareto_points: bool = True,
+        mark_all_outcomes: bool = True,
+        mark_nash_points: bool = True,
+        mark_kalai_points: bool = True,
+        mark_ks_points: bool = True,
+        mark_max_welfare_points: bool = True,
+        show: bool = True,
+    ):
+        """Visualize the completed negotiation run showing offers and utilities in 2D space.
+
+        This method produces the same visualization as SAOMechanism.plot() but works with
+        saved/completed runs. It requires that the CompletedRun has a scenario with utility
+        functions, and that the history is in 'full_trace' format.
+
+        Args:
+            plotting_negotiators: Indices or IDs of two negotiators whose utilities form the axes.
+            save_fig: Whether to save the figure to disk.
+            path: Directory path for saving the figure.
+            fig_name: Filename for the saved figure.
+            image_format: Image format to use (default: "webp"). Supported: webp, png, jpg, svg, pdf.
+            ignore_none_offers: Whether to skip None offers in the plot.
+            with_lines: Whether to connect offers with lines showing progression.
+            show_agreement: Whether to highlight the final agreement point.
+            show_pareto_distance: Whether to display distance to Pareto frontier.
+            show_nash_distance: Whether to display distance to Nash solution.
+            show_kalai_distance: Whether to display distance to Kalai-Smorodinsky solution.
+            show_ks_distance: Whether to display distance to KS point.
+            show_max_welfare_distance: Whether to display distance to max welfare point.
+            show_max_relative_welfare_distance: Whether to display distance to max relative welfare.
+            show_end_reason: Whether to annotate why the negotiation ended.
+            show_annotations: Whether to show offer annotations on the plot.
+            show_reserved: Whether to show reservation values.
+            show_total_time: Whether to display total negotiation time.
+            show_relative_time: Whether to display relative time progress.
+            show_n_steps: Whether to display the number of steps.
+            colors: Custom color list for negotiators.
+            markers: Custom marker list for negotiators.
+            colormap: Matplotlib colormap name for coloring offers.
+            ylimits: Y-axis limits as (min, max) tuple.
+            common_legend: Whether to use a shared legend for all subplots.
+            extra_annotation: Additional text to annotate on the plot.
+            xdim: Dimension for x-axis ("relative_time", "step", "time").
+            colorizer: Optional colorizer function for offers.
+            only2d: Whether to show only the 2D utility space plot.
+            no2d: Whether to skip the 2D utility space plot.
+            fast: Whether to use faster but less detailed rendering.
+            simple_offers_view: Whether to use simplified offer visualization.
+            mark_offers_view: Whether to mark offers in the utility space view.
+            mark_pareto_points: Whether to mark Pareto optimal points.
+            mark_all_outcomes: Whether to mark all possible outcomes.
+            mark_nash_points: Whether to mark Nash bargaining solution.
+            mark_kalai_points: Whether to mark Kalai-Smorodinsky solution.
+            mark_ks_points: Whether to mark KS points.
+            mark_max_welfare_points: Whether to mark maximum welfare points.
+            show: Whether to display the figure immediately.
+
+        Returns:
+            Plotly figure object if show=False, None otherwise.
+
+        Raises:
+            ValueError: If scenario is None, history_type is not 'full_trace', or utility functions are missing.
+        """
+        from negmas.plots.util import plot_offline_run
+
+        # Validate that we have the necessary data
+        if self.scenario is None:
+            raise ValueError(
+                "Cannot plot CompletedRun without a scenario. "
+                "Load the CompletedRun with load_scenario=True."
+            )
+
+        if self.history_type != "full_trace":
+            raise ValueError(
+                f"Can only plot CompletedRun with history_type='full_trace', "
+                f"got '{self.history_type}'. When saving the run, use "
+                f"to_completed_run(trace='full_trace')."
+            )
+
+        if not self.scenario.ufuns:
+            raise ValueError(
+                "Cannot plot CompletedRun without utility functions in the scenario."
+            )
+
+        # Extract negotiator info from config
+        negotiator_ids = self.config.get("negotiator_ids", [])
+        negotiator_names = self.config.get("negotiator_names", [])
+
+        # If we don't have IDs/names in config, try to extract from history
+        if not negotiator_ids and self.history:
+            # Extract unique negotiator IDs from trace
+            seen_ids = []
+            for entry in self.history:
+                if hasattr(entry, "negotiator"):
+                    nid = entry.negotiator  # type: ignore[union-attr]
+                    if nid is not None and nid not in seen_ids:
+                        seen_ids.append(nid)
+            negotiator_ids = seen_ids
+
+        if not negotiator_names:
+            negotiator_names = negotiator_ids
+
+        # Get outcome stats to determine end state
+        timedout = self.outcome_stats.get("timedout", False)
+        broken = self.outcome_stats.get("broken", False)
+        has_error = self.outcome_stats.get("has_error", False)
+        errstr = self.outcome_stats.get("error_details", "")
+
+        # Convert history to list of TraceElement if needed
+        trace = cast(list[TraceElement], self.history)
+
+        return plot_offline_run(
+            trace=trace,
+            ids=negotiator_ids,
+            ufuns=self.scenario.ufuns,
+            agreement=self.agreement,
+            timedout=timedout,
+            broken=broken,
+            has_error=has_error,
+            errstr=errstr,
+            names=negotiator_names,
+            negotiators=plotting_negotiators,
+            save_fig=save_fig,
+            path=path,
+            fig_name=fig_name,
+            image_format=image_format,
+            ignore_none_offers=ignore_none_offers,
+            with_lines=with_lines,
+            show_agreement=show_agreement,
+            show_pareto_distance=show_pareto_distance,
+            show_nash_distance=show_nash_distance,
+            show_kalai_distance=show_kalai_distance,
+            show_ks_distance=show_ks_distance,
+            show_max_welfare_distance=show_max_welfare_distance,
+            show_max_relative_welfare_distance=show_max_relative_welfare_distance,
+            show_end_reason=show_end_reason,
+            show_annotations=show_annotations,
+            show_reserved=show_reserved,
+            show_total_time=show_total_time,
+            show_relative_time=show_relative_time,
+            show_n_steps=show_n_steps,
+            colors=colors,
+            markers=markers,
+            colormap=colormap,
+            ylimits=ylimits,
+            common_legend=common_legend,
+            extra_annotation=extra_annotation,
+            xdim=xdim,
+            colorizer=colorizer,
+            only2d=only2d,
+            no2d=no2d,
+            fast=fast,
+            simple_offers_view=simple_offers_view,
+            mark_offers_view=mark_offers_view,
+            mark_pareto_points=mark_pareto_points,
+            mark_all_outcomes=mark_all_outcomes,
+            mark_nash_points=mark_nash_points,
+            mark_kalai_points=mark_kalai_points,
+            mark_ks_points=mark_ks_points,
+            mark_max_welfare_points=mark_max_welfare_points,
+            show=show,
+        )
+
 
 class Mechanism(
     NamedObject,
@@ -2395,6 +2592,10 @@ class Mechanism(
             "agreement": self.agreement,
             "broken": self.state.broken,
             "timedout": self.state.timedout,
+            "has_error": self.state.has_error,
+            "error_details": str(self.state.error_details)
+            if self.state.error_details
+            else "",
             "utilities": utilities,
         }
 
