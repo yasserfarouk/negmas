@@ -43,6 +43,19 @@ Release 0.14.0 (Unreleased)
 
 **New Features:**
 
+* [feature] Add three callbacks to ``Mechanism.run()`` and ``Mechanism.run_with_progress()``:
+
+  - ``start_callback``: Called once at the start of negotiation with initial state
+  - ``progress_callback``: Called after each negotiation step with current state
+  - ``completion_callback``: Called once at the end of negotiation with final state
+
+* [feature] Add three callbacks to ``Mechanism.runall()`` for monitoring multiple negotiations:
+
+  - ``start_callback``: Called at the start of each mechanism with ``(negotiation_id, mechanism)``
+  - ``progress_callback``: Called after each step of each mechanism with ``(negotiation_id, mechanism)``
+  - ``completion_callback``: Called at the end of each mechanism with ``(negotiation_id, mechanism)``
+    (renamed from ``end_callback`` for consistency)
+
 * [feature] Add registry system for mechanisms, negotiators, and components with scenario support
 * [feature] Add ``unregister()`` method to ``Registry`` and ``ScenarioRegistry`` for removing registered items
 * [feature] Registry classes now guarantee that new registrations never hide existing ones:
@@ -86,6 +99,14 @@ Release 0.14.0 (Unreleased)
 * [feature] Add ``has_pareto_frontier`` property and ``to_dict()``/``from_dict()`` methods to ``ScenarioStats``
 * [feature] Refactor ``SimpleTournamentResults`` to support lazy loading from disk
 * [feature] Add tournament callbacks: ``before_start_callback``, ``after_construction_callback``, ``after_end_callback``, ``progress_callback``
+* [feature] Add per-negotiation callbacks to ``cartesian_tournament`` for monitoring individual negotiations in real-time:
+
+  - ``neg_start_callback``: Called at the start of each negotiation with ``(run_id, state)``
+  - ``neg_progress_callback``: Called after each negotiation step with ``(run_id, state)``
+  - ``neg_end_callback``: Called at the completion of each negotiation with ``(run_id, state)``
+  - Callbacks work in both serial and parallel modes (local closures supported via cloudpickle)
+  - **Note:** In parallel mode, modifications to closure variables won't be visible in parent process
+
 * [feature] Add ``save_table()`` helper function for saving tabular data in multiple formats (CSV, gzip, Parquet)
 * [feature] Add ``load_table()`` helper function for loading tabular data from multiple formats (CSV, gzip, Parquet)
 * [feature] Extend ``load()`` function in ``negmas.helpers.inout`` to support ``.csv.gz`` and ``.parquet`` files

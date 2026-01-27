@@ -23,6 +23,7 @@ from random import randint, random, shuffle
 from time import perf_counter
 from typing import Any, Callable, Iterable, Literal
 
+import cloudpickle
 import pandas as pd
 from attr import asdict, define, field
 from rich import print
@@ -51,6 +52,37 @@ from negmas.warnings import deprecated
 
 OptimizationLevel = Literal["speed", "time", "none", "balanced", "space", "max"]
 StorageFormat = Literal["csv", "gzip", "parquet"]
+
+
+class _PicklableCallback:
+    """Wrapper to make callback with run_id picklable for parallel execution.
+
+    Uses cloudpickle to serialize the callback function, allowing local closures
+    and other complex callables to work in parallel mode with ProcessPoolExecutor.
+    """
+
+    def __init__(self, callback: Callable, run_id: int | str):
+        # Serialize the callback with cloudpickle for cross-process compatibility
+        self._callback_bytes = cloudpickle.dumps(callback)
+        self.run_id = run_id
+        self._callback = None  # Lazily deserialized
+
+    def __call__(self, state):
+        """Call the wrapped callback with run_id as first argument."""
+        # Deserialize callback on first use (in the worker process)
+        if self._callback is None:
+            self._callback = cloudpickle.loads(self._callback_bytes)
+        return self._callback(self.run_id, state)
+
+    def __getstate__(self):
+        """Custom pickle support - only serialize the bytes and run_id."""
+        return {"_callback_bytes": self._callback_bytes, "run_id": self.run_id}
+
+    def __setstate__(self, state):
+        """Custom unpickle support."""
+        self._callback_bytes = state["_callback_bytes"]
+        self.run_id = state["run_id"]
+        self._callback = None
 
 
 def _normalize_optimization_level(level: OptimizationLevel) -> OptimizationLevel:
@@ -499,6 +531,7 @@ class RunInfo:
     """
 
     s: Scenario
+    run_id: int | str
     partners: tuple[type[Negotiator]]
     partner_names: tuple[str] | None = None
     partner_params: tuple[dict[str, Any]] | None = None
@@ -510,7 +543,6 @@ class RunInfo:
     verbosity: int = 0
     plot: bool = False
     plot_params: dict[str, Any] | None = None
-    run_id: int | str | None = None
     stats: ScenarioStats | None = None
     annotation: dict[str, Any] | None = None
     private_infos: tuple[dict[str, Any] | None] | None = None
@@ -549,6 +581,9 @@ class ConstructedNegInfo:
 
 
 BeforeStartCallback = Callable[[RunInfo], None]
+NegStartCallback = Callable[[str | int, SAOState], None]
+NegProgressCallback = Callable[[str | int, SAOState], None]
+NegEndCallback = Callable[[str | int, SAOState], None]
 AfterConstructionCallback = Callable[[ConstructedNegInfo], None]
 # AfterEndCallback can accept either (record) or (record, config)
 AfterEndCallback = (
@@ -1881,6 +1916,7 @@ def _plot_run(
 def run_negotiation(
     s: Scenario,
     partners: tuple[type[Negotiator]],
+    run_id: int | str,
     partner_names: tuple[str] | None = None,
     partner_params: tuple[dict[str, Any]] | None = None,
     rep: int = 0,
@@ -1891,7 +1927,6 @@ def run_negotiation(
     verbosity: int = 0,
     plot=False,
     plot_params: dict[str, Any] | None = None,
-    run_id: int | str | None = None,
     stats: ScenarioStats | None = None,
     annotation: dict[str, Any] | None = None,
     private_infos: tuple[dict[str, Any] | None] | None = None,
@@ -1905,6 +1940,9 @@ def run_negotiation(
     before_start_callback: BeforeStartCallback | None = None,
     after_construction_callback: AfterConstructionCallback | None = None,
     after_end_callback: AfterEndCallback | None = None,
+    neg_start_callback: NegStartCallback | None = None,
+    neg_end_callback: NegEndCallback | None = None,
+    neg_progress_callback: NegProgressCallback | None = None,
     config: dict[str, Any] | None = None,
     image_format: str = DEFAULT_IMAGE_FORMAT,
 ) -> dict[str, Any]:
@@ -2052,7 +2090,17 @@ def run_negotiation(
             )
         strt = perf_counter()
         try:
-            state = m.run()
+            state = m.run(
+                start_callback=_PicklableCallback(neg_start_callback, run_id)
+                if neg_start_callback is not None
+                else None,
+                progress_callback=_PicklableCallback(neg_progress_callback, run_id)
+                if neg_progress_callback is not None
+                else None,
+                completion_callback=_PicklableCallback(neg_end_callback, run_id)
+                if neg_end_callback is not None
+                else None,
+            )
         except Exception as e:
             if not ignore_exceptions:
                 raise e
@@ -2419,7 +2467,8 @@ def cartesian_tournament(
     competitors: list[type[Negotiator] | str] | tuple[type[Negotiator] | str, ...],
     scenarios: list[Scenario] | tuple[Scenario, ...],
     opponents: list[type[Negotiator] | str]
-    | tuple[type[Negotiator] | str, ...] = tuple(),
+    | tuple[type[Negotiator] | str, ...]
+    | None = tuple(),
     opponent_params: list[dict | None] | None = None,
     opponent_names: list[str] | None = None,
     private_infos: list[None | tuple[dict, ...]] | None = None,
@@ -2466,9 +2515,12 @@ def cartesian_tournament(
     storage_format: StorageFormat | None = None,
     python_class_identifier=PYTHON_CLASS_IDENTIFIER,
     before_start_callback: BeforeStartCallback | None = None,
-    after_construction_callback: AfterConstructionCallback | None = None,
-    after_end_callback: AfterEndCallback | None = None,
     progress_callback: ProgressCallback | None = None,
+    neg_start_callback: NegStartCallback | None = None,
+    after_construction_callback: AfterConstructionCallback | None = None,
+    neg_progress_callback: NegProgressCallback | None = None,
+    neg_end_callback: NegEndCallback | None = None,
+    after_end_callback: AfterEndCallback | None = None,
     metadata: dict[str, Any] | None = None,
 ) -> SimpleTournamentResults:
     """Run a Cartesian tournament where negotiators compete across multiple scenarios.
@@ -2582,6 +2634,39 @@ def cartesian_tournament(
                           expected count. Useful for showing setup progress in UIs before
                           negotiations start. Called during competitor validation, scenario
                           processing, and run configuration building.
+        neg_start_callback: Optional callback invoked at the start of each negotiation.
+                           Receives (run_id: int | str, state: SAOState) where run_id uniquely
+                           identifies the negotiation and state is the initial mechanism state.
+                           Useful for monitoring negotiation progress. Exceptions are caught
+                           and logged but don't stop the tournament.
+
+                           **Parallel Execution Note:** Callbacks do NOT need to be defined at module
+                           level. You can use local functions, lambdas, or closures. However, when
+                           running in parallel mode (njobs > 0), callbacks are serialized using
+                           cloudpickle and executed in separate worker processes. This means:
+
+                           - Callbacks can capture local variables from enclosing scopes (closures work)
+                           - **IMPORTANT:** Modifications to captured variables (lists, dicts, etc.) will
+                             NOT be visible in the parent process. Each worker gets a copy of the closure.
+                           - To collect results from parallel callbacks, use side effects that persist
+                             across processes (e.g., write to files, database, use multiprocessing.Manager)
+                           - Callbacks must be picklable (avoid unpicklable objects like file handles, locks)
+
+        neg_progress_callback: Optional callback invoked after each step of each negotiation.
+                              Receives (run_id: int | str, state: SAOState) where state contains
+                              current step number, offers, and agreement status. Useful for real-time
+                              monitoring of negotiation progress. Exceptions are caught and logged
+                              but don't stop the tournament.
+
+                              See neg_start_callback documentation for parallel execution requirements.
+
+        neg_end_callback: Optional callback invoked at the completion of each negotiation.
+                         Receives (run_id: int | str, state: SAOState) where state contains
+                         the final agreement, step count, and termination reason. Useful for
+                         analyzing negotiation outcomes in real-time. Exceptions are caught
+                         and logged but don't stop the tournament.
+
+                         See neg_start_callback documentation for parallel execution requirements.
         metadata: Optional dictionary of metadata to include in tournament results.
 
     Returns:
@@ -2628,6 +2713,44 @@ def cartesian_tournament(
             scenarios=[scenario1],
             before_start_callback=log_start,
             after_end_callback=log_end,
+        )
+        ```
+
+        Using per-negotiation callbacks (local closures work in both serial and parallel):
+        ```python
+        # Serial mode - can modify local variables (closure copy)
+        start_times = []
+
+
+        def track_start(run_id, state):
+            print(f"Negotiation {run_id} started at step {state.step}")
+            start_times.append(run_id)  # Won't work in parallel mode!
+
+
+        results = cartesian_tournament(
+            competitors=[MyNegotiator, TheirNegotiator],
+            scenarios=[scenario1],
+            neg_start_callback=track_start,
+            njobs=-1,  # Serial mode
+        )
+
+        # Parallel mode - use files or database for side effects
+        from pathlib import Path
+
+        log_dir = Path("negotiation_logs")
+        log_dir.mkdir(exist_ok=True)
+
+
+        def track_start_parallel(run_id, state):
+            # Write to file - works across processes
+            (log_dir / f"start_{run_id}.log").write_text(f"Started at step {state.step}")
+
+
+        results = cartesian_tournament(
+            competitors=[MyNegotiator, TheirNegotiator],
+            scenarios=[scenario1],
+            neg_start_callback=track_start_parallel,
+            njobs=4,  # Parallel mode - callbacks still work!
         )
         ```
 
@@ -2787,6 +2910,9 @@ def cartesian_tournament(
         has_after_construction_callback=after_construction_callback is not None,
         has_after_end_callback=after_end_callback is not None,
         has_progress_callback=progress_callback is not None,
+        has_neg_progress_callback=neg_progress_callback is not None,
+        has_start_callback=neg_start_callback is not None,
+        has_end_callback=neg_end_callback is not None,
         metadata=serialize(metadata),
     )
 
@@ -3179,6 +3305,9 @@ def cartesian_tournament(
                     before_start_callback=before_start_callback,
                     after_construction_callback=after_construction_callback,
                     after_end_callback=after_end_callback,
+                    neg_start_callback=neg_start_callback,
+                    neg_end_callback=neg_end_callback,
+                    neg_progress_callback=neg_progress_callback,
                     run_id=get_run_id(info),
                 )
             )
@@ -3236,6 +3365,9 @@ def cartesian_tournament(
                         before_start_callback=before_start_callback,
                         after_construction_callback=after_construction_callback,
                         after_end_callback=after_end_callback,
+                        neg_start_callback=neg_start_callback,
+                        neg_progress_callback=neg_progress_callback,
+                        neg_end_callback=neg_end_callback,
                         run_id=info["run_id"],  # Pass the pre-computed run_id
                     )
                 ] = info
@@ -3480,16 +3612,13 @@ def continue_cartesian_tournament(
     except Exception:
         return None
 
-        scenarios = []
-        for scenario_dir in scenario_dirs:
-            scenario = Scenario.load(scenario_dir)
-            if scenario is None:
-                # Failed to load a scenario
-                return None
-            scenarios.append(scenario)
-
-    except Exception:
-        return None
+        # scenarios = []
+        # for scenario_dir in scenario_dirs:
+        #     scenario = Scenario.load(scenario_dir)
+        #     if scenario is None:
+        #         # Failed to load a scenario
+        #         return None
+        #     scenarios.append(scenario)
 
     # Extract parameters from config
     try:
@@ -3526,9 +3655,9 @@ def continue_cartesian_tournament(
         # Call cartesian_tournament with path_exists="continue"
         # Use config values directly; only provide defaults for truly optional parameters
         return cartesian_tournament(
-            competitors=competitors,
+            competitors=competitors,  # type: ignore
             scenarios=scenarios,
-            opponents=opponents if opponents else None,
+            opponents=opponents if opponents else None,  # type: ignore
             competitor_params=config.get("competitor_params"),
             opponent_params=config.get("opponent_params"),
             competitor_names=config.get("competitor_names"),

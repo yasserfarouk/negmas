@@ -1824,6 +1824,8 @@ class Mechanism(
         method: str = "ordered",
         ordering: tuple[int, ...] | None = None,
         ordering_fun: Callable[[int, list[TState | None]], int] | None = None,
+        start_callback: Callable[[int, Mechanism], None] | None = None,
+        progress_callback: Callable[[int, Mechanism], None] | None = None,
         completion_callback: Callable[[int, Mechanism], None] | None = None,
         ignore_mechanism_exceptions: bool = False,
     ) -> list[TState | None]:
@@ -1839,7 +1841,9 @@ class Mechanism(
             ordering_fun: A function to implement dynamic ordering for the "ordered" method.
                  This function receives a list of states and returns the index of the next mechanism to step.
                  Note that a state may be None if the corresponding mechanism was None and it should never be stepped
-            completion_callback: A callback to be called at the moment each mechanism is ended
+            start_callback: Optional callback called once at the start of each mechanism with (negotiation_id, mechanism)
+            progress_callback: Optional callback called after each step of each mechanism with (negotiation_id, mechanism)
+            completion_callback: Optional callback called once at the end of each mechanism with (negotiation_id, mechanism)
             ignore_mechanism_exceptions: If given, mechanisms with exceptions will be treated as ending and running will continue
 
         Returns:
@@ -1861,8 +1865,18 @@ class Mechanism(
                 mechanisms = [_ for _ in mechanisms]
                 random.shuffle(mechanisms)
             for i, mechanism in enumerate(mechanisms):
+                if start_callback:
+                    start_callback(i, mechanism)
                 try:
-                    mechanism.run()
+                    mechanism.run(
+                        start_callback=None,  # Already called above
+                        progress_callback=(
+                            lambda state: progress_callback(i, mechanism)
+                            if progress_callback
+                            else None
+                        ),
+                        completion_callback=None,  # Will call completion_callback below
+                    )
                 except Exception as e:
                     if not ignore_mechanism_exceptions:
                         raise e
@@ -1874,6 +1888,7 @@ class Mechanism(
             states = [_.state for _ in mechanisms]
         elif method == "ordered":
             completed = [_ is None for _ in mechanisms]
+            started = [False] * len(mechanisms)  # Track which mechanisms have started
             states: list[TState | None] = [None] * len(mechanisms)
             allindices = list(range(len(list(mechanisms))))
             indices = allindices if not ordering else list(ordering)
@@ -1890,8 +1905,14 @@ class Mechanism(
                     mechanism = mechanisms[i]
                     if completed[i]:
                         continue
+                    if not started[i]:
+                        if start_callback:
+                            start_callback(i, mechanism)
+                        started[i] = True
                     try:
                         result = mechanism.step()
+                        if progress_callback:
+                            progress_callback(i, mechanism)
                     except Exception as e:
                         if not ignore_mechanism_exceptions:
                             raise e
@@ -1914,8 +1935,14 @@ class Mechanism(
                         mechanism = mechanisms[i]
                         if completed[i]:
                             continue
+                        if not started[i]:
+                            if start_callback:
+                                start_callback(i, mechanism)
+                            started[i] = True
                         try:
                             result = mechanism.step()
+                            if progress_callback:
+                                progress_callback(i, mechanism)
                         except Exception as e:
                             if not ignore_mechanism_exceptions:
                                 raise e
@@ -1972,27 +1999,42 @@ class Mechanism(
             completed[i] = True
         return [_.state for _ in mechanisms]
 
-    def run_with_progress(self, timeout=None) -> TState:
-        """Run with progress.
+    def run_with_progress(
+        self,
+        timeout=None,
+        start_callback: Callable[[TState], None] | None = None,
+        progress_callback: Callable[[TState], None] | None = None,
+        completion_callback: Callable[[TState], None] | None = None,
+    ) -> TState:
+        """Run with a progress bar (using rich).
 
         Args:
-            timeout: Timeout.
+            timeout: Maximum time in seconds to run, or None for no limit
+            start_callback: Optional callback called once at the start of negotiation with the initial state
+            progress_callback: Optional callback called after each negotiation step with the current state
+            completion_callback: Optional callback called once at the end of negotiation with the final state
 
         Returns:
-            TState: The result.
+            TState: The final negotiation state after completion
         """
         from rich.progress import Progress
 
+        if start_callback:
+            start_callback(self._current_state)
         if timeout is None:
             with Progress() as progress:
                 task = progress.add_task("Negotiating ...", total=100)
                 for _ in self:
+                    if progress_callback:
+                        progress_callback(self._current_state)
                     progress.update(task, completed=int(self.relative_time * 100))
         else:
             start_time = time.perf_counter()
             with Progress() as progress:
                 task = progress.add_task("Negotiating ...", total=100)
                 for _ in self:
+                    if progress_callback:
+                        progress_callback(self._current_state)
                     progress.update(task, completed=int(self.relative_time * 100))
                     if time.perf_counter() - start_time > timeout:
                         (
@@ -2002,29 +2044,40 @@ class Mechanism(
                         ) = (False, True, False)
                         self.on_negotiation_end()
                         break
+
+        if completion_callback:
+            completion_callback(self._current_state)
         return self.state
 
     def run(
-        self, timeout=None, progress_callback: Callable[[TState], None] | None = None
+        self,
+        timeout=None,
+        start_callback: Callable[[TState], None] | None = None,
+        progress_callback: Callable[[TState], None] | None = None,
+        completion_callback: Callable[[TState], None] | None = None,
     ) -> TState:
         """Execute the negotiation mechanism until completion or timeout.
 
         Args:
             timeout: Maximum time in seconds to run, or None for no limit
-            progress_callback: Optional callback function to report progress after each step receiving the state.
-                               The callback is called once before the first step and once after the negotiation ends
+            start_callback: Optional callback called once at the start of negotiation with the initial state
+            progress_callback: Optional callback called after each negotiation step with the current state
+            completion_callback: Optional callback called once at the end of negotiation with the final state
 
         Returns:
             TState: Final negotiation state after completion
         """
+        if start_callback:
+            start_callback(self._current_state)
         if timeout is None:
             for _ in self:
-                pass
+                if progress_callback:
+                    progress_callback(self._current_state)
         else:
             start_time = time.perf_counter()
-            if progress_callback:
-                progress_callback(self.state)
             for _ in self:
+                if progress_callback:
+                    progress_callback(self.state)
                 if time.perf_counter() - start_time > timeout:
                     (
                         self._current_state.running,
@@ -2033,10 +2086,8 @@ class Mechanism(
                     ) = (False, True, False)
                     self.on_negotiation_end()
                     break
-                if progress_callback:
-                    progress_callback(self.state)
-            if progress_callback:
-                progress_callback(self.state)
+        if completion_callback:
+            completion_callback(self.state)
         return self.state
 
     @property
