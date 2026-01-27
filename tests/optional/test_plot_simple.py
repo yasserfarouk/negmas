@@ -12,6 +12,7 @@ sys.path.insert(0, str(Path(__file__).parent.parent / "src"))
 
 from negmas import Scenario, make_issue
 from negmas.preferences import LinearAdditiveUtilityFunction
+from negmas.plots.util import DEFAULT_IMAGE_FORMAT
 
 
 def create_test_scenario(n_ufuns=2):
@@ -91,8 +92,10 @@ def test_save_plots_method():
 
     # Check default value for ext
     default_ext = sig.parameters["ext"].default
-    assert default_ext == "png", f"ext default should be 'png', got {default_ext}"
-    print("✓ ext defaults to 'png'")
+    assert default_ext == DEFAULT_IMAGE_FORMAT, (
+        f"ext default should be '{DEFAULT_IMAGE_FORMAT}', got {default_ext}"
+    )
+    print(f"✓ ext defaults to '{DEFAULT_IMAGE_FORMAT}'")
 
     print("\n✓ save_plots() method test passed!")
 
@@ -114,9 +117,9 @@ def test_dumpas_signature():
     assert "plot_kwargs" in params, "dumpas() should have plot_kwargs parameter"
     print("✓ dumpas() has all plot-related parameters")
 
-    # Check defaults
-    assert sig.parameters["save_plot"].default == False
-    assert sig.parameters["plot_extension"].default == "png"
+    # Check defaults (plot_extension defaults to None, not 'png')
+    assert not sig.parameters["save_plot"].default
+    assert sig.parameters["plot_extension"].default is None
     assert sig.parameters["plot_kwargs"].default is None
     print("✓ dumpas() plot parameters have correct defaults")
 
@@ -140,9 +143,9 @@ def test_update_signature():
     assert "plot_kwargs" in params, "update() should have plot_kwargs parameter"
     print("✓ update() has all plot-related parameters")
 
-    # Check defaults
-    assert sig.parameters["save_plot"].default == False
-    assert sig.parameters["plot_extension"].default == "png"
+    # Check defaults (plot_extension defaults to None, not 'png')
+    assert not sig.parameters["save_plot"].default
+    assert sig.parameters["plot_extension"].default is None
     assert sig.parameters["plot_kwargs"].default is None
     print("✓ update() plot parameters have correct defaults")
 
@@ -184,7 +187,7 @@ def test_basic_save_and_load():
 
         # Test update without save_plot
         result = scenario2.update(save_stats=False, save_info=False)
-        assert result == True
+        assert result
         print("✓ update() works without save_plot")
 
         # Verify still no plot

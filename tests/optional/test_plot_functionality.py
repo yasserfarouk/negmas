@@ -19,6 +19,7 @@ sys.path.insert(0, str(Path(__file__).parent.parent / "src"))
 
 from negmas import Scenario, make_issue
 from negmas.preferences import LinearAdditiveUtilityFunction
+from negmas.plots.util import DEFAULT_IMAGE_FORMAT
 
 
 def create_test_scenario(n_ufuns=2):
@@ -192,9 +193,14 @@ def test_dumpas_with_save_plot():
         tmpdir = Path(tmpdir)
         print(f"Dumping scenario to: {tmpdir}")
 
-        # Test with save_plot=True
+        # Test with save_plot=True (explicitly request png format for test consistency)
         scenario.dumpas(
-            tmpdir, type="yml", save_plot=True, save_stats=False, save_info=False
+            tmpdir,
+            type="yml",
+            save_plot=True,
+            plot_extension="png",
+            save_stats=False,
+            save_info=False,
         )
 
         # Check that domain and ufun files were created
@@ -226,7 +232,7 @@ def test_dumpas_with_save_plot():
         # Check that _plots folder was created with 3 plots
         plots_folder = tmpdir / "_plots"
         assert plots_folder.exists(), "_plots folder should be created"
-        plot_files = list(plots_folder.glob("*.png"))
+        plot_files = list(plots_folder.glob(f"*.{DEFAULT_IMAGE_FORMAT}"))
         assert len(plot_files) == 3, f"Expected 3 plot files, got {len(plot_files)}"
         print(f"Created {len(plot_files)} plot file(s) in _plots/:")
         for f in plot_files:
@@ -259,10 +265,10 @@ def test_update_with_save_plot():
         # Update with save_plot=True
         print("Calling update() with save_plot=True...")
         result = scenario2.update(save_plot=True, save_stats=False, save_info=False)
-        assert result == True, "update() should return True"
+        assert result, "update() should return True"
 
         # Check that plot was created
-        plot_file = tmpdir / "_plot.png"
+        plot_file = tmpdir / f"_plot.{DEFAULT_IMAGE_FORMAT}"
         assert plot_file.exists(), (
             "Plot file should be created after update(save_plot=True)"
         )
