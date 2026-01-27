@@ -2511,6 +2511,7 @@ def cartesian_tournament(
     only_failures_on_self_play: bool = False,
     ignore_discount: bool = False,
     ignore_reserved: bool = False,
+    normalize_ufuns: bool = True,
     storage_optimization: OptimizationLevel = "space",
     memory_optimization: OptimizationLevel = "balanced",
     storage_format: StorageFormat | None = None,
@@ -2601,6 +2602,11 @@ def cartesian_tournament(
         only_failures_on_self_play: If True, only record self-play runs that fail to reach agreement.
         ignore_discount: If True, ignore discounting in utility functions (use base ufun).
         ignore_reserved: If True, ignore reserved values in utility functions.
+        normalize_ufuns: If True (default), all utility functions are normalized to [0, 1] range before
+                        negotiation. Normalization is applied independently to each ufun, guaranteeing
+                        that the best outcome has utility 1.0 and the worst has utility 0.0. This
+                        normalization happens BEFORE scenarios are saved to disk, so all saved scenarios,
+                        statistics, and figures reflect the normalized utilities.
         storage_optimization: Controls disk space usage for tournament results (default: "space"):
                             - "speed"/"time"/"none": Keep all files (results/, all_scores.csv, details.csv, etc.)
                             - "balanced": Remove results/ folder after details.csv is created
@@ -2795,6 +2801,26 @@ def cartesian_tournament(
             f"image_format must be one of {SUPPORTED_IMAGE_FORMATS}, got '{image_format}'"
         )
 
+    if ignore_discount:
+        for s in scenarios:
+            s.remove_discounting(recalculate_stats=False)
+
+    if normalize_ufuns:
+        scenarios = [
+            s.normalize(
+                guarantee_max=True,
+                guarantee_min=True,
+                common_range=False,
+                recalculate_stats=True,
+            )
+            if not s.is_normalized(common_range=False)
+            else s
+            for s in scenarios
+        ]
+    if ignore_reserved:
+        for s in scenarios:
+            s.remove_reserved_values(recalculate_stats=True)
+
     # Normalize optimization levels (treat "time"/"none" as "speed", "max" as "space")
     storage_optimization = _normalize_optimization_level(storage_optimization)
     memory_optimization = _normalize_optimization_level(memory_optimization)
@@ -2909,6 +2935,7 @@ def cartesian_tournament(
         only_failures_on_self_play=only_failures_on_self_play,
         ignore_discount=ignore_discount,
         ignore_reserved=ignore_reserved,
+        normalize_ufuns=normalize_ufuns,
         storage_optimization=storage_optimization,
         memory_optimization=memory_optimization,
         storage_format=storage_format,

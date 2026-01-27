@@ -2405,3 +2405,81 @@ def test_constructedneginfo_has_config():
         assert "competitors" in config
         assert "n_repetitions" in config
         assert config["n_repetitions"] == n_repetitions
+
+
+@mark.parametrize("normalize_ufuns", [True, False])
+def test_cartesian_tournament_normalization(tmp_path, normalize_ufuns):
+    """Test that cartesian_tournament normalizes ufuns correctly and saves normalized scenarios."""
+    issues = [make_issue(values=["a", "b", "c"], name=f"i{i}") for i in range(3)]
+
+    # Create non-normalized ufuns with different ranges
+    ufuns = [
+        (
+            U.random(issues=issues, reserved_value=0.0, normalized=False),
+            U.random(issues=issues, reserved_value=0.0, normalized=False),
+        )
+    ]
+
+    # Store original utility ranges
+    original_ranges = []
+    for scenario_ufuns in ufuns:
+        scenario_ranges = []
+        for ufun in scenario_ufuns:
+            all_utils = [
+                ufun(outcome) for outcome in make_os(issues).enumerate_or_sample()
+            ]
+            min_util = min(all_utils)
+            max_util = max(all_utils)
+            scenario_ranges.append((min_util, max_util))
+        original_ranges.append(scenario_ranges)
+
+    scenarios = [Scenario(outcome_space=make_os(issues, name="S0"), ufuns=ufuns[0])]
+    competitors = [RandomNegotiator, AspirationNegotiator]
+
+    # Run tournament with/without normalization
+    results = cartesian_tournament(
+        competitors=competitors,
+        scenarios=scenarios,
+        mechanism_params=dict(n_steps=10),
+        n_repetitions=2,
+        verbosity=0,
+        rotate_ufuns=False,
+        path=tmp_path,
+        njobs=-1,
+        normalize_ufuns=normalize_ufuns,
+        save_stats=True,
+    )
+
+    # Check that tournament completed successfully
+    assert results is not None
+    assert len(results.final_scores) > 0
+
+    # Load saved scenario and check normalization
+    saved_scenario = Scenario.load(tmp_path / "scenarios" / "S0")
+
+    # Check if saved scenario ufuns are normalized as expected
+    for i, ufun in enumerate(saved_scenario.ufuns):
+        all_utils = [
+            ufun(outcome)
+            for outcome in saved_scenario.outcome_space.enumerate_or_sample()
+        ]
+        min_util = min(all_utils)
+        max_util = max(all_utils)
+
+        if normalize_ufuns:
+            # Should be normalized to [0, 1] range
+            assert abs(min_util - 0.0) < 1e-6, (
+                f"Ufun {i} min utility {min_util} not close to 0.0"
+            )
+            assert abs(max_util - 1.0) < 1e-6, (
+                f"Ufun {i} max utility {max_util} not close to 1.0"
+            )
+        else:
+            # Should preserve original range
+            orig_min, orig_max = original_ranges[0][i]
+            assert abs(min_util - orig_min) < 1e-6, (
+                f"Ufun {i} min changed from {orig_min} to {min_util}"
+            )
+            assert abs(max_util - orig_max) < 1e-6, (
+                f"Ufun {i} max changed from {orig_max} to {max_util}"
+            )

@@ -151,6 +151,12 @@ Release 0.14.0 (Unreleased)
   - Enables offline analysis and visualization of archived negotiation data
 
 * [feature] Add ``Mechanism.to_completed_run()`` method for creating ``CompletedRun`` from mechanism state
+* [feature] Add utility function normalization by default in ``cartesian_tournament()``:
+
+  - All utility functions are normalized to [0, 1] range before tournaments (can be disabled with ``normalize_ufuns=False``)
+  - Normalization guarantees that the best outcome has utility 1.0 and the worst has utility 0.0 for each ufun independently
+  - Normalization happens BEFORE saving scenarios to disk, so all saved scenarios, statistics, and figures reflect normalized utilities
+  - Ensures consistent utility scales across different scenarios and negotiators
 * [feature] Add ``Mechanism.save()`` method for saving negotiation results to disk:
 
   - ``single_file=True``: Saves trace/history as a single CSV/gzip/parquet file
