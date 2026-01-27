@@ -846,6 +846,127 @@ class Scenario:
         self.stats = calc_scenario_stats(self.ufuns)
         return self.stats
 
+    def rotate_ufuns(self, n: int = 1, rotate_info: bool = True) -> Scenario:
+        """Creates a new scenario with utility functions rotated by n positions.
+
+        This method is useful for creating variants of scenarios where negotiators
+        swap positions, commonly used in tournament testing to evaluate negotiators
+        in different roles (e.g., buyer vs seller).
+
+        Args:
+            n: Number of positions to rotate. Default is 1 (rotate right by one position).
+                Can be negative to rotate left. The rotation is modulo len(ufuns).
+            rotate_info: If True, rotate private info entries in the same way as ufuns.
+                Only affects info entries that are lists/tuples matching the number of ufuns.
+
+        Returns:
+            A new Scenario with rotated utility functions and updated stats/info.
+
+        Notes:
+            - The outcome space remains unchanged (outcomes are not rotated).
+            - Stats are rotated to match the new ufun order:
+              * All _utils values (utility tuples) are rotated
+              * All _outcomes values (outcome objects) remain the same
+              * utility_ranges list is rotated to match new ufun positions
+            - Info dict is deep copied. If rotate_info=True, any list/tuple values
+              with length matching len(ufuns) are also rotated.
+            - The source path is cleared since this is a derived scenario.
+            - Mechanism type and params are preserved.
+
+        Examples:
+            >>> scenario = Scenario(outcome_space=os, ufuns=(u0, u1, u2))
+            >>> # Rotate right by 1: (u0, u1, u2) -> (u2, u0, u1)
+            >>> rotated = scenario.rotate_ufuns(1)
+            >>> assert rotated.ufuns == (u2, u0, u1)
+            >>>
+            >>> # Rotate left by 1: (u0, u1, u2) -> (u1, u2, u0)
+            >>> rotated = scenario.rotate_ufuns(-1)
+            >>> assert rotated.ufuns == (u1, u2, u0)
+        """
+        from copy import deepcopy
+
+        n_ufuns = len(self.ufuns)
+        if n_ufuns == 0:
+            return deepcopy(self)
+
+        # Normalize rotation amount
+        n = n % n_ufuns
+        if n == 0:
+            # No rotation needed
+            return deepcopy(self)
+
+        # Rotate ufuns: move last n elements to the front
+        rotated_ufuns = self.ufuns[-n:] + self.ufuns[:-n]
+
+        # Helper to rotate a tuple/list of values
+        def rotate_sequence(seq):
+            if not seq or len(seq) != n_ufuns:
+                return seq
+            return type(seq)(list(seq[-n:]) + list(seq[:-n]))
+
+        # Rotate stats if present
+        rotated_stats = None
+        if self.stats:
+            # Rotate utility_ranges
+            rotated_ranges = rotate_sequence(self.stats.utility_ranges)
+
+            # Helper to rotate utility tuples in a list
+            def rotate_util_tuples(util_list):
+                if not util_list:
+                    return util_list
+                return [rotate_sequence(u) for u in util_list]
+
+            # Rotate all _utils fields (outcomes stay the same)
+            rotated_stats = ScenarioStats(
+                opposition=self.stats.opposition,  # Scalar, doesn't change
+                utility_ranges=rotated_ranges,
+                pareto_utils=tuple(rotate_util_tuples(self.stats.pareto_utils))
+                if self.stats.pareto_utils
+                else tuple(),
+                pareto_outcomes=self.stats.pareto_outcomes[:],  # Unchanged
+                nash_utils=rotate_util_tuples(self.stats.nash_utils),
+                nash_outcomes=self.stats.nash_outcomes[:],  # Unchanged
+                kalai_utils=rotate_util_tuples(self.stats.kalai_utils),
+                kalai_outcomes=self.stats.kalai_outcomes[:],  # Unchanged
+                modified_kalai_utils=rotate_util_tuples(
+                    self.stats.modified_kalai_utils
+                ),
+                modified_kalai_outcomes=self.stats.modified_kalai_outcomes[
+                    :
+                ],  # Unchanged
+                max_welfare_utils=rotate_util_tuples(self.stats.max_welfare_utils),
+                max_welfare_outcomes=self.stats.max_welfare_outcomes[:],  # Unchanged
+                max_relative_welfare_utils=rotate_util_tuples(
+                    self.stats.max_relative_welfare_utils
+                ),
+                max_relative_welfare_outcomes=self.stats.max_relative_welfare_outcomes[
+                    :
+                ],  # Unchanged
+                ks_utils=rotate_util_tuples(self.stats.ks_utils),
+                ks_outcomes=self.stats.ks_outcomes[:],  # Unchanged
+                modified_ks_utils=rotate_util_tuples(self.stats.modified_ks_utils),
+                modified_ks_outcomes=self.stats.modified_ks_outcomes[:],  # Unchanged
+            )
+
+        # Rotate info if requested
+        rotated_info = deepcopy(self.info)
+        if rotate_info and rotated_info:
+            for key, value in rotated_info.items():
+                if isinstance(value, (list, tuple)) and len(value) == n_ufuns:
+                    rotated_info[key] = rotate_sequence(value)
+
+        # Create new scenario (source is cleared since this is derived)
+        return Scenario(
+            outcome_space=self.outcome_space,  # Shared, not copied
+            ufuns=rotated_ufuns,
+            mechanism_type=self.mechanism_type,
+            mechanism_params=deepcopy(self.mechanism_params),
+            info=rotated_info,
+            stats=rotated_stats,
+            name=self.name,  # Keep the same name
+            source=None,  # Clear source since this is a derived scenario
+        )
+
     def calc_extra_stats(
         self, max_cardinality: int = STATS_MAX_CARDINALITY
     ) -> dict[str, Any]:

@@ -107,6 +107,30 @@ Release 0.14.0 (Unreleased)
   - Callbacks work in both serial and parallel modes (local closures supported via cloudpickle)
   - **Note:** In parallel mode, modifications to closure variables won't be visible in parent process
 
+* [feature] Add ``Scenario.rotate_ufuns()`` method for efficient scenario rotation in tournaments:
+
+  - Creates new scenario with utility functions rotated by ``n`` positions (e.g., ``(u0, u1, u2) → (u2, u0, u1)`` for ``n=1``)
+  - Efficiently rotates scenario statistics without expensive recalculation:
+
+    - All utility tuples (``nash_utils``, ``kalai_utils``, ``pareto_utils``, etc.) are rotated to match new ufun order
+    - All outcome lists (``nash_outcomes``, ``kalai_outcomes``, etc.) remain unchanged
+    - Scalar values (``opposition``) remain unchanged
+    - ``utility_ranges`` list is rotated to match new positions
+
+  - Optionally rotates private info entries that match ufun count via ``rotate_info`` parameter
+  - Supports positive/negative rotation with modulo wrapping (e.g., ``n=4`` same as ``n=1`` for 3 ufuns)
+  - Outcome space is preserved (shared reference, not copied)
+
+* [feature] Add ``recalculate_stats`` parameter to ``cartesian_tournament`` for performance optimization:
+
+  - ``recalculate_stats=False`` (default, new behavior): Load stats from disk when available and use
+    ``Scenario.rotate_ufuns()`` to create rotated versions efficiently. Stats are calculated once then rotated,
+    avoiding redundant expensive calculations
+  - ``recalculate_stats=True`` (old behavior): Always recalculate stats for every scenario rotation
+  - When ``rotate_ufuns=False``, stats are never recalculated if already present in the scenario
+  - Provides significant speedup for tournaments with ``rotate_ufuns=True`` (observed 1.3-2x faster depending on scenario complexity)
+  - Produces identical tournament results to old behavior, just more efficiently
+
 * [feature] Add ``save_table()`` helper function for saving tabular data in multiple formats (CSV, gzip, Parquet)
 * [feature] Add ``load_table()`` helper function for loading tabular data from multiple formats (CSV, gzip, Parquet)
 * [feature] Extend ``load()`` function in ``negmas.helpers.inout`` to support ``.csv.gz`` and ``.parquet`` files

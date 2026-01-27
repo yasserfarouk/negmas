@@ -2500,6 +2500,7 @@ def cartesian_tournament(
     save_every: int = 0,
     save_stats: bool = True,
     save_scenario_figs: bool = True,
+    recalculate_stats: bool = False,
     image_format: str = DEFAULT_IMAGE_FORMAT,
     final_score: tuple[str, str] = ("advantage", "mean"),
     id_reveals_type: bool = False,
@@ -2580,6 +2581,11 @@ def cartesian_tournament(
         save_every: Save results to disk after this many negotiations (0 to disable periodic saving).
         save_stats: If True, calculate optimality statistics (Pareto, Nash, Kalai-Smorodinsky, etc.).
         save_scenario_figs: If True, save visualizations of scenarios in utility space.
+        recalculate_stats: If True, always recalculate stats even if loaded from disk (old behavior).
+                          If False (default), load stats/info/plots from disk when available and use
+                          Scenario.rotate_ufuns() to create rotated versions efficiently. This dramatically
+                          speeds up tournaments by avoiding redundant stat calculations. When rotate_ufuns=False,
+                          stats are never recalculated if available in the scenario folder.
         image_format: Format for saving figures. Supported formats: 'webp', 'png', 'jpg', 'jpeg', 'svg', 'pdf'.
                      Default is 'webp'. Applies to both scenario figures and run plots.
         final_score: Tuple of (metric, statistic) for ranking. Metric can be 'advantage', 'utility',
@@ -2892,6 +2898,7 @@ def cartesian_tournament(
         save_every=save_every,
         save_stats=save_stats,
         save_scenario_figs=save_scenario_figs,
+        recalculate_stats=recalculate_stats,
         image_format=image_format,
         final_score=final_score,
         id_reveals_type=id_reveals_type,
@@ -3056,47 +3063,123 @@ def cartesian_tournament(
                 result.reserved_value = float("-inf")
             return result
 
-        # Process ufuns before deepcopy
-        processed_ufuns = [process_ufun(u) for u in s.ufuns]
-        ufun_sets = [[copy.deepcopy(_) for _ in processed_ufuns]]
-        pinfo_sets = [pinfo]
-        for i, u in enumerate(processed_ufuns):
-            u.name = f"{i}_{u.name}"
-        if rotate_ufuns:
-            for _ in range(len(ufun_sets)):
-                ufuns = ufun_sets[-1]
-                ufun_sets.append([ufuns[-1]] + ufuns[:-1])
-                if rotate_private_infos and pinfolst:
-                    pinfo_sets.append(tuple([pinfolst[-1]] + pinfolst[:-1]))
-                else:
-                    pinfo_sets.append(pinfo)
+        # NEW OPTIMIZED APPROACH (when recalculate_stats=False, the default):
+        # - Load scenarios WITH stats/info/plots from disk
+        # - Use Scenario.rotate_ufuns() to create rotated versions (stats are rotated, not recalculated)
+        # - Only calculate stats if not available in the original scenario folder
+        # - When rotate_ufuns=False, never recalculate if stats exist
 
+        # OLD APPROACH (when recalculate_stats=True):
+        # - Load scenarios WITHOUT stats
+        # - Manually rotate ufuns and create new scenarios
+        # - Recalculate stats for every rotation
+
+        # Generate scenarios list based on recalculate_stats flag
+        # scenarios_to_process is a list of (scenario, scenario_name, pinfo_tuple)
+        scenarios_to_process = []
         original_name = s.outcome_space.name
-        # original_ufun_names = [_.name for _ in s.ufuns]
-        for i, (ufuns, pinfo_tuple) in enumerate(zip(ufun_sets, pinfo_sets)):
-            if len(ufun_sets) > 1:
-                for j, u in enumerate(ufuns):
-                    n = "_".join(u.name.split("_")[1:])
-                    u.name = f"{j}_{n}"
-                scenario = Scenario(
-                    type(s.outcome_space)(
-                        issues=s.outcome_space.issues,
-                        name=f"{original_name}-{i}" if i else original_name,
-                    ),
-                    tuple(ufuns),  # type: ignore
-                )
-            else:
-                scenario = s
-            this_path = None
-            # Calculate stats if needed (before saving to ensure stats are available)
-            if save_stats:
-                scenario.calc_stats()
 
+        if recalculate_stats:
+            # OLD BEHAVIOR: Process ufuns manually and recalculate stats for each rotation
+            processed_ufuns = [process_ufun(u) for u in s.ufuns]
+            ufun_sets = [[copy.deepcopy(_) for _ in processed_ufuns]]
+            pinfo_sets = [pinfo]
+            for i, u in enumerate(processed_ufuns):
+                u.name = f"{i}_{u.name}"
+            if rotate_ufuns:
+                for _ in range(len(ufun_sets)):
+                    ufuns = ufun_sets[-1]
+                    ufun_sets.append([ufuns[-1]] + ufuns[:-1])
+                    if rotate_private_infos and pinfolst:
+                        pinfo_sets.append(tuple([pinfolst[-1]] + pinfolst[:-1]))
+                    else:
+                        pinfo_sets.append(pinfo)
+
+            for i, (ufuns, pinfo_tuple) in enumerate(zip(ufun_sets, pinfo_sets)):
+                if len(ufun_sets) > 1:
+                    for j, u in enumerate(ufuns):
+                        n = "_".join(u.name.split("_")[1:])
+                        u.name = f"{j}_{n}"
+                    scenario = Scenario(
+                        type(s.outcome_space)(
+                            issues=s.outcome_space.issues,
+                            name=f"{original_name}-{i}" if i else original_name,
+                        ),
+                        tuple(ufuns),  # type: ignore
+                    )
+                    scenario_name = f"{original_name}-{i}" if i else original_name
+                else:
+                    scenario = s
+                    scenario_name = original_name
+
+                # Calculate stats if needed (before saving to ensure stats are available)
+                if save_stats:
+                    scenario.calc_stats()
+
+                scenarios_to_process.append((scenario, scenario_name, pinfo_tuple))
+        else:
+            # NEW OPTIMIZED BEHAVIOR: Use rotate_ufuns() to avoid recalculating stats
+            # Process scenario with ignore_discount/ignore_reserved
+            base_scenario = copy.deepcopy(s)
+            base_scenario.ufuns = tuple([process_ufun(u) for u in base_scenario.ufuns])  # type: ignore
+
+            # Rename ufuns with indices
+            for i, u in enumerate(base_scenario.ufuns):
+                u.name = f"{i}_{u.name}"
+
+            # Calculate stats only if not available and save_stats=True
+            if save_stats and base_scenario.stats is None:
+                base_scenario.calc_stats()
+
+            # Determine number of rotations
+            n_rotations = len(base_scenario.ufuns) if rotate_ufuns else 1
+
+            # Generate all scenarios (base + rotations)
+            for rotation_idx in range(n_rotations):
+                if rotation_idx == 0:
+                    # Base scenario (no rotation)
+                    scenario = base_scenario
+                    scenario_name = original_name
+                    pinfo_tuple = pinfo
+                else:
+                    # Rotated scenario - use rotate_ufuns() to efficiently create variant
+                    scenario = base_scenario.rotate_ufuns(
+                        n=rotation_idx, rotate_info=rotate_private_infos
+                    )
+                    scenario_name = f"{original_name}-{rotation_idx}"
+
+                    # Update outcome space name
+                    scenario.outcome_space = type(s.outcome_space)(
+                        issues=s.outcome_space.issues, name=scenario_name
+                    )
+
+                    # Update ufun names to reflect rotation
+                    for j, u in enumerate(scenario.ufuns):
+                        n = "_".join(u.name.split("_")[1:])
+                        u.name = f"{j}_{n}"
+
+                    # Handle private info rotation
+                    if rotate_private_infos and pinfolst:
+                        # Rotate private info the same way
+                        rotated_pinfolst = (
+                            pinfolst[-rotation_idx:] + pinfolst[:-rotation_idx]
+                        )
+                        pinfo_tuple = tuple(rotated_pinfolst)
+                    else:
+                        pinfo_tuple = pinfo
+
+                scenarios_to_process.append((scenario, scenario_name, pinfo_tuple))
+
+        # COMMON CODE: Process all scenarios (from either path above)
+        for scenario, scenario_name, pinfo_tuple in scenarios_to_process:
+            this_path = None
+
+            # Save scenario to disk if scenarios_path is provided
             if scenarios_path:
-                this_path = scenarios_path / str(scenario.outcome_space.name)
+                this_path = scenarios_path / scenario_name
                 # Exclude pareto frontier when optimizing for space
                 include_pareto = storage_optimization != "space"
-                # Use dumpas to save scenario with stats in _stats.yaml (not stats.json)
+                # Use dumpas to save scenario with stats
                 scenario.dumpas(
                     this_path,
                     type="yml",
@@ -3109,7 +3192,7 @@ def cartesian_tournament(
                     plot_offline_run(
                         trace=[],
                         ids=["First", "Second"],
-                        ufuns=s.ufuns,  # type: ignore
+                        ufuns=scenario.ufuns[:2],  # type: ignore
                         agreement=None,
                         timedout=False,
                         broken=False,
@@ -3135,6 +3218,7 @@ def cartesian_tournament(
                         show=False,
                     )
 
+            # Prepare mechanism parameters
             mparams = copy.deepcopy(mechanism_params)
             mparams.update(
                 dict(
@@ -3148,13 +3232,11 @@ def cartesian_tournament(
                 )
             )
             if scenarios_path:
-                params_path = (
-                    scenarios_path
-                    / str(scenario.outcome_space.name)
-                    / MECHANISM_FILE_NAME
-                )
+                params_path = scenarios_path / scenario_name / MECHANISM_FILE_NAME
                 pdict = dict(type=get_full_type_name(mechanism_type)) | mparams
                 dump(pdict, params_path)
+
+            # Generate runs for all partner combinations
             for partners in partners_list:
                 # Determine which positions should be scored
                 if explicit_opponents:
@@ -3688,6 +3770,7 @@ def continue_cartesian_tournament(
             save_every=config["save_every"],
             save_stats=config["save_stats"],
             save_scenario_figs=config["save_scenario_figs"],
+            recalculate_stats=config.get("recalculate_stats", False),
             image_format=config.get("image_format", DEFAULT_IMAGE_FORMAT),
             final_score=config["final_score"],
             id_reveals_type=config["id_reveals_type"],
