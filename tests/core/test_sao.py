@@ -1221,3 +1221,144 @@ def test_sao_state_data_population():
         f"Offers made: {data_offering.offer_count}, "
         f"Responses made: {data_acceptance.response_count}"
     )
+
+
+def test_mechanism_run_callbacks():
+    """Test Mechanism.run() with start, progress, and completion callbacks."""
+    # Track callback calls
+    calls = {"start": 0, "progress": 0, "completion": 0}
+
+    def start_cb(state):
+        calls["start"] += 1
+        assert state.step == 0, f"Start callback should have step=0, got {state.step}"
+
+    def progress_cb(state):
+        calls["progress"] += 1
+        assert state.step >= 0, f"Progress callback should have non-negative step"
+
+    def completion_cb(state):
+        calls["completion"] += 1
+        assert not state.running, "Completion callback should have running=False"
+
+    # Create a simple mechanism
+    issues = [
+        make_issue([f"option_{i}" for i in range(5)], f"issue_{j}") for j in range(2)
+    ]
+    session = SAOMechanism(issues=issues, n_steps=10)
+    session.add(
+        AspirationNegotiator(name="buyer"),
+        ufun=LUFun.random(session.outcome_space, reserved_value=0.0),
+    )
+    session.add(
+        AspirationNegotiator(name="seller"),
+        ufun=LUFun.random(session.outcome_space, reserved_value=0.0),
+    )
+
+    # Run with callbacks
+    final_state = session.run(
+        start_callback=start_cb,
+        progress_callback=progress_cb,
+        completion_callback=completion_cb,
+    )
+
+    # Verify callbacks were called
+    assert calls["start"] == 1, "start_callback should be called exactly once"
+    assert calls["completion"] == 1, "completion_callback should be called exactly once"
+    assert calls["progress"] >= 0, "progress_callback should be called"
+
+
+def test_mechanism_run_with_progress_callbacks():
+    """Test Mechanism.run_with_progress() with callbacks."""
+    calls = {"start": 0, "progress": 0, "completion": 0}
+
+    def start_cb(state):
+        calls["start"] += 1
+
+    def progress_cb(state):
+        calls["progress"] += 1
+
+    def completion_cb(state):
+        calls["completion"] += 1
+
+    # Create mechanism
+    issues = [
+        make_issue([f"option_{i}" for i in range(5)], f"issue_{j}") for j in range(2)
+    ]
+    session = SAOMechanism(issues=issues, n_steps=5)
+    session.add(
+        AspirationNegotiator(name="buyer"),
+        ufun=LUFun.random(session.outcome_space, reserved_value=0.0),
+    )
+    session.add(
+        AspirationNegotiator(name="seller"),
+        ufun=LUFun.random(session.outcome_space, reserved_value=0.0),
+    )
+
+    # Run with progress bar and callbacks
+    final_state = session.run_with_progress(
+        start_callback=start_cb,
+        progress_callback=progress_cb,
+        completion_callback=completion_cb,
+    )
+
+    # Verify callbacks were called
+    assert calls["start"] == 1
+    assert calls["completion"] == 1
+    assert calls["progress"] >= 0
+
+
+def test_mechanism_runall_callbacks():
+    """Test Mechanism.runall() with callbacks including negotiation IDs."""
+    calls = {"start": {}, "progress": {}, "completion": {}}
+
+    def start_cb(neg_id, mechanism):
+        if neg_id not in calls["start"]:
+            calls["start"][neg_id] = 0
+        calls["start"][neg_id] += 1
+
+    def progress_cb(neg_id, mechanism):
+        if neg_id not in calls["progress"]:
+            calls["progress"][neg_id] = 0
+        calls["progress"][neg_id] += 1
+
+    def completion_cb(neg_id, mechanism):
+        if neg_id not in calls["completion"]:
+            calls["completion"][neg_id] = 0
+        calls["completion"][neg_id] += 1
+
+    # Create multiple mechanisms
+    mechanisms = []
+    for i in range(3):
+        issues = [
+            make_issue([f"option_{i}" for i in range(5)], f"issue_{j}")
+            for j in range(2)
+        ]
+        session = SAOMechanism(issues=issues, n_steps=5, name=f"negotiation_{i}")
+        session.add(
+            AspirationNegotiator(name="buyer"),
+            ufun=LUFun.random(session.outcome_space, reserved_value=0.0),
+        )
+        session.add(
+            AspirationNegotiator(name="seller"),
+            ufun=LUFun.random(session.outcome_space, reserved_value=0.0),
+        )
+        mechanisms.append(session)
+
+    # Run all mechanisms with callbacks
+    states = SAOMechanism.runall(
+        mechanisms,
+        method="sequential",
+        start_callback=start_cb,
+        progress_callback=progress_cb,
+        completion_callback=completion_cb,
+    )
+
+    # Verify callbacks were called for each mechanism
+    assert len(states) == 3
+    for i in range(3):
+        assert calls["start"].get(i, 0) == 1, (
+            f"start_callback should be called once for mechanism {i}"
+        )
+        assert calls["completion"].get(i, 0) == 1, (
+            f"completion_callback should be called once for mechanism {i}"
+        )
