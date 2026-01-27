@@ -72,6 +72,14 @@ Negotiation Strategies & Agents
 
 Papers presenting novel negotiation strategies using NegMAS:
 
+- Shymanski, J. (2025).
+  `ChargingBoul: A Competitive Negotiating Agent with Novel Opponent Modeling <https://arxiv.org/abs/2512.06595>`_.
+  arXiv:2512.06595.
+
+- Chen, S., Weiss, G. (2025).
+  `Enhancing Agent-based Negotiation Strategies via Transfer Learning <https://doi.org/10.3390/electronics14020295>`_.
+  *Electronics*. *Cited by 2*
+
 - Miyajima, R., Fujita, K. (2025).
   `CoCoNAT: Combinatorial Concurrent Negotiating Agent Transformer <https://papers.ssrn.com/sol3/papers.cfm?abstract_id=5744762>`_.
   SSRN Preprint.
@@ -83,6 +91,14 @@ Papers presenting novel negotiation strategies using NegMAS:
 - Aguilera-Luzon, D., de Jonge, D., Larrosa, J. (2025).
   `MiCRO for Multilateral Negotiations <https://doi.org/10.1007/978-981-96-1072-1_6>`_.
   In: *PRIMA 2024*. LNCS. Springer.
+
+- Aguilera Luzón, D. (2025).
+  `New Variants of the MiCRO Negotiation Strategy <https://upcommons.upc.edu/handle/2117/419175>`_.
+  Master's Thesis, Universitat Politècnica de Catalunya.
+
+- Hassanvand, F., Nassiri-Mofakham, F., Fujita, K. (2024).
+  `Automated Negotiation Agents for Modeling Single-Peaked Bidders: An Experimental Comparison <https://doi.org/10.3390/info15120770>`_.
+  *Information*. *Cited by 1*
 
 - Chang, S., Fujita, K. (2024).
   `COMB: Scalable Concession-driven Opponent Models Using Bayesian Learning <https://doi.org/10.1007/s10726-024-09881-x>`_.
@@ -217,6 +233,10 @@ Papers describing other platforms that use or compare with NegMAS:
 - Keskin, M.O., Buzcu, B., Koçyiğit, B., et al. (2024).
   `NEGOTIATOR: A Comprehensive Framework for Human-Agent Negotiation <https://doi.org/10.1145/3652988.3673933>`_.
   In: *Proceedings of AAMAS 2024*. *Cited by 2*
+
+- Doğru, A., Keskin, M.O., Aydoğan, R. (2025).
+  `Taking into Account Opponent's Arguments in Human-Agent Negotiations <https://doi.org/10.1145/3701460>`_.
+  *ACM Transactions on Interactive Intelligent Systems*. *Cited by 3*
 
 - de Jonge, D. (2025).
   `BINGO: An Algorithm for Automated Negotiations with Hidden Reservation Values <https://iiia.csic.es/~davedejonge/homepage/papers/bingo.pdf>`_.
