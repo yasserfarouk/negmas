@@ -436,6 +436,8 @@ class Scenario:
                     name=v.name,
                     outcome_space=sos,
                 )
+                # Update the outer wrapper's outcome_space to match the new single-issue space
+                usave.outcome_space = sos
                 ufuns.append(usave)
                 continue
             ufuns.append(
@@ -873,15 +875,16 @@ class Scenario:
             - The source path is cleared since this is a derived scenario.
             - Mechanism type and params are preserved.
 
-        Examples:
-            >>> scenario = Scenario(outcome_space=os, ufuns=(u0, u1, u2))
-            >>> # Rotate right by 1: (u0, u1, u2) -> (u2, u0, u1)
-            >>> rotated = scenario.rotate_ufuns(1)
-            >>> assert rotated.ufuns == (u2, u0, u1)
-            >>>
-            >>> # Rotate left by 1: (u0, u1, u2) -> (u1, u2, u0)
-            >>> rotated = scenario.rotate_ufuns(-1)
-            >>> assert rotated.ufuns == (u1, u2, u0)
+        Examples::
+
+            scenario = Scenario(outcome_space=os, ufuns=(u0, u1, u2))
+            # Rotate right by 1: (u0, u1, u2) -> (u2, u0, u1)
+            rotated = scenario.rotate_ufuns(1)
+            assert rotated.ufuns == (u2, u0, u1)
+
+            # Rotate left by 1: (u0, u1, u2) -> (u1, u2, u0)
+            rotated = scenario.rotate_ufuns(-1)
+            assert rotated.ufuns == (u1, u2, u0)
         """
         from copy import deepcopy
 

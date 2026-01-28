@@ -12,17 +12,38 @@ from negmas.genius.gnegotiators import AgentK, Caduceus
 from negmas.genius.negotiator import GeniusNegotiator
 from negmas.inout import Scenario
 from negmas.sao.mechanism import SAOMechanism, SAOState
+from negmas.sao.negotiators import AspirationNegotiator
 
 
 # Helper to get test data paths without pkg_resources
-def get_test_data_path(resource_name: str) -> Path:
-    """Get path to test data resource"""
+def get_test_data_path(resource_name: str) -> str:
+    """Get path to test data resource as string for compatibility"""
     # Start from this file's location
-    this_file = Path(__file__).parent.parent.parent  # Go to project root
-    return this_file / resource_name.lstrip("/")
+    tests_dir = Path(__file__).parent.parent  # Go to tests/ directory
+    # Handle both "tests/data/..." and "data/..." formats
+    if resource_name.startswith("tests/data/"):
+        resource_name = resource_name[len("tests/data/") :]
+    elif resource_name.startswith("data/"):
+        resource_name = resource_name[len("data/") :]
 
+    # Check multiple possible locations
+    possible_paths = [
+        tests_dir
+        / "data"
+        / "scenarios"
+        / "anac"
+        / "y2013"
+        / resource_name,  # For cameradomain
+        tests_dir / "data" / resource_name,  # Direct path
+    ]
 
-from negmas.sao.negotiators import AspirationNegotiator
+    for path in possible_paths:
+        if path.exists():
+            return str(path)
+
+    # If not found, return the most likely path
+    return str(tests_dir / "data" / resource_name)
+
 
 TIMELIMIT = 60
 STEPLIMIT = 100

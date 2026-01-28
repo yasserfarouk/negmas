@@ -3467,7 +3467,9 @@ def cartesian_tournament(
         cpus = min(n_cores, njobs) if njobs else cpu_count()
         kwargs_ = dict(max_workers=cpus)
         version = sys.version_info
-        if version.major > 3 or version.minor > 10:
+        # Only use max_tasks_per_child if we have multiple workers to avoid
+        # worker restart deadlocks with single-worker pools on Python 3.14+
+        if (version.major > 3 or version.minor > 10) and cpus > 1:
             kwargs_.update(max_tasks_per_child=MAX_TASKS_PER_CHILD)
 
         with ProcessPoolExecutor(**kwargs_) as pool:  # type: ignore

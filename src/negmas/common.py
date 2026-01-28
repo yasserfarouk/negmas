@@ -301,19 +301,19 @@ class NegotiatorMechanismInterface:
     backward compatibility with code that doesn't use per-negotiator limits.
 
     Examples:
-        Standard usage (all negotiators see same limits):
+        Standard usage (all negotiators see same limits)::
 
-        >>> mechanism = SAOMechanism(time_limit=60, n_steps=100)
-        >>> # All negotiators see time_limit=60, n_steps=100
+            mechanism = SAOMechanism(time_limit=60, n_steps=100)
+            # All negotiators see time_limit=60, n_steps=100
 
-        Per-negotiator limits:
+        Per-negotiator limits::
 
-        >>> mechanism = SAOMechanism(time_limit=60, n_steps=100)
-        >>> mechanism.add(negotiator1, time_limit=30)  # Sees time_limit=30 (stricter)
-        >>> mechanism.add(
-        ...     negotiator2, time_limit=90
-        ... )  # Sees time_limit=60 (shared is stricter)
-        >>> mechanism.add(negotiator3)  # Sees time_limit=60 (no private limit)
+            mechanism = SAOMechanism(time_limit=60, n_steps=100)
+            mechanism.add(negotiator1, time_limit=30)  # Sees time_limit=30 (stricter)
+            mechanism.add(
+                negotiator2, time_limit=90
+            )  # Sees time_limit=60 (shared is stricter)
+            mechanism.add(negotiator3)  # Sees time_limit=60 (no private limit)
     """
 
     id: str

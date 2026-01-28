@@ -1499,12 +1499,120 @@ class Mechanism(
             that are not within the capabilities of the negotiator.
 
         """
-        for req, val in self._requirements.items():
-            if negotiator.capabilities.get(req, None) != val:
+        return self.is_satisfying(negotiator.capabilities)
+
+    def is_satisfying(self, capabilities: dict) -> bool:
+        """Check if given capabilities satisfy the mechanism's requirements.
+
+        Args:
+            capabilities: Dictionary of capabilities to check
+
+        Returns:
+            True if capabilities satisfy all requirements, False otherwise
+
+        Remarks:
+            - None requirement value means any capability value is acceptable
+            - Set/list requirement means capability must match one of the values
+            - Tuple of 2 numbers is treated as a range [min, max] - capability can be value in range or overlapping range
+            - For exact equality check after set conversion if both are collections
+        """
+
+        def is_range(val):
+            """Check if value is a numeric range (tuple of exactly 2 numbers)"""
+            return (
+                isinstance(val, tuple)
+                and len(val) == 2
+                and isinstance(val[0], (int, float))
+                and isinstance(val[1], (int, float))
+            )
+
+        def ranges_overlap(r1, r2):
+            """Check if two ranges overlap"""
+            return max(r1[0], r2[0]) <= min(r1[1], r2[1])
+
+        def value_in_range(val, rng):
+            """Check if a value is within a range"""
+            return rng[0] <= val <= rng[1]
+
+        for req, req_val in self._requirements.items():
+            cap_val = capabilities.get(req)
+
+            # No capability for this requirement
+            if cap_val is None and req_val is not None:
                 return False
+
+            # None requirement means any value is acceptable
+            if req_val is None:
+                continue
+
+            # Handle range requirements
+            if is_range(req_val):
+                if is_range(cap_val):
+                    # Both are ranges - check for overlap
+                    if not ranges_overlap(req_val, cap_val):
+                        return False
+                elif isinstance(cap_val, (int, float)):
+                    # Capability is a single value - check if in range
+                    if not value_in_range(cap_val, req_val):
+                        return False
+                elif isinstance(cap_val, (list, set)):
+                    # Capability is a list/set - check if any value is in range
+                    if not any(
+                        value_in_range(v, req_val)
+                        for v in cap_val
+                        if isinstance(v, (int, float))
+                    ):
+                        return False
+                else:
+                    return False
+                continue
+
+            # Handle range capabilities (requirement is not a range)
+            if is_range(cap_val):
+                if isinstance(req_val, (int, float)):
+                    # Requirement is a single value - check if in capability range
+                    if not value_in_range(req_val, cap_val):
+                        return False
+                elif isinstance(req_val, (list, set)):
+                    # Requirement is a list/set - check if any value is in range
+                    if not any(
+                        value_in_range(v, cap_val)
+                        for v in req_val
+                        if isinstance(v, (int, float))
+                    ):
+                        return False
+                else:
+                    return False
+                continue
+
+            # Convert to sets for comparison if they're collections (but not ranges)
+            req_set = set(req_val) if isinstance(req_val, (list, set)) else None
+            cap_set = set(cap_val) if isinstance(cap_val, (list, set)) else None
+
+            # Both are collections - check for overlap
+            if req_set is not None and cap_set is not None:
+                if not req_set.intersection(cap_set):
+                    return False
+                continue
+
+            # Requirement is a collection, capability is a single value
+            if req_set is not None:
+                if cap_val not in req_set:
+                    return False
+                continue
+
+            # Capability is a collection, requirement is a single value
+            if cap_set is not None:
+                if req_val not in cap_set:
+                    return False
+                continue
+
+            # Both are single values - must match exactly
+            if req_val != cap_val:
+                return False
+
         return True
 
-    @property
     def can_accept_more_negotiators(self) -> bool:
         """Whether the mechanism can **currently** accept more negotiators."""
         return (
@@ -1515,7 +1623,7 @@ class Mechanism(
 
     def can_enter(self, negotiator: TNegotiator) -> bool:
         """Whether the negotiator can enter the negotiation now."""
-        return self.can_accept_more_negotiators and self.can_participate(negotiator)
+        return self.can_accept_more_negotiators() and self.can_participate(negotiator)
 
     def get_negotiator(self, source: str) -> Negotiator | None:
         """Returns the negotiator with the given ID if present in the
@@ -1573,6 +1681,26 @@ class Mechanism(
             self._call(negotiator, negotiator.on_leave, self._shared_nmi.state)
             self._negotiator_times[negotiator.id] += time.perf_counter() - strt
         return True
+
+    @property
+    def requirements(self) -> dict:
+        """Protocol requirements dictionary.
+
+        Returns:
+            Dictionary mapping requirement names to acceptable values
+        """
+        return self._requirements
+
+    @requirements.setter
+    def requirements(self, value: dict) -> None:
+        """Set protocol requirements, converting lists to sets.
+
+        Args:
+            value: Dictionary mapping requirement names to acceptable values
+        """
+        self._requirements = {
+            k: set(v) if isinstance(v, list) else v for k, v in value.items()
+        }
 
     def add_requirements(self, requirements: dict) -> None:
         """Merges new requirements into the existing mechanism requirements.
