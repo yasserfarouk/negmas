@@ -590,6 +590,7 @@ class TestMultipleScenarios:
 class TestParallelExecution:
     """Test parallel execution with the optimization."""
 
+    @pytest.mark.timeout(60)  # Add 60s timeout to prevent hanging
     @pytest.mark.parametrize("njobs", [-1, 1, 2])
     def test_parallel_modes(self, njobs):
         """Test that different parallel modes work correctly."""
