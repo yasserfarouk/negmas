@@ -203,7 +203,7 @@ class MechanismFactory:
                 issues=issues,
                 annotation=annotation,
                 role=role,
-                mechanism=mechanism.nmi,
+                mechanism=mechanism.shared_nmi,
                 req_id=req_id if partner == caller else None,
             )
             for role, partner in zip(roles, partners)

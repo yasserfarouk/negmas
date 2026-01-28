@@ -1840,11 +1840,11 @@ class World(
                     f"{mechanism.id} just finished but it is not in the set of running negotiations!!"
                 )
             if agreement is None:
-                self._register_failed_negotiation(mechanism.nmi, negotiation)
+                self._register_failed_negotiation(mechanism.shared_nmi, negotiation)
                 contract = None
             else:
                 contract = self._register_contract(
-                    mechanism.nmi,
+                    mechanism.shared_nmi,
                     negotiation,
                     self._tobe_signed_at(agreement, force_immediate_signing),
                 )
@@ -3228,7 +3228,7 @@ class World(
         for i, loc in enumerate(locs):
             contracts[loc] = cs[i]
             completed[loc] = not rs[i]
-            amis[i] = negs[i].mechanism.nmi
+            amis[i] = negs[i].mechanism.shared_nmi
         return list(zip(contracts, amis))
 
     def _log_header(self):

@@ -3,7 +3,6 @@ import os
 from pathlib import Path
 
 import hypothesis.strategies as st
-import pkg_resources
 import pytest
 from hypothesis import given, settings
 
@@ -13,6 +12,16 @@ from negmas.genius.gnegotiators import AgentK, Caduceus
 from negmas.genius.negotiator import GeniusNegotiator
 from negmas.inout import Scenario
 from negmas.sao.mechanism import SAOMechanism, SAOState
+
+
+# Helper to get test data paths without pkg_resources
+def get_test_data_path(resource_name: str) -> Path:
+    """Get path to test data resource"""
+    # Start from this file's location
+    this_file = Path(__file__).parent.parent.parent  # Go to project root
+    return this_file / resource_name.lstrip("/")
+
+
 from negmas.sao.negotiators import AspirationNegotiator
 
 TIMELIMIT = 60
@@ -62,9 +71,7 @@ def test_genius_does_not_freeze():
 
     from negmas.genius import GeniusNegotiator
 
-    folder_name = pkg_resources.resource_filename(
-        "negmas", resource_name="tests/data/cameradomain"
-    )
+    folder_name = get_test_data_path("tests/data/cameradomain")
     domain = Scenario.from_genius_folder(Path(folder_name))
     assert domain is not None
     a1 = GeniusNegotiator(
@@ -94,9 +101,7 @@ def test_genius_does_not_freeze():
 def test_old_agent():
     from negmas.genius import GeniusNegotiator
 
-    folder_name = pkg_resources.resource_filename(
-        "negmas", resource_name="tests/data/cameradomain"
-    )
+    folder_name = get_test_data_path("tests/data/cameradomain")
     domain = Scenario.from_genius_folder(folder_name)
     assert domain is not None
     a1 = GeniusNegotiator(
@@ -128,9 +133,7 @@ def test_old_agent2():
 
     from negmas.genius import GeniusNegotiator
 
-    folder_name = pkg_resources.resource_filename(
-        "negmas", resource_name="tests/data/cameradomain"
-    )
+    folder_name = get_test_data_path("tests/data/cameradomain")
     domain = Scenario.from_genius_folder(Path(folder_name))
     assert domain is not None
     a1 = GeniusNegotiator(
@@ -168,7 +171,7 @@ def test_old_agent2():
     single_issue=st.booleans(),
 )
 def test_genius_agents_run_using_hypothesis(agent_name1, agent_name2, single_issue):
-    src = pkg_resources.resource_filename("negmas", resource_name="tests/data/Laptop")
+    src = get_test_data_path("tests/data/Laptop")
     base_folder = src
     domain = Scenario.from_genius_folder(Path(base_folder))
     assert domain is not None
@@ -190,9 +193,7 @@ def test_genius_agents_run_using_hypothesis(agent_name1, agent_name2, single_iss
     reason="No Genius Bridge, skipping genius-agent tests",
 )
 def test_genius_agent_gets_preferences():
-    base_folder = pkg_resources.resource_filename(
-        "negmas", resource_name="tests/data/Laptop"
-    )
+    base_folder = get_test_data_path("tests/data/Laptop")
     domain = Scenario.from_genius_folder(base_folder)
     assert domain is not None
     a1 = GeniusNegotiator(
@@ -232,9 +233,7 @@ def test_genius_agents_run_example():
         # print(f"{agent_name1} - {agent_name2}")
         utils = (1, 2)
 
-        base_folder = pkg_resources.resource_filename(
-            "negmas", resource_name="tests/data/Laptop"
-        )
+        base_folder = get_test_data_path("tests/data/Laptop")
         domain = Scenario.from_genius_folder(base_folder)
         assert domain is not None
         atlas = GeniusNegotiator(
@@ -263,9 +262,7 @@ def test_genius_agents_run_example():
 )
 def test_agentk_perceives_time():
     n_steps = 80
-    base_folder = pkg_resources.resource_filename(
-        "negmas", resource_name="tests/data/Laptop"
-    )
+    base_folder = get_test_data_path("tests/data/Laptop")
 
     domain = Scenario.from_genius_folder(base_folder)
     assert domain is not None
@@ -305,7 +302,7 @@ def test_agentk_perceives_time():
 # def test_running_genius_mechanism_in_genius(tmp_path):
 #
 #     base_folder = Path(
-#         pkg_resources.resource_filename("negmas", resource_name="tests/data/Laptop")
+#         get_test_data_path("tests/data/Laptop")
 #     )
 #     profiles = [
 #         "file://" + str(base_folder / "Laptop-C-prof1.xml"),
@@ -359,11 +356,7 @@ def test_agentk_perceives_time():
     ],
 )
 def test_2genius_together(a1, a2, n_steps, time_limit):
-    base_folder = Path(
-        pkg_resources.resource_filename(
-            "negmas", resource_name="tests/data/Car-A-domain"
-        )
-    )
+    base_folder = Path(get_test_data_path("tests/data/Car-A-domain"))
 
     domain = Scenario.from_genius_folder(base_folder)
     assert domain is not None
@@ -385,11 +378,7 @@ def test_2genius_together(a1, a2, n_steps, time_limit):
 )
 def test_caudacius_caudacius():
     n_steps = 100
-    base_folder = Path(
-        pkg_resources.resource_filename(
-            "negmas", resource_name="tests/data/Car-A-domain"
-        )
-    )
+    base_folder = Path(get_test_data_path("tests/data/Car-A-domain"))
 
     domain = Scenario.from_genius_folder(base_folder)
     assert domain is not None
