@@ -1743,13 +1743,15 @@ def _make_record(
     run_record["negotiator_ids"] = m.negotiator_ids
     run_record["negotiator_types"] = [_.type_name for _ in m.negotiators]
     run_record["negotiator_times"] = [m.negotiator_times[_] for _ in m.negotiator_ids]
-    run_record["n_steps"] = m.nmi.n_steps
-    run_record["time_limit"] = m.nmi.time_limit
-    run_record["pend"] = m.nmi.pend
-    run_record["pend_per_second"] = m.nmi.pend_per_second
-    run_record["step_time_limit"] = m.nmi.step_time_limit
-    run_record["negotiator_time_limit"] = m.nmi.negotiator_time_limit
-    run_record["annotation"] = m.nmi.annotation
+    run_record["n_steps"] = m._internal_nmi.n_steps
+    run_record["time_limit"] = m._internal_nmi.time_limit
+    run_record["shared_n_steps"] = m._shared_nmi.n_steps
+    run_record["shared_time_limit"] = m._shared_nmi.time_limit
+    run_record["pend"] = m._internal_nmi.pend
+    run_record["pend_per_second"] = m._internal_nmi.pend_per_second
+    run_record["step_time_limit"] = m._internal_nmi.step_time_limit
+    run_record["negotiator_time_limit"] = m._internal_nmi.negotiator_time_limit
+    run_record["annotation"] = m._internal_nmi.annotation
     run_record["scenario"] = real_scenario_name
     run_record["mechanism_name"] = m.name
     run_record["mechanism_type"] = m.type_name
@@ -1770,8 +1772,8 @@ def _make_record(
     run_record["error_details"] = state.error_details
     run_record["scored_indices"] = scored_indices
 
-    if m.nmi.annotation:
-        run_record.update(m.nmi.annotation)
+    if m._internal_nmi.annotation:
+        run_record.update(m._internal_nmi.annotation)
     if stats is not None:
         dists = calc_outcome_distances(agreement_utils, stats)
         run_record.update(
@@ -2800,6 +2802,11 @@ def cartesian_tournament(
         raise ValueError(
             f"image_format must be one of {SUPPORTED_IMAGE_FORMATS}, got '{image_format}'"
         )
+
+    # Create deep copies of scenarios to avoid modifying the originals
+    import copy
+
+    scenarios = [copy.deepcopy(s) for s in scenarios]
 
     if ignore_discount:
         for s in scenarios:

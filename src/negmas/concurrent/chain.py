@@ -268,15 +268,15 @@ class ChainNegotiationsMechanism(
         """
         return ChainNMI(
             id=self.id,
-            n_outcomes=self.nmi.n_outcomes,
-            issues=self.nmi.outcome_space,
-            outcomes=self.nmi.outcomes,
-            time_limit=self.nmi.time_limit,
-            step_time_limit=self.nmi.step_time_limit,
-            n_steps=self.nmi.n_steps,
-            dynamic_entry=self.nmi.dynamic_entry,
+            n_outcomes=self._internal_nmi.n_outcomes,
+            issues=self._internal_nmi.outcome_space,
+            outcomes=self._internal_nmi.outcomes,
+            time_limit=self._nmis[negotiator.id].time_limit,
+            n_steps=self._nmis[negotiator.id].n_steps,
+            step_time_limit=self._internal_nmi.step_time_limit,
+            dynamic_entry=self._internal_nmi.dynamic_entry,
             # max_n_agents=self.nmi.max_n_agents,
-            annotation=self.nmi.annotation,
+            annotation=self._nmis[negotiator.id].annotation,
             parent=self,
             negotiator=negotiator,  #
             level=int(self.__neg_roles[negotiator.id]) + 1,
@@ -457,7 +457,7 @@ class MultiChainNegotiationsMechanism(
         self.__number: dict[str, int] = {}
         self.__neg_roles: dict[str, str] = dict()
 
-    def _get_ami(self, negotiator: MultiChainNegotiator) -> ChainNMI:
+    def _get_nmi(self, negotiator: MultiChainNegotiator) -> ChainNMI:
         """
         Returns a chain AMI instead of the standard AMI.
 
@@ -470,15 +470,15 @@ class MultiChainNegotiationsMechanism(
         """
         return ChainNMI(
             id=self.id,
-            n_outcomes=self.nmi.n_outcomes,
-            issues=self.nmi.outcome_space,
-            outcomes=self.nmi.outcomes,
-            time_limit=self.nmi.time_limit,
-            step_time_limit=self.nmi.step_time_limit,
-            n_steps=self.nmi.n_steps,
-            dynamic_entry=self.nmi.dynamic_entry,
-            max_n_agents=self.nmi.max_n_negotiators,
-            annotation=self.nmi.annotation,
+            n_outcomes=self._internal_nmi.n_outcomes,
+            issues=self._internal_nmi.outcome_space,
+            outcomes=self._internal_nmi.outcomes,
+            time_limit=self._nmis[negotiator.id].time_limit,
+            n_steps=self._nmis[negotiator.id].n_steps,
+            step_time_limit=self._internal_nmi.step_time_limit,
+            dynamic_entry=self._internal_nmi.dynamic_entry,
+            max_n_agents=self._internal_nmi.max_n_negotiators,
+            annotation=self._nmis[negotiator.id].annotation,
             parent=self,
             negotiator=negotiator,
             level=int(self.__neg_roles[negotiator.id]) + 1,

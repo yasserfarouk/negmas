@@ -166,8 +166,43 @@ Release 0.14.0 (Unreleased)
 
 * [feature] Add ``storage_format`` parameter to ``World`` class for controlling table storage format
 * [feature] Add ``storage_format`` parameter to ``save_stats()`` function in ``negmas.situated.save``
+* [feature] Add per-negotiator time and step limits to mechanisms:
+
+  - ``Mechanism.add(negotiator, time_limit=X, n_steps=Y)`` now accepts per-negotiator limits
+  - Three-tier limit system in ``NegotiatorMechanismInterface``:
+
+    - **Shared limits** (``shared_time_limit``, ``shared_n_steps``): Apply to all negotiators
+    - **Private limits** (``private_time_limit``, ``private_n_steps``): Apply to individual negotiators
+    - **Effective limits** (``time_limit``, ``n_steps``): Computed as ``min(shared, private)``
+
+  - ``Mechanism.state_for(negotiator)`` returns per-negotiator state with custom ``relative_time``
+  - Each negotiator can have different time/step constraints within the same negotiation session
+  - Fully backward compatible - existing code works without changes
+  - Negotiators added without private limits use shared limits (default behavior)
 
 **Bug Fixes:**
+
+* [bugfix] Fix ``SAOMechanism`` not creating ``SAONMI`` instances for negotiators:
+
+  - Added ``nmi_factory=SAONMI`` parameter to ``SAOMechanism.__init__()`` super call
+  - Previously created base ``NMI`` instead of ``SAONMI``, breaking ``negotiator_offers()`` method
+  - Fixes Genius bridge tests: ``test_in_negotiation`` (GAC) and ``test_caudacius_caudacius``
+
+* [bugfix] Restore missing ``MechanismState`` class that was accidentally removed
+* [bugfix] Fix ``Scenario.remove_discounting()`` stats invalidation when ``recalculate_stats=False``:
+
+  - Now sets ``self.stats = None`` when stats are not recalculated
+  - Ensures stats are not incorrectly preserved with discounting removed
+
+* [bugfix] Fix ``Scenario.remove_reserved_values()`` stats invalidation when ``recalculate_stats=False``:
+
+  - Now always invalidates stats when ``recalculate_stats=False`` (consistent with other methods)
+  - Ensures stats are not incorrectly preserved with reserved values removed
+
+* [bugfix] Fix ``cartesian_tournament()`` modifying input scenario objects:
+
+  - Added deep copy of scenarios before modification
+  - Prevents tournament from mutating caller's scenario objects (e.g., during normalization)
 
 * [bugfix] Fix parquet serialization of columns containing Python tuples/lists/dicts by converting to strings
 * [bugfix] Fix propagating outcome space in discounted ufuns

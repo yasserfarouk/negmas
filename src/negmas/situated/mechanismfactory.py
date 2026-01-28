@@ -262,7 +262,7 @@ class MechanismFactory:
             caller,
             caller.on_neg_request_accepted_,
             req_id=req_id,
-            mechanism=mechanism.nmi,
+            mechanism=mechanism._shared_nmi,
         )
         for partner, response in zip(partners, responses):
             if partner.id != caller.id:

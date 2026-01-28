@@ -119,7 +119,7 @@ class VetoMTMechanism(
                     )
                 )
                 responses.append(is_better is not False)
-                if time.perf_counter() - strt > self.nmi.step_time_limit:
+                if time.perf_counter() - strt > self._internal_nmi.step_time_limit:
                     state.timedout = True
                     return MechanismStepResult(state)
 

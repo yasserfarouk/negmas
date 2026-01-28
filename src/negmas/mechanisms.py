@@ -1,5 +1,3 @@
-"""Provides interfaces for defining negotiation mechanisms."""
-
 from __future__ import annotations
 import copy
 from pathlib import Path
@@ -761,35 +759,46 @@ class Mechanism(
 ):
     """Base class for all negotiation Mechanisms.
 
-    Override the `round` function of this class to implement a round of your mechanism
+    Override the `round` function of this class to implement a round of your mechanism.
 
     Args:
-        outcome_space: The negotiation agenda
-        outcomes: list of outcomes (optional as you can pass `issues`). If an int then it is the number of outcomes
-        n_steps: Number of rounds allowed (None means infinity)
-        time_limit: Number of real seconds allowed (None means infinity)
-        pend: Probability of ending the negotiation at any step
-        pend_per_second: Probability of ending the negotiation every second
-        hidden_time_limit: Number of real seconds allowed but not visilbe to the negotiators
-        max_n_negotiators:  Maximum allowed number of negotiators.
-        dynamic_entry: Allow negotiators to enter/leave negotiations between rounds
-        cache_outcomes: If true, a list of all possible outcomes will be cached
-        max_cardinality: The maximum allowed number of outcomes in the cached set
-        annotation: Arbitrary annotation
-        checkpoint_every: The number of steps to checkpoint after. Set to <= 0 to disable
-        checkpoint_folder: The folder to save checkpoints into. Set to None to disable
-        checkpoint_filename: The base filename to use for checkpoints (multiple checkpoints will be prefixed with
-                             step number).
-        single_checkpoint: If true, only the most recent checkpoint will be saved.
-        extra_checkpoint_info: Any extra information to save with the checkpoint in the corresponding json file as
-                               a dictionary with string keys
-        exist_ok: IF true, checkpoints override existing checkpoints with the same filename.
-        name: Name of the mechanism session. Should be unique. If not given, it will be generated.
-        genius_port: the port used to connect to Genius for all negotiators in this mechanism (0 means any).
-        id: An optional system-wide unique identifier. You should not change
-            the default value except in special circumstances like during
-            serialization and should always guarantee system-wide uniquness
-            if you set this value explicitly
+        initial_state: Initial mechanism state. If None, a default MechanismState will be created.
+        outcome_space: The negotiation agenda as an OutcomeSpace object. Use this for complex outcome spaces.
+        issues: List of Issue objects defining the negotiation dimensions. Alternative to outcome_space.
+        outcomes: List of valid outcomes or an integer specifying the number of outcomes. Alternative to outcome_space.
+        n_steps: Maximum number of negotiation rounds/steps. None means unlimited. This is a shared limit visible to all negotiators.
+        time_limit: Maximum negotiation duration in seconds. None means unlimited. This is a shared limit visible to all negotiators.
+        pend: Probability (0-1) of ending negotiation at each step. 0 means disabled.
+        pend_per_second: Probability (0-1) of ending negotiation each second. 0 means disabled.
+        step_time_limit: Maximum time in seconds allowed for each negotiation step/round. None means unlimited.
+        negotiator_time_limit: Maximum cumulative time in seconds for each negotiator's responses. None means unlimited.
+        hidden_time_limit: Secret time limit not visible to negotiators. Used for testing or forcing timeouts.
+        max_n_negotiators: Maximum number of negotiators allowed to join. None means unlimited.
+        dynamic_entry: If True, negotiators can join/leave after negotiation starts. If False, all must join before start.
+        annotation: Dictionary of arbitrary metadata attached to this mechanism session.
+        nmi_factory: Class to use for creating NegotiatorMechanismInterface instances. Defaults to NegotiatorMechanismInterface.
+        extra_callbacks: If True, call additional negotiator callbacks like on_round_start/end, on_leave, etc.
+        checkpoint_every: Save checkpoint every N steps. Set to <=0 to disable checkpointing.
+        checkpoint_folder: Directory path for saving checkpoints. None disables checkpointing.
+        checkpoint_filename: Base name for checkpoint files. Step numbers will be prefixed.
+        extra_checkpoint_info: Additional data to save in checkpoint metadata as a dictionary.
+        single_checkpoint: If True, only keep the most recent checkpoint (overwrite previous ones).
+        exist_ok: If True, allow overwriting existing checkpoint files.
+        name: Human-readable name for this mechanism session. Auto-generated if not provided.
+        genius_port: Port number for Genius bridge connection. Use 0 for automatic port selection.
+        id: Unique system-wide identifier. Usually auto-generated; only set explicitly during deserialization.
+        type_name: Custom type name for this mechanism. Auto-generated from class name if not provided.
+        verbosity: Logging verbosity level (0=quiet, higher=more verbose).
+        ignore_negotiator_exceptions: If True, mechanism continues even if negotiators raise exceptions.
+
+    Remarks:
+        - You can specify per-negotiator time limits and step limits when calling add() to add negotiators.
+        - The mechanism tracks three types of limits:
+          * shared_*: Limits visible to all negotiators (passed here)
+          * private_*: Per-negotiator limits (passed to add())
+          * internal_*: Effective limits (minimum of shared and all private limits)
+        - Negotiators see their own relative_time based on their private limits
+        - History and internal tracking use internal limits (strictest across all negotiators)
     """
 
     def __init__(
@@ -823,42 +832,44 @@ class Mechanism(
         verbosity: int = 0,
         ignore_negotiator_exceptions=False,
     ):
-        """Initialize the instance.
+        """Initialize a negotiation mechanism.
 
         Args:
-            initial_state: Initial state.
-            outcome_space: Outcome space.
-            issues: Issues.
-            outcomes: Outcomes.
-            n_steps: N steps.
-            time_limit: Time limit.
-            pend: Pend.
-            pend_per_second: Pend per second.
-            step_time_limit: Step time limit.
-            negotiator_time_limit: Negotiator time limit.
-            hidden_time_limit: Hidden time limit.
-            max_n_negotiators: Max n negotiators.
-            dynamic_entry: Dynamic entry.
-            annotation: Annotation.
-            nmi_factory: Nmi factory.
-            extra_callbacks: Extra callbacks.
-            checkpoint_every: Checkpoint every.
-            checkpoint_folder: Checkpoint folder.
-            checkpoint_filename: Checkpoint filename.
-            extra_checkpoint_info: Extra checkpoint info.
-            single_checkpoint: Single checkpoint.
-            exist_ok: Exist ok.
-            name: Name.
-            genius_port: Genius port.
-            id: Id.
-            type_name: Type name.
-            verbosity: Verbosity.
-            ignore_negotiator_exceptions: Ignore negotiator exceptions.
+            initial_state: Starting state for the mechanism. Auto-created if None.
+            outcome_space: OutcomeSpace defining valid outcomes. Alternative to issues/outcomes.
+            issues: List of Issue objects. Alternative to outcome_space.
+            outcomes: Explicit outcome list or count. Alternative to outcome_space.
+            n_steps: Shared maximum rounds. Visible to all negotiators.
+            time_limit: Shared maximum seconds. Visible to all negotiators.
+            pend: Step-wise termination probability [0-1].
+            pend_per_second: Time-wise termination probability [0-1].
+            step_time_limit: Maximum seconds per step.
+            negotiator_time_limit: Maximum cumulative seconds per negotiator.
+            hidden_time_limit: Secret timeout not shown to negotiators.
+            max_n_negotiators: Maximum participant count.
+            dynamic_entry: Allow join/leave after start.
+            annotation: Mechanism metadata dictionary.
+            nmi_factory: Class for creating NMI instances.
+            extra_callbacks: Enable extended negotiator callbacks.
+            checkpoint_every: Checkpoint frequency in steps (<=0 disables).
+            checkpoint_folder: Checkpoint save directory.
+            checkpoint_filename: Base checkpoint filename.
+            extra_checkpoint_info: Additional checkpoint metadata.
+            single_checkpoint: Keep only latest checkpoint.
+            exist_ok: Allow checkpoint file overwriting.
+            name: Mechanism session identifier.
+            genius_port: Genius bridge port (0=auto).
+            id: System-wide unique ID (auto-generated).
+            type_name: Custom type identifier (auto-generated).
+            verbosity: Logging level (0=quiet).
+            ignore_negotiator_exceptions: Continue on negotiator errors.
         """
         check_one_and_only(outcome_space, issues, outcomes)
         outcome_space = ensure_os(outcome_space, issues, outcomes)
         self.__verbosity = verbosity
         self._negotiator_logs: dict[str, list[dict[str, Any]]] = defaultdict(list)
+        self._negotiator_time_limits = defaultdict(lambda: float("inf"))
+        self._negotiator_n_steps = defaultdict(lambda: float("inf"))
         super().__init__(name=name, id=id, type_name=type_name)
 
         self.ignore_negotiator_exceptions = ignore_negotiator_exceptions
@@ -896,21 +907,27 @@ class Mechanism(
             pend = 0
         if pend_per_second is None:
             pend_per_second = 0
-        self.nmi = nmi_factory(
+        self._nmi_params = dict(
             id=self.id,
             n_outcomes=outcome_space.cardinality,
             outcome_space=outcome_space,
-            time_limit=time_limit,
+            shared_time_limit=time_limit,
             pend=pend,
             pend_per_second=pend_per_second,
-            n_steps=n_steps,
+            shared_n_steps=n_steps,
             step_time_limit=step_time_limit,
             negotiator_time_limit=negotiator_time_limit,
             dynamic_entry=dynamic_entry,
             max_n_negotiators=max_n_negotiators,
             annotation=annotation if annotation is not None else dict(),
             _mechanism=self,
+            private_time_limit=float("inf"),
+            private_n_steps=None,
         )
+        self._nmi_factory = nmi_factory
+        self._internal_nmi = nmi_factory(**self._nmi_params)  # type: ignore
+        self._shared_nmi = nmi_factory(**self._nmi_params)  # type: ignore
+        self._nmis = defaultdict(lambda: self._shared_nmi)
 
         self._current_state = initial_state if initial_state else MechanismState()  # type: ignore This is a shortcut to allow users to create mechanisms without passing any initial_state
         self._current_state: TState
@@ -946,6 +963,51 @@ class Mechanism(
         self.params: dict[str, Any] = dict(
             dynamic_entry=dynamic_entry, genius_port=genius_port, annotation=annotation
         )
+
+    @property
+    def nmi(self) -> TNMI:
+        """The Negotiation Mechanism Interface (NMI) with shared information available to all negotiators.
+
+        Returns:
+            TNMI: The NMI instance
+        """
+
+        warnings.deprecated(
+            "Mechanism.nmi is depricated. Use `internal_nmi` or `shared_nmi` instead of it. "
+            "The former takes into account private time limits and n steps limits of negotiators "
+            "while the latter does not."
+        )
+        return self._internal_nmi
+
+    @property
+    def internal_nmi(self) -> TNMI:
+        """The Negotiation Mechanism Interface (NMI) with combined deadline information from all negotiators.
+
+        Returns:
+            TNMI: The NMI instance
+        """
+        return self._internal_nmi
+
+    @property
+    def shared_nmi(self) -> TNMI:
+        """The Negotiation Mechanism Interface (NMI) with shared information available to all negotiators.
+
+        Returns:
+            TNMI: The NMI instance
+        """
+        return self._shared_nmi
+
+    def get_nmi_for(self, negotiator: TNegotiator) -> TNMI:
+        """Returns the NMI instance for the given negotiator.
+
+        By default, all negotiators share the same NMI instance, but
+        mechanisms can override this to provide different NMIs to different
+        negotiators.
+
+        Args:
+            negotiator: The negotiator for whom to get the NMI.
+        """
+        return self._nmis[negotiator.id]
 
     def log(self, nid: str, data: dict[str, Any], level: str) -> None:
         """Saves a log for a negotiator"""
@@ -1004,7 +1066,7 @@ class Mechanism(
 
     def is_valid(self, outcome: Outcome):
         """Checks whether the outcome is valid given the issues."""
-        return outcome in self.nmi.outcome_space
+        return outcome in self._internal_nmi.outcome_space
 
     @property
     def outcome_space(self) -> OutcomeSpace:
@@ -1013,7 +1075,7 @@ class Mechanism(
         Returns:
             OutcomeSpace: Defines valid outcomes including issues, values, and constraints
         """
-        return self.nmi.outcome_space
+        return self._internal_nmi.outcome_space
 
     def discrete_outcome_space(
         self, levels: int = 5, max_cardinality: int = 10_000_000_000
@@ -1032,7 +1094,7 @@ class Mechanism(
     @property
     def outcomes(self):
         """All possible outcomes for discrete spaces, or None for continuous spaces."""
-        return self.nmi.outcomes
+        return self._internal_nmi.outcomes
 
     def discrete_outcomes(
         self, levels: int = 5, max_cardinality: int | float = float("inf")
@@ -1105,16 +1167,107 @@ class Mechanism(
 
         None if no time limit is given.
         """
-        if self.nmi.time_limit == float("+inf"):
+        if self._internal_nmi.time_limit == float("+inf"):
             return None
         if not self._start_time:
-            return self.nmi.time_limit
+            return self._internal_nmi.time_limit
 
-        limit = self.nmi.time_limit - (time.perf_counter() - self._start_time)
+        limit = self._internal_nmi.time_limit - (time.perf_counter() - self._start_time)
         if limit < 0.0:
             return 0.0
 
         return limit
+
+    @property
+    def state(self) -> TState:
+        """
+        The current state.
+
+        Override `extra_state` if you want to keep extra state
+        """
+        return self._current_state
+
+    def _relative_time_for(self, nmi: TNMI) -> float:
+        """Calculate relative_time for a specific NMI (shared or per-negotiator)."""
+        n_steps = nmi.n_steps
+        time_limit = nmi.time_limit
+        if time_limit == float("+inf") and n_steps is None:
+            if nmi.pend <= 0 and nmi.pend_per_second <= 0:
+                return 0.0
+            if nmi.pend > 0:
+                n_steps = int(math.ceil(1 / nmi.pend))
+            if nmi.pend_per_second > 0:
+                time_limit = 1 / nmi.pend_per_second
+
+        relative_step = (
+            (self._current_state.step + 1) / (n_steps + 1)
+            if n_steps is not None
+            else -1.0
+        )
+        relative_time = self.time / time_limit if time_limit != float("+inf") else -1.0
+        return min(1.0, max([relative_step, relative_time]))
+
+    def _expected_relative_time_for(self, nmi: TNMI) -> float:
+        """Calculate expected_relative_time for a specific NMI (shared or per-negotiator)."""
+        n_steps = nmi.n_steps
+        time_limit = nmi.time_limit
+        if time_limit == float("+inf") and n_steps is None:
+            if nmi.pend <= 0 and nmi.pend_per_second <= 0:
+                return 0.0
+        if n_steps is None:
+            # set the expected number of steps to the reciprocal of the probability of ending at every step
+            n_steps = int(math.ceil(1 / nmi.pend)) if nmi.pend > 0 else n_steps
+        else:
+            n_steps = (
+                min(int(math.ceil(1 / nmi.pend)), n_steps) if nmi.pend > 0 else n_steps
+            )
+        if time_limit == float("inf"):
+            # set the expected number of seconds to the reciprocal of the probability of ending every second
+            time_limit = (
+                int(math.ceil(1 / nmi.pend_per_second))
+                if nmi.pend_per_second > 0
+                else time_limit
+            )
+        else:
+            time_limit = (
+                min(time_limit, int(math.ceil(1 / nmi.pend_per_second)))
+                if nmi.pend_per_second > 0
+                else time_limit
+            )
+
+        relative_step = (
+            (self._current_state.step + 1) / (n_steps + 1)
+            if n_steps is not None
+            else -1.0
+        )
+        relative_time = self.time / time_limit if time_limit != float("+inf") else -1.0
+        return max([relative_step, relative_time])
+
+    @property
+    def relative_time(self) -> float:
+        """
+        Returns a number between ``0`` and ``1`` indicating elapsed relative time or steps.
+
+        This uses shared time limits (visible to all negotiators).
+
+        Remarks:
+            - If pend or pend_per_second are defined in the `NegotiatorMechanismInterface`,
+              and time_limit/n_steps are not given, this becomes an expectation that is limited above by one.
+        """
+        return self._relative_time_for(self._shared_nmi)
+
+    @property
+    def expected_relative_time(self) -> float:
+        """
+        Returns a positive number indicating elapsed relative time or steps.
+
+        This uses internal time limits (the strictest across all negotiators).
+
+        Remarks:
+            - This is relative to the expected time/step at which the negotiation ends given all timing
+              conditions (time_limit, n_step, pend, pend_per_second).
+        """
+        return self._expected_relative_time_for(self._internal_nmi)
 
     @property
     def expected_remaining_time(self) -> float | None:
@@ -1124,80 +1277,10 @@ class Mechanism(
         None if no time limit or pend_per_second is given.
         """
         rem = self.remaining_time
-        pend = self.nmi.pend_per_second
+        pend = self._internal_nmi.pend_per_second
         if pend <= 0:
             return rem
         return min(rem, (1 / pend)) if rem is not None else (1 / pend)
-
-    @property
-    def relative_time(self) -> float:
-        """
-        Returns a number between ``0`` and ``1`` indicating elapsed relative time or steps.
-
-        Remarks:
-            - If pend or pend_per_second are defined in the `NegotiatorMechanismInterface`,
-              and time_limit/n_steps are not given, this becomes an expectation that is limited above by one.
-        """
-        n_steps = self.nmi.n_steps
-        time_limit = self.nmi.time_limit
-        if time_limit == float("+inf") and n_steps is None:
-            if self.nmi.pend <= 0 and self.nmi.pend_per_second <= 0:
-                return 0.0
-            if self.nmi.pend > 0:
-                n_steps = int(math.ceil(1 / self.nmi.pend))
-            if self.nmi.pend_per_second > 0:
-                time_limit = 1 / self.nmi.pend_per_second
-
-        relative_step = (
-            (self._current_state.step + 1) / (n_steps + 1)
-            if n_steps is not None
-            else -1.0
-        )
-        relative_time = self.time / time_limit if time_limit is not None else -1.0
-        return min(1.0, max([relative_step, relative_time]))
-
-    @property
-    def expected_relative_time(self) -> float:
-        """
-        Returns a positive number indicating elapsed relative time or steps.
-
-        Remarks:
-            - This is relative to the expected time/step at which the negotiation ends given all timing
-              conditions (time_limit, n_step, pend, pend_per_second).
-        """
-        n_steps = self.nmi.n_steps
-        time_limit = self.nmi.time_limit
-        if time_limit == float("+inf") and n_steps is None:
-            if self.nmi.pend <= 0 and self.nmi.pend_per_second <= 0:
-                return 0.0
-        if n_steps is None:
-            # set the expected number of steps to the reciprocal of the probability of ending at every step
-            n_steps = (
-                int(math.ceil(1 / self.nmi.pend)) if self.nmi.pend > 0 else n_steps
-            )
-        else:
-            n_steps = min(int(math.ceil(1 / self.nmi.pend)), n_steps)
-        if time_limit == float("inf"):
-            # set the expected number of seconds to the reciprocal of the probability of ending every second
-            time_limit = (
-                int(math.ceil(1 / self.nmi.pend_per_second))
-                if self.nmi.pend_per_second > 0
-                else time_limit
-            )
-        else:
-            time_limit = (
-                min(time_limit, int(math.ceil(1 / self.nmi.pend_per_second)))
-                if self.nmi.pend_per_second > 0
-                else time_limit
-            )
-
-        relative_step = (
-            (self._current_state.step + 1) / (n_steps + 1)
-            if n_steps is not None
-            else -1.0
-        )
-        relative_time = self.time / time_limit if time_limit is not None else -1.0
-        return max([relative_step, relative_time])
 
     @property
     def remaining_steps(self) -> int | None:
@@ -1206,10 +1289,10 @@ class Mechanism(
 
         None if unlimited
         """
-        if self.nmi.n_steps is None:
+        if self._internal_nmi.n_steps is None:
             return None
 
-        return self.nmi.n_steps - self._current_state.step
+        return self._internal_nmi.n_steps - self._current_state.step
 
     @property
     def expected_remaining_steps(self) -> int | None:
@@ -1219,7 +1302,7 @@ class Mechanism(
         None if unlimited
         """
         rem = self.remaining_steps
-        pend = self.nmi.pend
+        pend = self._internal_nmi.pend
         if pend <= 0:
             return rem
 
@@ -1229,160 +1312,41 @@ class Mechanism(
             else int(math.ceil(1 / pend))
         )
 
-    @property
-    def requirements(self):
-        """A dictionary specifying the requirements that must be in the
-        capabilities of any negotiator to join the mechanism."""
-        return self._requirements
-
-    @requirements.setter
-    def requirements(
-        self,
-        requirements: dict[
-            str,
-            (
-                tuple[int | float | str, int | float | str]
-                | list
-                | set
-                | int
-                | float
-                | str
-            ),
-        ],
-    ):
-        """Set negotiation requirements that negotiators must satisfy.
-
-        Args:
-            requirements: Dict mapping requirement names to acceptable values (single value, tuple range, or list/set of options)
+    def _state_for_nmi(self, nmi: TNMI) -> TState:
         """
-        self._requirements = {
-            k: set(v) if isinstance(v, list) else v for k, v in requirements.items()
-        }
+        Returns a state object with relative_time calculated for the given NMI.
 
-    def is_satisfying(self, capabilities: dict) -> bool:
-        """Checks if the  given capabilities are satisfying mechanism
-        requirements.
-
-        Args:
-            capabilities: capabilities to check
-
-        Returns:
-            bool are the requirements satisfied by the capabilities.
-
-        Remarks:
-
-            - Requirements are also a dict with the following meanings:
-
-                - tuple: Min and max acceptable values
-                - list/set: Any value in the iterable is acceptable
-                - Single value: The capability must match this value
-
-            - Capabilities can also have the same three possibilities.
+        The state is a copy of the current state with only relative_time
+        modified based on the NMI's time limits.
         """
-        requirements = self.requirements
-        for r, v in requirements.items():
-            if v is None:
-                if r not in capabilities.keys():
-                    return False
+        # If the NMI has the same limits as shared, return current state directly
+        if (
+            nmi.time_limit == self._shared_nmi.time_limit
+            and nmi.n_steps == self._shared_nmi.n_steps
+        ):
+            return self._current_state
 
-                else:
-                    continue
+        # Create a copy with modified relative_time field
+        state = copy.copy(self._current_state)
+        object.__setattr__(state, "relative_time", self._relative_time_for(nmi))
+        return state
 
-            if r not in capabilities.keys():
-                return False
-
-            if capabilities[r] is None:
-                continue
-
-            c = capabilities[r]
-            if isinstance(c, tuple):
-                # c is range
-                if isinstance(v, tuple):
-                    # both ranges
-                    match = v[0] <= c[0] <= v[1] or v[0] <= c[1] <= v[1]
-                else:
-                    # c is range and cutoff_utility is not a range
-                    match = (
-                        any(c[0] <= _ <= c[1] for _ in v)
-                        if isinstance(v, set)
-                        else c[0] <= v <= c[1]
-                    )
-            elif isinstance(c, list) or isinstance(c, set):
-                # c is list
-                if isinstance(v, tuple):
-                    # c is a list and cutoff_utility is a range
-                    match = any(v[0] <= _ <= v[1] for _ in c)
-                else:
-                    # c is a list and cutoff_utility is not a range
-                    match = any(_ in v for _ in c) if isinstance(v, set) else v in c
-            else:
-                # c is a single value
-                if isinstance(v, tuple):
-                    # c is a singlton and cutoff_utility is a range
-                    match = v[0] <= c <= v[1]
-                else:
-                    # c is a singlton and cutoff_utility is not a range
-                    match = c in v if isinstance(v, set) else c == v
-            if not match:
-                return False
-
-        return True
-
-    def can_participate(self, negotiator: TNegotiator) -> bool:
-        """Checks if the negotiator can participate in this type of negotiation in
-        general.
-
-        Returns:
-            bool: True if the negotiator  can participate
-
-        Remarks:
-            The only reason this may return `False` is if the mechanism requires some requirements
-            that are not within the capabilities of the negotiator.
-
-            When evaluating compatibility, the negotiator is considered incapable of participation if any
-            of the following conditions hold:
-            * A mechanism requirement is not in the capabilities of the negotiator
-            * A mechanism requirement is in the capabilities of the negotiator by the values required for it
-              is not in the values announced by the negotiator.
-
-            An negotiator that lists a `None` value for a capability is announcing that it can work with all its
-            values. On the other hand, a mechanism that lists a requirement as None announces that it accepts
-            any value for this requirement as long as it exist in the negotiator
+    def state_for(self, negotiator: TNegotiator) -> TState:
         """
-        return self.is_satisfying(negotiator.capabilities)
+        Returns a state object for the given negotiator with per-negotiator relative_time.
 
-    def can_accept_more_negotiators(self) -> bool:
-        """Whether the mechanism can **currently** accept more negotiators."""
-        return (
-            True
-            if self.nmi.max_n_negotiators is None or self._negotiators is None
-            else len(self._negotiators) < self.nmi.max_n_negotiators
-        )
-
-    def can_enter(self, negotiator: TNegotiator) -> bool:
-        """Whether the negotiator can enter the negotiation now."""
-        return self.can_accept_more_negotiators() and self.can_participate(negotiator)
-
-    # def extra_state(self) -> dict[str, Any] | None:
-    #     """Returns any extra state information to be kept in the `state` and `history` properties"""
-    #     return dict()
-
-    @property
-    def state(self) -> TState:
-        """Returns the current state.
-
-        Override `extra_state` if you want to keep extra state
+        The state is a copy of the current state with only relative_time
+        modified based on the negotiator's private time limits.
         """
-        return self._current_state
+        nmi = self._nmis[negotiator.id]
+        return self._state_for_nmi(nmi)
 
     def _get_nmi(self, negotiator: TNegotiator) -> TNMI:
-        _ = negotiator
-        return self.nmi
+        return self.get_nmi_for(negotiator)
 
     def _get_ami(self, negotiator: TNegotiator) -> TNMI:
-        _ = negotiator
         warnings.deprecated("_get_ami is depricated. Use `get_nmi` instead of it")
-        return self.nmi
+        return self._nmis[negotiator.id]
 
     def add(
         self,
@@ -1391,23 +1355,32 @@ class Mechanism(
         preferences: Preferences | None = None,
         role: str | None = None,
         ufun: BaseUtilityFunction | None = None,
+        time_limit: float | None = float("inf"),
+        n_steps: int | None = None,
+        annotation: dict[str, Any] | None = None,
     ) -> bool | None:
-        """Add an negotiator to the negotiation.
+        """Add a negotiator to the negotiation.
 
         Args:
-
             negotiator: The negotiator to be added.
             preferences: The utility function to use. If None, then the negotiator must already have a stored
                   utility function otherwise it will fail to enter the negotiation.
-            ufun: [depricated] same as preferences but must be a `UFun` object.
+            ufun: [deprecated] same as preferences but must be a `UFun` object.
             role: The role the negotiator plays in the negotiation mechanism. It is expected that mechanisms inheriting from
                   this class will check this parameter to ensure that the role is a valid role and is still possible for
                   negotiators to join on that role. Roles may include things like moderator, representative etc based
-                  on the mechanism
-
+                  on the mechanism.
+            time_limit: Per-negotiator time limit in seconds. This creates a private time limit for this negotiator.
+                  The negotiator will see `nmi.time_limit = min(shared_time_limit, time_limit)` and their `relative_time`
+                  will be calculated based on this effective limit. If None or inf, only the shared time limit applies.
+                  This allows different negotiators to have different time constraints in the same negotiation.
+            n_steps: Per-negotiator step limit. This creates a private step limit for this negotiator.
+                  The negotiator will see `nmi.n_steps = min(shared_n_steps, n_steps)` and their `relative_time`
+                  will be calculated based on this effective limit. If None, only the shared step limit applies.
+                  This allows different negotiators to have different step constraints in the same negotiation.
+            annotation: Additional metadata to attach to this negotiator's NMI.
 
         Returns:
-
             * True if the negotiator was added.
             * False if the negotiator was already in the negotiation.
             * None if the negotiator cannot be added. This can happen in the following cases:
@@ -1415,7 +1388,20 @@ class Mechanism(
               1. The capabilities of the negotiator do not match the requirements of the negotiation
               2. The outcome-space of the negotiator's preferences do not contain the outcome-space of the negotiation
               3. The negotiator refuses to join (by returning False from its `join` method) see `Negotiator.join` for possible reasons of that
+
+        Notes:
+            Per-negotiator limits enable scenarios where different negotiators have different time/step constraints:
+
+            - A negotiator with `time_limit=30` in a mechanism with `time_limit=60` will see `nmi.time_limit=30`
+            - A negotiator with `time_limit=90` in a mechanism with `time_limit=60` will see `nmi.time_limit=60`
+            - A negotiator with `time_limit=None` or `time_limit=inf` will see the shared limit
+            - The mechanism's internal tracking uses the strictest limit across all negotiators
+            - Each negotiator's `relative_time` is calculated based on their individual effective limit
+
+            This maintains backward compatibility: negotiators added without private limits behave exactly as before.
         """
+        if annotation is None:
+            annotation = dict()
 
         from negmas.preferences import (
             BaseUtilityFunction,
@@ -1450,9 +1436,23 @@ class Mechanism(
         if role is None:
             role = "negotiator"
 
+        nmi = self._nmi_factory(
+            **self._nmi_params  # type: ignore
+            | dict(
+                private_time_limit=time_limit
+                if time_limit is not None
+                else float("inf"),
+                private_n_steps=n_steps,
+                annotation=self._nmi_params.get("annotation", dict()) | annotation,  # type: ignore
+            )
+        )
+
+        # Add NMI to _nmis before calling join so state_for() works
+        self._nmis[negotiator.id] = nmi
+
         if negotiator.join(
-            nmi=self._get_nmi(negotiator),
-            state=self.state,
+            nmi=nmi,
+            state=self.state_for(negotiator),
             preferences=preferences,
             role=role,
         ):
@@ -1463,8 +1463,59 @@ class Mechanism(
             self._roles.append(role)
             self.role_of_negotiator[negotiator.uuid] = role
             self.negotiators_of_role[role].append(negotiator)
+            object.__setattr__(
+                self._internal_nmi,
+                "time_limit",
+                min(self._internal_nmi.time_limit, nmi.time_limit),
+            )
+
+            def min_steps(a: int | None, b: int | None) -> int | None:
+                if a is None:
+                    return b
+                if b is None:
+                    return a
+                return min(a, b)
+
+            object.__setattr__(
+                self._internal_nmi,
+                "n_steps",
+                min_steps(self._internal_nmi.n_steps, nmi.n_steps),
+            )
             return True
+
+        # Remove NMI if join failed
+        del self._nmis[negotiator.id]
         return None
+
+    def can_participate(self, negotiator: TNegotiator) -> bool:
+        """Checks if the negotiator can participate in this type of negotiation in
+        general.
+
+        Returns:
+            bool: True if the negotiator  can participate
+
+        Remarks:
+            The only reason this may return `False` is if the mechanism requires some requirements
+            that are not within the capabilities of the negotiator.
+
+        """
+        for req, val in self._requirements.items():
+            if negotiator.capabilities.get(req, None) != val:
+                return False
+        return True
+
+    @property
+    def can_accept_more_negotiators(self) -> bool:
+        """Whether the mechanism can **currently** accept more negotiators."""
+        return (
+            True
+            if self._internal_nmi.max_n_negotiators is None or self._negotiators is None
+            else len(self._negotiators) < self._internal_nmi.max_n_negotiators
+        )
+
+    def can_enter(self, negotiator: TNegotiator) -> bool:
+        """Whether the negotiator can enter the negotiation now."""
+        return self.can_accept_more_negotiators and self.can_participate(negotiator)
 
     def get_negotiator(self, source: str) -> Negotiator | None:
         """Returns the negotiator with the given ID if present in the
@@ -1480,8 +1531,9 @@ class Mechanism(
         """Can the negotiator leave now?"""
         return (
             True
-            if self.nmi.dynamic_entry
-            else not self.nmi.state.running and negotiator in self._negotiators
+            if self._internal_nmi.dynamic_entry
+            else not self._internal_nmi.state.running
+            and negotiator in self._negotiators
         )
 
     def _call(self, negotiator: TNegotiator, callback: Callable, *args, **kwargs):
@@ -1518,7 +1570,7 @@ class Mechanism(
         self._negotiator_map.pop(negotiator.id)
         if self._extra_callbacks:
             strt = time.perf_counter()
-            self._call(negotiator, negotiator.on_leave, self.nmi.state)
+            self._call(negotiator, negotiator.on_leave, self._shared_nmi.state)
             self._negotiator_times[negotiator.id] += time.perf_counter() - strt
         return True
 
@@ -1628,7 +1680,7 @@ class Mechanism(
     @property
     def n_outcomes(self):
         """Returns the total number of possible outcomes in the outcome space."""
-        return self.nmi.n_outcomes
+        return self._internal_nmi.n_outcomes
 
     @property
     def issues(self) -> list[Issue]:
@@ -1637,7 +1689,7 @@ class Mechanism(
         Will raise an exception if the outcome space has no defined
         issues
         """
-        return getattr(self.nmi.outcome_space, "issues")
+        return getattr(self._internal_nmi.outcome_space, "issues")
 
     @property
     def completed(self):
@@ -1649,15 +1701,33 @@ class Mechanism(
         """Ended in any way"""
         return self._current_state.ended
 
+    def n_steps_for(self, nid: str):
+        """Returns the maximum number of negotiation steps allowed as seen by a given negotiator, or None if unlimited."""
+        return self._nmis[nid].n_steps
+
+    def time_limit_for(self, nid: str):
+        """Returns the maximum negotiation time in seconds as seen by a given negotiator, or infinity if unlimited."""
+        return self._nmis[nid].time_limit
+
     @property
     def n_steps(self):
-        """Returns the maximum number of negotiation steps allowed, or None if unlimited."""
-        return self.nmi.n_steps
+        """Returns the maximum number of negotiation steps allowed taking into account individual negotiator limits, or None if unlimited."""
+        return self._internal_nmi.n_steps
 
     @property
     def time_limit(self):
-        """Returns the maximum negotiation time in seconds, or infinity if unlimited."""
-        return self.nmi.time_limit
+        """Returns the maximum negotiation time in seconds taking into account individual negotiator limits, or infinity if unlimited."""
+        return self._internal_nmi.time_limit
+
+    @property
+    def shared_n_steps(self):
+        """Returns the maximum number of negotiation steps allowed according to shared information between negotiators, or None if unlimited."""
+        return self._shared_nmi.n_steps
+
+    @property
+    def shared_time_limit(self):
+        """Returns the maximum negotiation time in seconds according to shared information between negotiators, or infinity if unlimited."""
+        return self._shared_nmi.time_limit
 
     @property
     def running(self):
@@ -1667,12 +1737,12 @@ class Mechanism(
     @property
     def dynamic_entry(self):
         """Returns whether negotiators can join/leave during negotiation."""
-        return self.nmi.dynamic_entry
+        return self._internal_nmi.dynamic_entry
 
     @property
     def max_n_negotiators(self):
         """Max n negotiators."""
-        return self.nmi.max_n_negotiators
+        return self._internal_nmi.max_n_negotiators
 
     @property
     def state4history(self) -> Any:
@@ -1695,11 +1765,10 @@ class Mechanism(
         Remarks:
             - When overriding this function you **MUST** call the base class version
         """
-        state = self.state
         if self._extra_callbacks:
             for a in self.negotiators:
                 strt = time.perf_counter()
-                self._call(a, a.on_mechanism_error, state=state)
+                self._call(a, a.on_mechanism_error, state=self.state_for(a))
                 self._negotiator_times[a.id] += time.perf_counter() - strt
 
     def on_negotiation_end(self) -> None:
@@ -1711,7 +1780,7 @@ class Mechanism(
         state = self.state
         for a in self.negotiators:
             strt = time.perf_counter()
-            self._call(a, a._on_negotiation_end, state=state)
+            self._call(a, a._on_negotiation_end, state=self.state_for(a))
             self._negotiator_times[a.id] += time.perf_counter() - strt
         self.announce(
             Event(
@@ -1719,7 +1788,7 @@ class Mechanism(
                 data={
                     "agreement": self.agreement,
                     "state": state,
-                    "annotation": self.nmi.annotation,
+                    "annotation": self._internal_nmi.annotation,
                 },
             )
         )
@@ -1808,7 +1877,6 @@ class Mechanism(
                     end="\r" if self.verbosity == 1 else "\n",
                 )
         self.checkpoint_on_step_started()
-        state = self.state
         state4history = self.state4history
         rs, rt = random.random(), 2
 
@@ -1819,10 +1887,13 @@ class Mechanism(
 
         if (
             (current_time > self.time_limit)
-            or (self.nmi.n_steps and self._current_state.step >= self.nmi.n_steps)
+            or (
+                self._internal_nmi.n_steps
+                and self._current_state.step >= self._internal_nmi.n_steps
+            )
             or current_time > self._hidden_time_limit
-            or rs < self.nmi.pend - 1e-8
-            or rt < self.nmi.pend_per_second - 1e-8
+            or rs < self._internal_nmi.pend - 1e-8
+            or rt < self._internal_nmi.pend_per_second - 1e-8
         ):
             (
                 self._current_state.running,
@@ -1835,7 +1906,7 @@ class Mechanism(
         # if there is a single negotiator and no other negotiators can be added,
         # end without starting
         if len(self._negotiators) < 2:
-            if self.nmi.dynamic_entry:
+            if self._internal_nmi.dynamic_entry:
                 return self.state
             else:
                 (
@@ -1861,10 +1932,12 @@ class Mechanism(
             # if we did not start, just start
             self._current_state.running = True
             self._current_state.step = 0
-            self._current_state.relative_time = self.relative_time
+            # Initialize with internal_nmi for history
+            self._current_state.relative_time = self._relative_time_for(
+                self._internal_nmi
+            )
             self._start_time = time.perf_counter()
             self._current_state.started = True
-            state = self.state
             # if the mechanism indicates that it cannot start, keep trying
             if self.on_negotiation_start() is False:
                 (
@@ -1875,7 +1948,7 @@ class Mechanism(
                 return self.state
             for a in self.negotiators:
                 strt = time.perf_counter()
-                self._call(a, a._on_negotiation_start, state=state)
+                self._call(a, a._on_negotiation_start, state=self.state_for(a))
                 self._negotiator_times[a.id] += time.perf_counter() - strt
             self.announce(Event(type="negotiation_start", data=None))
         else:
@@ -1898,7 +1971,11 @@ class Mechanism(
         if not self._current_state.waiting and self._extra_callbacks:
             for negotiator in self._negotiators:
                 strt = time.perf_counter()
-                self._call(negotiator, negotiator.on_round_start, state=state)
+                self._call(
+                    negotiator,
+                    negotiator.on_round_start,
+                    state=self.state_for(negotiator),
+                )
                 self._negotiator_times[negotiator.id] += time.perf_counter() - strt
 
         # run a round of the mechanism and get the new state
@@ -1935,8 +2012,8 @@ class Mechanism(
         if self._current_state.has_error:
             self.on_mechanism_error()
         if (
-            self.nmi.step_time_limit is not None
-            and step_time > self.nmi.step_time_limit
+            self._internal_nmi.step_time_limit is not None
+            and step_time > self._internal_nmi.step_time_limit
         ):
             (
                 self._current_state.broken,
@@ -1957,19 +2034,25 @@ class Mechanism(
             self._current_state.running = False
 
         # now switch to the new state
-        state = self.state
         if not self._current_state.waiting and result.completed:
             state4history = self.state4history
             if self._extra_callbacks:
                 for negotiator in self._negotiators:
                     strt = time.perf_counter()
-                    self._call(negotiator, negotiator.on_round_end, state=state)
+                    self._call(
+                        negotiator,
+                        negotiator.on_round_end,
+                        state=self.state_for(negotiator),
+                    )
                     self._negotiator_times[negotiator.id] += time.perf_counter() - strt
             self._add_to_history(state4history)
             # we only indicate a new step if no one is waiting
             self._current_state.step += 1
             self._current_state.time = self.time
-            self._current_state.relative_time = self.relative_time
+            # History uses internal_nmi (strictest limits) for relative_time
+            self._current_state.relative_time = self._relative_time_for(
+                self._internal_nmi
+            )
 
         if not self._current_state.running:
             self.on_negotiation_end()
@@ -2006,7 +2089,11 @@ class Mechanism(
         if self._extra_callbacks:
             for negotiator in self._negotiators:
                 strt = time.perf_counter()
-                self._call(negotiator, negotiator.on_round_end, state=state)
+                self._call(
+                    negotiator,
+                    negotiator.on_round_end,
+                    state=self.state_for(negotiator),
+                )
                 self._negotiator_times[negotiator.id] += time.perf_counter() - strt
         self._add_to_history(state4history)
         self._current_state.step += 1
@@ -2629,12 +2716,14 @@ class Mechanism(
             broken=self.state.broken,
             timedout=self.state.timedout,
             has_error=self.state.has_error,
-            n_steps=self.nmi.n_steps,
-            time_limit=self.nmi.time_limit,
-            pend=self.nmi.pend,
-            pend_per_second=self.nmi.pend_per_second,
-            step_time_limit=self.nmi.step_time_limit,
-            negotiator_time_limit=self.nmi.negotiator_time_limit,
+            n_steps=self._internal_nmi.n_steps,
+            time_limit=self._internal_nmi.time_limit,
+            shared_n_steps=self._shared_nmi.n_steps,
+            shared_time_limit=self._shared_nmi.time_limit,
+            pend=self._internal_nmi.pend,
+            pend_per_second=self._internal_nmi.pend_per_second,
+            step_time_limit=self._internal_nmi.step_time_limit,
+            negotiator_time_limit=self._internal_nmi.negotiator_time_limit,
             hidden_time_limit=self._hidden_time_limit,
             max_n_negotiators=self.max_n_negotiators,
             dynamic_entry=self.dynamic_entry,

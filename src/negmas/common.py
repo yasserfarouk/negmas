@@ -189,20 +189,6 @@ class PreferencesChange:
     data: Any = None
 
 
-@define(frozen=True)
-class NegotiatorInfo:
-    """
-    Keeps information about a negotiator. Mostly for use with controllers.
-    """
-
-    name: str
-    """Name of this negotiator"""
-    id: str
-    """ID unique to this negotiator"""
-    type: str
-    """Type of the negotiator as a string"""
-
-
 @define
 class MechanismState:
     """Encapsulates the mechanism state at any point"""
@@ -247,13 +233,6 @@ class MechanismState:
         """Returns a hash based on the state's dict representation."""
         return hash(self.asdict())
 
-    #     def __copy__(self):
-    #         return MechanismState(**self.__dict__)
-    #
-    #     def __deepcopy__(self, memodict={}):
-    #         d = {k: deepcopy(v, memo=memodict) for k, v in self.__dict__.items()}
-    #         return MechanismState(**d)
-
     @property
     def ended(self):
         """Whether the negotiation has concluded, regardless of outcome."""
@@ -291,23 +270,51 @@ class MechanismState:
         """Makes the outcome type behave like a dict"""
         return getattr(self, item)
 
-    # def __hash__(self):
-    #     return hash(str(self))
-
-
-#     def __eq__(self, other):
-#         return self.__hash__() == other.__hash__()
-#
-#     def __repr__(self):
-#         return self.__dict__.__repr__()
-#
-#     def __str__(self):
-#         return str(self.__dict__)
-
 
 @define(frozen=True)
+class NegotiatorInfo:
+    """
+    Keeps information about a negotiator. Mostly for use with controllers.
+    """
+
+    name: str
+    """Name of this negotiator"""
+    id: str
+    """ID unique to this negotiator"""
+    type: str
+    """Type of the negotiator as a string"""
+
+
+@define
 class NegotiatorMechanismInterface:
-    """All information of a negotiation visible to negotiators."""
+    """All information of a negotiation visible to negotiators.
+
+    The NMI provides negotiators with access to mechanism parameters and state. It supports
+    per-negotiator time and step limits through a three-tier system:
+
+    1. **Shared limits** (`shared_time_limit`, `shared_n_steps`): Apply to all negotiators
+    2. **Private limits** (`private_time_limit`, `private_n_steps`): Apply to individual negotiators
+    3. **Effective limits** (`time_limit`, `n_steps`): Computed as min(shared, private)
+
+    The effective limits are what negotiators actually see and are used to calculate `relative_time`.
+    This design allows different negotiators to have different time/step constraints while maintaining
+    backward compatibility with code that doesn't use per-negotiator limits.
+
+    Examples:
+        Standard usage (all negotiators see same limits):
+
+        >>> mechanism = SAOMechanism(time_limit=60, n_steps=100)
+        >>> # All negotiators see time_limit=60, n_steps=100
+
+        Per-negotiator limits:
+
+        >>> mechanism = SAOMechanism(time_limit=60, n_steps=100)
+        >>> mechanism.add(negotiator1, time_limit=30)  # Sees time_limit=30 (stricter)
+        >>> mechanism.add(
+        ...     negotiator2, time_limit=90
+        ... )  # Sees time_limit=60 (shared is stricter)
+        >>> mechanism.add(negotiator3)  # Sees time_limit=60 (no private limit)
+    """
 
     id: str
     """Mechanism session ID. That is unique for all mechanisms"""
@@ -315,18 +322,22 @@ class NegotiatorMechanismInterface:
     """Number of outcomes which may be `float('inf')` indicating infinity"""
     outcome_space: OutcomeSpace
     """Negotiation agenda as as an `OutcomeSpace` object. The most common type is `CartesianOutcomeSpace` which represents the cartesian product of a list of issues"""
-    time_limit: float
-    """The time limit in seconds for this negotiation session. None indicates infinity"""
+    shared_time_limit: float
+    """The shared time limit in seconds for this negotiation session. Applies to all negotiators. inf indicates infinity"""
+    shared_n_steps: int | None
+    """The shared allowed number of steps for this negotiation. Applies to all negotiators. None indicates infinity"""
+    private_time_limit: float
+    """The private time limit in seconds for this negotiator. inf indicates infinity. Set via Mechanism.add(time_limit=...)"""
+    private_n_steps: int | None
+    """The private allowed number of steps for this negotiator. None indicates infinity. Set via Mechanism.add(n_steps=...)"""
     pend: float
     """The probability that the negotiation times out at every step. Must be less than one. If <= 0, it is ignored"""
     pend_per_second: float
     """The probability that the negotiation times out every second. Must be less than one. If <= 0, it is ignored"""
     step_time_limit: float
-    """The time limit in seconds for each step of ;this negotiation session. None indicates infinity"""
+    """The time limit in seconds for each step of this negotiation session. None indicates infinity"""
     negotiator_time_limit: float
     """The time limit in seconds to wait for negotiator responses of this negotiation session. None indicates infinity"""
-    n_steps: int | None
-    """The allowed number of steps for this negotiation. None indicates infinity"""
     dynamic_entry: bool
     """Whether it is allowed for negotiators to enter/leave the negotiation after it starts"""
     max_n_negotiators: int | None
@@ -335,6 +346,24 @@ class NegotiatorMechanismInterface:
     """A reference to the mechanism. MUST NEVER BE USED BY NEGOTIATORS. **must be treated as a private member**"""
     annotation: dict[str, Any] = field(factory=dict)
     """An arbitrary annotation as a `dict[str, Any]` that is always available for all negotiators"""
+    time_limit: float = field(init=False)
+    """The effective time limit in seconds for this negotiator. Computed as min(shared_time_limit, private_time_limit) in __attrs_post_init__"""
+    n_steps: int | None = field(init=False)
+    """The effective allowed number of steps for this negotiator. Computed as min(shared_n_steps, private_n_steps) in __attrs_post_init__"""
+
+    def __attrs_post_init__(self):
+        """Post-initialization to validate fields."""
+        object.__setattr__(
+            self, "time_limit", min(self.shared_time_limit, self.private_time_limit)
+        )
+        if self.shared_n_steps is None:
+            object.__setattr__(self, "n_steps", self.private_n_steps)
+        elif self.private_n_steps is None:
+            object.__setattr__(self, "n_steps", self.shared_n_steps)
+        else:
+            object.__setattr__(
+                self, "n_steps", min(self.shared_n_steps, self.private_n_steps)
+            )
 
     #     def __copy__(self):
     #         return NegotiatorMechanismInterface(**vars(self))

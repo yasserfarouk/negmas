@@ -815,8 +815,11 @@ class Scenario:
                 for u in self.ufuns
             ]
         )
-        if self.stats and recalculate_stats:
-            self.calc_stats()
+        if self.stats:
+            if recalculate_stats:
+                self.calc_stats()
+            else:
+                self.stats = None
         return self
 
     def remove_reserved_values(
@@ -829,13 +832,9 @@ class Scenario:
             recalculate_stats: If True and stats exist, recalculate them after removing reserved values.
                 If False and stats exist, invalidate stats by setting them to None.
         """
-        changed = False
         for u in self.ufuns:
-            if abs(r - u.reserved_value) < 1e-3:
-                continue
             u.reserved_value = r
-            changed = True
-        if self.stats and changed:
+        if self.stats:
             if recalculate_stats:
                 self.calc_stats()
             else:

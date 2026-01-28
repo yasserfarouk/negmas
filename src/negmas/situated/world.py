@@ -3045,8 +3045,8 @@ class World(
             req_id=req_id,
             run_to_completion=True,
         )
-        if contract is not None:
-            return contract, mechanism.nmi
+        if contract is not None and mechanism is not None:
+            return contract, mechanism._shared_nmi
         if neg and neg.mechanism:
             mechanism = neg.mechanism
             if negotiator is not None:
@@ -3055,13 +3055,15 @@ class World(
             if mechanism.agreement is None:
                 contract = None
                 self._register_failed_negotiation(
-                    mechanism=mechanism.nmi, negotiation=neg
+                    mechanism=mechanism._shared_nmi, negotiation=neg
                 )
             else:
                 contract = self._register_contract(
-                    mechanism.nmi, neg, self._tobe_signed_at(mechanism.agreement, True)
+                    mechanism._shared_nmi,
+                    neg,
+                    self._tobe_signed_at(mechanism.agreement, True),
                 )
-            return contract, mechanism.nmi
+            return contract, mechanism._shared_nmi
         return None, None
 
     def run_negotiations(

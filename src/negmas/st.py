@@ -108,7 +108,7 @@ class VetoSTMechanism(
         for neg in self.negotiators:
             strt = time.perf_counter()
             responses.append(neg.is_better(new_offer, state.current_offer))
-            if time.perf_counter() - strt > self.nmi.step_time_limit:
+            if time.perf_counter() - strt > self._internal_nmi.step_time_limit:
                 state.timedout = True
                 return MechanismStepResult(state)
 
@@ -419,7 +419,7 @@ class HillClimbingSTMechanism(VetoSTMechanism):
         for neg in self.negotiators:
             strt = time.perf_counter()
             responses.append(neg.is_better(new_offer, state.current_offer))
-            if time.perf_counter() - strt > self.nmi.step_time_limit:
+            if time.perf_counter() - strt > self._internal_nmi.step_time_limit:
                 return MechanismStepResult(state)
 
         self.last_responses = responses

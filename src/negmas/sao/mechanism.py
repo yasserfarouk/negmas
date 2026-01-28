@@ -10,7 +10,6 @@ import time
 from collections import defaultdict
 from typing import TYPE_CHECKING, Any
 
-from attr import asdict
 from rich import print
 
 from negmas import warnings
@@ -147,11 +146,24 @@ class SAOMechanism(
             extra_callbacks=extra_callbacks,
             initial_state=SAOState() if not initial_state else initial_state,
             name=name,
+            nmi_factory=SAONMI,
             **kwargs,
         )
-        self.nmi = SAONMI(
+        self._internal_nmi = SAONMI(
             **{
-                **asdict(self.nmi, recurse=False),
+                # **asdict(self._internal_nmi, recurse=False),
+                **self._nmi_params,
+                **dict(
+                    end_on_no_response=end_on_no_response,
+                    one_offer_per_step=one_offer_per_step,
+                    offering_is_accepting=offering_is_accepting,
+                ),
+            }
+        )
+        self._shared_nmi = SAONMI(
+            **{
+                # **asdict(self._shared_nmi, recurse=False),
+                **self._nmi_params,
                 **dict(
                     end_on_no_response=end_on_no_response,
                     one_offer_per_step=one_offer_per_step,
@@ -160,8 +172,8 @@ class SAOMechanism(
             }
         )
         self._one_offer_per_step = one_offer_per_step
-        assert self.nmi.end_on_no_response == end_on_no_response
-        assert self.nmi.atomic_steps == one_offer_per_step
+        assert self._internal_nmi.end_on_no_response == end_on_no_response
+        assert self._internal_nmi.atomic_steps == one_offer_per_step
         self._current_state: SAOState
 
         # self._history: list[SAOState] = []
@@ -206,16 +218,16 @@ class SAOMechanism(
         return super().make_config() | dict(
             dynamic_entry=self.dynamic_entry,
             extra_callbacks=self._extra_callbacks,
-            end_on_no_response=self.nmi.end_on_no_response,
+            end_on_no_response=self._internal_nmi.end_on_no_response,
             check_offers=self.check_offers,
             enforce_issue_types=self._enforce_issue_types,
             cast_offers=self._cast_offers,
-            offering_is_accepting=self.nmi.offering_is_accepting,
+            offering_is_accepting=self._internal_nmi.offering_is_accepting,
             allow_offering_just_rejected_outcome=self.allow_offering_just_rejected_outcome,
             name=self.name,
             max_wait=self.params.get("max_wait", None),
             sync_calls=self._sync_calls,
-            one_offer_per_step=self.nmi.one_offer_per_step,
+            one_offer_per_step=self._internal_nmi.one_offer_per_step,
         )
 
     @property
@@ -253,15 +265,15 @@ class SAOMechanism(
         if (
             added
             and isinstance(negotiator, GeniusNegotiator)
-            and self.nmi.time_limit is not None
-            and self.nmi.time_limit != float("inf")
-            and self.nmi.n_steps is not None
-            and self.nmi.n_steps != float("inf")
+            and self._nmis[negotiator.id].time_limit is not None
+            and self._nmis[negotiator.id].time_limit != float("inf")
+            and self._nmis[negotiator.id].n_steps is not None
+            and self._nmis[negotiator.id].n_steps != float("inf")
         ):
             warnings.warn(
                 f"{negotiator.id} of type {negotiator.__class__.__name__} is joining "
-                f"SAOMechanism which has a time_limit of {self.nmi.time_limit} seconds "
-                f"and a n_steps of {self.nmi.n_steps}. This agnet will only know about the "
+                f"SAOMechanism which has a time_limit of {self._nmis[negotiator.id].time_limit} seconds "
+                f"and a n_steps of {self._nmis[negotiator.id].n_steps}. This agnet will only know about the "
                 f"time_limit and will not know about the n_steps!!!",
                 warnings.NegmasStepAndTimeLimitWarning,
             )
@@ -355,8 +367,8 @@ class SAOMechanism(
         if rem is None:
             rem = float("inf")
         timeout = min(
-            self.nmi.negotiator_time_limit - times[negotiator.id],
-            self.nmi.step_time_limit,
+            self._internal_nmi.negotiator_time_limit - times[negotiator.id],
+            self._internal_nmi.step_time_limit,
             rem,
             self._hidden_time_limit - self.time,
         )
@@ -366,7 +378,7 @@ class SAOMechanism(
             try:
                 if (
                     negotiator == self._current_proposer
-                ) and self.nmi.offering_is_accepting:
+                ) and self._internal_nmi.offering_is_accepting:
                     self._current_state.n_acceptances = 0
                 try:
                     response = (
@@ -419,7 +431,7 @@ class SAOMechanism(
             try:
                 if (
                     negotiator == self._current_proposer
-                ) and self.nmi.offering_is_accepting:
+                ) and self._internal_nmi.offering_is_accepting:
                     state.n_acceptances = 0
                     response = (
                         given_response
@@ -440,7 +452,7 @@ class SAOMechanism(
                 try:
                     if (
                         negotiator == self._current_proposer
-                    ) and self.nmi.offering_is_accepting:
+                    ) and self._internal_nmi.offering_is_accepting:
                         state.n_acceptances = 0
                         response = (
                             given_response
@@ -590,7 +602,10 @@ class SAOMechanism(
             else:
                 self._stop_waiting(neg.id)
 
-            if resp is None or time.perf_counter() - strt > self.nmi.step_time_limit:
+            if (
+                resp is None
+                or time.perf_counter() - strt > self._internal_nmi.step_time_limit
+            ):
                 state.timedout = True
                 return MechanismStepResult(state, times=times, exceptions=exceptions)
             if self._extra_callbacks:
@@ -648,7 +663,9 @@ class SAOMechanism(
                         )
                     state.n_acceptances = 0
                 else:
-                    state.n_acceptances = 1 if self.nmi.offering_is_accepting else 0
+                    state.n_acceptances = (
+                        1 if self._internal_nmi.offering_is_accepting else 0
+                    )
                     if self._extra_callbacks:
                         for other in self.negotiators:
                             if other is neg:
@@ -729,13 +746,13 @@ class SAOMechanism(
             """Get list of negotiator IDs that accepted the current offer."""
             neg = state.current_proposer
             n_acceptances = state.n_acceptances
-            if self.nmi.offering_is_accepting:
+            if self._internal_nmi.offering_is_accepting:
                 n_acceptances -= 1
             if neg is None:
                 indices = []
             else:
                 indx = self.negotiator_index(neg)
-                n = self.nmi.n_negotiators
+                n = self._internal_nmi.n_negotiators
                 if indx is None:
                     indices = []
                 else:
