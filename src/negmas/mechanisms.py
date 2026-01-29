@@ -1319,14 +1319,9 @@ class Mechanism(
         The state is a copy of the current state with only relative_time
         modified based on the NMI's time limits.
         """
-        # If the NMI has the same limits as shared, return current state directly
-        if (
-            nmi.time_limit == self._shared_nmi.time_limit
-            and nmi.n_steps == self._shared_nmi.n_steps
-        ):
-            return self._current_state
-
-        # Create a copy with modified relative_time field
+        # Always create a copy with modified relative_time field based on the NMI
+        # We cannot shortcut even when nmi == shared_nmi because _current_state
+        # uses _internal_nmi (strictest limits), not shared_nmi
         state = copy.copy(self._current_state)
         object.__setattr__(state, "relative_time", self._relative_time_for(nmi))
         return state

@@ -570,7 +570,7 @@ class SAOMechanism(
                 action,
                 exceptions,
                 dest=dest,
-                kwargs=dict(state=self.state),
+                kwargs=dict(state=self.state_for(neg)),
             )
             self._negotiator_times[neg.id] += time.perf_counter() - strt
             if has_exceptions:
@@ -613,7 +613,7 @@ class SAOMechanism(
                     for other in self.negotiators:
                         if other is not neg:
                             other.on_partner_response(
-                                state=self.state,
+                                state=self.state_for(other),
                                 partner_id=neg.id,
                                 outcome=state.current_offer,
                                 response=resp.response,
