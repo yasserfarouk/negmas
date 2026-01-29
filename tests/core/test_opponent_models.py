@@ -6,6 +6,8 @@ and that negotiators can access and use these models.
 
 from __future__ import annotations
 
+from typing import TYPE_CHECKING
+
 import pytest
 
 from negmas import SAOMechanism
@@ -26,6 +28,9 @@ from negmas.outcomes import make_issue, make_os
 from negmas.preferences import LinearAdditiveUtilityFunction
 from negmas.sao import AspirationNegotiator
 
+if TYPE_CHECKING:
+    pass
+
 
 class OpponentModelTestNegotiator(BOANegotiator):
     """Test negotiator that checks for opponent_ufun in private_info."""
@@ -39,7 +44,7 @@ class OpponentModelTestNegotiator(BOANegotiator):
         self.opponent_ufun_accessed = False
         self.opponent_ufun_updates = []
 
-    def __call__(self, state):
+    def __call__(self, state):  # type: ignore[override]
         """Override to track opponent model access."""
         response = super().__call__(state)
 
@@ -72,8 +77,12 @@ def simple_scenario():
     ]
 
     outcome_space = make_os(issues=issues)
-    ufun1 = LinearAdditiveUtilityFunction.random(issues=issues, reserved_value=0.0)
-    ufun2 = LinearAdditiveUtilityFunction.random(issues=issues, reserved_value=0.0)
+    ufun1 = LinearAdditiveUtilityFunction.random(
+        issues=tuple(issues), reserved_value=0.0
+    )
+    ufun2 = LinearAdditiveUtilityFunction.random(
+        issues=tuple(issues), reserved_value=0.0
+    )
 
     return outcome_space, ufun1, ufun2
 
@@ -101,12 +110,14 @@ class TestOpponentModelPrivateInfo:
 
         # Create negotiators with opponent models
         neg1 = OpponentModelTestNegotiator(
-            name="agent1", ufun=ufun1, opponent_model=model_class()
+            name="agent1",
+            ufun=ufun1,
+            opponent_model=model_class(),  # type: ignore
         )
         neg2 = AspirationNegotiator(name="agent2", ufun=ufun2)
 
         # Run negotiation
-        mechanism = SAOMechanism(outcome_space=outcome_space, n_steps=10)
+        mechanism = SAOMechanism(outcome_space=outcome_space, n_steps=10)  # type: ignore
         mechanism.add(neg1)
         mechanism.add(neg2)
         mechanism.run()
@@ -122,12 +133,14 @@ class TestOpponentModelPrivateInfo:
 
         # Use a learning model that should update
         neg1 = OpponentModelTestNegotiator(
-            name="agent1", ufun=ufun1, opponent_model=GHardHeadedFrequencyModel()
+            name="agent1",
+            ufun=ufun1,
+            opponent_model=GHardHeadedFrequencyModel(),  # type: ignore
         )
         neg2 = AspirationNegotiator(name="agent2", ufun=ufun2)
 
         # Run negotiation
-        mechanism = SAOMechanism(outcome_space=outcome_space, n_steps=20)
+        mechanism = SAOMechanism(outcome_space=outcome_space, n_steps=20)  # type: ignore
         mechanism.add(neg1)
         mechanism.add(neg2)
         mechanism.run()
@@ -149,11 +162,13 @@ class TestOpponentModelPrivateInfo:
         outcome_space, ufun1, ufun2 = simple_scenario
 
         neg1 = OpponentModelTestNegotiator(
-            name="agent1", ufun=ufun1, opponent_model=GBayesianModel()
+            name="agent1",
+            ufun=ufun1,
+            opponent_model=GBayesianModel(),  # type: ignore
         )
         neg2 = AspirationNegotiator(name="agent2", ufun=ufun2)
 
-        mechanism = SAOMechanism(outcome_space=outcome_space, n_steps=15)
+        mechanism = SAOMechanism(outcome_space=outcome_space, n_steps=15)  # type: ignore
         mechanism.add(neg1)
         mechanism.add(neg2)
         mechanism.run()
@@ -167,11 +182,13 @@ class TestOpponentModelPrivateInfo:
         outcome_space, ufun1, ufun2 = simple_scenario
 
         neg1 = OpponentModelTestNegotiator(
-            name="agent1", ufun=ufun1, opponent_model=GOppositeModel()
+            name="agent1",
+            ufun=ufun1,
+            opponent_model=GOppositeModel(),  # type: ignore
         )
         neg2 = AspirationNegotiator(name="agent2", ufun=ufun2)
 
-        mechanism = SAOMechanism(outcome_space=outcome_space, n_steps=5)
+        mechanism = SAOMechanism(outcome_space=outcome_space, n_steps=5)  # type: ignore
         mechanism.add(neg1)
         mechanism.add(neg2)
         mechanism.run()
@@ -194,11 +211,13 @@ class TestOpponentModelPrivateInfo:
         outcome_space, ufun1, ufun2 = simple_scenario
 
         neg1 = OpponentModelTestNegotiator(
-            name="agent1", ufun=ufun1, opponent_model=ZeroSumModel()
+            name="agent1",
+            ufun=ufun1,
+            opponent_model=ZeroSumModel(),  # type: ignore
         )
         neg2 = AspirationNegotiator(name="agent2", ufun=ufun2)
 
-        mechanism = SAOMechanism(outcome_space=outcome_space, n_steps=5)
+        mechanism = SAOMechanism(outcome_space=outcome_space, n_steps=5)  # type: ignore
         mechanism.add(neg1)
         mechanism.add(neg2)
         mechanism.run()
@@ -219,13 +238,15 @@ class TestOpponentModelMultilateral:
 
         # Create negotiators
         neg1 = OpponentModelTestNegotiator(
-            name="agent1", ufun=ufun1, opponent_model=GHardHeadedFrequencyModel()
+            name="agent1",
+            ufun=ufun1,
+            opponent_model=GHardHeadedFrequencyModel(),  # type: ignore
         )
         neg2 = AspirationNegotiator(name="agent2", ufun=ufun2)
         neg3 = AspirationNegotiator(name="agent3", ufun=ufun3)
 
         # Run multilateral negotiation
-        mechanism = SAOMechanism(outcome_space=outcome_space, n_steps=10)
+        mechanism = SAOMechanism(outcome_space=outcome_space, n_steps=10)  # type: ignore
         mechanism.add(neg1)
         mechanism.add(neg2)
         mechanism.add(neg3)
@@ -251,11 +272,13 @@ class TestOpponentModelAccess:
         outcome_space, ufun1, ufun2 = simple_scenario
 
         neg1 = OpponentModelTestNegotiator(
-            name="agent1", ufun=ufun1, opponent_model=GHardHeadedFrequencyModel()
+            name="agent1",
+            ufun=ufun1,
+            opponent_model=GHardHeadedFrequencyModel(),  # type: ignore
         )
         neg2 = AspirationNegotiator(name="agent2", ufun=ufun2)
 
-        mechanism = SAOMechanism(outcome_space=outcome_space, n_steps=10)
+        mechanism = SAOMechanism(outcome_space=outcome_space, n_steps=10)  # type: ignore
         mechanism.add(neg1)
         mechanism.add(neg2)
         mechanism.run()
@@ -286,7 +309,7 @@ class TestOpponentModelAccess:
                 super().__init__(*args, **kwargs)
                 self.checked = False
 
-            def __call__(self, state):
+            def __call__(self, state):  # type: ignore[override]
                 response = super().__call__(state)
                 if not self.checked and state.step > 0:
                     self.checked = True
@@ -297,11 +320,13 @@ class TestOpponentModelAccess:
                 return response
 
         neg1 = FirstOfferCheckNegotiator(
-            name="agent1", ufun=ufun1, opponent_model=GDefaultModel()
+            name="agent1",
+            ufun=ufun1,
+            opponent_model=GDefaultModel(),  # type: ignore
         )
         neg2 = AspirationNegotiator(name="agent2", ufun=ufun2)
 
-        mechanism = SAOMechanism(outcome_space=outcome_space, n_steps=5)
+        mechanism = SAOMechanism(outcome_space=outcome_space, n_steps=5)  # type: ignore
         mechanism.add(neg1)
         mechanism.add(neg2)
         mechanism.run()
