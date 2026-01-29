@@ -35,6 +35,40 @@ class UFunModel(GBComponent, BaseUtilityFunction):
     available to `SAOComponent` to update the model.
     """
 
+    def _update_private_info(self, partner_id: str | None = None) -> None:
+        """Update the negotiator's private_info with this model.
+
+        For bilateral negotiations, sets private_info["opponent_ufun"].
+        For multilateral negotiations, sets private_info["opponent_ufuns"][partner_id].
+
+        Args:
+            partner_id: The partner's ID for multilateral negotiations.
+                       If None, assumes bilateral and uses "opponent_ufun".
+        """
+        if not self.negotiator:
+            return
+
+        # Ensure private_info exists
+        if not hasattr(self.negotiator, "private_info"):
+            return
+
+        private_info = self.negotiator.private_info
+        if private_info is None:
+            return
+
+        # Check if this is a multilateral negotiation
+        nmi = self.negotiator.nmi
+        is_multilateral = nmi is not None and nmi.n_negotiators > 2
+
+        if is_multilateral and partner_id is not None:
+            # Multilateral: store in opponent_ufuns dict
+            if "opponent_ufuns" not in private_info:
+                private_info["opponent_ufuns"] = {}
+            private_info["opponent_ufuns"][partner_id] = self
+        else:
+            # Bilateral: store directly
+            private_info["opponent_ufun"] = self
+
 
 @define
 class ZeroSumModel(StationaryMixin, UFunModel):
@@ -63,6 +97,8 @@ class ZeroSumModel(StationaryMixin, UFunModel):
             if not self.rank_only
             else RankOnlyUtilityFunction(self.negotiator.ufun)
         )
+        # Update private_info so negotiators can access this model
+        self._update_private_info()
 
     def eval(self, offer: Outcome) -> Value:
         """Eval.

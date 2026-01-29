@@ -270,6 +270,189 @@ def respond(self, state)             def respond(self, state, src=None)      The
 def __call__(self, state)            def __call__(self, state, dest=None)    The `__call__()` function of SAONegotiator now takes an optional `dest` parameter.
 =================================== ======================================  =======================================================================================================================
 
+0.14->0.15 Upgrade Guide
+========================
+
+NegMAS 0.15 introduces per-negotiator limits and deprecates ``Mechanism.nmi`` in favor of ``shared_nmi``.
+Most code will continue to work without changes, but you should migrate to the new API.
+
+Breaking Changes
+----------------
+
+Mechanism NMI Deprecation
+~~~~~~~~~~~~~~~~~~~~~~~~~
+
+The ``Mechanism.nmi`` property is deprecated in favor of ``shared_nmi`` to better distinguish
+between shared mechanism interfaces and per-negotiator interfaces.
+
+=================================== ===================================  =======================================================================================================================
+ From                                To                                   Notes
+=================================== ===================================  =======================================================================================================================
+``mechanism.nmi``                   ``mechanism.shared_nmi``             Use ``shared_nmi`` to access the shared negotiator-mechanism interface
+=================================== ===================================  =======================================================================================================================
+
+**Example Migration:**
+
+.. code-block:: python
+
+   # Old way (deprecated, still works with warning)
+   relative_time = mechanism.nmi.relative_time
+   n_steps = mechanism.nmi.n_steps
+
+   # New way (recommended)
+   relative_time = mechanism.shared_nmi.relative_time
+   n_steps = mechanism.shared_nmi.n_steps
+
+**Why this change?**
+
+With the introduction of per-negotiator limits in 0.15, each negotiator can have its own
+``NegotiatorMechanismInterface`` (NMI) with different time and step limits. The ``shared_nmi``
+property clarifies that you're accessing the shared interface that applies to all negotiators,
+not a specific negotiator's interface.
+
+New Features
+------------
+
+Per-Negotiator Time and Step Limits
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+
+Mechanisms now support individual time and step limits for each negotiator. This enables
+asymmetric negotiation scenarios where different agents have different resources.
+
+**Basic Usage:**
+
+.. code-block:: python
+
+   from negmas import SAOMechanism, TimeBasedConcedingNegotiator
+
+   # Create a mechanism
+   mechanism = SAOMechanism(outcomes=10, n_steps=100)
+
+   # Add negotiators with different limits
+   mechanism.add(
+       TimeBasedConcedingNegotiator(name="fast"),
+       time_limit=5.0,  # 5 seconds max
+       n_steps=50,  # 50 steps max
+   )
+
+   mechanism.add(
+       TimeBasedConcedingNegotiator(name="slow"),
+       time_limit=10.0,  # 10 seconds max
+       n_steps=100,  # 100 steps max
+   )
+
+   # Run the negotiation
+   mechanism.run()
+
+**Three-Tier Limit System:**
+
+1. **Shared limits**: Apply to all negotiators (set via ``Mechanism.__init__`` or on ``shared_nmi``)
+2. **Private limits**: Apply to individual negotiators (set via ``Mechanism.add(..., time_limit=X, n_steps=Y)``)
+3. **Effective limits**: Computed as ``min(shared, private)`` - the most restrictive wins
+
+**Accessing Per-Negotiator State:**
+
+.. code-block:: python
+
+   # Get state for a specific negotiator
+   state = mechanism.state_for(negotiator)
+
+   # The state includes per-negotiator relative_time
+   # based on that negotiator's effective limits
+   print(f"Relative time for {negotiator.name}: {state.relative_time}")
+
+**Backward Compatibility:**
+
+Existing code continues to work without changes. If you don't specify per-negotiator limits,
+negotiators use the shared limits (same behavior as before).
+
+Offline Negotiation Visualization
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+
+New ``CompletedRun`` class enables saving and visualizing completed negotiations offline.
+
+**Saving a Completed Negotiation:**
+
+.. code-block:: python
+
+   from negmas import SAOMechanism
+
+   # Run a negotiation
+   mechanism = SAOMechanism(...)
+   mechanism.add(...)
+   mechanism.run()
+
+   # Convert to CompletedRun and save
+   completed_run = mechanism.to_completed_run(source="full_trace")
+   completed_run.save("my_negotiation.yaml")
+
+**Loading and Plotting:**
+
+.. code-block:: python
+
+   from negmas import CompletedRun
+
+   # Load the completed run
+   run = CompletedRun.load("my_negotiation.yaml", load_scenario=True)
+
+   # Plot the negotiation (same as SAOMechanism.plot())
+   run.plot(show_all_offers=True, show_annotations=True, save_fig="negotiation.png")
+
+**Requirements for Plotting:**
+
+- Must use ``source="full_trace"`` when creating the ``CompletedRun``
+- Must load with ``load_scenario=True`` to include utility functions
+- Produces identical visualizations to ``SAOMechanism.plot()``
+
+Scenario Rotation Optimization
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+
+New ``Scenario.rotate_ufuns()`` method enables efficient scenario rotation without
+recalculating statistics.
+
+.. code-block:: python
+
+   from negmas import Scenario
+
+   # Load a scenario
+   scenario = Scenario.from_genius_folder("path/to/domain")
+
+   # Rotate utility functions by 1 position
+   # (u0, u1, u2) → (u2, u0, u1)
+   rotated = scenario.rotate_ufuns(n=1)
+
+   # Statistics are automatically rotated (no recalculation needed)
+   # This is much faster than recalculating stats for each rotation
+
+**Performance Impact:**
+
+When using ``cartesian_tournament`` with ``rotate_ufuns=True`` and the new default
+``recalculate_stats=False``, you can see 1.3-2x speedup depending on scenario complexity.
+
+Matplotlib Plotting Backend
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+
+``Scenario.plot()`` now supports both matplotlib and plotly backends.
+
+.. code-block:: python
+
+   from negmas import Scenario
+
+   scenario = Scenario.from_genius_folder("path/to/domain")
+
+   # Use plotly (default, interactive)
+   fig = scenario.plot(backend="plotly")
+
+   # Use matplotlib (faster for static images)
+   fig = scenario.plot(backend="matplotlib", save_fig="scenario.png")
+
+**When to use each backend:**
+
+- **plotly**: Interactive plots, web applications, Jupyter notebooks
+- **matplotlib**: Static images, publications, faster rendering for large datasets
+
+Both backends produce visually consistent output (same colors, markers, legends).
+
 0.13->0.14 Upgrade Guide
 ========================
 

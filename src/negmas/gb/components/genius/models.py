@@ -237,7 +237,8 @@ class GDefaultModel(GeniusOpponentModel):
         self, state: GBState, partner_id: str, offer: Outcome
     ) -> None:
         """No-op - this model doesn't learn from offers."""
-        pass
+        # Update private_info so negotiators can access this model
+        self._update_private_info(partner_id)
 
     def eval(self, offer: Outcome | None) -> Value:
         """Return constant utility (0.5) for any outcome.
@@ -878,9 +879,16 @@ class GWorstModel(GeniusOpponentModel):
         """Handle preference changes."""
         self._initialize()
 
+    def on_partner_proposal(
+        self, state: GBState, partner_id: str, offer: Outcome
+    ) -> None:
+        """Handle partner proposal by updating private_info."""
+        self._update_private_info(partner_id)
+
     def update(self, state: GBState, offer: Outcome, partner_id: str) -> None:
         """Update model based on opponent's offer (no-op for worst model)."""
-        pass
+        # Update private_info so negotiators can access this model
+        self._update_private_info(partner_id)
 
     def eval(self, offer: Outcome | None) -> Value:
         """Evaluate opponent utility as inverse of our utility."""
@@ -921,11 +929,18 @@ class GPerfectModel(GeniusOpponentModel):
         """Handle preference changes."""
         pass
 
+    def on_partner_proposal(
+        self, state: GBState, partner_id: str, offer: Outcome
+    ) -> None:
+        """Handle partner proposal by updating private_info."""
+        self._update_private_info(partner_id)
+
     def update(self, state: GBState, offer: Outcome, partner_id: str) -> None:
         """Update model based on opponent's offer (stores opponent ufun if available)."""
         # In a real scenario, this would try to get the opponent's actual ufun
         # For now, this is a placeholder
-        pass
+        # Update private_info so negotiators can access this model
+        self._update_private_info(partner_id)
 
     def eval(self, offer: Outcome | None) -> Value:
         """Evaluate opponent utility."""
@@ -972,7 +987,8 @@ class GUniformModel(GeniusOpponentModel):
         self, state: GBState, partner_id: str, offer: Outcome
     ) -> None:
         """No-op - this model uses random values."""
-        pass
+        # Update private_info so negotiators can access this model
+        self._update_private_info(partner_id)
 
     def eval(self, offer: Outcome | None) -> Value:
         """Return a random but consistent utility for the outcome.
@@ -1027,7 +1043,8 @@ class GOppositeModel(GeniusOpponentModel):
         self, state: GBState, partner_id: str, offer: Outcome
     ) -> None:
         """No-op - this model uses our utility function inversely."""
-        pass
+        # Update private_info so negotiators can access this model
+        self._update_private_info(partner_id)
 
     def eval(self, offer: Outcome | None) -> Value:
         """Return opposite utility (1 - our utility).

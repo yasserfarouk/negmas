@@ -1,8 +1,117 @@
 History
 =======
 
-Release 0.14.0 (Unreleased)
----------------------------
+Release 0.15.0
+--------------
+
+This release focuses on enhancing mechanism capabilities with per-negotiator limits and improving visualization.
+
+**Key Features:**
+
+* **Per-Negotiator Time and Step Limits**: Mechanisms now support individual time and step limits for each negotiator, enabling asymmetric negotiation scenarios where different agents have different resources.
+
+* **Offline Negotiation Visualization**: New ``CompletedRun`` class and ``CompletedRun.plot()`` method enable visualization of completed negotiations from saved data.
+
+* **Scenario Rotation Optimization**: New ``Scenario.rotate_ufuns()`` method and optimized tournament performance with efficient scenario statistics rotation.
+
+* **Matplotlib Plotting Backend**: Scenarios can now be plotted using matplotlib in addition to plotly, providing more flexibility and better performance for static visualizations.
+
+**Breaking Changes:**
+
+* [breaking] ``Mechanism.nmi`` is now deprecated in favor of ``Mechanism.shared_nmi`` to clarify the distinction between shared and per-negotiator interfaces. Update your code:
+
+  .. code-block:: python
+
+     # Old (deprecated)
+     mechanism.nmi
+
+     # New (recommended)
+     mechanism.shared_nmi
+
+**New Features:**
+
+* [feature] Add per-negotiator time and step limits to mechanisms:
+
+  - ``Mechanism.add(negotiator, time_limit=X, n_steps=Y)`` now accepts per-negotiator limits
+  - Three-tier limit system in ``NegotiatorMechanismInterface``:
+
+    - **Shared limits** (``shared_time_limit``, ``shared_n_steps``): Apply to all negotiators
+    - **Private limits** (``private_time_limit``, ``private_n_steps``): Apply to individual negotiators
+    - **Effective limits** (``time_limit``, ``n_steps``): Computed as ``min(shared, private)``
+
+  - ``Mechanism.state_for(negotiator)`` returns per-negotiator state with custom ``relative_time``
+  - Each negotiator can have different time/step constraints within the same negotiation session
+  - Fully backward compatible - existing code works without changes
+  - Negotiators added without private limits use shared limits (default behavior)
+
+* [feature] Add ``CompletedRun`` class for representing and persisting completed negotiation runs:
+
+  - Encapsulates history, scenario, agreement, and statistics
+  - Supports save/load with multiple storage formats
+  - Can be created from ``Mechanism.to_completed_run()``
+  - Includes ``plot()`` method for visualizing completed runs (equivalent to ``SAOMechanism.plot()``)
+
+* [feature] Add ``CompletedRun.plot()`` method for visualizing completed negotiation runs:
+
+  - Produces identical visualizations to ``SAOMechanism.plot()`` but works with saved/loaded runs
+  - Requires ``history_type='full_trace'`` (use ``Mechanism.to_completed_run(source="full_trace")``)
+  - Requires scenario with utility functions (load with ``load_scenario=True``)
+  - Supports all plotting parameters: 2D utility space, offer timelines, distance metrics, etc.
+  - Enables offline analysis and visualization of archived negotiation data
+
+* [feature] Add ``Scenario.rotate_ufuns()`` method for efficient scenario rotation in tournaments:
+
+  - Creates new scenario with utility functions rotated by ``n`` positions (e.g., ``(u0, u1, u2) → (u2, u0, u1)`` for ``n=1``)
+  - Efficiently rotates scenario statistics without expensive recalculation
+  - Optionally rotates private info entries that match ufun count via ``rotate_info`` parameter
+  - Supports positive/negative rotation with modulo wrapping
+  - Outcome space is preserved (shared reference, not copied)
+
+* [feature] Add ``recalculate_stats`` parameter to ``cartesian_tournament`` for performance optimization:
+
+  - ``recalculate_stats=False`` (default): Load stats from disk when available and use ``Scenario.rotate_ufuns()`` for efficient rotation
+  - ``recalculate_stats=True`` (old behavior): Always recalculate stats for every scenario rotation
+  - Provides significant speedup for tournaments with ``rotate_ufuns=True`` (1.3-2x faster)
+
+* [feature] Add matplotlib backend support to ``Scenario.plot()``:
+
+  - Use ``backend='matplotlib'`` or ``backend='plotly'`` (default)
+  - Matplotlib backend provides optimized performance for static visualizations
+  - Maintains visual consistency between both backends (colors, markers, legends)
+
+* [feature] Add per-negotiation callbacks to ``cartesian_tournament`` for monitoring individual negotiations:
+
+  - ``neg_start_callback``: Called at the start of each negotiation with ``(run_id, state)``
+  - ``neg_progress_callback``: Called after each negotiation step with ``(run_id, state)``
+  - ``neg_end_callback``: Called at the completion of each negotiation with ``(run_id, state)``
+  - Callbacks work in both serial and parallel modes (local closures supported via cloudpickle)
+
+* [feature] Add ``Scenario.normalize_ufuns()`` for normalizing utility functions to [0, 1] range
+* [feature] Add ``Mechanism.to_completed_run()`` method for creating ``CompletedRun`` from mechanism state
+* [feature] Add ``rational_fraction`` field to ``ScenarioInfo`` for tracking rational outcome percentages
+* [feature] Add ``read_only`` property to scenario registry
+
+**Bug Fixes:**
+
+* [bugfix] Fix race condition in Genius bridge when starting negotiation sessions
+* [bugfix] Fix ``Mechanism.nmi`` deprecation - now properly use ``shared_nmi`` throughout codebase
+* [bugfix] Ensure per-negotiator ``relative_time`` is correctly passed to negotiators based on their individual limits
+* [bugfix] Fix ``SAOMechanism`` not creating ``SAONMI`` instances for negotiators (fixes Genius bridge tests)
+* [bugfix] Fix ``ContiguousIssue`` XML serialization to use efficient integer format
+* [bugfix] Improve cross-platform path handling for Windows compatibility
+* [bugfix] Fix Jupyter notebook test timeouts caused by blocking ``fig.show()`` calls
+* [bugfix] Fix NaN return value in ``compare_ufuns()`` when using Kendall's tau with constant utility functions
+* [bugfix] Fix ``cartesian_tournament()`` modifying input scenario objects (now deep copies scenarios)
+
+**Documentation:**
+
+* [docs] Add comprehensive migration guide for 0.14 → 0.15 upgrade
+* [docs] Update publications list with 5 new papers (2024-2025)
+* [docs] Add documentation for per-negotiator limits
+* [docs] Add documentation for offline visualization with ``CompletedRun``
+
+Release 0.14.0
+--------------
 
 **Breaking Changes:**
 
