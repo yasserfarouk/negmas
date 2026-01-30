@@ -16,7 +16,7 @@ import traceback
 from concurrent.futures import ProcessPoolExecutor, TimeoutError, as_completed
 from concurrent.futures.process import BrokenProcessPool
 from itertools import product
-from math import exp, isinf, log
+from math import exp, isinf, isnan, log
 from os import cpu_count
 from pathlib import Path
 from random import randint, random, shuffle
@@ -1634,18 +1634,15 @@ def _make_mechanism(
 
 
 def _make_failure_record(
-    state: SAOState,
     s: Scenario,
-    param_dump,
-    partner_names,
-    run_id,
-    execution_time,
-    real_scenario_name,
-    stats,
-    mechanism_type,
-    mechanism_params,
-    partners,
-):
+    state: MechanismState,
+    partners: Sequence[Negotiator],
+    run_id: str,
+    execution_time: float,
+    mechanism_params: dict,
+    partner_names: list[str] | None = None,
+    param_dump: list[dict[str, Any]] | None = None,
+) -> dict:
     """Create a record for a failed negotiation with null/error values."""
     if not partner_names:
         partner_names = [get_full_type_name(_) for _ in partners]
@@ -1653,10 +1650,13 @@ def _make_failure_record(
         param_dump = None
     agreement_utils = tuple(u(state.agreement) for u in s.ufuns)
     reservations = tuple(u.reserved_value for u in s.ufuns)
-    max_utils = [_.max() for _ in s.ufuns]
+    min_max_utils = [_.minmax() for _ in s.ufuns]
+    min_utils = [_[0] for _ in min_max_utils]
+    max_utils = [_[1] for _ in min_max_utils]
     run_record = asdict(state)
     run_record["utilities"] = agreement_utils
     run_record["max_utils"] = max_utils
+    run_record["min_utils"] = min_utils
     run_record["reserved_values"] = reservations
     run_record["partners"] = partner_names
     run_record["params"] = param_dump
@@ -1730,10 +1730,13 @@ def _make_record(
         param_dump = None
     agreement_utils = tuple(u(state.agreement) for u in s.ufuns)
     reservations = tuple(u.reserved_value for u in s.ufuns)
-    max_utils = [_.max() for _ in s.ufuns]
+    min_max_utils = [_.minmax() for _ in s.ufuns]
+    min_utils = [_[0] for _ in min_max_utils]
+    max_utils = [_[1] for _ in min_max_utils]
     run_record = asdict(state)
     run_record["utilities"] = agreement_utils
     run_record["max_utils"] = max_utils
+    run_record["min_utils"] = min_utils
     run_record["reserved_values"] = reservations
     run_record["partners"] = partner_names
     run_record["params"] = param_dump
@@ -2301,28 +2304,38 @@ def make_scores(
     utils, partners = record["utilities"], record["partners"]
     reserved_values = record["reserved_values"]
     negids = record["negotiator_ids"]
-    max_utils, times = (
-        record["max_utils"],
-        record.get("negotiator_times", [None] * len(utils)),
-    )
+    max_utils = record["max_utils"]
+    min_utils = record.get("min_utils", [float("nan")] * len(utils))
+    times = record.get("negotiator_times", [None] * len(utils))
     has_error = record["has_error"]
     erred_negotiator = record["erred_negotiator"]
     error_details = record["error_details"]
     mech_error = has_error and not erred_negotiator
     scores = []
-    for i, (u, r, a, m, t, nid) in enumerate(
-        zip(utils, reserved_values, partners, max_utils, times, negids)
+    for i, (u, r, a, m, mn, t, nid) in enumerate(
+        zip(utils, reserved_values, partners, max_utils, min_utils, times, negids)
     ):
         # Only score negotiators at specified indices
         if scored_indices is not None and i not in scored_indices:
             continue
         n_p = len(partners)
         bilateral = n_p == 2
+
+        # Calculate advantage: handle -inf and NaN reserved values
+        # When r is -inf or NaN, use u - min(utility) instead of (u - r) / (m - r)
+        if (isinf(r) and r < 0) or isnan(r):
+            # When reserved value is -inf or NaN, advantage is just u - minimum utility
+            advantage = u - mn if not isnan(mn) else 0.0
+        elif m != r:
+            advantage = (u - r) / (m - r)
+        else:
+            advantage = 0.0
+
         basic = dict(
             strategy=a,
             utility=u,
             reserved_value=r,
-            advantage=(u - r) / (m - r) if m != r else 0.0,
+            advantage=advantage,
             partner_welfare=sum(_ for j, _ in enumerate(utils) if j != i) / (n_p - 1),
             welfare=sum(_ for _ in utils) / n_p,
             scenario=record["scenario"],

@@ -1108,7 +1108,8 @@ def ks_points(
     for i, (r, rng) in enumerate(zip(rs, ranges)):
         if any(_ is None or not math.isfinite(_) for _ in rng):
             raise ValueError(f"Cannot find the range for ufun {i}: {rng}")
-        if r is None or r < rng[0]:
+        # Treat NaN or -inf reserved values as using the minimum utility
+        if r is None or r < rng[0] or not math.isfinite(r):
             continue
         ranges[i] = (r, rng[1])
     # if all ranges are very tiny, return everything as optimal
@@ -1197,7 +1198,8 @@ def kalai_points(
     for i, (r, rng) in enumerate(zip(rs, ranges)):
         if any(_ is None or not math.isfinite(_) for _ in rng):
             raise ValueError(f"Cannot find the range for ufun {i}: {rng}")
-        if r is None or r < rng[0]:
+        # Treat NaN or -inf reserved values as using the minimum utility
+        if r is None or r < rng[0] or not math.isfinite(r):
             continue
         ranges[i] = (r, rng[1])
     # if all ranges are very tiny, return everything as optimal
@@ -1283,7 +1285,8 @@ def nash_points(
     for i, (r, rng) in enumerate(zip(rs, ranges)):
         if any(_ is None or not math.isfinite(_) for _ in rng):
             raise ValueError(f"Cannot find the range for ufun {i}: {rng}")
-        if r is None or r < rng[0]:
+        # Treat NaN or -inf reserved values as using the minimum utility
+        if r is None or r < rng[0] or not math.isfinite(r):
             continue
         ranges[i] = (r, rng[1])
     # if all ranges are very tiny, return everything as optimal
