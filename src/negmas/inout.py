@@ -868,8 +868,20 @@ class Scenario:
             Dictionary containing the calculated information metrics.
 
         Examples:
-            >>> scenario.calc_standard_info()
-            {'n_negotiators': 2, 'n_outcomes': 100, 'n_issues': 3, 'rational_fraction': 0.65, 'opposition_level': 0.42}
+            >>> from negmas import make_issue, make_os
+            >>> from negmas.preferences import LinearUtilityFunction
+            >>> issues = [make_issue([0, 1, 2], "x")]
+            >>> os = make_os(issues)
+            >>> u1 = LinearUtilityFunction(weights=[1.0], outcome_space=os)
+            >>> u2 = LinearUtilityFunction(weights=[0.5], outcome_space=os)
+            >>> scenario = Scenario(outcome_space=os, ufuns=[u1, u2])
+            >>> info = scenario.calc_standard_info()
+            >>> info["n_negotiators"]
+            2
+            >>> info["n_outcomes"]
+            3
+            >>> info["n_issues"]
+            1
         """
         info = calc_standard_info(
             self.ufuns, outcome_space=self.outcome_space, calc_rational=calc_rational

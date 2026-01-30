@@ -1771,7 +1771,10 @@ def calc_standard_info(
     # Calculate opposition level
     try:
         opposition = opposition_level(
-            ufuns, outcomes=outcomes, max_utils=[float(u.max()) for u in ufuns]
+            ufuns,
+            outcomes=outcomes,
+            outcome_space=outcome_space,
+            max_utils=[float(u.max()) for u in ufuns],
         )
     except Exception:
         # If opposition calculation fails, set to None
@@ -2085,6 +2088,7 @@ def opposition_level(
     ufuns: Sequence[UtilityFunction],
     max_utils: float | tuple[float | int, ...] | list[float | int] = 1.0,
     outcomes: int | Sequence[Outcome] | None = None,
+    outcome_space: OutcomeSpace | None = None,
     issues: Sequence[Issue] | None = None,
     max_tests: int = 10000,
 ) -> float:
@@ -2096,6 +2100,7 @@ def opposition_level(
         max_utils: A list of maximum utility value for each ufun (or a single number if they are equal).
         outcomes: A list of outcomes (should be the complete issue space) or an integer giving the number
                  of outcomes. In the later case, ufuns should expect a tuple of a single integer.
+        outcome_space: The outcome space to use for extracting issues (only used if outcomes and issues are None).
         issues: The issues (only used if outcomes is None).
         max_tests: The maximum number of outcomes to use. Only used if issues is given and has more
                    outcomes than this value.
@@ -2121,7 +2126,12 @@ def opposition_level(
     """
     if outcomes is None:
         if issues is None:
-            raise ValueError("You must either give outcomes or issues")
+            if outcome_space is None:
+                raise ValueError("You must provide outcomes, issues, or outcome_space")
+            if hasattr(outcome_space, "issues"):
+                issues = outcome_space.issues  # type: ignore
+            else:
+                raise ValueError("outcome_space must have issues attribute")
         outcomes = list(enumerate_issues(tuple(issues), max_cardinality=max_tests))
     if isinstance(outcomes, int):
         outcomes = [(_,) for _ in range(outcomes)]
