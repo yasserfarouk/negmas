@@ -48,7 +48,7 @@ from negmas.preferences.ops import (
 from negmas.sao.common import SAOState
 from negmas.sao.mechanism import SAOMechanism
 from negmas.serialization import PYTHON_CLASS_IDENTIFIER, serialize, to_flat_dict
-from negmas.warnings import deprecated
+from negmas.warnings import NegmasUnexpectedValueWarning, deprecated, warn
 
 OptimizationLevel = Literal["speed", "time", "none", "balanced", "space", "max"]
 StorageFormat = Literal["csv", "gzip", "parquet"]
@@ -119,6 +119,32 @@ def _get_file_extension(storage_format: StorageFormat) -> str:
         return ".csv.gz"
     else:  # "parquet"
         return ".parquet"
+
+
+def _check_reserved_values(scenario: Scenario, scenario_name: str) -> None:
+    """Check for problematic reserved values in scenario ufuns and warn if found.
+
+    Args:
+        scenario: The scenario to check
+        scenario_name: Name of the scenario for warning message
+    """
+    problematic_ufuns = []
+    for i, ufun in enumerate(scenario.ufuns):
+        if hasattr(ufun, "reserved_value"):
+            rv = ufun.reserved_value
+            if rv is not None and (isinf(rv) or isnan(rv)):
+                problematic_ufuns.append((i, ufun.name, rv))
+
+    if problematic_ufuns:
+        ufun_details = ", ".join(
+            f"ufun[{i}] '{name}' (reserved_value={rv})"
+            for i, name, rv in problematic_ufuns
+        )
+        warn(
+            f"Scenario '{scenario_name}' has utility functions with non-finite reserved values: {ufun_details}. "
+            f"This may affect advantage, optimality, and distance calculations.",
+            NegmasUnexpectedValueWarning,
+        )
 
 
 def _convert_complex_columns_to_json(
@@ -3219,6 +3245,9 @@ def cartesian_tournament(
 
         # COMMON CODE: Process all scenarios (from either path above)
         for scenario, scenario_name, pinfo_tuple in scenarios_to_process:
+            # Check for problematic reserved values and warn
+            _check_reserved_values(scenario, scenario_name)
+
             this_path = None
 
             # Save scenario to disk if scenarios_path is provided
