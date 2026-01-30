@@ -323,26 +323,49 @@ class ScenarioStats:
             max_relative_welfare_outcomes=relative_welfare_outcomes,
         )
 
-    def to_dict(self, include_pareto_frontier: bool = True) -> dict:
+    def to_dict(
+        self,
+        include_pareto_frontier: bool = True,
+        include_pareto_utils: bool | None = None,
+        include_pareto_outcomes: bool | None = None,
+    ) -> dict:
         """Convert to dictionary with optional exclusion of pareto frontier data.
 
         Args:
-            include_pareto_frontier: If True, include pareto_utils and pareto_outcomes.
-                If False, exclude them to save space. Default is True.
+            include_pareto_frontier: If True, include both pareto_utils and pareto_outcomes.
+                If False, exclude both. Default is True. This is overridden by the more
+                specific include_pareto_utils and include_pareto_outcomes parameters.
+            include_pareto_utils: If specified, controls inclusion of pareto_utils independently.
+                If None, uses the value of include_pareto_frontier.
+            include_pareto_outcomes: If specified, controls inclusion of pareto_outcomes independently.
+                If None, uses the value of include_pareto_frontier.
 
         Returns:
             Dictionary representation of the ScenarioStats.
 
         Notes:
-            When include_pareto_frontier=False, the pareto_utils and pareto_outcomes
-            fields are set to empty collections. This is useful for saving disk space
-            when the full pareto frontier is not needed.
+            When pareto data is excluded, the corresponding fields are set to empty collections.
+            This is useful for saving disk space when the full pareto frontier is not needed.
         """
         from attrs import asdict
 
         d = asdict(self)
-        if not include_pareto_frontier:
+
+        # Determine what to include based on parameters
+        save_utils = (
+            include_pareto_utils
+            if include_pareto_utils is not None
+            else include_pareto_frontier
+        )
+        save_outcomes = (
+            include_pareto_outcomes
+            if include_pareto_outcomes is not None
+            else include_pareto_frontier
+        )
+
+        if not save_utils:
             d["pareto_utils"] = tuple()
+        if not save_outcomes:
             d["pareto_outcomes"] = []
         return d
 

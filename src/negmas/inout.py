@@ -1228,6 +1228,8 @@ class Scenario:
         save_info=True,
         save_plot=False,
         include_pareto_frontier: bool = True,
+        include_pareto_utils: bool | None = None,
+        include_pareto_outcomes: bool | None = None,
         plot_extension: str | None = None,
         plot_kwargs: dict | None = None,
     ) -> None:
@@ -1243,6 +1245,10 @@ class Scenario:
             save_plot: If True, save utility space plots. Default is False.
             include_pareto_frontier: If True, include pareto_utils and pareto_outcomes
                 in stats.json. If False, exclude them to save disk space. Default is True.
+            include_pareto_utils: If specified, controls inclusion of pareto_utils independently.
+                If None, falls back to include_pareto_frontier value.
+            include_pareto_outcomes: If specified, controls inclusion of pareto_outcomes independently.
+                If None, falls back to include_pareto_frontier value.
             plot_extension: File extension for plots (e.g., 'png', 'jpg', 'svg', 'pdf', 'webp').
                 If None, uses DEFAULT_IMAGE_FORMAT from negmas.plots.util (currently 'webp').
             plot_kwargs: Additional keyword arguments to pass to the plot() method. Default is None.
@@ -1267,7 +1273,11 @@ class Scenario:
             dump(self.info, folder / f"{INFO_FILE_NAME}.{type}")
         if self.stats and save_stats:
             dump(
-                self.stats.to_dict(include_pareto_frontier=include_pareto_frontier),
+                self.stats.to_dict(
+                    include_pareto_frontier=include_pareto_frontier,
+                    include_pareto_utils=include_pareto_utils,
+                    include_pareto_outcomes=include_pareto_outcomes,
+                ),
                 folder / STATS_FILE_NAME,
             )
         if save_plot and len(self.ufuns) >= 2:
@@ -1283,6 +1293,8 @@ class Scenario:
         save_info=True,
         save_plot=False,
         include_pareto_frontier: bool = True,
+        include_pareto_utils: bool | None = None,
+        include_pareto_outcomes: bool | None = None,
         plot_extension: str | None = None,
         plot_kwargs: dict | None = None,
     ) -> bool:
@@ -1294,8 +1306,13 @@ class Scenario:
             save_stats: If True, save scenario statistics to stats.json.
             save_info: If True, save scenario info to info file.
             save_plot: If True, save utility space plots. Default is False.
-            include_pareto_frontier: If True, include pareto_utils and pareto_outcomes
-                in stats.json. If False, exclude them to save disk space. Default is True.
+            include_pareto_frontier: If True, include both pareto_utils and pareto_outcomes
+                in stats.json. If False, exclude both. This is overridden by the more
+                specific include_pareto_utils and include_pareto_outcomes parameters.
+            include_pareto_utils: If specified, controls inclusion of pareto_utils independently.
+                If None, uses the value of include_pareto_frontier.
+            include_pareto_outcomes: If specified, controls inclusion of pareto_outcomes independently.
+                If None, uses the value of include_pareto_frontier.
             plot_extension: File extension for plots (e.g., 'png', 'jpg', 'svg', 'pdf', 'webp').
                 If None, uses DEFAULT_IMAGE_FORMAT from negmas.plots.util (currently 'webp').
             plot_kwargs: Additional keyword arguments to pass to the plot() method. Default is None.
@@ -1346,6 +1363,8 @@ class Scenario:
             save_info=save_info,
             save_plot=save_plot,
             include_pareto_frontier=include_pareto_frontier,
+            include_pareto_utils=include_pareto_utils,
+            include_pareto_outcomes=include_pareto_outcomes,
             plot_extension=plot_extension,
             plot_kwargs=plot_kwargs,
         )

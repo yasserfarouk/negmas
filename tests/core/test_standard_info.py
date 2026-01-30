@@ -7,7 +7,7 @@ import pytest
 from negmas import make_issue, make_os
 from negmas.inout import Scenario
 from negmas.preferences import LinearUtilityFunction
-from negmas.preferences.ops import calc_standard_info
+from negmas.preferences.ops import calc_standard_info, calc_scenario_stats
 
 
 def test_calc_standard_info_basic():
@@ -249,3 +249,42 @@ def test_calc_standard_info_with_explicit_outcomes():
     assert info["n_negotiators"] == 2
     # But rational_fraction and opposition_level use the provided outcomes
     assert "rational_fraction" in info
+
+
+def test_scenario_stats_to_dict_pareto_control():
+    """Test ScenarioStats.to_dict() with granular pareto frontier control."""
+    issues = [make_issue([0, 1, 2], "x")]
+    os = make_os(issues)
+    u1 = LinearUtilityFunction(weights=[1.0], outcome_space=os)
+    u2 = LinearUtilityFunction(weights=[0.5], outcome_space=os)
+
+    stats = calc_scenario_stats([u1, u2])
+
+    # Test include_pareto_frontier=True (default)
+    d = stats.to_dict(include_pareto_frontier=True)
+    assert len(d["pareto_utils"]) > 0
+    assert len(d["pareto_outcomes"]) > 0
+
+    # Test include_pareto_frontier=False
+    d = stats.to_dict(include_pareto_frontier=False)
+    assert len(d["pareto_utils"]) == 0
+    assert len(d["pareto_outcomes"]) == 0
+
+    # Test include_pareto_utils=False only
+    d = stats.to_dict(include_pareto_utils=False, include_pareto_outcomes=True)
+    assert len(d["pareto_utils"]) == 0
+    assert len(d["pareto_outcomes"]) > 0
+
+    # Test include_pareto_outcomes=False only
+    d = stats.to_dict(include_pareto_utils=True, include_pareto_outcomes=False)
+    assert len(d["pareto_utils"]) > 0
+    assert len(d["pareto_outcomes"]) == 0
+
+    # Test explicit parameters override include_pareto_frontier
+    d = stats.to_dict(
+        include_pareto_frontier=False,
+        include_pareto_utils=True,
+        include_pareto_outcomes=True,
+    )
+    assert len(d["pareto_utils"]) > 0
+    assert len(d["pareto_outcomes"]) > 0

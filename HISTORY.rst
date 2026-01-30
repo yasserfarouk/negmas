@@ -98,6 +98,13 @@ This release focuses on enhancing mechanism capabilities with per-negotiator lim
   - Opposition level: conflict measure (0=no conflict, higher=more conflict)
   - Useful for standardizing scenario metadata and analysis
 
+* [feature] Add granular control for pareto frontier serialization in ``ScenarioStats.to_dict()``:
+
+  - ``include_pareto_utils``: Independently control inclusion of pareto utility tuples
+  - ``include_pareto_outcomes``: Independently control inclusion of pareto outcome objects
+  - Both parameters override ``include_pareto_frontier`` when specified
+  - Useful for space optimization when only one component is needed
+
 **Bug Fixes:**
 
 * [bugfix] Fix race condition in Genius bridge when starting negotiation sessions
