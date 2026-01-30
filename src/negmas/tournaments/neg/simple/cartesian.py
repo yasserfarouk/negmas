@@ -121,28 +121,47 @@ def _get_file_extension(storage_format: StorageFormat) -> str:
         return ".parquet"
 
 
-def _check_reserved_values(scenario: Scenario, scenario_name: str) -> None:
-    """Check for problematic reserved values in scenario ufuns and warn if found.
+def _check_and_correct_reserved_values(
+    scenario: Scenario, scenario_name: str, eps: float = 0.0
+) -> None:
+    """Check for problematic reserved values in scenario ufuns, correct them, and warn.
+
+    Corrects reserved values that are None, inf, -inf, or NaN to ufun.min() - eps.
 
     Args:
-        scenario: The scenario to check
+        scenario: The scenario to check and correct
         scenario_name: Name of the scenario for warning message
+        eps: Epsilon value to subtract from ufun.min() when correcting reserved values
     """
-    problematic_ufuns = []
+    from negmas.preferences.ops import correct_reserved_value
+
+    corrected_ufuns = []
     for i, ufun in enumerate(scenario.ufuns):
         if hasattr(ufun, "reserved_value"):
             rv = ufun.reserved_value
-            if rv is not None and (isinf(rv) or isnan(rv)):
-                problematic_ufuns.append((i, ufun.name, rv))
+            try:
+                corrected_rv, was_corrected = correct_reserved_value(
+                    rv, ufun, eps=eps, warn=False
+                )
+                if was_corrected:
+                    ufun.reserved_value = corrected_rv
+                    corrected_ufuns.append((i, ufun.name, rv, corrected_rv))
+            except Exception as e:
+                # If we can't correct, just log the problematic ufun
+                warn(
+                    f"Scenario '{scenario_name}' ufun[{i}] '{ufun.name}' has problematic reserved value ({rv}) "
+                    f"but could not correct it: {e}",
+                    NegmasUnexpectedValueWarning,
+                )
 
-    if problematic_ufuns:
+    if corrected_ufuns:
         ufun_details = ", ".join(
-            f"ufun[{i}] '{name}' (reserved_value={rv})"
-            for i, name, rv in problematic_ufuns
+            f"ufun[{i}] '{name}' (was {old_rv}, now {new_rv})"
+            for i, name, old_rv, new_rv in corrected_ufuns
         )
         warn(
-            f"Scenario '{scenario_name}' has utility functions with non-finite reserved values: {ufun_details}. "
-            f"This may affect advantage, optimality, and distance calculations.",
+            f"Scenario '{scenario_name}' had utility functions with problematic reserved values that were corrected: {ufun_details}. "
+            f"Corrected values are set to ufun.min() - {eps}.",
             NegmasUnexpectedValueWarning,
         )
 
@@ -352,6 +371,9 @@ OPTIMALITY_COLS = (
     "ks_optimality",
     "max_welfare_optimality",
     "pareto_optimality",
+    "fairness",  # max(nash_optimality, kalai_optimality, ks_optimality)
+    "modified_kalai_optimality",
+    "modified_ks_optimality",
 )
 
 TOURNAMENT_DIRS = [
@@ -1731,6 +1753,14 @@ def _make_failure_record(
                 calc_outcome_optimality(dists, stats, estimate_max_dist(s.ufuns))
             )
         )
+        # Calculate fairness as max of nash, kalai, and ks optimality
+        fairness_values = []
+        for key in ("nash_optimality", "kalai_optimality", "ks_optimality"):
+            if key in run_record and not isnan(run_record[key]):
+                fairness_values.append(run_record[key])
+        run_record["fairness"] = (
+            max(fairness_values) if fairness_values else float("nan")
+        )
 
     return run_record
 
@@ -1809,6 +1839,14 @@ def _make_record(
             to_flat_dict(
                 calc_outcome_optimality(dists, stats, estimate_max_dist(s.ufuns))
             )
+        )
+        # Calculate fairness as max of nash, kalai, and ks optimality
+        fairness_values = []
+        for key in ("nash_optimality", "kalai_optimality", "ks_optimality"):
+            if key in run_record and not isnan(run_record[key]):
+                fairness_values.append(run_record[key])
+        run_record["fairness"] = (
+            max(fairness_values) if fairness_values else float("nan")
         )
 
     return run_record
@@ -2325,7 +2363,15 @@ def make_scores(
         - has_error: Whether any error occurred
         - self_error: Whether this negotiator caused an error
         - mechanism_error: Whether the mechanism caused an error
-        - Plus any optional columns and optimality metrics (if save_stats was True)
+        - Plus any optional columns and optimality metrics (if save_stats was True):
+            - nash_optimality: Closeness to Nash bargaining solution
+            - kalai_optimality: Closeness to Kalai-Smorodinsky solution
+            - ks_optimality: Closeness to KS solution
+            - pareto_optimality: Closeness to Pareto frontier
+            - max_welfare_optimality: Closeness to maximum welfare point
+            - fairness: Maximum of nash_optimality, kalai_optimality, and ks_optimality
+            - modified_kalai_optimality: Closeness to modified Kalai solution
+            - modified_ks_optimality: Closeness to modified KS solution
     """
     utils, partners = record["utilities"], record["partners"]
     reserved_values = record["reserved_values"]
@@ -2553,6 +2599,7 @@ def cartesian_tournament(
     ignore_discount: bool = False,
     ignore_reserved: bool = False,
     normalize_ufuns: bool = True,
+    reserved_value_eps: float = 0.0,
     storage_optimization: OptimizationLevel = "space",
     memory_optimization: OptimizationLevel = "balanced",
     storage_format: StorageFormat | None = None,
@@ -2643,6 +2690,10 @@ def cartesian_tournament(
         only_failures_on_self_play: If True, only record self-play runs that fail to reach agreement.
         ignore_discount: If True, ignore discounting in utility functions (use base ufun).
         ignore_reserved: If True, ignore reserved values in utility functions.
+        reserved_value_eps: Epsilon value used to correct problematic reserved values (default: 0.0).
+                           When a utility function has None, inf, -inf, or NaN reserved value, it will be
+                           corrected to ufun.min() - reserved_value_eps. A warning is emitted for each
+                           corrected utility function.
         normalize_ufuns: If True (default), all utility functions are normalized to [0, 1] range before
                         negotiation. Normalization is applied independently to each ufun, guaranteeing
                         that the best outcome has utility 1.0 and the worst has utility 0.0. This
@@ -3245,8 +3296,10 @@ def cartesian_tournament(
 
         # COMMON CODE: Process all scenarios (from either path above)
         for scenario, scenario_name, pinfo_tuple in scenarios_to_process:
-            # Check for problematic reserved values and warn
-            _check_reserved_values(scenario, scenario_name)
+            # Check for problematic reserved values, correct them, and warn
+            _check_and_correct_reserved_values(
+                scenario, scenario_name, reserved_value_eps
+            )
 
             this_path = None
 

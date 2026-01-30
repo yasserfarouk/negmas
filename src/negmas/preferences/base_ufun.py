@@ -406,6 +406,8 @@ class BaseUtilityFunction(Preferences, ABC):
         guarantee_max: bool = True,
         guarantee_min: bool = True,
         max_cardinality: int = MAX_CARDINALITY,
+        normalize_reserved_values: bool = False,
+        reserved_value_penalty: float | None = None,
     ) -> T | ConstUtilityFunction:
         """Normalize utilities to the target range over the given outcome space.
 
@@ -422,6 +424,10 @@ class BaseUtilityFunction(Preferences, ABC):
             max_cardinality: Maximum number of outcomes to consider when normalizing.
                 Defaults to 10 billion.
                 **Active for:** All implementations (used in minmax()).
+            normalize_reserved_values: If True, corrects non-finite reserved values (None, inf, -inf, NaN).
+                Defaults to False.
+            reserved_value_penalty: Penalty to subtract from ufun.min() when correcting reserved values.
+                If None, uses DEFAULT_RESERVED_VALUE_PENALTY from negmas.common.
 
         Returns:
             A new normalized utility function. Returns a ConstUtilityFunction if the
@@ -436,7 +442,19 @@ class BaseUtilityFunction(Preferences, ABC):
             - Subclasses like LinearAdditiveUtilityFunction use these parameters to
               control whether strict guarantees are enforced at the cost of potentially
               non-uniform weight scaling.
+            - If normalize_reserved_values is True, any non-finite reserved value will be
+              corrected to ufun.min() - penalty before normalization.
         """
+        # Correct reserved value if requested
+        if normalize_reserved_values:
+            from negmas.preferences.ops import correct_reserved_value
+
+            corrected_rv, was_corrected = correct_reserved_value(
+                self.reserved_value, self, eps=reserved_value_penalty, warn=True
+            )
+            if was_corrected:
+                self.reserved_value = corrected_rv
+
         if not outcome_space:
             outcome_space = self.outcome_space
         if not outcome_space:
@@ -463,13 +481,21 @@ class BaseUtilityFunction(Preferences, ABC):
         return u.shift_by(to[0] - scale * mn, shift_reserved=True)
 
     def normalize(
-        self: T, to: tuple[float, float] = (0.0, 1.0), normalize_weights: bool = False
+        self: T,
+        to: tuple[float, float] = (0.0, 1.0),
+        normalize_weights: bool = False,
+        normalize_reserved_values: bool = False,
+        reserved_value_penalty: float | None = None,
     ) -> T | ConstUtilityFunction:
         """Normalize utilities to the target range over the ufun's outcome space.
 
         Args:
             to: The target (min, max) range for normalized utilities. Defaults to (0.0, 1.0).
             normalize_weights: Currently unused, kept for API compatibility.
+            normalize_reserved_values: If True, corrects non-finite reserved values (None, inf, -inf, NaN).
+                Defaults to False.
+            reserved_value_penalty: Penalty to subtract from ufun.min() when correcting reserved values.
+                If None, uses DEFAULT_RESERVED_VALUE_PENALTY from negmas.common.
 
         Returns:
             A new normalized utility function. Returns a ConstUtilityFunction if the
@@ -477,8 +503,23 @@ class BaseUtilityFunction(Preferences, ABC):
 
         Raises:
             ValueError: If the ufun has no outcome space defined.
+
+        Remarks:
+            - If normalize_reserved_values is True, any non-finite reserved value will be
+              corrected to ufun.min() - penalty before normalization.
         """
         _ = normalize_weights
+
+        # Correct reserved value if requested
+        if normalize_reserved_values:
+            from negmas.preferences.ops import correct_reserved_value
+
+            corrected_rv, was_corrected = correct_reserved_value(
+                self.reserved_value, self, eps=reserved_value_penalty, warn=True
+            )
+            if was_corrected:
+                self.reserved_value = corrected_rv
+
         from negmas.preferences import ConstUtilityFunction
 
         if not self.outcome_space:
@@ -1430,12 +1471,35 @@ class BaseUtilityFunction(Preferences, ABC):
             output += "</objective>\n"
             if discount_factor is not None:
                 output += f'<discount_factor value="{discount_factor}" />\n'
-        if (
-            self.reserved_value is not None
-            and self.reserved_value != float("-inf")
-            and "<reservation value" not in output
-        ):
-            output += f'<reservation value="{self.reserved_value}" />\n'
+
+        # Handle reserved value - correct problematic values before writing to XML
+        rv = self.reserved_value
+        write_reservation = False
+        if "<reservation value" not in output:
+            from negmas.preferences.ops import correct_reserved_value
+
+            # Check and correct reserved value if needed (using eps=0.0 for Genius)
+            try:
+                corrected_rv, was_corrected = correct_reserved_value(
+                    rv, self, eps=0.0, warn=True
+                )
+                if was_corrected:
+                    rv = corrected_rv
+                    write_reservation = True
+                elif rv is not None and rv != float("-inf"):
+                    # Normal finite value (and not -inf which Genius uses as default)
+                    write_reservation = True
+            except Exception as e:
+                if rv is not None:
+                    warnings.warn(
+                        f"Utility function has problematic reserved value ({rv}) but could not correct it: {e}. "
+                        f"Skipping reservation value in XML export.",
+                        warnings.NegmasUnexpectedValueWarning,
+                    )
+
+        if write_reservation:
+            output += f'<reservation value="{rv}" />\n'
+
         if "</utility_space>" not in output:
             output += "</utility_space>\n"
         return output

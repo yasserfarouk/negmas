@@ -74,7 +74,148 @@ __all__ = [
     "calc_reserved_value",
     "dominating_points",
     "compare_ufuns",
+    "correct_reserved_value",
 ]
+
+
+def correct_reserved_value(
+    reserved_value: float | None,
+    ufun: BaseUtilityFunction,
+    eps: float | None = None,
+    *,
+    warn: bool = True,
+) -> tuple[float, bool]:
+    """Corrects non-finite reserved values to a finite value.
+
+    Args:
+        reserved_value: The reserved value to check and potentially correct
+        ufun: The utility function whose min() will be used for correction
+        eps: The penalty to subtract from ufun.min(). If None, uses DEFAULT_RESERVED_VALUE_PENALTY
+        warn: Whether to emit a warning when correction is performed
+
+    Returns:
+        A tuple of (corrected_value, was_corrected) where:
+        - corrected_value: The corrected reserved value (finite)
+        - was_corrected: True if correction was performed, False otherwise
+
+    Examples:
+        >>> from negmas.preferences.crisp.mapping import MappingUtilityFunction
+        >>> from negmas.outcomes import make_issue, make_os
+        >>> issues = [make_issue([0, 1, 2], "x")]
+        >>> os = make_os(issues)
+        >>> ufun = MappingUtilityFunction(
+        ...     lambda x: x[0], outcome_space=os, reserved_value=0.5
+        ... )
+        >>> # Normal value - no correction needed
+        >>> val, corrected = correct_reserved_value(0.5, ufun)
+        >>> val == 0.5 and not corrected
+        True
+        >>> # None value - needs correction
+        >>> val, corrected = correct_reserved_value(None, ufun, eps=0.0, warn=False)
+        >>> corrected and val == ufun.min()
+        True
+        >>> # Inf value - needs correction with custom epsilon
+        >>> val, corrected = correct_reserved_value(
+        ...     float("inf"), ufun, eps=0.1, warn=False
+        ... )
+        >>> corrected and abs(val - (ufun.min() - 0.1)) < 1e-10
+        True
+        >>> # None value - needs correction
+        >>> val, corrected = correct_reserved_value(None, ufun, eps=0.0, warn=False)
+        >>> corrected and val == ufun.min()
+        True
+        >>> # Inf value - needs correction with custom epsilon
+        >>> val, corrected = correct_reserved_value(
+        ...     float("inf"), ufun, eps=0.1, warn=False
+        ... )
+        >>> corrected and abs(val - (ufun.min() - 0.1)) < 1e-10
+        True
+        >>> # None value - needs correction
+        >>> val, corrected = correct_reserved_value(None, ufun, eps=0.0, warn=False)
+        >>> corrected and val == ufun.min()
+        True
+        >>> # Inf value - needs correction with custom epsilon
+        >>> val, corrected = correct_reserved_value(
+        ...     float("inf"), ufun, eps=0.1, warn=False
+        ... )
+        >>> corrected and abs(val - (ufun.min() - 0.1)) < 1e-10
+        True
+        >>> # None value - needs correction
+        >>> val, corrected = correct_reserved_value(None, ufun, eps=0.0, warn=False)
+        >>> corrected and val == ufun.min()
+        True
+        >>> # Inf value - needs correction with custom epsilon
+        >>> val, corrected = correct_reserved_value(
+        ...     float("inf"), ufun, eps=0.1, warn=False
+        ... )
+        >>> corrected and abs(val - (ufun.min() - 0.1)) < 1e-10
+        True
+        >>> # None value - needs correction
+        >>> val, corrected = correct_reserved_value(None, ufun, eps=0.0, warn=False)
+        >>> corrected and val == ufun.min()
+        True
+        >>> # Inf value - needs correction
+        >>> val, corrected = correct_reserved_value(
+        ...     float("inf"), ufun, eps=0.1, warn=False
+        ... )
+        >>> corrected and val == ufun.min() - 0.1
+        True
+        >>> # None value - needs correction
+        >>> val, corrected = correct_reserved_value(None, ufun, eps=0.0, warn=False)
+        >>> corrected and val == ufun.min()
+        True
+        >>> # Inf value - needs correction
+        >>> val, corrected = correct_reserved_value(
+        ...     float("inf"), ufun, eps=0.1, warn=False
+        ... )
+        >>> corrected and val == ufun.min() - 0.1
+        True
+
+    Remarks:
+        - Reserved values that are None, inf, -inf, or NaN are considered non-finite
+        - The corrected value is computed as `float(ufun.min()) - eps`
+        - If eps is None, DEFAULT_RESERVED_VALUE_PENALTY from negmas.common is used
+        - A NegmasUnexpectedValueWarning is emitted when correction occurs (if warn=True)
+    """
+    from negmas.common import DEFAULT_RESERVED_VALUE_PENALTY
+
+    if eps is None:
+        eps = DEFAULT_RESERVED_VALUE_PENALTY
+
+    # Check if reserved value needs correction
+    needs_correction = reserved_value is None or (
+        isinstance(reserved_value, float)
+        and (math.isinf(reserved_value) or math.isnan(reserved_value))
+    )
+
+    if not needs_correction:
+        return float(reserved_value), False  # type: ignore (we know it's a float here)
+
+    # Perform correction
+    corrected_value = float(ufun.min()) - eps
+
+    # Emit warning if requested
+    if warn:
+        from negmas.warnings import NegmasUnexpectedValueWarning, warn as negmas_warn
+
+        original_desc = (
+            "None"
+            if reserved_value is None
+            else (
+                "inf"
+                if math.isinf(reserved_value) and reserved_value > 0
+                else "-inf"
+                if math.isinf(reserved_value)
+                else "NaN"
+            )
+        )
+        negmas_warn(
+            f"Reserved value is {original_desc}, which is not finite. "
+            f"Correcting to {corrected_value:.6f} (ufun.min() - {eps}).",
+            NegmasUnexpectedValueWarning,
+        )
+
+    return corrected_value, True
 
 
 @overload
@@ -1986,17 +2127,35 @@ def normalize(
     outcome_space: OutcomeSpace | None = None,
     issues: Sequence[Issue] | None = None,
     outcomes: Sequence[Outcome] | None = None,
+    normalize_reserved_values: bool = False,
+    reserved_value_penalty: float | None = None,
 ) -> BaseUtilityFunction:
     """Normalizes a utility function to the given range.
 
     Args:
         ufun: The utility function to normalize
         to: range to normalize to. Default is [0, 1]
-        outcomes: A collection of outcomes to normalize for
+        outcome_space: The outcome space to normalize over
+        issues: Issues defining the outcome space (alternative to outcome_space)
+        outcomes: Specific outcomes to normalize over (alternative to outcome_space)
+        normalize_reserved_values: If True, corrects non-finite reserved values (None, inf, -inf, NaN)
+        reserved_value_penalty: Penalty to use when correcting reserved values. If None, uses DEFAULT_RESERVED_VALUE_PENALTY
 
     Returns:
         UtilityFunction: A utility function that is guaranteed to be normalized for the set of given outcomes
+
+    Remarks:
+        - If normalize_reserved_values is True, any non-finite reserved value will be corrected to ufun.min() - penalty
+        - The correction happens before normalization
     """
+    # Correct reserved value if requested
+    if normalize_reserved_values and hasattr(ufun, "reserved_value"):
+        corrected_rv, was_corrected = correct_reserved_value(
+            ufun.reserved_value, ufun, eps=reserved_value_penalty, warn=True
+        )
+        if was_corrected:
+            ufun.reserved_value = corrected_rv
+
     outcome_space = os_or_none(outcome_space, issues, outcomes)
     if outcome_space is None:
         return ufun.normalize(to)

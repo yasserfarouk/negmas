@@ -618,6 +618,8 @@ class Scenario:
         independent: bool | None = None,
         common_range: bool | None = None,
         recalculate_stats: bool = True,
+        normalize_reserved_values: bool = False,
+        reserved_value_penalty: float | None = None,
     ) -> Scenario:
         """Normalizes all utility functions to the given range.
 
@@ -633,13 +635,30 @@ class Scenario:
                 If False, uses common scale normalization. This parameter will be removed in a future version.
             recalculate_stats: If True and stats exist, recalculate them after normalizing.
                 If False and stats exist, invalidate stats by setting them to None.
+            normalize_reserved_values: If True, corrects non-finite reserved values (None, inf, -inf, NaN)
+                in all utility functions before normalization.
+            reserved_value_penalty: Penalty to subtract from ufun.min() when correcting reserved values.
+                If None, uses DEFAULT_RESERVED_VALUE_PENALTY from negmas.common.
 
         Remarks:
             - If either value of `to` is `None`, then all ufuns will just be scaled to match the constraint of the other value.
             - When common_range=True (default), all utility functions are normalized to a common scale,
               ensuring that utility values are comparable across agents.
             - When common_range=False, each utility function is normalized independently to span the full range.
+            - If normalize_reserved_values is True, any non-finite reserved values will be corrected before normalization.
         """
+        # Correct reserved values if requested
+        if normalize_reserved_values:
+            from negmas.preferences.ops import correct_reserved_value
+
+            for ufun in self.ufuns:
+                if hasattr(ufun, "reserved_value"):
+                    corrected_rv, was_corrected = correct_reserved_value(
+                        ufun.reserved_value, ufun, eps=reserved_value_penalty, warn=True
+                    )
+                    if was_corrected:
+                        ufun.reserved_value = corrected_rv
+
         # Handle parameter conflicts and deprecation
         if independent is not None and common_range is not None:
             raise ValueError(
@@ -713,6 +732,7 @@ class Scenario:
         independent: bool | None = None,
         common_range: bool | None = None,
         eps: float = 1e-6,
+        finite_reserved_value: bool = False,
     ) -> bool:
         """Checks that all ufuns are normalized in the given range.
 
@@ -724,6 +744,7 @@ class Scenario:
             independent: Deprecated. Use common_range instead. If True, checks that each ufun individually spans the full range.
                 If False, checks common-scale normalization. This parameter will be removed in a future version.
             eps: Tolerance for floating point comparisons.
+            finite_reserved_value: If True, also checks that all reserved values are finite (not None, inf, -inf, or NaN).
 
         Returns:
             True if the scenario is normalized according to the specified criteria.
@@ -750,6 +771,19 @@ class Scenario:
         else:
             # Default: common_range=True (i.e., independent=False)
             check_independently = False
+
+        # Check finite reserved values if requested
+        if finite_reserved_value:
+            import math
+
+            for ufun in self.ufuns:
+                if hasattr(ufun, "reserved_value"):
+                    rv = ufun.reserved_value
+                    # Check if reserved value is non-finite
+                    if rv is None or (
+                        isinstance(rv, float) and (math.isinf(rv) or math.isnan(rv))
+                    ):
+                        return False
 
         mnmx = [_.minmax() for _ in self.ufuns]
 

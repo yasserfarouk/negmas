@@ -44,6 +44,7 @@ pre-commit run --all-files                # Run all pre-commit hooks
 - **Classes**: Use `@define` from attrs for data classes; every module exports via `__all__`
 - **Errors**: Raise `ValueError`/`TypeError` with descriptive messages; use `negmas.warnings` for deprecations
 - **Source location**: Main code in `src/negmas/`, tests in `tests/`
+- **Docstrings**: ALWAYS test every docstring example you add using `python -c "..."` or `pytest --doctest-modules` before committing
 
 ## Agent Sandbox
 - **File Storage**: All files created for documentation, internal testing, or any other purpose must be placed in the `coding_agents/` directory. This is to avoid polluting the root directory.

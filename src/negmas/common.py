@@ -41,11 +41,16 @@ __all__ = [
     "AgentMechanismInterface",
     "TraceElement",
     "DEFAULT_JAVA_PORT",
+    "DEFAULT_RESERVED_VALUE_PENALTY",
     "MechanismAction",
 ]
 
 DEFAULT_JAVA_PORT = 25337
 """Default port to use for connecting to GENIUS"""
+
+DEFAULT_RESERVED_VALUE_PENALTY = 0.0
+"""Default penalty applied when correcting non-finite reserved values (None, inf, -inf, NaN).
+The corrected value is set to `ufun.min() - DEFAULT_RESERVED_VALUE_PENALTY`."""
 
 
 @runtime_checkable
