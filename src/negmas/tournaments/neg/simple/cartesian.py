@@ -3021,7 +3021,7 @@ def cartesian_tournament(
                 progress_callback,
                 f"Loaded {len(competitors)} competitors",
                 1,
-                3,
+                4,
                 config,
             )
         except Exception:
@@ -3053,7 +3053,7 @@ def cartesian_tournament(
                     progress_callback,
                     f"Processing scenario {scenario_idx + 1}/{n_scenarios}",
                     2,
-                    3,
+                    4,
                     config,
                 )
             except Exception:
@@ -3379,7 +3379,7 @@ def cartesian_tournament(
     if progress_callback:
         try:
             _call_progress_callback(
-                progress_callback, f"Starting {len(runs)} negotiations", 3, 3, config
+                progress_callback, f"Starting {len(runs)} negotiations", 3, 4, config
             )
         except Exception:
             pass
@@ -3638,6 +3638,13 @@ def cartesian_tournament(
             final_score_stat=final_score,
         )
 
+    if progress_callback:
+        try:
+            _call_progress_callback(
+                progress_callback, "Completed all negotiations", 4, 4, config
+            )
+        except Exception:
+            pass
     return tresults
 
 
