@@ -852,12 +852,14 @@ class Scenario:
         self.stats = calc_scenario_stats(self.ufuns)
         return self.stats
 
-    def calc_standard_info(self, calc_rational_fraction: bool = True) -> dict[str, Any]:
-        """Calculates standard scenario information and updates the info attribute.
+    def calc_standard_info(self, calc_rational: bool = True) -> dict[str, Any]:
+        """Calculate and store standard scenario information metrics.
 
-        Computes and stores the following metrics in self.info:
-        - n_negotiators: Number of negotiators in the scenario
-        - n_outcomes: Total number of outcomes in the scenario
+        Computes basic statistics about the negotiation scenario and stores them in
+        the scenario's info dictionary. The metrics include:
+
+        - n_negotiators: Number of negotiators
+        - n_outcomes: Total number of outcomes
         - n_issues: Number of negotiation issues
         - rational_fraction: Fraction of outcomes with positive utility for all parties
         - opposition_level: Conflict measure between negotiators (0=no conflict, higher=more conflict)
@@ -870,9 +872,7 @@ class Scenario:
             {'n_negotiators': 2, 'n_outcomes': 100, 'n_issues': 3, 'rational_fraction': 0.65, 'opposition_level': 0.42}
         """
         info = calc_standard_info(
-            self.ufuns,
-            outcome_space=self.outcome_space,
-            calc_rational_fraction=calc_rational_fraction,
+            self.ufuns, outcome_space=self.outcome_space, calc_rational=calc_rational
         )
         self.info.update(info)
         return info

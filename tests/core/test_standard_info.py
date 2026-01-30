@@ -7,7 +7,11 @@ import pytest
 from negmas import make_issue, make_os
 from negmas.inout import Scenario
 from negmas.preferences import LinearUtilityFunction
-from negmas.preferences.ops import calc_standard_info, calc_scenario_stats
+from negmas.preferences.ops import (
+    calc_standard_info,
+    calc_scenario_stats,
+    rational_fraction,
+)
 
 
 def test_calc_standard_info_basic():
@@ -41,13 +45,13 @@ def test_calc_standard_info_multi_issue():
 
 
 def test_calc_standard_info_no_rational_fraction():
-    """Test with calc_rational_fraction=False."""
+    """Test with calc_rational=False."""
     issues = [make_issue([0, 1, 2], "x")]
     os = make_os(issues)
     u1 = LinearUtilityFunction(weights=[1.0], outcome_space=os)
     u2 = LinearUtilityFunction(weights=[0.5], outcome_space=os)
 
-    info = calc_standard_info([u1, u2], outcome_space=os, calc_rational_fraction=False)
+    info = calc_standard_info([u1, u2], outcome_space=os, calc_rational=False)
 
     assert info["n_negotiators"] == 2
     assert info["n_outcomes"] == 3
@@ -65,12 +69,87 @@ def test_calc_standard_info_with_reserved_values():
 
     info = calc_standard_info([u1, u2], outcome_space=os)
 
-    # Only outcomes where both utilities > reserved value are rational
+    # Only outcomes where BOTH utilities > reserved value are rational
     # u1(x) = x, u2(x) = x
     # Rational: u1(x) > 1.0 AND u2(x) > 2.0
     # So x must be > 2.0, which means x in {3, 4}
     # Rational fraction should be 2/5 = 0.4
     assert info["rational_fraction"] == pytest.approx(0.4, abs=0.01)
+
+
+def test_calc_standard_info_rational_requires_all():
+    """Test that rational fraction requires ALL negotiators to have positive utility."""
+    issues = [make_issue([0, 1, 2, 3, 4, 5], "x")]
+    os = make_os(issues)
+
+    # u1: utility = x, reserved = 1.0  -> rational when x > 1 (x in {2,3,4,5})
+    # u2: utility = x, reserved = 3.0  -> rational when x > 3 (x in {4,5})
+    # u3: utility = x, reserved = 4.0  -> rational when x > 4 (x in {5})
+    # Rational for ALL: x > 4 -> only x=5 is rational
+    # Rational fraction should be 1/6 ≈ 0.167
+
+    u1 = LinearUtilityFunction(weights=[1.0], outcome_space=os, reserved_value=1.0)
+    u2 = LinearUtilityFunction(weights=[1.0], outcome_space=os, reserved_value=3.0)
+    u3 = LinearUtilityFunction(weights=[1.0], outcome_space=os, reserved_value=4.0)
+
+    info = calc_standard_info([u1, u2, u3], outcome_space=os)
+
+    # Only x=5 satisfies all three conditions
+    assert info["rational_fraction"] == pytest.approx(1 / 6, abs=0.01)
+
+
+def test_calc_standard_info_rational_different_ufuns():
+    """Test rational fraction with different utility functions."""
+    issues = [make_issue([0, 1, 2, 3, 4], "x")]
+    os = make_os(issues)
+
+    # u1: utility = 2*x, reserved = 4.0  -> rational when 2*x > 4 -> x > 2 (x in {3,4})
+    # u2: utility = x, reserved = 2.0    -> rational when x > 2 (x in {3,4})
+    # Both rational: x > 2 -> x in {3,4}
+    # Rational fraction should be 2/5 = 0.4
+
+    u1 = LinearUtilityFunction(weights=[2.0], outcome_space=os, reserved_value=4.0)
+    u2 = LinearUtilityFunction(weights=[1.0], outcome_space=os, reserved_value=2.0)
+
+    info = calc_standard_info([u1, u2], outcome_space=os)
+
+    assert info["rational_fraction"] == pytest.approx(0.4, abs=0.01)
+
+
+def test_calc_standard_info_no_rational_outcomes():
+    """Test when no outcomes are rational for all negotiators."""
+    issues = [make_issue([0, 1, 2], "x")]
+    os = make_os(issues)
+
+    # u1: utility = x, reserved = 10.0  -> never rational (max utility is 2)
+    # u2: utility = x, reserved = 1.0   -> rational for x in {2}
+    # Both rational: none (u1 is never satisfied)
+    # Rational fraction should be 0.0
+
+    u1 = LinearUtilityFunction(weights=[1.0], outcome_space=os, reserved_value=10.0)
+    u2 = LinearUtilityFunction(weights=[1.0], outcome_space=os, reserved_value=1.0)
+
+    info = calc_standard_info([u1, u2], outcome_space=os)
+
+    assert info["rational_fraction"] == 0.0
+
+
+def test_calc_standard_info_all_outcomes_rational():
+    """Test when all outcomes are rational for all negotiators."""
+    issues = [make_issue([0, 1, 2], "x")]
+    os = make_os(issues)
+
+    # u1: utility = x, reserved = -1.0  -> always rational (all x >= 0 > -1)
+    # u2: utility = x, reserved = -1.0  -> always rational
+    # Both rational: all outcomes
+    # Rational fraction should be 1.0
+
+    u1 = LinearUtilityFunction(weights=[1.0], outcome_space=os, reserved_value=-1.0)
+    u2 = LinearUtilityFunction(weights=[1.0], outcome_space=os, reserved_value=-1.0)
+
+    info = calc_standard_info([u1, u2], outcome_space=os)
+
+    assert info["rational_fraction"] == 1.0
 
 
 def test_scenario_calc_standard_info():
@@ -288,3 +367,197 @@ def test_scenario_stats_to_dict_pareto_control():
     )
     assert len(d["pareto_utils"]) > 0
     assert len(d["pareto_outcomes"]) > 0
+
+
+# Tests specifically for rational_fraction() function
+
+
+def test_rational_fraction_basic():
+    """Test basic calculation of rational fraction."""
+    issues = [make_issue([0, 1, 2, 3, 4], "x")]
+    os = make_os(issues)
+    u1 = LinearUtilityFunction(weights=[1.0], outcome_space=os, reserved_value=1.0)
+    u2 = LinearUtilityFunction(weights=[1.0], outcome_space=os, reserved_value=2.0)
+
+    frac = rational_fraction([u1, u2], outcome_space=os)
+
+    # Only outcomes where BOTH utilities > reserved value are rational
+    # u1(x) = x, u2(x) = x
+    # Rational: u1(x) > 1.0 AND u2(x) > 2.0
+    # So x must be > 2.0, which means x in {3, 4}
+    # Rational fraction should be 2/5 = 0.4
+    assert frac == pytest.approx(0.4, abs=0.01)
+
+
+def test_rational_fraction_requires_all():
+    """Test that rational fraction requires ALL negotiators to have positive utility."""
+    issues = [make_issue([0, 1, 2, 3, 4, 5], "x")]
+    os = make_os(issues)
+
+    # u1: utility = x, reserved = 1.0  -> rational when x > 1 (x in {2,3,4,5})
+    # u2: utility = x, reserved = 3.0  -> rational when x > 3 (x in {4,5})
+    # u3: utility = x, reserved = 4.0  -> rational when x > 4 (x in {5})
+    # Rational for ALL: x > 4 -> only x=5 is rational
+    # Rational fraction should be 1/6 ≈ 0.167
+
+    u1 = LinearUtilityFunction(weights=[1.0], outcome_space=os, reserved_value=1.0)
+    u2 = LinearUtilityFunction(weights=[1.0], outcome_space=os, reserved_value=3.0)
+    u3 = LinearUtilityFunction(weights=[1.0], outcome_space=os, reserved_value=4.0)
+
+    frac = rational_fraction([u1, u2, u3], outcome_space=os)
+
+    # Only x=5 satisfies all three conditions
+    assert frac == pytest.approx(1 / 6, abs=0.01)
+
+
+def test_rational_fraction_different_ufuns():
+    """Test rational fraction with different utility functions."""
+    issues = [make_issue([0, 1, 2, 3, 4], "x")]
+    os = make_os(issues)
+
+    # u1: utility = 2*x, reserved = 4.0  -> rational when 2*x > 4 -> x > 2 (x in {3,4})
+    # u2: utility = x, reserved = 2.0    -> rational when x > 2 (x in {3,4})
+    # Both rational: x > 2 -> x in {3,4}
+    # Rational fraction should be 2/5 = 0.4
+
+    u1 = LinearUtilityFunction(weights=[2.0], outcome_space=os, reserved_value=4.0)
+    u2 = LinearUtilityFunction(weights=[1.0], outcome_space=os, reserved_value=2.0)
+
+    frac = rational_fraction([u1, u2], outcome_space=os)
+
+    assert frac == pytest.approx(0.4, abs=0.01)
+
+
+def test_rational_fraction_no_rational_outcomes():
+    """Test when no outcomes are rational for all negotiators."""
+    issues = [make_issue([0, 1, 2], "x")]
+    os = make_os(issues)
+
+    # u1: utility = x, reserved = 10.0  -> never rational (max utility is 2)
+    # u2: utility = x, reserved = 1.0   -> rational for x in {2}
+    # Both rational: none (u1 is never satisfied)
+    # Rational fraction should be 0.0
+
+    u1 = LinearUtilityFunction(weights=[1.0], outcome_space=os, reserved_value=10.0)
+    u2 = LinearUtilityFunction(weights=[1.0], outcome_space=os, reserved_value=1.0)
+
+    frac = rational_fraction([u1, u2], outcome_space=os)
+
+    assert frac == 0.0
+
+
+def test_rational_fraction_all_rational():
+    """Test when all outcomes are rational for all negotiators."""
+    issues = [make_issue([0, 1, 2], "x")]
+    os = make_os(issues)
+
+    # u1: utility = x, reserved = -1.0  -> always rational (all x >= 0 > -1)
+    # u2: utility = x, reserved = -1.0  -> always rational
+    # Both rational: all outcomes
+    # Rational fraction should be 1.0
+
+    u1 = LinearUtilityFunction(weights=[1.0], outcome_space=os, reserved_value=-1.0)
+    u2 = LinearUtilityFunction(weights=[1.0], outcome_space=os, reserved_value=-1.0)
+
+    frac = rational_fraction([u1, u2], outcome_space=os)
+
+    assert frac == 1.0
+
+
+def test_rational_fraction_with_explicit_outcomes():
+    """Test providing explicit outcomes list."""
+    issues = [make_issue([0, 1, 2, 3, 4], "x")]
+    os = make_os(issues)
+    u1 = LinearUtilityFunction(weights=[1.0], outcome_space=os, reserved_value=1.5)
+    u2 = LinearUtilityFunction(weights=[1.0], outcome_space=os, reserved_value=1.5)
+
+    # Provide subset of outcomes
+    outcomes = [(2,), (3,), (4,)]
+
+    frac = rational_fraction([u1, u2], outcomes=outcomes, outcome_space=os)
+
+    # u1(x) > 1.5 AND u2(x) > 1.5 means x > 1.5, so x in {2,3,4}
+    # All provided outcomes satisfy this
+    # Rational fraction should be 3/5 = 0.6 (still uses cardinality from outcome_space)
+    assert frac == pytest.approx(0.6, abs=0.01)
+
+
+def test_rational_fraction_infer_outcome_space():
+    """Test that outcome space is inferred from first ufun."""
+    issues = [make_issue([0, 1, 2], "x")]
+    os = make_os(issues)
+    u1 = LinearUtilityFunction(weights=[1.0], outcome_space=os, reserved_value=-1.0)
+    u2 = LinearUtilityFunction(weights=[1.0], outcome_space=os, reserved_value=-1.0)
+
+    # Don't provide outcome_space explicitly
+    frac = rational_fraction([u1, u2])
+
+    # All outcomes should be rational
+    assert frac == 1.0
+
+
+def test_rational_fraction_error_empty_ufuns():
+    """Test that error is raised with empty ufuns list."""
+    issues = [make_issue([0, 1, 2], "x")]
+    os = make_os(issues)
+
+    with pytest.raises(ValueError, match="Must pass the ufuns"):
+        rational_fraction([], outcome_space=os)
+
+
+def test_rational_fraction_error_no_outcome_space():
+    """Test that error is raised when no outcome space is available."""
+    u1 = LinearUtilityFunction(weights=[1.0])
+    u2 = LinearUtilityFunction(weights=[0.5])
+
+    with pytest.raises(ValueError, match="outcome space"):
+        rational_fraction([u1, u2])
+
+
+def test_rational_fraction_multi_issue():
+    """Test with multiple issues."""
+    issues = [make_issue([0, 1, 2], "x"), make_issue([0, 1], "y")]
+    os = make_os(issues)
+
+    # u1: utility = x + 0.5*y, reserved = 1.5
+    # u2: utility = 0.5*x + y, reserved = 1.0
+    u1 = LinearUtilityFunction(weights=[1.0, 0.5], outcome_space=os, reserved_value=1.5)
+    u2 = LinearUtilityFunction(weights=[0.5, 1.0], outcome_space=os, reserved_value=1.0)
+
+    frac = rational_fraction([u1, u2], outcome_space=os)
+
+    # Should return a value between 0 and 1
+    assert 0.0 <= frac <= 1.0
+
+
+def test_rational_fraction_four_negotiators():
+    """Test with four negotiators to ensure it handles multiple parties."""
+    issues = [make_issue([0, 1, 2, 3, 4, 5, 6, 7, 8, 9], "x")]
+    os = make_os(issues)
+
+    # All negotiators have same utility function
+    u1 = LinearUtilityFunction(weights=[1.0], outcome_space=os, reserved_value=3.0)
+    u2 = LinearUtilityFunction(weights=[1.0], outcome_space=os, reserved_value=4.0)
+    u3 = LinearUtilityFunction(weights=[1.0], outcome_space=os, reserved_value=5.0)
+    u4 = LinearUtilityFunction(weights=[1.0], outcome_space=os, reserved_value=6.0)
+
+    frac = rational_fraction([u1, u2, u3, u4], outcome_space=os)
+
+    # All must be satisfied: x > 6.0 -> x in {7,8,9}
+    # Rational fraction should be 3/10 = 0.3
+    assert frac == pytest.approx(0.3, abs=0.01)
+
+
+def test_rational_fraction_default_reserved_values():
+    """Test with default reserved values (should be 0.0 or similar)."""
+    issues = [make_issue([0, 1, 2, 3, 4], "x")]
+    os = make_os(issues)
+
+    # Create ufuns without explicitly setting reserved_value
+    u1 = LinearUtilityFunction(weights=[1.0], outcome_space=os)
+    u2 = LinearUtilityFunction(weights=[1.0], outcome_space=os)
+
+    frac = rational_fraction([u1, u2], outcome_space=os)
+
+    # Should return a value between 0 and 1
+    assert 0.0 <= frac <= 1.0

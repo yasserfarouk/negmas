@@ -66,6 +66,7 @@ __all__ = [
     "calc_outcome_optimality",
     "calc_scenario_stats",
     "calc_standard_info",
+    "rational_fraction",
     "ScenarioStats",
     "OutcomeDistances",
     "OutcomeOptimality",
@@ -174,6 +175,8 @@ class ScenarioStats:
         ks_outcomes: List of outcomes at KS solutions.
         modified_ks_utils: List of utility tuples at modified KS solutions.
         modified_ks_outcomes: List of outcomes at modified KS solutions.
+        rational_fraction: Fraction of outcomes rational for all negotiators (optional).
+            May be None if loaded from older versions or not calculated.
 
     Notes:
         The pareto_utils and pareto_outcomes fields can be empty when:
@@ -182,6 +185,10 @@ class ScenarioStats:
 
         Functions that need the pareto frontier should handle empty values gracefully
         by either skipping pareto-related calculations or computing the frontier on demand.
+
+        The rational_fraction field may be None when:
+        - Stats were loaded from older versions that didn't include this field
+        - Stats were explicitly calculated without this metric
     """
 
     opposition: float
@@ -202,6 +209,7 @@ class ScenarioStats:
     ks_outcomes: list[Outcome] = field(factory=list)
     modified_ks_utils: list[tuple[float, ...]] = field(factory=list)
     modified_ks_outcomes: list[Outcome] = field(factory=list)
+    rational_fraction: float | None = field(default=None)
 
     @property
     def has_pareto_frontier(self) -> bool:
@@ -440,6 +448,10 @@ class ScenarioStats:
                 d["pareto_utils"] = tuple(tuple(x) for x in d["pareto_utils"])
             if "pareto_outcomes" not in d:
                 d["pareto_outcomes"] = []
+
+        # Handle optional rational_fraction field for backward compatibility
+        if "rational_fraction" not in d:
+            d["rational_fraction"] = None
 
         return cls(**d)
 
@@ -1596,6 +1608,8 @@ def calc_scenario_stats(
         max_utils=tuple(_[1] for _ in minmax),  # type: ignore
         outcomes=outcomes,
     )
+    # Calculate rational fraction
+    rat_frac = rational_fraction(ufuns, outcomes=outcomes, outcome_space=os)
     return ScenarioStats(
         opposition=opposition,
         utility_ranges=ranges,
@@ -1615,14 +1629,76 @@ def calc_scenario_stats(
         max_welfare_outcomes=welfare_outcomes,
         max_relative_welfare_utils=relative_welfare_utils,
         max_relative_welfare_outcomes=relative_welfare_outcomes,
+        rational_fraction=rat_frac,
     )
+
+
+def rational_fraction(
+    ufuns: Sequence[UtilityFunction],
+    outcomes: Sequence[Outcome] | None = None,
+    outcome_space: OutcomeSpace | None = None,
+) -> float:
+    """Calculates the fraction of outcomes that are rational for ALL negotiators.
+
+    An outcome is considered rational if all negotiators receive utility
+    strictly greater than their reserved value for that outcome.
+
+    Args:
+        ufuns: Utility functions for all negotiators.
+        outcomes: Outcomes to consider. If None, enumerated from outcome_space.
+        outcome_space: The outcome space. If None, inferred from first ufun.
+
+    Returns:
+        Float between 0.0 and 1.0 representing the rational fraction.
+
+    Raises:
+        ValueError: If ufuns is empty or if outcome_space cannot be determined.
+
+    Examples:
+        >>> from negmas import make_issue, make_os
+        >>> from negmas.preferences import LinearUtilityFunction
+        >>> from negmas.preferences.ops import rational_fraction
+        >>> issues = [make_issue([0, 1, 2], "x")]
+        >>> os = make_os(issues)
+        >>> u1 = LinearUtilityFunction(weights=[1.0], issues=issues, reserved_value=0.5)
+        >>> u2 = LinearUtilityFunction(weights=[0.5], issues=issues, reserved_value=0.3)
+        >>> frac = rational_fraction([u1, u2], outcome_space=os)
+        >>> 0.0 <= frac <= 1.0
+        True
+    """
+    if not ufuns:
+        raise ValueError("Must pass the ufuns")
+
+    # Get outcome space
+    if outcome_space is None:
+        outcome_space = ufuns[0].outcome_space
+    if outcome_space is None:
+        raise ValueError(
+            "Cannot compute rational fraction if outcome space is not provided"
+        )
+
+    # Get outcomes
+    if outcomes is None:
+        outcomes = outcome_space.enumerate_or_sample(max_cardinality=MAX_CARDINALITY)  # type: ignore
+
+    n_outcomes = outcome_space.cardinality
+    if n_outcomes == 0:
+        return 0.0
+
+    # Calculate rational fraction (fraction of outcomes with positive utility for all)
+    rational_count = 0
+    for outcome in outcomes:
+        if all(u(outcome) > u.reserved_value for u in ufuns):
+            rational_count += 1
+
+    return rational_count / n_outcomes
 
 
 def calc_standard_info(
     ufuns: tuple[UtilityFunction, ...] | list[UtilityFunction],
     outcome_space: OutcomeSpace | None = None,
     outcomes: Sequence[Outcome] | None = None,
-    calc_rational_fraction: bool = True,
+    calc_rational: bool = True,
 ) -> dict[str, Any]:
     """Computes standard scenario information metrics.
 
@@ -1637,7 +1713,7 @@ def calc_standard_info(
         ufuns: Utility functions for all negotiators (must share the same outcome space).
         outcome_space: The outcome space. If None, inferred from first ufun.
         outcomes: Outcomes to consider. If None, enumerated from the outcome space.
-        calc_rational_fraction: Whether to calculate the rational fraction metric.
+        calc_rational: Whether to calculate the rational fraction metric.
 
     Returns:
         Dictionary containing: n_negotiators, n_outcomes, n_issues, rational_fraction, opposition_level
@@ -1681,21 +1757,13 @@ def calc_standard_info(
     n_issues = len(outcome_space.issues) if hasattr(outcome_space, "issues") else 1  # type: ignore
     n_outcomes = outcome_space.cardinality
 
-    # Get outcomes
-    if calc_rational_fraction:
-        if outcomes is None:
-            outcomes = list(
-                outcome_space.enumerate_or_sample(max_cardinality=MAX_CARDINALITY)
-            )  # type: ignore
-
-        # Calculate rational fraction (fraction of outcomes with positive utility for all)
-        rational_count = 0
-        for outcome in outcomes:
-            if all(u(outcome) > u.reserved_value for u in ufuns):
-                rational_count += 1
-        rational_fraction = rational_count / n_outcomes if n_outcomes > 0 else 0.0
+    # Calculate rational fraction
+    if calc_rational:
+        rat_frac = rational_fraction(
+            ufuns=ufuns, outcomes=outcomes, outcome_space=outcome_space
+        )
     else:
-        rational_fraction = None
+        rat_frac = None
 
     # Calculate opposition level
     try:
@@ -1712,9 +1780,9 @@ def calc_standard_info(
         "n_issues": n_issues,
         "opposition_level": opposition,
     }
-    if not calc_rational_fraction:
+    if not calc_rational:
         return d
-    d["rational_fraction"] = rational_fraction
+    d["rational_fraction"] = rat_frac
     return d
 
 
