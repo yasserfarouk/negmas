@@ -453,6 +453,69 @@ Matplotlib Plotting Backend
 
 Both backends produce visually consistent output (same colors, markers, legends).
 
+Standard Scenario Information
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+
+New methods for computing and storing standard scenario metrics.
+
+.. code-block:: python
+
+   from negmas import Scenario
+
+   scenario = Scenario.from_genius_folder("path/to/domain")
+
+   # Calculate standard scenario information
+   info = scenario.calc_standard_info()
+
+   # Access computed metrics
+   print(f"Number of negotiators: {info['n_negotiators']}")
+   print(f"Number of outcomes: {info['n_outcomes']}")
+   print(f"Number of issues: {info['n_issues']}")
+   print(f"Rational fraction: {info['rational_fraction']}")
+   print(f"Opposition level: {info['opposition_level']}")
+
+**Available Metrics:**
+
+- ``n_negotiators``: Number of negotiators in the scenario
+- ``n_outcomes``: Total number of outcomes in the outcome space
+- ``n_issues``: Number of negotiation issues
+- ``rational_fraction``: Fraction of outcomes with positive utility for all parties above their reservation values
+- ``opposition_level``: Conflict measure (0=no conflict, higher values indicate more conflict)
+
+The metrics are automatically stored in ``scenario.info`` dictionary and can be used for
+scenario analysis, filtering, or metadata management.
+
+Granular Pareto Frontier Serialization
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+
+New parameters provide fine-grained control over pareto frontier serialization for space optimization.
+
+.. code-block:: python
+
+   from negmas import Scenario
+
+   scenario = Scenario.from_genius_folder("path/to/domain")
+   scenario.calc_stats()
+
+   # Save only pareto utilities (for analysis), exclude outcomes
+   scenario.dumpas(
+       "output/", save_stats=True, include_pareto_utils=True, include_pareto_outcomes=False
+   )
+
+   # Save only pareto outcomes (for visualization), exclude utilities
+   scenario.dumpas(
+       "output/", save_stats=True, include_pareto_utils=False, include_pareto_outcomes=True
+   )
+
+   # Exclude both (minimal stats file)
+   scenario.dumpas("output/", save_stats=True, include_pareto_frontier=False)
+
+**When to use:**
+
+- ``include_pareto_utils=False``: Save space when you only need outcome objects for visualization
+- ``include_pareto_outcomes=False``: Save space when you only need utility values for analysis
+- ``include_pareto_frontier=False``: Save maximum space when you don't need the pareto frontier at all
+
 0.13->0.14 Upgrade Guide
 ========================
 
