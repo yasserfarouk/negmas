@@ -19,7 +19,11 @@ from negmas.helpers.strings import unique_name
 from negmas.helpers.types import get_full_type_name
 from negmas.outcomes.outcome_space import make_os
 from negmas.preferences.crisp.linear import LinearAdditiveUtilityFunction
-from negmas.preferences.ops import ScenarioStats, calc_scenario_stats
+from negmas.preferences.ops import (
+    ScenarioStats,
+    calc_scenario_stats,
+    calc_standard_info,
+)
 from negmas.sao.mechanism import SAOMechanism
 from negmas.serialization import PYTHON_CLASS_IDENTIFIER, deserialize, serialize
 
@@ -848,6 +852,31 @@ class Scenario:
         self.stats = calc_scenario_stats(self.ufuns)
         return self.stats
 
+    def calc_standard_info(self, calc_rational_fraction: bool = True) -> dict[str, Any]:
+        """Calculates standard scenario information and updates the info attribute.
+
+        Computes and stores the following metrics in self.info:
+        - n_negotiators: Number of negotiators in the scenario
+        - n_outcomes: Total number of outcomes in the scenario
+        - n_issues: Number of negotiation issues
+        - rational_fraction: Fraction of outcomes with positive utility for all parties
+        - opposition_level: Conflict measure between negotiators (0=no conflict, higher=more conflict)
+
+        Returns:
+            Dictionary containing the calculated information metrics.
+
+        Examples:
+            >>> scenario.calc_standard_info()
+            {'n_negotiators': 2, 'n_outcomes': 100, 'n_issues': 3, 'rational_fraction': 0.65, 'opposition_level': 0.42}
+        """
+        info = calc_standard_info(
+            self.ufuns,
+            outcome_space=self.outcome_space,
+            calc_rational_fraction=calc_rational_fraction,
+        )
+        self.info.update(info)
+        return info
+
     def rotate_ufuns(self, n: int = 1, rotate_info: bool = True) -> Scenario:
         """Creates a new scenario with utility functions rotated by n positions.
 
@@ -1151,12 +1180,13 @@ class Scenario:
         """
         self.dumpas(folder, "json")
 
-    def save_info(self, folder: Path | str) -> None:
+    def save_info(self, folder: Path | str, type: str = "yaml") -> None:
         f"""
         Save info to the given path under {INFO_FILE_NAME}
 
         Args:
             folder: Destination folder path.
+            type: File format ("yml", "json", or "yaml"). Default is "yaml".
         """
         if not self.info:
             return
@@ -1330,7 +1360,7 @@ class Scenario:
 
     def load_info(self, folder: PathLike | str):
         """Loads scenario info from a folder, searching for supported formats."""
-        for ext in ("yml", "yaml", "json"):
+        for ext in ("yaml", "yml", "json"):
             path = Path(folder) / f"{INFO_FILE_NAME}.{ext}"
             if not path.is_file():
                 continue
@@ -1389,7 +1419,7 @@ class Scenario:
         """
         folder = Path(folder)
         # Try new format first (_stats.yaml), then legacy format (stats.json)
-        for stats_file in (STATS_FILE_NAME, "stats.json"):
+        for stats_file in (STATS_FILE_NAME, "_stats.yml", "stats.json"):
             path = folder / stats_file
             if path.is_file():
                 self.stats = ScenarioStats.from_dict(

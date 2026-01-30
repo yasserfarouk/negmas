@@ -27,6 +27,7 @@ from negmas.outcomes import Issue, Outcome, discretize_and_enumerate_issues
 from negmas.outcomes.common import os_or_none
 from negmas.outcomes.issue_ops import enumerate_issues
 from negmas.outcomes.protocols import OutcomeSpace
+from negmas.preferences.base_ufun import MAX_CARDINALITY
 from negmas.preferences.crisp.mapping import MappingUtilityFunction
 from negmas.warnings import NegmasUnexpectedValueWarning, warn_if_slow
 
@@ -64,6 +65,7 @@ __all__ = [
     "calc_outcome_distances",
     "calc_outcome_optimality",
     "calc_scenario_stats",
+    "calc_standard_info",
     "ScenarioStats",
     "OutcomeDistances",
     "OutcomeOptimality",
@@ -1591,6 +1593,106 @@ def calc_scenario_stats(
         max_relative_welfare_utils=relative_welfare_utils,
         max_relative_welfare_outcomes=relative_welfare_outcomes,
     )
+
+
+def calc_standard_info(
+    ufuns: tuple[UtilityFunction, ...] | list[UtilityFunction],
+    outcome_space: OutcomeSpace | None = None,
+    outcomes: Sequence[Outcome] | None = None,
+    calc_rational_fraction: bool = True,
+) -> dict[str, Any]:
+    """Computes standard scenario information metrics.
+
+    Calculates basic statistics about a negotiation scenario including:
+    - Number of negotiators
+    - Number of outcomes
+    - Number of issues
+    - Rational fraction (fraction of outcomes with positive utility for all parties)
+    - Opposition level (conflict measure between negotiators)
+
+    Args:
+        ufuns: Utility functions for all negotiators (must share the same outcome space).
+        outcome_space: The outcome space. If None, inferred from first ufun.
+        outcomes: Outcomes to consider. If None, enumerated from the outcome space.
+        calc_rational_fraction: Whether to calculate the rational fraction metric.
+
+    Returns:
+        Dictionary containing: n_negotiators, n_outcomes, n_issues, rational_fraction, opposition_level
+
+    Examples:
+        >>> from negmas import make_issue, make_os
+        >>> from negmas.preferences import LinearUtilityFunction
+        >>> from negmas.preferences.ops import calc_standard_info
+        >>> issues = [make_issue([0, 1, 2], "x")]
+        >>> os = make_os(issues)
+        >>> u1 = LinearUtilityFunction(weights=[1.0], issues=issues)
+        >>> u2 = LinearUtilityFunction(weights=[0.5], issues=issues)
+        >>> info = calc_standard_info([u1, u2], outcome_space=os)
+        >>> info["n_negotiators"]
+        2
+        >>> info["n_outcomes"]
+        3
+        >>> info["n_issues"]
+        1
+    """
+
+    if not ufuns:
+        raise ValueError("Must pass the ufuns")
+
+    ufuns = list(ufuns)
+
+    # Get outcome space
+    if outcome_space is None:
+        outcome_space = ufuns[0].outcome_space
+    if outcome_space is None:
+        raise ValueError("Cannot compute info if outcome space is not provided")
+
+    # Verify all ufuns share the same outcome space
+    for i, u in enumerate(ufuns):
+        if u.outcome_space is None or u.outcome_space != outcome_space:
+            raise ValueError(
+                f"Ufun {i} has a different outcome space than expected:\n\texpected: {outcome_space}\n\tgot: {u.outcome_space}"
+            )
+
+    n_negotiators = len(ufuns)
+    n_issues = len(outcome_space.issues) if hasattr(outcome_space, "issues") else 1  # type: ignore
+    n_outcomes = outcome_space.cardinality
+
+    # Get outcomes
+    if calc_rational_fraction:
+        if outcomes is None:
+            outcomes = list(
+                outcome_space.enumerate_or_sample(max_cardinality=MAX_CARDINALITY)
+            )  # type: ignore
+
+        # Calculate rational fraction (fraction of outcomes with positive utility for all)
+        rational_count = 0
+        for outcome in outcomes:
+            if all(u(outcome) > u.reserved_value for u in ufuns):
+                rational_count += 1
+        rational_fraction = rational_count / n_outcomes if n_outcomes > 0 else 0.0
+    else:
+        rational_fraction = None
+
+    # Calculate opposition level
+    try:
+        opposition = opposition_level(
+            ufuns, outcomes=outcomes, max_utils=[float(u.max()) for u in ufuns]
+        )
+    except Exception:
+        # If opposition calculation fails, set to None
+        opposition = None
+
+    d = {
+        "n_negotiators": n_negotiators,
+        "n_outcomes": n_outcomes,
+        "n_issues": n_issues,
+        "opposition_level": opposition,
+    }
+    if not calc_rational_fraction:
+        return d
+    d["rational_fraction"] = rational_fraction
+    return d
 
 
 def max_relative_welfare_points(

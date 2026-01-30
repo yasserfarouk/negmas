@@ -90,6 +90,13 @@ This release focuses on enhancing mechanism capabilities with per-negotiator lim
 * [feature] Add ``Mechanism.to_completed_run()`` method for creating ``CompletedRun`` from mechanism state
 * [feature] Add ``rational_fraction`` field to ``ScenarioInfo`` for tracking rational outcome percentages
 * [feature] Add ``read_only`` property to scenario registry
+* [feature] Add ``calc_standard_info()`` and ``Scenario.calc_standard_info()`` for computing standard scenario metrics:
+
+  - Calculates: ``n_negotiators``, ``n_outcomes``, ``n_issues``, ``rational_fraction``, ``opposition_level``
+  - Updates ``Scenario.info`` dict with computed metrics
+  - Rational fraction: percentage of outcomes with positive utility for all parties above their reservation values
+  - Opposition level: conflict measure (0=no conflict, higher=more conflict)
+  - Useful for standardizing scenario metadata and analysis
 
 **Bug Fixes:**
 
