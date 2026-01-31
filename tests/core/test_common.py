@@ -339,7 +339,8 @@ class TestCompletedRun:
         result = completed.save(tmp_path, "test_single", single_file=True)
 
         assert result.exists()
-        assert result.suffix == ".csv"
+        # Default format is now parquet, but check for any valid format
+        assert result.suffix in (".csv", ".parquet", ".gz")
 
     def test_completed_run_save_directory(self, tmp_path):
         """Test saving a CompletedRun to a directory."""
@@ -352,7 +353,13 @@ class TestCompletedRun:
         result = completed.save(tmp_path, "test_dir", single_file=False)
 
         assert result.is_dir()
-        assert (result / "trace.csv").exists()
+        # Check for any valid trace format
+        trace_exists = (
+            (result / "trace.csv").exists()
+            or (result / "trace.parquet").exists()
+            or (result / "trace.csv.gz").exists()
+        )
+        assert trace_exists
         assert (result / "run_info.yaml").exists()
         assert (result / "config.yaml").exists()
 
@@ -461,6 +468,151 @@ class TestCompletedRun:
 
         with pytest.raises(FileNotFoundError):
             CompletedRun.load(tmp_path / "nonexistent")
+
+    def test_infer_source_history(self, tmp_path):
+        """Test inferring 'history' source type from saved file."""
+        from negmas.mechanisms import CompletedRun
+
+        m = SAOMechanism(outcomes=[(i,) for i in range(10)], n_steps=10)
+        m.add(RandomNegotiator(name="n1"))
+        m.add(RandomNegotiator(name="n2"))
+        m.run()
+
+        # Save with history source
+        completed = m.to_completed_run(source="history")
+        save_path = completed.save(tmp_path, "test_history", single_file=False)
+
+        inferred = CompletedRun.infer_source(save_path)
+        assert inferred == "history"
+
+    def test_infer_source_trace(self, tmp_path):
+        """Test inferring 'trace' source type from saved file."""
+        from negmas.mechanisms import CompletedRun
+
+        m = SAOMechanism(outcomes=[(i,) for i in range(10)], n_steps=10)
+        m.add(RandomNegotiator(name="n1"))
+        m.add(RandomNegotiator(name="n2"))
+        m.run()
+
+        # Save with trace source
+        completed = m.to_completed_run(source="trace")
+        save_path = completed.save(tmp_path, "test_trace", single_file=False)
+
+        inferred = CompletedRun.infer_source(save_path)
+        assert inferred == "trace"
+
+    def test_infer_source_extended_trace(self, tmp_path):
+        """Test inferring 'extended_trace' source type from saved file."""
+        from negmas.mechanisms import CompletedRun
+
+        m = SAOMechanism(outcomes=[(i,) for i in range(10)], n_steps=10)
+        m.add(RandomNegotiator(name="n1"))
+        m.add(RandomNegotiator(name="n2"))
+        m.run()
+
+        # Save with extended_trace source
+        completed = m.to_completed_run(source="extended_trace")
+        save_path = completed.save(tmp_path, "test_extended", single_file=False)
+
+        inferred = CompletedRun.infer_source(save_path)
+        assert inferred == "extended_trace"
+
+    def test_infer_source_full_trace(self, tmp_path):
+        """Test inferring 'full_trace' source type from saved file."""
+        from negmas.mechanisms import CompletedRun
+
+        m = SAOMechanism(outcomes=[(i,) for i in range(10)], n_steps=10)
+        m.add(RandomNegotiator(name="n1"))
+        m.add(RandomNegotiator(name="n2"))
+        m.run()
+
+        # Save with full_trace source
+        completed = m.to_completed_run(source="full_trace")
+        save_path = completed.save(tmp_path, "test_full_trace", single_file=False)
+
+        inferred = CompletedRun.infer_source(save_path)
+        assert inferred == "full_trace"
+
+    def test_infer_source_full_trace_with_utils(self, tmp_path):
+        """Test inferring 'full_trace_with_utils' source type from saved file."""
+        from negmas.mechanisms import CompletedRun
+
+        issues = [make_issue(10, "price")]
+        os = make_os(issues)
+        m = SAOMechanism(issues=issues, n_steps=20)
+
+        u1 = LinearAdditiveUtilityFunction.random(os, reserved_value=0.0)
+        u2 = LinearAdditiveUtilityFunction.random(os, reserved_value=0.0)
+
+        m.add(AspirationNegotiator(name="buyer", preferences=u1))
+        m.add(AspirationNegotiator(name="seller", preferences=u2))
+        m.run()
+
+        # Save with full_trace_with_utils source
+        completed = m.to_completed_run(source="full_trace_with_utils")
+        save_path = completed.save(tmp_path, "test_full_trace_utils", single_file=False)
+
+        inferred = CompletedRun.infer_source(save_path)
+        assert inferred == "full_trace_with_utils"
+
+    def test_infer_source_single_file(self, tmp_path):
+        """Test inferring source type from single file."""
+        from negmas.mechanisms import CompletedRun
+
+        m = SAOMechanism(outcomes=[(i,) for i in range(10)], n_steps=10)
+        m.add(RandomNegotiator(name="n1"))
+        m.add(RandomNegotiator(name="n2"))
+        m.run()
+
+        # Save with full_trace source as single file
+        completed = m.to_completed_run(source="full_trace")
+        save_path = completed.save(tmp_path, "test_single", single_file=True)
+
+        inferred = CompletedRun.infer_source(save_path)
+        assert inferred == "full_trace"
+
+    def test_infer_source_parquet(self, tmp_path):
+        """Test inferring source type from parquet file."""
+        from negmas.mechanisms import CompletedRun
+
+        m = SAOMechanism(outcomes=[(i,) for i in range(10)], n_steps=10)
+        m.add(RandomNegotiator(name="n1"))
+        m.add(RandomNegotiator(name="n2"))
+        m.run()
+
+        # Save with trace source as parquet
+        completed = m.to_completed_run(source="trace")
+        save_path = completed.save(
+            tmp_path, "test_parquet", single_file=False, storage_format="parquet"
+        )
+
+        inferred = CompletedRun.infer_source(save_path)
+        assert inferred == "trace"
+
+    def test_infer_source_gzip(self, tmp_path):
+        """Test inferring source type from gzip file."""
+        from negmas.mechanisms import CompletedRun
+
+        m = SAOMechanism(outcomes=[(i,) for i in range(10)], n_steps=10)
+        m.add(RandomNegotiator(name="n1"))
+        m.add(RandomNegotiator(name="n2"))
+        m.run()
+
+        # Save with extended_trace source as gzip
+        completed = m.to_completed_run(source="extended_trace")
+        save_path = completed.save(
+            tmp_path, "test_gzip", single_file=False, storage_format="gzip"
+        )
+
+        inferred = CompletedRun.infer_source(save_path)
+        assert inferred == "extended_trace"
+
+    def test_infer_source_nonexistent_raises(self, tmp_path):
+        """Test that inferring from nonexistent path raises FileNotFoundError."""
+        from negmas.mechanisms import CompletedRun
+
+        with pytest.raises(FileNotFoundError):
+            CompletedRun.infer_source(tmp_path / "nonexistent")
 
 
 # Tests for load_table

@@ -178,6 +178,17 @@ class CompletedRun(Generic[TState]):
         # Determine column names based on history type
         if self.history_type == "full_trace":
             trace_columns = TRACE_ELEMENT_MEMBERS
+        elif self.history_type == "full_trace_with_utils":
+            # full_trace_with_utils has TRACE_ELEMENT_MEMBERS + negotiator utility columns
+            # Get negotiator names from config if available
+            negotiator_names = self.config.get("negotiator_names", [])
+            if not negotiator_names:
+                # Fallback: infer from first row
+                if self.history and len(self.history) > 0:
+                    first_row = self.history[0]
+                    n_extra_cols = len(first_row) - len(TRACE_ELEMENT_MEMBERS)
+                    negotiator_names = [f"utility_{i}" for i in range(n_extra_cols)]
+            trace_columns = TRACE_ELEMENT_MEMBERS + negotiator_names
         elif self.history_type == "trace":
             trace_columns = ["negotiator", "offer"]
         elif self.history_type == "extended_trace":
@@ -551,6 +562,104 @@ class CompletedRun(Generic[TState]):
             config=config if config else {},
             metadata=metadata if metadata else {},
         )
+
+    @classmethod
+    def infer_source(cls, path: Path | str) -> str:
+        """Infer the source type from a saved negotiation file or folder.
+
+        Args:
+            path: Path to a file or directory containing saved negotiation data.
+
+        Returns:
+            The inferred source type: "history", "trace", "extended_trace",
+            "full_trace", or "full_trace_with_utils".
+
+        Raises:
+            FileNotFoundError: If the path does not exist or no trace file is found.
+
+        Examples:
+            >>> from pathlib import Path
+            >>> from negmas.sao import SAOMechanism, RandomNegotiator
+            >>> import tempfile
+            >>> import shutil
+            >>> # Create and run a simple negotiation
+            >>> m = SAOMechanism(outcomes=[(i,) for i in range(5)], n_steps=5)
+            >>> _ = m.add(RandomNegotiator(name="n1"))
+            >>> _ = m.add(RandomNegotiator(name="n2"))
+            >>> _ = m.run()
+            >>> # Save as full_trace
+            >>> tmpdir = Path(tempfile.mkdtemp())
+            >>> completed = m.to_completed_run(source="full_trace")
+            >>> save_path = completed.save(tmpdir, "test", single_file=False)
+            >>> # Infer the source type
+            >>> inferred = CompletedRun.infer_source(save_path)
+            >>> inferred == "full_trace"
+            True
+            >>> shutil.rmtree(tmpdir)
+        """
+        from negmas.helpers.inout import load, load_table
+
+        path = Path(path).expanduser().absolute()
+
+        if not path.exists():
+            raise FileNotFoundError(f"Path not found: {path}")
+
+        # If directory, check for run_info.yaml first
+        if path.is_dir():
+            run_info_path = path / "run_info.yaml"
+            if run_info_path.exists():
+                run_info = load(run_info_path)
+                return run_info.get("history_type", "history")
+
+            # Find trace file in directory
+            for ext in [".csv", ".csv.gz", ".parquet"]:
+                trace_file = path / f"trace{ext}"
+                if trace_file.exists():
+                    path = trace_file
+                    break
+            else:
+                return "history"  # fallback if no trace file found
+
+        # Load first few rows to inspect columns
+        history = load_table(path, as_dataframe=False)
+
+        if not history:
+            return "history"  # empty file, default
+
+        first_row = history[0]
+        if not isinstance(first_row, dict):
+            return "history"  # can't determine from non-dict data
+
+        keys = set(first_row.keys())
+
+        # Define column sets
+        full_trace_core_cols = {
+            "time",
+            "relative_time",
+            "step",
+            "negotiator",
+            "offer",
+            "state",
+            "responses",
+        }
+        trace_cols = {"negotiator", "offer"}
+        extended_trace_cols = {"step", "negotiator", "offer"}
+
+        # Check for full_trace_with_utils (has extra utility columns beyond TRACE_ELEMENT_MEMBERS)
+        # TRACE_ELEMENT_MEMBERS has 9 standard columns
+        # If we have more than that and have the core columns, it's full_trace_with_utils
+        trace_element_cols = set(TRACE_ELEMENT_MEMBERS)
+        if full_trace_core_cols.issubset(keys) and len(keys) > len(trace_element_cols):
+            # Has core columns plus extra columns (likely utility columns)
+            return "full_trace_with_utils"
+        elif full_trace_core_cols.issubset(keys):
+            return "full_trace"
+        elif keys == extended_trace_cols:
+            return "extended_trace"
+        elif keys == trace_cols:
+            return "trace"
+        else:
+            return "history"
 
     def plot(
         self,
@@ -2755,7 +2864,10 @@ class Mechanism(
         from negmas.inout import Scenario
 
         # Get the trace data based on source
-        if source == "full_trace" and hasattr(self, "full_trace"):
+        if source == "full_trace_with_utils" and hasattr(self, "full_trace_with_utils"):
+            trace_data = self.full_trace_with_utils  # type: ignore
+            history_type = "full_trace_with_utils"
+        elif source == "full_trace" and hasattr(self, "full_trace"):
             trace_data = self.full_trace  # type: ignore
             history_type = "full_trace"
         elif source == "trace" and hasattr(self, "trace"):
@@ -2857,6 +2969,23 @@ class Mechanism(
             verbosity=self.verbosity,
             ignore_negotiator_exceptions=self.ignore_negotiator_exceptions,
         )
+
+    def available_save_sources(self) -> list[str]:
+        """Returns the available sources for saving history.
+
+        Returns:
+            list[str]: The available sources for save().
+        """
+        sources = ["history"]
+        if hasattr(self, "full_trace_with_utils"):
+            sources.append("full_trace_with_utils")  # type: ignore
+        if hasattr(self, "full_trace"):
+            sources.append("full_trace")  # type: ignore
+        if hasattr(self, "extended_trace"):
+            sources.append("extended_trace")  # type: ignore
+        if hasattr(self, "trace"):
+            sources.append("trace")  # type: ignore
+        return sources
 
     def save(
         self,

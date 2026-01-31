@@ -54,7 +54,7 @@ DEFAULT_DUMP_EXTENSION = negmas_config("default_dump_extension", "json")
 TableStorageFormat = Literal["csv", "gzip", "parquet"]
 """Type alias for supported table storage formats."""
 
-DEFAULT_TABLE_STORAGE_FORMAT: TableStorageFormat = "csv"
+DEFAULT_TABLE_STORAGE_FORMAT: TableStorageFormat = "parquet"
 """Default storage format for save_table. Set to 'csv' for backward compatibility."""
 
 

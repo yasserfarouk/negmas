@@ -29,13 +29,17 @@ from attr import asdict, define, field
 from rich import print
 from rich.progress import track
 
-from negmas.common import TraceElement, TRACE_ELEMENT_MEMBERS
 from negmas.helpers import unique_name
-from negmas.helpers.inout import dump, has_needed_files, load
+from negmas.helpers.inout import (
+    DEFAULT_TABLE_STORAGE_FORMAT,
+    dump,
+    has_needed_files,
+    load,
+)
 from negmas.helpers.strings import encode_params, humanize_time, shortest_unique_names
 from negmas.helpers.types import get_class, get_full_type_name
 from negmas.inout import Scenario, scenario_size
-from negmas.mechanisms import Mechanism, Traceable
+from negmas.mechanisms import Mechanism
 from negmas.negotiators import Negotiator
 from negmas.plots.util import plot_offline_run
 from negmas.preferences.discounted import DiscountedUtilityFunction
@@ -1860,85 +1864,128 @@ def _save_record(
     rep,
     run_id,
     path,
+    storage_optimization: OptimizationLevel = "space",
+    storage_format: StorageFormat = DEFAULT_TABLE_STORAGE_FORMAT,
+    scenario: Scenario | None = None,
     python_class_identifier=PYTHON_CLASS_IDENTIFIER,
 ):
-    """Save negotiation record to disk as JSON and/or pickle."""
-    file_name = _get_run_file_name(real_scenario_name, partner_names, rep, run_id)
+    """Save negotiation record to disk using mechanism.save() with source priority.
+
+    Args:
+        run_record: The run record dictionary to save
+        m: The mechanism instance
+        partner_names: Names of the negotiating partners
+        real_scenario_name: Name of the scenario
+        rep: Repetition number
+        run_id: Unique run identifier
+        path: Path to save to (or None to skip saving)
+        storage_optimization: Optimization level ("speed", "balanced", "space")
+        storage_format: Storage format ("csv", "gzip", "parquet")
+        scenario: The scenario object (to include in metadata)
+        python_class_identifier: Identifier for Python classes in serialization
+
+    Remarks:
+        - Tries sources in priority order: full_trace_with_utils, full_trace,
+          extended_trace, trace, then other available sources, with history last
+        - Does not save scenario or scenario stats (scenario already saved
+          separately in scenarios/ directory)
+        - Saves config only if not optimizing for space
+        - Includes scenario name in metadata
+        - Warns if file exists
+        - Storage format: parquet for speed/space, gzip for balanced, csv otherwise
+    """
     if not path:
         return
 
-    def save_as_df(data: list[TraceElement] | list[tuple], names, file_name):
-        """Save as df.
+    file_name = _get_run_file_name(real_scenario_name, partner_names, rep, run_id)
 
-        Args:
-            data: Data.
-            names: Names.
-            file_name: File name.
-        """
-        pd.DataFrame(data=data, columns=names).to_csv(file_name, index=False)
+    # Determine source priority: full_trace_with_utils > full_trace > extended_trace > trace > others > history
+    available_sources = m.available_save_sources()
+    priority_sources = [
+        "full_trace_with_utils",
+        "full_trace",
+        "extended_trace",
+        "trace",
+    ]
 
-    for k, v in m._negotiator_logs.items():
-        if not v:
-            continue
-        if k in m.negotiator_ids:
-            k = m._negotiator_map[k].name
-        neg_name = path / "logs" / file_name / f"{k}.csv"
-        if neg_name.exists():
-            print(f"[yellow]{neg_name} already found[/yellow]")
-            neg_name = (
-                path
-                / "logs"
-                / file_name
-                / unique_name("{k}.csv", sep="", add_time=True)
-            )
-        neg_name.parent.mkdir(parents=True, exist_ok=True)
-        pd.DataFrame.from_records(v).to_csv(neg_name, index=True, index_label="index")
+    # Build ordered list of sources to try
+    sources_to_try = []
+    for src in priority_sources:
+        if src in available_sources:
+            sources_to_try.append(src)
 
-    full_name = path / NEGOTIATIONS_DIR_NAME / f"{file_name}.csv"
-    if full_name.exists():
-        print(f"[yellow]{full_name} already found[/yellow]")
-        full_name = (
-            path / unique_name(NEGOTIATIONS_DIR_NAME, sep="") / f"{file_name}.csv"
+    # Add other sources except history
+    for src in available_sources:
+        if src not in sources_to_try and src != "history":
+            sources_to_try.append(src)
+
+    # Add history last
+    if "history" in available_sources:
+        sources_to_try.append("history")
+
+    # Use the first available source
+    source = sources_to_try[0] if sources_to_try else "history"
+
+    # Prepare metadata with scenario information
+    metadata = {
+        "scenario_name": real_scenario_name,
+        "repetition": rep,
+        "run_id": str(run_id),
+        "partner_names": partner_names,
+    }
+
+    # Add scenario object to metadata if provided
+    if scenario:
+        metadata["scenario"] = {
+            "name": (
+                scenario.outcome_space.name
+                if scenario.outcome_space
+                else real_scenario_name
+            ),
+            "n_outcomes": (
+                scenario.outcome_space.cardinality if scenario.outcome_space else None
+            ),
+            "n_negotiators": len(scenario.ufuns) if scenario.ufuns else None,
+        }
+
+    # Save using mechanism.save()
+    save_dir = path / NEGOTIATIONS_DIR_NAME
+    save_dir.mkdir(parents=True, exist_ok=True)
+
+    try:
+        m.save(
+            parent=save_dir,
+            name=file_name,
+            single_file=True,  # Save as single file for simplicity
+            save_scenario=False,  # Don't save scenario (already saved in scenarios/)
+            save_scenario_stats=False,  # Don't save scenario stats
+            save_config=storage_optimization
+            != "space",  # Save config unless optimizing for space
+            source=source,
+            metadata=metadata,
+            overwrite=True,
+            warn_if_existing=True,
+            storage_format=storage_format,
         )
-
-    if isinstance(m, Traceable):
-        assert hasattr(m, "full_trace")
-        save_as_df(m.full_trace, TRACE_ELEMENT_MEMBERS, full_name)  # type: ignore
-        for i, negotiator in enumerate(m.negotiators):
-            neg_name = (
-                path
-                / NEGOTIATOR_BEHAVIOR_DIR_NAME
-                / file_name
-                / f"{negotiator.name}_at{i}.csv"
+    except Exception as e:
+        # Fallback to saving just the run record if mechanism.save() fails
+        print(
+            f"[yellow]Warning: Could not save negotiation using mechanism.save() "
+            f"({e}). Falling back to saving run_record only.[/yellow]"
+        )
+        full_name = path / RESULTS_DIR_NAME / f"{file_name}.json"
+        full_name.parent.mkdir(parents=True, exist_ok=True)
+        if full_name.exists():
+            print(f"[yellow]{full_name} already found[/yellow]")
+            full_name = (
+                path / RESULTS_DIR_NAME / unique_name(f"{file_name}.json", sep="")
             )
-            if neg_name.exists():
-                print(f"[yellow]{neg_name} already found[/yellow]")
-                neg_name = (
-                    path
-                    / NEGOTIATOR_BEHAVIOR_DIR_NAME
-                    / file_name
-                    / unique_name(f"{negotiator.name}_at{i}.csv", sep="")
-                )
-            neg_name.parent.mkdir(parents=True, exist_ok=True)
-            if isinstance(m, Traceable):
-                save_as_df(
-                    m.negotiator_full_trace(negotiator.id),
-                    (
-                        "time",
-                        "relative_time",
-                        "step",
-                        "offer",
-                        "response",
-                        "text",
-                        "data",
-                    ),
-                    neg_name,
-                )  # type: ignore
-    else:
-        pd.DataFrame.from_records(
-            serialize(m.history, python_class_identifier=python_class_identifier)
-        ).to_csv(full_name, index=False)
+        dump(run_record, full_name)
+        return
+
+    # Always save the run_record separately as JSON for easy access
     full_name = path / RESULTS_DIR_NAME / f"{file_name}.json"
+    full_name.parent.mkdir(parents=True, exist_ok=True)
     if full_name.exists():
         print(f"[yellow]{full_name} already found[/yellow]")
         full_name = path / RESULTS_DIR_NAME / unique_name(f"{file_name}.json", sep="")
@@ -2014,6 +2061,8 @@ def run_negotiation(
     neg_progress_callback: NegProgressCallback | None = None,
     config: dict[str, Any] | None = None,
     image_format: str = DEFAULT_IMAGE_FORMAT,
+    storage_optimization: OptimizationLevel = "space",
+    storage_format: StorageFormat | None = None,
 ) -> dict[str, Any]:
     """Run a single negotiation session and return comprehensive results.
 
@@ -2127,6 +2176,13 @@ def run_negotiation(
         mask_scenario_name=mask_scenario_name,
         ignore_exceptions=ignore_exceptions,
     )
+
+    # Extract partner names from mechanism if not provided
+    if partner_names is None:
+        partner_names = tuple(
+            n.short_type_name if not full_names else n.type_name for n in m.negotiators
+        )
+
     if after_construction_callback:
         try:
             after_construction_callback(
@@ -2206,7 +2262,24 @@ def run_negotiation(
         except Exception as e:
             if verbosity > 0:
                 print(f"After end callback failed for {run_id}: {e}")
-    _save_record(run_record, m, partner_names, real_scenario_name, rep, run_id, path)
+
+    # Determine effective storage format
+    effective_storage_format = (
+        storage_format if storage_format is not None else DEFAULT_TABLE_STORAGE_FORMAT
+    )
+
+    _save_record(
+        run_record,
+        m,
+        partner_names,
+        real_scenario_name,
+        rep,
+        run_id,
+        path,
+        storage_optimization=storage_optimization,
+        storage_format=effective_storage_format,
+        scenario=s,
+    )
     _plot_run(
         m,
         partner_names,
@@ -2242,6 +2315,8 @@ def failed_run_record(
     ignore_exceptions: bool = False,
     stats: ScenarioStats | None = None,
     scored_indices: list[int] | None = None,
+    storage_optimization: OptimizationLevel = "space",
+    storage_format: StorageFormat | None = None,
 ):
     """Create a record for a negotiation that failed to complete (timeout or exception).
 
@@ -2316,7 +2391,24 @@ def failed_run_record(
             mechanism_params=mechanism_params,
             partners=partners,
         )
-    _save_record(run_record, m, partner_names, real_scenario_name, rep, run_id, path)
+
+    # Determine effective storage format
+    effective_storage_format = (
+        storage_format if storage_format is not None else DEFAULT_TABLE_STORAGE_FORMAT
+    )
+
+    _save_record(
+        run_record,
+        m,
+        partner_names,
+        real_scenario_name,
+        rep,
+        run_id,
+        path,
+        storage_optimization=storage_optimization,
+        storage_format=effective_storage_format,
+        scenario=s,
+    )
     return run_record
 
 
@@ -2847,7 +2939,9 @@ def cartesian_tournament(
 
         def track_start_parallel(run_id, state):
             # Write to file - works across processes
-            (log_dir / f"start_{run_id}.log").write_text(f"Started at step {state.step}")
+            (log_dir / f"start_{run_id}.log").write_text(
+                f"Started at step {state.step}"
+            )
 
 
         results = cartesian_tournament(
@@ -3400,6 +3494,8 @@ def cartesian_tournament(
                         scored_indices=scored_indices,
                         config=config,
                         image_format=image_format,
+                        storage_optimization=storage_optimization,
+                        storage_format=effective_storage_format,
                     )
                     # Add run_id for identifying completed runs
                     run_dict["run_id"] = hash(
