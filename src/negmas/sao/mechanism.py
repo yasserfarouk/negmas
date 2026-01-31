@@ -360,7 +360,7 @@ class SAOMechanism(
         )
         if self.verbosity > 2:
             print(
-                f"{self.name}: {negotiator.name} called after {humanize_time(time.perf_counter() - self._start_time, show_ms=True) if self._start_time else 0}",
+                f"{self.name}: {negotiator.name} called after {humanize_time((time.perf_counter_ns() - self._start_time) / 1_000_000_000, show_ms=True) if self._start_time else 0}",
                 flush=True,
             )
         rem = self.remaining_time

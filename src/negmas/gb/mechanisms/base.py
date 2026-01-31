@@ -3,7 +3,7 @@
 from __future__ import annotations
 
 from random import shuffle
-from time import perf_counter
+from time import perf_counter, perf_counter_ns
 from typing import TYPE_CHECKING, Any, Callable
 
 from attrs import define
@@ -231,7 +231,7 @@ class BaseGBMechanism(Mechanism[GBNMI, GBState, GBAction, GBNegotiator]):
         def _do_run(idd, thread: GBThread):
             if self.verbosity > 2:
                 print(
-                    f"{self.name}: Thread {thread.negotiator.name} starts after {humanize_time(perf_counter() - self._start_time, show_ms=True) if self._start_time else 0}",
+                    f"{self.name}: Thread {thread.negotiator.name} starts after {humanize_time((perf_counter_ns() - self._start_time) / 1_000_000_000, show_ms=True) if self._start_time else 0}",
                     flush=True,
                 )
             r = thread.run(action)
@@ -691,7 +691,7 @@ class GBMechanism(BaseGBMechanism):
         #     breakpoint()
         if self.verbosity > 2:
             print(
-                f"{self.name}: Central Processing after {humanize_time(perf_counter() - self._start_time, show_ms=True) if self._start_time else 0}",
+                f"{self.name}: Central Processing after {humanize_time((perf_counter_ns() - self._start_time) / 1_000_000_000, show_ms=True) if self._start_time else 0}",
                 flush=True,
             )
         responses = []
@@ -701,7 +701,7 @@ class GBMechanism(BaseGBMechanism):
                 responses.append(response)
         if self.verbosity > 2:
             print(
-                f"{self.name}: Global Evaluator after {humanize_time(perf_counter() - self._start_time, show_ms=True) if self._start_time else 0}",
+                f"{self.name}: Global Evaluator after {humanize_time((perf_counter_ns() - self._start_time) / 1_000_000_000, show_ms=True) if self._start_time else 0}",
                 flush=True,
             )
         if self._global_evaluator:
@@ -710,7 +710,7 @@ class GBMechanism(BaseGBMechanism):
             )
         if self.verbosity > 2:
             print(
-                f"{self.name}: Global Constraint after {humanize_time(perf_counter() - self._start_time, show_ms=True) if self._start_time else 0}",
+                f"{self.name}: Global Constraint after {humanize_time((perf_counter_ns() - self._start_time) / 1_000_000_000, show_ms=True) if self._start_time else 0}",
                 flush=True,
             )
         if self._global_constraint:

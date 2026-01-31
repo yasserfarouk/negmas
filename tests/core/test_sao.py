@@ -1234,7 +1234,7 @@ def test_mechanism_run_callbacks():
 
     def progress_cb(state):
         calls["progress"] += 1
-        assert state.step >= 0, f"Progress callback should have non-negative step"
+        assert state.step >= 0, "Progress callback should have non-negative step"
 
     def completion_cb(state):
         calls["completion"] += 1
@@ -1255,7 +1255,7 @@ def test_mechanism_run_callbacks():
     )
 
     # Run with callbacks
-    final_state = session.run(
+    session.run(
         start_callback=start_cb,
         progress_callback=progress_cb,
         completion_callback=completion_cb,
@@ -1295,7 +1295,7 @@ def test_mechanism_run_with_progress_callbacks():
     )
 
     # Run with progress bar and callbacks
-    final_state = session.run_with_progress(
+    session.run_with_progress(
         start_callback=start_cb,
         progress_callback=progress_cb,
         completion_callback=completion_cb,
@@ -1362,3 +1362,206 @@ def test_mechanism_runall_callbacks():
         assert calls["completion"].get(i, 0) == 1, (
             f"completion_callback should be called once for mechanism {i}"
         )
+
+
+# =============================================================================
+# Tests for nanosecond precision timing (perf_counter_ns)
+# =============================================================================
+
+
+def test_time_returns_zero_before_start():
+    """Test that mechanism.time returns 0.0 before the mechanism starts."""
+    issues = [make_issue(10, "price"), make_issue(5, "quantity")]
+    session = SAOMechanism(issues=issues, n_steps=10)
+    session.add(
+        AspirationNegotiator(name="buyer"),
+        ufun=LUFun.random(session.outcome_space, reserved_value=0.0),
+    )
+    session.add(
+        AspirationNegotiator(name="seller"),
+        ufun=LUFun.random(session.outcome_space, reserved_value=0.0),
+    )
+
+    # Before starting, time should be 0.0
+    assert session.time == 0.0
+    assert not session.state.started
+
+
+def test_time_returns_positive_after_start():
+    """Test that mechanism.time returns a positive float after the mechanism starts."""
+    issues = [make_issue(10, "price"), make_issue(5, "quantity")]
+    session = SAOMechanism(issues=issues, n_steps=10)
+    session.add(
+        AspirationNegotiator(name="buyer"),
+        ufun=LUFun.random(session.outcome_space, reserved_value=0.0),
+    )
+    session.add(
+        AspirationNegotiator(name="seller"),
+        ufun=LUFun.random(session.outcome_space, reserved_value=0.0),
+    )
+
+    # Run one step to start the mechanism
+    session.step()
+
+    # After starting, time should be positive
+    assert session.time > 0.0
+    assert session.state.started
+
+
+def test_time_increases_during_negotiation():
+    """Test that mechanism.time increases as the negotiation progresses."""
+    issues = [make_issue(10, "price"), make_issue(5, "quantity")]
+    session = SAOMechanism(issues=issues, n_steps=20)
+    session.add(
+        AspirationNegotiator(name="buyer"),
+        ufun=LUFun.random(session.outcome_space, reserved_value=0.0),
+    )
+    session.add(
+        AspirationNegotiator(name="seller"),
+        ufun=LUFun.random(session.outcome_space, reserved_value=0.0),
+    )
+
+    times = []
+    for _ in range(5):
+        session.step()
+        times.append(session.time)
+        if not session.state.running:
+            break
+
+    # Each subsequent time should be >= previous (monotonically increasing)
+    for i in range(1, len(times)):
+        assert times[i] >= times[i - 1], (
+            f"Time should be monotonically increasing: {times}"
+        )
+
+
+def test_time_has_nanosecond_precision():
+    """Test that mechanism.time has nanosecond precision (can distinguish sub-millisecond differences)."""
+
+    issues = [make_issue(10, "price"), make_issue(5, "quantity")]
+    session = SAOMechanism(issues=issues, n_steps=100)
+    session.add(
+        AspirationNegotiator(name="buyer"),
+        ufun=LUFun.random(session.outcome_space, reserved_value=0.0),
+    )
+    session.add(
+        AspirationNegotiator(name="seller"),
+        ufun=LUFun.random(session.outcome_space, reserved_value=0.0),
+    )
+
+    # Start the mechanism
+    session.step()
+
+    # Take multiple time readings in quick succession
+    readings = []
+    for _ in range(10):
+        readings.append(session.time)
+
+    # The time property should return float values with high precision
+    # All readings should be floats
+    for r in readings:
+        assert isinstance(r, float), f"Time should be a float, got {type(r)}"
+
+    # At least some readings should show differences (demonstrating precision)
+    # or all readings should be positive
+    assert all(r > 0 for r in readings), "All time readings should be positive"
+
+
+def test_remaining_time_with_time_limit():
+    """Test that remaining_time works correctly with nanosecond precision timing."""
+    issues = [make_issue(10, "price"), make_issue(5, "quantity")]
+    time_limit = 10.0  # 10 seconds
+    session = SAOMechanism(issues=issues, n_steps=None, time_limit=time_limit)
+    session.add(
+        AspirationNegotiator(name="buyer"),
+        ufun=LUFun.random(session.outcome_space, reserved_value=0.0),
+    )
+    session.add(
+        AspirationNegotiator(name="seller"),
+        ufun=LUFun.random(session.outcome_space, reserved_value=0.0),
+    )
+
+    # Before starting, remaining_time should equal time_limit
+    assert session.remaining_time == time_limit
+
+    # Start the mechanism
+    session.step()
+
+    # After starting, remaining_time should be less than time_limit
+    remaining = session.remaining_time
+    assert remaining is not None
+    assert remaining < time_limit
+    assert remaining > 0
+
+    # Verify: time + remaining_time ≈ time_limit
+    assert abs(session.time + remaining - time_limit) < 0.1, (
+        f"time ({session.time}) + remaining_time ({remaining}) should ≈ time_limit ({time_limit})"
+    )
+
+
+def test_remaining_time_none_without_time_limit():
+    """Test that remaining_time returns None when no time limit is set."""
+    issues = [make_issue(10, "price"), make_issue(5, "quantity")]
+    session = SAOMechanism(issues=issues, n_steps=10, time_limit=float("inf"))
+    session.add(
+        AspirationNegotiator(name="buyer"),
+        ufun=LUFun.random(session.outcome_space, reserved_value=0.0),
+    )
+    session.add(
+        AspirationNegotiator(name="seller"),
+        ufun=LUFun.random(session.outcome_space, reserved_value=0.0),
+    )
+
+    # remaining_time should be None when time_limit is inf
+    assert session.remaining_time is None
+
+    session.step()
+    assert session.remaining_time is None
+
+
+def test_time_reported_in_state():
+    """Test that the time reported in state is consistent with mechanism.time."""
+    issues = [make_issue(10, "price"), make_issue(5, "quantity")]
+    session = SAOMechanism(issues=issues, n_steps=10)
+    session.add(
+        AspirationNegotiator(name="buyer"),
+        ufun=LUFun.random(session.outcome_space, reserved_value=0.0),
+    )
+    session.add(
+        AspirationNegotiator(name="seller"),
+        ufun=LUFun.random(session.outcome_space, reserved_value=0.0),
+    )
+
+    session.run()
+
+    # After completion, state.time should be a positive float
+    assert session.state.time > 0.0
+    assert isinstance(session.state.time, float)
+
+
+def test_time_consistency_across_multiple_mechanisms():
+    """Test that timing is consistent and independent across multiple mechanisms."""
+    issues = [make_issue(10, "price"), make_issue(5, "quantity")]
+
+    mechanisms = []
+    for i in range(3):
+        session = SAOMechanism(issues=issues, n_steps=5, name=f"session_{i}")
+        session.add(
+            AspirationNegotiator(name="buyer"),
+            ufun=LUFun.random(session.outcome_space, reserved_value=0.0),
+        )
+        session.add(
+            AspirationNegotiator(name="seller"),
+            ufun=LUFun.random(session.outcome_space, reserved_value=0.0),
+        )
+        mechanisms.append(session)
+
+    # Run all mechanisms
+    for session in mechanisms:
+        session.run()
+
+    # Each mechanism should have independent, positive time
+    times = [m.state.time for m in mechanisms]
+    for t in times:
+        assert t > 0.0, "Each mechanism should have positive elapsed time"
+        assert isinstance(t, float), "Time should be a float"

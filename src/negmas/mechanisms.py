@@ -1557,14 +1557,14 @@ class Mechanism(
 
     @property
     def time(self) -> float:
-        """Elapsed time since mechanism started in seconds.
+        """Elapsed time since mechanism started in seconds (nanosecond precision).
 
         0.0 if the mechanism did not start running
         """
         if self._start_time is None:
             return 0.0
 
-        return time.perf_counter() - self._start_time
+        return (time.perf_counter_ns() - self._start_time) / 1_000_000_000
 
     @property
     def remaining_time(self) -> float | None:
@@ -1578,7 +1578,10 @@ class Mechanism(
         if not self._start_time:
             return self._internal_nmi.time_limit
 
-        limit = self._internal_nmi.time_limit - (time.perf_counter() - self._start_time)
+        limit = (
+            self._internal_nmi.time_limit
+            - (time.perf_counter_ns() - self._start_time) / 1_000_000_000
+        )
         if limit < 0.0:
             return 0.0
 
@@ -2378,7 +2381,7 @@ class Mechanism(
         """
 
         if self._start_time is None or self._start_time < 0:
-            self._start_time = time.perf_counter()
+            self._start_time = time.perf_counter_ns()
         if self.__verbosity >= 1:
             if self.current_step == 0:
                 print(
@@ -2386,7 +2389,7 @@ class Mechanism(
                     flush=True,
                 )
             else:
-                _elapsed = time.perf_counter() - self._start_time
+                _elapsed = (time.perf_counter_ns() - self._start_time) / 1_000_000_000
                 remaining = self.expected_remaining_steps
                 etatime = self.expected_remaining_time
                 etatime = etatime if etatime is not None else float("inf")
@@ -2465,7 +2468,7 @@ class Mechanism(
             self._current_state.relative_time = self._relative_time_for(
                 self._internal_nmi
             )
-            self._start_time = time.perf_counter()
+            self._start_time = time.perf_counter_ns()
             self._current_state.started = True
             # if the mechanism indicates that it cannot start, keep trying
             if self.on_negotiation_start() is False:
