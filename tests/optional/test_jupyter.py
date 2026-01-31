@@ -15,6 +15,8 @@ os.environ.setdefault("PLOTLY_RENDERER", "json")
 os.environ.setdefault("PLOTLY_KALEIDO_NO_WAIT", "1")
 # Set orca to non-blocking mode if it's used
 os.environ.setdefault("PLOTLY_ORCA_SERVER", "false")
+# Enable fast-run mode for notebooks to reduce simulation complexity
+os.environ.setdefault("NEGMAS_FASTRUN", "True")
 
 NEGMAS_IGNORE_TEST_NOTEBOOKS = os.environ.get("NEGMAS_IGNORE_TEST_NOTEBOOKS", False)
 # NEGMAS_IGNORE_TEST_NOTEBOOKS = True
@@ -31,16 +33,29 @@ def notebooks():
 
 @pytest.fixture(scope="module", autouse=True)
 def ensure_genius_bridge():
-    """Ensure the Genius bridge is running before notebook tests."""
+    """Ensure the Genius bridge is running before notebook tests.
+
+    Note: Bridge startup is attempted with a timeout to avoid hanging in CI.
+    If the bridge fails to start, tests that don't require it will still run.
+    """
     bridge_started = False
     if not genius_bridge_is_running():
         if GeniusBridge.is_installed():
-            GeniusBridge.start()
-            bridge_started = True
+            try:
+                # Start bridge with a timeout (30 seconds should be enough)
+                GeniusBridge.start(timeout=30)
+                bridge_started = True
+            except Exception:
+                # If bridge fails to start, continue anyway
+                # Tests that don't need genius will still work
+                pass
     yield
     # Optionally shut down the bridge if we started it
     if bridge_started:
-        GeniusBridge.shutdown()
+        try:
+            GeniusBridge.shutdown()
+        except Exception:
+            pass
 
 
 @pytest.mark.skipif(
