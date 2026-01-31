@@ -563,6 +563,303 @@ class CompletedRun(Generic[TState]):
             metadata=metadata if metadata else {},
         )
 
+    def convert(
+        self, target: str, scenario: "Scenario | None" = None
+    ) -> "CompletedRun[TState]":
+        """Convert the history to a different trace format.
+
+        This method converts the current history to a different format. The conversion
+        follows these rules:
+        - Any format can be converted to a simpler format (losing information)
+        - Converting to a more detailed format will set missing fields to None
+        - Converting to `full_trace_with_utils` requires a scenario with utility functions
+          (either from `self.scenario` or the provided `scenario` parameter)
+
+        Format hierarchy (most detailed to least detailed):
+            full_trace_with_utils > full_trace > extended_trace > trace > history
+
+        Args:
+            target: The target format. One of: "full_trace_with_utils", "full_trace",
+                "extended_trace", "trace", "history".
+            scenario: Optional scenario with utility functions. If provided, it will be
+                used for computing utilities when converting to `full_trace_with_utils`.
+                If not provided, `self.scenario` will be used.
+
+        Returns:
+            A new CompletedRun with the converted history.
+
+        Raises:
+            ValueError: If target is not a valid format.
+            ValueError: If converting to full_trace_with_utils without a scenario with ufuns.
+
+        Examples:
+            >>> from negmas.sao import SAOMechanism, RandomNegotiator
+            >>> m = SAOMechanism(outcomes=[(i,) for i in range(5)], n_steps=5)
+            >>> _ = m.add(RandomNegotiator(name="n1"))
+            >>> _ = m.add(RandomNegotiator(name="n2"))
+            >>> _ = m.run()
+            >>> # Create a CompletedRun with full_trace
+            >>> run = m.to_completed_run(source="full_trace")
+            >>> run.history_type
+            'full_trace'
+            >>> # Convert to trace format
+            >>> converted = run.convert("trace")
+            >>> converted.history_type
+            'trace'
+            >>> # Convert to extended_trace
+            >>> converted2 = run.convert("extended_trace")
+            >>> converted2.history_type
+            'extended_trace'
+        """
+
+        valid_targets = {
+            "full_trace_with_utils",
+            "full_trace",
+            "extended_trace",
+            "trace",
+            "history",
+        }
+        if target not in valid_targets:
+            raise ValueError(
+                f"Invalid target format: {target}. Must be one of: {valid_targets}"
+            )
+
+        # If already in target format, return a copy
+        if self.history_type == target:
+            return CompletedRun(
+                history=list(self.history),
+                history_type=self.history_type,
+                scenario=self.scenario,
+                agreement=self.agreement,
+                agreement_stats=self.agreement_stats,
+                outcome_stats=dict(self.outcome_stats),
+                config=dict(self.config),
+                metadata=dict(self.metadata),
+            )
+
+        # Use provided scenario or self.scenario
+        effective_scenario = scenario if scenario is not None else self.scenario
+
+        # For full_trace_with_utils, we need a scenario with ufuns
+        if target == "full_trace_with_utils":
+            if effective_scenario is None or not effective_scenario.ufuns:
+                raise ValueError(
+                    "Cannot convert to full_trace_with_utils without a scenario with "
+                    "utility functions. Provide a scenario parameter or ensure "
+                    "self.scenario has ufuns."
+                )
+
+        # Convert the history
+        new_history = self._convert_history(
+            self.history, self.history_type, target, effective_scenario
+        )
+
+        return CompletedRun(
+            history=new_history,
+            history_type=target,
+            scenario=self.scenario,  # Keep original scenario
+            agreement=self.agreement,
+            agreement_stats=self.agreement_stats,
+            outcome_stats=dict(self.outcome_stats),
+            config=dict(self.config),
+            metadata=dict(self.metadata),
+        )
+
+    def _convert_history(
+        self,
+        history: list,
+        source_type: str,
+        target_type: str,
+        scenario: "Scenario | None",
+    ) -> list:
+        """Convert history from one format to another.
+
+        Args:
+            history: The source history data.
+            source_type: The source format type.
+            target_type: The target format type.
+            scenario: Optional scenario for utility computation.
+
+        Returns:
+            The converted history in the target format.
+        """
+        # First, normalize to a common intermediate format (list of dicts with all fields)
+        normalized = self._normalize_history(history, source_type)
+
+        # Then convert to target format
+        return self._denormalize_history(normalized, target_type, scenario)
+
+    def _normalize_history(self, history: list, source_type: str) -> list[dict]:
+        """Normalize history to a list of dicts with all possible fields.
+
+        Missing fields are set to None.
+        """
+        normalized = []
+
+        for entry in history:
+            record: dict = {
+                "time": None,
+                "relative_time": None,
+                "step": None,
+                "negotiator": None,
+                "offer": None,
+                "responses": None,
+                "state": None,
+                "text": None,
+                "data": None,
+            }
+
+            if source_type == "full_trace_with_utils":
+                # TraceElement + utility columns as tuple
+                if hasattr(entry, "_asdict"):
+                    d = entry._asdict()
+                elif isinstance(entry, dict):
+                    d = entry
+                elif isinstance(entry, (list, tuple)):
+                    # Assume TRACE_ELEMENT_MEMBERS order + utilities
+                    d = dict(
+                        zip(TRACE_ELEMENT_MEMBERS, entry[: len(TRACE_ELEMENT_MEMBERS)])
+                    )
+                else:
+                    d = {}
+                record.update({k: v for k, v in d.items() if k in record})
+                # Store utilities separately (they'll be recomputed if needed)
+
+            elif source_type == "full_trace":
+                # TraceElement namedtuple or dict
+                if hasattr(entry, "_asdict"):
+                    d = entry._asdict()
+                elif isinstance(entry, dict):
+                    d = entry
+                elif isinstance(entry, (list, tuple)):
+                    d = dict(zip(TRACE_ELEMENT_MEMBERS, entry))
+                else:
+                    d = {}
+                record.update({k: v for k, v in d.items() if k in record})
+
+            elif source_type == "extended_trace":
+                # (step, negotiator, offer) tuple or dict
+                if isinstance(entry, dict):
+                    record["step"] = entry.get("step")
+                    record["negotiator"] = entry.get("negotiator")
+                    record["offer"] = entry.get("offer")
+                elif isinstance(entry, (list, tuple)) and len(entry) >= 3:
+                    record["step"] = entry[0]
+                    record["negotiator"] = entry[1]
+                    record["offer"] = entry[2]
+
+            elif source_type == "trace":
+                # (negotiator, offer) tuple or dict
+                if isinstance(entry, dict):
+                    record["negotiator"] = entry.get("negotiator")
+                    record["offer"] = entry.get("offer")
+                elif isinstance(entry, (list, tuple)) and len(entry) >= 2:
+                    record["negotiator"] = entry[0]
+                    record["offer"] = entry[1]
+
+            else:  # "history" - MechanismState dicts
+                if hasattr(entry, "asdict"):
+                    d = entry.asdict()
+                elif hasattr(entry, "_asdict"):
+                    d = entry._asdict()
+                elif isinstance(entry, dict):
+                    d = entry
+                else:
+                    d = {}
+                # Extract what we can from state
+                record["step"] = d.get("step")
+                record["time"] = d.get("time")
+                record["relative_time"] = d.get("relative_time")
+                # For history format, the whole entry is the state
+                record["state"] = d
+
+            normalized.append(record)
+
+        return normalized
+
+    def _denormalize_history(
+        self, normalized: list[dict], target_type: str, scenario: "Scenario | None"
+    ) -> list:
+        """Convert normalized history to target format."""
+        result = []
+
+        for record in normalized:
+            if target_type == "full_trace_with_utils":
+                # Create TraceElement + utilities
+                trace_elem = TraceElement(
+                    time=record["time"],
+                    relative_time=record["relative_time"],
+                    step=record["step"],
+                    negotiator=record["negotiator"],
+                    offer=record["offer"],
+                    responses=record["responses"],
+                    state=record["state"],
+                    text=record["text"],
+                    data=record["data"],
+                )
+                # Compute utilities if we have a scenario and offer
+                utilities: list = []
+                if (
+                    scenario is not None
+                    and scenario.ufuns
+                    and record["offer"] is not None
+                ):
+                    for ufun in scenario.ufuns:
+                        try:
+                            u = ufun(record["offer"])
+                            utilities.append(float(u) if u is not None else None)
+                        except Exception:
+                            utilities.append(None)
+                else:
+                    # No scenario or no offer, fill with None
+                    n_negotiators = (
+                        len(scenario.ufuns) if scenario and scenario.ufuns else 0
+                    )
+                    utilities = [None] * n_negotiators
+
+                # Return as tuple: TraceElement fields + utilities
+                result.append(tuple(trace_elem) + tuple(utilities))
+
+            elif target_type == "full_trace":
+                # Create TraceElement
+                result.append(
+                    TraceElement(
+                        time=record["time"],
+                        relative_time=record["relative_time"],
+                        step=record["step"],
+                        negotiator=record["negotiator"],
+                        offer=record["offer"],
+                        responses=record["responses"],
+                        state=record["state"],
+                        text=record["text"],
+                        data=record["data"],
+                    )
+                )
+
+            elif target_type == "extended_trace":
+                # (step, negotiator, offer)
+                result.append((record["step"], record["negotiator"], record["offer"]))
+
+            elif target_type == "trace":
+                # (negotiator, offer)
+                result.append((record["negotiator"], record["offer"]))
+
+            else:  # "history"
+                # Return the state dict if available, otherwise create minimal dict
+                if record["state"] is not None:
+                    result.append(record["state"])
+                else:
+                    # Create a minimal state-like dict
+                    result.append(
+                        {
+                            "step": record["step"],
+                            "time": record["time"],
+                            "relative_time": record["relative_time"],
+                        }
+                    )
+
+        return result
+
     @classmethod
     def infer_source(cls, path: Path | str) -> str:
         """Infer the source type from a saved negotiation file or folder.
@@ -2845,23 +3142,48 @@ class Mechanism(
         )
 
     def to_completed_run(
-        self, source: str = "history", metadata: dict[str, Any] | None = None
+        self,
+        source: str | None = None,
+        metadata: dict[str, Any] | None = None,
+        agreement_stats: OutcomeOptimality | None = None,
+        calc_agreement_stats: bool = False,
     ) -> CompletedRun:
         """
         Creates a CompletedRun object from the current mechanism state.
 
         Args:
             source: The source of the history information. Options:
+                - None: Auto-detect the best available source in priority order:
+                  full_trace_with_utils > full_trace > extended_trace > trace > history
                 - "history": Use the history attribute (list of states)
                 - "full_trace": Use the full_trace attribute (if available)
+                - "full_trace_with_utils": Use full_trace_with_utils (if available)
                 - "trace": Use the trace attribute (if available)
                 - "extended_trace": Use the extended_trace attribute (if available)
             metadata: Arbitrary metadata to include in the CompletedRun.
+            agreement_stats: Pre-calculated agreement optimality statistics. If provided,
+                these will be used directly.
+            calc_agreement_stats: If True and agreement_stats is None, calculate
+                agreement_stats from the scenario (requires ufuns to be available).
+                This involves calculating scenario stats which can be expensive.
 
         Returns:
             CompletedRun: A CompletedRun object containing the negotiation data.
         """
         from negmas.inout import Scenario
+
+        # Auto-detect source if None - use best available in priority order
+        if source is None:
+            if hasattr(self, "full_trace_with_utils"):
+                source = "full_trace_with_utils"
+            elif hasattr(self, "full_trace"):
+                source = "full_trace"
+            elif hasattr(self, "extended_trace"):
+                source = "extended_trace"
+            elif hasattr(self, "trace"):
+                source = "trace"
+            else:
+                source = "history"
 
         # Get the trace data based on source
         if source == "full_trace_with_utils" and hasattr(self, "full_trace_with_utils"):
@@ -2921,12 +3243,62 @@ class Mechanism(
             "utilities": utilities,
         }
 
+        # Calculate agreement_stats if requested and not provided
+        if (
+            agreement_stats is None
+            and calc_agreement_stats
+            and self.agreement is not None
+        ):
+            try:
+                from negmas.preferences.ops import (
+                    calc_outcome_distances,
+                    calc_outcome_optimality,
+                    calc_scenario_stats,
+                    estimate_max_dist,
+                )
+
+                ufuns = [n.ufun for n in self.negotiators if n.ufun is not None]
+                if ufuns and len(ufuns) == len(self.negotiators):
+                    # Calculate scenario stats (expensive)
+                    stats = calc_scenario_stats(ufuns)
+                    # Calculate agreement utilities
+                    agreement_utils = tuple(
+                        float(u(self.agreement)) if u is not None else 0.0
+                        for u in ufuns
+                    )
+                    # Calculate distances and optimality
+                    dists = calc_outcome_distances(agreement_utils, stats)
+                    agreement_stats = calc_outcome_optimality(
+                        dists, stats, estimate_max_dist(ufuns)
+                    )
+            except Exception:
+                agreement_stats = None
+
+                ufuns = tuple(
+                    n.preferences for n in self.negotiators if n.preferences is not None
+                )
+                if ufuns and len(ufuns) == len(self.negotiators):
+                    # Calculate scenario stats (expensive)
+                    stats = calc_scenario_stats(ufuns)
+                    # Calculate agreement utilities
+                    agreement_utils = tuple(
+                        float(u(self.agreement)) if u is not None else 0.0
+                        for u in ufuns
+                    )
+                    # Calculate distances and optimality
+                    dists = calc_outcome_distances(agreement_utils, stats)
+                    agreement_stats = calc_outcome_optimality(
+                        dists, stats, estimate_max_dist(ufuns)
+                    )
+            except Exception:
+                agreement_stats = None
+
         return CompletedRun(
             history=trace_data,
             history_type=history_type,
             scenario=scenario,
             agreement=self.agreement,
-            agreement_stats=None,  # Agreement stats require scenario stats to be calculated
+            agreement_stats=agreement_stats,
             outcome_stats=outcome_stats,
             config=config,
             metadata=metadata or {},
@@ -2997,8 +3369,10 @@ class Mechanism(
         save_scenario_stats: bool = False,
         save_agreement_stats: bool = True,
         save_config: bool = True,
-        source: str = "history",
+        source: str | None = None,
         metadata: dict[str, Any] | None = None,
+        agreement_stats: OutcomeOptimality | None = None,
+        calc_agreement_stats: bool = False,
         overwrite: bool = True,
         warn_if_existing: bool = True,
         storage_format: TableStorageFormat | None = DEFAULT_TABLE_STORAGE_FORMAT,
@@ -3017,8 +3391,13 @@ class Mechanism(
             save_agreement_stats: If True (and single_file is False), save agreement stats, the agreement itself and its utilities under `outcome_stats.yaml`.
                                   If utility functions are not found in negotiators, only the agreement will be saved there
             save_config: If True (and single_file is False),  save the configuration paramters of the mechanism run.
-            source: The source of the history information to save. Default is "history" which means using the history attribute.
+            source: The source of the history information to save. If None (default), auto-detect the best
+                available source in priority order: full_trace_with_utils > full_trace > extended_trace > trace > history.
             metadata: arbitrary data to save under `meta_data.yaml`. Only supported if single_file is False
+            agreement_stats: Pre-calculated agreement optimality statistics. If provided, these will be saved
+                            instead of calculating them (which requires scenario stats).
+            calc_agreement_stats: If True and agreement_stats is None, calculate agreement_stats
+                                 from the scenario. This is expensive as it requires calculating scenario stats.
             overwrite: Overwrite existing files/folders
             warn_if_existing: Warn if existing files/folders are found
             storage_format: The format for storing tables.
@@ -3026,7 +3405,12 @@ class Mechanism(
         Returns:
             Path: The path to the saved file or directory.
         """
-        completed_run = self.to_completed_run(source=source, metadata=metadata)
+        completed_run = self.to_completed_run(
+            source=source,
+            metadata=metadata,
+            agreement_stats=agreement_stats,
+            calc_agreement_stats=calc_agreement_stats,
+        )
         return completed_run.save(
             parent=parent,
             name=name,

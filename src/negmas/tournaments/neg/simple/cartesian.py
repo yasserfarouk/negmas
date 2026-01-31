@@ -21,7 +21,7 @@ from os import cpu_count
 from pathlib import Path
 from random import randint, random, shuffle
 from time import perf_counter
-from typing import Any, Callable, Iterable, Literal
+from typing import Any, Callable, Iterable, Literal, Sequence
 
 import cloudpickle
 import pandas as pd
@@ -29,6 +29,7 @@ from attr import asdict, define, field
 from rich import print
 from rich.progress import track
 
+from negmas.common import MechanismState
 from negmas.helpers import unique_name
 from negmas.helpers.inout import (
     DEFAULT_TABLE_STORAGE_FORMAT,
@@ -44,6 +45,7 @@ from negmas.negotiators import Negotiator
 from negmas.plots.util import plot_offline_run
 from negmas.preferences.discounted import DiscountedUtilityFunction
 from negmas.preferences.ops import (
+    OutcomeOptimality,
     ScenarioStats,
     calc_outcome_distances,
     calc_outcome_optimality,
@@ -1694,6 +1696,9 @@ def _make_failure_record(
     mechanism_params: dict,
     partner_names: list[str] | None = None,
     param_dump: list[dict[str, Any]] | None = None,
+    real_scenario_name: str | None = None,
+    mechanism_type: type[Mechanism] | None = None,
+    stats: ScenarioStats | None = None,
 ) -> dict:
     """Create a record for a failed negotiation with null/error values."""
     if not partner_names:
@@ -1868,6 +1873,8 @@ def _save_record(
     storage_format: StorageFormat = DEFAULT_TABLE_STORAGE_FORMAT,
     scenario: Scenario | None = None,
     python_class_identifier=PYTHON_CLASS_IDENTIFIER,
+    single_file: bool = True,
+    stats: ScenarioStats | None = None,
 ):
     """Save negotiation record to disk using mechanism.save() with source priority.
 
@@ -1883,6 +1890,8 @@ def _save_record(
         storage_format: Storage format ("csv", "gzip", "parquet")
         scenario: The scenario object (to include in metadata)
         python_class_identifier: Identifier for Python classes in serialization
+        single_file: If True, save as single file; if False, save as folder with agreement stats
+        stats: Scenario statistics for calculating agreement optimality (used when single_file=False)
 
     Remarks:
         - Tries sources in priority order: full_trace_with_utils, full_trace,
@@ -1893,6 +1902,7 @@ def _save_record(
         - Includes scenario name in metadata
         - Warns if file exists
         - Storage format: parquet for speed/space, gzip for balanced, csv otherwise
+        - When single_file=False, agreement_stats are calculated and saved if stats is provided
     """
     if not path:
         return
@@ -1952,17 +1962,42 @@ def _save_record(
     save_dir = path / NEGOTIATIONS_DIR_NAME
     save_dir.mkdir(parents=True, exist_ok=True)
 
+    # Extract agreement_stats from run_record if available (for folder mode)
+    agreement_stats = None
+    if not single_file:
+        # Try to construct OutcomeOptimality from run_record values
+        try:
+            if "pareto_optimality" in run_record:
+                agreement_stats = OutcomeOptimality(
+                    pareto_optimality=run_record.get("pareto_optimality", float("nan")),
+                    nash_optimality=run_record.get("nash_optimality", float("nan")),
+                    kalai_optimality=run_record.get("kalai_optimality", float("nan")),
+                    modified_kalai_optimality=run_record.get(
+                        "modified_kalai_optimality", float("nan")
+                    ),
+                    max_welfare_optimality=run_record.get(
+                        "max_welfare_optimality", float("nan")
+                    ),
+                    ks_optimality=run_record.get("ks_optimality", float("nan")),
+                    modified_ks_optimality=run_record.get(
+                        "modified_ks_optimality", float("nan")
+                    ),
+                )
+        except Exception:
+            agreement_stats = None
+
     try:
         m.save(
             parent=save_dir,
             name=file_name,
-            single_file=True,  # Save as single file for simplicity
+            single_file=single_file,
             save_scenario=False,  # Don't save scenario (already saved in scenarios/)
             save_scenario_stats=False,  # Don't save scenario stats
             save_config=storage_optimization
             != "space",  # Save config unless optimizing for space
             source=source,
             metadata=metadata,
+            agreement_stats=agreement_stats,
             overwrite=True,
             warn_if_existing=True,
             storage_format=storage_format,
@@ -2063,6 +2098,7 @@ def run_negotiation(
     image_format: str = DEFAULT_IMAGE_FORMAT,
     storage_optimization: OptimizationLevel = "space",
     storage_format: StorageFormat | None = None,
+    save_negotiations_as_folders: bool = False,
 ) -> dict[str, Any]:
     """Run a single negotiation session and return comprehensive results.
 
@@ -2098,6 +2134,8 @@ def run_negotiation(
         after_end_callback: Optional callback invoked after negotiation ends. Receives the record dictionary
             and optionally the config dictionary. Supports both (record) and (record, config) signatures.
         config: Tournament configuration dictionary (same as saved to config.yaml). Passed to callbacks.
+        save_negotiations_as_folders: If True, save each negotiation as a folder containing trace,
+            agreement_stats, config, and metadata. If False (default), save as single trace files.
 
     Returns:
         Dictionary containing complete negotiation results:
@@ -2279,6 +2317,7 @@ def run_negotiation(
         storage_optimization=storage_optimization,
         storage_format=effective_storage_format,
         scenario=s,
+        single_file=not save_negotiations_as_folders,
     )
     _plot_run(
         m,
@@ -2695,6 +2734,7 @@ def cartesian_tournament(
     storage_optimization: OptimizationLevel = "space",
     memory_optimization: OptimizationLevel = "balanced",
     storage_format: StorageFormat | None = None,
+    save_negotiations_as_folders: bool = False,
     python_class_identifier=PYTHON_CLASS_IDENTIFIER,
     before_start_callback: BeforeStartCallback | None = None,
     progress_callback: ProgressCallback | None = None,
@@ -2809,6 +2849,9 @@ def cartesian_tournament(
                        - "parquet": Parquet binary format (best compression, preserves types, fastest)
                        - None: Auto-select based on storage_optimization (default; csv for speed, gzip for balanced, parquet for space)
                        Note: Small files (scores.csv, type_scores.csv) are always CSV regardless of this setting.
+        save_negotiations_as_folders: If True, save each negotiation as a folder containing trace,
+                                     agreement_stats (optimality measures), config, and metadata files.
+                                     If False (default), save as single trace files for compactness.
         python_class_identifier: Function to convert classes to string identifiers.
         before_start_callback: Optional callback invoked before each negotiation starts.
                               Receives a RunInfo object with all negotiation parameters.
@@ -2939,9 +2982,7 @@ def cartesian_tournament(
 
         def track_start_parallel(run_id, state):
             # Write to file - works across processes
-            (log_dir / f"start_{run_id}.log").write_text(
-                f"Started at step {state.step}"
-            )
+            (log_dir / f"start_{run_id}.log").write_text(f"Started at step {state.step}")
 
 
         results = cartesian_tournament(
@@ -3130,6 +3171,7 @@ def cartesian_tournament(
         storage_optimization=storage_optimization,
         memory_optimization=memory_optimization,
         storage_format=storage_format,
+        save_negotiations_as_folders=save_negotiations_as_folders,
         python_class_identifier=python_class_identifier,
         has_before_start_callback=before_start_callback is not None,
         has_after_construction_callback=after_construction_callback is not None,
@@ -3496,6 +3538,7 @@ def cartesian_tournament(
                         image_format=image_format,
                         storage_optimization=storage_optimization,
                         storage_format=effective_storage_format,
+                        save_negotiations_as_folders=save_negotiations_as_folders,
                     )
                     # Add run_id for identifying completed runs
                     run_dict["run_id"] = hash(

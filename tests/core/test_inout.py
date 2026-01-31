@@ -601,7 +601,7 @@ def test_save_table_list_of_dicts_csv(tmp_path):
     from negmas.helpers.inout import save_table
 
     data = [{"a": 1, "b": 2}, {"a": 3, "b": 4}]
-    path = save_table(data, tmp_path / "test.csv")
+    path = save_table(data, tmp_path / "test.csv", storage_format="csv")
 
     assert path.exists()
     assert path.suffix == ".csv"
@@ -619,7 +619,7 @@ def test_save_table_dataframe_csv(tmp_path):
     from negmas.helpers.inout import save_table
 
     df = pd.DataFrame({"x": [1, 2, 3], "y": [4, 5, 6]})
-    path = save_table(df, tmp_path / "test.csv")
+    path = save_table(df, tmp_path / "test.csv", storage_format="csv")
 
     assert path.exists()
     with open(path) as f:
@@ -634,7 +634,9 @@ def test_save_table_with_index(tmp_path):
     from negmas.helpers.inout import save_table
 
     df = pd.DataFrame({"x": [1, 2], "y": [3, 4]})
-    path = save_table(df, tmp_path / "test.csv", index=True, index_label="idx")
+    path = save_table(
+        df, tmp_path / "test.csv", index=True, index_label="idx", storage_format="csv"
+    )
 
     with open(path) as f:
         content = f.read()
@@ -646,7 +648,9 @@ def test_save_table_list_of_tuples(tmp_path):
     from negmas.helpers.inout import save_table
 
     data = [(1, 2), (3, 4)]
-    path = save_table(data, tmp_path / "test.csv", columns=["col1", "col2"])
+    path = save_table(
+        data, tmp_path / "test.csv", columns=["col1", "col2"], storage_format="csv"
+    )
 
     with open(path) as f:
         content = f.read()
@@ -659,7 +663,7 @@ def test_save_table_list_of_tuples_requires_columns(tmp_path):
 
     data = [(1, 2), (3, 4)]
     with pytest.raises(ValueError, match="columns parameter is required"):
-        save_table(data, tmp_path / "test.csv")
+        save_table(data, tmp_path / "test.csv", storage_format="csv")
 
 
 def test_save_table_gzip_format(tmp_path):
@@ -703,7 +707,7 @@ def test_save_table_empty_list(tmp_path):
     from negmas.helpers.inout import save_table
 
     data = []
-    path = save_table(data, tmp_path / "test.csv")
+    path = save_table(data, tmp_path / "test.csv", storage_format="csv")
 
     assert path.exists()
 
@@ -715,7 +719,9 @@ def test_save_table_empty_list_with_columns(tmp_path):
     from negmas.helpers.inout import save_table
 
     data = []
-    path = save_table(data, tmp_path / "test.csv", columns=["a", "b"])
+    path = save_table(
+        data, tmp_path / "test.csv", columns=["a", "b"], storage_format="csv"
+    )
 
     assert path.exists()
     df = pd.read_csv(path)
@@ -728,17 +734,19 @@ def test_save_table_creates_parent_dirs(tmp_path):
     from negmas.helpers.inout import save_table
 
     data = [{"a": 1}]
-    path = save_table(data, tmp_path / "nested" / "dir" / "test.csv")
+    path = save_table(
+        data, tmp_path / "nested" / "dir" / "test.csv", storage_format="csv"
+    )
 
     assert path.exists()
     assert path.parent.exists()
 
 
 def test_save_table_default_format():
-    """Test that DEFAULT_TABLE_STORAGE_FORMAT is csv for backward compatibility."""
+    """Test that DEFAULT_TABLE_STORAGE_FORMAT is parquet for efficiency."""
     from negmas.helpers.inout import DEFAULT_TABLE_STORAGE_FORMAT
 
-    assert DEFAULT_TABLE_STORAGE_FORMAT == "csv"
+    assert DEFAULT_TABLE_STORAGE_FORMAT == "parquet"
 
 
 def test_save_table_unsupported_data_type(tmp_path):
@@ -746,7 +754,7 @@ def test_save_table_unsupported_data_type(tmp_path):
     from negmas.helpers.inout import save_table
 
     with pytest.raises(ValueError, match="Unsupported data type"):
-        save_table("not a valid type", tmp_path / "test.csv")  # type: ignore
+        save_table("not a valid type", tmp_path / "test.csv", storage_format="csv")  # type: ignore
 
 
 def test_save_table_unsupported_list_element(tmp_path):
@@ -754,7 +762,7 @@ def test_save_table_unsupported_list_element(tmp_path):
     from negmas.helpers.inout import save_table
 
     with pytest.raises(ValueError, match="Unsupported list element type"):
-        save_table([1, 2, 3], tmp_path / "test.csv")  # type: ignore
+        save_table([1, 2, 3], tmp_path / "test.csv", storage_format="csv")  # type: ignore
 
 
 # ===== recalculate_stats Tests =====

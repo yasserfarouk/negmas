@@ -1525,17 +1525,58 @@ class World(
         mechanism = negotiation.mechanism
         if not mechanism:
             return
-        negs_folder = str(Path(self._log_folder) / "negotiations")
-        os.makedirs(negs_folder, exist_ok=True)
+        negs_folder = Path(self._log_folder) / "negotiations"
+        negs_folder.mkdir(parents=True, exist_ok=True)
         record = self._make_negotiation_record(negotiation)
         if len(record) < 1:
             return
+        # Add summary record to the main negotiations.csv
         add_records(str(Path(self._log_folder) / "negotiations.csv"), [record])
-        save_table(
-            [to_flat_dict(_) for _ in mechanism.history],
-            os.path.join(negs_folder, f"{mechanism.id}.csv"),
-            storage_format=self._storage_format,
-        )
+
+        # Build metadata from negotiation info
+        metadata = {
+            "partner_ids": [_.id for _ in negotiation.partners],
+            "partners": [_.name for _ in negotiation.partners],
+            "partner_types": [_.type_name for _ in negotiation.partners],
+            "requested_at": negotiation.requested_at,
+            "ended_at": self.current_step,
+            "group": negotiation.group,
+            "caller": negotiation.caller,
+        }
+        if negotiation.annotation:
+            metadata["annotation"] = negotiation.annotation
+
+        # Use Mechanism.save() with the standard folder format
+        # This creates a folder with trace, config, outcome_stats, and metadata
+        try:
+            mechanism.save(
+                parent=negs_folder,
+                name=mechanism.id,
+                single_file=False,  # Always use folder format for World negotiations
+                save_scenario=False,  # Don't save scenario (agents may not have ufuns exposed)
+                save_scenario_stats=False,
+                save_agreement_stats=True,
+                save_config=True,
+                source="history",  # Use history as that's most reliable
+                metadata=metadata,
+                overwrite=True,
+                warn_if_existing=False,
+                storage_format=self._storage_format,
+            )
+        except Exception as e:
+            # Fallback to old format if mechanism.save() fails
+            import warnings
+
+            warnings.warn(
+                f"Could not save negotiation {mechanism.id} in standard format: {e}. "
+                "Falling back to simple CSV format.",
+                stacklevel=2,
+            )
+            save_table(
+                [to_flat_dict(_) for _ in mechanism.history],
+                str(negs_folder / f"{mechanism.id}.csv"),
+                storage_format=self._storage_format,
+            )
 
     @property
     def n_simulation_exceptions(self) -> dict[int, int]:

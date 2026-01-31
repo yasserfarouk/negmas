@@ -742,7 +742,7 @@ def load_table(
         >>> # Round-trip test: save and load a CSV file
         >>> with tempfile.TemporaryDirectory() as tmpdir:
         ...     csv_path = os.path.join(tmpdir, "data.csv")
-        ...     _ = save_table([{"a": 1, "b": 2}], csv_path)
+        ...     _ = save_table([{"a": 1, "b": 2}], csv_path, storage_format="csv")
         ...     df = load_table(csv_path)
         ...     list(df.columns)
         ['a', 'b']

@@ -100,7 +100,7 @@ class TestMechanismSave:
         m.add(RandomNegotiator(name="n2"))
         m.run()
 
-        result = m.save(tmp_path, "test_single", single_file=True)
+        result = m.save(tmp_path, "test_single", single_file=True, storage_format="csv")
 
         assert result.exists()
         assert result.suffix == ".csv"
@@ -125,7 +125,7 @@ class TestMechanismSave:
         m.add(RandomNegotiator(name="n2"))
         m.run()
 
-        result = m.save(tmp_path, "test_dir", single_file=False)
+        result = m.save(tmp_path, "test_dir", single_file=False, storage_format="csv")
 
         assert result.is_dir()
         assert (result / "trace.csv").exists()
@@ -190,12 +190,14 @@ class TestMechanismSave:
         )
 
         assert result.exists()
-        # Read and check columns
-        with open(result) as f:
-            header = f.readline().strip()
-            assert "time" in header
-            assert "negotiator" in header
-            assert "offer" in header
+        # Read and check columns using pandas to handle parquet format
+        import pandas as pd
+
+        df = pd.read_parquet(result)
+        columns = list(df.columns)
+        assert "time" in columns
+        assert "negotiator" in columns
+        assert "offer" in columns
 
     def test_save_with_metadata(self, tmp_path):
         """Test saving with custom metadata."""
@@ -254,8 +256,8 @@ class TestMechanismSave:
         m.add(RandomNegotiator(name="n2"))
         m.run()
 
-        # First save
-        m.save(tmp_path, "test_no_overwrite", single_file=True)
+        # First save (use csv format for predictable extension)
+        m.save(tmp_path, "test_no_overwrite", single_file=True, storage_format="csv")
         first_size = (tmp_path / "test_no_overwrite.csv").stat().st_size
 
         # Second save should not overwrite
@@ -263,6 +265,7 @@ class TestMechanismSave:
             tmp_path,
             "test_no_overwrite",
             single_file=True,
+            storage_format="csv",
             overwrite=False,
             warn_if_existing=False,
         )
@@ -277,8 +280,8 @@ class TestMechanismSave:
         m.add(RandomNegotiator(name="n2"))
         m.run()
 
-        # Single file
-        result = m.save(tmp_path, "test_path", single_file=True)
+        # Single file (use csv format for predictable extension)
+        result = m.save(tmp_path, "test_path", single_file=True, storage_format="csv")
         assert result == tmp_path / "test_path.csv"
 
         # Directory
@@ -297,7 +300,24 @@ class TestCompletedRun:
         m.add(RandomNegotiator(name="n2"))
         m.run()
 
+        # With source=None (default), auto-detects best available source
         completed = m.to_completed_run()
+
+        # SAOMechanism has full_trace_with_utils, so that's what we get
+        assert completed.history_type == "full_trace_with_utils"
+        assert len(completed.history) > 0
+        assert completed.config["mechanism_type"] == "SAOMechanism"
+        assert completed.config["n_negotiators"] == 2
+
+    def test_to_completed_run_explicit_history(self, tmp_path):
+        """Test creating a CompletedRun with explicit history source."""
+        m = SAOMechanism(outcomes=[(i,) for i in range(10)], n_steps=10)
+        m.add(RandomNegotiator(name="n1"))
+        m.add(RandomNegotiator(name="n2"))
+        m.run()
+
+        # Explicit source="history" uses the history attribute
+        completed = m.to_completed_run(source="history")
 
         assert completed.history_type == "history"
         assert len(completed.history) > 0
@@ -615,6 +635,183 @@ class TestCompletedRun:
             CompletedRun.infer_source(tmp_path / "nonexistent")
 
 
+class TestCompletedRunConvert:
+    """Tests for CompletedRun.convert() method."""
+
+    def test_convert_full_trace_to_trace(self, tmp_path):
+        """Test converting from full_trace to trace format."""
+
+        m = SAOMechanism(outcomes=[(i,) for i in range(10)], n_steps=10)
+        m.add(RandomNegotiator(name="n1"))
+        m.add(RandomNegotiator(name="n2"))
+        m.run()
+
+        run = m.to_completed_run(source="full_trace")
+        assert run.history_type == "full_trace"
+
+        converted = run.convert("trace")
+        assert converted.history_type == "trace"
+        assert len(converted.history) == len(run.history)
+        # trace format is (negotiator, offer)
+        for entry in converted.history:
+            assert isinstance(entry, tuple)
+            assert len(entry) == 2
+
+    def test_convert_full_trace_to_extended_trace(self, tmp_path):
+        """Test converting from full_trace to extended_trace format."""
+
+        m = SAOMechanism(outcomes=[(i,) for i in range(10)], n_steps=10)
+        m.add(RandomNegotiator(name="n1"))
+        m.add(RandomNegotiator(name="n2"))
+        m.run()
+
+        run = m.to_completed_run(source="full_trace")
+        converted = run.convert("extended_trace")
+
+        assert converted.history_type == "extended_trace"
+        assert len(converted.history) == len(run.history)
+        # extended_trace format is (step, negotiator, offer)
+        for entry in converted.history:
+            assert isinstance(entry, tuple)
+            assert len(entry) == 3
+
+    def test_convert_trace_to_full_trace(self, tmp_path):
+        """Test converting from trace to full_trace (with None values)."""
+
+        m = SAOMechanism(outcomes=[(i,) for i in range(10)], n_steps=10)
+        m.add(RandomNegotiator(name="n1"))
+        m.add(RandomNegotiator(name="n2"))
+        m.run()
+
+        run = m.to_completed_run(source="trace")
+        converted = run.convert("full_trace")
+
+        assert converted.history_type == "full_trace"
+        assert len(converted.history) == len(run.history)
+        # Missing fields should be None
+        for entry in converted.history:
+            assert entry.time is None
+            assert entry.relative_time is None
+            assert entry.negotiator is not None  # This was preserved
+            assert entry.offer is not None  # This was preserved
+
+    def test_convert_to_full_trace_with_utils_requires_scenario(self, tmp_path):
+        """Test that converting to full_trace_with_utils requires a scenario."""
+        from negmas.mechanisms import CompletedRun
+
+        m = SAOMechanism(outcomes=[(i,) for i in range(10)], n_steps=10)
+        m.add(RandomNegotiator(name="n1"))
+        m.add(RandomNegotiator(name="n2"))
+        m.run()
+
+        run = m.to_completed_run(source="trace")
+        # Clear scenario to simulate no utility functions
+        run = CompletedRun(
+            history=run.history,
+            history_type=run.history_type,
+            scenario=None,
+            agreement=run.agreement,
+            agreement_stats=run.agreement_stats,
+            outcome_stats=run.outcome_stats,
+            config=run.config,
+            metadata=run.metadata,
+        )
+
+        with pytest.raises(ValueError, match="Cannot convert to full_trace_with_utils"):
+            run.convert("full_trace_with_utils")
+
+    def test_convert_to_full_trace_with_utils_with_scenario(self, tmp_path):
+        """Test converting to full_trace_with_utils with a scenario."""
+        from negmas.preferences import LinearAdditiveUtilityFunction
+
+        issues = [make_issue(10, "price")]
+        m = SAOMechanism(issues=issues, n_steps=10)
+        u1 = LinearAdditiveUtilityFunction.random(issues=issues, reserved_value=0.0)
+        u2 = LinearAdditiveUtilityFunction.random(issues=issues, reserved_value=0.0)
+        m.add(RandomNegotiator(name="n1"), ufun=u1)
+        m.add(RandomNegotiator(name="n2"), ufun=u2)
+        m.run()
+
+        run = m.to_completed_run(source="full_trace")
+        converted = run.convert("full_trace_with_utils")
+
+        assert converted.history_type == "full_trace_with_utils"
+        # Should have 9 TraceElement fields + 2 utility values
+        if converted.history:
+            assert len(converted.history[0]) == 11
+
+    def test_convert_with_external_scenario(self, tmp_path):
+        """Test converting with an externally provided scenario."""
+        from negmas.preferences import LinearAdditiveUtilityFunction
+        from negmas.inout import Scenario
+
+        issues = [make_issue(10, "price")]
+        m = SAOMechanism(issues=issues, n_steps=10)
+        m.add(RandomNegotiator(name="n1"))
+        m.add(RandomNegotiator(name="n2"))
+        m.run()
+
+        # Run without ufuns
+        run = m.to_completed_run(source="trace")
+        assert run.scenario is None or not run.scenario.ufuns
+
+        # Create external scenario with ufuns
+        u1 = LinearAdditiveUtilityFunction.random(issues=issues, reserved_value=0.0)
+        u2 = LinearAdditiveUtilityFunction.random(issues=issues, reserved_value=0.0)
+        scenario = Scenario(outcome_space=m.outcome_space, ufuns=(u1, u2))
+
+        # Convert with external scenario
+        converted = run.convert("full_trace_with_utils", scenario=scenario)
+        assert converted.history_type == "full_trace_with_utils"
+
+    def test_convert_same_format_returns_copy(self, tmp_path):
+        """Test that converting to same format returns a copy."""
+
+        m = SAOMechanism(outcomes=[(i,) for i in range(10)], n_steps=10)
+        m.add(RandomNegotiator(name="n1"))
+        m.add(RandomNegotiator(name="n2"))
+        m.run()
+
+        run = m.to_completed_run(source="full_trace")
+        converted = run.convert("full_trace")
+
+        assert converted.history_type == run.history_type
+        assert converted is not run  # Should be a copy
+        assert converted.history is not run.history
+
+    def test_convert_invalid_target_raises(self, tmp_path):
+        """Test that invalid target format raises ValueError."""
+
+        m = SAOMechanism(outcomes=[(i,) for i in range(10)], n_steps=10)
+        m.add(RandomNegotiator(name="n1"))
+        m.add(RandomNegotiator(name="n2"))
+        m.run()
+
+        run = m.to_completed_run(source="full_trace")
+
+        with pytest.raises(ValueError, match="Invalid target format"):
+            run.convert("invalid_format")
+
+    def test_convert_preserves_scenario(self, tmp_path):
+        """Test that convert preserves the scenario."""
+        from negmas.preferences import LinearAdditiveUtilityFunction
+
+        issues = [make_issue(10, "price")]
+        m = SAOMechanism(issues=issues, n_steps=10)
+        u1 = LinearAdditiveUtilityFunction.random(issues=issues, reserved_value=0.0)
+        u2 = LinearAdditiveUtilityFunction.random(issues=issues, reserved_value=0.0)
+        m.add(RandomNegotiator(name="n1"), ufun=u1)
+        m.add(RandomNegotiator(name="n2"), ufun=u2)
+        m.run()
+
+        run = m.to_completed_run(source="full_trace")
+        assert run.scenario is not None
+
+        converted = run.convert("trace")
+        assert converted.scenario is not None
+        assert converted.scenario is run.scenario  # Same scenario object
+
+
 # Tests for load_table
 class TestLoadTable:
     """Tests for load_table function."""
@@ -734,7 +931,7 @@ class TestPerNegotiatorSaving:
 
     def test_save_per_negotiator_file_content(self, tmp_path):
         """Test that per-negotiator files have correct columns."""
-        import pandas as pd
+        from negmas.helpers.inout import load_table
 
         m = SAOMechanism(outcomes=[(i,) for i in range(10)], n_steps=10)
         m.add(RandomNegotiator(name="buyer"))
@@ -749,7 +946,7 @@ class TestPerNegotiatorSaving:
         files = list(neg_dir.iterdir())
 
         for f in files:
-            df = pd.read_csv(f)
+            df = load_table(f, as_dataframe=True)
             expected_cols = [
                 "time",
                 "relative_time",

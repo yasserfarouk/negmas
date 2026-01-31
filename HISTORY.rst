@@ -105,6 +105,37 @@ This release focuses on enhancing mechanism capabilities with per-negotiator lim
   - Both parameters override ``include_pareto_frontier`` when specified
   - Useful for space optimization when only one component is needed
 
+* [feature] Standardized negotiation save/load format for all mechanism and tournament types:
+
+  - ``Mechanism.save()`` now saves negotiations in a folder-based format with multiple files:
+
+    - ``trace.{csv|csv.gz|parquet}`` - The negotiation history/trace
+    - ``config.yaml`` - Mechanism configuration
+    - ``outcome_stats.yaml`` - Agreement and outcome information
+    - ``metadata.yaml`` - Partner info, timing, annotations
+    - ``run_info.yaml`` - History type and storage format info
+
+  - ``Mechanism.save()`` and ``Mechanism.to_completed_run()`` now accept ``source=None`` (default)
+    to auto-detect the best available trace format in priority order:
+    ``full_trace_with_utils`` > ``full_trace`` > ``extended_trace`` > ``trace`` > ``history``
+  - ``CompletedRun.load()`` supports all formats: CSV (``.csv``), gzip (``.csv.gz``), and parquet (``.parquet``)
+  - ``World._log_negotiation()`` now uses standard ``Mechanism.save()`` format for all simulations
+  - ``neg_tournament`` automatically uses the new format through ``NegWorld``
+  - ``cartesian_tournament`` uses same format with ``save_negotiations_as_folders`` parameter
+  - Single-file format (just trace) still supported for backward compatibility
+  - Enables consistent offline analysis and visualization across all tournament types
+
+* [feature] Add ``CompletedRun.convert()`` method for converting between trace formats:
+
+  - Supports all formats: ``full_trace_with_utils``, ``full_trace``, ``extended_trace``, ``trace``, ``history``
+  - Converting to simpler formats (e.g., full_trace → trace) drops extra information
+  - Converting to more detailed formats sets missing fields to None
+  - Converting to ``full_trace_with_utils`` requires a scenario with utility functions:
+
+    - Uses ``self.scenario`` if available (preserved from original run)
+    - Can optionally provide an external ``scenario`` parameter
+    - Computes utilities for each offer using the scenario's utility functions
+
 **Bug Fixes:**
 
 * [bugfix] Fix race condition in Genius bridge when starting negotiation sessions
@@ -123,6 +154,7 @@ This release focuses on enhancing mechanism capabilities with per-negotiator lim
 * [docs] Update publications list with 5 new papers (2024-2025)
 * [docs] Add documentation for per-negotiator limits
 * [docs] Add documentation for offline visualization with ``CompletedRun``
+* [docs] Add documentation for standardized negotiation save/load format
 
 Release 0.14.0
 --------------
