@@ -382,9 +382,12 @@ OPTIMALITY_COLS = (
     "modified_ks_optimality",
 )
 
+# Note: NEGOTIATOR_BEHAVIOR_DIR_NAME is deprecated and kept only for backward
+# compatibility when loading old tournaments. New tournaments save negotiation
+# traces in the negotiations/ folder.
 TOURNAMENT_DIRS = [
     SCENARIOS_DIR_NAME,
-    NEGOTIATOR_BEHAVIOR_DIR_NAME,
+    NEGOTIATOR_BEHAVIOR_DIR_NAME,  # Deprecated: kept for backward compatibility
     PLOTS_DIR_NAME,
     NEGOTIATIONS_DIR_NAME,
     RESULTS_DIR_NAME,
@@ -2982,7 +2985,8 @@ def cartesian_tournament(
 
         def track_start_parallel(run_id, state):
             # Write to file - works across processes
-            (log_dir / f"start_{run_id}.log").write_text(f"Started at step {state.step}")
+            msg = f"Started at step {state.step}"
+            (log_dir / f"start_{run_id}.log").write_text(msg)
 
 
         results = cartesian_tournament(

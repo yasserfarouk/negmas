@@ -156,8 +156,8 @@ class CompletedRun(Generic[TState]):
             parent: Parent directory where to save the run.
             name: Name for the saved run (directory name or file name without extension).
             single_file: If True, save only the trace as a single file.
-            per_negotiator: If True, save traces per negotiator in a subdirectory.
-                Files are named {type}@{index}_{name}.{ext}. Only works with full_trace history type.
+            per_negotiator: Deprecated. This parameter is ignored. Per-negotiator traces
+                are available in the main trace file grouped by negotiator.
             save_scenario: If True, save the scenario information.
             save_scenario_stats: If True, save scenario statistics.
             save_agreement_stats: If True, save agreement statistics.
@@ -263,68 +263,14 @@ class CompletedRun(Generic[TState]):
                     history_dicts.append(dict(s))  # type: ignore[arg-type]
             save_table(history_dicts, trace_file, storage_format=storage_format)
 
-        # Save per-negotiator traces if requested
-        if per_negotiator and self.history_type == "full_trace":
-            negotiator_dir = save_dir / "negotiator_behavior"
-            negotiator_dir.mkdir(parents=True, exist_ok=True)
+        # per_negotiator is deprecated - emit warning if True
+        if per_negotiator:
+            from negmas.warnings import deprecated
 
-            # Get negotiator info from config
-            negotiator_names = self.config.get("negotiator_names", [])
-            negotiator_types = self.config.get("negotiator_types", [])
-            negotiator_ids = self.config.get("negotiator_ids", [])
-
-            # Build a mapping from negotiator_id to (index, name, type)
-            # If we don't have IDs, we'll use names as IDs
-            if not negotiator_ids:
-                negotiator_ids = negotiator_names
-
-            id_to_info: dict[str, tuple[int, str, str]] = {}
-            for i, (nid, nname, ntype) in enumerate(
-                zip(negotiator_ids, negotiator_names, negotiator_types)
-            ):
-                id_to_info[nid] = (i, nname, ntype)
-
-            # Group history by negotiator
-            # In full_trace mode, entries are TraceElement namedtuples
-            negotiator_traces: dict[str, list[dict[str, Any]]] = {}
-            for entry in self.history:
-                # entry is a TraceElement (namedtuple) with 'negotiator' field
-                entry_dict: dict[str, Any] = (
-                    entry._asdict()  # type: ignore[union-attr]
-                    if hasattr(entry, "_asdict")
-                    else {}
-                )
-                nid = entry_dict.get("negotiator")
-                if nid is None:
-                    continue
-                if nid not in negotiator_traces:
-                    negotiator_traces[nid] = []
-                # Extract per-negotiator trace: time, relative_time, step, offer, response, text, data
-                negotiator_traces[nid].append(
-                    {
-                        "time": entry_dict.get("time"),
-                        "relative_time": entry_dict.get("relative_time"),
-                        "step": entry_dict.get("step"),
-                        "offer": entry_dict.get("offer"),
-                        "response": entry_dict.get("state"),
-                        "text": entry_dict.get("text"),
-                        "data": entry_dict.get("data"),
-                    }
-                )
-
-            # Save each negotiator's trace
-            for nid, trace in negotiator_traces.items():
-                if nid in id_to_info:
-                    idx, nname, ntype = id_to_info[nid]
-                else:
-                    # Fallback: use negotiator_id directly
-                    idx = list(negotiator_traces.keys()).index(nid)
-                    nname = nid
-                    ntype = "Unknown"
-                # Naming: {type}@{index}_{name}.{ext}
-                filename = f"{ntype}@{idx}_{nname}{ext}"
-                neg_file = negotiator_dir / filename
-                save_table(trace, neg_file, storage_format=storage_format)
+            deprecated(
+                "per_negotiator parameter is deprecated and ignored. "
+                "Per-negotiator traces are available in the main trace file grouped by negotiator."
+            )
 
         # Save run info (history_type, agreement, basic stats)
         run_info: dict[str, Any] = {

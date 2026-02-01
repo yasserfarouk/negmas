@@ -1040,77 +1040,48 @@ class TestLoadTable:
             load_table(path)
 
 
-# Tests for per-negotiator saving and text/data fields
+# Tests for per-negotiator saving deprecation
 class TestPerNegotiatorSaving:
-    """Tests for per-negotiator saving mode."""
+    """Tests for per-negotiator saving mode deprecation."""
 
-    def test_save_per_negotiator_creates_directory(self, tmp_path):
-        """Test that per_negotiator=True creates negotiator_behavior directory."""
-        m = SAOMechanism(outcomes=[(i,) for i in range(10)], n_steps=10)
-        m.add(RandomNegotiator(name="buyer"))
-        m.add(RandomNegotiator(name="seller"))
-        m.run()
-
-        result = m.save(
-            tmp_path, "test_per_neg", per_negotiator=True, source="full_trace"
-        )
-
-        assert (result / "negotiator_behavior").exists()
-        assert (result / "negotiator_behavior").is_dir()
-
-    def test_save_per_negotiator_file_naming(self, tmp_path):
-        """Test that per-negotiator files are named correctly."""
-        # Use more outcomes and steps to ensure both negotiators appear in the trace
-        # (short negotiations may end before all negotiators make offers)
-        m = SAOMechanism(outcomes=[(i,) for i in range(100)], n_steps=20)
-        m.add(RandomNegotiator(name="buyer"))
-        m.add(RandomNegotiator(name="seller"))
-        m.run()
-
-        result = m.save(
-            tmp_path, "test_naming", per_negotiator=True, source="full_trace"
-        )
-
-        neg_dir = result / "negotiator_behavior"
-        files = list(neg_dir.iterdir())
-
-        # Check naming convention: {type}@{index}_{name}.csv
-        # At minimum, the first negotiator (buyer) should always appear
-        file_names = [f.name for f in files]
-        assert len(files) >= 1, "At least one negotiator file should be created"
-        assert any("RandomNegotiator@0_buyer" in name for name in file_names)
-        # If negotiation lasted more than 1 step, seller should also appear
-        if m.current_step > 1:
-            assert any("RandomNegotiator@1_seller" in name for name in file_names)
-
-    def test_save_per_negotiator_file_content(self, tmp_path):
-        """Test that per-negotiator files have correct columns."""
-        from negmas.helpers.inout import load_table
+    def test_per_negotiator_emits_deprecation_warning(self, tmp_path):
+        """Test that per_negotiator=True emits a deprecation warning."""
+        import warnings
 
         m = SAOMechanism(outcomes=[(i,) for i in range(10)], n_steps=10)
         m.add(RandomNegotiator(name="buyer"))
         m.add(RandomNegotiator(name="seller"))
         m.run()
 
-        result = m.save(
-            tmp_path, "test_content", per_negotiator=True, source="full_trace"
-        )
+        with warnings.catch_warnings(record=True) as w:
+            warnings.simplefilter("always")
+            m.save(tmp_path, "test_per_neg", per_negotiator=True, source="full_trace")
 
-        neg_dir = result / "negotiator_behavior"
-        files = list(neg_dir.iterdir())
-
-        for f in files:
-            df = load_table(f, as_dataframe=True)
-            expected_cols = [
-                "time",
-                "relative_time",
-                "step",
-                "offer",
-                "response",
-                "text",
-                "data",
+            # Check that a deprecation warning was issued
+            deprecation_warnings = [
+                x for x in w if "per_negotiator" in str(x.message).lower()
             ]
-            assert list(df.columns) == expected_cols
+            assert len(deprecation_warnings) >= 1, (
+                "Expected deprecation warning for per_negotiator"
+            )
+
+    def test_per_negotiator_does_not_create_directory(self, tmp_path):
+        """Test that per_negotiator=True no longer creates negotiator_behavior directory."""
+        import warnings
+
+        m = SAOMechanism(outcomes=[(i,) for i in range(10)], n_steps=10)
+        m.add(RandomNegotiator(name="buyer"))
+        m.add(RandomNegotiator(name="seller"))
+        m.run()
+
+        with warnings.catch_warnings():
+            warnings.simplefilter("ignore")  # Suppress the deprecation warning
+            result = m.save(
+                tmp_path, "test_per_neg", per_negotiator=True, source="full_trace"
+            )
+
+        # negotiator_behavior directory should NOT be created
+        assert not (result / "negotiator_behavior").exists()
 
 
 class TestStringHelpers:
