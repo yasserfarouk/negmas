@@ -709,10 +709,9 @@ class TestCompletedRun:
         assert loaded.agreement == original_agreement
 
     def test_load_extracts_agreement_stats_from_outcome_stats(self, tmp_path):
-        """Test that load() extracts agreement_stats from outcome_stats when agreement_stats.yaml doesn't exist."""
+        """Test that load() extracts agreement_stats from outcome_stats.yaml."""
         from negmas.mechanisms import CompletedRun
         from negmas.preferences.ops import OutcomeOptimality
-        import os as os_module
 
         issues = [make_issue(10, "price")]
         os = make_os(issues)
@@ -744,20 +743,14 @@ class TestCompletedRun:
             save_agreement_stats=True,
         )
 
-        # Remove agreement_stats.yaml to simulate scenario where only outcome_stats exists
-        agreement_stats_path = save_path / "agreement_stats.yaml"
-        if agreement_stats_path.exists():
-            os_module.remove(agreement_stats_path)
-
         # Load and verify agreement_stats is extracted from outcome_stats
         loaded = CompletedRun.load(save_path)
         assert loaded.agreement_stats is not None
         assert abs(loaded.agreement_stats.pareto_optimality - 0.85) < 0.001
         assert abs(loaded.agreement_stats.nash_optimality - 0.76) < 0.001
 
-    def test_load_backwards_compatibility_with_agreement_stats_yaml(self, tmp_path):
-        """Test that load() still works with separate agreement_stats.yaml file."""
-        from negmas.mechanisms import CompletedRun
+    def test_save_does_not_create_agreement_stats_yaml(self, tmp_path):
+        """Test that save() does NOT create a separate agreement_stats.yaml file."""
         from negmas.preferences.ops import OutcomeOptimality
 
         issues = [make_issue(10, "price")]
@@ -785,18 +778,15 @@ class TestCompletedRun:
         completed = m.to_completed_run(agreement_stats=agreement_stats)
         save_path = completed.save(
             tmp_path,
-            "test_backwards_compat",
+            "test_no_agreement_stats_yaml",
             single_file=False,
             save_agreement_stats=True,
         )
 
-        # agreement_stats.yaml should exist for backwards compatibility
-        assert (save_path / "agreement_stats.yaml").exists()
-
-        # Load and verify agreement_stats is loaded correctly
-        loaded = CompletedRun.load(save_path)
-        assert loaded.agreement_stats is not None
-        assert abs(loaded.agreement_stats.pareto_optimality - 0.85) < 0.001
+        # agreement_stats.yaml should NOT exist (all stats are in outcome_stats.yaml)
+        assert not (save_path / "agreement_stats.yaml").exists()
+        # But outcome_stats.yaml should exist and contain the optimality stats
+        assert (save_path / "outcome_stats.yaml").exists()
 
 
 class TestCompletedRunConvert:

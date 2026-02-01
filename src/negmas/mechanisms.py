@@ -374,19 +374,6 @@ class CompletedRun(Generic[TState]):
         if outcome_stats_to_save:
             dump(outcome_stats_to_save, save_dir / "outcome_stats.yaml")
 
-        # Save agreement stats separately as well (for backwards compatibility)
-        if save_agreement_stats and self.agreement_stats is not None:
-            stats_dict = {
-                "pareto_optimality": self.agreement_stats.pareto_optimality,
-                "nash_optimality": self.agreement_stats.nash_optimality,
-                "kalai_optimality": self.agreement_stats.kalai_optimality,
-                "modified_kalai_optimality": self.agreement_stats.modified_kalai_optimality,
-                "max_welfare_optimality": self.agreement_stats.max_welfare_optimality,
-                "ks_optimality": self.agreement_stats.ks_optimality,
-                "modified_ks_optimality": self.agreement_stats.modified_ks_optimality,
-            }
-            dump(stats_dict, save_dir / "agreement_stats.yaml")
-
         # Save config
         if save_config and self.config:
             dump(self.config, save_dir / "config.yaml")
@@ -530,33 +517,6 @@ class CompletedRun(Generic[TState]):
                 except Exception:
                     scenario = None
 
-        # Load agreement stats if present and requested
-        agreement_stats = None
-        if load_agreement_stats:
-            stats_path = path / "agreement_stats.yaml"
-            if stats_path.exists():
-                stats_dict = load(stats_path)
-                if stats_dict:
-                    agreement_stats = OutcomeOptimality(
-                        pareto_optimality=stats_dict.get(
-                            "pareto_optimality", float("nan")
-                        ),
-                        nash_optimality=stats_dict.get("nash_optimality", float("nan")),
-                        kalai_optimality=stats_dict.get(
-                            "kalai_optimality", float("nan")
-                        ),
-                        modified_kalai_optimality=stats_dict.get(
-                            "modified_kalai_optimality", float("nan")
-                        ),
-                        max_welfare_optimality=stats_dict.get(
-                            "max_welfare_optimality", float("nan")
-                        ),
-                        ks_optimality=stats_dict.get("ks_optimality", float("nan")),
-                        modified_ks_optimality=stats_dict.get(
-                            "modified_ks_optimality", float("nan")
-                        ),
-                    )
-
         # Load config if present and requested
         config: dict[str, Any] = {}
         if load_config:
@@ -571,9 +531,9 @@ class CompletedRun(Generic[TState]):
         if agreement is None and outcome_stats:
             agreement = outcome_stats.get("agreement")
 
-        # If agreement_stats was not loaded from agreement_stats.yaml,
-        # try to extract from outcome_stats (which may contain merged optimality stats)
-        if agreement_stats is None and outcome_stats:
+        # Extract agreement_stats from outcome_stats if present
+        agreement_stats = None
+        if load_agreement_stats and outcome_stats:
             # Check if outcome_stats contains optimality fields
             optimality_fields = [
                 "pareto_optimality",
