@@ -319,7 +319,7 @@ def test_hidden_time_limit_words():
     assert mechanism.state.timedout
     assert mechanism.state.step < n_steps
     assert mechanism._start_time is not None
-    assert time.perf_counter() - mechanism._start_time >= tlimit
+    assert (time.perf_counter_ns() - mechanism._start_time) / 1_000_000_000 >= tlimit
     assert not mechanism.state.waiting
     for negotiator in mechanism.negotiators:
         assert isinstance(negotiator, InfiniteLoopNegotiator)
