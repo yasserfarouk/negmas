@@ -634,6 +634,170 @@ class TestCompletedRun:
         with pytest.raises(FileNotFoundError):
             CompletedRun.infer_source(tmp_path / "nonexistent")
 
+    def test_save_includes_optimality_stats_in_outcome_stats(self, tmp_path):
+        """Test that save() merges agreement_stats into outcome_stats.yaml."""
+        from negmas.preferences.ops import OutcomeOptimality
+        from negmas.helpers.inout import load
+
+        issues = [make_issue(10, "price")]
+        os = make_os(issues)
+        m = SAOMechanism(issues=issues, n_steps=20)
+
+        u1 = LinearAdditiveUtilityFunction.random(os, reserved_value=0.0)
+        u2 = LinearAdditiveUtilityFunction.random(os, reserved_value=0.0)
+
+        m.add(AspirationNegotiator(name="buyer", preferences=u1))
+        m.add(AspirationNegotiator(name="seller", preferences=u2))
+        m.run()
+
+        # Create completed run with agreement_stats
+        agreement_stats = OutcomeOptimality(
+            pareto_optimality=0.85,
+            nash_optimality=0.76,
+            kalai_optimality=0.80,
+            modified_kalai_optimality=0.81,
+            max_welfare_optimality=0.74,
+            ks_optimality=0.79,
+            modified_ks_optimality=0.78,
+        )
+
+        completed = m.to_completed_run(agreement_stats=agreement_stats)
+        save_path = completed.save(
+            tmp_path, "test_optimality", single_file=False, save_agreement_stats=True
+        )
+
+        # Verify outcome_stats.yaml contains optimality stats
+        outcome_stats = load(save_path / "outcome_stats.yaml")
+        assert "pareto_optimality" in outcome_stats
+        assert "nash_optimality" in outcome_stats
+        assert outcome_stats["pareto_optimality"] == 0.85
+        assert outcome_stats["nash_optimality"] == 0.76
+
+    def test_load_extracts_agreement_from_outcome_stats(self, tmp_path):
+        """Test that load() can get agreement from outcome_stats when not in run_info."""
+        from negmas.mechanisms import CompletedRun
+        from negmas.helpers.inout import load, dump
+
+        issues = [make_issue(10, "price")]
+        os = make_os(issues)
+        m = SAOMechanism(issues=issues, n_steps=20)
+
+        u1 = LinearAdditiveUtilityFunction.random(os, reserved_value=0.0)
+        u2 = LinearAdditiveUtilityFunction.random(os, reserved_value=0.0)
+
+        m.add(AspirationNegotiator(name="buyer", preferences=u1))
+        m.add(AspirationNegotiator(name="seller", preferences=u2))
+        m.run()
+
+        completed = m.to_completed_run()
+        save_path = completed.save(tmp_path, "test_agreement", single_file=False)
+
+        # Modify run_info.yaml to remove agreement (simulating old format)
+        run_info = load(save_path / "run_info.yaml")
+        original_agreement = run_info.get("agreement")
+        if "agreement" in run_info:
+            del run_info["agreement"]
+        dump(run_info, save_path / "run_info.yaml")
+
+        # Make sure outcome_stats has the agreement
+        outcome_stats = load(save_path / "outcome_stats.yaml")
+        outcome_stats["agreement"] = original_agreement
+        dump(outcome_stats, save_path / "outcome_stats.yaml")
+
+        # Load and verify agreement is retrieved from outcome_stats
+        loaded = CompletedRun.load(save_path)
+        assert loaded.agreement == original_agreement
+
+    def test_load_extracts_agreement_stats_from_outcome_stats(self, tmp_path):
+        """Test that load() extracts agreement_stats from outcome_stats when agreement_stats.yaml doesn't exist."""
+        from negmas.mechanisms import CompletedRun
+        from negmas.preferences.ops import OutcomeOptimality
+        import os as os_module
+
+        issues = [make_issue(10, "price")]
+        os = make_os(issues)
+        m = SAOMechanism(issues=issues, n_steps=20)
+
+        u1 = LinearAdditiveUtilityFunction.random(os, reserved_value=0.0)
+        u2 = LinearAdditiveUtilityFunction.random(os, reserved_value=0.0)
+
+        m.add(AspirationNegotiator(name="buyer", preferences=u1))
+        m.add(AspirationNegotiator(name="seller", preferences=u2))
+        m.run()
+
+        # Create completed run with agreement_stats
+        agreement_stats = OutcomeOptimality(
+            pareto_optimality=0.85,
+            nash_optimality=0.76,
+            kalai_optimality=0.80,
+            modified_kalai_optimality=0.81,
+            max_welfare_optimality=0.74,
+            ks_optimality=0.79,
+            modified_ks_optimality=0.78,
+        )
+
+        completed = m.to_completed_run(agreement_stats=agreement_stats)
+        save_path = completed.save(
+            tmp_path,
+            "test_stats_from_outcome",
+            single_file=False,
+            save_agreement_stats=True,
+        )
+
+        # Remove agreement_stats.yaml to simulate scenario where only outcome_stats exists
+        agreement_stats_path = save_path / "agreement_stats.yaml"
+        if agreement_stats_path.exists():
+            os_module.remove(agreement_stats_path)
+
+        # Load and verify agreement_stats is extracted from outcome_stats
+        loaded = CompletedRun.load(save_path)
+        assert loaded.agreement_stats is not None
+        assert abs(loaded.agreement_stats.pareto_optimality - 0.85) < 0.001
+        assert abs(loaded.agreement_stats.nash_optimality - 0.76) < 0.001
+
+    def test_load_backwards_compatibility_with_agreement_stats_yaml(self, tmp_path):
+        """Test that load() still works with separate agreement_stats.yaml file."""
+        from negmas.mechanisms import CompletedRun
+        from negmas.preferences.ops import OutcomeOptimality
+
+        issues = [make_issue(10, "price")]
+        os = make_os(issues)
+        m = SAOMechanism(issues=issues, n_steps=20)
+
+        u1 = LinearAdditiveUtilityFunction.random(os, reserved_value=0.0)
+        u2 = LinearAdditiveUtilityFunction.random(os, reserved_value=0.0)
+
+        m.add(AspirationNegotiator(name="buyer", preferences=u1))
+        m.add(AspirationNegotiator(name="seller", preferences=u2))
+        m.run()
+
+        # Create completed run with agreement_stats
+        agreement_stats = OutcomeOptimality(
+            pareto_optimality=0.85,
+            nash_optimality=0.76,
+            kalai_optimality=0.80,
+            modified_kalai_optimality=0.81,
+            max_welfare_optimality=0.74,
+            ks_optimality=0.79,
+            modified_ks_optimality=0.78,
+        )
+
+        completed = m.to_completed_run(agreement_stats=agreement_stats)
+        save_path = completed.save(
+            tmp_path,
+            "test_backwards_compat",
+            single_file=False,
+            save_agreement_stats=True,
+        )
+
+        # agreement_stats.yaml should exist for backwards compatibility
+        assert (save_path / "agreement_stats.yaml").exists()
+
+        # Load and verify agreement_stats is loaded correctly
+        loaded = CompletedRun.load(save_path)
+        assert loaded.agreement_stats is not None
+        assert abs(loaded.agreement_stats.pareto_optimality - 0.85) < 0.001
+
 
 class TestCompletedRunConvert:
     """Tests for CompletedRun.convert() method."""

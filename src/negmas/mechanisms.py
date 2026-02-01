@@ -356,10 +356,25 @@ class CompletedRun(Generic[TState]):
                 )
 
         # Save outcome stats (always saved in directory mode)
-        if self.outcome_stats:
-            dump(self.outcome_stats, save_dir / "outcome_stats.yaml")
+        # Include agreement stats in outcome_stats for a complete record
+        outcome_stats_to_save = dict(self.outcome_stats) if self.outcome_stats else {}
+        if save_agreement_stats and self.agreement_stats is not None:
+            # Merge agreement stats into outcome_stats
+            outcome_stats_to_save.update(
+                {
+                    "pareto_optimality": self.agreement_stats.pareto_optimality,
+                    "nash_optimality": self.agreement_stats.nash_optimality,
+                    "kalai_optimality": self.agreement_stats.kalai_optimality,
+                    "modified_kalai_optimality": self.agreement_stats.modified_kalai_optimality,
+                    "max_welfare_optimality": self.agreement_stats.max_welfare_optimality,
+                    "ks_optimality": self.agreement_stats.ks_optimality,
+                    "modified_ks_optimality": self.agreement_stats.modified_ks_optimality,
+                }
+            )
+        if outcome_stats_to_save:
+            dump(outcome_stats_to_save, save_dir / "outcome_stats.yaml")
 
-        # Save agreement stats (optimality stats)
+        # Save agreement stats separately as well (for backwards compatibility)
         if save_agreement_stats and self.agreement_stats is not None:
             stats_dict = {
                 "pareto_optimality": self.agreement_stats.pareto_optimality,
@@ -551,6 +566,44 @@ class CompletedRun(Generic[TState]):
         # Load outcome stats if present
         outcome_stats_path = path / "outcome_stats.yaml"
         outcome_stats = load(outcome_stats_path) if outcome_stats_path.exists() else {}
+
+        # If agreement was not in run_info, try to get it from outcome_stats
+        if agreement is None and outcome_stats:
+            agreement = outcome_stats.get("agreement")
+
+        # If agreement_stats was not loaded from agreement_stats.yaml,
+        # try to extract from outcome_stats (which may contain merged optimality stats)
+        if agreement_stats is None and outcome_stats:
+            # Check if outcome_stats contains optimality fields
+            optimality_fields = [
+                "pareto_optimality",
+                "nash_optimality",
+                "kalai_optimality",
+                "modified_kalai_optimality",
+                "max_welfare_optimality",
+                "ks_optimality",
+                "modified_ks_optimality",
+            ]
+            if any(field in outcome_stats for field in optimality_fields):
+                agreement_stats = OutcomeOptimality(
+                    pareto_optimality=outcome_stats.get(
+                        "pareto_optimality", float("nan")
+                    ),
+                    nash_optimality=outcome_stats.get("nash_optimality", float("nan")),
+                    kalai_optimality=outcome_stats.get(
+                        "kalai_optimality", float("nan")
+                    ),
+                    modified_kalai_optimality=outcome_stats.get(
+                        "modified_kalai_optimality", float("nan")
+                    ),
+                    max_welfare_optimality=outcome_stats.get(
+                        "max_welfare_optimality", float("nan")
+                    ),
+                    ks_optimality=outcome_stats.get("ks_optimality", float("nan")),
+                    modified_ks_optimality=outcome_stats.get(
+                        "modified_ks_optimality", float("nan")
+                    ),
+                )
 
         return cls(
             history=history,  # type: ignore
