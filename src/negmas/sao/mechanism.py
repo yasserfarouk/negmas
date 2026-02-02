@@ -706,14 +706,20 @@ class SAOMechanism(
         ]
 
     def full_trace_with_utils_df(
-        self, ufun_names: str | list[str] = "name"
+        self, ufun_names: str | list[str] = "id"
     ) -> pd.DataFrame:
-        """Returns the full trace and the utility of the negotiators at each step."""
+        """Returns the full trace and the utility of the negotiators at each step.
+
+        Args:
+            ufun_names: How to name utility columns. "id" (default) uses negotiator IDs
+                       for consistency with the 'negotiator' field in trace entries.
+                       "name" uses negotiator names. Can also be a list of custom names.
+        """
         if isinstance(ufun_names, str):
-            if ufun_names == "name":
-                names = list(self.negotiator_names)
-            elif ufun_names == "id":
+            if ufun_names == "id":
                 names = list(self.negotiator_ids)
+            elif ufun_names == "name":
+                names = list(self.negotiator_names)
             else:
                 names = [f"n{i:02}" for i in range(len(self.negotiators))]
         else:
@@ -722,7 +728,7 @@ class SAOMechanism(
         names = TRACE_ELEMENT_MEMBERS + names
         import pandas as pd
 
-        return pd.DataFrame.from_records(self.full_trace_with_utils_df, columns=names)
+        return pd.DataFrame.from_records(self.full_trace_with_utils, columns=names)
 
     @property
     def full_trace(self) -> list[TraceElement]:

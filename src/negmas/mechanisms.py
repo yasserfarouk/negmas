@@ -180,15 +180,18 @@ class CompletedRun(Generic[TState]):
             trace_columns = TRACE_ELEMENT_MEMBERS
         elif self.history_type == "full_trace_with_utils":
             # full_trace_with_utils has TRACE_ELEMENT_MEMBERS + negotiator utility columns
-            # Get negotiator names from config if available
-            negotiator_names = self.config.get("negotiator_names", [])
-            if not negotiator_names:
+            # Use negotiator_ids for consistency with the 'negotiator' field in trace entries
+            # (which uses IDs, not names). Fall back to names if IDs not available.
+            negotiator_ids = self.config.get("negotiator_ids", [])
+            if not negotiator_ids:
+                negotiator_ids = self.config.get("negotiator_names", [])
+            if not negotiator_ids:
                 # Fallback: infer from first row
                 if self.history and len(self.history) > 0:
                     first_row = self.history[0]
                     n_extra_cols = len(first_row) - len(TRACE_ELEMENT_MEMBERS)
-                    negotiator_names = [f"utility_{i}" for i in range(n_extra_cols)]
-            trace_columns = TRACE_ELEMENT_MEMBERS + negotiator_names
+                    negotiator_ids = [f"utility_{i}" for i in range(n_extra_cols)]
+            trace_columns = TRACE_ELEMENT_MEMBERS + negotiator_ids
         elif self.history_type == "trace":
             trace_columns = ["negotiator", "offer"]
         elif self.history_type == "extended_trace":

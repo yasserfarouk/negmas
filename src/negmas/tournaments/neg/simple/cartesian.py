@@ -1676,14 +1676,17 @@ def _make_mechanism(
     for L_, (negotiator, name, u) in enumerate(
         zip(negotiators, partner_names, s.ufuns)
     ):
-        if id_reveals_type:
+        # Use same value for both id and name to ensure consistency in traces
+        # (trace uses id in 'negotiator' field but names for utility columns)
+        if id_reveals_type or name_reveals_type:
+            # If either reveals type, use the type-revealing format for both
             negotiator.id = f"{name}@{L_}"
-        else:
-            negotiator.id = unique_name("n", add_time=False, sep="")
-        if name_reveals_type:
             negotiator.name = f"{name}@{L_}"
         else:
-            negotiator.name = unique_name("n", add_time=False, sep="")
+            # Generate a single random name and use for both id and name
+            random_name = unique_name("n", add_time=False, sep="")
+            negotiator.id = random_name
+            negotiator.name = random_name
         complete_names.append(name)
         m.add(negotiator, ufun=copy.deepcopy(u))
 
