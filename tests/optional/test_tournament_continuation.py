@@ -2,7 +2,6 @@
 
 from __future__ import annotations
 
-import shutil
 from pathlib import Path
 from negmas.inout import Scenario
 from negmas.outcomes import make_issue
@@ -167,7 +166,7 @@ def test_file_naming_convention(tmp_path):
     tournament_path = tmp_path / "test_naming"
 
     # Run with rotation and storage_optimization="speed" to keep results/ folder
-    results = cartesian_tournament(
+    cartesian_tournament(
         competitors=competitors,
         scenarios=scenarios,
         n_steps=10,

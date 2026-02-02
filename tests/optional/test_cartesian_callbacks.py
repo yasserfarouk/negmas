@@ -11,7 +11,7 @@ from pathlib import Path
 import tempfile
 import shutil
 
-from negmas import SAOMechanism, make_issue
+from negmas import make_issue
 from negmas.inout import Scenario
 from negmas.outcomes import make_os
 from negmas.preferences import LinearAdditiveUtilityFunction as U
@@ -83,7 +83,7 @@ def test_cartesian_callbacks():
 
     try:
         # Run tournament with callbacks
-        results = cartesian_tournament(
+        cartesian_tournament(
             competitors=[AspirationNegotiator, NaiveTitForTatNegotiator],
             scenarios=[scenario],
             n_steps=10,
@@ -185,7 +185,7 @@ def test_callbacks_parallel_mode():
 
     try:
         # Run tournament with callbacks in PARALLEL mode
-        results = cartesian_tournament(
+        cartesian_tournament(
             competitors=[AspirationNegotiator, NaiveTitForTatNegotiator],
             scenarios=[scenario],
             n_steps=10,
@@ -228,7 +228,7 @@ def test_callbacks_parallel_mode():
         assert len(start_files) > 0, "Callbacks should be called in parallel mode"
         assert len(end_files) > 0, "End callbacks should be called in parallel mode"
 
-        print(f"✓ Callbacks worked in parallel mode!")
+        print("✓ Callbacks worked in parallel mode!")
         print(f"✓ Start/end callbacks: {len(start_files)} negotiations")
 
         # Count total progress calls
@@ -272,7 +272,7 @@ def test_callbacks_with_opponents():
 
     try:
         # Run with opponents (competitor vs each opponent)
-        results = cartesian_tournament(
+        cartesian_tournament(
             competitors=[AspirationNegotiator],
             opponents=[NaiveTitForTatNegotiator],
             scenarios=[scenario],

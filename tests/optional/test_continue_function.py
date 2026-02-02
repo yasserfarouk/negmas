@@ -2,7 +2,6 @@
 
 from __future__ import annotations
 
-import shutil
 from pathlib import Path
 from negmas.inout import Scenario
 from negmas.outcomes import make_issue
@@ -11,7 +10,6 @@ from negmas.preferences import LinearAdditiveUtilityFunction as U
 from negmas.sao import AspirationNegotiator, RandomNegotiator
 from negmas.tournaments.neg import cartesian_tournament, continue_cartesian_tournament
 from negmas.sao.mechanism import SAOMechanism
-import pytest
 
 
 def make_test_scenarios(n: int = 2):
