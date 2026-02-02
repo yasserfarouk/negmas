@@ -5,6 +5,7 @@ Negotiation tournaments module.
 from __future__ import annotations
 
 import ast
+import base64
 import copy
 import datetime
 import os
@@ -21,7 +22,7 @@ from os import cpu_count
 from pathlib import Path
 from random import randint, random, shuffle
 from time import perf_counter
-from typing import Any, Callable, Iterable, Literal, Sequence
+from typing import Any, Callable, Iterable, Literal
 
 import cloudpickle
 import pandas as pd
@@ -58,6 +59,27 @@ from negmas.warnings import NegmasUnexpectedValueWarning, deprecated, warn
 
 OptimizationLevel = Literal["speed", "time", "none", "balanced", "space", "max"]
 StorageFormat = Literal["csv", "gzip", "parquet"]
+
+
+def hash_to_base64(n: int) -> str:
+    """
+    Deterministically encodes a large integer into a URL-safe Base64 string.
+
+    Handles negative integers by using signed=True for to_bytes().
+    """
+    if n == 0:
+        return "AA"  # Minimal representation for zero
+
+    # 1. Calculate how many bytes are needed to represent the integer
+    # For signed integers, we need an extra bit for the sign
+    byte_length = (n.bit_length() + 8) // 8  # +8 instead of +7 for sign bit
+
+    # 2. Convert integer to bytes (Big Endian, signed to handle negative values)
+    num_bytes = n.to_bytes(byte_length, byteorder="big", signed=True)
+
+    # 3. Encode to Base64 and clean up padding characters (=)
+    encoded = base64.urlsafe_b64encode(num_bytes).decode("utf-8")
+    return encoded.rstrip("=")
 
 
 class _PicklableCallback:
@@ -589,7 +611,7 @@ class RunInfo:
 
     s: Scenario
     run_id: int | str
-    partners: tuple[type[Negotiator]]
+    partners: tuple[type[Negotiator], ...]
     partner_names: tuple[str] | None = None
     partner_params: tuple[dict[str, Any]] | None = None
     rep: int = 0
@@ -1578,7 +1600,7 @@ def oneinfloat(x: float | tuple[float, float] | None) -> float | None:
 
 def _make_mechanism(
     s: Scenario,
-    partners: tuple[type[Negotiator]],
+    partners: tuple[type[Negotiator], ...],
     partner_names: tuple[str] | None = None,
     partner_params: tuple[dict[str, Any]] | None = None,
     rep: int = 0,
@@ -1589,7 +1611,7 @@ def _make_mechanism(
     verbosity: int = 0,
     run_id: int | str | None = None,
     annotation: dict[str, Any] | None = None,
-    private_infos: tuple[dict[str, Any] | None] | None = None,
+    private_infos: tuple[dict[str, Any] | None, ...] | None = None,
     id_reveals_type: bool = False,
     name_reveals_type: bool = True,
     mask_scenario_name: bool = True,
@@ -1657,7 +1679,7 @@ def _make_mechanism(
             complete_names.append(name)
             negotiators.append(negotiator)
             if p:
-                name += str(hash(str(p)))
+                name += hash_to_base64(hash(str(p)))
         except Exception as e:
             if ignore_exceptions:
                 failures = dict(
@@ -1696,20 +1718,20 @@ def _make_mechanism(
 def _make_failure_record(
     s: Scenario,
     state: MechanismState,
-    partners: Sequence[Negotiator],
+    partners: tuple[type[Negotiator], ...],
     run_id: str,
     execution_time: float,
     mechanism_params: dict,
-    partner_names: list[str] | None = None,
-    param_dump: list[dict[str, Any]] | None = None,
+    partner_names: tuple[str, ...] | None = None,
+    param_dump: tuple[dict[str, Any], ...] | None = None,
     real_scenario_name: str | None = None,
     mechanism_type: type[Mechanism] | None = None,
     stats: ScenarioStats | None = None,
 ) -> dict:
     """Create a record for a failed negotiation with null/error values."""
     if not partner_names:
-        partner_names = [get_full_type_name(_) for _ in partners]
-    if all(_ is None for _ in param_dump):
+        partner_names = tuple(get_full_type_name(_) for _ in partners)
+    if param_dump is not None and all(_ is None for _ in param_dump):
         param_dump = None
     agreement_utils = tuple(u(state.agreement) for u in s.ufuns)
     reservations = tuple(u.reserved_value for u in s.ufuns)
@@ -2072,7 +2094,7 @@ def _plot_run(
 
 def run_negotiation(
     s: Scenario,
-    partners: tuple[type[Negotiator]],
+    partners: tuple[type[Negotiator], ...],
     run_id: int | str,
     partner_names: tuple[str] | None = None,
     partner_params: tuple[dict[str, Any]] | None = None,
@@ -2341,19 +2363,19 @@ def run_negotiation(
 
 def failed_run_record(
     s: Scenario,
-    partners: tuple[type[Negotiator]],
+    partners: tuple[type[Negotiator], ...],
     timeout: float,
-    partner_names: tuple[str] | None = None,
-    partner_params: tuple[dict[str, Any]] | None = None,
+    run_id: str,
+    partner_names: tuple[str, ...] = tuple(),
+    partner_params: tuple[dict[str, Any], ...] | None = None,
     error: str | None = None,
     rep: int = 0,
     path: Path | None = None,
     mechanism_type: type[Mechanism] = SAOMechanism,
     mechanism_params: dict[str, Any] | None = None,
     full_names: bool = True,
-    run_id: int | str | None = None,
     annotation: dict[str, Any] | None = None,
-    private_infos: tuple[dict[str, Any] | None] | None = None,
+    private_infos: tuple[dict[str, Any] | None, ...] | None = None,
     id_reveals_type: bool = False,
     name_reveals_type: bool = True,
     mask_scenario_name: bool = True,
@@ -2433,7 +2455,7 @@ def failed_run_record(
             real_scenario_name=real_scenario_name,
             stats=stats,
             mechanism_type=mechanism_type,
-            mechanism_params=mechanism_params,
+            mechanism_params=mechanism_params if mechanism_params else dict(),
             partners=partners,
         )
 
@@ -2674,8 +2696,12 @@ def _is_run_completed(
     """
     # Generate the run_id if not present
     if "run_id" not in run_info:
-        run_info["run_id"] = hash(
-            str(serialize(run_info, python_class_identifier=python_class_identifier))
+        run_info["run_id"] = hash_to_base64(
+            hash(
+                str(
+                    serialize(run_info, python_class_identifier=python_class_identifier)
+                )
+            )
         )
 
     file_name = _get_run_file_name(
@@ -3552,11 +3578,13 @@ def cartesian_tournament(
                         save_negotiations_as_folders=save_negotiations_as_folders,
                     )
                     # Add run_id for identifying completed runs
-                    run_dict["run_id"] = hash(
-                        str(
-                            serialize(
-                                run_dict,
-                                python_class_identifier=python_class_identifier,
+                    run_dict["run_id"] = hash_to_base64(
+                        hash(
+                            str(
+                                serialize(
+                                    run_dict,
+                                    python_class_identifier=python_class_identifier,
+                                )
                             )
                         )
                     )
@@ -3644,14 +3672,14 @@ def cartesian_tournament(
             pd.DataFrame.from_records(scores).to_csv(scores_path, index_label="index")
         return results, scores
 
-    def get_run_id(info):
+    def get_run_id(info) -> str:
         """Get run id.
 
         Args:
             info: Info.
         """
-        return hash(
-            str(serialize(info, python_class_identifier=python_class_identifier))
+        return hash_to_base64(
+            hash(str(serialize(info, python_class_identifier=python_class_identifier)))
         )
 
     if njobs < 0:
@@ -3714,7 +3742,7 @@ def cartesian_tournament(
         version = sys.version_info
         # Only use max_tasks_per_child if we have multiple workers to avoid
         # worker restart deadlocks with single-worker pools on Python 3.14+
-        if (version.major > 3 or version.minor > 10) and cpus > 1:
+        if (version.major > 3 or version.minor > 10) and cpus is not None and cpus > 1:
             kwargs_.update(max_tasks_per_child=MAX_TASKS_PER_CHILD)
 
         with ProcessPoolExecutor(**kwargs_) as pool:  # type: ignore
