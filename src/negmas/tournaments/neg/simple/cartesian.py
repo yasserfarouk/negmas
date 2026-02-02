@@ -3080,14 +3080,15 @@ def cartesian_tournament(
     if private_infos is None:
         private_infos = [tuple(dict() for _ in s.ufuns) for s in scenarios]
 
-    def check_geneate_names(
+    def check_generate_names_and_map(
         negotiators: list[type[Negotiator] | str],
         params: list[dict | None] | None,
         names: list[str] | None,
         name_type="competitor",
-    ) -> list[str]:
+    ) -> tuple[list[str], dict[str, str]]:
         if params is None:
             params = [dict() for _ in negotiators]
+        original_names = [get_full_type_name(_) for _ in negotiators]
         if names is None:
             names = shortest_unique_names(
                 [
@@ -3106,16 +3107,18 @@ def cartesian_tournament(
             raise ValueError(
                 f"names must be unique. Duplicate names found: {duplicates}"
             )
-        return names
+        return names, dict(zip(names, original_names))
 
     # Generate names if not provided by user
-    competitor_names = check_geneate_names(
+    competitor_names, competitor_map_ = check_generate_names_and_map(
         competitors, competitor_params, competitor_names, "competitor"
     )
-    opponent_names = (
-        check_geneate_names(opponents, opponent_params, opponent_names, "opponent")
+    opponent_names, opponent_map_ = (
+        check_generate_names_and_map(
+            opponents, opponent_params, opponent_names, "opponent"
+        )
         if opponents
-        else []
+        else ([], dict())
     )
 
     config = dict(
@@ -3126,6 +3129,8 @@ def cartesian_tournament(
         competitor_params=serialize(
             competitor_params, python_class_identifier=python_class_identifier
         ),
+        competitor_type_map=competitor_map_,
+        opponent_type_map=opponent_map_ if opponents else {},
         opponents=[get_full_type_name(_) for _ in opponents] if opponents else None,
         n_opponents=len(opponents) if opponents else 0,
         opponent_names=opponent_names,
