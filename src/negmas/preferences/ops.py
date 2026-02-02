@@ -75,7 +75,15 @@ __all__ = [
     "dominating_points",
     "compare_ufuns",
     "correct_reserved_value",
+    "COMPARE_UFUN_METHOD_TYPE",
+    "COMPARE_UFUN_METHODS",
 ]
+
+COMPARE_UFUN_METHODS = Literal["kendall", "kendal_optimality", "ndcg", "euclidean"]
+COMPARE_UFUN_METHOD_TYPE = (
+    COMPARE_UFUN_METHODS
+    | Callable[[NDArray[np.floating[Any]], NDArray[np.floating[Any]]], float]
+)
 
 
 def correct_reserved_value(
@@ -2610,12 +2618,9 @@ def make_rank_ufun(ufun: UtilityFunction, normalize: bool = False) -> UtilityFun
 
 
 def compare_ufuns(
-    ufun1: BaseUtilityFunction,
-    ufun2: BaseUtilityFunction,
-    method: Literal["kendall", "ndcg", "euclidean"]
-    | Callable[
-        [NDArray[np.floating[Any]], NDArray[np.floating[Any]]], float
-    ] = "kendall",
+    ufun1: BaseUtilityFunction | None,
+    ufun2: BaseUtilityFunction | None,
+    method: COMPARE_UFUN_METHOD_TYPE = "kendall",
     normalize: bool = True,
     max_samples: int = 100_000,
     outcome_space: OutcomeSpace | None = None,
@@ -2632,8 +2637,9 @@ def compare_ufuns(
         ufun2: Second utility function to compare
         method: Comparison method to use. Options are:
             - "kendall": Kendall's tau rank correlation coefficient (default)
-            - "ndcg": Normalized Discounted Cumulative Gain score
-            - "euclidean": Normalized Euclidean distance
+            - "kendall_optimality": half of (Kendall's tau + 1)  which makes it between 0 and 1
+            - "ndcg": Normalized Discounted Cumulative Gain score (beteween 0 and 1)
+            - "euclidean": Normalized Euclidean distance (between 0 and 1)
             - callable: Custom function taking two vectors and returning a float
         normalize: If True, normalize both utility functions to [0, 1] range
             independently before comparison. Default is True.
@@ -2648,6 +2654,8 @@ def compare_ufuns(
             depends on the method:
             - kendall: Value in [-1, 1], where 1 means perfect agreement,
               -1 means perfect disagreement, 0 means no correlation
+            - kendall_optimality: Value in [0, 1], where 1 means perfect agreement,
+              0 means perfect disagreement (= (kendall + 1) / 2)
             - ndcg: Value in [0, 1], where 1 means perfect agreement
             - euclidean: Normalized distance in [0, 1], where 0 means identical,
               1 means maximally different
@@ -2667,6 +2675,12 @@ def compare_ufuns(
         >>> # Identical ufuns
         >>> compare_ufuns(ufun1, ufun1, method="kendall", issues=issues)
         1.0
+        >>> # Kendall optimality (perfect negative correlation)
+        >>> compare_ufuns(ufun1, ufun2, method="kendall_optimality", issues=issues)
+        0.0
+        >>> # Identical ufuns
+        >>> compare_ufuns(ufun1, ufun1, method="kendall_optimality", issues=issues)
+        1.0
 
     Notes:
         - Utility values are cast to float for comparison
@@ -2677,6 +2691,10 @@ def compare_ufuns(
         - NDCG requires utilities to be non-negative; negative utilities are
           shifted to start from 0
     """
+
+    # minimum for empty ufuns
+    if ufun1 is None or ufun2 is None:
+        return 0.0 if method != "kendall" else -1.0
 
     # Determine outcome space
     outcome_space = os_or_none(outcome_space, issues, outcomes)
@@ -2745,7 +2763,7 @@ def compare_ufuns(
         # Custom callable
         return float(method(utils1, utils2))
 
-    if method == "kendall":
+    if method in ("kendall", "kendall_optimality"):
         from scipy.stats import kendalltau
 
         result = kendalltau(utils1, utils2)
@@ -2754,8 +2772,8 @@ def compare_ufuns(
         # has all equal values) or throws an exception (e.g. division by zero).
         # In this case, return -1.0 (anti correlation).
         if np.isnan(correlation):
-            return -1.0
-        return correlation
+            return -1.0 if method == "kendall" else 0.0
+        return correlation if method == "kendall" else (correlation + 1.0) / 2.0
 
     elif method == "ndcg":
         from sklearn.metrics import ndcg_score

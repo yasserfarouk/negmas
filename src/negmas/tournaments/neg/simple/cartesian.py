@@ -46,16 +46,21 @@ from negmas.negotiators import Negotiator
 from negmas.plots.util import plot_offline_run
 from negmas.preferences.discounted import DiscountedUtilityFunction
 from negmas.preferences.ops import (
+    COMPARE_UFUN_METHOD_TYPE,
     OutcomeOptimality,
     ScenarioStats,
     calc_outcome_distances,
     calc_outcome_optimality,
     estimate_max_dist,
+    compare_ufuns,
+    COMPARE_UFUN_METHODS,
 )
 from negmas.sao.common import SAOState
 from negmas.sao.mechanism import SAOMechanism
 from negmas.serialization import PYTHON_CLASS_IDENTIFIER, serialize, to_flat_dict
 from negmas.warnings import NegmasUnexpectedValueWarning, deprecated, warn
+
+_ = compare_ufuns, COMPARE_UFUN_METHOD_TYPE, COMPARE_UFUN_METHODS
 
 OptimizationLevel = Literal["speed", "time", "none", "balanced", "space", "max"]
 StorageFormat = Literal["csv", "gzip", "parquet"]
@@ -2752,6 +2757,12 @@ def cartesian_tournament(
     save_scenario_figs: bool = True,
     recalculate_stats: bool = False,
     image_format: str = DEFAULT_IMAGE_FORMAT,
+    opponent_modeling_metrics: tuple[
+        COMPARE_UFUN_METHOD_TYPE, ...
+    ] = (),  # valid values are
+    raw_aggregated_scores: dict[str, Callable[[dict[str, float]], float]] | None = None,
+    stats_aggregated_scores: dict[str, Callable[[dict[tuple[str, str], float]], float]]
+    | None = None,
     final_score: tuple[str, str] = ("advantage", "mean"),
     id_reveals_type: bool = False,
     name_reveals_type: bool = True,
@@ -2841,6 +2852,13 @@ def cartesian_tournament(
                           stats are never recalculated if available in the scenario folder.
         image_format: Format for saving figures. Supported formats: 'webp', 'png', 'jpg', 'jpeg', 'svg', 'pdf'.
                      Default is 'webp'. Applies to both scenario figures and run plots.
+        opponent_modeling_metrics: Tuple of utility function comparison methods for opponent modeling analysis.
+                                  Valid values include 'kendall', 'kendall_optimality', 'ndcg', 'euclidean' or a callable that receives two ufuns and generates a float,
+        raw_aggregated_metrics: Optional dict of {new_metric_name: {metric_name: value}} for custom aggregated scores. It receives all metrics for a
+                                given negotiator in a given negotiation (e.g. advantage, nash_optimality, ...) and returns a combined score.
+        stats_aggregated_metrics: Optional dict of {new_metric_name: { (metric_name, stat_name): value }} for custom aggregated scores based on
+                                statistics across negotiations. It receives all metric-statistics (e.g. (advantage, mean), (nash_optimality, std))
+                                for a given negotiator across all negotiations
         final_score: Tuple of (metric, statistic) for ranking. Metric can be 'advantage', 'utility',
                     'partner_welfare', 'welfare', or any calculated statistic. Statistic can be
                     'mean', 'median', 'min', 'max', or 'std'. Default: ('advantage', 'mean').
