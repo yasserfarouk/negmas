@@ -3254,7 +3254,6 @@ def cartesian_tournament(
     scenarios_path = path if path is None else Path(path) / SCENARIOS_DIR_NAME
     if scenarios_path is not None:
         scenarios_path.mkdir(exist_ok=True, parents=True)
-    stats = None
 
     competitor_info = list(
         zip(competitors, competitor_params, competitor_names, strict=True)
@@ -3534,7 +3533,7 @@ def cartesian_tournament(
                         full_names=True,
                         verbosity=verbosity - 1,
                         plot=random() < plot_fraction,
-                        stats=stats,
+                        stats=scenario.stats if save_stats else None,
                         id_reveals_type=id_reveals_type,
                         name_reveals_type=name_reveals_type,
                         plot_params=plot_params,
