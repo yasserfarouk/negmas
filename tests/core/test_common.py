@@ -931,9 +931,12 @@ class TestCompletedRun:
         from negmas.mechanisms import CompletedRun
         import os
 
+        # Use p_ending=0.0 to ensure RandomNegotiator never offers None
+        # (which would end the negotiation early and potentially leave only
+        # one negotiator in the trace)
         m = SAOMechanism(outcomes=[(i,) for i in range(10)], n_steps=10)
-        m.add(RandomNegotiator(id="id_alpha", name="Alpha"))
-        m.add(RandomNegotiator(id="id_beta", name="Beta"))
+        m.add(RandomNegotiator(id="id_alpha", name="Alpha", p_ending=0.0))
+        m.add(RandomNegotiator(id="id_beta", name="Beta", p_ending=0.0))
         m.run()
 
         # Save as directory
