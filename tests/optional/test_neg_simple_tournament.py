@@ -2602,8 +2602,8 @@ def test_opponent_modeling_metrics_empty():
     assert len(opp_columns) == 0, f"Expected no opp_* columns, got {opp_columns}"
 
 
-def test_raw_aggregated_scores_basic():
-    """Test that raw_aggregated_scores adds custom columns to scores."""
+def test_raw_aggregated_metrics_basic():
+    """Test that raw_aggregated_metrics adds custom columns to scores."""
     issues = (make_issue([f"q{i}" for i in range(5)], "quantity"),)
     ufuns = [
         (
@@ -2629,7 +2629,7 @@ def test_raw_aggregated_scores_basic():
         rotate_ufuns=False,
         path=None,
         njobs=-1,
-        raw_aggregated_scores=raw_agg,
+        raw_aggregated_metrics=raw_agg,
     )
 
     # Verify custom column is present
@@ -2646,8 +2646,8 @@ def test_raw_aggregated_scores_basic():
             )
 
 
-def test_raw_aggregated_scores_multiple():
-    """Test raw_aggregated_scores with multiple custom aggregations."""
+def test_raw_aggregated_metrics_multiple():
+    """Test raw_aggregated_metrics with multiple custom aggregations."""
     issues = (make_issue([f"q{i}" for i in range(5)], "quantity"),)
     ufuns = [
         (
@@ -2673,7 +2673,7 @@ def test_raw_aggregated_scores_multiple():
         rotate_ufuns=False,
         path=None,
         njobs=-1,
-        raw_aggregated_scores=raw_agg,
+        raw_aggregated_metrics=raw_agg,
     )
 
     # Verify all custom columns are present
@@ -2683,8 +2683,8 @@ def test_raw_aggregated_scores_multiple():
         )
 
 
-def test_raw_aggregated_scores_empty():
-    """Test that empty raw_aggregated_scores doesn't add extra columns."""
+def test_raw_aggregated_metrics_empty():
+    """Test that empty raw_aggregated_metrics doesn't add extra columns."""
     issues = (make_issue([f"q{i}" for i in range(5)], "quantity"),)
     ufuns = [
         (
@@ -2695,7 +2695,7 @@ def test_raw_aggregated_scores_empty():
     scenarios = [Scenario(outcome_space=make_os(issues, name="S0"), ufuns=ufuns[0])]
     competitors = [RandomNegotiator, AspirationNegotiator]
 
-    # Run without raw_aggregated_scores
+    # Run without raw_aggregated_metrics
     results_without = cartesian_tournament(
         competitors=competitors,
         scenarios=scenarios,
@@ -2705,7 +2705,7 @@ def test_raw_aggregated_scores_empty():
         rotate_ufuns=False,
         path=None,
         njobs=-1,
-        raw_aggregated_scores=None,
+        raw_aggregated_metrics=None,
     )
 
     # Run with empty dict
@@ -2718,15 +2718,15 @@ def test_raw_aggregated_scores_empty():
         rotate_ufuns=False,
         path=None,
         njobs=-1,
-        raw_aggregated_scores={},
+        raw_aggregated_metrics={},
     )
 
     # Both should have the same columns
     assert set(results_without.scores.columns) == set(results_with_empty.scores.columns)
 
 
-def test_stats_aggregated_scores_basic():
-    """Test that stats_aggregated_scores adds custom columns to scores_summary."""
+def test_stats_aggregated_metrics_basic():
+    """Test that stats_aggregated_metrics adds custom columns to scores_summary."""
     issues = (make_issue([f"q{i}" for i in range(5)], "quantity"),)
     ufuns = [
         (
@@ -2752,7 +2752,7 @@ def test_stats_aggregated_scores_basic():
         rotate_ufuns=False,
         path=None,
         njobs=-1,
-        stats_aggregated_scores=stats_agg,
+        stats_aggregated_metrics=stats_agg,
     )
 
     # Verify custom column is present in scores_summary
@@ -2762,8 +2762,8 @@ def test_stats_aggregated_scores_basic():
     )
 
 
-def test_stats_aggregated_scores_as_final_score():
-    """Test that stats_aggregated_scores can be used as final_score."""
+def test_stats_aggregated_metrics_as_final_score():
+    """Test that stats_aggregated_metrics can be used as final_score."""
     issues = (make_issue([f"q{i}" for i in range(5)], "quantity"),)
     ufuns = [
         (
@@ -2789,7 +2789,7 @@ def test_stats_aggregated_scores_as_final_score():
         rotate_ufuns=False,
         path=None,
         njobs=-1,
-        stats_aggregated_scores=stats_agg,
+        stats_aggregated_metrics=stats_agg,
         final_score=("my_final_score", "value"),  # Use our custom score as final
     )
 
@@ -2806,8 +2806,8 @@ def test_stats_aggregated_scores_as_final_score():
         )
 
 
-def test_stats_aggregated_scores_multiple():
-    """Test stats_aggregated_scores with multiple custom aggregations."""
+def test_stats_aggregated_metrics_multiple():
+    """Test stats_aggregated_metrics with multiple custom aggregations."""
     issues = (make_issue([f"q{i}" for i in range(5)], "quantity"),)
     ufuns = [
         (
@@ -2836,7 +2836,7 @@ def test_stats_aggregated_scores_multiple():
         rotate_ufuns=False,
         path=None,
         njobs=-1,
-        stats_aggregated_scores=stats_agg,
+        stats_aggregated_metrics=stats_agg,
     )
 
     # Verify all custom columns are present
@@ -2846,8 +2846,8 @@ def test_stats_aggregated_scores_multiple():
         )
 
 
-def test_stats_aggregated_scores_empty():
-    """Test that empty stats_aggregated_scores doesn't add extra columns."""
+def test_stats_aggregated_metrics_empty():
+    """Test that empty stats_aggregated_metrics doesn't add extra columns."""
     issues = (make_issue([f"q{i}" for i in range(5)], "quantity"),)
     ufuns = [
         (
@@ -2868,7 +2868,7 @@ def test_stats_aggregated_scores_empty():
         rotate_ufuns=False,
         path=None,
         njobs=-1,
-        stats_aggregated_scores={},
+        stats_aggregated_metrics={},
     )
 
     # No extra "value" columns should be present beyond standard stats
@@ -2899,11 +2899,11 @@ def test_all_new_score_types_together():
         njobs=-1,
         # All three new score types
         opponent_modeling_metrics=("kendall_optimality",),
-        raw_aggregated_scores={
+        raw_aggregated_metrics={
             "combined": lambda d: d.get("advantage", 0) * 0.5
             + d.get("utility", 0) * 0.5
         },
-        stats_aggregated_scores={
+        stats_aggregated_metrics={
             "weighted_final": lambda d: d.get(("advantage", "mean"), 0) * 0.7
             + d.get(("utility", "mean"), 0) * 0.3
         },
@@ -2947,7 +2947,7 @@ def test_new_score_types_with_save_load(tmp_path):
         njobs=-1,
         storage_optimization="speed",  # Keep all files
         opponent_modeling_metrics=("kendall_optimality",),
-        raw_aggregated_scores={
+        raw_aggregated_metrics={
             "combined": lambda d: d.get("advantage", 0) * 0.5
             + d.get("utility", 0) * 0.5
         },

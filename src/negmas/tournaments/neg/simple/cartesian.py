@@ -949,7 +949,7 @@ class SimpleTournamentResults:
         final_scores: pd.DataFrame | None = None,
         final_score_stat: tuple[str, str] = ("advantage", "mean"),
         path: Path | None = None,
-        stats_aggregated_scores: dict[
+        stats_aggregated_metrics: dict[
             str, Callable[[dict[tuple[str, str], float]], float]
         ]
         | None = None,
@@ -963,7 +963,7 @@ class SimpleTournamentResults:
             final_scores: Optionally, final scores. If not given, `final_scoer_stat` will be used to calculate them
             final_score_stat: A tuple of the measure used and the statistic applied to it for calculating final score. See `cartesian_tournament` for more details
             path: The path in which the data for this tournament is stored.
-            stats_aggregated_scores: Optional dict mapping new metric names to callables that receive
+            stats_aggregated_metrics: Optional dict mapping new metric names to callables that receive
                                     a dict of (metric, stat) tuples to values and return a combined score.
 
         Raises:
@@ -1004,16 +1004,16 @@ class SimpleTournamentResults:
                         for _ in scores_df.columns
                         if _ not in ("scenario", "partners")
                     ]
-                    # Create type_scores without sorting first - we'll sort after applying stats_aggregated_scores
+                    # Create type_scores without sorting first - we'll sort after applying stats_aggregated_metrics
                     type_scores = scores_df.loc[:, cols].groupby("strategy").describe()
 
-            # Apply stats_aggregated_scores to add new columns to type_scores
+            # Apply stats_aggregated_metrics to add new columns to type_scores
             if (
-                stats_aggregated_scores
+                stats_aggregated_metrics
                 and type_scores is not None
                 and len(type_scores) > 0
             ):
-                for metric_name, aggregator in stats_aggregated_scores.items():
+                for metric_name, aggregator in stats_aggregated_metrics.items():
                     new_values = []
                     for strategy in type_scores.index:
                         # Build dict of (metric, stat) -> value for this strategy
@@ -1034,7 +1034,7 @@ class SimpleTournamentResults:
                     # Add new column with (metric_name, "value") as the column name
                     type_scores[(metric_name, "value")] = new_values
 
-            # Sort by final_score_stat after applying stats_aggregated_scores
+            # Sort by final_score_stat after applying stats_aggregated_metrics
             # This allows using custom aggregations as the final score
             if type_scores is not None and len(type_scores) > 0:
                 if final_score_stat in type_scores.columns:
@@ -2666,7 +2666,8 @@ def failed_run_record(
 def make_scores(
     record: dict[str, Any],
     scored_indices: list[int] | None = None,
-    raw_aggregated_scores: dict[str, Callable[[dict[str, float]], float]] | None = None,
+    raw_aggregated_metrics: dict[str, Callable[[dict[str, float]], float]]
+    | None = None,
 ) -> list[dict[str, float]]:
     """Convert a negotiation run record into score dictionaries for each negotiator.
 
@@ -2679,7 +2680,7 @@ def make_scores(
         scored_indices: If provided, only create scores for negotiators at these position indices.
                        If None, score all negotiators. Used in explicit opponent mode to score
                        only competitors (not opponents).
-        raw_aggregated_scores: Optional dict mapping new metric names to callables that receive
+        raw_aggregated_metrics: Optional dict mapping new metric names to callables that receive
                               all metrics for a negotiator and return a combined score.
 
     Returns:
@@ -2708,7 +2709,7 @@ def make_scores(
             - modified_ks_optimality: Closeness to modified KS solution
         - Plus opponent modeling metrics (if opponent_modeling_metrics was provided):
             - opponent_<metric>: Opponent modeling score for each specified metric
-        - Plus raw aggregated scores (if raw_aggregated_scores was provided):
+        - Plus raw aggregated scores (if raw_aggregated_metrics was provided):
             - Custom combined metrics computed from other metrics
     """
     utils, partners = record["utilities"], record["partners"]
@@ -2774,8 +2775,8 @@ def make_scores(
                 if i < len(value):
                     basic[key] = value[i]
 
-        # Apply raw_aggregated_scores to compute custom combined metrics
-        if raw_aggregated_scores:
+        # Apply raw_aggregated_metrics to compute custom combined metrics
+        if raw_aggregated_metrics:
             # Build a dict of numeric metrics for this negotiator
             numeric_metrics = {
                 k: v
@@ -2783,7 +2784,7 @@ def make_scores(
                 if isinstance(v, (int, float))
                 and (not isnan(v) if isinstance(v, float) else True)
             }
-            for metric_name, aggregator in raw_aggregated_scores.items():
+            for metric_name, aggregator in raw_aggregated_metrics.items():
                 try:
                     basic[metric_name] = aggregator(numeric_metrics)
                 except Exception:
@@ -2957,8 +2958,9 @@ def cartesian_tournament(
     opponent_modeling_metrics: tuple[
         COMPARE_UFUN_METHOD_TYPE, ...
     ] = (),  # valid values are
-    raw_aggregated_scores: dict[str, Callable[[dict[str, float]], float]] | None = None,
-    stats_aggregated_scores: dict[str, Callable[[dict[tuple[str, str], float]], float]]
+    raw_aggregated_metrics: dict[str, Callable[[dict[str, float]], float]]
+    | None = None,
+    stats_aggregated_metrics: dict[str, Callable[[dict[tuple[str, str], float]], float]]
     | None = None,
     final_score: tuple[str, str] = ("advantage", "mean"),
     id_reveals_type: bool = False,
@@ -3049,14 +3051,95 @@ def cartesian_tournament(
                           stats are never recalculated if available in the scenario folder.
         image_format: Format for saving figures. Supported formats: 'webp', 'png', 'jpg', 'jpeg', 'svg', 'pdf'.
                      Default is 'webp'. Applies to both scenario figures and run plots.
-        opponent_modeling_metrics: Tuple of utility function comparison methods for opponent modeling analysis.
-                                  Valid values include 'kendall', 'kendall_optimality', 'ndcg', 'euclidean' or a callable that receives two ufuns and generates a float.
-                                  These can be passed as final scores in the form ('opp_<metric>', statistic).
-        raw_aggregated_metrics: Optional dict of {new_metric_name: {metric_name: value}} for custom aggregated scores. It receives all metrics for a
-                                given negotiator in a given negotiation (e.g. advantage, nash_optimality, ...) and returns a combined score. These can be used in final scores normally.
-        stats_aggregated_metrics: Optional dict of {new_metric_name: { (metric_name, stat_name): value }} for custom aggregated scores based on
-                                statistics across negotiations. It receives all metric-statistics (e.g. (advantage, mean), (nash_optimality, std))
-                                for a given negotiator across all negotiations. To use one of these as the final score pass final_score=(metric_name, "value")
+        opponent_modeling_metrics: Tuple of utility function comparison methods for evaluating
+                                  how well each negotiator models their opponent's preferences.
+                                  For each metric specified, compares the negotiator's `opponent_ufun`
+                                  attribute (if available) with the actual opponent utility function.
+                                  Results are added as `opp_<metric>` columns in the scores DataFrame.
+
+                                  Valid values include:
+                                  - 'kendall_optimality': Kendall tau correlation (-1 to 1)
+                                  - 'ordinal_optimality': Ordinal ranking similarity (0 to 1)
+                                  - 'cardinal_optimality': Cardinal value similarity (0 to 1)
+                                  - 'utility_optimality': Direct utility comparison (0 to 1)
+                                  - 'pareto_optimality': Pareto efficiency measure (0 to 1)
+                                  - 'nash_optimality': Nash bargaining optimality (0 to 1)
+                                  - 'kalai_optimality': Kalai-Smorodinsky optimality (0 to 1)
+                                  - 'max_welfare_optimality': Maximum welfare optimality (0 to 1)
+
+                                  These can be used as final scores: final_score=('opp_kendall_optimality', 'mean')
+
+                                  Example::
+
+                                      results = cartesian_tournament(
+                                          competitors=[MyNegotiator, RandomNegotiator],
+                                          scenarios=scenarios,
+                                          opponent_modeling_metrics=(
+                                              "kendall_optimality",
+                                              "euclidean_optimality",
+                                          ),
+                                      )
+                                      # Access opponent modeling scores
+                                      print(
+                                          results.scores[
+                                              [
+                                                  "strategy",
+                                                  "opp_kendall_optimality",
+                                                  "opp_euclidean_optimality",
+                                              ]
+                                          ]
+                                      )
+
+        raw_aggregated_metrics: Optional dict mapping custom metric names to aggregation functions.
+                              Each function receives a dict of {metric_name: value} containing all
+                              per-negotiation metrics for a single negotiator (e.g., 'advantage',
+                              'utility', 'nash_optimality', etc.) and returns a combined score.
+                              Results are added as new columns in the scores DataFrame.
+
+                              Useful for creating weighted combinations of existing metrics.
+
+                              Example::
+
+                                  results = cartesian_tournament(
+                                      competitors=[...],
+                                      scenarios=[...],
+                                      raw_aggregated_metrics={
+                                          "combined": lambda d: d.get("advantage", 0)
+                                          * 0.5
+                                          + d.get("utility", 0) * 0.5,
+                                          "risk_adjusted": lambda d: d.get("utility", 0)
+                                          - 0.1 * d.get("partner_welfare", 0),
+                                      },
+                                  )
+                                  # Use in final score
+                                  # final_score=('combined', 'mean')
+
+        stats_aggregated_metrics: Optional dict mapping custom metric names to aggregation functions
+                                that operate on summary statistics across all negotiations.
+                                Each function receives a dict of {(metric_name, stat_name): value}
+                                where stat_name can be 'mean', 'std', 'min', 'max', '25%', '50%', '75%', 'count'.
+                                Results are added as (metric_name, 'value') columns in scores_summary.
+
+                                This is particularly useful for creating custom final scores that combine
+                                multiple statistics in ways not possible with standard aggregations.
+
+                                Example::
+
+                                      results = cartesian_tournament(
+                                          competitors=[...],
+                                          scenarios=[...],
+                                          stats_aggregated_metrics={
+                                              'risk_adjusted_score': lambda d: (
+                                                  d.get(('advantage', 'mean'), 0) - 0.5 * d.get(('advantage', 'std'), 0)
+                                              ),
+                                              'weighted_final': lambda d: (
+                                                  d.get(('advantage', 'mean'), 0) * 0.7 +
+                                                  d.get(('utility', 'mean'), 0) * 0.3
+                                              ),
+                                          },
+                                          # Use custom aggregation as final score
+                                          final_score=('weighted_final', 'value'),
+                                      )
         final_score: Tuple of (metric, statistic) for ranking. Metric can be 'advantage', 'utility',
                     'partner_welfare', 'welfare', or any calculated statistic. Statistic can be
                     'mean', 'median', 'min', 'max', or 'std'. Default: ('advantage', 'mean').
@@ -3886,7 +3969,7 @@ def cartesian_tournament(
         scores += make_scores(
             record,
             scored_indices=record.get("scored_indices"),
-            raw_aggregated_scores=raw_aggregated_scores,
+            raw_aggregated_metrics=raw_aggregated_metrics,
         )
         if results_path and save_every and i % save_every == 0:
             pd.DataFrame.from_records(results).to_csv(results_path, index_label="index")
@@ -4063,7 +4146,7 @@ def cartesian_tournament(
         results,
         final_score_stat=final_score,
         path=path,
-        stats_aggregated_scores=stats_aggregated_scores,
+        stats_aggregated_metrics=stats_aggregated_metrics,
     )
     if verbosity > 0:
         print(tresults.final_scores)
