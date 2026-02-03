@@ -2962,3 +2962,579 @@ def test_new_score_types_with_save_load(tmp_path):
 
     # Verify values match
     assert len(loaded_results.scores) == len(original_results.scores)
+
+
+# ===== Tests for distribute_opponent_modeling_scores and anl2026 =====
+
+
+def test_distribute_opponent_modeling_scores_true():
+    """Test that distribute_opponent_modeling_scores=True normalizes opp scores per negotiation.
+
+    When True, each negotiator's opponent modeling score should be normalized by the sum of all
+    negotiators' scores in that negotiation. This means the scores should sum to 1.0 (approximately)
+    for each metric within each negotiation.
+    """
+    issues = (make_issue([f"q{i}" for i in range(5)], "quantity"),)
+    ufuns = [
+        (
+            U.random(issues=issues, reserved_value=(0.0, 0.2), normalized=False),
+            U.random(issues=issues, reserved_value=(0.0, 0.2), normalized=False),
+        )
+    ]
+    scenarios = [Scenario(outcome_space=make_os(issues, name="S0"), ufuns=ufuns[0])]
+    competitors = [RandomNegotiator, AspirationNegotiator]
+
+    results = cartesian_tournament(
+        competitors=competitors,
+        scenarios=scenarios,
+        mechanism_params=dict(n_steps=10),
+        n_repetitions=1,
+        verbosity=0,
+        rotate_ufuns=False,
+        path=None,
+        njobs=-1,
+        opponent_modeling_metrics=("kendall_optimality",),
+        distribute_opponent_modeling_scores=True,  # This is the default
+    )
+
+    # Check that opp_kendall_optimality exists
+    assert "opp_kendall_optimality" in results.scores.columns
+
+    # Group by negotiation (same mechanism_name) and check normalization behavior
+    # For a 2-party negotiation with both parties being scored:
+    # - If raw scores sum to > 0: normalized scores should sum to 1.0
+    # - If raw scores sum to <= 0: everyone gets 0 (no opponent model)
+    opp_scores = results.scores[["mechanism_name", "opp_kendall_optimality"]].copy()
+    sums = opp_scores.groupby("mechanism_name")["opp_kendall_optimality"].sum()
+
+    for mechanism_name, total in sums.items():
+        # Either normalized (sum to 1.0) or all set to 0 (no opponent model)
+        n_negotiators = len(opp_scores[opp_scores["mechanism_name"] == mechanism_name])
+        zero_sum = 0.0 * n_negotiators  # when no model, everyone gets 0
+        is_normalized = abs(total - 1.0) < 0.001
+        is_zero_valued = abs(total - zero_sum) < 0.001
+        assert is_normalized or is_zero_valued, (
+            f"Expected sum to be ~1.0 (normalized) or ~{zero_sum} (no model) for mechanism {mechanism_name}, got {total}"
+        )
+
+
+def test_distribute_opponent_modeling_scores_false():
+    """Test that distribute_opponent_modeling_scores=False keeps raw opp scores.
+
+    When False, the raw opponent modeling scores (e.g. kendall_optimality values in [-1, 1])
+    should be kept without normalization.
+    """
+    issues = (make_issue([f"q{i}" for i in range(5)], "quantity"),)
+    ufuns = [
+        (
+            U.random(issues=issues, reserved_value=(0.0, 0.2), normalized=False),
+            U.random(issues=issues, reserved_value=(0.0, 0.2), normalized=False),
+        )
+    ]
+    scenarios = [Scenario(outcome_space=make_os(issues, name="S0"), ufuns=ufuns[0])]
+    competitors = [RandomNegotiator, AspirationNegotiator]
+
+    results = cartesian_tournament(
+        competitors=competitors,
+        scenarios=scenarios,
+        mechanism_params=dict(n_steps=10),
+        n_repetitions=1,
+        verbosity=0,
+        rotate_ufuns=False,
+        path=None,
+        njobs=-1,
+        opponent_modeling_metrics=("kendall_optimality",),
+        distribute_opponent_modeling_scores=False,  # Do NOT normalize
+    )
+
+    # Check that opp_kendall_optimality exists
+    assert "opp_kendall_optimality" in results.scores.columns
+
+    # With distribute_opponent_modeling_scores=False, scores should NOT be normalized
+    # so they won't sum to 1.0. They should be in the raw range [-1, 1] for kendall_optimality
+    opp_vals = results.scores["opp_kendall_optimality"]
+
+    # Verify values are in the valid kendall range [-1, 1]
+    assert ((opp_vals >= -1.0) & (opp_vals <= 1.0)).all(), (
+        f"Raw kendall_optimality values should be in [-1, 1], got: {opp_vals.tolist()}"
+    )
+
+    # Group by negotiation to verify they don't sum to 1.0 (unless by coincidence)
+    opp_scores = results.scores[["mechanism_name", "opp_kendall_optimality"]].copy()
+    sums = opp_scores.groupby("mechanism_name")["opp_kendall_optimality"].sum()
+
+    # Most sums should NOT be exactly 1.0 (raw values typically sum to something else)
+    # We just verify the values are raw (in [-1,1]) and not forced to sum to 1.0
+    for mechanism_name, total in sums.items():
+        # With 2 negotiators, raw kendall values could sum to anything in [-2, 2]
+        assert -2.0 <= total <= 2.0, f"Sum {total} is out of expected raw range [-2, 2]"
+
+
+def test_anl2026_metric_adds_kendall_optimality():
+    """Test that requesting 'anl2026' metric automatically adds kendall_optimality calculation."""
+    issues = (make_issue([f"q{i}" for i in range(5)], "quantity"),)
+    ufuns = [
+        (
+            U.random(issues=issues, reserved_value=(0.0, 0.2), normalized=False),
+            U.random(issues=issues, reserved_value=(0.0, 0.2), normalized=False),
+        )
+    ]
+    scenarios = [Scenario(outcome_space=make_os(issues, name="S0"), ufuns=ufuns[0])]
+    competitors = [RandomNegotiator, AspirationNegotiator]
+
+    results = cartesian_tournament(
+        competitors=competitors,
+        scenarios=scenarios,
+        mechanism_params=dict(n_steps=10),
+        n_repetitions=1,
+        verbosity=0,
+        rotate_ufuns=False,
+        path=None,
+        njobs=-1,
+        opponent_modeling_metrics=("anl2026",),  # Just request anl2026
+    )
+
+    # Check that opp_anl2026 exists
+    assert "opp_anl2026" in results.scores.columns, (
+        f"Expected opp_anl2026 in columns, got: {results.scores.columns.tolist()}"
+    )
+
+    # Check that opp_kendall_optimality was also added (anl2026 requires it)
+    assert "opp_kendall_optimality" in results.scores.columns, (
+        f"Expected opp_kendall_optimality in columns when anl2026 is requested, "
+        f"got: {results.scores.columns.tolist()}"
+    )
+
+
+def test_anl2026_metric_calculation():
+    """Test that anl2026 = advantage + normalized_kendall_optimality."""
+    issues = (make_issue([f"q{i}" for i in range(5)], "quantity"),)
+    ufuns = [
+        (
+            U.random(issues=issues, reserved_value=(0.0, 0.2), normalized=False),
+            U.random(issues=issues, reserved_value=(0.0, 0.2), normalized=False),
+        )
+    ]
+    scenarios = [Scenario(outcome_space=make_os(issues, name="S0"), ufuns=ufuns[0])]
+    competitors = [RandomNegotiator, AspirationNegotiator]
+
+    results = cartesian_tournament(
+        competitors=competitors,
+        scenarios=scenarios,
+        mechanism_params=dict(n_steps=10),
+        n_repetitions=1,
+        verbosity=0,
+        rotate_ufuns=False,
+        path=None,
+        njobs=-1,
+        opponent_modeling_metrics=("anl2026",),
+        distribute_opponent_modeling_scores=True,  # Default - normalizes kendall_optimality
+    )
+
+    # Verify we have all required columns
+    assert "advantage" in results.scores.columns
+    assert "opp_kendall_optimality" in results.scores.columns
+    assert "opp_anl2026" in results.scores.columns
+
+    # Verify the formula: anl2026 = advantage + opp_kendall_optimality (normalized)
+    for idx, row in results.scores.iterrows():
+        expected = row["advantage"] + row["opp_kendall_optimality"]
+        actual = row["opp_anl2026"]
+        assert abs(actual - expected) < 1e-9, (
+            f"anl2026 calculation mismatch: expected {expected}, got {actual}"
+        )
+
+
+def test_anl2026_with_explicit_kendall():
+    """Test that anl2026 works when kendall_optimality is also explicitly requested."""
+    issues = (make_issue([f"q{i}" for i in range(5)], "quantity"),)
+    ufuns = [
+        (
+            U.random(issues=issues, reserved_value=(0.0, 0.2), normalized=False),
+            U.random(issues=issues, reserved_value=(0.0, 0.2), normalized=False),
+        )
+    ]
+    scenarios = [Scenario(outcome_space=make_os(issues, name="S0"), ufuns=ufuns[0])]
+    competitors = [RandomNegotiator, AspirationNegotiator]
+
+    # Request both anl2026 and kendall_optimality explicitly
+    results = cartesian_tournament(
+        competitors=competitors,
+        scenarios=scenarios,
+        mechanism_params=dict(n_steps=10),
+        n_repetitions=1,
+        verbosity=0,
+        rotate_ufuns=False,
+        path=None,
+        njobs=-1,
+        opponent_modeling_metrics=("anl2026", "kendall_optimality"),
+    )
+
+    # Both should be present
+    assert "opp_anl2026" in results.scores.columns
+    assert "opp_kendall_optimality" in results.scores.columns
+
+    # anl2026 should still equal advantage + normalized_kendall_optimality
+    for idx, row in results.scores.iterrows():
+        expected = row["advantage"] + row["opp_kendall_optimality"]
+        actual = row["opp_anl2026"]
+        assert abs(actual - expected) < 1e-9
+
+
+@mark.slow
+@mark.skipif(NEGMAS_FASTRUN, reason="Continue tournament tests are slow")
+def test_continue_tournament_loads_new_params(tmp_path: Path):
+    """Test that continue_cartesian_tournament loads all the new config parameters."""
+    path = tmp_path / "tournament_continue_params"
+    issues = (make_issue([f"q{i}" for i in range(3)], "quantity"),)
+    ufuns = [
+        (
+            U.random(issues=issues, reserved_value=(0.0, 0.2), normalized=False),
+            U.random(issues=issues, reserved_value=(0.0, 0.2), normalized=False),
+        )
+    ]
+    scenarios = [Scenario(outcome_space=make_os(issues, name="S0"), ufuns=ufuns[0])]
+    competitors = [RandomNegotiator, AspirationNegotiator]
+
+    # Run initial tournament with specific parameter values
+    cartesian_tournament(
+        competitors=competitors,
+        scenarios=scenarios,
+        mechanism_params=dict(n_steps=5),
+        n_repetitions=1,
+        verbosity=0,
+        rotate_ufuns=False,
+        path=path,
+        njobs=-1,
+        opponent_modeling_metrics=("kendall_optimality",),
+        distribute_opponent_modeling_scores=False,  # Non-default
+        normalize_ufuns=True,
+        reserved_value_eps=0.05,  # Non-default
+    )
+
+    # Load and verify config was saved correctly
+    import yaml
+
+    config_path = path / CONFIG_FILE_NAME
+    assert config_path.exists(), "Config file should exist"
+
+    with open(config_path) as f:
+        config = yaml.safe_load(f)
+
+    # Verify new parameters are saved
+    assert config.get("distribute_opponent_modeling_scores") is False, (
+        "distribute_opponent_modeling_scores should be saved as False"
+    )
+    assert "kendall_optimality" in config.get("opponent_modeling_metrics", []), (
+        "opponent_modeling_metrics should contain kendall_optimality"
+    )
+    assert config.get("normalize_ufuns") is True, (
+        "normalize_ufuns should be saved as True"
+    )
+    assert abs(config.get("reserved_value_eps", 0) - 0.05) < 1e-9, (
+        "reserved_value_eps should be saved as 0.05"
+    )
+
+
+@mark.slow
+@mark.skipif(NEGMAS_FASTRUN, reason="Continue tournament tests are slow")
+def test_continue_tournament_preserves_opp_scores(tmp_path: Path):
+    """Test that continuing a tournament preserves opponent modeling scores."""
+    path = tmp_path / "tournament_continue_opp"
+    issues = (make_issue([f"q{i}" for i in range(3)], "quantity"),)
+    ufuns = [
+        (
+            U.random(issues=issues, reserved_value=(0.0, 0.2), normalized=False),
+            U.random(issues=issues, reserved_value=(0.0, 0.2), normalized=False),
+        )
+        for _ in range(2)
+    ]
+    scenarios = [
+        Scenario(outcome_space=make_os(issues, name=f"S{i}"), ufuns=u)
+        for i, u in enumerate(ufuns)
+    ]
+    competitors = [RandomNegotiator, AspirationNegotiator]
+
+    # Run partial tournament
+    partial_results = cartesian_tournament(
+        competitors=competitors,
+        scenarios=scenarios,
+        mechanism_params=dict(n_steps=5),
+        n_repetitions=1,
+        verbosity=0,
+        rotate_ufuns=False,
+        path=path,
+        njobs=-1,
+        opponent_modeling_metrics=("anl2026",),
+        distribute_opponent_modeling_scores=True,
+        storage_optimization="speed",
+    )
+
+    # Verify opp columns exist in partial results
+    assert "opp_anl2026" in partial_results.scores.columns
+    assert "opp_kendall_optimality" in partial_results.scores.columns
+
+    # Load results and verify they still have opp columns
+    loaded_results = SimpleTournamentResults.load(path)
+    assert "opp_anl2026" in loaded_results.scores.columns, (
+        f"opp_anl2026 should be preserved after loading, got columns: {loaded_results.scores.columns.tolist()}"
+    )
+    assert "opp_kendall_optimality" in loaded_results.scores.columns, (
+        "opp_kendall_optimality should be preserved after loading"
+    )
+
+
+def test_config_completeness_all_parameters(tmp_path: Path):
+    """Test that ALL non-callback parameters are saved to config.yaml.
+
+    This test verifies that the config dictionary in cartesian_tournament
+    includes all parameters that affect tournament behavior (except callbacks
+    which cannot be serialized).
+    """
+    import yaml
+
+    path = tmp_path / "tournament_config_complete"
+    issues = (make_issue([f"q{i}" for i in range(3)], "quantity"),)
+    ufuns = [
+        (
+            U.random(issues=issues, reserved_value=(0.0, 0.2), normalized=False),
+            U.random(issues=issues, reserved_value=(0.0, 0.2), normalized=False),
+        )
+    ]
+    scenarios = [Scenario(outcome_space=make_os(issues, name="S0"), ufuns=ufuns[0])]
+    competitors = [RandomNegotiator, AspirationNegotiator]
+
+    # Run tournament with explicit non-default values for many parameters
+    cartesian_tournament(
+        competitors=competitors,
+        scenarios=scenarios,
+        # Timing parameters
+        n_steps=15,
+        time_limit=30.0,
+        pend=0.1,
+        pend_per_second=0.05,
+        step_time_limit=5.0,
+        negotiator_time_limit=10.0,
+        hidden_time_limit=60.0,
+        # Tournament structure
+        n_repetitions=2,
+        rotate_ufuns=False,
+        self_play=False,
+        randomize_runs=False,
+        sort_runs=True,
+        # Scoring and metrics
+        opponent_modeling_metrics=("kendall_optimality", "ordinal_optimality"),
+        distribute_opponent_modeling_scores=False,
+        final_score=("utility", "mean"),
+        normalize_ufuns=False,
+        reserved_value_eps=0.1,
+        ignore_discount=True,
+        ignore_reserved=True,
+        # Display and naming
+        verbosity=0,
+        id_reveals_type=True,
+        name_reveals_type=False,
+        shorten_names=False,
+        mask_scenario_names=False,
+        # Storage
+        path=path,
+        storage_optimization="speed",
+        memory_optimization="speed",
+        storage_format="csv",
+        save_negotiations_as_folders=True,
+        save_every=1,
+        save_stats=False,
+        save_scenario_figs=False,
+        recalculate_stats=True,
+        image_format="png",
+        # Execution
+        njobs=-1,
+        raise_exceptions=False,
+        only_failures_on_self_play=True,
+        # Plotting
+        plot_fraction=0.0,
+        # Metadata
+        metadata={"test_key": "test_value"},
+    )
+
+    # Load and verify config
+    config_path = path / CONFIG_FILE_NAME
+    assert config_path.exists(), "Config file should exist"
+
+    with open(config_path) as f:
+        config = yaml.safe_load(f)
+
+    # List of all expected config keys (non-callback parameters)
+    expected_keys = [
+        # Tournament structure
+        "n_scenarios",
+        "n_competitors",
+        "competitors",
+        "competitor_names",
+        "competitor_params",
+        "competitor_type_map",
+        "opponents",
+        "n_opponents",
+        "opponent_names",
+        "opponent_params",
+        "opponent_type_map",
+        "private_infos",
+        "rotate_ufuns",
+        "rotate_private_infos",
+        "n_repetitions",
+        "self_play",
+        "randomize_runs",
+        "sort_runs",
+        # Timing parameters
+        "n_steps",
+        "time_limit",
+        "pend",
+        "pend_per_second",
+        "step_time_limit",
+        "negotiator_time_limit",
+        "hidden_time_limit",
+        "external_timeout",
+        # Mechanism
+        "mechanism_type",
+        "mechanism_params",
+        # Scoring and metrics
+        "opponent_modeling_metrics",
+        "distribute_opponent_modeling_scores",
+        "raw_aggregated_metrics",
+        "stats_aggregated_metrics",
+        "final_score",
+        "normalize_ufuns",
+        "reserved_value_eps",
+        "ignore_discount",
+        "ignore_reserved",
+        # Display and naming
+        "verbosity",
+        "id_reveals_type",
+        "name_reveals_type",
+        "shorten_names",
+        "mask_scenario_names",
+        # Storage
+        "path",
+        "storage_optimization",
+        "memory_optimization",
+        "storage_format",
+        "save_negotiations_as_folders",
+        "save_every",
+        "save_stats",
+        "save_scenario_figs",
+        "recalculate_stats",
+        "image_format",
+        # Execution
+        "njobs",
+        "raise_exceptions",
+        "only_failures_on_self_play",
+        # Plotting
+        "plot_fraction",
+        "plot_params",
+        # Serialization
+        "python_class_identifier",
+        # Metadata
+        "metadata",
+        # Callback indicators (these are booleans indicating if callbacks were provided)
+        "has_before_start_callback",
+        "has_after_construction_callback",
+        "has_after_end_callback",
+        "has_progress_callback",
+        "has_neg_progress_callback",
+        "has_start_callback",
+        "has_end_callback",
+    ]
+
+    # Check all expected keys are present
+    missing_keys = [key for key in expected_keys if key not in config]
+    assert not missing_keys, f"Missing config keys: {missing_keys}"
+
+    # Verify specific values were saved correctly
+    assert config["n_steps"] == 15
+    assert config["time_limit"] == 30.0
+    assert config["pend"] == 0.1
+    assert config["pend_per_second"] == 0.05
+    assert config["step_time_limit"] == 5.0
+    assert config["negotiator_time_limit"] == 10.0
+    assert config["hidden_time_limit"] == 60.0
+    assert config["n_repetitions"] == 2
+    assert config["rotate_ufuns"] is False
+    assert config["self_play"] is False
+    assert config["randomize_runs"] is False
+    assert config["sort_runs"] is True
+    assert "kendall_optimality" in config["opponent_modeling_metrics"]
+    assert "ordinal_optimality" in config["opponent_modeling_metrics"]
+    assert config["distribute_opponent_modeling_scores"] is False
+    assert config["final_score"] == ["utility", "mean"]
+    assert config["normalize_ufuns"] is False
+    assert abs(config["reserved_value_eps"] - 0.1) < 1e-9
+    assert config["ignore_discount"] is True
+    assert config["ignore_reserved"] is True
+    assert config["id_reveals_type"] is True
+    assert config["name_reveals_type"] is False
+    assert config["shorten_names"] is False
+    assert config["mask_scenario_names"] is False
+    assert config["storage_optimization"] == "speed"
+    assert config["memory_optimization"] == "speed"
+    assert config["storage_format"] == "csv"
+    assert config["save_negotiations_as_folders"] is True
+    assert config["save_every"] == 1
+    assert config["save_stats"] is False
+    assert config["save_scenario_figs"] is False
+    assert config["recalculate_stats"] is True
+    assert config["image_format"] == "png"
+    assert config["raise_exceptions"] is False
+    assert config["only_failures_on_self_play"] is True
+    assert config["metadata"]["test_key"] == "test_value"
+
+    # Verify callback indicators
+    assert config["has_before_start_callback"] is False
+    assert config["has_after_end_callback"] is False
+
+
+def test_config_new_parameters_saved_with_defaults(tmp_path: Path):
+    """Test that new parameters are saved even when using default values."""
+    import yaml
+
+    path = tmp_path / "tournament_defaults"
+    issues = (make_issue([f"q{i}" for i in range(3)], "quantity"),)
+    ufuns = [
+        (
+            U.random(issues=issues, reserved_value=(0.0, 0.2), normalized=False),
+            U.random(issues=issues, reserved_value=(0.0, 0.2), normalized=False),
+        )
+    ]
+    scenarios = [Scenario(outcome_space=make_os(issues, name="S0"), ufuns=ufuns[0])]
+    competitors = [RandomNegotiator]
+
+    # Run with all defaults
+    cartesian_tournament(
+        competitors=competitors,
+        scenarios=scenarios,
+        n_steps=5,
+        n_repetitions=1,
+        verbosity=0,
+        path=path,
+        njobs=-1,
+    )
+
+    config_path = path / CONFIG_FILE_NAME
+    with open(config_path) as f:
+        config = yaml.safe_load(f)
+
+    # Verify new parameters have their default values saved
+    assert config["distribute_opponent_modeling_scores"] is True, (
+        "distribute_opponent_modeling_scores should default to True"
+    )
+    assert config["reserved_value_eps"] == 0.0, (
+        "reserved_value_eps should default to 0.0"
+    )
+    assert config["normalize_ufuns"] is True, "normalize_ufuns should default to True"
+    assert config["save_negotiations_as_folders"] is False, (
+        "save_negotiations_as_folders should default to False"
+    )
+    # opponent_modeling_metrics defaults to empty tuple, serialized as empty list or null
+    opp_metrics = config.get("opponent_modeling_metrics", [])
+    assert opp_metrics is None or len(opp_metrics) == 0, (
+        f"opponent_modeling_metrics should default to empty, got: {opp_metrics}"
+    )

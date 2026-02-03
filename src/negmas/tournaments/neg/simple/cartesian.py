@@ -1971,6 +1971,7 @@ def _make_record(
     stats,
     scored_indices: list[int] | None = None,
     opponent_modeling_metrics: tuple[COMPARE_UFUN_METHOD_TYPE, ...] = (),
+    distribute_opponent_modeling_scores: bool = True,
 ) -> dict[str, Any]:
     """Create a detailed record dictionary from a completed negotiation.
 
@@ -2047,12 +2048,81 @@ def _make_record(
 
     # Calculate opponent modeling scores if metrics are specified
     if opponent_modeling_metrics:
+        # Handle anl2026 special metric: it adds kendall_optimality internally
+        # but is calculated specially as advantage + normalized kendall_optimality
+        has_anl2026 = "anl2026" in opponent_modeling_metrics
+        # Filter out anl2026 from metrics passed to _calc_opponent_model_scores
+        # (it's not a valid compare_ufuns method)
+        actual_metrics = tuple(m for m in opponent_modeling_metrics if m != "anl2026")
+        # If anl2026 is requested, ensure kendall_optimality is included
+        if has_anl2026 and "kendall_optimality" not in actual_metrics:
+            actual_metrics = actual_metrics + ("kendall_optimality",)
+
         opp_scores = _calc_opponent_model_scores(
             negotiators=list(m.negotiators),
             actual_ufuns=list(s.ufuns),
-            metrics=opponent_modeling_metrics,
+            metrics=actual_metrics,
             outcome_space=s.outcome_space,
         )
+
+        # Apply distribution (normalization) if requested
+        if distribute_opponent_modeling_scores:
+            for key, values in opp_scores.items():
+                if isinstance(values, list) and len(values) > 0:
+                    total = sum(v for v in values if not isnan(v))
+                    if total > 0:
+                        opp_scores[key] = [
+                            v / total if not isnan(v) else float("nan") for v in values
+                        ]
+                    else:
+                        # Total is zero or negative: set everyone to 0
+                        # (0 means "no opponent model" for all metrics)
+                        opp_scores[key] = [0.0 for _ in values]
+
+        # Calculate anl2026 metric if requested
+        # anl2026 = advantage + normalized_kendall_optimality
+        # Note: kendall_optimality is ALWAYS distributed for anl2026, regardless of
+        # the distribute_opponent_modeling_scores setting
+        if has_anl2026:
+            kendall_key = "opp_kendall_optimality"
+            if kendall_key in opp_scores:
+                # Get raw kendall values and normalize them for anl2026
+                # (this is separate from the distribute_opponent_modeling_scores normalization)
+                kendall_values = opp_scores[kendall_key]
+                total = sum(v for v in kendall_values if not isnan(v))
+                if total > 0:
+                    normalized_kendall = [
+                        v / total if not isnan(v) else float("nan")
+                        for v in kendall_values
+                    ]
+                else:
+                    # Total is zero or negative: set everyone to 0
+                    # (0 means "no opponent model")
+                    normalized_kendall = [0.0] * len(kendall_values)
+
+                n_negotiators = len(kendall_values)
+
+                # Calculate advantage for each negotiator
+                advantages = []
+                for i in range(n_negotiators):
+                    u = agreement_utils[i]
+                    r = reservations[i]
+                    mx = max_utils[i]
+                    mn = min_utils[i]
+                    if (isinf(r) and r < 0) or isnan(r):
+                        adv = u - mn if not isnan(mn) else 0.0
+                    elif mx != r:
+                        adv = (u - r) / (mx - r)
+                    else:
+                        adv = 0.0
+                    advantages.append(adv)
+
+                # anl2026 = advantage + normalized_kendall_optimality
+                opp_scores["opp_anl2026"] = [
+                    adv + k if not isnan(k) else adv
+                    for adv, k in zip(advantages, normalized_kendall)
+                ]
+
         run_record.update(opp_scores)
 
     return run_record
@@ -2297,6 +2367,7 @@ def run_negotiation(
     storage_format: StorageFormat | None = None,
     save_negotiations_as_folders: bool = False,
     opponent_modeling_metrics: tuple[COMPARE_UFUN_METHOD_TYPE, ...] = (),
+    distribute_opponent_modeling_scores: bool = True,
 ) -> dict[str, Any]:
     """Run a single negotiation session and return comprehensive results.
 
@@ -2492,6 +2563,7 @@ def run_negotiation(
         stats=stats,
         scored_indices=scored_indices,
         opponent_modeling_metrics=opponent_modeling_metrics,
+        distribute_opponent_modeling_scores=distribute_opponent_modeling_scores,
     )
     if after_end_callback:
         try:
@@ -2958,6 +3030,7 @@ def cartesian_tournament(
     opponent_modeling_metrics: tuple[
         COMPARE_UFUN_METHOD_TYPE, ...
     ] = (),  # valid values are
+    distribute_opponent_modeling_scores: bool = True,
     raw_aggregated_metrics: dict[str, Callable[[dict[str, float]], float]]
     | None = None,
     stats_aggregated_metrics: dict[str, Callable[[dict[tuple[str, str], float]], float]]
@@ -3465,6 +3538,9 @@ def cartesian_tournament(
         private_infos=serialize(
             private_infos, python_class_identifier=python_class_identifier
         ),
+        opponent_modeling_metrics=serialize(opponent_modeling_metrics),
+        raw_aggregated_metrics=serialize(raw_aggregated_metrics),
+        stats_aggregated_metrics=serialize(stats_aggregated_metrics),
         rotate_ufuns=rotate_ufuns,
         rotate_private_infos=rotate_private_infos,
         n_repetitions=n_repetitions,
@@ -3505,6 +3581,8 @@ def cartesian_tournament(
         ignore_discount=ignore_discount,
         ignore_reserved=ignore_reserved,
         normalize_ufuns=normalize_ufuns,
+        reserved_value_eps=reserved_value_eps,
+        distribute_opponent_modeling_scores=distribute_opponent_modeling_scores,
         storage_optimization=storage_optimization,
         memory_optimization=memory_optimization,
         storage_format=storage_format,
@@ -3876,6 +3954,7 @@ def cartesian_tournament(
                         storage_format=effective_storage_format,
                         save_negotiations_as_folders=save_negotiations_as_folders,
                         opponent_modeling_metrics=opponent_modeling_metrics,
+                        distribute_opponent_modeling_scores=distribute_opponent_modeling_scores,
                     )
                     # Add run_id for identifying completed runs
                     run_dict["run_id"] = hash_to_base64(
@@ -4432,6 +4511,12 @@ def continue_cartesian_tournament(
             save_scenario_figs=config["save_scenario_figs"],
             recalculate_stats=config.get("recalculate_stats", False),
             image_format=config.get("image_format", DEFAULT_IMAGE_FORMAT),
+            opponent_modeling_metrics=config.get("opponent_modeling_metrics", ()),
+            distribute_opponent_modeling_scores=config.get(
+                "distribute_opponent_modeling_scores", True
+            ),
+            raw_aggregated_metrics=config.get("raw_aggregated_metrics"),
+            stats_aggregated_metrics=config.get("stats_aggregated_metrics"),
             final_score=config["final_score"],
             id_reveals_type=config["id_reveals_type"],
             name_reveals_type=config["name_reveals_type"],
@@ -4440,9 +4525,14 @@ def continue_cartesian_tournament(
             only_failures_on_self_play=config.get("only_failures_on_self_play", False),
             ignore_discount=config["ignore_discount"],
             ignore_reserved=config["ignore_reserved"],
+            normalize_ufuns=config.get("normalize_ufuns", True),
+            reserved_value_eps=config.get("reserved_value_eps", 0.0),
             storage_optimization=config["storage_optimization"],
             memory_optimization=config["memory_optimization"],
             storage_format=config.get("storage_format"),
+            save_negotiations_as_folders=config.get(
+                "save_negotiations_as_folders", False
+            ),
             python_class_identifier=config.get(
                 "python_class_identifier", PYTHON_CLASS_IDENTIFIER
             ),
