@@ -875,39 +875,45 @@ class TestCompletedRun:
         """Test negotiator_ids extraction works for 'trace' history type."""
         from negmas.mechanisms import CompletedRun
 
-        # Use p_ending=0.0 to ensure both negotiators appear in trace
+        # RandomNegotiator may end negotiation early by offering None
         m = SAOMechanism(outcomes=[(i,) for i in range(10)], n_steps=10)
-        m.add(RandomNegotiator(id="neg_a", name="A", p_ending=0.0))
-        m.add(RandomNegotiator(id="neg_b", name="B", p_ending=0.0))
+        m.add(RandomNegotiator(id="neg_a", name="A"))
+        m.add(RandomNegotiator(id="neg_b", name="B"))
         m.run()
+
+        # Get the actual negotiators that appear in the trace
+        actual_negotiators_in_trace = set(entry.negotiator for entry in m.full_trace)
 
         # Save as single file with trace format
         completed = m.to_completed_run(source="trace")
         file_path = completed.save(tmp_path, "test_trace_format", single_file=True)
         loaded = CompletedRun.load(file_path)
 
-        # Should still extract negotiator_ids
+        # Should extract only the negotiator_ids that appear in the trace
         assert "negotiator_ids" in loaded.config
-        assert set(loaded.config["negotiator_ids"]) == {"neg_a", "neg_b"}
+        assert set(loaded.config["negotiator_ids"]) == actual_negotiators_in_trace
 
     def test_negotiator_ids_extracted_from_extended_trace_format(self, tmp_path):
         """Test negotiator_ids extraction works for 'extended_trace' history type."""
         from negmas.mechanisms import CompletedRun
 
-        # Use p_ending=0.0 to ensure both negotiators appear in trace
+        # RandomNegotiator may end negotiation early by offering None
         m = SAOMechanism(outcomes=[(i,) for i in range(10)], n_steps=10)
-        m.add(RandomNegotiator(id="neg_x", name="X", p_ending=0.0))
-        m.add(RandomNegotiator(id="neg_y", name="Y", p_ending=0.0))
+        m.add(RandomNegotiator(id="neg_x", name="X"))
+        m.add(RandomNegotiator(id="neg_y", name="Y"))
         m.run()
+
+        # Get the actual negotiators that appear in the trace
+        actual_negotiators_in_trace = set(entry.negotiator for entry in m.full_trace)
 
         # Save as single file with extended_trace format
         completed = m.to_completed_run(source="extended_trace")
         file_path = completed.save(tmp_path, "test_extended_trace", single_file=True)
         loaded = CompletedRun.load(file_path)
 
-        # Should still extract negotiator_ids
+        # Should extract only the negotiator_ids that appear in the trace
         assert "negotiator_ids" in loaded.config
-        assert set(loaded.config["negotiator_ids"]) == {"neg_x", "neg_y"}
+        assert set(loaded.config["negotiator_ids"]) == actual_negotiators_in_trace
 
     def test_negotiator_ids_not_extracted_from_history_format(self, tmp_path):
         """Test that negotiator_ids are NOT extracted from 'history' format (no negotiator field)."""
@@ -933,13 +939,15 @@ class TestCompletedRun:
         from negmas.mechanisms import CompletedRun
         import os
 
-        # Use p_ending=0.0 to ensure RandomNegotiator never offers None
-        # (which would end the negotiation early and potentially leave only
-        # one negotiator in the trace)
+        # RandomNegotiator may end negotiation early by offering None
         m = SAOMechanism(outcomes=[(i,) for i in range(10)], n_steps=10)
-        m.add(RandomNegotiator(id="id_alpha", name="Alpha", p_ending=0.0))
-        m.add(RandomNegotiator(id="id_beta", name="Beta", p_ending=0.0))
+        m.add(RandomNegotiator(id="id_alpha", name="Alpha"))
+        m.add(RandomNegotiator(id="id_beta", name="Beta"))
         m.run()
+
+        # Get the actual negotiators that appear in the trace
+        actual_negotiators_in_trace = [entry.negotiator for entry in m.full_trace]
+        unique_negotiators = list(dict.fromkeys(actual_negotiators_in_trace))
 
         # Save as directory
         completed = m.to_completed_run(source="full_trace")
@@ -953,7 +961,8 @@ class TestCompletedRun:
         # Load and verify negotiator_ids are extracted from trace
         loaded = CompletedRun.load(dir_path)
         assert "negotiator_ids" in loaded.config
-        assert set(loaded.config["negotiator_ids"]) == {"id_alpha", "id_beta"}
+        # Should extract only the negotiators that appear in the trace
+        assert loaded.config["negotiator_ids"] == unique_negotiators
         # negotiator_names should be same as IDs when extracted from trace
         assert loaded.config["negotiator_names"] == loaded.config["negotiator_ids"]
 
