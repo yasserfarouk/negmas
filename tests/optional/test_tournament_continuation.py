@@ -237,6 +237,51 @@ def test_continue_returns_existing_complete_tournament(tmp_path):
     assert len(results1.final_scores) == len(results2.final_scores)
 
 
+@pytest.mark.parametrize("storage_format", ["csv", "gzip", "parquet"])
+def test_save_every_respects_storage_format(tmp_path, storage_format):
+    """Test that save_every uses the correct storage format."""
+    scenarios = make_test_scenarios(2)
+    competitors = [RandomNegotiator, AspirationNegotiator]
+    tournament_path = tmp_path / f"test_save_every_{storage_format}"
+
+    # Map format to expected extension
+    ext_map = {"csv": ".csv", "gzip": ".csv.gz", "parquet": ".parquet"}
+    expected_ext = ext_map[storage_format]
+
+    # Run with save_every=1 so intermediate files are saved
+    cartesian_tournament(
+        competitors=competitors,
+        scenarios=scenarios,
+        n_steps=10,
+        n_repetitions=1,
+        path=tournament_path,
+        path_exists="fail",
+        verbosity=0,
+        rotate_ufuns=False,
+        storage_format=storage_format,
+        storage_optimization="speed",  # Keep all files
+        save_every=1,  # Save after every negotiation
+        njobs=-1,  # Serial execution to ensure save_every is triggered
+    )
+
+    # Check that details and all_scores files exist with the correct extension
+    details_file = tournament_path / f"details{expected_ext}"
+    scores_file = tournament_path / f"all_scores{expected_ext}"
+
+    assert details_file.exists(), f"details{expected_ext} should exist"
+    assert scores_file.exists(), f"all_scores{expected_ext} should exist"
+
+    # Ensure files with wrong extensions don't exist (verifies correct format)
+    for wrong_ext in [".csv", ".csv.gz", ".parquet"]:
+        if wrong_ext != expected_ext:
+            assert not (tournament_path / f"details{wrong_ext}").exists(), (
+                f"details{wrong_ext} should NOT exist when storage_format={storage_format}"
+            )
+            assert not (tournament_path / f"all_scores{wrong_ext}").exists(), (
+                f"all_scores{wrong_ext} should NOT exist when storage_format={storage_format}"
+            )
+
+
 if __name__ == "__main__":
     import tempfile
 
@@ -263,6 +308,13 @@ if __name__ == "__main__":
     print("\nTesting continue returns existing complete tournament...")
     with tempfile.TemporaryDirectory() as tmp:
         test_continue_returns_existing_complete_tournament(Path(tmp))
+    print("✓ Pass")
+
+    print("\nTesting save_every respects storage format...")
+    for fmt in ["csv", "gzip", "parquet"]:
+        with tempfile.TemporaryDirectory() as tmp:
+            test_save_every_respects_storage_format(Path(tmp), fmt)
+        print(f"  ✓ {fmt}")
     print("✓ Pass")
 
     print("\n✅ All tests passed!")

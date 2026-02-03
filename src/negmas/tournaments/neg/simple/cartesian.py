@@ -386,7 +386,7 @@ TERMINATION_WAIT_TIME = 10.0
 DEFAULT_IMAGE_FORMAT = "webp"
 SUPPORTED_IMAGE_FORMATS = {"webp", "png", "jpg", "jpeg", "svg", "pdf"}
 
-EXTENSION = ".csv"
+EXTENSION = DEFAULT_TABLE_STORAGE_FORMAT
 ALL_SCORES_FILE_NAME = f"all_scores{EXTENSION}"
 ALL_RESULTS_FILE_NAME = f"details{EXTENSION}"
 TYPE_SCORES_FILE_NAME = f"type_scores{EXTENSION}"
@@ -3950,8 +3950,6 @@ def cartesian_tournament(
             flush=True,
         )
     results, scores = [], []
-    results_path = path if not path else path / ALL_RESULTS_FILE_NAME
-    scores_path = path if not path else path / ALL_SCORES_FILE_NAME
 
     def process_record(record, results=results, scores=scores):
         """Process record.
@@ -3971,9 +3969,19 @@ def cartesian_tournament(
             scored_indices=record.get("scored_indices"),
             raw_aggregated_metrics=raw_aggregated_metrics,
         )
-        if results_path and save_every and i % save_every == 0:
-            pd.DataFrame.from_records(results).to_csv(results_path, index_label="index")
-            pd.DataFrame.from_records(scores).to_csv(scores_path, index_label="index")
+        if path and save_every and i % save_every == 0:
+            _save_dataframe(
+                pd.DataFrame.from_records(results),
+                path,
+                "details",
+                effective_storage_format,
+            )
+            _save_dataframe(
+                pd.DataFrame.from_records(scores),
+                path,
+                "all_scores",
+                effective_storage_format,
+            )
         return results, scores
 
     def get_run_id(info) -> str:
