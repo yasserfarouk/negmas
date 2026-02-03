@@ -370,6 +370,32 @@ class CompletedRun(Generic[TState]):
         if not path.exists():
             raise FileNotFoundError(f"Path not found: {path}")
 
+        def _extract_negotiator_ids_from_history(
+            history: list, history_type: str
+        ) -> list[str]:
+            """Extract unique negotiator IDs from history in order of first appearance."""
+            seen: set[str] = set()
+            negotiator_ids: list[str] = []
+            for record in history:
+                negotiator_id: str | None = None
+                if history_type in (
+                    "trace",
+                    "extended_trace",
+                    "full_trace",
+                    "full_trace_with_utils",
+                ):
+                    # These have a "negotiator" field
+                    if isinstance(record, dict):
+                        negotiator_id = record.get("negotiator")
+                    elif hasattr(record, "negotiator"):
+                        negotiator_id = record.negotiator
+                # For "history" type (state dicts), there's no single negotiator field
+                # so we skip extraction for that type
+                if negotiator_id is not None and negotiator_id not in seen:
+                    seen.add(negotiator_id)
+                    negotiator_ids.append(negotiator_id)
+            return negotiator_ids
+
         if path.is_file():
             # Single-file mode: load just the trace
             history = load_table(path, as_dataframe=False)
@@ -402,6 +428,15 @@ class CompletedRun(Generic[TState]):
                         history_type = "trace"
                     # else: remains "history" (state dicts)
 
+            # Extract negotiator IDs from history since config.yaml doesn't exist for single-file mode
+            negotiator_ids = _extract_negotiator_ids_from_history(history, history_type)
+            config: dict[str, Any] = {}
+            if negotiator_ids:
+                config["negotiator_ids"] = negotiator_ids
+                config["negotiator_names"] = (
+                    negotiator_ids  # Use IDs as names when no config exists
+                )
+
             return cls(
                 history=history,  # type: ignore
                 history_type=history_type,
@@ -409,7 +444,7 @@ class CompletedRun(Generic[TState]):
                 agreement=None,
                 agreement_stats=None,
                 outcome_stats={},
-                config={},
+                config=config,
                 metadata={},
             )
 
@@ -471,6 +506,15 @@ class CompletedRun(Generic[TState]):
         if load_config:
             config_path = path / "config.yaml"
             config = load(config_path) if config_path.exists() else {}
+
+        # If config doesn't have negotiator_ids, extract them from history
+        if "negotiator_ids" not in config:
+            negotiator_ids = _extract_negotiator_ids_from_history(history, history_type)
+            if negotiator_ids:
+                config["negotiator_ids"] = negotiator_ids
+                config["negotiator_names"] = config.get(
+                    "negotiator_names", negotiator_ids
+                )
 
         # Load outcome stats if present
         outcome_stats_path = path / "outcome_stats.yaml"

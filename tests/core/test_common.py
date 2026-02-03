@@ -788,6 +788,170 @@ class TestCompletedRun:
         # But outcome_stats.yaml should exist and contain the optimality stats
         assert (save_path / "outcome_stats.yaml").exists()
 
+    def test_negotiator_ids_same_for_file_and_folder_save(self, tmp_path):
+        """Test that negotiator_ids are the same when saving as file vs folder."""
+        from negmas.mechanisms import CompletedRun
+
+        # Use more outcomes and steps to ensure both negotiators appear in trace
+        m = SAOMechanism(outcomes=[(i,) for i in range(100)], n_steps=50)
+        m.add(RandomNegotiator(id="neg_id_1", name="Alice"))
+        m.add(RandomNegotiator(id="neg_id_2", name="Bob"))
+        m.run()
+
+        # Get the original negotiator IDs from the mechanism
+        original_ids = m.negotiator_ids
+
+        # Only run the test if both negotiators actually made moves in the trace
+        negotiators_in_trace = set(t.negotiator for t in m.full_trace)
+        if len(negotiators_in_trace) < 2:
+            pytest.skip("Negotiation ended before both negotiators made moves")
+
+        # Save as directory (has config.yaml)
+        completed_dir = m.to_completed_run(source="full_trace")
+        dir_path = completed_dir.save(tmp_path, "test_dir", single_file=False)
+        loaded_dir = CompletedRun.load(dir_path)
+
+        # Save as single file (no config.yaml, must extract from trace)
+        completed_file = m.to_completed_run(source="full_trace")
+        file_path = completed_file.save(tmp_path, "test_file", single_file=True)
+        loaded_file = CompletedRun.load(file_path)
+
+        # Both should have negotiator_ids in config
+        assert "negotiator_ids" in loaded_dir.config
+        assert "negotiator_ids" in loaded_file.config
+
+        # The negotiator_ids should be the same for both save modes
+        assert (
+            loaded_dir.config["negotiator_ids"] == loaded_file.config["negotiator_ids"]
+        )
+
+        # And they should match the original mechanism's negotiator_ids
+        assert loaded_dir.config["negotiator_ids"] == original_ids
+        assert loaded_file.config["negotiator_ids"] == original_ids
+
+        # For single-file mode, negotiator_names should equal negotiator_ids
+        assert (
+            loaded_file.config["negotiator_names"]
+            == loaded_file.config["negotiator_ids"]
+        )
+
+    def test_negotiator_ids_extracted_in_order_of_appearance(self, tmp_path):
+        """Test that negotiator_ids are extracted in order of first appearance in trace."""
+        from negmas.mechanisms import CompletedRun
+
+        # Use more steps and outcomes to ensure both negotiators appear in trace
+        m = SAOMechanism(outcomes=[(i,) for i in range(100)], n_steps=50)
+        # Add negotiators with specific IDs
+        m.add(RandomNegotiator(id="first_neg", name="First"))
+        m.add(RandomNegotiator(id="second_neg", name="Second"))
+        m.run()
+
+        # Only run the test if both negotiators actually made moves
+        negotiators_in_trace = set(t.negotiator for t in m.full_trace)
+        if len(negotiators_in_trace) < 2:
+            pytest.skip("Negotiation ended before both negotiators made moves")
+
+        # Save as single file
+        completed = m.to_completed_run(source="full_trace")
+        file_path = completed.save(tmp_path, "test_order", single_file=True)
+        loaded = CompletedRun.load(file_path)
+
+        # Check order matches the order negotiators appear in the trace
+        negotiator_ids = loaded.config["negotiator_ids"]
+        assert len(negotiator_ids) == 2
+
+        # Verify the IDs are extracted in order of appearance
+        # The first negotiator to make an offer should appear first
+        first_negotiator_in_trace = None
+        for record in loaded.history:
+            if isinstance(record, dict) and record.get("negotiator"):
+                first_negotiator_in_trace = record["negotiator"]
+                break
+
+        if first_negotiator_in_trace:
+            assert negotiator_ids[0] == first_negotiator_in_trace
+
+    def test_negotiator_ids_extracted_from_trace_format(self, tmp_path):
+        """Test negotiator_ids extraction works for 'trace' history type."""
+        from negmas.mechanisms import CompletedRun
+
+        m = SAOMechanism(outcomes=[(i,) for i in range(10)], n_steps=10)
+        m.add(RandomNegotiator(id="neg_a", name="A"))
+        m.add(RandomNegotiator(id="neg_b", name="B"))
+        m.run()
+
+        # Save as single file with trace format
+        completed = m.to_completed_run(source="trace")
+        file_path = completed.save(tmp_path, "test_trace_format", single_file=True)
+        loaded = CompletedRun.load(file_path)
+
+        # Should still extract negotiator_ids
+        assert "negotiator_ids" in loaded.config
+        assert set(loaded.config["negotiator_ids"]) == {"neg_a", "neg_b"}
+
+    def test_negotiator_ids_extracted_from_extended_trace_format(self, tmp_path):
+        """Test negotiator_ids extraction works for 'extended_trace' history type."""
+        from negmas.mechanisms import CompletedRun
+
+        m = SAOMechanism(outcomes=[(i,) for i in range(10)], n_steps=10)
+        m.add(RandomNegotiator(id="neg_x", name="X"))
+        m.add(RandomNegotiator(id="neg_y", name="Y"))
+        m.run()
+
+        # Save as single file with extended_trace format
+        completed = m.to_completed_run(source="extended_trace")
+        file_path = completed.save(tmp_path, "test_extended_trace", single_file=True)
+        loaded = CompletedRun.load(file_path)
+
+        # Should still extract negotiator_ids
+        assert "negotiator_ids" in loaded.config
+        assert set(loaded.config["negotiator_ids"]) == {"neg_x", "neg_y"}
+
+    def test_negotiator_ids_not_extracted_from_history_format(self, tmp_path):
+        """Test that negotiator_ids are NOT extracted from 'history' format (no negotiator field)."""
+        from negmas.mechanisms import CompletedRun
+
+        m = SAOMechanism(outcomes=[(i,) for i in range(10)], n_steps=10)
+        m.add(RandomNegotiator(id="neg_1", name="N1"))
+        m.add(RandomNegotiator(id="neg_2", name="N2"))
+        m.run()
+
+        # Save as single file with history format (state dicts, no negotiator field)
+        completed = m.to_completed_run(source="history")
+        file_path = completed.save(tmp_path, "test_history_format", single_file=True)
+        loaded = CompletedRun.load(file_path)
+
+        # history format doesn't have negotiator field, so negotiator_ids should be empty or not present
+        # The config will exist but negotiator_ids might be empty list
+        if "negotiator_ids" in loaded.config:
+            assert loaded.config["negotiator_ids"] == []
+
+    def test_negotiator_ids_extracted_when_config_yaml_missing(self, tmp_path):
+        """Test negotiator_ids are extracted from trace when config.yaml is missing in directory mode."""
+        from negmas.mechanisms import CompletedRun
+        import os
+
+        m = SAOMechanism(outcomes=[(i,) for i in range(10)], n_steps=10)
+        m.add(RandomNegotiator(id="id_alpha", name="Alpha"))
+        m.add(RandomNegotiator(id="id_beta", name="Beta"))
+        m.run()
+
+        # Save as directory
+        completed = m.to_completed_run(source="full_trace")
+        dir_path = completed.save(tmp_path, "test_missing_config", single_file=False)
+
+        # Delete config.yaml to simulate missing config
+        config_path = dir_path / "config.yaml"
+        assert config_path.exists()
+        os.remove(config_path)
+
+        # Load and verify negotiator_ids are extracted from trace
+        loaded = CompletedRun.load(dir_path)
+        assert "negotiator_ids" in loaded.config
+        assert set(loaded.config["negotiator_ids"]) == {"id_alpha", "id_beta"}
+        # negotiator_names should be same as IDs when extracted from trace
+        assert loaded.config["negotiator_names"] == loaded.config["negotiator_ids"]
+
 
 class TestCompletedRunConvert:
     """Tests for CompletedRun.convert() method."""
