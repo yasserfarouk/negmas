@@ -875,9 +875,10 @@ class TestCompletedRun:
         """Test negotiator_ids extraction works for 'trace' history type."""
         from negmas.mechanisms import CompletedRun
 
+        # Use p_ending=0.0 to ensure both negotiators appear in trace
         m = SAOMechanism(outcomes=[(i,) for i in range(10)], n_steps=10)
-        m.add(RandomNegotiator(id="neg_a", name="A"))
-        m.add(RandomNegotiator(id="neg_b", name="B"))
+        m.add(RandomNegotiator(id="neg_a", name="A", p_ending=0.0))
+        m.add(RandomNegotiator(id="neg_b", name="B", p_ending=0.0))
         m.run()
 
         # Save as single file with trace format
@@ -893,9 +894,10 @@ class TestCompletedRun:
         """Test negotiator_ids extraction works for 'extended_trace' history type."""
         from negmas.mechanisms import CompletedRun
 
+        # Use p_ending=0.0 to ensure both negotiators appear in trace
         m = SAOMechanism(outcomes=[(i,) for i in range(10)], n_steps=10)
-        m.add(RandomNegotiator(id="neg_x", name="X"))
-        m.add(RandomNegotiator(id="neg_y", name="Y"))
+        m.add(RandomNegotiator(id="neg_x", name="X", p_ending=0.0))
+        m.add(RandomNegotiator(id="neg_y", name="Y", p_ending=0.0))
         m.run()
 
         # Save as single file with extended_trace format
