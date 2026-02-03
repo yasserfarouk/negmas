@@ -4218,7 +4218,16 @@ def cartesian_tournament(
 
 
 def continue_cartesian_tournament(
-    path: Path | str, verbosity: int | None = None, njobs: int | None = None
+    path: Path | str,
+    verbosity: int | None = None,
+    njobs: int | None = None,
+    before_start_callback: BeforeStartCallback | None = None,
+    progress_callback: ProgressCallback | None = None,
+    neg_start_callback: NegStartCallback | None = None,
+    after_construction_callback: AfterConstructionCallback | None = None,
+    neg_progress_callback: NegProgressCallback | None = None,
+    neg_end_callback: NegEndCallback | None = None,
+    after_end_callback: AfterEndCallback | None = None,
 ) -> SimpleTournamentResults | None:
     """
     Continue or load a cartesian tournament from a saved path.
@@ -4233,6 +4242,13 @@ def continue_cartesian_tournament(
         path: Directory path containing the tournament (must have config.yaml and scenarios/)
         verbosity: Optional verbosity level to override the one in config.yaml
         njobs: Optional parallelization level to override the one in config.yaml
+        before_start_callback: Called before each negotiation run starts with RunInfo.
+        progress_callback: Called periodically during tournament execution with progress info.
+        neg_start_callback: Called when a negotiation starts with (run_id, initial_state).
+        after_construction_callback: Called after negotiation is constructed with ConstructedNegInfo.
+        neg_progress_callback: Called during negotiation with (run_id, current_state).
+        neg_end_callback: Called when a negotiation ends with (run_id, final_state).
+        after_end_callback: Called after each negotiation run completes with (RunInfo, Mechanism, results_dict).
 
     Returns:
         SimpleTournamentResults if tournament is valid, None otherwise
@@ -4259,6 +4275,17 @@ def continue_cartesian_tournament(
             Path("my_tournament/"),
             verbosity=2,
             njobs=-1,  # Serial execution for debugging
+        )
+        ```
+
+        ```python
+        # Continue with callbacks
+        def on_neg_end(run_id, state):
+            print(f"Negotiation {run_id} ended: agreement={state.agreement}")
+
+
+        results = continue_cartesian_tournament(
+            Path("my_tournament/"), neg_end_callback=on_neg_end
         )
         ```
     """
@@ -4412,6 +4439,13 @@ def continue_cartesian_tournament(
                 "python_class_identifier", PYTHON_CLASS_IDENTIFIER
             ),
             metadata=config.get("metadata"),
+            before_start_callback=before_start_callback,
+            progress_callback=progress_callback,
+            neg_start_callback=neg_start_callback,
+            after_construction_callback=after_construction_callback,
+            neg_progress_callback=neg_progress_callback,
+            neg_end_callback=neg_end_callback,
+            after_end_callback=after_end_callback,
         )
     except Exception as e:
         # Failed to reconstruct tournament parameters

@@ -194,9 +194,12 @@ def test_file_naming_convention(tmp_path):
         # Rep should be a number
         rep = name_parts[-2]
         assert rep.isdigit()
-        # run_id should be a hash (numeric string)
+        # run_id should be a URL-safe Base64 string (alphanumeric with - and _)
         run_id = name_parts[-1]
-        assert run_id.lstrip("-").isdigit()
+        # URL-safe Base64 contains only alphanumeric, '-', and '_' characters
+        assert all(c.isalnum() or c in "-_" for c in run_id), (
+            f"Invalid run_id format: {run_id}"
+        )
 
 
 def test_continue_returns_existing_complete_tournament(tmp_path):
