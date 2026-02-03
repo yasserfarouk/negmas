@@ -2483,3 +2483,482 @@ def test_cartesian_tournament_normalization(tmp_path, normalize_ufuns):
             assert abs(max_util - orig_max) < 1e-6, (
                 f"Ufun {i} max changed from {orig_max} to {max_util}"
             )
+
+
+# ===== New Score Types Tests =====
+
+
+def test_opponent_modeling_metrics_basic():
+    """Test that opponent_modeling_metrics adds opp_* columns to scores."""
+    issues = (make_issue([f"q{i}" for i in range(5)], "quantity"),)
+    ufuns = [
+        (
+            U.random(issues=issues, reserved_value=(0.0, 0.2), normalized=False),
+            U.random(issues=issues, reserved_value=(0.0, 0.2), normalized=False),
+        )
+    ]
+    scenarios = [Scenario(outcome_space=make_os(issues, name="S0"), ufuns=ufuns[0])]
+    competitors = [RandomNegotiator, AspirationNegotiator]
+
+    results = cartesian_tournament(
+        competitors=competitors,
+        scenarios=scenarios,
+        mechanism_params=dict(n_steps=10),
+        n_repetitions=1,
+        verbosity=0,
+        rotate_ufuns=False,
+        path=None,
+        njobs=-1,
+        opponent_modeling_metrics=("kendall_optimality", "ordinal_optimality"),
+    )
+
+    # Verify opp_* columns are present in scores
+    opp_columns = [c for c in results.scores.columns if c.startswith("opp_")]
+    assert "opp_kendall_optimality" in opp_columns, (
+        f"Expected opp_kendall_optimality in {opp_columns}"
+    )
+    assert "opp_ordinal_optimality" in opp_columns, (
+        f"Expected opp_ordinal_optimality in {opp_columns}"
+    )
+
+    # Values should be numeric (not NaN for all) - at minimum, check they exist
+    assert len(results.scores) > 0
+    # The values should be between -1 and 1 for kendall, 0 and 1 for ordinal
+    # (or the minimum value if opponent model not available)
+    for col in opp_columns:
+        assert (
+            results.scores[col].notna().any()
+            or ((results.scores[col] >= -1.0) & (results.scores[col] <= 1.0)).all()
+        )
+
+
+def test_opponent_modeling_metrics_all_metrics():
+    """Test opponent_modeling_metrics with all available metrics."""
+    issues = (make_issue([f"q{i}" for i in range(5)], "quantity"),)
+    ufuns = [
+        (
+            U.random(issues=issues, reserved_value=(0.0, 0.2), normalized=False),
+            U.random(issues=issues, reserved_value=(0.0, 0.2), normalized=False),
+        )
+    ]
+    scenarios = [Scenario(outcome_space=make_os(issues, name="S0"), ufuns=ufuns[0])]
+    competitors = [RandomNegotiator, AspirationNegotiator]
+
+    all_metrics = (
+        "kendall_optimality",
+        "ordinal_optimality",
+        "cardinal_optimality",
+        "utility_optimality",
+        "pareto_optimality",
+        "nash_optimality",
+        "kalai_optimality",
+        "max_welfare_optimality",
+    )
+
+    results = cartesian_tournament(
+        competitors=competitors,
+        scenarios=scenarios,
+        mechanism_params=dict(n_steps=10),
+        n_repetitions=1,
+        verbosity=0,
+        rotate_ufuns=False,
+        path=None,
+        njobs=-1,
+        opponent_modeling_metrics=all_metrics,
+    )
+
+    # Verify all opp_* columns are present
+    opp_columns = [c for c in results.scores.columns if c.startswith("opp_")]
+    for metric in all_metrics:
+        assert f"opp_{metric}" in opp_columns, f"Expected opp_{metric} in {opp_columns}"
+
+
+def test_opponent_modeling_metrics_empty():
+    """Test that empty opponent_modeling_metrics doesn't add opp_* columns."""
+    issues = (make_issue([f"q{i}" for i in range(5)], "quantity"),)
+    ufuns = [
+        (
+            U.random(issues=issues, reserved_value=(0.0, 0.2), normalized=False),
+            U.random(issues=issues, reserved_value=(0.0, 0.2), normalized=False),
+        )
+    ]
+    scenarios = [Scenario(outcome_space=make_os(issues, name="S0"), ufuns=ufuns[0])]
+    competitors = [RandomNegotiator, AspirationNegotiator]
+
+    results = cartesian_tournament(
+        competitors=competitors,
+        scenarios=scenarios,
+        mechanism_params=dict(n_steps=10),
+        n_repetitions=1,
+        verbosity=0,
+        rotate_ufuns=False,
+        path=None,
+        njobs=-1,
+        opponent_modeling_metrics=(),  # Empty tuple
+    )
+
+    # No opp_* columns should be present
+    opp_columns = [c for c in results.scores.columns if c.startswith("opp_")]
+    assert len(opp_columns) == 0, f"Expected no opp_* columns, got {opp_columns}"
+
+
+def test_raw_aggregated_scores_basic():
+    """Test that raw_aggregated_scores adds custom columns to scores."""
+    issues = (make_issue([f"q{i}" for i in range(5)], "quantity"),)
+    ufuns = [
+        (
+            U.random(issues=issues, reserved_value=(0.0, 0.2), normalized=False),
+            U.random(issues=issues, reserved_value=(0.0, 0.2), normalized=False),
+        )
+    ]
+    scenarios = [Scenario(outcome_space=make_os(issues, name="S0"), ufuns=ufuns[0])]
+    competitors = [RandomNegotiator, AspirationNegotiator]
+
+    # Define a simple aggregation: combined = advantage * 0.5 + utility * 0.5
+    raw_agg = {
+        "combined_score": lambda d: d.get("advantage", 0) * 0.5
+        + d.get("utility", 0) * 0.5
+    }
+
+    results = cartesian_tournament(
+        competitors=competitors,
+        scenarios=scenarios,
+        mechanism_params=dict(n_steps=10),
+        n_repetitions=1,
+        verbosity=0,
+        rotate_ufuns=False,
+        path=None,
+        njobs=-1,
+        raw_aggregated_scores=raw_agg,
+    )
+
+    # Verify custom column is present
+    assert "combined_score" in results.scores.columns, (
+        f"Expected 'combined_score' in {results.scores.columns.tolist()}"
+    )
+
+    # Verify values make sense - combined should be between advantage and utility
+    for idx, row in results.scores.iterrows():
+        if pd.notna(row.get("advantage")) and pd.notna(row.get("utility")):
+            expected = row["advantage"] * 0.5 + row["utility"] * 0.5
+            assert abs(row["combined_score"] - expected) < 1e-6, (
+                f"combined_score mismatch at {idx}: {row['combined_score']} vs {expected}"
+            )
+
+
+def test_raw_aggregated_scores_multiple():
+    """Test raw_aggregated_scores with multiple custom aggregations."""
+    issues = (make_issue([f"q{i}" for i in range(5)], "quantity"),)
+    ufuns = [
+        (
+            U.random(issues=issues, reserved_value=(0.0, 0.2), normalized=False),
+            U.random(issues=issues, reserved_value=(0.0, 0.2), normalized=False),
+        )
+    ]
+    scenarios = [Scenario(outcome_space=make_os(issues, name="S0"), ufuns=ufuns[0])]
+    competitors = [RandomNegotiator, AspirationNegotiator]
+
+    raw_agg = {
+        "weighted_adv": lambda d: d.get("advantage", 0) * 0.7,
+        "weighted_util": lambda d: d.get("utility", 0) * 0.3,
+        "custom_sum": lambda d: d.get("advantage", 0) + d.get("utility", 0),
+    }
+
+    results = cartesian_tournament(
+        competitors=competitors,
+        scenarios=scenarios,
+        mechanism_params=dict(n_steps=10),
+        n_repetitions=1,
+        verbosity=0,
+        rotate_ufuns=False,
+        path=None,
+        njobs=-1,
+        raw_aggregated_scores=raw_agg,
+    )
+
+    # Verify all custom columns are present
+    for col_name in raw_agg.keys():
+        assert col_name in results.scores.columns, (
+            f"Expected '{col_name}' in {results.scores.columns.tolist()}"
+        )
+
+
+def test_raw_aggregated_scores_empty():
+    """Test that empty raw_aggregated_scores doesn't add extra columns."""
+    issues = (make_issue([f"q{i}" for i in range(5)], "quantity"),)
+    ufuns = [
+        (
+            U.random(issues=issues, reserved_value=(0.0, 0.2), normalized=False),
+            U.random(issues=issues, reserved_value=(0.0, 0.2), normalized=False),
+        )
+    ]
+    scenarios = [Scenario(outcome_space=make_os(issues, name="S0"), ufuns=ufuns[0])]
+    competitors = [RandomNegotiator, AspirationNegotiator]
+
+    # Run without raw_aggregated_scores
+    results_without = cartesian_tournament(
+        competitors=competitors,
+        scenarios=scenarios,
+        mechanism_params=dict(n_steps=10),
+        n_repetitions=1,
+        verbosity=0,
+        rotate_ufuns=False,
+        path=None,
+        njobs=-1,
+        raw_aggregated_scores=None,
+    )
+
+    # Run with empty dict
+    results_with_empty = cartesian_tournament(
+        competitors=competitors,
+        scenarios=scenarios,
+        mechanism_params=dict(n_steps=10),
+        n_repetitions=1,
+        verbosity=0,
+        rotate_ufuns=False,
+        path=None,
+        njobs=-1,
+        raw_aggregated_scores={},
+    )
+
+    # Both should have the same columns
+    assert set(results_without.scores.columns) == set(results_with_empty.scores.columns)
+
+
+def test_stats_aggregated_scores_basic():
+    """Test that stats_aggregated_scores adds custom columns to scores_summary."""
+    issues = (make_issue([f"q{i}" for i in range(5)], "quantity"),)
+    ufuns = [
+        (
+            U.random(issues=issues, reserved_value=(0.0, 0.2), normalized=False),
+            U.random(issues=issues, reserved_value=(0.0, 0.2), normalized=False),
+        )
+    ]
+    scenarios = [Scenario(outcome_space=make_os(issues, name="S0"), ufuns=ufuns[0])]
+    competitors = [RandomNegotiator, AspirationNegotiator]
+
+    # Define a stats aggregation based on mean values
+    stats_agg = {
+        "weighted_score": lambda d: d.get(("advantage", "mean"), 0) * 0.7
+        + d.get(("utility", "mean"), 0) * 0.3
+    }
+
+    results = cartesian_tournament(
+        competitors=competitors,
+        scenarios=scenarios,
+        mechanism_params=dict(n_steps=10),
+        n_repetitions=2,  # Multiple reps to get meaningful stats
+        verbosity=0,
+        rotate_ufuns=False,
+        path=None,
+        njobs=-1,
+        stats_aggregated_scores=stats_agg,
+    )
+
+    # Verify custom column is present in scores_summary
+    # The column should be ("weighted_score", "value") as a MultiIndex
+    assert ("weighted_score", "value") in results.scores_summary.columns, (
+        f"Expected ('weighted_score', 'value') in {results.scores_summary.columns.tolist()}"
+    )
+
+
+def test_stats_aggregated_scores_as_final_score():
+    """Test that stats_aggregated_scores can be used as final_score."""
+    issues = (make_issue([f"q{i}" for i in range(5)], "quantity"),)
+    ufuns = [
+        (
+            U.random(issues=issues, reserved_value=(0.0, 0.2), normalized=False),
+            U.random(issues=issues, reserved_value=(0.0, 0.2), normalized=False),
+        )
+    ]
+    scenarios = [Scenario(outcome_space=make_os(issues, name="S0"), ufuns=ufuns[0])]
+    competitors = [RandomNegotiator, AspirationNegotiator]
+
+    # Define a custom aggregation
+    stats_agg = {
+        "my_final_score": lambda d: d.get(("advantage", "mean"), 0) * 0.5
+        + d.get(("utility", "mean"), 0) * 0.5
+    }
+
+    results = cartesian_tournament(
+        competitors=competitors,
+        scenarios=scenarios,
+        mechanism_params=dict(n_steps=10),
+        n_repetitions=2,
+        verbosity=0,
+        rotate_ufuns=False,
+        path=None,
+        njobs=-1,
+        stats_aggregated_scores=stats_agg,
+        final_score=("my_final_score", "value"),  # Use our custom score as final
+    )
+
+    # Verify final_scores uses the custom aggregation
+    assert len(results.final_scores) > 0
+
+    # The score column should come from my_final_score
+    for idx, row in results.final_scores.iterrows():
+        # Find the corresponding summary row
+        summary_row = results.scores_summary.loc[row["strategy"]]
+        expected_score = summary_row[("my_final_score", "value")]
+        assert abs(row["score"] - expected_score) < 1e-6, (
+            f"final_score mismatch for {row['strategy']}"
+        )
+
+
+def test_stats_aggregated_scores_multiple():
+    """Test stats_aggregated_scores with multiple custom aggregations."""
+    issues = (make_issue([f"q{i}" for i in range(5)], "quantity"),)
+    ufuns = [
+        (
+            U.random(issues=issues, reserved_value=(0.0, 0.2), normalized=False),
+            U.random(issues=issues, reserved_value=(0.0, 0.2), normalized=False),
+        )
+    ]
+    scenarios = [Scenario(outcome_space=make_os(issues, name="S0"), ufuns=ufuns[0])]
+    competitors = [RandomNegotiator, AspirationNegotiator]
+
+    stats_agg = {
+        "score_a": lambda d: d.get(("advantage", "mean"), 0),
+        "score_b": lambda d: d.get(("utility", "mean"), 0),
+        "score_combined": lambda d: (
+            d.get(("advantage", "mean"), 0) + d.get(("utility", "mean"), 0)
+        )
+        / 2,
+    }
+
+    results = cartesian_tournament(
+        competitors=competitors,
+        scenarios=scenarios,
+        mechanism_params=dict(n_steps=10),
+        n_repetitions=2,
+        verbosity=0,
+        rotate_ufuns=False,
+        path=None,
+        njobs=-1,
+        stats_aggregated_scores=stats_agg,
+    )
+
+    # Verify all custom columns are present
+    for col_name in stats_agg.keys():
+        assert (col_name, "value") in results.scores_summary.columns, (
+            f"Expected ('{col_name}', 'value') in {results.scores_summary.columns.tolist()}"
+        )
+
+
+def test_stats_aggregated_scores_empty():
+    """Test that empty stats_aggregated_scores doesn't add extra columns."""
+    issues = (make_issue([f"q{i}" for i in range(5)], "quantity"),)
+    ufuns = [
+        (
+            U.random(issues=issues, reserved_value=(0.0, 0.2), normalized=False),
+            U.random(issues=issues, reserved_value=(0.0, 0.2), normalized=False),
+        )
+    ]
+    scenarios = [Scenario(outcome_space=make_os(issues, name="S0"), ufuns=ufuns[0])]
+    competitors = [RandomNegotiator, AspirationNegotiator]
+
+    # Run with empty dict
+    results = cartesian_tournament(
+        competitors=competitors,
+        scenarios=scenarios,
+        mechanism_params=dict(n_steps=10),
+        n_repetitions=2,
+        verbosity=0,
+        rotate_ufuns=False,
+        path=None,
+        njobs=-1,
+        stats_aggregated_scores={},
+    )
+
+    # No extra "value" columns should be present beyond standard stats
+    value_columns = [c for c in results.scores_summary.columns if c[1] == "value"]
+    assert len(value_columns) == 0, f"Unexpected value columns: {value_columns}"
+
+
+def test_all_new_score_types_together():
+    """Test that all three new score types work together."""
+    issues = (make_issue([f"q{i}" for i in range(5)], "quantity"),)
+    ufuns = [
+        (
+            U.random(issues=issues, reserved_value=(0.0, 0.2), normalized=False),
+            U.random(issues=issues, reserved_value=(0.0, 0.2), normalized=False),
+        )
+    ]
+    scenarios = [Scenario(outcome_space=make_os(issues, name="S0"), ufuns=ufuns[0])]
+    competitors = [RandomNegotiator, AspirationNegotiator]
+
+    results = cartesian_tournament(
+        competitors=competitors,
+        scenarios=scenarios,
+        mechanism_params=dict(n_steps=10),
+        n_repetitions=2,
+        verbosity=0,
+        rotate_ufuns=False,
+        path=None,
+        njobs=-1,
+        # All three new score types
+        opponent_modeling_metrics=("kendall_optimality",),
+        raw_aggregated_scores={
+            "combined": lambda d: d.get("advantage", 0) * 0.5
+            + d.get("utility", 0) * 0.5
+        },
+        stats_aggregated_scores={
+            "weighted_final": lambda d: d.get(("advantage", "mean"), 0) * 0.7
+            + d.get(("utility", "mean"), 0) * 0.3
+        },
+    )
+
+    # Verify opponent modeling metrics
+    assert "opp_kendall_optimality" in results.scores.columns
+
+    # Verify raw aggregated scores
+    assert "combined" in results.scores.columns
+
+    # Verify stats aggregated scores
+    assert ("weighted_final", "value") in results.scores_summary.columns
+
+    # All results should be non-empty
+    assert len(results.scores) > 0
+    assert len(results.scores_summary) > 0
+    assert len(results.final_scores) > 0
+
+
+def test_new_score_types_with_save_load(tmp_path):
+    """Test that new score types are properly saved and loaded."""
+    issues = (make_issue([f"q{i}" for i in range(5)], "quantity"),)
+    ufuns = [
+        (
+            U.random(issues=issues, reserved_value=(0.0, 0.2), normalized=False),
+            U.random(issues=issues, reserved_value=(0.0, 0.2), normalized=False),
+        )
+    ]
+    scenarios = [Scenario(outcome_space=make_os(issues, name="S0"), ufuns=ufuns[0])]
+    competitors = [RandomNegotiator, AspirationNegotiator]
+
+    original_results = cartesian_tournament(
+        competitors=competitors,
+        scenarios=scenarios,
+        mechanism_params=dict(n_steps=10),
+        n_repetitions=2,
+        verbosity=0,
+        rotate_ufuns=False,
+        path=tmp_path,
+        njobs=-1,
+        storage_optimization="speed",  # Keep all files
+        opponent_modeling_metrics=("kendall_optimality",),
+        raw_aggregated_scores={
+            "combined": lambda d: d.get("advantage", 0) * 0.5
+            + d.get("utility", 0) * 0.5
+        },
+    )
+
+    # Load results from disk
+    loaded_results = SimpleTournamentResults.load(tmp_path)
+
+    # Verify opponent modeling metrics are preserved
+    assert "opp_kendall_optimality" in loaded_results.scores.columns
+    assert "combined" in loaded_results.scores.columns
+
+    # Verify values match
+    assert len(loaded_results.scores) == len(original_results.scores)

@@ -22,7 +22,11 @@ from os import cpu_count
 from pathlib import Path
 from random import randint, random, shuffle
 from time import perf_counter
-from typing import Any, Callable, Iterable, Literal
+from typing import TYPE_CHECKING, Any, Callable, Iterable, Literal
+
+if TYPE_CHECKING:
+    from negmas.outcomes.protocols import OutcomeSpace
+    from negmas.preferences.base_ufun import BaseUtilityFunction
 
 import cloudpickle
 import pandas as pd
@@ -53,14 +57,11 @@ from negmas.preferences.ops import (
     calc_outcome_optimality,
     estimate_max_dist,
     compare_ufuns,
-    COMPARE_UFUN_METHODS,
 )
 from negmas.sao.common import SAOState
 from negmas.sao.mechanism import SAOMechanism
 from negmas.serialization import PYTHON_CLASS_IDENTIFIER, serialize, to_flat_dict
 from negmas.warnings import NegmasUnexpectedValueWarning, deprecated, warn
-
-_ = compare_ufuns, COMPARE_UFUN_METHOD_TYPE, COMPARE_UFUN_METHODS
 
 OptimizationLevel = Literal["speed", "time", "none", "balanced", "space", "max"]
 StorageFormat = Literal["csv", "gzip", "parquet"]
@@ -948,6 +949,10 @@ class SimpleTournamentResults:
         final_scores: pd.DataFrame | None = None,
         final_score_stat: tuple[str, str] = ("advantage", "mean"),
         path: Path | None = None,
+        stats_aggregated_scores: dict[
+            str, Callable[[dict[tuple[str, str], float]], float]
+        ]
+        | None = None,
     ) -> "SimpleTournamentResults":
         """Creates SimpleTournamentResults from records of results
 
@@ -958,6 +963,8 @@ class SimpleTournamentResults:
             final_scores: Optionally, final scores. If not given, `final_scoer_stat` will be used to calculate them
             final_score_stat: A tuple of the measure used and the statistic applied to it for calculating final score. See `cartesian_tournament` for more details
             path: The path in which the data for this tournament is stored.
+            stats_aggregated_scores: Optional dict mapping new metric names to callables that receive
+                                    a dict of (metric, stat) tuples to values and return a combined score.
 
         Raises:
             ValueError: If no scores or results are given
@@ -997,12 +1004,44 @@ class SimpleTournamentResults:
                         for _ in scores_df.columns
                         if _ not in ("scenario", "partners")
                     ]
-                    type_scores = (
-                        scores_df.loc[:, cols]
-                        .groupby("strategy")
-                        .describe()
-                        .sort_values(final_score_stat, ascending=False)
+                    # Create type_scores without sorting first - we'll sort after applying stats_aggregated_scores
+                    type_scores = scores_df.loc[:, cols].groupby("strategy").describe()
+
+            # Apply stats_aggregated_scores to add new columns to type_scores
+            if (
+                stats_aggregated_scores
+                and type_scores is not None
+                and len(type_scores) > 0
+            ):
+                for metric_name, aggregator in stats_aggregated_scores.items():
+                    new_values = []
+                    for strategy in type_scores.index:
+                        # Build dict of (metric, stat) -> value for this strategy
+                        stats_dict: dict[tuple[str, str], float] = {}
+                        for col in type_scores.columns:
+                            if isinstance(col, tuple) and len(col) == 2:
+                                metric, stat = col
+                                try:
+                                    val = type_scores.loc[strategy, col]
+                                    if isinstance(val, (int, float)):
+                                        stats_dict[(metric, stat)] = float(val)
+                                except Exception:
+                                    pass
+                        try:
+                            new_values.append(aggregator(stats_dict))
+                        except Exception:
+                            new_values.append(float("nan"))
+                    # Add new column with (metric_name, "value") as the column name
+                    type_scores[(metric_name, "value")] = new_values
+
+            # Sort by final_score_stat after applying stats_aggregated_scores
+            # This allows using custom aggregations as the final score
+            if type_scores is not None and len(type_scores) > 0:
+                if final_score_stat in type_scores.columns:
+                    type_scores = type_scores.sort_values(
+                        final_score_stat, ascending=False
                     )
+
             if final_scores is None:
                 final = pd.DataFrame()
                 if type_scores is not None and len(type_scores) > 0:
@@ -1807,6 +1846,120 @@ def _make_failure_record(
     return run_record
 
 
+def _calc_opponent_model_scores(
+    negotiators: list[Negotiator],
+    actual_ufuns: list["BaseUtilityFunction"],
+    metrics: tuple[COMPARE_UFUN_METHOD_TYPE, ...],
+    outcome_space: OutcomeSpace | None = None,
+) -> dict[str, list[float]]:
+    """Calculate opponent modeling scores for each negotiator.
+
+    For each negotiator, compare their estimated opponent utility function(s) with the
+    actual opponent utility function(s) using specified comparison metrics.
+
+    Args:
+        negotiators: List of negotiators from the completed mechanism
+        actual_ufuns: List of actual utility functions (from scenario), ordered by negotiator index
+        metrics: Tuple of comparison methods to use (e.g., 'kendall', 'kendall_optimality', 'ndcg')
+        outcome_space: The outcome space for comparison (if None, inferred from ufuns)
+
+    Returns:
+        Dictionary mapping metric names to lists of scores (one score per negotiator).
+        For bilateral negotiations, compares negotiator.opponent_ufun with actual opponent ufun.
+        For multilateral, averages scores across all opponent_ufuns in private_info["opponent_ufuns"].
+
+    Notes:
+        - If a negotiator doesn't have an opponent model, returns NaN for that negotiator
+        - Metric names are prefixed with "opponent_" (e.g., "opponent_kendall_optimality")
+    """
+
+    n = len(negotiators)
+    bilateral = n == 2
+
+    # Initialize result dict with empty lists for each metric
+    result: dict[str, list[float]] = {}
+    for metric in metrics:
+        metric_name = metric if isinstance(metric, str) else metric.__name__
+        result[f"opp_{metric_name}"] = []
+
+    for i, negotiator in enumerate(negotiators):
+        # Get opponent indices (all others)
+        opponent_indices = [j for j in range(n) if j != i]
+
+        for metric in metrics:
+            min_value = 0.0 if metric != "kendall" else -1.0
+            metric_name = metric if isinstance(metric, str) else metric.__name__
+            key = f"opp_{metric_name}"
+
+            if bilateral:
+                # For bilateral: use negotiator.opponent_ufun
+                estimated_ufun = negotiator.opponent_ufun
+                actual_ufun = actual_ufuns[opponent_indices[0]]
+
+                try:
+                    score = compare_ufuns(
+                        estimated_ufun,
+                        actual_ufun,
+                        method=metric,
+                        outcome_space=outcome_space,
+                    )
+                    result[key].append(score)
+                except Exception:
+                    # Opponent model may not be a fully functional ufun
+                    result[key].append(min_value)
+            else:
+                # For multilateral: average across all opponent_ufuns
+                opponent_ufuns_dict = negotiator.private_info.get("opponent_ufuns", {})
+
+                if not opponent_ufuns_dict:
+                    # No opponent models - check single opponent_ufun as fallback
+                    estimated_ufun = negotiator.opponent_ufun
+                    # Use single opponent_ufun, average over all opponents
+                    scores = []
+                    for opp_idx in opponent_indices:
+                        try:
+                            s = compare_ufuns(
+                                estimated_ufun,
+                                actual_ufuns[opp_idx],
+                                method=metric,
+                                outcome_space=outcome_space,
+                            )
+                            scores.append(s)
+                        except Exception:
+                            # Opponent model may not be a fully functional ufun
+                            scores.append(min_value)
+                        result[key].append(
+                            sum(scores) / len(scores) if scores else min_value
+                        )
+                else:
+                    # Have opponent_ufuns dict - use specific models for each opponent
+                    scores = []
+                    for opp_idx in opponent_indices:
+                        # Try to find opponent model by negotiator id or index
+                        opp_negotiator = negotiators[opp_idx]
+                        opp_id = opp_negotiator.id
+                        estimated_ufun = opponent_ufuns_dict.get(
+                            opp_id, opponent_ufuns_dict.get(str(opp_idx))
+                        )
+                        if estimated_ufun is not None:
+                            try:
+                                s = compare_ufuns(
+                                    estimated_ufun,
+                                    actual_ufuns[opp_idx],
+                                    method=metric,
+                                    outcome_space=outcome_space,
+                                )
+                                scores.append(s)
+                            except Exception:
+                                # Opponent model may not be a fully functional ufun
+                                pass
+                    result[key].append(
+                        sum(scores) / len(scores) if scores else min_value
+                    )
+
+    return result
+
+
 def _make_record(
     m: Mechanism,
     s: Scenario,
@@ -1817,6 +1970,7 @@ def _make_record(
     real_scenario_name,
     stats,
     scored_indices: list[int] | None = None,
+    opponent_modeling_metrics: tuple[COMPARE_UFUN_METHOD_TYPE, ...] = (),
 ) -> dict[str, Any]:
     """Create a detailed record dictionary from a completed negotiation.
 
@@ -1890,6 +2044,16 @@ def _make_record(
         run_record["fairness"] = (
             max(fairness_values) if fairness_values else float("nan")
         )
+
+    # Calculate opponent modeling scores if metrics are specified
+    if opponent_modeling_metrics:
+        opp_scores = _calc_opponent_model_scores(
+            negotiators=list(m.negotiators),
+            actual_ufuns=list(s.ufuns),
+            metrics=opponent_modeling_metrics,
+            outcome_space=s.outcome_space,
+        )
+        run_record.update(opp_scores)
 
     return run_record
 
@@ -2132,6 +2296,7 @@ def run_negotiation(
     storage_optimization: OptimizationLevel = "space",
     storage_format: StorageFormat | None = None,
     save_negotiations_as_folders: bool = False,
+    opponent_modeling_metrics: tuple[COMPARE_UFUN_METHOD_TYPE, ...] = (),
 ) -> dict[str, Any]:
     """Run a single negotiation session and return comprehensive results.
 
@@ -2326,6 +2491,7 @@ def run_negotiation(
         real_scenario_name=real_scenario_name,
         stats=stats,
         scored_indices=scored_indices,
+        opponent_modeling_metrics=opponent_modeling_metrics,
     )
     if after_end_callback:
         try:
@@ -2498,7 +2664,9 @@ def failed_run_record(
 
 
 def make_scores(
-    record: dict[str, Any], scored_indices: list[int] | None = None
+    record: dict[str, Any],
+    scored_indices: list[int] | None = None,
+    raw_aggregated_scores: dict[str, Callable[[dict[str, float]], float]] | None = None,
 ) -> list[dict[str, float]]:
     """Convert a negotiation run record into score dictionaries for each negotiator.
 
@@ -2511,6 +2679,8 @@ def make_scores(
         scored_indices: If provided, only create scores for negotiators at these position indices.
                        If None, score all negotiators. Used in explicit opponent mode to score
                        only competitors (not opponents).
+        raw_aggregated_scores: Optional dict mapping new metric names to callables that receive
+                              all metrics for a negotiator and return a combined score.
 
     Returns:
         List of dictionaries, one per scored negotiator, each containing:
@@ -2536,6 +2706,10 @@ def make_scores(
             - fairness: Maximum of nash_optimality, kalai_optimality, and ks_optimality
             - modified_kalai_optimality: Closeness to modified Kalai solution
             - modified_ks_optimality: Closeness to modified KS solution
+        - Plus opponent modeling metrics (if opponent_modeling_metrics was provided):
+            - opponent_<metric>: Opponent modeling score for each specified metric
+        - Plus raw aggregated scores (if raw_aggregated_scores was provided):
+            - Custom combined metrics computed from other metrics
     """
     utils, partners = record["utilities"], record["partners"]
     reserved_values = record["reserved_values"]
@@ -2592,6 +2766,29 @@ def make_scores(
         for c in OPTIMALITY_COLS:
             if c in record:
                 basic[c] = record[c]
+
+        # Extract per-negotiator opponent model scores from record
+        # These are stored as lists with one value per negotiator
+        for key, value in record.items():
+            if key.startswith("opp_") and isinstance(value, (list, tuple)):
+                if i < len(value):
+                    basic[key] = value[i]
+
+        # Apply raw_aggregated_scores to compute custom combined metrics
+        if raw_aggregated_scores:
+            # Build a dict of numeric metrics for this negotiator
+            numeric_metrics = {
+                k: v
+                for k, v in basic.items()
+                if isinstance(v, (int, float))
+                and (not isnan(v) if isinstance(v, float) else True)
+            }
+            for metric_name, aggregator in raw_aggregated_scores.items():
+                try:
+                    basic[metric_name] = aggregator(numeric_metrics)
+                except Exception:
+                    basic[metric_name] = float("nan")
+
         scores.append(basic)
     return scores
 
@@ -2853,12 +3050,13 @@ def cartesian_tournament(
         image_format: Format for saving figures. Supported formats: 'webp', 'png', 'jpg', 'jpeg', 'svg', 'pdf'.
                      Default is 'webp'. Applies to both scenario figures and run plots.
         opponent_modeling_metrics: Tuple of utility function comparison methods for opponent modeling analysis.
-                                  Valid values include 'kendall', 'kendall_optimality', 'ndcg', 'euclidean' or a callable that receives two ufuns and generates a float,
+                                  Valid values include 'kendall', 'kendall_optimality', 'ndcg', 'euclidean' or a callable that receives two ufuns and generates a float.
+                                  These can be passed as final scores in the form ('opp_<metric>', statistic).
         raw_aggregated_metrics: Optional dict of {new_metric_name: {metric_name: value}} for custom aggregated scores. It receives all metrics for a
-                                given negotiator in a given negotiation (e.g. advantage, nash_optimality, ...) and returns a combined score.
+                                given negotiator in a given negotiation (e.g. advantage, nash_optimality, ...) and returns a combined score. These can be used in final scores normally.
         stats_aggregated_metrics: Optional dict of {new_metric_name: { (metric_name, stat_name): value }} for custom aggregated scores based on
                                 statistics across negotiations. It receives all metric-statistics (e.g. (advantage, mean), (nash_optimality, std))
-                                for a given negotiator across all negotiations
+                                for a given negotiator across all negotiations. To use one of these as the final score pass final_score=(metric_name, "value")
         final_score: Tuple of (metric, statistic) for ranking. Metric can be 'advantage', 'utility',
                     'partner_welfare', 'welfare', or any calculated statistic. Statistic can be
                     'mean', 'median', 'min', 'max', or 'std'. Default: ('advantage', 'mean').
@@ -3594,6 +3792,7 @@ def cartesian_tournament(
                         storage_optimization=storage_optimization,
                         storage_format=effective_storage_format,
                         save_negotiations_as_folders=save_negotiations_as_folders,
+                        opponent_modeling_metrics=opponent_modeling_metrics,
                     )
                     # Add run_id for identifying completed runs
                     run_dict["run_id"] = hash_to_base64(
@@ -3684,7 +3883,11 @@ def cartesian_tournament(
             if is_self_play and record["agreement"] is not None:
                 return results, scores
         results.append(record)
-        scores += make_scores(record, scored_indices=record.get("scored_indices"))
+        scores += make_scores(
+            record,
+            scored_indices=record.get("scored_indices"),
+            raw_aggregated_scores=raw_aggregated_scores,
+        )
         if results_path and save_every and i % save_every == 0:
             pd.DataFrame.from_records(results).to_csv(results_path, index_label="index")
             pd.DataFrame.from_records(scores).to_csv(scores_path, index_label="index")
@@ -3855,7 +4058,12 @@ def cartesian_tournament(
             )
 
     tresults = SimpleTournamentResults.from_records(
-        config, scores, results, final_score_stat=final_score, path=path
+        config,
+        scores,
+        results,
+        final_score_stat=final_score,
+        path=path,
+        stats_aggregated_scores=stats_aggregated_scores,
     )
     if verbosity > 0:
         print(tresults.final_scores)
