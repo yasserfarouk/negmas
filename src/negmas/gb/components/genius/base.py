@@ -38,6 +38,10 @@ class GeniusOpponentModel(VolatileUFunMixin, GBComponent, BaseUtilityFunction):
     private_info with learned opponent utility function estimates.
     """
 
+    def __attrs_post_init__(self) -> None:
+        """Initialize parent classes after attrs initialization."""
+        BaseUtilityFunction.__init__(self)
+
     def _update_private_info(self, partner_id: str | None = None) -> None:
         """Update the negotiator's private_info with this model.
 
