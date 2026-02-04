@@ -1868,10 +1868,9 @@ def plot_offline_run(
             mark_max_welfare_points=mark_max_welfare_points,
         )
 
-    # Update layout
+    # Update layout - use autosize for responsive sizing in viewers
     fig.update_layout(
-        width=1280 if not only2d and not no2d else None,
-        height=480 if not only2d and not no2d else None,
+        autosize=True,
         showlegend=True,
         legend=dict(orientation="h", yanchor="bottom", y=1.02, xanchor="center", x=0.5),
     )
@@ -2101,10 +2100,9 @@ def plot_mechanism_run(
             mark_max_welfare_points=mark_max_welfare_points,
         )
 
-    # Update layout
+    # Update layout - use autosize for responsive sizing in viewers
     fig.update_layout(
-        width=1280 if not only2d and not no2d else None,
-        height=480 if not only2d and not no2d else None,
+        autosize=True,
         showlegend=True,
         legend=dict(orientation="h", yanchor="bottom", y=1.02, xanchor="center", x=0.5),
     )
