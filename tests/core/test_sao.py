@@ -1565,3 +1565,379 @@ def test_time_consistency_across_multiple_mechanisms():
     for t in times:
         assert t > 0.0, "Each mechanism should have positive elapsed time"
         assert isinstance(t, float), "Time should be a float"
+
+
+# Tests for allow_none_with_data feature
+
+
+class NoneWithTextNegotiator(SAONegotiator):
+    """A negotiator that offers None with text data after a few rounds."""
+
+    def __init__(
+        self, *args, none_at_step: int = 2, text: str = "Just a message", **kwargs
+    ):
+        super().__init__(*args, **kwargs)
+        self._none_at_step = none_at_step
+        self._text = text
+
+    def propose(self, state):
+        from negmas.outcomes.common import ExtendedOutcome
+
+        if state.step >= self._none_at_step:
+            # Return None offer with text data
+            return ExtendedOutcome(outcome=None, data={"text": self._text})
+        # Return a valid offer
+        if self.ufun and self.ufun.outcome_space:
+            outcomes = list(
+                self.ufun.outcome_space.enumerate_or_sample(max_cardinality=10)
+            )
+            if outcomes:
+                return outcomes[0]
+        return None
+
+    def respond(self, state, source=None):
+        return ResponseType.REJECT_OFFER
+
+
+class AlwaysRejectNegotiator(SAONegotiator):
+    """A negotiator that always rejects and offers the first outcome."""
+
+    def propose(self, state):
+        if self.ufun and self.ufun.outcome_space:
+            outcomes = list(
+                self.ufun.outcome_space.enumerate_or_sample(max_cardinality=10)
+            )
+            if outcomes:
+                return outcomes[0]
+        return None
+
+    def respond(self, state, source=None):
+        return ResponseType.REJECT_OFFER
+
+
+class NoneWithoutDataNegotiator(SAONegotiator):
+    """A negotiator that offers None without any data after a few rounds."""
+
+    def __init__(self, *args, none_at_step: int = 2, **kwargs):
+        super().__init__(*args, **kwargs)
+        self._none_at_step = none_at_step
+
+    def propose(self, state):
+        if state.step >= self._none_at_step:
+            return None
+        if self.ufun and self.ufun.outcome_space:
+            outcomes = list(
+                self.ufun.outcome_space.enumerate_or_sample(max_cardinality=10)
+            )
+            if outcomes:
+                return outcomes[0]
+        return None
+
+    def respond(self, state, source=None):
+        return ResponseType.REJECT_OFFER
+
+
+class NoneWithEmptyDataNegotiator(SAONegotiator):
+    """A negotiator that offers None with empty data dict after a few rounds."""
+
+    def __init__(self, *args, none_at_step: int = 2, **kwargs):
+        super().__init__(*args, **kwargs)
+        self._none_at_step = none_at_step
+
+    def propose(self, state):
+        from negmas.outcomes.common import ExtendedOutcome
+
+        if state.step >= self._none_at_step:
+            return ExtendedOutcome(outcome=None, data={})
+        if self.ufun and self.ufun.outcome_space:
+            outcomes = list(
+                self.ufun.outcome_space.enumerate_or_sample(max_cardinality=10)
+            )
+            if outcomes:
+                return outcomes[0]
+        return None
+
+    def respond(self, state, source=None):
+        return ResponseType.REJECT_OFFER
+
+
+def test_allow_none_with_data_continues_negotiation():
+    """Test that None offers with data continue negotiation when allow_none_with_data=True."""
+    issues = [make_issue(10, "price"), make_issue(5, "quantity")]
+    session = SAOMechanism(
+        issues=issues, n_steps=10, end_on_no_response=True, allow_none_with_data=True
+    )
+
+    ufun1 = LUFun.random(session.outcome_space, reserved_value=0.0)
+    ufun2 = LUFun.random(session.outcome_space, reserved_value=0.0)
+
+    # NoneWithTextNegotiator will offer None with text at step 2
+    session.add(NoneWithTextNegotiator(name="sender", none_at_step=2), ufun=ufun1)
+    session.add(AlwaysRejectNegotiator(name="receiver"), ufun=ufun2)
+
+    session.run()
+
+    # Negotiation should NOT break - it should continue until n_steps or timeout
+    assert not session.state.broken, (
+        "Negotiation should not break when None offer has data"
+    )
+    assert session.state.step >= 2, (
+        "Negotiation should have progressed past the None offer"
+    )
+
+
+def test_allow_none_with_data_disabled_breaks_negotiation():
+    """Test that None offers break negotiation when allow_none_with_data=False."""
+    issues = [make_issue(10, "price"), make_issue(5, "quantity")]
+    session = SAOMechanism(
+        issues=issues, n_steps=10, end_on_no_response=True, allow_none_with_data=False
+    )
+
+    ufun1 = LUFun.random(session.outcome_space, reserved_value=0.0)
+    ufun2 = LUFun.random(session.outcome_space, reserved_value=0.0)
+
+    session.add(NoneWithTextNegotiator(name="sender", none_at_step=2), ufun=ufun1)
+    session.add(AlwaysRejectNegotiator(name="receiver"), ufun=ufun2)
+
+    session.run()
+
+    # Negotiation SHOULD break when allow_none_with_data=False
+    assert session.state.broken, (
+        "Negotiation should break when None offer and allow_none_with_data=False"
+    )
+
+
+def test_none_without_data_breaks_even_with_allow_none_with_data():
+    """Test that None offers without data break negotiation even with allow_none_with_data=True."""
+    issues = [make_issue(10, "price"), make_issue(5, "quantity")]
+    session = SAOMechanism(
+        issues=issues, n_steps=10, end_on_no_response=True, allow_none_with_data=True
+    )
+
+    ufun1 = LUFun.random(session.outcome_space, reserved_value=0.0)
+    ufun2 = LUFun.random(session.outcome_space, reserved_value=0.0)
+
+    session.add(NoneWithoutDataNegotiator(name="sender", none_at_step=2), ufun=ufun1)
+    session.add(AlwaysRejectNegotiator(name="receiver"), ufun=ufun2)
+
+    session.run()
+
+    # Negotiation SHOULD break because there's no data
+    assert session.state.broken, "Negotiation should break when None offer has no data"
+
+
+def test_none_with_empty_data_breaks_even_with_allow_none_with_data():
+    """Test that None offers with empty data break negotiation even with allow_none_with_data=True."""
+    issues = [make_issue(10, "price"), make_issue(5, "quantity")]
+    session = SAOMechanism(
+        issues=issues, n_steps=10, end_on_no_response=True, allow_none_with_data=True
+    )
+
+    ufun1 = LUFun.random(session.outcome_space, reserved_value=0.0)
+    ufun2 = LUFun.random(session.outcome_space, reserved_value=0.0)
+
+    session.add(NoneWithEmptyDataNegotiator(name="sender", none_at_step=2), ufun=ufun1)
+    session.add(AlwaysRejectNegotiator(name="receiver"), ufun=ufun2)
+
+    session.run()
+
+    # Negotiation SHOULD break because the data dict is empty
+    assert session.state.broken, (
+        "Negotiation should break when None offer has empty data"
+    )
+
+
+def test_none_with_data_recorded_in_state():
+    """Test that None offers with data are properly recorded in state."""
+    issues = [make_issue(10, "price"), make_issue(5, "quantity")]
+    session = SAOMechanism(
+        issues=issues, n_steps=10, end_on_no_response=True, allow_none_with_data=True
+    )
+
+    ufun1 = LUFun.random(session.outcome_space, reserved_value=0.0)
+    ufun2 = LUFun.random(session.outcome_space, reserved_value=0.0)
+
+    test_message = "This is a test message"
+    session.add(
+        NoneWithTextNegotiator(name="sender", none_at_step=2, text=test_message),
+        ufun=ufun1,
+    )
+    session.add(AlwaysRejectNegotiator(name="receiver"), ufun=ufun2)
+
+    session.run()
+
+    # Check that data was recorded
+    found_text = False
+    for state in session.history:
+        if state.current_data and state.current_data.get("text") == test_message:
+            found_text = True
+            break
+        for _, data in state.new_data:
+            if data and data.get("text") == test_message:
+                found_text = True
+                break
+
+    assert found_text, "The text from None offer should be recorded in state"
+
+
+def test_allow_none_with_data_in_nmi():
+    """Test that allow_none_with_data setting is accessible via NMI."""
+    issues = [make_issue(10, "price"), make_issue(5, "quantity")]
+
+    # Test with allow_none_with_data=True (default)
+    session1 = SAOMechanism(issues=issues, n_steps=10, allow_none_with_data=True)
+    ufun = LUFun.random(session1.outcome_space, reserved_value=0.0)
+    session1.add(AspirationNegotiator(name="neg1"), ufun=ufun)
+
+    neg = session1.negotiators[0]
+    assert neg.nmi.allow_none_with_data is True, (
+        "NMI should reflect allow_none_with_data=True"
+    )
+
+    # Test with allow_none_with_data=False
+    session2 = SAOMechanism(issues=issues, n_steps=10, allow_none_with_data=False)
+    session2.add(AspirationNegotiator(name="neg2"), ufun=ufun)
+
+    neg2 = session2.negotiators[0]
+    assert neg2.nmi.allow_none_with_data is False, (
+        "NMI should reflect allow_none_with_data=False"
+    )
+
+
+def test_multiple_none_with_data_offers():
+    """Test that multiple None offers with data can be sent without breaking."""
+    issues = [make_issue(10, "price"), make_issue(5, "quantity")]
+    session = SAOMechanism(
+        issues=issues, n_steps=10, end_on_no_response=True, allow_none_with_data=True
+    )
+
+    ufun1 = LUFun.random(session.outcome_space, reserved_value=0.0)
+    ufun2 = LUFun.random(session.outcome_space, reserved_value=0.0)
+
+    # This negotiator will send None with data starting from step 0
+    session.add(
+        NoneWithTextNegotiator(name="sender", none_at_step=0, text="Message"),
+        ufun=ufun1,
+    )
+    session.add(AlwaysRejectNegotiator(name="receiver"), ufun=ufun2)
+
+    session.run()
+
+    # Negotiation should not break and should run all steps
+    assert not session.state.broken, (
+        "Negotiation should not break with repeated None offers with data"
+    )
+    assert session.state.step >= 5, "Negotiation should continue for multiple steps"
+
+
+def test_default_allow_none_with_data_is_true():
+    """Test that allow_none_with_data defaults to True."""
+    issues = [make_issue(10, "price"), make_issue(5, "quantity")]
+    session = SAOMechanism(issues=issues, n_steps=10)
+
+    assert session.allow_none_with_data is True, (
+        "allow_none_with_data should default to True"
+    )
+    assert session._internal_nmi.allow_none_with_data is True, (
+        "NMI should have allow_none_with_data=True by default"
+    )
+
+
+class AlwaysAcceptNegotiator(SAONegotiator):
+    """A negotiator that always accepts whatever is on the table."""
+
+    def propose(self, state):
+        if self.ufun and self.ufun.outcome_space:
+            outcomes = list(
+                self.ufun.outcome_space.enumerate_or_sample(max_cardinality=10)
+            )
+            if outcomes:
+                return outcomes[0]
+        return None
+
+    def respond(self, state, source=None):
+        return ResponseType.ACCEPT_OFFER
+
+
+class AcceptAfterStepNegotiator(SAONegotiator):
+    """A negotiator that rejects until a given step, then accepts."""
+
+    def __init__(self, *args, accept_at_step: int = 2, **kwargs):
+        super().__init__(*args, **kwargs)
+        self._accept_at_step = accept_at_step
+
+    def propose(self, state):
+        if self.ufun and self.ufun.outcome_space:
+            outcomes = list(
+                self.ufun.outcome_space.enumerate_or_sample(max_cardinality=10)
+            )
+            if outcomes:
+                return outcomes[0]
+        return None
+
+    def respond(self, state, source=None):
+        if state.step >= self._accept_at_step:
+            return ResponseType.ACCEPT_OFFER
+        return ResponseType.REJECT_OFFER
+
+
+def test_accepting_none_offer_ends_negotiation_no_agreement():
+    """Test that accepting a None offer ends negotiation without agreement."""
+    issues = [make_issue(10, "price"), make_issue(5, "quantity")]
+    session = SAOMechanism(
+        issues=issues, n_steps=10, end_on_no_response=True, allow_none_with_data=True
+    )
+
+    ufun1 = LUFun.random(session.outcome_space, reserved_value=0.0)
+    ufun2 = LUFun.random(session.outcome_space, reserved_value=0.0)
+
+    # Sender sends None with text at step 0
+    session.add(
+        NoneWithTextNegotiator(name="sender", none_at_step=0, text="Info message"),
+        ufun=ufun1,
+    )
+    # Receiver always accepts
+    session.add(AlwaysAcceptNegotiator(name="accepter"), ufun=ufun2)
+
+    session.run()
+
+    # The negotiation should have ended
+    assert session.state.ended, "Negotiation should have ended"
+    # There should be NO agreement (None offer accepted = no valid agreement)
+    assert session.state.agreement is None, (
+        "There should be no agreement when accepting a None offer"
+    )
+    # It should NOT be marked as broken (this is a graceful end)
+    assert not session.state.broken, "Negotiation should not be marked as broken"
+
+
+def test_accepting_none_offer_at_later_step():
+    """Test accepting None offer after some valid offers have been rejected."""
+    issues = [make_issue(10, "price"), make_issue(5, "quantity")]
+    session = SAOMechanism(
+        issues=issues, n_steps=10, end_on_no_response=True, allow_none_with_data=True
+    )
+
+    ufun1 = LUFun.random(session.outcome_space, reserved_value=0.0)
+    ufun2 = LUFun.random(session.outcome_space, reserved_value=0.0)
+
+    # Sender sends valid offers for 2 steps, then None with text
+    session.add(
+        NoneWithTextNegotiator(name="sender", none_at_step=2, text="Info message"),
+        ufun=ufun1,
+    )
+    # Receiver rejects until step 2, then accepts (the None offer)
+    session.add(
+        AcceptAfterStepNegotiator(name="accepter", accept_at_step=2), ufun=ufun2
+    )
+
+    session.run()
+
+    # The negotiation should have ended
+    assert session.state.ended, "Negotiation should have ended"
+    # There should be NO agreement (None offer accepted = no valid agreement)
+    assert session.state.agreement is None, (
+        "There should be no agreement when accepting a None offer"
+    )
+    # It should NOT be marked as broken
+    assert not session.state.broken, "Negotiation should not be marked as broken"

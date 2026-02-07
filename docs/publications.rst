@@ -8,7 +8,7 @@ This page lists papers that cite, use, or mention NegMAS and its ecosystem (incl
     This list is updated periodically. If you have published a paper using NegMAS that is not listed here,
     please `open an issue <https://github.com/yasserfarouk/negmas/issues>`_ or submit a pull request.
 
-    *Last updated: January 2026*
+    *Last updated: February 2026*
 
 How to Cite NegMAS
 ------------------

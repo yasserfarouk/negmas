@@ -494,7 +494,17 @@ class BaseGBMechanism(Mechanism[GBNMI, GBState, GBAction, GBNegotiator]):
 
 
 class GBMechanism(BaseGBMechanism):
-    """GB mechanism."""
+    """Generalized Bargaining (GB) mechanism.
+
+    Implements the Generalized Bargaining Protocol framework for automated negotiation.
+    This mechanism supports configurable evaluation strategies and offering constraints
+    that can be applied globally or per-thread.
+
+    References:
+        Mohammad, Y. (2023). Generalized Bargaining Protocols.
+        In: Australasian Joint Conference on Artificial Intelligence (AI 2023).
+        Springer. https://doi.org/10.1007/978-981-99-8391-9_37
+    """
 
     def __init__(
         self,

@@ -74,6 +74,10 @@ class SAOMechanism(
         ignore_negotiator_exceptions: just silently ignore negotiator exceptions and consider them no-responses.
         offering_is_accepting: Offering an outcome implies accepting it. If not, the agent who proposed an offer will
                                be asked to respond to it after all other agents.
+        allow_none_with_data: If True (default), a negotiator can respond with REJECT_OFFER and outcome=None
+                              as long as there is associated data (e.g., text). This allows negotiators to
+                              send messages or explanations without making a concrete offer. The negotiation
+                              will continue rather than breaking.
         sync_calls: If given, calls to negotiators will be synchronized. This will not enforce timeouts on
                     single calls which means that a negotiator in an infinite loop will hog the CPU. By default
                     calls are done using a different thread that is killed when the timeout passes. This may, but
@@ -105,6 +109,7 @@ class SAOMechanism(
         cast_offers=False,
         offering_is_accepting=True,
         allow_offering_just_rejected_outcome=True,
+        allow_none_with_data=True,
         name: str | None = None,
         max_wait: int = sys.maxsize,
         sync_calls: bool = False,
@@ -125,6 +130,9 @@ class SAOMechanism(
             cast_offers: Whether to cast issue values to their correct types if enforcement is on.
             offering_is_accepting: Whether proposing an offer counts as accepting it.
             allow_offering_just_rejected_outcome: Whether a negotiator can re-offer a just-rejected outcome.
+            allow_none_with_data: Whether to allow None offers if they have associated data (e.g., text).
+                When True, a negotiator can respond with outcome=None but include text or other data,
+                and the negotiation will continue rather than breaking. Defaults to True.
             name: Optional name for the mechanism.
             max_wait: Maximum number of consecutive WAIT responses before timing out.
             sync_calls: Whether to call negotiators synchronously (disables per-call timeouts).
@@ -157,6 +165,7 @@ class SAOMechanism(
                     end_on_no_response=end_on_no_response,
                     one_offer_per_step=one_offer_per_step,
                     offering_is_accepting=offering_is_accepting,
+                    allow_none_with_data=allow_none_with_data,
                 ),
             }
         )
@@ -168,8 +177,16 @@ class SAOMechanism(
                     end_on_no_response=end_on_no_response,
                     one_offer_per_step=one_offer_per_step,
                     offering_is_accepting=offering_is_accepting,
+                    allow_none_with_data=allow_none_with_data,
                 ),
             }
+        )
+        # Update _nmi_params so per-negotiator NMIs get the SAO-specific parameters
+        self._nmi_params = self._nmi_params | dict(
+            end_on_no_response=end_on_no_response,
+            one_offer_per_step=one_offer_per_step,
+            offering_is_accepting=offering_is_accepting,
+            allow_none_with_data=allow_none_with_data,
         )
         self._one_offer_per_step = one_offer_per_step
         assert self._internal_nmi.end_on_no_response == end_on_no_response
@@ -197,9 +214,11 @@ class SAOMechanism(
         self.params["allow_offering_just_rejected_outcome"] = (
             allow_offering_just_rejected_outcome
         )
+        self.params["allow_none_with_data"] = allow_none_with_data
         self._n_max_waits = max_wait if max_wait is not None else float("inf")
         self.params["max_wait"] = self._n_max_waits
         self.allow_offering_just_rejected_outcome = allow_offering_just_rejected_outcome
+        self.allow_none_with_data = allow_none_with_data
         self.end_negotiation_on_refusal_to_propose = end_on_no_response
         self.check_offers = check_offers
         self._enforce_issue_types = enforce_issue_types
@@ -224,6 +243,7 @@ class SAOMechanism(
             cast_offers=self._cast_offers,
             offering_is_accepting=self._internal_nmi.offering_is_accepting,
             allow_offering_just_rejected_outcome=self.allow_offering_just_rejected_outcome,
+            allow_none_with_data=self.allow_none_with_data,
             name=self.name,
             max_wait=self.params.get("max_wait", None),
             sync_calls=self._sync_calls,
@@ -634,6 +654,17 @@ class SAOMechanism(
                 state.broken = True
                 return MechanismStepResult(state, times=times, exceptions=exceptions)
             if resp.response == ResponseType.ACCEPT_OFFER:
+                # Cannot accept a None offer - treat as END_NEGOTIATION
+                if state.current_offer is None:
+                    state.ended = True
+                    return MechanismStepResult(
+                        state,
+                        timedout=False,
+                        agreement=None,
+                        times=times,
+                        exceptions=exceptions,
+                        broken=False,
+                    )
                 state.n_acceptances += 1
                 if state.n_acceptances == n_negotiators:
                     state.agreement = self._current_state.current_offer
@@ -653,9 +684,13 @@ class SAOMechanism(
                 ):
                     proposal = None
                 if proposal is None:
+                    # Check if we should allow None offers with associated data
+                    has_data = resp.data is not None and len(resp.data) > 0
+                    allow_this_none = self.allow_none_with_data and has_data
                     if (
                         neg.capabilities.get("propose", True)
                         and self.end_negotiation_on_refusal_to_propose
+                        and not allow_this_none
                     ):
                         state.broken = True
                         return MechanismStepResult(

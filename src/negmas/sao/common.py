@@ -192,6 +192,9 @@ class SAONMI(NegotiatorMechanismInterface):
     offering_is_accepting: bool = True
     """If true, offering is considered an acceptance of that offer which means that the offerer need not accept the offer again to make it an agreement"""
 
+    allow_none_with_data: bool = True
+    """If true, a negotiator can offer None with associated data (e.g., text) without breaking the negotiation"""
+
     @property
     def state(self) -> SAOState:
         """Current state of the SAO negotiation mechanism.

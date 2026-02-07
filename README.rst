@@ -468,26 +468,33 @@ Papers Using NegMAS
 
 Selected papers (see `full list <https://negmas.readthedocs.io/en/latest/publications.html>`_):
 
+**Core NegMAS Research** (by the NegMAS authors)
+
+- Mohammad, Y. (2025). `Tackling the Protocol Problem in Automated Negotiation <https://www.ifaamas.org/Proceedings/aamas2025/pdfs/p246.pdf>`_. AAMAS. *Cited by 1*
+- Mohammad, Y. et al. (2024). `Automated Negotiation in Supply Chains: A Generalist Environment for RL/MARL <https://doi.org/10.1007/978-981-96-1072-1_1>`_. PRIMA. *Cited by 1*
+- Mohammad, Y. (2023). `Generalized Bargaining Protocols <https://doi.org/10.1007/978-981-99-8391-9_27>`_. AI 2023. *Cited by 3*
+- Mohammad, Y. (2023). `Optimal Time-based Strategy for Automated Negotiation <https://doi.org/10.1007/s10489-022-03893-x>`_. Applied Intelligence. *Cited by 9*
+- Mohammad, Y. (2023). `Evaluating Automated Negotiations <https://doi.org/10.1109/WI-IAT59888.2023.00015>`_. IEEE WI-IAT. *Cited by 2*
+- Mohammad, Y. (2021). `Concurrent Local Negotiations with a Global Utility Function <https://doi.org/10.1007/s10458-020-09490-7>`_. AAMAS Journal. *Cited by 14*
+- Mohammad, Y. (2020). `Optimal Deterministic Time-based Policy in Automated Negotiation <https://doi.org/10.1007/978-3-030-69322-0_5>`_. PRIMA. *Cited by 4*
+- Mohammad, Y., Nakadai, S. (2019). `Optimal Value of Information Based Elicitation <https://dl.acm.org/doi/10.5555/3306127.3331698>`_. AAMAS.
+- Mohammad, Y., Nakadai, S. (2018). `FastVOI: Efficient Utility Elicitation <https://doi.org/10.1007/978-3-030-03098-8_34>`_. PRIMA.
+- Mohammad, Y. et al. (2019). `Supply Chain Management World <https://doi.org/10.1007/978-3-030-33792-6_10>`_. PRIMA. *Cited by 38*
+
 **Competition & Benchmarks**
 
 - Aydoğan et al. (2020). `Challenges and Main Results of ANAC 2019 <https://doi.org/10.1007/978-3-030-66412-1_23>`_. EUMAS/AT. *Cited by 51*
-- Mohammad et al. (2019). `Supply Chain Management World <https://doi.org/10.1007/978-3-030-33792-6_10>`_. PRIMA. *Cited by 38*
 
 **Negotiation Strategies**
 
 - Sengupta et al. (2021). `RL-Based Negotiating Agent Framework <https://arxiv.org/abs/2102.03588>`_. arXiv. *Cited by 48*
 - Higa et al. (2023). `Reward-based Negotiating Agent Strategies <https://ojs.aaai.org/index.php/AAAI/article/view/26831>`_. AAAI. *Cited by 16*
 
-**Preference Elicitation**
-
-- Mohammad, Y., Nakadai, S. (2019). `Optimal Value of Information Based Elicitation <https://dl.acm.org/doi/10.5555/3306127.3331698>`_. AAMAS.
-- Mohammad, Y., Nakadai, S. (2018). `FastVOI: Efficient Utility Elicitation <https://doi.org/10.1007/978-3-030-03098-8_34>`_. PRIMA.
-
 **Applications**
 
 - Inotsume et al. (2020). `Path Negotiation for Multirobot Vehicles <https://doi.org/10.1109/IROS45743.2020.9340819>`_. IROS. *Cited by 17*
 
-*Last updated: January 2026*
+*Last updated: February 2026*
 
 Contributing
 ------------

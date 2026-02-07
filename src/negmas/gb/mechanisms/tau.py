@@ -14,7 +14,22 @@ __all__ = ["TAUMechanism"]
 
 
 class TAUMechanism(BaseGBMechanism):
-    """TAU mechanism."""
+    """TAU (Threaded Acceptance with Unanimous agreement) mechanism.
+
+    An Outcome-Perfect Negotiation Protocol that guarantees finding an agreement
+    if one exists within the declared acceptable outcomes of all negotiators.
+    TAU allows agents to repeat offers, but once an agent starts repeating,
+    it is committed to that offer.
+
+    References:
+        Mohammad, Y. (2023). Generalized Bargaining Protocols.
+        In: Australasian Joint Conference on Artificial Intelligence (AI 2023).
+        Springer. https://doi.org/10.1007/978-981-99-8391-9_37
+
+        Mohammad, Y. (2025). Tackling the Protocol Problem in Automated Negotiation.
+        In: Proceedings of the 24th International Conference on
+        Autonomous Agents and Multi-Agent Systems (AAMAS 2025).
+    """
 
     def __init__(
         self, *args, accept_in_any_thread: bool = True, parallel: bool = True, **kwargs
