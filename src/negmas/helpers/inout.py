@@ -774,13 +774,13 @@ def load_table(
         return df.to_dict(orient="records")
 
 
-StrOrTwo = tuple[str, str] | str
+StrOrTuple = tuple[str, ...] | str
 
 
 def has_needed_files(
     path: Path,
-    needed_files: Iterable[StrOrTwo] = tuple(),
-    needed_nonzero_files: Iterable[StrOrTwo] = tuple(),
+    needed_files: Iterable[StrOrTuple] = tuple(),
+    needed_nonzero_files: Iterable[StrOrTuple] = tuple(),
     verbose: bool = False,
 ) -> list[Path]:
     """Checks if the given path is a folder that has the given needed files.

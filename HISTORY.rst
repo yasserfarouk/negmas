@@ -11,9 +11,14 @@ Release 0.15.1
   - ``MetaNegotiator``: Base class that manages full ``Negotiator`` instances (vs ``Component`` objects in ``ModularNegotiator``)
   - ``GBMetaNegotiator``: For GB (General Bargaining) protocols with GB-specific callbacks
   - ``SAOMetaNegotiator``: For SAO (Stacked Alternating Offers) protocols with ``propose``/``respond`` aggregation
+  - ``SAOAggMetaNegotiator``: Abstract base with aggregation methods for SAO meta-negotiators
+  - ``RangeMetaNegotiator``: Samples outcomes within utility range of sub-negotiator proposals
+  - ``MeanMetaNegotiator``: Samples outcomes near mean utility of sub-negotiator proposals
+  - ``OSMeanMetaNegotiator``: Averages proposals in outcome space (handles numeric and categorical issues)
   - Enables ensemble strategies where multiple negotiators vote on proposals/responses
   - Supports ``share_ufun`` and ``share_nmi`` options for sub-negotiator configuration
   - Abstract methods ``aggregate_proposals()`` and ``aggregate_responses()`` for custom aggregation strategies
+  - All meta-negotiators registered with ``meta`` and ``ensemble`` tags
 
 * [feature] Add ``before_death()`` and ``cancel()`` methods to ``Component`` base class:
 
@@ -30,6 +35,7 @@ Release 0.15.1
 * [bugfix] Fix ``GBModularNegotiator`` not delegating ``on_partner_refused_to_propose()`` callback to components
 * [bugfix] Fix plot figures not auto-sizing to fill available space
 * [bugfix] Fix ``GeniusOpponentModel`` not initializing ``BaseUtilityFunction`` attributes properly
+* [bugfix] Fix tournament file extension bug causing ``combine()`` to fail
 
 **Documentation:**
 
