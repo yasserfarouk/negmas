@@ -168,6 +168,18 @@ class GBNegotiator(Negotiator[GBNMI, GBState], Generic[TNMI, TState]):
         on every offer.
         """
 
+    def on_partner_refused_to_propose(self, state: GBState, partner_id: str) -> None:
+        """
+        A callback called by the mechanism when a partner refuses to propose.
+
+        Args:
+            state: `GBState` giving the state of the negotiation when the partner refused to offer.
+            partner_id: The ID of the agent who refused to propose.
+
+        Remarks:
+            - Will only be called if `enable_callbacks` is set for the mechanism.
+        """
+
     # compatibility with SAOMechanism
     def __call__(self, state: SAOState, dest: str | None = None) -> SAOResponse:
         """

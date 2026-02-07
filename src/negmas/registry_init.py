@@ -298,6 +298,32 @@ def _register_sao_negotiators() -> None:
         tags=base_tags | {"micro", "learning"},
     )
 
+    # Meta negotiators (ensemble strategies)
+    from negmas.sao.negotiators import (
+        RangeMetaNegotiator,
+        MeanMetaNegotiator,
+        OSMeanMetaNegotiator,
+    )
+
+    negotiator_registry.register(
+        RangeMetaNegotiator,
+        short_name="RangeMetaNegotiator",
+        source=NEGMAS_SOURCE,
+        tags=base_tags | {"meta", "ensemble"},
+    )
+    negotiator_registry.register(
+        MeanMetaNegotiator,
+        short_name="MeanMetaNegotiator",
+        source=NEGMAS_SOURCE,
+        tags=base_tags | {"meta", "ensemble"},
+    )
+    negotiator_registry.register(
+        OSMeanMetaNegotiator,
+        short_name="OSMeanMetaNegotiator",
+        source=NEGMAS_SOURCE,
+        tags=base_tags | {"meta", "ensemble"},
+    )
+
 
 def _register_sao_components() -> None:
     """Register SAO components (acceptance policies, offering policies, models).

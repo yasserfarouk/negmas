@@ -187,15 +187,27 @@ def test_file_naming_convention(tmp_path):
     assert len(json_files) > 0
 
     # Check naming convention: scenario_negotiator1_negotiator2_..._rep_runid.json
+    # Note: run_id can contain underscores (URL-safe Base64), so we need to find
+    # the rep as the last numeric segment before the final non-numeric run_id segment
+
     for file in json_files:
-        name_parts = file.stem.split("_")
-        # Should have at least: scenario, 2 negotiators, rep, run_id = 5 parts
-        assert len(name_parts) >= 5
-        # Rep should be a number
-        rep = name_parts[-2]
-        assert rep.isdigit()
-        # run_id should be a URL-safe Base64 string (alphanumeric with - and _)
-        run_id = name_parts[-1]
+        stem = file.stem
+        # Find the rep number: it's the last segment that is purely digits
+        # Pattern: find all _\d+_ patterns and use the last one
+        # The rep should be followed by the run_id which contains non-digit chars
+        parts = stem.split("_")
+        # Find the last part that is a digit (the rep)
+        rep_idx = None
+        for i in range(len(parts) - 1, -1, -1):
+            if parts[i].isdigit():
+                rep_idx = i
+                break
+        assert rep_idx is not None, f"No rep number found in {stem}"
+        rep = parts[rep_idx]
+        assert rep.isdigit(), f"Rep should be a digit, got: {rep}"
+
+        # run_id is everything after the rep
+        run_id = "_".join(parts[rep_idx + 1 :])
         # URL-safe Base64 contains only alphanumeric, '-', and '_' characters
         assert all(c.isalnum() or c in "-_" for c in run_id), (
             f"Invalid run_id format: {run_id}"

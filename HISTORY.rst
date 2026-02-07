@@ -1,6 +1,43 @@
 History
 =======
 
+Release 0.15.1
+--------------
+
+**New Features:**
+
+* [feature] Add ``MetaNegotiator`` classes for ensemble negotiation strategies:
+
+  - ``MetaNegotiator``: Base class that manages full ``Negotiator`` instances (vs ``Component`` objects in ``ModularNegotiator``)
+  - ``GBMetaNegotiator``: For GB (General Bargaining) protocols with GB-specific callbacks
+  - ``SAOMetaNegotiator``: For SAO (Stacked Alternating Offers) protocols with ``propose``/``respond`` aggregation
+  - Enables ensemble strategies where multiple negotiators vote on proposals/responses
+  - Supports ``share_ufun`` and ``share_nmi`` options for sub-negotiator configuration
+  - Abstract methods ``aggregate_proposals()`` and ``aggregate_responses()`` for custom aggregation strategies
+
+* [feature] Add ``before_death()`` and ``cancel()`` methods to ``Component`` base class:
+
+  - Components can now respond to negotiation termination and cancellation events
+  - ``ModularNegotiator`` and ``GBModularNegotiator`` delegate these callbacks to all components
+
+* [feature] Add ``on_partner_refused_to_propose()`` callback to ``GBNegotiator`` base class:
+
+  - ``GBModularNegotiator`` now delegates this callback to all components
+
+**Bug Fixes:**
+
+* [bugfix] Fix ``ModularNegotiator`` not delegating ``before_death()`` and ``cancel()`` callbacks to components
+* [bugfix] Fix ``GBModularNegotiator`` not delegating ``on_partner_refused_to_propose()`` callback to components
+* [bugfix] Fix plot figures not auto-sizing to fill available space
+* [bugfix] Fix ``GeniusOpponentModel`` not initializing ``BaseUtilityFunction`` attributes properly
+
+**Documentation:**
+
+* [docs] Add documentation for creating custom negotiators using composition approaches:
+
+  - Ensemble approach using ``SAOMetaNegotiator`` for voting/switching strategies
+  - BOA approach using ``BOANegotiator`` for mix-and-match components
+
 Release 0.15.0
 --------------
 

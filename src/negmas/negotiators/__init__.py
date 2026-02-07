@@ -2,6 +2,7 @@
 This module defines the interfaces to all negotiation agents (negotiators)
 in negmas.
 """
+
 from .common import *
 from .negotiator import *
 from .controller import *
@@ -10,6 +11,7 @@ from .components import *
 from .helpers import *
 from .simple import *
 from .modular import *
+from .meta import *
 
 __all__ = (
     common.__all__
@@ -20,4 +22,5 @@ __all__ = (
     + simple.__all__
     + helpers.__all__
     + modular.__all__
+    + meta.__all__
 )

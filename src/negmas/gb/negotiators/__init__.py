@@ -1,6 +1,7 @@
 """
 Implements negotiators for the GB set of mechanisms.
 """
+
 from .base import *
 from .limited import *
 from .tough import *
@@ -13,6 +14,7 @@ from .war import *
 from .cab import *
 from .micro import *
 from .hybrid import *
+from .meta import *
 
 
 __all__ = (
@@ -28,4 +30,5 @@ __all__ = (
     + war.__all__
     + micro.__all__
     + hybrid.__all__
+    + meta.__all__
 )

@@ -102,3 +102,28 @@ class Component:
         A call back called whenever an error happens in the mechanism. The error and its explanation are accessible in
         `state`
         """
+
+    def before_death(self, cntxt: dict) -> bool:
+        """
+        Called whenever the parent negotiator is about to be killed by its controller.
+
+        Args:
+            cntxt: Context information about the death.
+
+        Returns:
+            True if the component agrees to the negotiator being killed, False otherwise.
+            Note that the controller can still force-kill the negotiator.
+        """
+        return True
+
+    def cancel(self, reason=None) -> None:
+        """
+        Called when the mechanism requests the negotiator to cancel its current processing.
+
+        Args:
+            reason: Optional reason for the cancellation.
+
+        Remarks:
+            - Components can use this to interrupt long-running computations.
+            - The default implementation does nothing.
+        """

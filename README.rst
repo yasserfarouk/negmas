@@ -239,20 +239,34 @@ Key Features
 Creating Custom Negotiators
 ---------------------------
 
-**Minimal SAO negotiator:**
+NegMAS offers two approaches to creating custom negotiators:
+
+1. **Inheritance**: Subclass a base negotiator and override methods
+2. **Composition**: Combine multiple negotiators using ``MetaNegotiator``
+
+Inheritance (Traditional Approach)
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+
+Subclass a base negotiator and implement the required methods:
 
 .. code-block:: python
 
-    from negmas.sao import SAONegotiator, SAOResponse, ResponseType
+    from negmas.sao import SAONegotiator, ResponseType
 
 
     class MyNegotiator(SAONegotiator):
-        def __call__(self, state, offer=None):
+        """A simple negotiator using inheritance."""
+
+        def propose(self, state, dest=None):
+            # Propose a random outcome above reservation value
+            return self.nmi.random_outcome()
+
+        def respond(self, state, source=None):
+            offer = state.current_offer
             # Accept any offer with utility > 0.8
             if offer is not None and self.ufun(offer) > 0.8:
-                return SAOResponse(ResponseType.ACCEPT_OFFER, offer)
-            # Otherwise, propose a random outcome
-            return SAOResponse(ResponseType.REJECT_OFFER, self.nmi.random_outcome())
+                return ResponseType.ACCEPT_OFFER
+            return ResponseType.REJECT_OFFER
 
 **Using the negotiator:**
 
@@ -262,6 +276,90 @@ Creating Custom Negotiators
     session.add(MyNegotiator(name="custom"), ufun=my_ufun)
     session.add(AspirationNegotiator(name="opponent"), ufun=opponent_ufun)
     session.run()
+
+Composition (Ensemble Approach)
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+
+Use ``SAOMetaNegotiator`` to combine multiple negotiators and aggregate their decisions:
+
+.. code-block:: python
+
+    from negmas.sao import SAOMechanism, ResponseType
+    from negmas.sao.negotiators import (
+        SAOMetaNegotiator,
+        BoulwareTBNegotiator,
+        NaiveTitForTatNegotiator,
+    )
+
+
+    class MajorityVoteNegotiator(SAOMetaNegotiator):
+        """An ensemble negotiator that uses majority voting."""
+
+        def aggregate_proposals(self, state, proposals, dest=None):
+            # Use the proposal from the first negotiator that offers something
+            for neg, proposal in proposals:
+                if proposal is not None:
+                    return proposal
+            return None
+
+        def aggregate_responses(self, state, responses, offer, source=None):
+            # Majority vote: accept if more than half accept
+            accept_count = sum(1 for _, r in responses if r == ResponseType.ACCEPT_OFFER)
+            if accept_count > len(responses) / 2:
+                return ResponseType.ACCEPT_OFFER
+            return ResponseType.REJECT_OFFER
+
+
+    # Create an ensemble of different strategies
+    ensemble = MajorityVoteNegotiator(
+        negotiators=[
+            BoulwareTBNegotiator(),  # Tough strategy
+            NaiveTitForTatNegotiator(),  # Reactive strategy
+            BoulwareTBNegotiator(),  # Another tough vote
+        ],
+        name="ensemble",
+    )
+
+    # Use in a negotiation
+    session = SAOMechanism(issues=issues, n_steps=100)
+    session.add(ensemble, ufun=my_ufun)
+    session.add(AspirationNegotiator(name="opponent"), ufun=opponent_ufun)
+    session.run()
+
+The ensemble approach is useful for:
+
+- **Voting strategies**: Combine multiple negotiators via majority/weighted voting
+- **Dynamic delegation**: Switch between strategies at runtime
+- **A/B testing**: Compare strategies within the same negotiation
+
+Composition (BOA Components)
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+
+Use ``BOANegotiator`` to build negotiators from reusable components following
+the Bidding-Opponent modeling-Acceptance (BOA) pattern:
+
+.. code-block:: python
+
+    from negmas.gb.negotiators.modular import BOANegotiator
+    from negmas.gb.components import (
+        GSmithFrequencyModel,  # Opponent modeling
+        GACTime,  # Acceptance strategy
+        GTimeDependentOffering,  # Offering strategy
+    )
+
+    # Create a BOA negotiator with Genius-style components
+    negotiator = BOANegotiator(
+        offering=GTimeDependentOffering(e=0.2),  # Boulware-style offering
+        acceptance=GACTime(t=0.95),  # Accept after 95% of time
+        model=GSmithFrequencyModel(),  # Opponent frequency model
+        name="my_boa_agent",
+    )
+
+The BOA approach is useful for:
+
+- **Mix-and-match**: Combine different strategies from the Genius library
+- **Research**: Easily swap components to compare different strategies
+- **Extensibility**: Create custom components that integrate with existing ones
 
 Creating Custom Protocols
 -------------------------

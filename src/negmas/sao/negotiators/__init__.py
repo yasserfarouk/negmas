@@ -1,6 +1,7 @@
 """
 Implements negotiators for the SAO mechanism.
 """
+
 from .base import *
 from .hybrid import *
 from .limited import *
@@ -14,6 +15,7 @@ from .cab import *
 from .war import *
 from .micro import *
 from .controlled import *
+from .meta import *
 
 
 __all__ = (
@@ -30,4 +32,5 @@ __all__ = (
     + war.__all__
     + micro.__all__
     + controlled.__all__
+    + meta.__all__
 )

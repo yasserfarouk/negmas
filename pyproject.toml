@@ -1,6 +1,6 @@
 [project]
 name = "negmas"
-version = "0.15.0"
+version = "0.15.1"
 description = "NEGotiations Managed by Agent Simulations"
 readme = "README.rst"
 requires-python = ">=3.10"

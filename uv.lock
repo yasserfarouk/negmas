@@ -2510,7 +2510,7 @@ wheels = [
 
 [[package]]
 name = "negmas"
-version = "0.14.0"
+version = "0.15.1"
 source = { editable = "." }
 dependencies = [
     { name = "attrs" },
@@ -2522,6 +2522,7 @@ dependencies = [
     { name = "gif" },
     { name = "inflect" },
     { name = "kaleido" },
+    { name = "matplotlib" },
     { name = "networkx", version = "3.4.2", source = { registry = "https://pypi.org/simple" }, marker = "python_full_version < '3.11'" },
     { name = "networkx", version = "3.6.1", source = { registry = "https://pypi.org/simple" }, marker = "python_full_version >= '3.11'" },
     { name = "numpy", version = "2.2.6", source = { registry = "https://pypi.org/simple" }, marker = "python_full_version < '3.11'" },
@@ -2612,6 +2613,7 @@ requires-dist = [
     { name = "jupyter", marker = "extra == 'dev'", specifier = ">=1.1.1" },
     { name = "kaleido", specifier = ">=0.2.1" },
     { name = "markupsafe", marker = "extra == 'dev'", specifier = ">=3.0.2" },
+    { name = "matplotlib", specifier = ">=3.7.0" },
     { name = "nbformat", marker = "extra == 'docs'", specifier = ">=5.10.4" },
     { name = "nbsphinx", marker = "extra == 'docs'", specifier = ">=0.9.6" },
     { name = "networkx", specifier = ">=3.4.2" },

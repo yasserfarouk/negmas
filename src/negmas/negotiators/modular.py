@@ -3,7 +3,7 @@
 from __future__ import annotations
 
 import itertools
-from typing import TYPE_CHECKING, Iterable
+from typing import TYPE_CHECKING, Any, Iterable
 
 from negmas.common import (
     MechanismState,
@@ -175,3 +175,35 @@ class ModularNegotiator(Negotiator):
         """
         for c in self._components:
             c.on_mechanism_error(state)
+
+    def before_death(self, cntxt: dict[str, Any]) -> bool:
+        """
+        Called whenever the parent is about to kill this negotiator.
+
+        Delegates to all components. Returns False if any component returns False,
+        but the controller can still force-kill the negotiator.
+
+        Args:
+            cntxt: Context information about the death.
+
+        Returns:
+            bool: True if all components agree to the death, False otherwise.
+        """
+        result = super().before_death(cntxt)
+        for c in self._components:
+            if not c.before_death(cntxt):
+                result = False
+        return result
+
+    def cancel(self, reason=None) -> None:
+        """
+        Called by the mechanism to make the negotiator cancel its current processing.
+
+        Delegates to all components so they can interrupt their processing.
+
+        Args:
+            reason: Optional reason for the cancellation.
+        """
+        super().cancel(reason)
+        for c in self._components:
+            c.cancel(reason)

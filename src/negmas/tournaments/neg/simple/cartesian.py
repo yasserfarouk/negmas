@@ -364,6 +364,36 @@ def _find_dataframe_file(path: Path, base_name: str) -> Path | None:
     return None
 
 
+def _all_dataframe_variants(base_name: str) -> tuple[str, ...]:
+    """Return all possible filename variants for a DataFrame base name.
+
+    Args:
+        base_name: Base filename without extension
+
+    Returns:
+        Tuple of possible filenames with all supported extensions
+    """
+    return tuple(f"{base_name}{ext}" for ext in (".parquet", ".csv.gz", ".csv"))
+
+
+def _read_dataframe(file_path: Path) -> pd.DataFrame:
+    """Read a DataFrame from a file, detecting format from extension.
+
+    Args:
+        file_path: Path to the file (can be .parquet, .csv.gz, or .csv)
+
+    Returns:
+        The loaded DataFrame
+    """
+    suffix = file_path.suffix
+    if suffix == ".parquet":
+        return pd.read_parquet(file_path)
+    elif file_path.name.endswith(".csv.gz"):
+        return pd.read_csv(file_path, index_col=0, compression="gzip")
+    else:
+        return pd.read_csv(file_path, index_col=0)
+
+
 __all__ = [
     "run_negotiation",
     "cartesian_tournament",
@@ -386,11 +416,15 @@ TERMINATION_WAIT_TIME = 10.0
 DEFAULT_IMAGE_FORMAT = "webp"
 SUPPORTED_IMAGE_FORMATS = {"webp", "png", "jpg", "jpeg", "svg", "pdf"}
 
-EXTENSION = DEFAULT_TABLE_STORAGE_FORMAT
-ALL_SCORES_FILE_NAME = f"all_scores{EXTENSION}"
-ALL_RESULTS_FILE_NAME = f"details{EXTENSION}"
-TYPE_SCORES_FILE_NAME = f"type_scores{EXTENSION}"
-FINAL_SCORES_FILE_NAME = f"scores{EXTENSION}"
+EXTENSION = f".{DEFAULT_TABLE_STORAGE_FORMAT}"
+ALL_SCORES_BASE_NAME = "all_scores"
+ALL_RESULTS_BASE_NAME = "details"
+TYPE_SCORES_BASE_NAME = "type_scores"
+FINAL_SCORES_BASE_NAME = "scores"
+ALL_SCORES_FILE_NAME = f"{ALL_SCORES_BASE_NAME}{EXTENSION}"
+ALL_RESULTS_FILE_NAME = f"{ALL_RESULTS_BASE_NAME}{EXTENSION}"
+TYPE_SCORES_FILE_NAME = f"{TYPE_SCORES_BASE_NAME}{EXTENSION}"
+FINAL_SCORES_FILE_NAME = f"{FINAL_SCORES_BASE_NAME}{EXTENSION}"
 NEGOTIATOR_BEHAVIOR_DIR_NAME = "negotiator_behavior"
 CONFIG_FILE_NAME = "config.yaml"
 SCENARIOS_DIR_NAME = "scenarios"
@@ -1159,20 +1193,25 @@ class SimpleTournamentResults:
             recalc_scores = False
             must_have_details = True
 
-        needed_files: list[tuple[str, str] | str] = []
+        # Create tuples with all possible file extensions for OR matching
+        all_results_variants = _all_dataframe_variants(ALL_RESULTS_BASE_NAME)
+        all_scores_variants = _all_dataframe_variants(ALL_SCORES_BASE_NAME)
+        final_scores_variants = _all_dataframe_variants(FINAL_SCORES_BASE_NAME)
+
+        needed_files: list[tuple[str, ...] | str] = []
         if complete_only:
             needed_files += [
-                ALL_RESULTS_FILE_NAME,
-                ALL_SCORES_FILE_NAME,
-                FINAL_SCORES_FILE_NAME,
+                all_results_variants,
+                all_scores_variants,
+                final_scores_variants,
             ]
         else:
             if recalc_details:
                 needed_files.append(RESULTS_DIR_NAME)
             elif must_have_details:
-                needed_files.append((ALL_RESULTS_FILE_NAME, RESULTS_DIR_NAME))
+                needed_files.append((*all_results_variants, RESULTS_DIR_NAME))
             if recalc_scores:
-                needed_files.append((ALL_RESULTS_FILE_NAME, RESULTS_DIR_NAME))
+                needed_files.append((*all_results_variants, RESULTS_DIR_NAME))
 
         if recursive:
             known_dirs = set(TOURNAMENT_DIRS)
@@ -1209,23 +1248,25 @@ class SimpleTournamentResults:
         ):
             if verbosity > 1:
                 print(f"Reading {path}")
-            if recalc_details or not (path / ALL_RESULTS_FILE_NAME).exists():
+            details_file = _find_dataframe_file(path, ALL_RESULTS_BASE_NAME)
+            if recalc_details or details_file is None:
                 src = path / RESULTS_DIR_NAME
                 d = pd.DataFrame.from_records([load(_) for _ in src.glob("*.json")])
             else:
-                d = pd.read_csv(path / ALL_RESULTS_FILE_NAME, index_col=0)
+                d = _read_dataframe(details_file)
             if add_tournament_column:
                 d[TOURNAMENT_COL_NAME] = pname
             if must_have_details and len(d) < 1:
                 print(
-                    f"Cannot find detailed results in {path / ALL_RESULTS_FILE_NAME} and you specified `must_have_details` ... Will ignore it"
+                    f"Cannot find detailed results in {path} and you specified `must_have_details` ... Will ignore it"
                 )
                 continue
-            if recalc_scores or not (path / ALL_SCORES_FILE_NAME).exists():
+            scores_file = _find_dataframe_file(path, ALL_SCORES_BASE_NAME)
+            if recalc_scores or scores_file is None:
                 if len(d) <= 0:
                     if verbosity:
                         print(
-                            f"Failed to calculate scores for {path / ALL_SCORES_FILE_NAME} ... Will ignore it"
+                            f"Failed to calculate scores for {path} ... Will ignore it"
                         )
                     continue
                 s = pd.DataFrame.from_records(
@@ -1235,7 +1276,7 @@ class SimpleTournamentResults:
                     ]
                 )
             else:
-                s = pd.read_csv(path / ALL_SCORES_FILE_NAME, index_col=0)
+                s = _read_dataframe(scores_file)
             if add_tournament_column:
                 s[TOURNAMENT_COL_NAME] = pname
             if len(d) > 0:

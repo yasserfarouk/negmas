@@ -76,6 +76,8 @@ ALL_BUILTIN_NEGOTIATORS = [
         "WABNegotiator",
         "WANNegotiator",
         "WARNegotiator",
+        "SAOMetaNegotiator",
+        "SAOAggMetaNegotiator",
     ]
 ]
 
