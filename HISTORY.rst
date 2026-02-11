@@ -6,6 +6,23 @@ Release 0.15.1
 
 **New Features:**
 
+* [feature] Add ``SingletonOutcomeSpace`` and ``SingletonIssue`` for representing single outcomes:
+
+  - ``SingletonIssue``: A ``DiscreteIssue`` subclass representing an issue with a single fixed value
+  - ``SingletonOutcomeSpace``: Represents a single outcome as an outcome space
+  - Created directly with ``SingletonOutcomeSpace(outcome, issue_names=None, name=None)``
+  - Auto-generates issue names as ``issue00``, ``issue01``, ... if not provided
+  - Inherits from ``DiscreteCartesianOutcomeSpace`` for full compatibility
+
+* [feature] Add set operations for all outcome space types:
+
+  - Union (``|``): ``os1 | os2`` or ``os_union(os1, os2)``
+  - Intersection (``&``): ``os1 & os2`` or ``os_intersection(os1, os2)``
+  - Difference (``-``): ``os1 - os2`` or ``os_difference(os1, os2)``
+  - All operations return ``EnumeratingOutcomeSpace`` containing the result
+  - Works across ``CartesianOutcomeSpace``, ``SingletonOutcomeSpace``, and ``EnumeratingOutcomeSpace``
+  - Updated ``contains_os()`` to work across all outcome space types
+
 * [feature] Add ``MetaNegotiator`` classes for ensemble negotiation strategies:
 
   - ``MetaNegotiator``: Base class that manages full ``Negotiator`` instances (vs ``Component`` objects in ``ModularNegotiator``)

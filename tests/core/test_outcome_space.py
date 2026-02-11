@@ -97,9 +97,9 @@ class TestSingletonOutcomeSpace:
     """Tests for SingletonOutcomeSpace class."""
 
     def test_singleton_os_from_outcome(self):
-        """Test creating SingletonOutcomeSpace from outcome."""
+        """Test creating SingletonOutcomeSpace from an outcome."""
         outcome = (1, "a", 3.5)
-        os = SingletonOutcomeSpace.from_outcome(outcome)
+        os = SingletonOutcomeSpace(outcome)
 
         assert os.outcome == outcome
         assert os.cardinality == 1
@@ -108,25 +108,23 @@ class TestSingletonOutcomeSpace:
     def test_singleton_os_with_issue_names(self):
         """Test creating SingletonOutcomeSpace with custom issue names."""
         outcome = (1, 2, 3)
-        os = SingletonOutcomeSpace.from_outcome(
-            outcome, issue_names=["x", "y", "z"], name="test_os"
-        )
+        os = SingletonOutcomeSpace(outcome, issue_names=["x", "y", "z"], name="test_os")
 
         assert os.outcome == outcome
-        assert os.issue_names == ["x", "y", "z"]
+        assert list(os.issue_names) == ["x", "y", "z"]
         assert os.name == "test_os"
 
     def test_singleton_os_auto_issue_names(self):
         """Test auto-generated issue names."""
         outcome = ("a", "b")
-        os = SingletonOutcomeSpace.from_outcome(outcome)
+        os = SingletonOutcomeSpace(outcome)
 
-        assert os.issue_names == ["issue00", "issue01"]
+        assert [i.name for i in os.issues] == ["issue00", "issue01"]
 
     def test_singleton_os_enumerate(self):
         """Test enumerate returns single outcome."""
         outcome = (1, 2)
-        os = SingletonOutcomeSpace.from_outcome(outcome)
+        os = SingletonOutcomeSpace(outcome)
 
         outcomes = list(os.enumerate())
         assert outcomes == [outcome]
@@ -134,7 +132,7 @@ class TestSingletonOutcomeSpace:
     def test_singleton_os_sample(self):
         """Test sample returns the outcome."""
         outcome = (5, 10)
-        os = SingletonOutcomeSpace.from_outcome(outcome)
+        os = SingletonOutcomeSpace(outcome)
 
         samples = list(os.sample(3, with_replacement=True))
         assert len(samples) == 3
@@ -143,7 +141,7 @@ class TestSingletonOutcomeSpace:
     def test_singleton_os_sample_without_replacement(self):
         """Test sample without replacement raises for n > 1."""
         outcome = (1, 2)
-        os = SingletonOutcomeSpace.from_outcome(outcome)
+        os = SingletonOutcomeSpace(outcome)
 
         with pytest.raises(ValueError):
             list(os.sample(2, with_replacement=False, fail_if_not_enough=True))
@@ -151,7 +149,7 @@ class TestSingletonOutcomeSpace:
     def test_singleton_os_is_valid(self):
         """Test is_valid for SingletonOutcomeSpace."""
         outcome = (1, 2)
-        os = SingletonOutcomeSpace.from_outcome(outcome)
+        os = SingletonOutcomeSpace(outcome)
 
         assert os.is_valid(outcome)
         assert not os.is_valid((1, 3))
@@ -159,14 +157,14 @@ class TestSingletonOutcomeSpace:
 
     def test_singleton_os_is_discrete(self):
         """Test that SingletonOutcomeSpace is discrete."""
-        os = SingletonOutcomeSpace.from_outcome((1, 2))
+        os = SingletonOutcomeSpace((1, 2))
         assert os.is_discrete()
         assert os.is_finite()
 
     def test_singleton_os_mismatched_names_raises(self):
         """Test that mismatched issue names raises ValueError."""
         with pytest.raises(ValueError):
-            SingletonOutcomeSpace.from_outcome((1, 2, 3), issue_names=["a", "b"])
+            SingletonOutcomeSpace((1, 2, 3), issue_names=["a", "b"])
 
 
 class TestContainsOs:
@@ -189,28 +187,28 @@ class TestContainsOs:
     def test_cartesian_contains_singleton(self):
         """Test CartesianOutcomeSpace contains SingletonOutcomeSpace."""
         os = make_os(issues=[make_issue(10, "a"), make_issue(10, "b")])
-        singleton = SingletonOutcomeSpace.from_outcome((3, 5), issue_names=["a", "b"])
+        singleton = SingletonOutcomeSpace((3, 5), issue_names=["a", "b"])
 
         assert os.contains_os(singleton)
 
     def test_cartesian_does_not_contain_invalid_singleton(self):
         """Test CartesianOutcomeSpace does not contain invalid singleton."""
         os = make_os(issues=[make_issue(5, "a"), make_issue(5, "b")])
-        singleton = SingletonOutcomeSpace.from_outcome((10, 10), issue_names=["a", "b"])
+        singleton = SingletonOutcomeSpace((10, 10), issue_names=["a", "b"])
 
         assert not os.contains_os(singleton)
 
     def test_singleton_contains_singleton(self):
         """Test SingletonOutcomeSpace contains same singleton."""
-        s1 = SingletonOutcomeSpace.from_outcome((1, 2))
-        s2 = SingletonOutcomeSpace.from_outcome((1, 2))
+        s1 = SingletonOutcomeSpace((1, 2))
+        s2 = SingletonOutcomeSpace((1, 2))
 
         assert s1.contains_os(s2)
 
     def test_singleton_does_not_contain_different_singleton(self):
         """Test SingletonOutcomeSpace does not contain different singleton."""
-        s1 = SingletonOutcomeSpace.from_outcome((1, 2))
-        s2 = SingletonOutcomeSpace.from_outcome((1, 3))
+        s1 = SingletonOutcomeSpace((1, 2))
+        s2 = SingletonOutcomeSpace((1, 3))
 
         assert not s1.contains_os(s2)
 
@@ -227,7 +225,7 @@ class TestContainsOs:
     def test_enumerating_contains_singleton(self):
         """Test EnumeratingOutcomeSpace contains SingletonOutcomeSpace."""
         eos = EnumeratingOutcomeSpace(baseset={(1, 2), (3, 4), (5, 6)}, name="enum")
-        singleton = SingletonOutcomeSpace.from_outcome((3, 4))
+        singleton = SingletonOutcomeSpace((3, 4))
 
         assert eos.contains_os(singleton)
 
@@ -256,8 +254,8 @@ class TestSetOperationsUnion:
 
     def test_singleton_union_singleton(self):
         """Test union of two SingletonOutcomeSpaces."""
-        s1 = SingletonOutcomeSpace.from_outcome((1,))
-        s2 = SingletonOutcomeSpace.from_outcome((2,))
+        s1 = SingletonOutcomeSpace((1,))
+        s2 = SingletonOutcomeSpace((2,))
 
         result = s1 | s2
         outcomes = set(result.enumerate())
@@ -266,8 +264,8 @@ class TestSetOperationsUnion:
 
     def test_singleton_union_same(self):
         """Test union of same singleton."""
-        s1 = SingletonOutcomeSpace.from_outcome((1,))
-        s2 = SingletonOutcomeSpace.from_outcome((1,))
+        s1 = SingletonOutcomeSpace((1,))
+        s2 = SingletonOutcomeSpace((1,))
 
         result = s1 | s2
         outcomes = set(result.enumerate())
@@ -277,7 +275,7 @@ class TestSetOperationsUnion:
     def test_cartesian_union_singleton(self):
         """Test union of CartesianOutcomeSpace and SingletonOutcomeSpace."""
         os = make_os(issues=[make_issue(3, "a")])
-        singleton = SingletonOutcomeSpace.from_outcome((5,), issue_names=["a"])
+        singleton = SingletonOutcomeSpace((5,), issue_names=["a"])
 
         result = os | singleton
         outcomes = set(result.enumerate())
@@ -321,7 +319,7 @@ class TestSetOperationsIntersection:
     def test_singleton_intersection_containing_space(self):
         """Test intersection of singleton with containing space."""
         os = make_os(issues=[make_issue(10, "a")])
-        singleton = SingletonOutcomeSpace.from_outcome((5,), issue_names=["a"])
+        singleton = SingletonOutcomeSpace((5,), issue_names=["a"])
 
         result = os & singleton
         outcomes = set(result.enumerate())
@@ -331,7 +329,7 @@ class TestSetOperationsIntersection:
     def test_singleton_intersection_non_containing_space(self):
         """Test intersection of singleton with non-containing space."""
         os = make_os(issues=[make_issue(5, "a")])  # 0-4
-        singleton = SingletonOutcomeSpace.from_outcome((10,), issue_names=["a"])
+        singleton = SingletonOutcomeSpace((10,), issue_names=["a"])
 
         result = os & singleton
         outcomes = set(result.enumerate())
@@ -383,7 +381,7 @@ class TestSetOperationsDifference:
     def test_singleton_difference_containing_space(self):
         """Test difference of singleton from containing space."""
         os = make_os(issues=[make_issue(5, "a")])  # 0-4
-        singleton = SingletonOutcomeSpace.from_outcome((2,), issue_names=["a"])
+        singleton = SingletonOutcomeSpace((2,), issue_names=["a"])
 
         result = os - singleton
         outcomes = set(result.enumerate())
@@ -392,7 +390,7 @@ class TestSetOperationsDifference:
 
     def test_singleton_difference_from_itself(self):
         """Test difference of singleton from itself."""
-        s = SingletonOutcomeSpace.from_outcome((1,))
+        s = SingletonOutcomeSpace((1,))
 
         result = s - s
         outcomes = set(result.enumerate())
@@ -436,7 +434,7 @@ class TestMixedOperations:
         """Test chaining multiple set operations."""
         os1 = make_os(issues=[make_issue(5, "a")])  # 0-4
         os2 = make_os(issues=[make_issue((3, 7), "a")])  # 3-7
-        s = SingletonOutcomeSpace.from_outcome((2,), issue_names=["a"])
+        s = SingletonOutcomeSpace((2,), issue_names=["a"])
 
         # (os1 | os2) - s
         result = (os1 | os2) - s
@@ -478,7 +476,7 @@ class TestMultiIssueSpaces:
     def test_two_issue_singleton(self):
         """Test two-issue SingletonOutcomeSpace."""
         outcome = (1, "a")
-        os = SingletonOutcomeSpace.from_outcome(outcome, issue_names=["num", "char"])
+        os = SingletonOutcomeSpace(outcome, issue_names=["num", "char"])
 
         assert os.outcome == outcome
         assert os.cardinality == 1
@@ -488,7 +486,7 @@ class TestMultiIssueSpaces:
     def test_two_issue_union(self):
         """Test union with two-issue spaces."""
         os1 = make_os(issues=[make_issue(2, "a"), make_issue(["x", "y"], "b")])
-        s = SingletonOutcomeSpace.from_outcome((5, "z"), issue_names=["a", "b"])
+        s = SingletonOutcomeSpace((5, "z"), issue_names=["a", "b"])
 
         result = os1 | s
         outcomes = set(result.enumerate())
@@ -510,7 +508,7 @@ class TestMultiIssueSpaces:
     def test_two_issue_difference(self):
         """Test difference with two-issue spaces."""
         os = make_os(issues=[make_issue(2, "a"), make_issue(2, "b")])
-        s = SingletonOutcomeSpace.from_outcome((0, 0), issue_names=["a", "b"])
+        s = SingletonOutcomeSpace((0, 0), issue_names=["a", "b"])
 
         result = os - s
         outcomes = set(result.enumerate())
@@ -530,14 +528,14 @@ class TestContainmentOperator:
 
     def test_outcome_in_singleton(self):
         """Test outcome in SingletonOutcomeSpace."""
-        s = SingletonOutcomeSpace.from_outcome((1, 2))
+        s = SingletonOutcomeSpace((1, 2))
         assert (1, 2) in s
         assert (1, 3) not in s
 
     def test_singleton_in_cartesian(self):
         """Test SingletonOutcomeSpace in CartesianOutcomeSpace."""
         os = make_os(issues=[make_issue(10, "a")])
-        s = SingletonOutcomeSpace.from_outcome((5,), issue_names=["a"])
+        s = SingletonOutcomeSpace((5,), issue_names=["a"])
 
         assert s in os
 
@@ -609,7 +607,7 @@ class TestEdgeCases:
 
     def test_singleton_os_repr_and_str(self):
         """Test string representations of SingletonOutcomeSpace."""
-        os = SingletonOutcomeSpace.from_outcome((1, 2), name="test")
+        os = SingletonOutcomeSpace((1, 2), name="test")
         repr_str = repr(os)
         str_str = str(os)
 

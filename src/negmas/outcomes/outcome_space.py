@@ -833,55 +833,44 @@ class DiscreteCartesianOutcomeSpace(CartesianOutcomeSpace):
         return self.cardinality
 
 
-@define(frozen=True)
+@define
 class SingletonOutcomeSpace(DiscreteCartesianOutcomeSpace):
     """
     A discrete outcome-space representing a single outcome.
 
     This is useful for representing a specific outcome as an outcome space,
     e.g., for checking containment or performing set operations.
+
+    Args:
+        outcome: The outcome tuple to represent
+        issue_names: Optional names for the issues. If None, generates names
+                     as issue00, issue01, ...
+        name: Optional name for the outcome space
     """
 
-    issues: tuple[SingletonIssue, ...] = field(converter=tuple)  # type: ignore[assignment]
+    outcome: Outcome = field(converter=tuple)
+    issue_names: Sequence[str] | None = field(default=None, eq=False)
     name: str | None = field(eq=False, default=None)
     path: Path | None = field(eq=False, default=None)
+    issues: tuple[SingletonIssue, ...] = field(init=False)  # type: ignore[assignment]
 
-    @classmethod
-    def from_outcome(
-        cls,
-        outcome: Outcome,
-        issue_names: Sequence[str] | None = None,
-        name: str | None = None,
-    ) -> SingletonOutcomeSpace:
-        """
-        Creates a SingletonOutcomeSpace from an outcome.
-
-        Args:
-            outcome: The outcome tuple to represent
-            issue_names: Optional names for the issues. If None, generates names
-                         as issue00, issue01, ...
-            name: Optional name for the outcome space
-
-        Returns:
-            A SingletonOutcomeSpace containing exactly this outcome
-        """
-        if issue_names is None:
-            issue_names = [f"issue{i:02d}" for i in range(len(outcome))]
-        if len(issue_names) != len(outcome):
-            raise ValueError(
-                f"Number of issue names ({len(issue_names)}) must match "
-                f"number of values in outcome ({len(outcome)})"
-            )
-        issues = tuple(
+    def __attrs_post_init__(self):
+        """Constructs the issues from outcome and issue_names."""
+        if self.issue_names is None:
+            computed_names = [f"issue{i:02d}" for i in range(len(self.outcome))]
+        else:
+            if len(self.issue_names) != len(self.outcome):
+                raise ValueError(
+                    f"Number of issue names ({len(self.issue_names)}) must match "
+                    f"number of values in outcome ({len(self.outcome)})"
+                )
+            computed_names = list(self.issue_names)
+        computed_issues = tuple(
             SingletonIssue(value, name=iname)
-            for value, iname in zip(outcome, issue_names)
+            for value, iname in zip(self.outcome, computed_names)
         )
-        return cls(issues=issues, name=name)
-
-    @property
-    def outcome(self) -> Outcome:
-        """Returns the single outcome in this space."""
-        return tuple(issue.value for issue in self.issues)
+        # Use object.__setattr__ since the class might have frozen-like behavior from parent
+        object.__setattr__(self, "issues", computed_issues)
 
     @property
     def cardinality(self) -> int:
