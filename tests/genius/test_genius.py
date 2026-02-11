@@ -169,7 +169,10 @@ def test_old_agent2():
         utility_file_name=domain.ufuns[1].path,
     )
 
-    mechanism = domain.make_session([a1, a2], n_steps=None, time_limit=TIMELIMIT)
+    # Genius negotiators require allow_none_with_data=False
+    mechanism = domain.make_session(
+        [a1, a2], n_steps=None, time_limit=TIMELIMIT, allow_none_with_data=False
+    )
     mechanism.run()
     # print(a1.preferences.__call__(mechanism.agreement), a2.preferences.__call__(mechanism.agreement))
     GeniusBridge.clean()
@@ -201,7 +204,10 @@ def test_genius_agents_run_using_hypothesis(agent_name1, agent_name2, single_iss
         assert domain is not None
     a1 = GeniusNegotiator(java_class_name=agent_name1, preferences=domain.ufuns[0])
     a2 = GeniusNegotiator(java_class_name=agent_name2, preferences=domain.ufuns[1])
-    neg = domain.make_session([a1, a2], n_steps=STEPLIMIT, time_limit=None)
+    # Genius negotiators require allow_none_with_data=False
+    neg = domain.make_session(
+        [a1, a2], n_steps=STEPLIMIT, time_limit=None, allow_none_with_data=False
+    )
     if neg is None:
         raise ValueError(f"Failed to lead domain from {base_folder}")
     neg._extra_callbacks = True
@@ -230,7 +236,10 @@ def test_genius_agent_gets_preferences():
         domain_file_name=base_folder + "/Laptop-C-domain.xml",
         preferences=domain.ufuns[0],
     )
-    neg = domain.make_session(n_steps=None, time_limit=TIMELIMIT)
+    # Genius negotiators require allow_none_with_data=False
+    neg = domain.make_session(
+        n_steps=None, time_limit=TIMELIMIT, allow_none_with_data=False
+    )
     neg.add(a1)
     neg.add(a2)
     assert a2.preferences is not None
@@ -288,8 +297,12 @@ def test_agentk_perceives_time():
     domain = Scenario.from_genius_folder(base_folder)
     assert domain is not None
     gagent = AgentK()
+    # Genius negotiators require allow_none_with_data=False
     neg = domain.make_session(
-        [gagent, AspirationNegotiator()], n_steps=n_steps, time_limit=float("inf")
+        [gagent, AspirationNegotiator()],
+        n_steps=n_steps,
+        time_limit=float("inf"),
+        allow_none_with_data=False,
     )
     if neg is None:
         raise ValueError(f"Failed to load domain from {base_folder}")
@@ -403,7 +416,10 @@ def test_caudacius_caudacius():
 
     domain = Scenario.from_genius_folder(base_folder)
     assert domain is not None
-    neg = domain.make_session(n_steps=n_steps, time_limit=float("inf"))
+    # Genius negotiators require allow_none_with_data=False
+    neg = domain.make_session(
+        n_steps=n_steps, time_limit=float("inf"), allow_none_with_data=False
+    )
     if neg is None:
         raise ValueError(f"Failed to load domain from {base_folder}")
     if not isinstance(neg, SAOMechanism):
@@ -423,6 +439,46 @@ def test_caudacius_caudacius():
     assert not all(
         [len(set(neg.negotiator_offers(_))) == 1 for _ in neg.negotiator_ids]
     ), f"None of the agents conceeded: {neg.trace}"
+
+
+def test_genius_negotiator_fails_to_join_with_allow_none_with_data():
+    """Test that Genius negotiators refuse to join negotiations that allow None offers."""
+    from negmas.outcomes import make_issue
+    from negmas.preferences import LinearAdditiveUtilityFunction as LUFun
+
+    issues = [make_issue(10, "price"), make_issue(5, "quantity")]
+
+    # Create a mechanism that allows None offers with data (default)
+    mechanism_with_none = SAOMechanism(
+        issues=issues, n_steps=10, allow_none_with_data=True
+    )
+    ufun = LUFun.random(mechanism_with_none.outcome_space, reserved_value=0.0)
+
+    # Create a GeniusNegotiator (it won't actually connect to Java for this test)
+    genius_neg = GeniusNegotiator(
+        java_class_name="agents.anac.y2015.Atlas3.Atlas3", ufun=ufun
+    )
+
+    # Genius negotiator should fail to join because allow_none_with_data=True
+    result = mechanism_with_none.add(genius_neg)
+    assert result is None, (
+        "GeniusNegotiator should fail to join when allow_none_with_data=True"
+    )
+
+    # Create a mechanism that does NOT allow None offers
+    mechanism_no_none = SAOMechanism(
+        issues=issues, n_steps=10, allow_none_with_data=False
+    )
+    ufun2 = LUFun.random(mechanism_no_none.outcome_space, reserved_value=0.0)
+
+    # Create another GeniusNegotiator
+    GeniusNegotiator(java_class_name="agents.anac.y2015.Atlas3.Atlas3", ufun=ufun2)
+
+    # This one should be allowed to join (though it may fail later due to no bridge)
+    # The join itself should not be rejected based on allow_none_with_data
+    # Note: This may still return None if the Genius bridge isn't running,
+    # but it won't be because of allow_none_with_data
+    # We can only test that the first case definitely fails
 
 
 if __name__ == "__main__":

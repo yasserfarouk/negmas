@@ -233,6 +233,26 @@ class SAOMetaNegotiator(MetaNegotiator, SAONegotiator):
         for neg in self._negotiators:
             neg.on_mechanism_error(state)
 
+    def on_negotiator_left(self, negotiator_id: str, state: MechanismState) -> None:
+        """Notify all sub-negotiators that a negotiator left the negotiation."""
+        for neg in self._negotiators:
+            if hasattr(neg, "on_negotiator_left"):
+                neg.on_negotiator_left(negotiator_id, state)
+
+    def on_negotiator_entered(self, negotiator_id: str, state: MechanismState) -> None:
+        """Notify all sub-negotiators that a new negotiator entered the negotiation."""
+        for neg in self._negotiators:
+            if hasattr(neg, "on_negotiator_entered"):
+                neg.on_negotiator_entered(negotiator_id, state)
+
+    def on_negotiator_didnot_enter(
+        self, negotiator_id: str, state: MechanismState
+    ) -> None:
+        """Notify all sub-negotiators that a negotiator failed to enter the negotiation."""
+        for neg in self._negotiators:
+            if hasattr(neg, "on_negotiator_didnot_enter"):
+                neg.on_negotiator_didnot_enter(negotiator_id, state)
+
 
 class SAOAggMetaNegotiator(SAOMetaNegotiator):
     """
@@ -381,7 +401,7 @@ class RangeMetaNegotiator(SAOAggMetaNegotiator):
 
     Example:
         >>> from negmas.sao.negotiators import (
-        ...     SAORangeMetaNegotiator,
+        ...     RangeMetaNegotiator,
         ...     BoulwareTBNegotiator,
         ...     ConcederTBNegotiator,
         ... )
@@ -395,7 +415,7 @@ class RangeMetaNegotiator(SAOAggMetaNegotiator):
         >>> ufun2 = U.random(os, reserved_value=0.0)
         >>>
         >>> # Create a range meta-negotiator with diverse strategies
-        >>> meta = SAORangeMetaNegotiator(
+        >>> meta = RangeMetaNegotiator(
         ...     negotiators=[BoulwareTBNegotiator(), ConcederTBNegotiator()], ufun=ufun1
         ... )
         >>> opponent = ConcederTBNegotiator(ufun=ufun2)

@@ -528,6 +528,7 @@ class GBMechanism(BaseGBMechanism):
         parallel: bool = True,
         sync_calls: bool = False,
         initial_state: GBState | None = None,
+        allow_negotiators_to_leave: bool = True,
         **kwargs,
     ):
         """Create a GB mechanism with evaluation strategies and offering constraints.
@@ -552,6 +553,10 @@ class GBMechanism(BaseGBMechanism):
             parallel: Whether to run threads in parallel (randomized order) or serial.
             sync_calls: Whether to use synchronous callback execution.
             initial_state: Optional initial state for the mechanism.
+            allow_negotiators_to_leave: If True (default), LEAVE marks the negotiator as left
+                and allows remaining negotiators to continue. The negotiation ends when fewer
+                than 2 negotiators remain (unless dynamic_entry is True).
+                If False, LEAVE is treated exactly like END_NEGOTIATION.
             *args: Additional positional arguments passed to the parent class.
             **kwargs: Additional keyword arguments passed to the parent class.
         """
@@ -622,6 +627,8 @@ class GBMechanism(BaseGBMechanism):
             local_constraint_type
         )  #
         self.params["local_constraint_params"] = local_constraint_params
+        self.params["allow_negotiators_to_leave"] = allow_negotiators_to_leave
+        self.allow_negotiators_to_leave = allow_negotiators_to_leave
 
     def add(
         self,
@@ -678,6 +685,77 @@ class GBMechanism(BaseGBMechanism):
 
         return added
 
+    @property
+    def participating_negotiators(self) -> list[GBNegotiator]:
+        """Returns negotiators still participating (those who haven't left).
+
+        Unlike `negotiators`, this excludes any negotiator that has returned
+        a LEAVE response. The original negotiator list and indices remain
+        unchanged to avoid breaking any saved references.
+
+        Returns:
+            List of negotiator objects still active in the negotiation.
+        """
+        left = self._current_state.left_negotiators
+        return [n for n in self._negotiators if n.id not in left]
+
+    @property
+    def agreement_partners(self) -> list[GBNegotiator]:
+        """Returns negotiators who are part of the final agreement.
+
+        This is the same as `participating_negotiators` - it includes all
+        negotiators who haven't left the negotiation.
+
+        Returns:
+            List of negotiator objects who participated in the final outcome.
+        """
+        return self.participating_negotiators
+
+    @property
+    def n_participating(self) -> int:
+        """Number of negotiators still participating (not left).
+
+        Returns:
+            Count of active negotiators.
+        """
+        return len(self._negotiators) - len(self._current_state.left_negotiators)
+
+    def _remove_negotiator_on_leave(self, negotiator: GBNegotiator) -> bool:
+        """Mark a negotiator as having left and notify others.
+
+        Instead of removing the negotiator from the list (which would break
+        indices and references), we mark them as left in the state. The
+        negotiator remains in `negotiators` but is excluded from
+        `participating_negotiators` and `agreement_partners`.
+
+        Args:
+            negotiator: The negotiator leaving the mechanism.
+
+        Returns:
+            True if successfully marked as left, False if already left or not found.
+        """
+        neg_id = negotiator.id
+        # Check if negotiator exists and hasn't already left
+        if neg_id not in self._negotiator_map:
+            return False
+        if neg_id in self._current_state.left_negotiators:
+            return False  # Already left
+
+        # Mark as left in the state (don't remove from lists)
+        self._current_state.left_negotiators.add(neg_id)
+
+        # Call on_leave for the leaving negotiator
+        if self._extra_callbacks:
+            negotiator.on_leave(self.state)
+
+        # Notify remaining negotiators that this one left
+        if self._extra_callbacks:
+            for other in self.participating_negotiators:
+                if hasattr(other, "on_negotiator_left"):
+                    other.on_negotiator_left(neg_id, self.state)
+
+        return True
+
     def set_sync_call(self, v: bool):
         """Enable or disable synchronous callback execution."""
         self._sync_call = v
@@ -704,11 +782,40 @@ class GBMechanism(BaseGBMechanism):
                 f"{self.name}: Central Processing after {humanize_time((perf_counter_ns() - self._start_time) / 1_000_000_000, show_ms=True) if self._start_time else 0}",
                 flush=True,
             )
-        responses = []
+
+        # Handle LEAVE responses from threads
+        negotiators_to_mark_left = []
         for source, (tstate, response) in results.items():
             state.threads[source] = tstate
-            if self._local_evaluator_type:
-                responses.append(response)
+            # Check for LEAVE responses in thread responses
+            for responder_id, resp in tstate.new_responses.items():
+                if resp == ResponseType.LEAVE:
+                    if not self.allow_negotiators_to_leave:
+                        # Treat LEAVE exactly like END_NEGOTIATION
+                        state.broken = True
+                        return MechanismStepResult(state)
+                    else:
+                        # Mark the responder for leaving
+                        negotiators_to_mark_left.append(responder_id)
+
+        # Mark negotiators who chose to leave
+        for neg_id in set(negotiators_to_mark_left):  # Use set to avoid duplicates
+            neg = self._negotiator_map.get(neg_id)
+            if neg:
+                self._remove_negotiator_on_leave(neg)
+
+        # Check if we have enough participating negotiators to continue
+        n_participating = self.n_participating
+        if n_participating < 2 and not self.dynamic_entry:
+            # End negotiation - too few negotiators remain and no new ones can join
+            state.broken = True
+            return MechanismStepResult(state)
+
+        responses = []
+        for source, (tstate, response) in results.items():
+            if source in state.threads:  # Only process if negotiator is still present
+                if self._local_evaluator_type:
+                    responses.append(response)
         if self.verbosity > 2:
             print(
                 f"{self.name}: Global Evaluator after {humanize_time((perf_counter_ns() - self._start_time) / 1_000_000_000, show_ms=True) if self._start_time else 0}",

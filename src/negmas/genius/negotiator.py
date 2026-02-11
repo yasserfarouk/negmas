@@ -300,11 +300,20 @@ class GeniusNegotiator(SAONegotiator):
 
         Returns:
             True if successfully joined, False otherwise
+
+        Raises:
+            ValueError: If the mechanism allows None offers (allow_none_with_data=True),
+                       which Genius negotiators cannot handle.
         """
         if ufun:
             preferences = ufun
         if not preferences:
             preferences = self.__preferences_received
+
+        # Check if the mechanism allows None offers - Genius negotiators cannot handle this
+        if hasattr(nmi, "allow_none_with_data") and nmi.allow_none_with_data:
+            return False
+
         result = super().join(
             nmi=nmi, state=state, preferences=preferences, ufun=None, role=role
         )

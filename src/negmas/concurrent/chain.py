@@ -257,10 +257,10 @@ class ChainNegotiationsMechanism(
 
     def _get_nmi(self, negotiator: ChainNegotiator) -> ChainNMI:
         """
-        Returns a chain AMI instead of the standard AMI.
+        Returns a chain NMI instead of the standard AMI.
 
         Args:
-            negotiator: The negotiator to create the AMI for
+            negotiator: The negotiator to create the NMI for
             role: Its role in the negotiation (an integer >= -1 as a string)
 
         Returns:
@@ -459,10 +459,10 @@ class MultiChainNegotiationsMechanism(
 
     def _get_nmi(self, negotiator: MultiChainNegotiator) -> ChainNMI:
         """
-        Returns a chain AMI instead of the standard AMI.
+        Returns a chain NMI instead of the standard AMI.
 
         Args:
-            negotiator: The negotiator to create the AMI for
+            negotiator: The negotiator to create the NMI for
             role: Its role in the negotiation (an integer >= -1 as a string)
 
         Returns:

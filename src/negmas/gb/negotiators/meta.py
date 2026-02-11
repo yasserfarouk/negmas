@@ -298,3 +298,23 @@ class GBMetaNegotiator(MetaNegotiator, GBNegotiator):
         """Notify all sub-negotiators of a mechanism error."""
         for neg in self._negotiators:
             neg.on_mechanism_error(state)
+
+    def on_negotiator_left(self, negotiator_id: str, state: MechanismState) -> None:
+        """Notify all sub-negotiators that a negotiator left the negotiation."""
+        for neg in self._negotiators:
+            if hasattr(neg, "on_negotiator_left"):
+                neg.on_negotiator_left(negotiator_id, state)
+
+    def on_negotiator_entered(self, negotiator_id: str, state: MechanismState) -> None:
+        """Notify all sub-negotiators that a new negotiator entered the negotiation."""
+        for neg in self._negotiators:
+            if hasattr(neg, "on_negotiator_entered"):
+                neg.on_negotiator_entered(negotiator_id, state)
+
+    def on_negotiator_didnot_enter(
+        self, negotiator_id: str, state: MechanismState
+    ) -> None:
+        """Notify all sub-negotiators that a negotiator failed to enter the negotiation."""
+        for neg in self._negotiators:
+            if hasattr(neg, "on_negotiator_didnot_enter"):
+                neg.on_negotiator_didnot_enter(negotiator_id, state)

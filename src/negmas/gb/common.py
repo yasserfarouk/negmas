@@ -44,6 +44,8 @@ class ResponseType(IntEnum):
     END_NEGOTIATION = 2
     NO_RESPONSE = 3
     WAIT = 4
+    LEAVE = 5
+    """Leave the negotiation without necessarily ending it for other negotiators."""
 
 
 @define(frozen=True)
@@ -95,6 +97,13 @@ class GBState(MechanismState):
 
     threads: dict[str, ThreadState] = field(factory=dict)
     last_thread: str = ""
+    left_negotiators: set[str] = field(factory=set)
+    """Set of negotiator IDs that have left the negotiation via LEAVE response."""
+
+    @property
+    def n_participating(self) -> int:
+        """Number of negotiators still participating (not left)."""
+        return self.n_negotiators - len(self.left_negotiators)
 
     @property
     def base_state(self) -> MechanismState:
@@ -106,6 +115,7 @@ class GBState(MechanismState):
         d = asdict(self)
         del d["threads"]
         del d["last_thread"]
+        del d["left_negotiators"]
         return MechanismState(**d)
 
     @classmethod

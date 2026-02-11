@@ -78,6 +78,9 @@ ALL_BUILTIN_NEGOTIATORS = [
         "WARNegotiator",
         "SAOMetaNegotiator",
         "SAOAggMetaNegotiator",
+        "RangeMetaNegotiator",
+        "MeanMetaNegotiator",
+        "OSMeanMetaNegotiator",
     ]
 ]
 

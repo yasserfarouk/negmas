@@ -845,7 +845,7 @@ class SAOMetaNegotiatorController(SAOController):
     Remarks:
 
         - The controller will use the meta-negotiator to handle all negotiations by
-          first setting its AMI to the current negotiation then calling the appropriate
+          first setting its NMI to the current negotiation then calling the appropriate
           method in the meta negotiator.
         - If no meta-negotiator is given, an `AspirationNegotiator` will be created
           and used (with default parameters).

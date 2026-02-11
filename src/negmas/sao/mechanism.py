@@ -1,5 +1,9 @@
 """
-Implements Stacked Alternating Offers (SAO) mechanism.
+Implements a generalized Stacked Alternating Offers (SAO) mechanism.
+
+This module extends the classic Stacked Alternating Offers Protocol with several
+advanced features including dynamic negotiator entry/exit, per-negotiator time limits,
+text-based communication alongside offers, and flexible response types.
 """
 
 from __future__ import annotations
@@ -45,7 +49,28 @@ class SAOMechanism(
     Mechanism[SAONMI, SAOState, SAOResponse, SAONegotiator | GBNegotiator]
 ):
     """
-    Implements Several variants of the Stacked Alternating Offers Protocol
+    A generalized Stacked Alternating Offers Protocol mechanism.
+
+    This mechanism extends the classic SAO protocol with several advanced features:
+
+    - **Dynamic Entry/Exit**: Negotiators can join after the negotiation starts
+      (``dynamic_entry=True``) and can leave gracefully using ``ResponseType.LEAVE``
+      without forcing the negotiation to end (``allow_negotiators_to_leave=True``).
+
+    - **Per-Negotiator Limits**: Each negotiator can have individual time and step
+      limits, enabling asymmetric negotiation scenarios.
+
+    - **Text-Based Communication**: Negotiators can send messages or explanations
+      alongside offers using the ``data`` field and can even send messages that do
+      not contain any offers as long as they include some text or data
+      (``allow_none_with_data=True``).
+
+    - **Flexible Response Types**: Beyond ACCEPT/REJECT/END, negotiators can WAIT
+      (pause their turn) or LEAVE (exit gracefully).
+
+    - **Callbacks**: Negotiators receive notifications when others join
+      (``on_negotiator_entered``) or leave (``on_negotiator_left``) and on the most
+      important events including partner offers, rounds start and end, etc.
 
     Args:
 
@@ -58,9 +83,9 @@ class SAOMechanism(
         max_n_agents: The maximum number of negotiators allowed to join the negotiation.
         dynamic_entry: Whether it is allowed for negotiators to join the negotiation after it starts
         cache_outcomes: If true, the mechanism will catch `outcomes` and a discrete version (`discrete_outcomes`) that
-                        can be accessed by any negotiator through their AMI.
+                        can be accessed by any negotiator through their NMIs.
         max_cardinality: Maximum number or outcomes to use when discretizing the outcome-space
-        annotation: A key-value mapping to keep around. Accessible through the AMI but not used by the mechanism.
+        annotation: A key-value mapping to keep around. Accessible through the NMI but not used by the mechanism.
         end_on_no_response: End the negotiation if any negotiator returns NO_RESPONSE from `respond`/`counter` or returns
                             REJECT_OFFER then refuses to give an offer (by returning `None` from `proposee/`counter`).
         enable_callbacks: Enable callbacks like on_round_start, etc. Note that on_negotiation_end is always received
@@ -78,6 +103,10 @@ class SAOMechanism(
                               as long as there is associated data (e.g., text). This allows negotiators to
                               send messages or explanations without making a concrete offer. The negotiation
                               will continue rather than breaking.
+        allow_negotiators_to_leave: If True (default), a LEAVE response removes the negotiator but remaining
+                           negotiators continue if 2+ remain. If fewer than 2 remain after leaving, the
+                           negotiation ends unless ``dynamic_entry=True`` (allowing new negotiators to join).
+                           If False, LEAVE is treated exactly like END_NEGOTIATION (breaks the negotiation).
         sync_calls: If given, calls to negotiators will be synchronized. This will not enforce timeouts on
                     single calls which means that a negotiator in an infinite loop will hog the CPU. By default
                     calls are done using a different thread that is killed when the timeout passes. This may, but
@@ -110,6 +139,7 @@ class SAOMechanism(
         offering_is_accepting=True,
         allow_offering_just_rejected_outcome=True,
         allow_none_with_data=True,
+        allow_negotiators_to_leave=True,
         name: str | None = None,
         max_wait: int = sys.maxsize,
         sync_calls: bool = False,
@@ -133,6 +163,10 @@ class SAOMechanism(
             allow_none_with_data: Whether to allow None offers if they have associated data (e.g., text).
                 When True, a negotiator can respond with outcome=None but include text or other data,
                 and the negotiation will continue rather than breaking. Defaults to True.
+            allow_negotiators_to_leave: If True (default), LEAVE response removes the negotiator
+                from the negotiation but allows remaining negotiators to continue. The negotiation
+                ends when fewer than 2 negotiators remain (unless dynamic_entry is True).
+                If False, LEAVE is treated exactly like END_NEGOTIATION.
             name: Optional name for the mechanism.
             max_wait: Maximum number of consecutive WAIT responses before timing out.
             sync_calls: Whether to call negotiators synchronously (disables per-call timeouts).
@@ -166,6 +200,7 @@ class SAOMechanism(
                     one_offer_per_step=one_offer_per_step,
                     offering_is_accepting=offering_is_accepting,
                     allow_none_with_data=allow_none_with_data,
+                    allow_negotiators_to_leave=allow_negotiators_to_leave,
                 ),
             }
         )
@@ -178,6 +213,7 @@ class SAOMechanism(
                     one_offer_per_step=one_offer_per_step,
                     offering_is_accepting=offering_is_accepting,
                     allow_none_with_data=allow_none_with_data,
+                    allow_negotiators_to_leave=allow_negotiators_to_leave,
                 ),
             }
         )
@@ -187,6 +223,7 @@ class SAOMechanism(
             one_offer_per_step=one_offer_per_step,
             offering_is_accepting=offering_is_accepting,
             allow_none_with_data=allow_none_with_data,
+            allow_negotiators_to_leave=allow_negotiators_to_leave,
         )
         self._one_offer_per_step = one_offer_per_step
         assert self._internal_nmi.end_on_no_response == end_on_no_response
@@ -215,10 +252,12 @@ class SAOMechanism(
             allow_offering_just_rejected_outcome
         )
         self.params["allow_none_with_data"] = allow_none_with_data
+        self.params["allow_negotiators_to_leave"] = allow_negotiators_to_leave
         self._n_max_waits = max_wait if max_wait is not None else float("inf")
         self.params["max_wait"] = self._n_max_waits
         self.allow_offering_just_rejected_outcome = allow_offering_just_rejected_outcome
         self.allow_none_with_data = allow_none_with_data
+        self.allow_negotiators_to_leave = allow_negotiators_to_leave
         self.end_negotiation_on_refusal_to_propose = end_on_no_response
         self.check_offers = check_offers
         self._enforce_issue_types = enforce_issue_types
@@ -244,6 +283,7 @@ class SAOMechanism(
             offering_is_accepting=self._internal_nmi.offering_is_accepting,
             allow_offering_just_rejected_outcome=self.allow_offering_just_rejected_outcome,
             allow_none_with_data=self.allow_none_with_data,
+            allow_negotiators_to_leave=self.allow_negotiators_to_leave,
             name=self.name,
             max_wait=self.params.get("max_wait", None),
             sync_calls=self._sync_calls,
@@ -257,6 +297,42 @@ class SAOMechanism(
         Override `extra_state` if you want to keep extra state
         """
         return self._current_state
+
+    @property
+    def participating_negotiators(self) -> list[SAONegotiator | GBNegotiator]:
+        """Returns negotiators still participating (those who haven't left).
+
+        Unlike `negotiators`, this excludes any negotiator that has returned
+        a LEAVE response. The original negotiator list and indices remain
+        unchanged to avoid breaking any saved references.
+
+        Returns:
+            List of negotiator objects still active in the negotiation.
+        """
+        left = self._current_state.left_negotiators
+        return [n for n in self._negotiators if n.id not in left]
+
+    @property
+    def agreement_partners(self) -> list[SAONegotiator | GBNegotiator]:
+        """Returns negotiators who are part of the final agreement.
+
+        This is the same as `participating_negotiators` - it includes all
+        negotiators who haven't left the negotiation. If there's an agreement,
+        these are the parties to that agreement.
+
+        Returns:
+            List of negotiator objects who participated in the final outcome.
+        """
+        return self.participating_negotiators
+
+    @property
+    def n_participating(self) -> int:
+        """Number of negotiators still participating (not left).
+
+        Returns:
+            Count of active negotiators.
+        """
+        return len(self._negotiators) - len(self._current_state.left_negotiators)
 
     def add(  #
         self,
@@ -298,6 +374,44 @@ class SAOMechanism(
                 warnings.NegmasStepAndTimeLimitWarning,
             )
         return added
+
+    def _remove_negotiator_on_leave(
+        self, negotiator: SAONegotiator | GBNegotiator
+    ) -> bool:
+        """Mark a negotiator as having left and notify others.
+
+        Instead of removing the negotiator from the list (which would break
+        indices and references), we mark them as left in the state. The
+        negotiator remains in `negotiators` but is excluded from
+        `participating_negotiators` and `agreement_partners`.
+
+        Args:
+            negotiator: The negotiator leaving the mechanism.
+
+        Returns:
+            True if successfully marked as left, False if already left or not found.
+        """
+        neg_id = negotiator.id
+        # Check if negotiator exists and hasn't already left
+        if neg_id not in self._negotiator_map:
+            return False
+        if neg_id in self._current_state.left_negotiators:
+            return False  # Already left
+
+        # Mark as left in the state (don't remove from lists)
+        self._current_state.left_negotiators.add(neg_id)
+
+        # Call on_leave for the leaving negotiator
+        if self._extra_callbacks:
+            negotiator.on_leave(self.state)
+
+        # Notify remaining participating negotiators that this one left
+        if self._extra_callbacks:
+            for other in self.participating_negotiators:
+                if hasattr(other, "on_negotiator_left"):
+                    other.on_negotiator_left(neg_id, self.state)
+        return True
+        return True
 
     def set_sync_call(self, v: bool):
         """Enable or disable synchronous negotiator calls."""
@@ -579,6 +693,9 @@ class SAOMechanism(
         for _, neg_indx in enumerate(ordered_indices):
             self._last_checked_negotiator = neg_indx
             neg = self.negotiators[neg_indx]
+            # Skip negotiators who have left
+            if neg.id in state.left_negotiators:
+                continue
             strt = time.perf_counter()
             dest = self._negotiators[
                 ordered_indices[(neg_indx + 1) % len(ordered_indices)]
@@ -653,20 +770,43 @@ class SAOMechanism(
             if resp.response == ResponseType.END_NEGOTIATION:
                 state.broken = True
                 return MechanismStepResult(state, times=times, exceptions=exceptions)
+            if resp.response == ResponseType.LEAVE:
+                if not self.allow_negotiators_to_leave:
+                    # Treat LEAVE exactly like END_NEGOTIATION
+                    state.broken = True
+                    return MechanismStepResult(
+                        state, times=times, exceptions=exceptions
+                    )
+                else:
+                    # Mark the negotiator as left (don't remove from list)
+                    self._remove_negotiator_on_leave(neg)
+                    n_participating = self.n_participating
+                    # If fewer than 2 participating and no dynamic entry, end the negotiation
+                    if n_participating < 2 and not self.dynamic_entry:
+                        # Mark as broken to signal end - the negotiation ended because
+                        # too few negotiators remain and no new ones can join
+                        state.broken = True
+                        return MechanismStepResult(
+                            state, times=times, exceptions=exceptions
+                        )
+                    # Continue to next negotiator - the left one is now marked
+                    # and will be skipped in future iterations
+                    continue
             if resp.response == ResponseType.ACCEPT_OFFER:
                 # Cannot accept a None offer - treat as END_NEGOTIATION
                 if state.current_offer is None:
-                    state.ended = True
+                    state.broken = True
                     return MechanismStepResult(
                         state,
                         timedout=False,
                         agreement=None,
                         times=times,
                         exceptions=exceptions,
-                        broken=False,
+                        broken=True,
                     )
                 state.n_acceptances += 1
-                if state.n_acceptances == n_negotiators:
+                # Agreement requires all participating (non-left) negotiators to accept
+                if state.n_acceptances == self.n_participating:
                     state.agreement = self._current_state.current_offer
                     return MechanismStepResult(
                         state,

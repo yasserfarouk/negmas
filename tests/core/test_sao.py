@@ -1941,3 +1941,596 @@ def test_accepting_none_offer_at_later_step():
     )
     # It should NOT be marked as broken
     assert not session.state.broken, "Negotiation should not be marked as broken"
+
+
+# ============================================================================
+# LEAVE Response Tests
+# ============================================================================
+
+
+class LeaveAfterStepNegotiator(SAONegotiator):
+    """A negotiator that leaves the negotiation after a specified step."""
+
+    def __init__(self, *args, leave_at_step: int = 1, **kwargs):
+        super().__init__(*args, **kwargs)
+        self._leave_at_step = leave_at_step
+        self.left_partners = []  # Track which partners left
+
+    def propose(self, state):
+        if self.ufun and self.ufun.outcome_space:
+            outcomes = list(
+                self.ufun.outcome_space.enumerate_or_sample(max_cardinality=10)
+            )
+            if outcomes:
+                return outcomes[0]
+        return None
+
+    def respond(self, state, source=None):
+        if state.step >= self._leave_at_step:
+            return ResponseType.LEAVE
+        return ResponseType.REJECT_OFFER
+
+    def on_negotiator_left(self, negotiator_id: str, state) -> None:
+        self.left_partners.append(negotiator_id)
+
+
+class TrackingNegotiator(SAONegotiator):
+    """A negotiator that tracks entry/exit callbacks."""
+
+    def __init__(self, *args, **kwargs):
+        super().__init__(*args, **kwargs)
+        self.entered_partners = []
+        self.left_partners = []
+        self.didnot_enter_partners = []
+
+    def propose(self, state):
+        if self.ufun and self.ufun.outcome_space:
+            outcomes = list(
+                self.ufun.outcome_space.enumerate_or_sample(max_cardinality=10)
+            )
+            if outcomes:
+                return outcomes[0]
+        return None
+
+    def respond(self, state, source=None):
+        return ResponseType.REJECT_OFFER
+
+    def on_negotiator_left(self, negotiator_id: str, state) -> None:
+        self.left_partners.append(negotiator_id)
+
+    def on_negotiator_entered(self, negotiator_id: str, state) -> None:
+        self.entered_partners.append(negotiator_id)
+
+    def on_negotiator_didnot_enter(self, negotiator_id: str, state) -> None:
+        self.didnot_enter_partners.append(negotiator_id)
+
+
+def test_leave_with_allow_negotiators_to_leave_false():
+    """Test that LEAVE is treated like END_NEGOTIATION when allow_negotiators_to_leave=False."""
+    issues = [make_issue(10, "price"), make_issue(5, "quantity")]
+    session = SAOMechanism(
+        issues=issues,
+        n_steps=10,
+        allow_negotiators_to_leave=False,
+        extra_callbacks=True,
+    )
+
+    ufun1 = LUFun.random(session.outcome_space, reserved_value=0.0)
+    ufun2 = LUFun.random(session.outcome_space, reserved_value=0.0)
+
+    # First negotiator leaves at step 1
+    session.add(LeaveAfterStepNegotiator(name="leaver", leave_at_step=1), ufun=ufun1)
+    # Second negotiator just rejects
+    session.add(TrackingNegotiator(name="tracker"), ufun=ufun2)
+
+    session.run()
+
+    # With allow_negotiators_to_leave=False, LEAVE should break the negotiation
+    assert session.state.broken, (
+        "Negotiation should be broken when allow_negotiators_to_leave=False"
+    )
+    assert session.state.agreement is None, "There should be no agreement"
+
+
+def test_leave_with_two_negotiators_ends_negotiation():
+    """Test that LEAVE ends negotiation when only 2 negotiators and one leaves (no dynamic_entry)."""
+    issues = [make_issue(10, "price"), make_issue(5, "quantity")]
+    session = SAOMechanism(
+        issues=issues, n_steps=10, allow_negotiators_to_leave=True, extra_callbacks=True
+    )
+
+    ufun1 = LUFun.random(session.outcome_space, reserved_value=0.0)
+    ufun2 = LUFun.random(session.outcome_space, reserved_value=0.0)
+
+    # First negotiator leaves at step 1
+    leaver = LeaveAfterStepNegotiator(name="leaver", leave_at_step=1)
+    session.add(leaver, ufun=ufun1)
+    # Second negotiator tracks callbacks
+    tracker = TrackingNegotiator(name="tracker")
+    session.add(tracker, ufun=ufun2)
+
+    session.run()
+
+    # With 2 negotiators and one leaving (no dynamic_entry), negotiation should end as broken
+    # because fewer than 2 remain and no new negotiators can join
+    assert session.state.ended, "Negotiation should have ended"
+    assert session.state.broken, (
+        "Negotiation should be broken (only 1 remains, no dynamic_entry)"
+    )
+    assert session.state.agreement is None, "There should be no agreement"
+
+
+def test_leave_with_three_negotiators_continues():
+    """Test that LEAVE removes negotiator but others can continue with 3 negotiators."""
+    issues = [make_issue(10, "price"), make_issue(5, "quantity")]
+    session = SAOMechanism(
+        issues=issues, n_steps=10, allow_negotiators_to_leave=True, extra_callbacks=True
+    )
+
+    ufun1 = LUFun.random(session.outcome_space, reserved_value=0.0)
+    ufun2 = LUFun.random(session.outcome_space, reserved_value=0.0)
+    ufun3 = LUFun.random(session.outcome_space, reserved_value=0.0)
+
+    # First negotiator leaves at step 1
+    leaver = LeaveAfterStepNegotiator(name="leaver", leave_at_step=1)
+    session.add(leaver, ufun=ufun1)
+    # Second and third negotiators will eventually accept at step 5
+    accepter1 = AcceptAfterStepNegotiator(name="accepter1", accept_at_step=5)
+    accepter2 = AcceptAfterStepNegotiator(name="accepter2", accept_at_step=5)
+    session.add(accepter1, ufun=ufun2)
+    session.add(accepter2, ufun=ufun3)
+
+    session.run()
+
+    # The negotiation should have ended with an agreement between the remaining negotiators
+    assert session.state.ended, "Negotiation should have ended"
+    assert not session.state.broken, "Negotiation should NOT be broken"
+    # After the leaver leaves at step 1, the other two should reach agreement at step 5
+    assert session.state.agreement is not None, (
+        "Remaining negotiators should reach agreement"
+    )
+
+
+def test_on_negotiator_left_callback_is_called():
+    """Test that on_negotiator_left callback is called when a negotiator leaves."""
+    issues = [make_issue(10, "price"), make_issue(5, "quantity")]
+    session = SAOMechanism(
+        issues=issues, n_steps=10, allow_negotiators_to_leave=True, extra_callbacks=True
+    )
+
+    ufun1 = LUFun.random(session.outcome_space, reserved_value=0.0)
+    ufun2 = LUFun.random(session.outcome_space, reserved_value=0.0)
+    ufun3 = LUFun.random(session.outcome_space, reserved_value=0.0)
+
+    # First negotiator leaves at step 1
+    leaver = LeaveAfterStepNegotiator(name="leaver", leave_at_step=1)
+    session.add(leaver, ufun=ufun1)
+    # Second and third negotiators track callbacks
+    tracker1 = TrackingNegotiator(name="tracker1")
+    tracker2 = TrackingNegotiator(name="tracker2")
+    session.add(tracker1, ufun=ufun2)
+    session.add(tracker2, ufun=ufun3)
+
+    session.run()
+
+    # Both trackers should have been notified that the leaver left
+    assert leaver.id in tracker1.left_partners, "tracker1 should know leaver left"
+    assert leaver.id in tracker2.left_partners, "tracker2 should know leaver left"
+
+
+def test_on_negotiator_entered_callback_is_called():
+    """Test that on_negotiator_entered callback is called when a negotiator joins."""
+    issues = [make_issue(10, "price"), make_issue(5, "quantity")]
+    session = SAOMechanism(issues=issues, n_steps=10, extra_callbacks=True)
+
+    ufun1 = LUFun.random(session.outcome_space, reserved_value=0.0)
+    ufun2 = LUFun.random(session.outcome_space, reserved_value=0.0)
+
+    # First negotiator added
+    tracker1 = TrackingNegotiator(name="tracker1")
+    session.add(tracker1, ufun=ufun1)
+
+    # Second negotiator added - tracker1 should be notified
+    tracker2 = TrackingNegotiator(name="tracker2")
+    session.add(tracker2, ufun=ufun2)
+
+    # tracker1 should know tracker2 entered
+    assert tracker2.id in tracker1.entered_partners, (
+        "tracker1 should know tracker2 entered"
+    )
+    # tracker2 should NOT have any entries (no one joined after it)
+    assert len(tracker2.entered_partners) == 0, (
+        "tracker2 should have no entered partners"
+    )
+
+
+def test_leave_response_type_exists():
+    """Test that ResponseType.LEAVE exists and is distinct from other responses."""
+    assert hasattr(ResponseType, "LEAVE"), "ResponseType should have LEAVE"
+    assert ResponseType.LEAVE != ResponseType.END_NEGOTIATION
+    assert ResponseType.LEAVE != ResponseType.REJECT_OFFER
+    assert ResponseType.LEAVE != ResponseType.ACCEPT_OFFER
+    assert ResponseType.LEAVE != ResponseType.NO_RESPONSE
+    assert ResponseType.LEAVE != ResponseType.WAIT
+
+
+class LeavingAspirationNegotiator(AspirationNegotiator):
+    """An aspiration negotiator that leaves after a specified step.
+
+    This extends AspirationNegotiator and overrides both respond and __call__
+    to return LEAVE after the specified step. We need to override __call__
+    because respond is only called when there's an offer to respond to.
+    When the negotiator is the proposer with no current offer, respond is
+    not called.
+    """
+
+    def __init__(self, *args, leave_at_step: int = 5, **kwargs):
+        super().__init__(*args, **kwargs)
+        self._leave_at_step = leave_at_step
+
+    def __call__(self, state, dest=None):
+        # Check if we should leave before doing anything else
+        if state.step >= self._leave_at_step:
+            from negmas.sao.common import SAOResponse
+
+            return SAOResponse(ResponseType.LEAVE, None)
+        return super().__call__(state, dest)
+
+    def respond(self, state, source=None):
+        if state.step >= self._leave_at_step:
+            return ResponseType.LEAVE
+        return super().respond(state, source)
+
+
+@mark.parametrize("leaver_position", [0, 1, 2])  # first, middle, last
+@mark.parametrize("leave_at_step", [0, 1, 3, 5, 10])
+def test_leave_allows_remaining_negotiators_to_continue(leaver_position, leave_at_step):
+    """Test that LEAVE allows remaining negotiators to continue and potentially reach agreement.
+
+    This test verifies that:
+    1. If the leaver leaves before the negotiation ends, 2 negotiators remain
+    2. If the negotiation ends before the leave step, all 3 remain
+    3. The negotiation is never broken (either normal agreement or graceful leave)
+    """
+    # Create outcome space with 3 issues
+    issues = [
+        make_issue(10, "price"),
+        make_issue(5, "quantity"),
+        make_issue(3, "delivery"),
+    ]
+
+    # Seed for reproducibility based on test parameters
+    seed = 42 + leaver_position * 100 + leave_at_step
+    random.seed(seed)
+
+    outcome_space = make_os(issues)
+    ufuns = [LUFun.random(outcome_space, reserved_value=0.0) for _ in range(3)]
+
+    # Aspiration types for the 3 negotiators
+    aspiration_types = ["boulware", "conceder", "linear"]
+
+    # Determine which negotiator will leave
+    leaver_idx = leaver_position
+
+    # --- Run negotiation WITH the leaver (who will leave) ---
+    session = SAOMechanism(
+        issues=issues,
+        n_steps=100,
+        allow_negotiators_to_leave=True,
+        extra_callbacks=True,
+    )
+
+    leaver_neg = None
+    for i in range(3):
+        if i == leaver_idx:
+            # This negotiator will leave
+            neg = LeavingAspirationNegotiator(
+                name=f"neg_{i}",
+                leave_at_step=leave_at_step,
+                aspiration_type=aspiration_types[i],
+            )
+            leaver_neg = neg
+        else:
+            # Regular aspiration negotiator
+            neg = AspirationNegotiator(
+                name=f"neg_{i}", aspiration_type=aspiration_types[i]
+            )
+        session.add(neg, ufun=ufuns[i])
+
+    session.run()
+
+    # --- Verify results ---
+    # Negotiation should have ended
+    assert session.state.ended, "Negotiation should have ended"
+
+    # The negotiation should NOT be broken (either agreement or graceful leave)
+    assert not session.state.broken, "Negotiation should not be broken"
+
+    # All 3 negotiators should still be in the list (left ones are marked, not removed)
+    assert len(session.negotiators) == 3, (
+        f"Should have 3 negotiators in list, got {len(session.negotiators)}"
+    )
+
+    # Check if the leaver actually left (may not if agreement reached first)
+    leaver_left = leaver_neg.id in session.state.left_negotiators
+
+    if leaver_left:
+        # Leaver left - verify 2 participating
+        assert session.n_participating == 2, (
+            f"Should have 2 participating negotiators after leave, got {session.n_participating}"
+        )
+        # The leaver should NOT be in participating_negotiators
+        participating_ids = [n.id for n in session.participating_negotiators]
+        assert leaver_neg.id not in participating_ids, (
+            "Leaver should not be in participating negotiators"
+        )
+    else:
+        # Negotiation ended before leave step (likely agreement)
+        assert session.n_participating == 3, (
+            f"Should have 3 participating negotiators (no one left), got {session.n_participating}"
+        )
+        # This can happen if agreement is reached before leave_at_step
+        # The leaver should be in participating_negotiators
+        participating_ids = [n.id for n in session.participating_negotiators]
+        assert leaver_neg.id in participating_ids, (
+            "Leaver should be in participating negotiators if they didn't leave"
+        )
+
+    # The remaining negotiators should have reached an agreement (both are conceding)
+    # Note: Agreement is likely but not guaranteed depending on ufuns
+    # We just verify the mechanism handled everything correctly
+    if session.state.agreement is not None:
+        # If there's an agreement, it should be a valid outcome
+        assert session.state.agreement in outcome_space, (
+            "Agreement should be a valid outcome"
+        )
+
+
+def test_allow_negotiators_to_leave_has_no_effect_when_no_one_leaves():
+    """Test that allow_negotiators_to_leave=True/False makes no difference when no LEAVE occurs.
+
+    This test runs the same negotiation twice:
+    1. With allow_negotiators_to_leave=True
+    2. With allow_negotiators_to_leave=False
+
+    Both should produce identical outcomes when no negotiator actually leaves.
+    """
+    issues = [make_issue(10, "price"), make_issue(5, "quantity")]
+
+    # Run multiple trials to ensure consistent behavior
+    for seed in [42, 123, 456]:
+        random.seed(seed)
+        outcome_space = make_os(issues)
+        ufuns = [
+            LUFun.random(outcome_space, reserved_value=0.0),
+            LUFun.random(outcome_space, reserved_value=0.0),
+        ]
+
+        # --- Run with allow_negotiators_to_leave=True ---
+        random.seed(seed)
+        session_true = SAOMechanism(
+            issues=issues, n_steps=20, allow_negotiators_to_leave=True
+        )
+        session_true.add(AspirationNegotiator(name="neg1_true"), ufun=ufuns[0])
+        session_true.add(AspirationNegotiator(name="neg2_true"), ufun=ufuns[1])
+        session_true.run()
+
+        # --- Run with allow_negotiators_to_leave=False ---
+        random.seed(seed)
+        session_false = SAOMechanism(
+            issues=issues, n_steps=20, allow_negotiators_to_leave=False
+        )
+        session_false.add(AspirationNegotiator(name="neg1_false"), ufun=ufuns[0])
+        session_false.add(AspirationNegotiator(name="neg2_false"), ufun=ufuns[1])
+        session_false.run()
+
+        # --- Both should have identical outcomes ---
+        assert session_true.state.ended == session_false.state.ended, (
+            f"Seed {seed}: ended state should match"
+        )
+        assert session_true.state.broken == session_false.state.broken, (
+            f"Seed {seed}: broken state should match"
+        )
+        assert session_true.state.agreement == session_false.state.agreement, (
+            f"Seed {seed}: agreement should match"
+        )
+        assert session_true.state.step == session_false.state.step, (
+            f"Seed {seed}: step count should match"
+        )
+        assert len(session_true.state.left_negotiators) == 0, (
+            f"Seed {seed}: no negotiators should have left (True)"
+        )
+        assert len(session_false.state.left_negotiators) == 0, (
+            f"Seed {seed}: no negotiators should have left (False)"
+        )
+
+
+def test_left_negotiators_set_is_updated_correctly():
+    """Test that state.left_negotiators set is updated when negotiators leave."""
+    issues = [make_issue(10, "price"), make_issue(5, "quantity")]
+    session = SAOMechanism(
+        issues=issues, n_steps=20, allow_negotiators_to_leave=True, extra_callbacks=True
+    )
+
+    ufun1 = LUFun.random(session.outcome_space, reserved_value=0.0)
+    ufun2 = LUFun.random(session.outcome_space, reserved_value=0.0)
+    ufun3 = LUFun.random(session.outcome_space, reserved_value=0.0)
+    ufun4 = LUFun.random(session.outcome_space, reserved_value=0.0)
+
+    # Multiple leavers at different steps
+    leaver1 = LeaveAfterStepNegotiator(name="leaver1", leave_at_step=1)
+    leaver2 = LeaveAfterStepNegotiator(name="leaver2", leave_at_step=3)
+    accepter1 = AcceptAfterStepNegotiator(name="accepter1", accept_at_step=10)
+    accepter2 = AcceptAfterStepNegotiator(name="accepter2", accept_at_step=10)
+
+    session.add(leaver1, ufun=ufun1)
+    session.add(leaver2, ufun=ufun2)
+    session.add(accepter1, ufun=ufun3)
+    session.add(accepter2, ufun=ufun4)
+
+    session.run()
+
+    # Check left_negotiators set
+    assert leaver1.id in session.state.left_negotiators, (
+        "leaver1 should be in left_negotiators"
+    )
+    assert leaver2.id in session.state.left_negotiators, (
+        "leaver2 should be in left_negotiators"
+    )
+    assert accepter1.id not in session.state.left_negotiators, (
+        "accepter1 should NOT be in left_negotiators"
+    )
+    assert accepter2.id not in session.state.left_negotiators, (
+        "accepter2 should NOT be in left_negotiators"
+    )
+
+    # Check n_participating property
+    assert session.state.n_participating == 2, (
+        "n_participating should be 2 (two leavers left)"
+    )
+
+
+def test_participating_negotiators_excludes_left():
+    """Test that participating_negotiators property excludes those who left."""
+    issues = [make_issue(10, "price"), make_issue(5, "quantity")]
+    session = SAOMechanism(
+        issues=issues, n_steps=20, allow_negotiators_to_leave=True, extra_callbacks=True
+    )
+
+    ufun1 = LUFun.random(session.outcome_space, reserved_value=0.0)
+    ufun2 = LUFun.random(session.outcome_space, reserved_value=0.0)
+    ufun3 = LUFun.random(session.outcome_space, reserved_value=0.0)
+
+    leaver = LeaveAfterStepNegotiator(name="leaver", leave_at_step=1)
+    accepter1 = AcceptAfterStepNegotiator(name="accepter1", accept_at_step=5)
+    accepter2 = AcceptAfterStepNegotiator(name="accepter2", accept_at_step=5)
+
+    session.add(leaver, ufun=ufun1)
+    session.add(accepter1, ufun=ufun2)
+    session.add(accepter2, ufun=ufun3)
+
+    session.run()
+
+    # participating_negotiators should exclude the leaver
+    participating = session.participating_negotiators
+    participating_ids = [n.id for n in participating]
+
+    assert leaver.id not in participating_ids, (
+        "leaver should NOT be in participating_negotiators"
+    )
+    assert accepter1.id in participating_ids, (
+        "accepter1 SHOULD be in participating_negotiators"
+    )
+    assert accepter2.id in participating_ids, (
+        "accepter2 SHOULD be in participating_negotiators"
+    )
+
+    # negotiators property should still include all
+    all_negotiators = session.negotiators
+    all_ids = [n.id for n in all_negotiators]
+    assert leaver.id in all_ids, "leaver should still be in negotiators list"
+    assert len(all_negotiators) == 3, "negotiators list should have all 3"
+
+
+def test_agreement_partners_excludes_left():
+    """Test that agreement_partners excludes those who left before agreement."""
+    issues = [make_issue(10, "price"), make_issue(5, "quantity")]
+    session = SAOMechanism(
+        issues=issues, n_steps=20, allow_negotiators_to_leave=True, extra_callbacks=True
+    )
+
+    ufun1 = LUFun.random(session.outcome_space, reserved_value=0.0)
+    ufun2 = LUFun.random(session.outcome_space, reserved_value=0.0)
+    ufun3 = LUFun.random(session.outcome_space, reserved_value=0.0)
+
+    leaver = LeaveAfterStepNegotiator(name="leaver", leave_at_step=1)
+    accepter1 = AcceptAfterStepNegotiator(name="accepter1", accept_at_step=5)
+    accepter2 = AcceptAfterStepNegotiator(name="accepter2", accept_at_step=5)
+
+    session.add(leaver, ufun=ufun1)
+    session.add(accepter1, ufun=ufun2)
+    session.add(accepter2, ufun=ufun3)
+
+    session.run()
+
+    # Should have an agreement
+    assert session.state.agreement is not None, "Should have an agreement"
+
+    # agreement_partners should exclude the leaver
+    partners = session.agreement_partners
+    partner_ids = [n.id for n in partners]
+
+    assert leaver.id not in partner_ids, "leaver should NOT be in agreement_partners"
+    assert accepter1.id in partner_ids, "accepter1 SHOULD be in agreement_partners"
+    assert accepter2.id in partner_ids, "accepter2 SHOULD be in agreement_partners"
+
+
+def test_n_participating_property():
+    """Test that n_participating property works correctly."""
+    issues = [make_issue(10, "price"), make_issue(5, "quantity")]
+    session = SAOMechanism(
+        issues=issues, n_steps=20, allow_negotiators_to_leave=True, extra_callbacks=True
+    )
+
+    ufun1 = LUFun.random(session.outcome_space, reserved_value=0.0)
+    ufun2 = LUFun.random(session.outcome_space, reserved_value=0.0)
+    ufun3 = LUFun.random(session.outcome_space, reserved_value=0.0)
+    ufun4 = LUFun.random(session.outcome_space, reserved_value=0.0)
+
+    leaver1 = LeaveAfterStepNegotiator(name="leaver1", leave_at_step=1)
+    leaver2 = LeaveAfterStepNegotiator(name="leaver2", leave_at_step=2)
+    accepter1 = AcceptAfterStepNegotiator(name="accepter1", accept_at_step=10)
+    accepter2 = AcceptAfterStepNegotiator(name="accepter2", accept_at_step=10)
+
+    session.add(leaver1, ufun=ufun1)
+    session.add(leaver2, ufun=ufun2)
+    session.add(accepter1, ufun=ufun3)
+    session.add(accepter2, ufun=ufun4)
+
+    # Before running
+    assert session.n_participating == 4, "n_participating should be 4 before running"
+
+    session.run()
+
+    # After running - two left
+    assert session.n_participating == 2, "n_participating should be 2 after two leave"
+    assert session.state.n_participating == 2, "state.n_participating should match"
+
+
+def test_leave_broken_with_remaining_participant():
+    """Test that participating_negotiators shows remaining participant when negotiation breaks due to insufficient participants."""
+    issues = [make_issue(10, "price"), make_issue(5, "quantity")]
+    session = SAOMechanism(
+        issues=issues, n_steps=10, allow_negotiators_to_leave=True, extra_callbacks=True
+    )
+
+    ufun1 = LUFun.random(session.outcome_space, reserved_value=0.0)
+    ufun2 = LUFun.random(session.outcome_space, reserved_value=0.0)
+
+    # First negotiator leaves at step 1, causing broken negotiation (only 1 remains)
+    leaver1 = LeaveAfterStepNegotiator(name="leaver1", leave_at_step=1)
+    stayer = TrackingNegotiator(name="stayer")
+
+    session.add(leaver1, ufun=ufun1)
+    session.add(stayer, ufun=ufun2)
+
+    session.run()
+
+    # Negotiation should be broken (fewer than 2 remaining, no dynamic_entry)
+    assert session.state.broken, "Negotiation should be broken"
+    assert session.state.agreement is None, "Should have no agreement"
+
+    # Only leaver1 is in left_negotiators
+    assert leaver1.id in session.state.left_negotiators, (
+        "leaver1 should be in left_negotiators"
+    )
+    assert stayer.id not in session.state.left_negotiators, (
+        "stayer should NOT be in left_negotiators"
+    )
+
+    # participating_negotiators shows who is still participating (even though broken)
+    participating = session.participating_negotiators
+    assert len(participating) == 1, "One negotiator should still be 'participating'"
+    assert stayer.id == participating[0].id, (
+        "stayer should be the remaining participant"
+    )

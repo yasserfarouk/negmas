@@ -1891,10 +1891,22 @@ class Mechanism(
                 "n_steps",
                 min_steps(self._internal_nmi.n_steps, nmi.n_steps),
             )
+            # Notify other negotiators about this new entry
+            if self._extra_callbacks:
+                for other in self._negotiators:
+                    if other.id != negotiator.id and hasattr(
+                        other, "on_negotiator_entered"
+                    ):
+                        other.on_negotiator_entered(negotiator.id, self.state)
             return True
 
         # Remove NMI if join failed
         del self._nmis[negotiator.id]
+        # Notify other negotiators that this negotiator failed to enter
+        if self._extra_callbacks:
+            for other in self._negotiators:
+                if hasattr(other, "on_negotiator_didnot_enter"):
+                    other.on_negotiator_didnot_enter(negotiator.id, self.state)
         return None
 
     def can_participate(self, negotiator: TNegotiator) -> bool:

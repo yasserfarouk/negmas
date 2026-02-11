@@ -215,7 +215,7 @@ The interaction between **Mechanism** and **Negotiator** objects mirrors
 the interaction between **World** and **Agent** objects. **Mechanism**
 objects call methods in **Negotiator** objects directly but
 **Negotiator** objects can only access services provided by the
-**Mechanism** object through a **NegotiatorMechanismInterface** (AMI).
+**Mechanism** object through a **NegotiatorMechanismInterface** (NMI).
 You can find more details about the general NegMAS NMI
 `here <https://negmas.readthedocs.io/en/latest/api/negmas.common.NegotiatorMechanismInterface.html>`__.
 
@@ -240,7 +240,7 @@ Moreover, you can access almost all
 including all finalists and winners of all past ANAC competitions.
 
 Now we understand how agents interact with worlds through AWIs and
-negotiators interact with mechanisms through AMIs. We know that the
+negotiators interact with mechanisms through NMIs. We know that the
 general simulation is controlled by the world while each negotiation is
 controlled by a mechanism within that world. **We need now to connect
 these two triplets of objects**

@@ -37,6 +37,7 @@ from .issue_ops import (
 )
 from .protocols import DiscreteOutcomeSpace, OutcomeSpace
 from .range_issue import RangeIssue
+from .singleton_issue import SingletonIssue
 
 if TYPE_CHECKING:
     from negmas.preferences.protocols import HasReservedOutcome, HasReservedValue
@@ -45,8 +46,12 @@ __all__ = [
     "CartesianOutcomeSpace",
     "EnumeratingOutcomeSpace",
     "DiscreteCartesianOutcomeSpace",
+    "SingletonOutcomeSpace",
     "make_os",
     "DistanceFun",
+    "os_union",
+    "os_intersection",
+    "os_difference",
 ]
 
 NLEVELS = 5
@@ -269,6 +274,28 @@ class EnumeratingOutcomeSpace(DiscreteOutcomeSpace, OSWithValidity):
         """Converts this space to a single-issue outcome space (not implemented for this class)."""
         ...
 
+    def contains_os(self, x: OutcomeSpace) -> bool:
+        """Checks whether an outcome-space is contained in this outcome-space."""
+        if not x.is_finite():
+            if not self.is_finite():
+                raise NotImplementedError(
+                    "Cannot check containment between two infinite outcome spaces"
+                )
+            return False
+        return all(outcome in self._baseset for outcome in x.enumerate())  # type: ignore
+
+    def __or__(self, other: OutcomeSpace) -> EnumeratingOutcomeSpace:
+        """Returns the union of this outcome space with another (| operator)."""
+        return os_union(self, other)
+
+    def __and__(self, other: OutcomeSpace) -> EnumeratingOutcomeSpace:
+        """Returns the intersection of this outcome space with another (& operator)."""
+        return os_intersection(self, other)
+
+    def __sub__(self, other: OutcomeSpace) -> EnumeratingOutcomeSpace:
+        """Returns the difference of this outcome space with another (- operator)."""
+        return os_difference(self, other)
+
 
 @define(frozen=True)
 class CartesianOutcomeSpace(XmlSerializable):
@@ -291,6 +318,10 @@ class CartesianOutcomeSpace(XmlSerializable):
         name = f"{self.name}*{other.name}"
         return CartesianOutcomeSpace(tuple(issues), name=name)
 
+    def cartesian_product(self, other: CartesianOutcomeSpace) -> CartesianOutcomeSpace:
+        """Returns a new outcome space that is the Cartesian product of this space and another."""
+        return self * other
+
     def contains_issue(self, x: Issue) -> bool:
         """Cheks that the given issue is in the tuple of issues constituting the outcome space (i.e. it is one of its dimensions)"""
         return x in self.issues
@@ -309,21 +340,30 @@ class CartesianOutcomeSpace(XmlSerializable):
 
     def contains_os(self, x: OutcomeSpace) -> bool:
         """Checks whether an outcome-space is contained in this outcome-space"""
+        # Handle SingletonOutcomeSpace - check if the single outcome is valid
+        if hasattr(x, "outcome") and hasattr(x, "issues"):
+            # This is a SingletonOutcomeSpace
+            if len(self.issues) != len(x.issues):  # type: ignore
+                return False
+            return self.is_valid(x.outcome)  # type: ignore
         if isinstance(x, CartesianOutcomeSpace):
-            return len(self.issues) == len(x.issues) and all(
-                b in a for a, b in zip(self.issues, x.issues)
-            )
+            if len(self.issues) != len(x.issues):
+                return False
+            return all(b in a for a, b in zip(self.issues, x.issues))
+        # For EnumeratingOutcomeSpace or other types
         if self.is_finite() and not x.is_finite():
             return False
         if not self.is_finite() and not x.is_finite():
             raise NotImplementedError(
                 "Cannot check an infinite outcome space that is not cartesian for inclusion in an infinite cartesian outcome space!!"
             )
-        warn(
-            f"Testing inclusion of a finite non-carteisan outcome space in a cartesian outcome space can be very slow (will do {x.cardinality} checks)",
-            NegmasSpeedWarning,
-        )
-        return all(self.is_valid(_) for _ in x.enumerate())  # type: ignore If we are here, we know that x is finite
+        if x.is_finite():
+            warn(
+                f"Testing inclusion of a finite non-cartesian outcome space in a cartesian outcome space can be slow (will do {x.cardinality} checks)",
+                NegmasSpeedWarning,
+            )
+            return all(self.is_valid(_) for _ in x.enumerate())  # type: ignore
+        return False
 
     def to_dict(self, python_class_identifier=PYTHON_CLASS_IDENTIFIER):
         """Serializes the outcome space to a dictionary representation."""
@@ -607,6 +647,18 @@ class CartesianOutcomeSpace(XmlSerializable):
             )
         return False
 
+    def __or__(self, other: OutcomeSpace) -> EnumeratingOutcomeSpace:
+        """Returns the union of this outcome space with another (| operator)."""
+        return os_union(self, other)
+
+    def __and__(self, other: OutcomeSpace) -> EnumeratingOutcomeSpace:
+        """Returns the intersection of this outcome space with another (& operator)."""
+        return os_intersection(self, other)
+
+    def __sub__(self, other: OutcomeSpace) -> EnumeratingOutcomeSpace:
+        """Returns the difference of this outcome space with another (- operator)."""
+        return os_difference(self, other)
+
 
 @define(frozen=True)
 class DiscreteCartesianOutcomeSpace(CartesianOutcomeSpace):
@@ -779,6 +831,178 @@ class DiscreteCartesianOutcomeSpace(CartesianOutcomeSpace):
     def __len__(self) -> int:
         """Returns the number of outcomes in this space."""
         return self.cardinality
+
+
+@define(frozen=True)
+class SingletonOutcomeSpace(DiscreteCartesianOutcomeSpace):
+    """
+    A discrete outcome-space representing a single outcome.
+
+    This is useful for representing a specific outcome as an outcome space,
+    e.g., for checking containment or performing set operations.
+    """
+
+    issues: tuple[SingletonIssue, ...] = field(converter=tuple)  # type: ignore[assignment]
+    name: str | None = field(eq=False, default=None)
+    path: Path | None = field(eq=False, default=None)
+
+    @classmethod
+    def from_outcome(
+        cls,
+        outcome: Outcome,
+        issue_names: Sequence[str] | None = None,
+        name: str | None = None,
+    ) -> SingletonOutcomeSpace:
+        """
+        Creates a SingletonOutcomeSpace from an outcome.
+
+        Args:
+            outcome: The outcome tuple to represent
+            issue_names: Optional names for the issues. If None, generates names
+                         as issue00, issue01, ...
+            name: Optional name for the outcome space
+
+        Returns:
+            A SingletonOutcomeSpace containing exactly this outcome
+        """
+        if issue_names is None:
+            issue_names = [f"issue{i:02d}" for i in range(len(outcome))]
+        if len(issue_names) != len(outcome):
+            raise ValueError(
+                f"Number of issue names ({len(issue_names)}) must match "
+                f"number of values in outcome ({len(outcome)})"
+            )
+        issues = tuple(
+            SingletonIssue(value, name=iname)
+            for value, iname in zip(outcome, issue_names)
+        )
+        return cls(issues=issues, name=name)
+
+    @property
+    def outcome(self) -> Outcome:
+        """Returns the single outcome in this space."""
+        return tuple(issue.value for issue in self.issues)
+
+    @property
+    def cardinality(self) -> int:
+        """Always returns 1 since this space contains exactly one outcome."""
+        return 1
+
+    def enumerate(self) -> Iterable[Outcome]:
+        """Returns an iterable containing the single outcome."""
+        return [self.outcome]
+
+    def sample(
+        self, n_outcomes: int, with_replacement: bool = True, fail_if_not_enough=True
+    ) -> Iterable[Outcome]:
+        """Returns the single outcome up to n_outcomes times."""
+        if n_outcomes > 1 and not with_replacement:
+            if fail_if_not_enough:
+                raise ValueError(
+                    f"Cannot sample {n_outcomes} outcomes without replacement from a singleton space"
+                )
+            return [self.outcome]
+        return [self.outcome for _ in range(n_outcomes)]
+
+    def is_valid(self, outcome: Outcome) -> bool:
+        """Checks if the given outcome equals the single outcome in this space."""
+        return outcome == self.outcome
+
+    def contains_os(self, x: OutcomeSpace) -> bool:
+        """Checks if this singleton space contains another outcome space."""
+        if isinstance(x, SingletonOutcomeSpace):
+            return self.outcome == x.outcome
+        if x.cardinality > 1:
+            return False
+        if x.cardinality == 0:
+            return True
+        # For cardinality == 1, check if the single outcome matches
+        if x.is_finite():
+            outcomes = list(x.enumerate())  # type: ignore
+            return len(outcomes) == 1 and outcomes[0] == self.outcome
+        return False
+
+    def __repr__(self):
+        """Returns a detailed string representation."""
+        return f"SingletonOutcomeSpace({self.outcome!r})"
+
+    def __str__(self):
+        """Returns a human-readable string."""
+        return f"SingletonOS({self.outcome})"
+
+
+# =============================================================================
+# Set Operations for Outcome Spaces
+# =============================================================================
+
+
+def _os_to_outcome_set(os: OutcomeSpace) -> set[Outcome]:
+    """Converts a finite outcome space to a set of outcomes."""
+    if not os.is_finite():
+        raise ValueError(
+            f"Cannot convert non-finite outcome space {type(os).__name__} to a set"
+        )
+    return set(os.enumerate())  # type: ignore
+
+
+def os_union(
+    os1: OutcomeSpace, os2: OutcomeSpace, name: str | None = None
+) -> EnumeratingOutcomeSpace:
+    """
+    Returns the union of two outcome spaces.
+
+    Args:
+        os1: First outcome space
+        os2: Second outcome space
+        name: Optional name for the result
+
+    Returns:
+        An EnumeratingOutcomeSpace containing all outcomes in either space
+    """
+    outcomes1 = _os_to_outcome_set(os1)
+    outcomes2 = _os_to_outcome_set(os2)
+    result = outcomes1.union(outcomes2)
+    return EnumeratingOutcomeSpace(baseset=result, name=name)
+
+
+def os_intersection(
+    os1: OutcomeSpace, os2: OutcomeSpace, name: str | None = None
+) -> EnumeratingOutcomeSpace:
+    """
+    Returns the intersection of two outcome spaces.
+
+    Args:
+        os1: First outcome space
+        os2: Second outcome space
+        name: Optional name for the result
+
+    Returns:
+        An EnumeratingOutcomeSpace containing outcomes in both spaces
+    """
+    outcomes1 = _os_to_outcome_set(os1)
+    outcomes2 = _os_to_outcome_set(os2)
+    result = outcomes1.intersection(outcomes2)
+    return EnumeratingOutcomeSpace(baseset=result, name=name)
+
+
+def os_difference(
+    os1: OutcomeSpace, os2: OutcomeSpace, name: str | None = None
+) -> EnumeratingOutcomeSpace:
+    """
+    Returns the difference of two outcome spaces (os1 - os2).
+
+    Args:
+        os1: First outcome space
+        os2: Second outcome space
+        name: Optional name for the result
+
+    Returns:
+        An EnumeratingOutcomeSpace containing outcomes in os1 but not in os2
+    """
+    outcomes1 = _os_to_outcome_set(os1)
+    outcomes2 = _os_to_outcome_set(os2)
+    result = outcomes1.difference(outcomes2)
+    return EnumeratingOutcomeSpace(baseset=result, name=name)
 
 
 # def flat_issues(

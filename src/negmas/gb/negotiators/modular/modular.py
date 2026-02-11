@@ -197,3 +197,39 @@ class GBModularNegotiator(ModularNegotiator, GBNegotiator):
         """
         for c in self._components:
             c.on_partner_refused_to_propose(state=state, partner_id=partner_id)
+
+    def on_negotiator_left(self, negotiator_id: str, state: GBState) -> None:
+        """
+        A callback called when another negotiator leaves the negotiation.
+
+        Args:
+            negotiator_id: The ID of the negotiator that left.
+            state: `GBState` giving current state of the negotiation.
+        """
+        for c in self._components:
+            if hasattr(c, "on_negotiator_left"):
+                c.on_negotiator_left(negotiator_id, state)
+
+    def on_negotiator_entered(self, negotiator_id: str, state: GBState) -> None:
+        """
+        A callback called when a new negotiator enters the negotiation.
+
+        Args:
+            negotiator_id: The ID of the negotiator that entered.
+            state: `GBState` giving current state of the negotiation.
+        """
+        for c in self._components:
+            if hasattr(c, "on_negotiator_entered"):
+                c.on_negotiator_entered(negotiator_id, state)
+
+    def on_negotiator_didnot_enter(self, negotiator_id: str, state: GBState) -> None:
+        """
+        A callback called when a negotiator tried but failed to enter the negotiation.
+
+        Args:
+            negotiator_id: The ID of the negotiator that failed to enter.
+            state: `GBState` giving current state of the negotiation.
+        """
+        for c in self._components:
+            if hasattr(c, "on_negotiator_didnot_enter"):
+                c.on_negotiator_didnot_enter(negotiator_id, state)

@@ -12,16 +12,20 @@ Examples:
 
   Different ways to create issues:
 
-  >>> issues = [make_issue((0.5, 2.0), 'price'), make_issue(['2018.10.'+ str(_) for _ in range(1, 4)], 'date')
-  ...           , make_issue(20, 'count')]
-  >>> for _ in issues: print(_)
+  >>> issues = [
+  ...     make_issue((0.5, 2.0), "price"),
+  ...     make_issue(["2018.10." + str(_) for _ in range(1, 4)], "date"),
+  ...     make_issue(20, "count"),
+  ... ]
+  >>> for _ in issues:
+  ...     print(_)
   price: (0.5, 2.0)
   date: ['2018.10.1', '2018.10.2', '2018.10.3']
   count: (0, 19)
 
   Outcome example compatible with the given set of issues:
 
-  >>> a = {'price': 1.2, 'date': '2018.10.04', 'count': 4}
+  >>> a = {"price": 1.2, "date": "2018.10.04", "count": 4}
 
 """
 
@@ -36,6 +40,7 @@ from .continuous_issue import *
 from .ordinal_issue import *
 from .range_issue import *
 from .cardinal_issue import *
+from .singleton_issue import *
 from .infinite import *
 from .issue_ops import *
 from .outcome_ops import *
@@ -50,6 +55,7 @@ __all__ = (
     + ordinal_issue.__all__
     + range_issue.__all__
     + cardinal_issue.__all__
+    + singleton_issue.__all__
     + contiguous_issue.__all__
     + continuous_issue.__all__
     + infinite.__all__

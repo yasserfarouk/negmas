@@ -177,6 +177,7 @@ class SAOState(GBState):
     last_negotiator: str | None = None
     current_data: dict[str, Any] | None = None
     new_data: list[tuple[str, dict[str, Any] | None]] = field(factory=list)
+    # Note: left_negotiators and n_participating are inherited from GBState
 
 
 @define(frozen=True)
@@ -194,6 +195,9 @@ class SAONMI(NegotiatorMechanismInterface):
 
     allow_none_with_data: bool = True
     """If true, a negotiator can offer None with associated data (e.g., text) without breaking the negotiation"""
+
+    allow_negotiators_to_leave: bool = True
+    """If true, negotiators can leave using LEAVE response without ending the negotiation for others"""
 
     @property
     def state(self) -> SAOState:

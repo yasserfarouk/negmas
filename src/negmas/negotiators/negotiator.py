@@ -399,6 +399,48 @@ class Negotiator(Rational, Notifiable, Generic[TNMI, TState]):
         """
         self._dissociate()
 
+    def on_negotiator_left(self, negotiator_id: str, state: TState) -> None:
+        """
+        A callback called when another negotiator leaves the negotiation.
+
+        Args:
+            negotiator_id: The ID of the negotiator that left.
+            state: `MechanismState` giving current state of the negotiation.
+
+        Remarks:
+            - The default behavior is to do nothing.
+            - Override this to hook some action when a partner leaves.
+
+        """
+
+    def on_negotiator_entered(self, negotiator_id: str, state: TState) -> None:
+        """
+        A callback called when a new negotiator enters the negotiation.
+
+        Args:
+            negotiator_id: The ID of the negotiator that entered.
+            state: `MechanismState` giving current state of the negotiation.
+
+        Remarks:
+            - The default behavior is to do nothing.
+            - Override this to hook some action when a new partner joins.
+
+        """
+
+    def on_negotiator_didnot_enter(self, negotiator_id: str, state: TState) -> None:
+        """
+        A callback called when a negotiator tried but failed to enter the negotiation.
+
+        Args:
+            negotiator_id: The ID of the negotiator that failed to enter.
+            state: `MechanismState` giving current state of the negotiation.
+
+        Remarks:
+            - The default behavior is to do nothing.
+            - Override this to hook some action when a partner fails to join.
+
+        """
+
     def on_negotiation_end(self, state: TState) -> None:
         """
         A call back called at each negotiation end

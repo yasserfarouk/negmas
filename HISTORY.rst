@@ -29,6 +29,33 @@ Release 0.15.1
 
   - ``GBModularNegotiator`` now delegates this callback to all components
 
+* [feature] Add ``LEAVE`` response type for negotiators to leave without ending negotiation:
+
+  - New ``ResponseType.LEAVE`` allows a negotiator to leave a negotiation without forcing it to end
+  - ``SAOMechanism`` and ``GBMechanism`` support new ``allow_negotiators_to_leave`` parameter (default ``True``):
+
+    - If ``True``: The leaving negotiator is marked as left, others continue if 2+ remain; if fewer than 2
+      remain, negotiation ends unless ``dynamic_entry=True`` (allowing new negotiators to join)
+    - If ``False``: ``LEAVE`` is treated exactly like ``END_NEGOTIATION`` (breaks the negotiation)
+
+  - Left negotiators are tracked in ``state.left_negotiators`` (a set of negotiator IDs)
+  - New mechanism properties for tracking participation:
+
+    - ``participating_negotiators``: List of negotiators who haven't left
+    - ``agreement_partners``: Same as ``participating_negotiators`` (parties to any agreement)
+    - ``n_participating``: Count of active negotiators
+
+  - New negotiator callbacks for entry/exit events:
+
+    - ``on_negotiator_left(negotiator_id, state)``: Called on remaining negotiators when one leaves
+    - ``on_negotiator_entered(negotiator_id, state)``: Called on existing negotiators when a new one joins
+    - ``on_negotiator_didnot_enter(negotiator_id, state)``: Called when a negotiator fails to join
+
+  - ``on_leave(state)`` callback called on the leaving negotiator
+  - Meta-negotiators (``SAOMetaNegotiator``, ``GBMetaNegotiator``) forward these callbacks to sub-negotiators
+  - ``GBComponent`` base class includes new callback methods for BOA-style components
+  - Enables scenarios like multi-party negotiations where participants can exit gracefully
+
 **Bug Fixes:**
 
 * [bugfix] Fix ``ModularNegotiator`` not delegating ``before_death()`` and ``cancel()`` callbacks to components
