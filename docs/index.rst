@@ -61,6 +61,7 @@ etc.
     :hidden:
     :maxdepth: 1
 
+    gui_negmas_app
     cli_negmas
     cli_negotiate
 
