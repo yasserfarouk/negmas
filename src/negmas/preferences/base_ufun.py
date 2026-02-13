@@ -1742,11 +1742,10 @@ class _ExtremelyDynamic:
     Used internally to provide default implementations for stability-related methods.
 
     This class provides implementations that delegate to the _stability attribute.
-    Classes using StationaryMixin will have stability set to STATIONARY by default.
+    All utility functions have stability set to STATIONARY by default.
     """
 
     # Note: This class previously returned hardcoded values (True/False) for the
     # stability methods. Now it delegates to Preferences base class which uses
-    # the _stability attribute. This allows StationaryMixin to just set
-    # stability=STATIONARY and have the methods return correct values.
+    # the _stability attribute. The default stability is STATIONARY.
     pass

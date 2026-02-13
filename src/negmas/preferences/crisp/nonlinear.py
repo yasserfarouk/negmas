@@ -12,7 +12,6 @@ from negmas.serialization import PYTHON_CLASS_IDENTIFIER, deserialize, serialize
 
 from ..base import OutcomeUtilityMapping
 from ..crisp_ufun import UtilityFunction
-from ..mixins import StationaryMixin
 
 __all__ = [
     "NonLinearAggregationUtilityFunction",
@@ -21,7 +20,7 @@ __all__ = [
 ]
 
 
-class NonLinearAggregationUtilityFunction(StationaryMixin, UtilityFunction):
+class NonLinearAggregationUtilityFunction(UtilityFunction):
     r"""A nonlinear utility function.
 
     Allows for the modeling of a single nonlinear utility function that combines the utilities of different issues.
@@ -192,7 +191,7 @@ class NonLinearAggregationUtilityFunction(StationaryMixin, UtilityFunction):
         return self.f(u)
 
 
-class HyperRectangleUtilityFunction(StationaryMixin, UtilityFunction):
+class HyperRectangleUtilityFunction(UtilityFunction):
     r"""A utility function defined as a set of hyper-volumes.
 
     The utility function that is calulated by combining linearly a set of *probably nonlinear* functions applied in
@@ -549,7 +548,7 @@ class HyperRectangleUtilityFunction(StationaryMixin, UtilityFunction):
         return u
 
 
-class NonlinearHyperRectangleUtilityFunction(StationaryMixin, UtilityFunction):
+class NonlinearHyperRectangleUtilityFunction(UtilityFunction):
     r"""A utility function combining hyper-rectangles with nonlinear aggregation.
 
     Similar to HyperRectangleUtilityFunction, but uses a nonlinear function to combine

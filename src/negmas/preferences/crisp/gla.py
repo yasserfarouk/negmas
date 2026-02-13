@@ -12,7 +12,6 @@ from negmas.outcomes.protocols import IndependentIssuesOS
 from negmas.serialization import PYTHON_CLASS_IDENTIFIER, deserialize, serialize
 
 from ..crisp_ufun import UtilityFunction
-from ..mixins import StationaryMixin
 from ..value_fun import (
     AffineFun,
     AffineMultiFun,
@@ -35,7 +34,7 @@ FactorFun = (
 )
 
 
-class GLAUtilityFunction(StationaryMixin, UtilityFunction):
+class GLAUtilityFunction(UtilityFunction):
     r"""A Generalized Linear Aggregation Utility Function.
 
     Unlike `LinearAdditiveUtilityFunction` which has one function per issue,

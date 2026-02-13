@@ -19,7 +19,6 @@ from negmas.preferences.protocols import SingleIssueFun
 from negmas.serialization import PYTHON_CLASS_IDENTIFIER, deserialize, serialize
 
 from ..crisp_ufun import UtilityFunction
-from ..mixins import StationaryMixin
 from ..value_fun import IdentityFun, LambdaFun, TableFun
 
 if TYPE_CHECKING:
@@ -72,7 +71,7 @@ def _random_mapping(issue: Issue, normalized=False):
     )
 
 
-class AffineUtilityFunction(StationaryMixin, UtilityFunction):
+class AffineUtilityFunction(UtilityFunction):
     r"""
     An affine utility function for multi-issue negotiations.
 
@@ -634,9 +633,7 @@ class LinearUtilityFunction(AffineUtilityFunction):
         super().__init__(weights, *args, **kwargs)
 
 
-class LinearAdditiveUtilityFunction(  # type: ignore
-    StationaryMixin, UtilityFunction
-):
+class LinearAdditiveUtilityFunction(UtilityFunction):  # type: ignore
     r"""A linear aggregation utility function for multi-issue negotiations.
 
     Models a linear utility function using predefined weights:\.

@@ -9,7 +9,7 @@ from __future__ import annotations
 from typing import TYPE_CHECKING
 
 from negmas.preferences.base_ufun import BaseUtilityFunction
-from negmas.preferences.mixins import VolatileUFunMixin
+from negmas.preferences.stability import VOLATILE
 
 from ..base import AcceptancePolicy, GBComponent, OfferingPolicy
 
@@ -31,7 +31,7 @@ class GeniusAcceptancePolicy(AcceptancePolicy):
     pass
 
 
-class GeniusOpponentModel(VolatileUFunMixin, GBComponent, BaseUtilityFunction):
+class GeniusOpponentModel(GBComponent, BaseUtilityFunction):
     """Base class for Genius opponent models.
 
     This base class provides helper methods for updating the negotiator's
@@ -40,7 +40,7 @@ class GeniusOpponentModel(VolatileUFunMixin, GBComponent, BaseUtilityFunction):
 
     def __attrs_post_init__(self) -> None:
         """Initialize parent classes after attrs initialization."""
-        BaseUtilityFunction.__init__(self)
+        BaseUtilityFunction.__init__(self, stability=VOLATILE)
 
     def _update_private_info(self, partner_id: str | None = None) -> None:
         """Update the negotiator's private_info with this model.

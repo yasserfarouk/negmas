@@ -13,7 +13,6 @@ from negmas.outcomes.protocols import IndependentIssuesOS
 from negmas.serialization import PYTHON_CLASS_IDENTIFIER, deserialize, serialize
 
 from ..crisp_ufun import UtilityFunction
-from ..mixins import StationaryMixin
 from ..value_fun import (
     AffineFun,
     AffineMultiFun,
@@ -36,7 +35,7 @@ FactorFun = (
 )
 
 
-class GPAUtilityFunction(StationaryMixin, UtilityFunction):
+class GPAUtilityFunction(UtilityFunction):
     r"""A Generalized Polynomial Aggregation Utility Function.
 
     Like `GLAUtilityFunction`, each factor can operate on any subset of issues.

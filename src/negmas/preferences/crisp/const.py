@@ -11,12 +11,11 @@ from negmas.serialization import PYTHON_CLASS_IDENTIFIER
 
 from ..base import Value
 from ..crisp_ufun import UtilityFunction
-from ..mixins import StationaryMixin
 
 __all__ = ["ConstUtilityFunction"]
 
 
-class ConstUtilityFunction(StationaryMixin, UtilityFunction):
+class ConstUtilityFunction(UtilityFunction):
     """
     A utility function that returns the same value for all outcomes.
 

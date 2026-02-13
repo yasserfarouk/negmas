@@ -6,13 +6,12 @@ from negmas.helpers.prob import ScipyDistribution
 from negmas.outcomes import Outcome
 
 from ..crisp_ufun import UtilityFunction
-from ..mixins import StationaryMixin
 from ..prob_ufun import ProbUtilityFunction
 
 __all__ = ["ILSUtilityFunction", "UniformUtilityFunction"]
 
 
-class ILSUtilityFunction(StationaryMixin, ProbUtilityFunction):
+class ILSUtilityFunction(ProbUtilityFunction):
     """
     A utility function which represents the loc and scale deviations as any crisp ufun
     """

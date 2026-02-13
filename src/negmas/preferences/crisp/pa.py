@@ -17,7 +17,6 @@ from negmas.preferences.protocols import SingleIssueFun
 from negmas.serialization import PYTHON_CLASS_IDENTIFIER, deserialize, serialize
 
 from ..crisp_ufun import UtilityFunction
-from ..mixins import StationaryMixin
 from ..value_fun import IdentityFun, LambdaFun, TableFun, BaseFun
 
 if TYPE_CHECKING:
@@ -63,7 +62,7 @@ def _random_mapping(issue: Issue, normalized=False):
     )
 
 
-class PAUtilityFunction(StationaryMixin, UtilityFunction):
+class PAUtilityFunction(UtilityFunction):
     r"""A Polynomial Aggregation Utility Function.
 
     Like `LinearAdditiveUtilityFunction`, this has one value function per issue.

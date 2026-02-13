@@ -8,7 +8,6 @@ from attrs import define, field
 
 from negmas.preferences import RankOnlyUtilityFunction
 from negmas.preferences.base_ufun import BaseUtilityFunction
-from negmas.preferences.mixins import StationaryMixin
 
 from ..base import GBComponent
 
@@ -71,7 +70,7 @@ class UFunModel(GBComponent, BaseUtilityFunction):
 
 
 @define
-class ZeroSumModel(StationaryMixin, UFunModel):
+class ZeroSumModel(UFunModel):
     """
     Assumes a zero-sum negotiation (i.e. $u_o$ = $-u_s$ )
 

@@ -6,7 +6,6 @@ from random import random
 from typing import TYPE_CHECKING
 
 from ..crisp_ufun import UtilityFunction
-from ..mixins import StationaryMixin
 
 if TYPE_CHECKING:
     from negmas.outcomes import Outcome
@@ -14,7 +13,7 @@ if TYPE_CHECKING:
 __all__ = ["RandomUtilityFunction"]
 
 
-class RandomUtilityFunction(StationaryMixin, UtilityFunction):
+class RandomUtilityFunction(UtilityFunction):
     """A random utility function for a discrete outcome space"""
 
     def __init__(self, rng: tuple[float, float] = (0.0, 1.0), *args, **kwargs):

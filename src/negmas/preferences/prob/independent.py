@@ -14,14 +14,13 @@ from negmas.common import Value
 
 from ...helpers.prob import Distribution, make_distribution, uniform_around
 from ..crisp.mapping import MappingUtilityFunction
-from ..mixins import StationaryMixin
 from ..prob_ufun import ProbUtilityFunction
 from .mapping import ProbMappingUtilityFunction
 
 __all__ = ["IPUtilityFunction"]
 
 
-class IPUtilityFunction(StationaryMixin, ProbUtilityFunction):
+class IPUtilityFunction(ProbUtilityFunction):
     """
     Independent Probabilistic Utility Function.
 
