@@ -12,6 +12,7 @@ from hypothesis import given, settings
 from hypothesis.core import example
 from pytest import mark
 
+from negmas.common import PreferencesChangeType
 from negmas.inout import Scenario
 from negmas.outcomes import enumerate_issues, issues_from_xml_str, make_issue
 from negmas.outcomes.outcome_space import CartesianOutcomeSpace, make_os
@@ -1125,8 +1126,1018 @@ def test_discounted_ufun_inherits_outcome_space_from_inner_ufun(discounted_class
     assert discounted_ufun.ufun.outcome_space is os
 
 
-if __name__ == "__main__":
-    pytest.main(args=[__file__])
+# Tests for Stability Criteria
+class TestStabilityCriteria:
+    """Tests for the new stability criteria system."""
+
+    def test_stability_flags_basic_operations(self):
+        """Test basic flag operations on Stability enum."""
+        from negmas.preferences import STABLE_MIN, STABLE_MAX, STATIONARY, VOLATILE
+
+        # Test combining flags
+        combined = STABLE_MIN | STABLE_MAX
+        assert combined.has_stable_min
+        assert combined.has_stable_max
+        assert not combined.has_stable_ordering
+        assert not combined.is_stationary
+        assert not combined.is_volatile
+
+        # Test STATIONARY has all flags
+        assert STATIONARY.has_stable_min
+        assert STATIONARY.has_stable_max
+        assert STATIONARY.has_stable_reserved_value
+        assert STATIONARY.has_fixed_reserved_value
+        assert STATIONARY.has_stable_rational_outcomes
+        assert STATIONARY.has_stable_irrational_outcomes
+        assert STATIONARY.has_stable_ordering
+        assert STATIONARY.has_stable_diff_ratios
+        assert STATIONARY.is_stationary
+
+        # Test VOLATILE has no flags
+        assert not VOLATILE.has_stable_min
+        assert not VOLATILE.has_stable_max
+        assert VOLATILE.is_volatile
+
+    def test_stationary_ufun_default_stability(self):
+        """Test that stationary ufuns have STATIONARY stability by default."""
+        from negmas.preferences import STATIONARY
+
+        issues = [make_issue(10), make_issue(5)]
+        ufun = LinearUtilityFunction.random(issues=issues)
+
+        assert ufun.stability == STATIONARY
+        assert ufun.is_stationary()
+        assert not ufun.is_volatile()
+        assert not ufun.is_session_dependent()
+        assert not ufun.is_state_dependent()
+
+    def test_stationary_mixin_sets_stability(self):
+        """Test that StationaryMixin properly sets stability."""
+        from negmas.preferences import STATIONARY
+
+        issues = [make_issue(10), make_issue(5)]
+
+        # LinearAdditiveUtilityFunction uses StationaryMixin
+        ufun = LinearAdditiveUtilityFunction.random(issues=issues)
+        assert ufun.stability == STATIONARY
+        assert ufun.is_stationary()
+
+        # MappingUtilityFunction uses StationaryMixin
+        mapping_ufun = MappingUtilityFunction(
+            mapping=lambda x: sum(x) if x else float("nan"), issues=issues
+        )
+        assert mapping_ufun.stability == STATIONARY
+        assert mapping_ufun.is_stationary()
+
+    def test_discounted_ufun_stability(self):
+        """Test that discounted ufuns have proper stability (not VOLATILE).
+
+        Discounted ufuns preserve:
+        - STABLE_ORDERING: discounting (multiplication/subtraction) preserves relative ordering
+        - STABLE_DIFF_RATIOS: linear transformations preserve difference ratios
+        - They are state-dependent (not STATE_INDEPENDENT) but not volatile
+        """
+        from negmas.preferences import VOLATILE
+        from negmas.preferences.discounted import ExpDiscountedUFun, LinDiscountedUFun
+        from negmas.preferences.stability import (
+            STABLE_ORDERING,
+            STABLE_DIFF_RATIOS,
+            STATE_INDEPENDENT,
+            SESSION_INDEPENDENT,
+        )
+
+        issues = [make_issue(10), make_issue(5)]
+        base_ufun = LinearUtilityFunction.random(issues=issues, normalized=True)
+
+        # Test ExpDiscountedUFun
+        exp_ufun = ExpDiscountedUFun(ufun=base_ufun, discount=0.9)
+        # Should NOT be volatile - discounting preserves ordering
+        assert exp_ufun.stability != VOLATILE
+        assert not exp_ufun.is_volatile()
+        # Should be state-dependent
+        assert exp_ufun.is_state_dependent()
+        assert not exp_ufun.is_stationary()
+        # Should preserve ordering and diff ratios
+        assert exp_ufun.stability & STABLE_ORDERING
+        assert exp_ufun.stability & STABLE_DIFF_RATIOS
+        # Should NOT have STATE_INDEPENDENT (it depends on state)
+        assert not (exp_ufun.stability & STATE_INDEPENDENT)
+        # Should inherit SESSION_INDEPENDENT from inner ufun
+        assert exp_ufun.stability & SESSION_INDEPENDENT
+
+        # Test LinDiscountedUFun
+        lin_ufun = LinDiscountedUFun(ufun=base_ufun, cost=0.1)
+        # Should NOT be volatile - discounting preserves ordering
+        assert lin_ufun.stability != VOLATILE
+        assert not lin_ufun.is_volatile()
+        # Should be state-dependent
+        assert lin_ufun.is_state_dependent()
+        assert not lin_ufun.is_stationary()
+        # Should preserve ordering and diff ratios
+        assert lin_ufun.stability & STABLE_ORDERING
+        assert lin_ufun.stability & STABLE_DIFF_RATIOS
+        # Should NOT have STATE_INDEPENDENT (it depends on state)
+        assert not (lin_ufun.stability & STATE_INDEPENDENT)
+        # Should inherit SESSION_INDEPENDENT from inner ufun
+        assert lin_ufun.stability & SESSION_INDEPENDENT
+
+    def test_discounted_ufun_no_discount_inherits_full_stability(self):
+        """Test that discounted ufuns with no effective discount inherit full stability."""
+        from negmas.preferences.discounted import ExpDiscountedUFun, LinDiscountedUFun
+
+        issues = [make_issue(10), make_issue(5)]
+        base_ufun = LinearUtilityFunction.random(issues=issues, normalized=True)
+
+        # ExpDiscountedUFun with discount=1.0 has no effect
+        exp_ufun = ExpDiscountedUFun(ufun=base_ufun, discount=1.0)
+        assert exp_ufun.stability == base_ufun.stability
+
+        # LinDiscountedUFun with cost=0 has no effect
+        lin_ufun = LinDiscountedUFun(ufun=base_ufun, cost=0.0)
+        assert lin_ufun.stability == base_ufun.stability
+
+    def test_all_discounted_ufuns_are_state_dependent(self):
+        """Test that ALL discounted ufuns with effective discounting are state dependent.
+
+        This is a critical property: discounted ufuns depend on negotiation state
+        (time, step, etc.) to compute the discount factor, so they MUST NOT have
+        the STATE_INDEPENDENT flag set.
+
+        Note: State independence is orthogonal to session independence:
+        - STATE_INDEPENDENT: Does not depend on MechanismState (time, step, offers, etc.)
+        - SESSION_INDEPENDENT: Does not depend on NMI (n_negotiators, mechanism params, etc.)
+
+        A ufun can be session-independent but state-dependent (like discounted ufuns),
+        or state-independent but session-dependent, or both, or neither.
+
+        Discounted ufuns should:
+        - Always clear STATE_INDEPENDENT (they depend on state for discount calculation)
+        - Inherit SESSION_INDEPENDENT from inner ufun (they don't add or remove it)
+        """
+        from negmas.preferences.discounted import ExpDiscountedUFun, LinDiscountedUFun
+        from negmas.preferences.stability import (
+            STATE_INDEPENDENT,
+            SESSION_INDEPENDENT,
+            STATIONARY,
+        )
+
+        issues = [make_issue(10), make_issue(5)]
+
+        # Test with stationary base ufun (has both STATE_INDEPENDENT and SESSION_INDEPENDENT)
+        stationary_base = LinearUtilityFunction.random(issues=issues, normalized=True)
+        assert stationary_base.stability == STATIONARY
+        assert stationary_base.stability & STATE_INDEPENDENT
+        assert stationary_base.stability & SESSION_INDEPENDENT
+
+        # Test various discount values for ExpDiscountedUFun
+        for discount in [0.5, 0.9, 0.99, 1.1, 2.0]:
+            exp_ufun = ExpDiscountedUFun(ufun=stationary_base, discount=discount)
+            # Must be state dependent (discount depends on state.step or state.time)
+            assert not (exp_ufun.stability & STATE_INDEPENDENT), (
+                f"ExpDiscountedUFun with discount={discount} should be state dependent"
+            )
+            assert exp_ufun.is_state_dependent()
+            # Should still be session independent (inherited from inner ufun)
+            assert exp_ufun.stability & SESSION_INDEPENDENT, (
+                f"ExpDiscountedUFun with discount={discount} should inherit session independence"
+            )
+
+        # Test various cost values for LinDiscountedUFun
+        for cost in [0.01, 0.1, 0.5, 1.0, -0.1]:
+            lin_ufun = LinDiscountedUFun(ufun=stationary_base, cost=cost)
+            # Must be state dependent (cost depends on state.step or state.time)
+            assert not (lin_ufun.stability & STATE_INDEPENDENT), (
+                f"LinDiscountedUFun with cost={cost} should be state dependent"
+            )
+            assert lin_ufun.is_state_dependent()
+            # Should still be session independent (inherited from inner ufun)
+            assert lin_ufun.stability & SESSION_INDEPENDENT, (
+                f"LinDiscountedUFun with cost={cost} should inherit session independence"
+            )
+
+        # Test with dynamic_reservation=False (should still be state dependent)
+        exp_ufun_fixed = ExpDiscountedUFun(
+            ufun=stationary_base, discount=0.9, dynamic_reservation=False
+        )
+        assert not (exp_ufun_fixed.stability & STATE_INDEPENDENT)
+        assert exp_ufun_fixed.stability & SESSION_INDEPENDENT
+
+        lin_ufun_fixed = LinDiscountedUFun(
+            ufun=stationary_base, cost=0.1, dynamic_reservation=False
+        )
+        assert not (lin_ufun_fixed.stability & STATE_INDEPENDENT)
+        assert lin_ufun_fixed.stability & SESSION_INDEPENDENT
+
+        # Edge case: discount=1.0 or cost=0.0 means no effective discounting
+        # These should inherit full stability from inner ufun (including STATE_INDEPENDENT)
+        exp_no_discount = ExpDiscountedUFun(ufun=stationary_base, discount=1.0)
+        assert exp_no_discount.stability & STATE_INDEPENDENT, (
+            "ExpDiscountedUFun with discount=1.0 should inherit STATE_INDEPENDENT"
+        )
+
+        lin_no_cost = LinDiscountedUFun(ufun=stationary_base, cost=0.0)
+        assert lin_no_cost.stability & STATE_INDEPENDENT, (
+            "LinDiscountedUFun with cost=0.0 should inherit STATE_INDEPENDENT"
+        )
+
+        exp_none_discount = ExpDiscountedUFun(ufun=stationary_base, discount=None)
+        assert exp_none_discount.stability & STATE_INDEPENDENT, (
+            "ExpDiscountedUFun with discount=None should inherit STATE_INDEPENDENT"
+        )
+
+        lin_none_cost = LinDiscountedUFun(ufun=stationary_base, cost=None)
+        assert lin_none_cost.stability & STATE_INDEPENDENT, (
+            "LinDiscountedUFun with cost=None should inherit STATE_INDEPENDENT"
+        )
+
+    def test_discounted_ufuns_inherit_session_dependence(self):
+        """Test that discounted ufuns inherit session dependence from inner ufun.
+
+        Discounted ufuns should NOT set SESSION_INDEPENDENT themselves - they should
+        only inherit it from the inner ufun. If the inner ufun is session-dependent,
+        the discounted ufun should also be session-dependent.
+
+        This is different from STATE_INDEPENDENT which is always cleared for
+        effective discounting (since discounting depends on state).
+        """
+        from negmas.preferences.discounted import ExpDiscountedUFun, LinDiscountedUFun
+        from negmas.preferences.stability import (
+            STATE_INDEPENDENT,
+            SESSION_INDEPENDENT,
+            STATIONARY,
+        )
+
+        issues = [make_issue(10), make_issue(5)]
+
+        # Create a session-dependent ufun (has STATE_INDEPENDENT but NOT SESSION_INDEPENDENT)
+        session_dep_stability = (
+            STATIONARY & ~SESSION_INDEPENDENT
+        )  # Remove session independence
+        session_dep_base = MappingUtilityFunction(
+            mapping=lambda x: sum(x) if x else 0.0,
+            issues=issues,
+            stability=session_dep_stability,
+        )
+        assert session_dep_base.stability & STATE_INDEPENDENT
+        assert not (session_dep_base.stability & SESSION_INDEPENDENT)
+
+        # Discounted ufuns from session-dependent base should also be session-dependent
+        exp_ufun = ExpDiscountedUFun(ufun=session_dep_base, discount=0.9)
+        assert not (exp_ufun.stability & SESSION_INDEPENDENT), (
+            "ExpDiscountedUFun should inherit session dependence from inner ufun"
+        )
+        assert not (exp_ufun.stability & STATE_INDEPENDENT), (
+            "ExpDiscountedUFun should still be state dependent"
+        )
+
+        lin_ufun = LinDiscountedUFun(ufun=session_dep_base, cost=0.1)
+        assert not (lin_ufun.stability & SESSION_INDEPENDENT), (
+            "LinDiscountedUFun should inherit session dependence from inner ufun"
+        )
+        assert not (lin_ufun.stability & STATE_INDEPENDENT), (
+            "LinDiscountedUFun should still be state dependent"
+        )
+
+        # Create a session-independent ufun for comparison
+        stationary_base = LinearUtilityFunction.random(issues=issues, normalized=True)
+        assert stationary_base.stability & SESSION_INDEPENDENT
+
+        # Discounted ufuns from session-independent base should be session-independent
+        exp_ufun_si = ExpDiscountedUFun(ufun=stationary_base, discount=0.9)
+        assert exp_ufun_si.stability & SESSION_INDEPENDENT, (
+            "ExpDiscountedUFun should inherit session independence from inner ufun"
+        )
+
+        lin_ufun_si = LinDiscountedUFun(ufun=stationary_base, cost=0.1)
+        assert lin_ufun_si.stability & SESSION_INDEPENDENT, (
+            "LinDiscountedUFun should inherit session independence from inner ufun"
+        )
+
+    def test_custom_stability_via_constructor(self):
+        """Test passing custom stability via constructor."""
+        from negmas.preferences import STABLE_MIN, STABLE_MAX, STABLE_ORDERING
+
+        issues = [make_issue(10), make_issue(5)]
+
+        # Create with partial stability
+        partial_stability = STABLE_MIN | STABLE_MAX | STABLE_ORDERING
+        ufun = MappingUtilityFunction(
+            mapping=lambda x: sum(x) if x else float("nan"),
+            issues=issues,
+            stability=partial_stability,
+        )
+
+        assert ufun.stability == partial_stability
+        assert ufun.has_stable_min
+        assert ufun.has_stable_max
+        assert ufun.has_stable_ordering
+        assert not ufun.has_stable_reserved_value
+        assert not ufun.is_stationary()
+        assert not ufun.is_volatile()
+
+    def test_stability_properties_on_preferences(self):
+        """Test that stability properties are accessible on Preferences base class."""
+        from negmas.preferences import STABLE_SCALE
+
+        issues = [make_issue(10), make_issue(5)]
+        stability = STABLE_SCALE  # STABLE_MIN | STABLE_MAX | STABLE_RESERVED_VALUE
+
+        ufun = MappingUtilityFunction(
+            mapping=lambda x: sum(x) if x else float("nan"),
+            issues=issues,
+            stability=stability,
+        )
+
+        assert ufun.has_stable_scale
+        assert ufun.has_stable_min
+        assert ufun.has_stable_max
+        assert ufun.has_stable_reserved_value
+        assert not ufun.has_fixed_reserved_value
+        assert not ufun.has_stable_ordering
+
+    def test_stability_serialization(self):
+        """Test that stability is correctly serialized and deserialized."""
+        from negmas.preferences import STABLE_MIN, STABLE_MAX, STABLE_ORDERING
+
+        issues = [make_issue(10), make_issue(5)]
+        stability = STABLE_MIN | STABLE_MAX | STABLE_ORDERING
+
+        ufun = LinearUtilityFunction.random(issues=issues)
+        ufun._stability = stability  # Override for testing
+
+        # Serialize
+        d = ufun.to_dict()
+        assert "stability" in d
+        assert d["stability"] == int(stability)
+
+        # Deserialize
+        ufun2 = LinearUtilityFunction.from_dict(d)
+        assert ufun2.stability == stability
+        assert ufun2.has_stable_min
+        assert ufun2.has_stable_max
+        assert ufun2.has_stable_ordering
+        assert not ufun2.has_stable_reserved_value
+
+    def test_stability_str_representation(self):
+        """Test string representation of stability flags."""
+        from negmas.preferences import STABLE_MIN, STABLE_MAX, STATIONARY, VOLATILE
+
+        assert str(STATIONARY) == "STATIONARY"
+        assert str(VOLATILE) == "VOLATILE"
+
+        combined = STABLE_MIN | STABLE_MAX
+        str_repr = str(combined)
+        assert "STABLE_MIN" in str_repr
+        assert "STABLE_MAX" in str_repr
+
+    def test_backward_compatibility_is_volatile_is_stationary(self):
+        """Test that is_volatile() and is_stationary() methods work correctly."""
+        from negmas.preferences import VOLATILE
+
+        issues = [make_issue(10), make_issue(5)]
+
+        # Stationary ufun
+        stationary_ufun = LinearUtilityFunction.random(issues=issues)
+        assert stationary_ufun.is_stationary()
+        assert not stationary_ufun.is_volatile()
+
+        # Volatile ufun (manually set for testing)
+        volatile_ufun = MappingUtilityFunction(
+            mapping=lambda x: sum(x) if x else float("nan"),
+            issues=issues,
+            stability=VOLATILE,
+        )
+        assert volatile_ufun.is_volatile()
+        assert not volatile_ufun.is_stationary()
+
+    def test_changes_returns_empty_for_stationary(self):
+        """Test that changes() returns empty list for stationary ufuns."""
+        issues = [make_issue(10), make_issue(5)]
+        ufun = LinearUtilityFunction.random(issues=issues)
+
+        assert ufun.is_stationary()
+        assert ufun.changes() == []
+
+    def test_stability_setter(self):
+        """Test that stability can be set after construction."""
+        from negmas.preferences import STABLE_MIN, VOLATILE
+
+        issues = [make_issue(10), make_issue(5)]
+        ufun = MappingUtilityFunction(
+            mapping=lambda x: sum(x) if x else float("nan"), issues=issues
+        )
+
+        # Initially stationary (from StationaryMixin)
+        assert ufun.is_stationary()
+
+        # Change to volatile
+        ufun.stability = VOLATILE
+        assert ufun.is_volatile()
+        assert not ufun.is_stationary()
+
+        # Change to partial stability
+        ufun.stability = STABLE_MIN
+        assert ufun.has_stable_min
+        assert not ufun.has_stable_max
+        assert not ufun.is_stationary()
+        assert not ufun.is_volatile()
+
+    def test_stationary_ufun_caches_minmax(self):
+        """Test that stationary ufuns cache minmax results."""
+        issues = [make_issue(10), make_issue(5)]
+        ufun = LinearUtilityFunction.random(issues=issues)
+
+        assert ufun.is_stationary()
+
+        # First call computes and caches
+        result1 = ufun.minmax()
+        assert ufun._cached_minmax is not None
+
+        # Second call should return cached value
+        result2 = ufun.minmax()
+        assert result1 == result2
+
+        # Clear caches
+        ufun.clear_caches()
+        assert ufun._cached_minmax is None
+
+    def test_stationary_ufun_caches_extreme_outcomes(self):
+        """Test that stationary ufuns cache extreme_outcomes results."""
+        issues = [make_issue(10), make_issue(5)]
+        ufun = LinearUtilityFunction.random(issues=issues)
+
+        assert ufun.is_stationary()
+
+        # First call computes and caches
+        result1 = ufun.extreme_outcomes()
+        assert ufun._cached_extreme_outcomes is not None
+
+        # Second call should return cached value
+        result2 = ufun.extreme_outcomes()
+        assert result1 == result2
+
+        # Clear caches
+        ufun.clear_caches()
+        assert ufun._cached_extreme_outcomes is None
+
+    def test_volatile_ufun_does_not_cache_minmax(self):
+        """Test that volatile ufuns do not cache minmax results."""
+        from negmas.preferences import VOLATILE
+
+        issues = [make_issue(10), make_issue(5)]
+        ufun = MappingUtilityFunction(
+            mapping=lambda x: sum(x) if x else float("nan"),
+            issues=issues,
+            stability=VOLATILE,
+        )
+
+        assert ufun.is_volatile()
+
+        # Call minmax
+        _ = ufun.minmax()
+
+        # Should not be cached for volatile ufuns
+        assert ufun._cached_minmax is None
+
+    def test_volatile_ufun_does_not_cache_extreme_outcomes(self):
+        """Test that volatile ufuns do not cache extreme_outcomes results."""
+        from negmas.preferences import VOLATILE
+
+        issues = [make_issue(10), make_issue(5)]
+        ufun = MappingUtilityFunction(
+            mapping=lambda x: sum(x) if x else float("nan"),
+            issues=issues,
+            stability=VOLATILE,
+        )
+
+        assert ufun.is_volatile()
+
+        # Call extreme_outcomes
+        _ = ufun.extreme_outcomes()
+
+        # Should not be cached for volatile ufuns
+        assert ufun._cached_extreme_outcomes is None
+
+    def test_partial_stability_caching_minmax(self):
+        """Test that minmax caching works based on STABLE_MIN and STABLE_MAX flags."""
+        from negmas.preferences import STABLE_MIN, STABLE_MAX, STABLE_ORDERING
+
+        issues = [make_issue(10), make_issue(5)]
+
+        # Only STABLE_ORDERING - should NOT cache minmax
+        ufun1 = MappingUtilityFunction(
+            mapping=lambda x: sum(x) if x else float("nan"),
+            issues=issues,
+            stability=STABLE_ORDERING,
+        )
+        _ = ufun1.minmax()
+        assert ufun1._cached_minmax is None
+
+        # STABLE_MIN only - should NOT cache minmax (needs both)
+        ufun2 = MappingUtilityFunction(
+            mapping=lambda x: sum(x) if x else float("nan"),
+            issues=issues,
+            stability=STABLE_MIN,
+        )
+        _ = ufun2.minmax()
+        assert ufun2._cached_minmax is None
+
+        # STABLE_MIN | STABLE_MAX - should cache minmax
+        ufun3 = MappingUtilityFunction(
+            mapping=lambda x: sum(x) if x else float("nan"),
+            issues=issues,
+            stability=STABLE_MIN | STABLE_MAX,
+        )
+        _ = ufun3.minmax()
+        assert ufun3._cached_minmax is not None
+
+    def test_partial_stability_caching_extreme_outcomes(self):
+        """Test that extreme_outcomes caching works based on STABLE_ORDERING or STABLE_DIFF_RATIOS."""
+        from negmas.preferences import STABLE_ORDERING, STABLE_DIFF_RATIOS, STABLE_MIN
+
+        issues = [make_issue(10), make_issue(5)]
+
+        # Only STABLE_MIN - should NOT cache extreme_outcomes
+        ufun1 = MappingUtilityFunction(
+            mapping=lambda x: sum(x) if x else float("nan"),
+            issues=issues,
+            stability=STABLE_MIN,
+        )
+        _ = ufun1.extreme_outcomes()
+        assert ufun1._cached_extreme_outcomes is None
+
+        # STABLE_ORDERING - should cache extreme_outcomes
+        ufun2 = MappingUtilityFunction(
+            mapping=lambda x: sum(x) if x else float("nan"),
+            issues=issues,
+            stability=STABLE_ORDERING,
+        )
+        _ = ufun2.extreme_outcomes()
+        assert ufun2._cached_extreme_outcomes is not None
+
+        # STABLE_DIFF_RATIOS - should cache extreme_outcomes
+        ufun3 = MappingUtilityFunction(
+            mapping=lambda x: sum(x) if x else float("nan"),
+            issues=issues,
+            stability=STABLE_DIFF_RATIOS,
+        )
+        _ = ufun3.extreme_outcomes()
+        assert ufun3._cached_extreme_outcomes is not None
+
+    def test_caching_with_different_outcome_space(self):
+        """Test that caching is skipped when a different outcome_space is passed."""
+        issues1 = [make_issue(10), make_issue(5)]
+        issues2 = [make_issue(8), make_issue(4)]
+
+        ufun = LinearUtilityFunction.random(issues=issues1)
+        assert ufun.is_stationary()
+
+        # Call with own outcome space - should cache
+        _ = ufun.minmax()
+        assert ufun._cached_minmax is not None
+
+        # Clear cache
+        ufun.clear_caches()
+
+        # Call with different outcome space - should NOT cache
+        os2 = make_os(issues2)
+        _ = ufun.minmax(outcome_space=os2)
+        assert ufun._cached_minmax is None
+
+    def test_linear_additive_caching(self):
+        """Test that LinearAdditiveUtilityFunction caches extreme_outcomes correctly."""
+        issues = [make_issue(10), make_issue(5)]
+        ufun = LinearAdditiveUtilityFunction.random(issues=issues)
+
+        assert ufun.is_stationary()
+
+        # First call computes and caches
+        result1 = ufun.extreme_outcomes()
+        assert ufun._cached_extreme_outcomes is not None
+
+        # Second call returns cached value
+        result2 = ufun.extreme_outcomes()
+        assert result1 == result2
+
+        # Verify cache hit by checking it's the same object
+        cached = ufun._cached_extreme_outcomes
+        _ = ufun.extreme_outcomes()
+        assert ufun._cached_extreme_outcomes is cached
+
+    def test_affine_ufun_caching(self):
+        """Test that AffineUtilityFunction caches extreme_outcomes correctly."""
+        issues = [make_issue(10), make_issue(5)]
+        ufun = AffineUtilityFunction.random(issues=issues)
+
+        assert ufun.is_stationary()
+
+        # First call computes and caches
+        result1 = ufun.extreme_outcomes()
+        assert ufun._cached_extreme_outcomes is not None
+
+        # Second call returns cached value
+        result2 = ufun.extreme_outcomes()
+        assert result1 == result2
+
+    def test_stability_setter_records_change(self):
+        """Test that stability setter records the change in _changes list."""
+        from negmas.preferences import STABLE_MIN, VOLATILE
+        from negmas.common import PreferencesChangeType
+
+        issues = [make_issue(10), make_issue(5)]
+        ufun = LinearUtilityFunction.random(issues=issues)
+
+        # Clear any existing changes
+        ufun.reset_changes()
+        assert len(ufun._changes) == 0
+
+        # Change stability
+        old_stability = ufun.stability
+        ufun.stability = VOLATILE
+
+        # Check that change was recorded
+        assert len(ufun._changes) == 1
+        change = ufun._changes[0]
+        # STATIONARY -> VOLATILE is a reduction (losing all bits)
+        assert change.type == PreferencesChangeType.StabilityReduced
+        assert change.data["old"] == old_stability
+        assert change.data["new"] == VOLATILE
+
+        # Make another change
+        ufun.stability = STABLE_MIN
+        assert len(ufun._changes) == 2
+        change2 = ufun._changes[1]
+        # VOLATILE -> STABLE_MIN is an increase (gaining a bit)
+        assert change2.type == PreferencesChangeType.StabilityIncreased
+        assert change2.data["old"] == VOLATILE
+        assert change2.data["new"] == STABLE_MIN
+
+    def test_stability_setter_notifies_owner(self):
+        """Test that stability setter notifies the owner via on_preferences_changed.
+
+        Note: Owner is only set when the negotiator enters a negotiation via
+        _on_negotiation_start, not during set_preferences. This test verifies
+        that when owner IS set, the notification is sent correctly.
+        """
+        from negmas.preferences import VOLATILE
+        from negmas.common import PreferencesChangeType
+
+        issues = [make_issue(10), make_issue(5)]
+        ufun = LinearUtilityFunction.random(issues=issues)
+
+        # Track notifications
+        notifications = []
+
+        class TrackingNegotiator(AspirationNegotiator):
+            def on_preferences_changed(self, changes):
+                notifications.append(changes)
+                super().on_preferences_changed(changes)
+
+        negotiator = TrackingNegotiator()
+        negotiator.set_preferences(ufun)
+
+        # Owner is NOT set via set_preferences anymore
+        # Owner is only set when entering a negotiation via _on_negotiation_start
+        assert ufun.owner is None
+
+        # Manually set owner to test notification (simulating negotiation start)
+        ufun.owner = negotiator
+        assert ufun.owner is negotiator
+
+        # Clear notifications
+        notifications.clear()
+
+        # Change stability
+        old_stability = ufun.stability
+        ufun.stability = VOLATILE
+
+        # Check that owner was notified
+        assert len(notifications) == 1
+        notification = notifications[0]
+        # notification is [PreferencesChange(...)]
+        assert len(notification) == 1
+        pref_change = notification[0]
+        # STATIONARY -> VOLATILE is a reduction
+        assert pref_change.type == PreferencesChangeType.StabilityReduced
+        assert pref_change.data["old"] == old_stability
+        assert pref_change.data["new"] == VOLATILE
+
+    def test_stability_setter_no_notification_without_owner(self):
+        """Test that stability setter doesn't notify when there's no owner."""
+        from negmas.preferences import VOLATILE
+
+        issues = [make_issue(10), make_issue(5)]
+        ufun = LinearUtilityFunction.random(issues=issues)
+
+        # No owner
+        assert ufun.owner is None
+
+        # Should not raise
+        ufun.stability = VOLATILE
+
+        # Change was still recorded internally
+        assert len(ufun._changes) > 0
+        # STATIONARY -> VOLATILE is a reduction
+        assert any(
+            c.type == PreferencesChangeType.StabilityReduced for c in ufun._changes
+        )
+
+    def test_negotiator_set_preferences_does_not_set_owner(self):
+        """Test that Negotiator.set_preferences does NOT set owner.
+
+        Owner is only set when the negotiator enters a negotiation via
+        _on_negotiation_start, not during set_preferences.
+        """
+        issues = [make_issue(10), make_issue(5)]
+        ufun = LinearUtilityFunction.random(issues=issues)
+
+        # Before set_preferences, no owner
+        assert ufun.owner is None
+
+        negotiator = AspirationNegotiator()
+        negotiator.set_preferences(ufun)
+
+        # After set_preferences, owner should NOT be set
+        # Owner is only set when entering a negotiation
+        assert ufun.owner is None
+        assert negotiator.preferences is ufun
+
+    def test_owner_set_during_negotiation_start(self):
+        """Test that owner is set when negotiator enters a negotiation and cleared when it ends."""
+        from negmas.sao import SAOMechanism
+
+        issues = [make_issue(10), make_issue(5)]
+        ufun1 = LinearUtilityFunction.random(issues=issues)
+        ufun2 = LinearUtilityFunction.random(issues=issues)
+
+        # Track owner during on_negotiation_start
+        owners_during_start = {}
+
+        class TrackingNegotiator(AspirationNegotiator):
+            def on_negotiation_start(self, state):
+                owners_during_start[self.id] = (self.ufun.owner, self)
+                super().on_negotiation_start(state)
+
+        n1 = TrackingNegotiator(ufun=ufun1)
+        n2 = TrackingNegotiator(ufun=ufun2)
+
+        # Before negotiation, no owner
+        assert ufun1.owner is None
+        assert ufun2.owner is None
+
+        m = SAOMechanism(issues=issues, n_steps=10)
+        m.add(n1)
+        m.add(n2)
+
+        # After add but before negotiation starts, still no owner
+        assert ufun1.owner is None
+
+        # Start the negotiation (first step)
+        m.step()
+
+        # Owner was correctly set during on_negotiation_start
+        assert owners_during_start[n1.id][0] is n1
+        assert owners_during_start[n2.id][0] is n2
+
+        # If negotiation ended, owner should be cleared
+        if not m.running:
+            assert ufun1.owner is None
+            assert ufun2.owner is None
+        else:
+            # If still running, owner should still be set
+            assert ufun1.owner is n1
+            assert ufun2.owner is n2
+
+    def test_stability_change_notification_during_negotiation(self):
+        """Test stability change notification works during a negotiation."""
+        from negmas.preferences import VOLATILE
+        from negmas.common import PreferencesChangeType
+
+        issues = [make_issue(5), make_issue(5)]
+        os = make_os(issues)
+
+        # Track notifications
+        notifications = []
+
+        class TrackingNegotiator(AspirationNegotiator):
+            def on_preferences_changed(self, changes):
+                notifications.append(changes)
+                super().on_preferences_changed(changes)
+
+        ufun1 = LinearUtilityFunction.random(issues=issues, normalized=True)
+        ufun2 = LinearUtilityFunction.random(issues=issues, normalized=True)
+
+        n1 = TrackingNegotiator()
+        n2 = AspirationNegotiator()
+
+        m = SAOMechanism(outcome_space=os, n_steps=10)
+        m.add(n1, preferences=ufun1)
+        m.add(n2, preferences=ufun2)
+
+        # Run the negotiation - this sets the owner via _on_negotiation_start
+        m.run()
+
+        # After negotiation ends, owner is still set (cleared only on explicit leave)
+        # For this test, we manually set owner to test notification
+        ufun1.owner = n1
+
+        # Clear notifications from setup and negotiation
+        notifications.clear()
+
+        # Change stability after negotiation
+        ufun1.stability = VOLATILE
+
+        # Owner should have been notified
+        assert len(notifications) == 1
+        notification = notifications[0]
+        # Notification format is [PreferencesChange(...)]
+        assert len(notification) == 1
+        # STATIONARY -> VOLATILE is a reduction
+        assert notification[0].type == PreferencesChangeType.StabilityReduced
+
+
+class TestUFunConstraint:
+    """Tests for UFunConstraint adapter."""
+
+    def test_constraint_basic_functionality(self):
+        """Test that UFunConstraint applies constraint correctly."""
+        from negmas.preferences.adapters import UFunConstraint
+
+        issues = [make_issue(6), make_issue(6)]  # values 0-5 for each issue
+        base_ufun = LinearUtilityFunction(weights=[1.0, 1.0], issues=issues)
+
+        # Constraint: sum of values must be <= 6
+        constrained = UFunConstraint(ufun=base_ufun, constraint=lambda o: sum(o) <= 6)
+
+        # Valid outcomes
+        assert constrained((2, 3)) == 5.0  # sum=5, valid
+        assert constrained((0, 0)) == 0.0  # sum=0, valid
+        assert constrained((3, 3)) == 6.0  # sum=6, valid (boundary)
+
+        # Invalid outcomes
+        assert constrained((4, 4)) == float("-inf")  # sum=8, invalid
+        assert constrained((5, 5)) == float("-inf")  # sum=10, invalid
+
+    def test_constraint_inherits_stability(self):
+        """Test that UFunConstraint properly inherits and ANDs stability."""
+        from negmas.preferences.adapters import UFunConstraint
+        from negmas.preferences.stability import (
+            STABLE_ORDERING,
+            STABLE_DIFF_RATIOS,
+            STABLE_RATIONAL_OUTCOMES,
+            STABLE_IRRATIONAL_OUTCOMES,
+            STATIONARY,
+        )
+
+        issues = [make_issue(6), make_issue(6)]
+        base_ufun = LinearUtilityFunction(weights=[1.0, 1.0], issues=issues)
+
+        # Base ufun is stationary
+        assert base_ufun.stability == STATIONARY
+
+        constrained = UFunConstraint(ufun=base_ufun, constraint=lambda o: sum(o) <= 6)
+
+        # Should preserve ordering and diff ratios (among valid outcomes)
+        assert constrained.stability & STABLE_ORDERING
+        assert constrained.stability & STABLE_DIFF_RATIOS
+        # Should preserve rational/irrational status
+        assert constrained.stability & STABLE_RATIONAL_OUTCOMES
+        assert constrained.stability & STABLE_IRRATIONAL_OUTCOMES
+        # Should NOT be volatile
+        assert not constrained.is_volatile()
+
+    def test_constraint_with_complex_predicate(self):
+        """Test UFunConstraint with a more complex constraint."""
+        from negmas.preferences.adapters import UFunConstraint
+
+        issues = [make_issue(6), make_issue(6), make_issue(6)]
+        base_ufun = LinearUtilityFunction(weights=[1.0, 2.0, 3.0], issues=issues)
+
+        # Constraint: first value must be >= second value
+        constrained = UFunConstraint(ufun=base_ufun, constraint=lambda o: o[0] >= o[1])
+
+        # (3, 2, 1) -> 3*1 + 2*2 + 1*3 = 3 + 4 + 3 = 10, valid
+        assert constrained((3, 2, 1)) == 3.0 + 4.0 + 3.0  # 10.0, valid
+        # (2, 2, 1) -> 2*1 + 2*2 + 1*3 = 2 + 4 + 3 = 9, valid (boundary)
+        assert constrained((2, 2, 1)) == 2.0 + 4.0 + 3.0  # 9.0, valid (boundary)
+        assert constrained((1, 2, 3)) == float("-inf")  # invalid
+
+    def test_constraint_reserved_value(self):
+        """Test that UFunConstraint handles reserved value correctly."""
+        from negmas.preferences.adapters import UFunConstraint
+
+        issues = [make_issue(6), make_issue(6)]
+        base_ufun = LinearUtilityFunction(
+            weights=[1.0, 1.0], issues=issues, reserved_value=0.5
+        )
+
+        constrained = UFunConstraint(ufun=base_ufun, constraint=lambda o: sum(o) <= 6)
+
+        # Reserved value inherited from base
+        assert constrained.reserved_value == 0.5
+        # Calling with None returns reserved value
+        assert constrained(None) == 0.5
+
+
+class TestCompositeUfunStability:
+    """Tests for composite utility function stability."""
+
+    def test_weighted_ufun_ands_stability(self):
+        """Test that WeightedUtilityFunction ANDs stability of all components."""
+        from negmas.preferences.complex import WeightedUtilityFunction
+        from negmas.preferences.stability import (
+            STABLE_ORDERING,
+            STABLE_DIFF_RATIOS,
+            STATIONARY,
+        )
+
+        issues = [make_issue(5)]
+        u1 = LinearUtilityFunction(weights=[1.0], issues=issues)
+        u2 = LinearUtilityFunction(weights=[0.5], issues=issues)
+
+        # Both are stationary
+        assert u1.stability == STATIONARY
+        assert u2.stability == STATIONARY
+
+        combined = WeightedUtilityFunction(ufuns=[u1, u2], weights=[0.6, 0.4])
+
+        # Combined should have full stability (AND of both)
+        assert combined.stability == STATIONARY
+        assert combined.is_stationary()
+        assert not combined.is_volatile()
+        # Should preserve ordering and diff ratios (linear combination)
+        assert combined.stability & STABLE_ORDERING
+        assert combined.stability & STABLE_DIFF_RATIOS
+
+    def test_weighted_ufun_with_volatile_component(self):
+        """Test WeightedUtilityFunction when one component is volatile."""
+        from negmas.preferences.complex import WeightedUtilityFunction
+        from negmas.preferences.stability import VOLATILE
+
+        issues = [make_issue(5)]
+        u1 = LinearUtilityFunction(weights=[1.0], issues=issues)
+        u2 = MappingUtilityFunction(
+            mapping=lambda x: sum(x) if x else 0.0, issues=issues, stability=VOLATILE
+        )
+
+        combined = WeightedUtilityFunction(ufuns=[u1, u2], weights=[0.5, 0.5])
+
+        # Combined should be volatile (weakest link)
+        assert combined.is_volatile()
+        assert combined.stability == VOLATILE
+
+    def test_complex_nonlinear_ufun_clears_ordering_and_diff_ratios(self):
+        """Test that ComplexNonlinearUtilityFunction clears STABLE_ORDERING and STABLE_DIFF_RATIOS."""
+        from negmas.preferences.complex import ComplexNonlinearUtilityFunction
+        from negmas.preferences.stability import (
+            STABLE_ORDERING,
+            STABLE_DIFF_RATIOS,
+            STATIONARY,
+        )
+
+        issues = [make_issue(5)]
+        u1 = LinearUtilityFunction(weights=[1.0], issues=issues)
+        u2 = LinearUtilityFunction(weights=[0.5], issues=issues)
+
+        # Both are stationary with all flags
+        assert u1.stability == STATIONARY
+        assert u2.stability == STATIONARY
+
+        # Product combination - arbitrary function
+        combined = ComplexNonlinearUtilityFunction(
+            ufuns=[u1, u2], combination_function=lambda vals: vals[0] * vals[1]
+        )
+
+        # Should NOT have STABLE_ORDERING or STABLE_DIFF_RATIOS
+        # because the combination function is arbitrary
+        assert not (combined.stability & STABLE_ORDERING)
+        assert not (combined.stability & STABLE_DIFF_RATIOS)
+        # But should inherit other stability flags
+        assert not combined.is_volatile()
+
+    def test_complex_nonlinear_ufun_with_explicit_stability(self):
+        """Test that ComplexNonlinearUtilityFunction respects explicit stability."""
+        from negmas.preferences.complex import ComplexNonlinearUtilityFunction
+        from negmas.preferences.stability import (
+            STABLE_ORDERING,
+            STABLE_DIFF_RATIOS,
+            STATIONARY,
+        )
+
+        issues = [make_issue(5)]
+        u1 = LinearUtilityFunction(weights=[1.0], issues=issues)
+        u2 = LinearUtilityFunction(weights=[0.5], issues=issues)
+
+        # If user knows their function preserves ordering, they can specify it
+        combined = ComplexNonlinearUtilityFunction(
+            ufuns=[u1, u2],
+            combination_function=lambda vals: vals[0] + vals[1],  # linear
+            stability=STATIONARY,  # user asserts full stability
+        )
+
+        assert combined.stability == STATIONARY
+        assert combined.stability & STABLE_ORDERING
+        assert combined.stability & STABLE_DIFF_RATIOS
 
 
 # Tests for reserved_value with Distribution support

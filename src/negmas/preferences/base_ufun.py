@@ -13,18 +13,18 @@ from typing import TYPE_CHECKING, Any, Iterable, Sequence, TypeVar
 from negmas import warnings
 from negmas.common import Distribution, Value
 from negmas.helpers.prob import Real, make_distribution
-from negmas.helpers.types import get_full_type_name
 from negmas.outcomes import Issue, Outcome, dict2outcome
 from negmas.outcomes.common import check_one_at_most, os_or_none
 from negmas.outcomes.issue_ops import issues_from_geniusweb_json
 from negmas.outcomes.outcome_space import make_os
 from negmas.outcomes.protocols import IndependentIssuesOS, OutcomeSpace
 from negmas.preferences.value_fun import TableFun
-from negmas.serialization import PYTHON_CLASS_IDENTIFIER, deserialize, serialize
+from negmas.serialization import PYTHON_CLASS_IDENTIFIER, deserialize
 from negmas.warnings import warn_if_slow
 
 from .preferences import Preferences
 from .protocols import InverseUFun
+from .stability import Stability
 from .value_fun import make_fun_from_xml
 
 if TYPE_CHECKING:
@@ -77,6 +77,9 @@ class BaseUtilityFunction(Preferences, ABC):
         self._cached_inverse: InverseUFun | None = None
         self._cached_inverse_type: type[InverseUFun] | None = None
         self._invalid_value = invalid_value
+        # Caches for min/max/extreme outcomes (only used when stability allows)
+        self._cached_minmax: tuple[float, float] | None = None
+        self._cached_extreme_outcomes: tuple[Outcome, Outcome] | None = None
 
     @property
     def reserved_value(self) -> float:
@@ -117,6 +120,41 @@ class BaseUtilityFunction(Preferences, ABC):
             f"I do not know how to convert a ufun of type {self.type_name} to a stationary ufun."
         )
 
+    def _can_cache_minmax(self) -> bool:
+        """Check if min/max values can be cached based on stability.
+
+        Returns True if:
+        - Stationary (everything is stable), OR
+        - Both STABLE_MIN and STABLE_MAX flags are set
+        """
+        if self._stability.is_volatile:
+            return False
+        if self._stability.is_stationary:
+            return True
+        return self._stability.has_stable_min and self._stability.has_stable_max
+
+    def _can_cache_extreme_outcomes(self) -> bool:
+        """Check if extreme outcomes (worst/best) can be cached based on stability.
+
+        Returns True if:
+        - Stationary (everything is stable), OR
+        - STABLE_EXTREMES flag is set, OR
+        - STABLE_ORDERING flag is set (implies stable extremes), OR
+        - STABLE_DIFF_RATIOS flag is set (implies stable ordering)
+        """
+        if self._stability.is_volatile:
+            return False
+        if self._stability.is_stationary:
+            return True
+        return self._stability.has_stable_extremes
+
+    def clear_caches(self) -> None:
+        """Clear all cached values (minmax, extreme_outcomes, inverter)."""
+        self._cached_minmax = None
+        self._cached_extreme_outcomes = None
+        self._cached_inverse = None
+        self._cached_inverse_type = None
+
     def extreme_outcomes(
         self,
         outcome_space: OutcomeSpace | None = None,
@@ -128,6 +166,8 @@ class BaseUtilityFunction(Preferences, ABC):
 
         Args:
             outcome_space: The outcome space to search. If None, uses the ufun's outcome space.
+                If provided (different from ufun's outcome space), the intersection is used
+                and results are not cached.
             issues: Alternative to outcome_space - list of issues defining the space.
             outcomes: Alternative to outcome_space - explicit iterable of outcomes to evaluate.
             max_cardinality: Maximum number of outcomes to enumerate or sample.
@@ -137,29 +177,58 @@ class BaseUtilityFunction(Preferences, ABC):
 
         Raises:
             ValueError: If no outcomes can be found to evaluate.
+
+        Note:
+            Results are cached based on stability flags:
+            - Stationary ufuns always cache results
+            - Volatile ufuns never cache results
+            - Ufuns with STABLE_ORDERING or STABLE_DIFF_RATIOS cache results
+            - If outcome_space/issues/outcomes are provided, caching is skipped
         """
         check_one_at_most(outcome_space, issues, outcomes)
-        outcome_space = os_or_none(outcome_space, issues, outcomes)
-        if not outcome_space:
-            outcome_space = self.outcome_space
-        if outcome_space and not outcomes:
-            outcomes = outcome_space.enumerate_or_sample(
-                max_cardinality=max_cardinality
-            )
+        provided_space = os_or_none(outcome_space, issues, outcomes)
+
+        # Determine if we're using the ufun's own outcome space (for caching)
+        use_own_space = provided_space is None or provided_space == self.outcome_space
+
+        # Check cache first (only if using own outcome space and caching is allowed)
+        if (
+            use_own_space
+            and self._can_cache_extreme_outcomes()
+            and self._cached_extreme_outcomes is not None
+        ):
+            return self._cached_extreme_outcomes
+
+        # Determine the outcome space to use
+        search_space = provided_space if provided_space else self.outcome_space
+
+        if search_space and not outcomes:
+            outcomes = search_space.enumerate_or_sample(max_cardinality=max_cardinality)
         if not outcomes:
             raise ValueError("Cannot find outcomes to use for finding extremes")
+
+        # Convert to list to allow multiple iterations and length check
+        outcomes_list = list(outcomes)
+        warn_if_slow(len(outcomes_list), "Extreme Outcomes too Slow")
+
         mn, mx = float("inf"), float("-inf")
         worst, best = None, None
-        warn_if_slow(len(list(outcomes)), "Extreme Outcomes too Slow")
-        for o in outcomes:
+        for o in outcomes_list:
             u = self(o)
             if u < mn:
                 worst, mn = o, u
             if u > mx:
                 best, mx = o, u
         if worst is None or best is None:
-            raise ValueError(f"Cound not find worst and best outcomes for {self}")
-        return worst, best
+            raise ValueError(f"Could not find worst and best outcomes for {self}")
+
+        result = (worst, best)
+
+        # Cache result if using own outcome space and caching is allowed
+        if use_own_space and self._can_cache_extreme_outcomes():
+            self._cached_extreme_outcomes = result
+
+        return result
 
     def minmax(
         self,
@@ -169,10 +238,12 @@ class BaseUtilityFunction(Preferences, ABC):
         max_cardinality=1000,
         above_reserve=False,
     ) -> tuple[float, float]:
-        """Finds the range of the given utility function for the given outcomes
+        """Finds the range of the given utility function for the given outcomes.
 
         Args:
-            self: The utility function
+            outcome_space: The outcome space to search. If None, uses the ufun's outcome space.
+                If provided (different from ufun's outcome space), the intersection is used
+                and results are not cached.
             issues: List of issues (optional)
             outcomes: A collection of outcomes (optional)
             max_cardinality: the maximum number of outcomes to try sampling (if sampling is used and outcomes are not given)
@@ -181,7 +252,28 @@ class BaseUtilityFunction(Preferences, ABC):
         Returns:
             (lowest, highest) utilities in that order
 
+        Note:
+            Results are cached based on stability flags (only when above_reserve=False):
+            - Stationary ufuns always cache results
+            - Volatile ufuns never cache results
+            - Ufuns with both STABLE_MIN and STABLE_MAX cache results
+            - If outcome_space/issues/outcomes are provided, caching is skipped
         """
+        check_one_at_most(outcome_space, issues, outcomes)
+        provided_space = os_or_none(outcome_space, issues, outcomes)
+
+        # Determine if we're using the ufun's own outcome space (for caching)
+        use_own_space = provided_space is None or provided_space == self.outcome_space
+
+        # Check cache first (only if using own outcome space, not above_reserve, and caching is allowed)
+        if (
+            use_own_space
+            and not above_reserve
+            and self._can_cache_minmax()
+            and self._cached_minmax is not None
+        ):
+            return self._cached_minmax
+
         (worst, best) = self.extreme_outcomes(
             outcome_space, issues, outcomes, max_cardinality
         )
@@ -190,6 +282,11 @@ class BaseUtilityFunction(Preferences, ABC):
             w = w.min
         if isinstance(b, Distribution):
             b = b.max
+
+        # Cache the raw minmax result (before above_reserve adjustment)
+        if use_own_space and self._can_cache_minmax() and self._cached_minmax is None:
+            self._cached_minmax = (w, b)
+
         if above_reserve:
             r = self.reserved_value
             if r is None:
@@ -200,24 +297,40 @@ class BaseUtilityFunction(Preferences, ABC):
                 w = r
         return w, b
 
-    def max(self) -> Value:
-        """Return the maximum utility value over the outcome space."""
-        _, mx = self.minmax()
+    def max(self, outcome_space: OutcomeSpace | None = None) -> Value:
+        """Return the maximum utility value over the outcome space.
+
+        Args:
+            outcome_space: The outcome space to search. If None, uses the ufun's outcome space.
+        """
+        _, mx = self.minmax(outcome_space=outcome_space)
         return mx
 
-    def min(self) -> Value:
-        """Return the minimum utility value over the outcome space."""
-        mn, _ = self.minmax()
+    def min(self, outcome_space: OutcomeSpace | None = None) -> Value:
+        """Return the minimum utility value over the outcome space.
+
+        Args:
+            outcome_space: The outcome space to search. If None, uses the ufun's outcome space.
+        """
+        mn, _ = self.minmax(outcome_space=outcome_space)
         return mn
 
-    def best(self) -> Outcome:
-        """Return the outcome with the highest utility value."""
-        _, mx = self.extreme_outcomes()
+    def best(self, outcome_space: OutcomeSpace | None = None) -> Outcome:
+        """Return the outcome with the highest utility value.
+
+        Args:
+            outcome_space: The outcome space to search. If None, uses the ufun's outcome space.
+        """
+        _, mx = self.extreme_outcomes(outcome_space=outcome_space)
         return mx
 
-    def worst(self) -> Outcome:
-        """Return the outcome with the lowest utility value."""
-        mn, _ = self.extreme_outcomes()
+    def worst(self, outcome_space: OutcomeSpace | None = None) -> Outcome:
+        """Return the outcome with the lowest utility value.
+
+        Args:
+            outcome_space: The outcome space to search. If None, uses the ufun's outcome space.
+        """
+        mn, _ = self.extreme_outcomes(outcome_space=outcome_space)
         return mn
 
     def eval_normalized(
@@ -284,18 +397,6 @@ class BaseUtilityFunction(Preferences, ABC):
     def forget_inverter(self):
         """Deletes the cached inverter."""
         self._cached_inverse = None
-
-    def is_volatile(self) -> bool:
-        """Return True if this utility function can change between calls."""
-        return True
-
-    def is_session_dependent(self) -> bool:
-        """Return True if this utility function depends on the negotiation session."""
-        return True
-
-    def is_state_dependent(self) -> bool:
-        """Return True if this utility function depends on the negotiation state."""
-        return True
 
     def scale_by(
         self: T, scale: float, scale_reserved=True
@@ -897,18 +998,11 @@ class BaseUtilityFunction(Preferences, ABC):
 
         Returns:
             A dictionary containing the serialized utility function data including
-            the outcome space, reserved value, name, and id.
+            the outcome space, reserved value, stability, name, and id.
         """
-        d = {python_class_identifier: get_full_type_name(type(self))}
-        return dict(
-            **d,
-            outcome_space=serialize(
-                self.outcome_space, python_class_identifier=python_class_identifier
-            ),
-            reserved_value=self.reserved_value,
-            name=self.name,
-            id=self.id,
-        )
+        d = super().to_dict(python_class_identifier=python_class_identifier)
+        d["reserved_value"] = self.reserved_value
+        return d
 
     @classmethod
     def from_dict(cls, d, python_class_identifier=PYTHON_CLASS_IDENTIFIER):
@@ -927,6 +1021,8 @@ class BaseUtilityFunction(Preferences, ABC):
             d.get("outcome_space", None),
             python_class_identifier=python_class_identifier,
         )
+        if "stability" in d:
+            d["stability"] = Stability(d["stability"])
         return cls(**d)
 
     def sample_outcome_with_utility(
@@ -1643,21 +1739,14 @@ class _FullyStatic:
 
 class _ExtremelyDynamic:
     """
-    Used internally to indicate that the ufun can change due to anything.
+    Used internally to provide default implementations for stability-related methods.
+
+    This class provides implementations that delegate to the _stability attribute.
+    Classes using StationaryMixin will have stability set to STATIONARY by default.
     """
 
-    def is_session_dependent(self) -> bool:
-        """Return True since extremely dynamic ufuns depend on the negotiation session."""
-        return True
-
-    def is_volatile(self) -> bool:
-        """Return True since extremely dynamic ufuns can change between calls."""
-        return True
-
-    def is_state_dependent(self) -> bool:
-        """Return True since extremely dynamic ufuns depend on the negotiation state."""
-        return True
-
-    def is_stationary(self) -> bool:
-        """Return False since extremely dynamic ufuns are never stationary."""
-        return False
+    # Note: This class previously returned hardcoded values (True/False) for the
+    # stability methods. Now it delegates to Preferences base class which uses
+    # the _stability attribute. This allows StationaryMixin to just set
+    # stability=STATIONARY and have the methods return correct values.
+    pass

@@ -3,22 +3,61 @@
 from __future__ import annotations
 
 import random
-from typing import Any, Callable
+from abc import abstractmethod
+from typing import TYPE_CHECKING, Any, Callable
 
-from negmas.common import Value, MechanismState, NegotiatorMechanismInterface
+from negmas.common import MechanismState, NegotiatorMechanismInterface, Value
 from negmas.helpers import get_class
 from negmas.helpers.numeric import make_range
 from negmas.outcomes import Issue, Outcome
-from negmas.serialization import PYTHON_CLASS_IDENTIFIER, deserialize, serialize
+from negmas.serialization import PYTHON_CLASS_IDENTIFIER, deserialize
 
+from .adapters import UtilityFunctionAdapter
 from .base_ufun import BaseUtilityFunction
-from .mixins import StateDependentUFunMixin
+from .stability import (
+    FIXED_RESERVED_VALUE,
+    SESSION_INDEPENDENT,
+    STABLE_DIFF_RATIOS,
+    STABLE_IRRATIONAL_OUTCOMES,
+    STABLE_ORDERING,
+    STABLE_RATIONAL_OUTCOMES,
+    STABLE_RESERVED_VALUE,
+    STATE_INDEPENDENT,
+    Stability,
+)
+
+if TYPE_CHECKING:
+    from negmas.negotiators import Negotiator
 
 __all__ = ["LinDiscountedUFun", "ExpDiscountedUFun", "DiscountedUtilityFunction"]
 
 
-class DiscountedUtilityFunction(StateDependentUFunMixin, BaseUtilityFunction):
-    """Base class for all discounted ufuns"""
+class DiscountedUtilityFunction(UtilityFunctionAdapter):
+    """Base class for all discounted ufuns.
+
+    Discounted utility functions wrap another utility function and apply a
+    time/state-dependent discount to the utility values. They preserve:
+    - Ordering of outcomes (STABLE_ORDERING)
+    - Difference ratios between utilities (STABLE_DIFF_RATIOS)
+
+    Stability Properties:
+        Discounted ufuns are ALWAYS state-dependent (they use state.step or state.time
+        to compute the discount factor), so they clear the STATE_INDEPENDENT flag.
+
+        However, discounted ufuns inherit SESSION_INDEPENDENT from the inner ufun.
+        Discounting does not depend on NMI parameters (like n_negotiators), only on
+        state variables (like time/step). So if the inner ufun is session-independent,
+        the discounted ufun will also be session-independent.
+
+        Note: State independence and session independence are orthogonal concepts:
+        - STATE_INDEPENDENT: Does not depend on MechanismState (time, step, etc.)
+        - SESSION_INDEPENDENT: Does not depend on NMI (n_negotiators, mechanism params)
+
+        A discounted ufun is a typical example of a ufun that is session-independent
+        but state-dependent.
+
+    Subclasses must implement `eval_on_state()` to define their discounting logic.
+    """
 
     def __init__(self, ufun: BaseUtilityFunction, **kwargs):
         """Initialize the discounted utility function.
@@ -27,21 +66,43 @@ class DiscountedUtilityFunction(StateDependentUFunMixin, BaseUtilityFunction):
             ufun: The base utility function to apply discounting to.
             **kwargs: Additional arguments passed to parent class.
         """
-        super().__init__(**kwargs)
-        self.ufun = ufun
+        # Compute base stability for discounted ufuns
+        # They preserve ordering and diff ratios
+        base_stability = STABLE_ORDERING | STABLE_DIFF_RATIOS
+
+        # Inherit session independence from inner ufun
+        if ufun.stability & SESSION_INDEPENDENT:
+            base_stability |= SESSION_INDEPENDENT
+
+        # Pass computed stability to parent (will be ANDed with inner ufun)
+        kwargs.setdefault("stability", base_stability)
+
+        super().__init__(ufun=ufun, **kwargs)
+
+        # Ensure outcome space is synchronized
         if self.outcome_space:
-            self.ufun.outcome_space = self.outcome_space
+            self._ufun.outcome_space = self.outcome_space
         else:
-            self.outcome_space = self.ufun.outcome_space
+            self.outcome_space = self._ufun.outcome_space
+
+    @property
+    def ufun(self) -> BaseUtilityFunction:
+        """The wrapped utility function (alias for _ufun for backward compatibility)."""
+        return self._ufun
+
+    @ufun.setter
+    def ufun(self, value: BaseUtilityFunction) -> None:
+        """Set the wrapped utility function."""
+        self._ufun = value
 
     def extract_base_ufun(self, deep: bool = False) -> BaseUtilityFunction:
         """Extracts the underlying base utility function without discounting."""
-        self.ufun.outcome_space = self.outcome_space
+        self._ufun.outcome_space = self.outcome_space
         ufun = self
         if not deep:
             return ufun
         while isinstance(ufun, DiscountedUtilityFunction):
-            ufun = ufun.ufun
+            ufun = ufun._ufun
             ufun.outcome_space = self.outcome_space
         return ufun
 
@@ -51,18 +112,80 @@ class DiscountedUtilityFunction(StateDependentUFunMixin, BaseUtilityFunction):
 
     def to_stationary(self):
         """Returns the underlying stationary (non-discounted) utility function."""
-        return self.ufun.to_stationary()
+        return self._ufun.to_stationary()
+
+    @abstractmethod
+    def eval_on_state(
+        self,
+        offer: Outcome,
+        nmi: NegotiatorMechanismInterface | None = None,
+        state: MechanismState | None = None,
+    ) -> Value:
+        """Evaluates the offer given a session and state.
+
+        Subclasses must implement this to define their discounting logic.
+
+        Args:
+            offer: The outcome to evaluate.
+            nmi: Negotiator-mechanism interface (optional).
+            state: Current mechanism state used to compute the discount factor.
+
+        Returns:
+            The discounted utility value.
+        """
+        ...
+
+    def eval(self, offer: Outcome) -> Value:
+        """Evaluate the utility of an offer using current negotiation state.
+
+        This method retrieves the current state from the owner's NMI (if available)
+        and delegates to `eval_on_state()`.
+
+        Args:
+            offer: The outcome to evaluate.
+
+        Returns:
+            The discounted utility value.
+        """
+        if not self.owner or not self.owner.nmi:
+            return self.eval_on_state(offer, None, None)
+        self.owner: Negotiator
+        return self.eval_on_state(offer, self.owner.nmi, self.owner.nmi.state)
 
 
 class ExpDiscountedUFun(DiscountedUtilityFunction):
-    """A discounted utility function based on some factor of the negotiation
+    """A utility function with exponential discounting based on negotiation state.
+
+    The discounted utility is computed as: u_discounted = (discount ^ factor) * u_base
+
+    Where:
+    - discount: The discount rate (typically 0 < discount <= 1)
+    - factor: A value from the mechanism state (e.g., step, time)
+    - u_base: The utility from the underlying utility function
+
+    Stability Properties:
+        - Always STATE-DEPENDENT: Clears STATE_INDEPENDENT (depends on state.step/time)
+        - Inherits SESSION_INDEPENDENT from inner ufun (discounting doesn't use NMI)
+        - Always preserves ordering (STABLE_ORDERING) - multiplication by positive factor
+        - Always preserves difference ratios (STABLE_DIFF_RATIOS) - proportional scaling
+        - If dynamic_reservation=True: STABLE_RESERVED_VALUE, STABLE_RATIONAL_OUTCOMES,
+          STABLE_IRRATIONAL_OUTCOMES (everything scales together)
+        - If dynamic_reservation=False: FIXED_RESERVED_VALUE, plus:
+          - If discount > 1: STABLE_RATIONAL_OUTCOMES (utilities increase, rational stays rational)
+          - If discount <= 1: STABLE_IRRATIONAL_OUTCOMES (utilities decrease, irrational stays irrational)
+        - If discount == 1 or None: Inherits full stability from inner ufun (no effective discounting)
+
+    Note on Independence:
+        State independence and session independence are orthogonal. This ufun is
+        state-dependent (uses state.step) but can be session-independent (doesn't
+        use NMI parameters like n_negotiators).
 
     Args:
         ufun: The utility function that is being discounted
-        discount: discount factor
-        factor: str -> The name of the AgentMechanismInterface variable based on which discounting operate
-        callable -> must receive a mechanism info object and returns a float representing the factor
-
+        discount: Discount factor (e.g., 0.9 means 90% retained per unit)
+        factor: str -> The name of the MechanismState variable for discounting
+                callable -> receives a MechanismState and returns a float
+        dynamic_reservation: If True, apply discounting to reserved value too
     """
 
     def __init__(
@@ -88,12 +211,69 @@ class ExpDiscountedUFun(DiscountedUtilityFunction):
             id: Optional unique identifier.
             **kwargs: Additional arguments passed to parent class.
         """
+        # Compute stability based on discount and dynamic_reservation
+        stability = self._compute_exp_stability(ufun, discount, dynamic_reservation)
+
         super().__init__(
-            ufun=ufun, name=name, reserved_value=reserved_value, id=id, **kwargs
+            ufun=ufun,
+            name=name,
+            reserved_value=reserved_value,
+            id=id,
+            stability=stability,
+            **kwargs,
         )
         self.discount = discount
         self.factor = factor
         self.dynamic_reservation = dynamic_reservation
+
+    @staticmethod
+    def _compute_exp_stability(
+        ufun: BaseUtilityFunction, discount: float | None, dynamic_reservation: bool
+    ) -> Stability:
+        """Compute stability flags for exponential discounting.
+
+        Args:
+            ufun: The inner utility function.
+            discount: The discount factor.
+            dynamic_reservation: Whether discounting applies to reserved value.
+
+        Returns:
+            Computed stability flags ANDed with inner ufun's stability.
+        """
+        # Special case: no effective discounting
+        if discount is None or discount == 1.0:
+            return ufun.stability
+
+        # Base stability: preserves ordering and diff ratios
+        stability = STABLE_ORDERING | STABLE_DIFF_RATIOS
+
+        # Inherit session independence from inner ufun
+        if ufun.stability & SESSION_INDEPENDENT:
+            stability |= SESSION_INDEPENDENT
+
+        # Reserved value and rational/irrational stability
+        if dynamic_reservation:
+            # Everything scales together - rational/irrational status preserved
+            stability |= (
+                STABLE_RESERVED_VALUE
+                | STABLE_RATIONAL_OUTCOMES
+                | STABLE_IRRATIONAL_OUTCOMES
+            )
+        else:
+            # Reserved value is fixed (not discounted)
+            stability |= FIXED_RESERVED_VALUE
+            if discount > 1.0:
+                # Utilities increase over time, rational outcomes stay rational
+                # but irrational may become rational
+                stability |= STABLE_RATIONAL_OUTCOMES
+            else:
+                # Utilities decrease over time (discount < 1), irrational stay irrational
+                # but rational may become irrational
+                stability |= STABLE_IRRATIONAL_OUTCOMES
+
+        # AND with inner ufun's stability, but clear STATE_INDEPENDENT
+        # since discounting depends on state (time/step)
+        return (stability & ufun.stability) & ~STATE_INDEPENDENT
 
     def minmax(
         self,
@@ -115,10 +295,9 @@ class ExpDiscountedUFun(DiscountedUtilityFunction):
         Returns:
             Tuple of (minimum utility, maximum utility).
         """
-        # Fix: use self.outcome_space as fallback when outcome_space is None
         if outcome_space is None:
             outcome_space = self.outcome_space
-        return self.ufun.minmax(
+        return self._ufun.minmax(
             outcome_space,
             issues,
             outcomes,
@@ -138,7 +317,7 @@ class ExpDiscountedUFun(DiscountedUtilityFunction):
         """
         return ExpDiscountedUFun(
             outcome_space=self.outcome_space,
-            ufun=self.ufun.shift_by(offset, shift_reserved),
+            ufun=self._ufun.shift_by(offset, shift_reserved),
             discount=self.discount,
             factor=self.factor,
             name=self.name,
@@ -160,11 +339,11 @@ class ExpDiscountedUFun(DiscountedUtilityFunction):
         """
         return ExpDiscountedUFun(
             outcome_space=self.outcome_space,
-            ufun=self.ufun.scale_by(scale, scale_reserved),
+            ufun=self._ufun.scale_by(scale, scale_reserved),
             discount=self.discount,
             factor=self.factor,
             name=self.name,
-            reserved_value=self.reserved_value + scale
+            reserved_value=self.reserved_value * scale
             if scale_reserved
             else self.reserved_value,
             dynamic_reservation=self.dynamic_reservation,
@@ -184,7 +363,6 @@ class ExpDiscountedUFun(DiscountedUtilityFunction):
         d = super().to_dict(python_class_identifier=python_class_identifier)
         return dict(
             **d,
-            ufun=serialize(self.ufun, python_class_identifier=python_class_identifier),
             discount=self.discount,
             factor=self.factor,
             dynamic_reservation=self.dynamic_reservation,
@@ -200,7 +378,10 @@ class ExpDiscountedUFun(DiscountedUtilityFunction):
             d: Dictionary containing serialized utility function data.
             python_class_identifier: Key used to identify the class type.
         """
+        d = d.copy()
         d.pop(python_class_identifier, None)
+        # Remove stability - it's computed from the inner ufun in __init__
+        d.pop("stability", None)
         d["ufun"] = deserialize(
             d["ufun"], python_class_identifier=python_class_identifier
         )
@@ -236,13 +417,6 @@ class ExpDiscountedUFun(DiscountedUtilityFunction):
             **kwargs,
         )
 
-    # @lru_cache(100)
-    # def eval_normalized(self, offer: Outcome | None, above_reserve: bool = True, expected_limits: bool = True) -> Value:
-    #     """
-    #     Caches the top 100 values as the  normalized value for exponentially discounted ufun does not change with time.
-    #     """
-    #     return super().eval_normalized(offer, above_reserve, expected_limits)
-
     def eval_on_state(
         self,
         offer: Outcome,
@@ -251,14 +425,19 @@ class ExpDiscountedUFun(DiscountedUtilityFunction):
     ) -> Value:
         """Evaluates discounted utility for an offer given the current negotiation state.
 
+        Computes: (discount ^ factor) * u_base
+
         Args:
             offer: The outcome to evaluate.
             nmi: Negotiator-mechanism interface (optional).
             state: Current mechanism state used to compute the discount factor.
+
+        Returns:
+            The discounted utility value.
         """
         if offer is None and not self.dynamic_reservation:
             return self.reserved_value
-        u = self.ufun(offer)
+        u = self._ufun(offer)
         if not self.discount or self.discount == 1.0 or state is None:
             return u
         if isinstance(self.factor, str):
@@ -276,11 +455,11 @@ class ExpDiscountedUFun(DiscountedUtilityFunction):
         Returns:
             XML string representation.
         """
-        if not hasattr(self.ufun, "xml"):
+        if not hasattr(self._ufun, "xml"):
             raise ValueError(
-                f"Cannot serialize because my internal ufun of type {self.ufun.type} is not serializable"
+                f"Cannot serialize because my internal ufun of type {self._ufun.type} is not serializable"
             )
-        output = self.ufun.xml(issues)  # type: ignore
+        output = self._ufun.xml(issues)  # type: ignore
         output += "</objective>\n"
         factor = None
         if self.factor is not None:
@@ -295,36 +474,53 @@ class ExpDiscountedUFun(DiscountedUtilityFunction):
     @property
     def base_type(self):
         """Returns the type name of the underlying utility function."""
-        return self.ufun.type
+        return self._ufun.type
 
     @property
     def type(self):
         """Returns the type name with exponential discounting suffix."""
-        return self.ufun.type + "_exponentially_discounted"
-
-    def __getattr__(self, item):
-        """Delegates attribute access to the underlying utility function."""
-        # Prevent infinite recursion during deepcopy/pickle when ufun is not yet set
-        if item == "ufun":
-            raise AttributeError(item)
-        return getattr(self.ufun, item)
+        return self._ufun.type + "_exponentially_discounted"
 
     def __str__(self):
         """Returns a human-readable string representation."""
-        return f"{self.ufun.type}-cost:{self.discount} based on {self.factor}"
+        return f"{self._ufun.type}-discount:{self.discount} based on {self.factor}"
 
 
 class LinDiscountedUFun(DiscountedUtilityFunction):
-    """A utility function with linear discounting based on some factor of the negotiation
+    """A utility function with linear discounting based on negotiation state.
+
+    The discounted utility is computed as: u_discounted = u_base - ((factor * cost) ^ power)
+
+    Where:
+    - cost: The cost per unit of the factor
+    - factor: A value from the mechanism state (e.g., step, time)
+    - power: Exponent applied to the total cost
+    - u_base: The utility from the underlying utility function
+
+    Stability Properties:
+        - Always STATE-DEPENDENT: Clears STATE_INDEPENDENT (depends on state.step/time)
+        - Inherits SESSION_INDEPENDENT from inner ufun (discounting doesn't use NMI)
+        - Always preserves ordering (STABLE_ORDERING) - subtracting same value from all
+        - Always preserves difference ratios (STABLE_DIFF_RATIOS) - constant subtraction
+        - If dynamic_reservation=True: STABLE_RESERVED_VALUE, STABLE_RATIONAL_OUTCOMES,
+          STABLE_IRRATIONAL_OUTCOMES (everything reduces together)
+        - If dynamic_reservation=False: FIXED_RESERVED_VALUE, plus:
+          - If cost < 0: STABLE_RATIONAL_OUTCOMES (utilities increase, rational stays rational)
+          - If cost >= 0: STABLE_IRRATIONAL_OUTCOMES (utilities decrease, irrational stays irrational)
+        - If cost == 0 or None: Inherits full stability from inner ufun (no effective discounting)
+
+    Note on Independence:
+        State independence and session independence are orthogonal. This ufun is
+        state-dependent (uses state.step) but can be session-independent (doesn't
+        use NMI parameters like n_negotiators).
 
     Args:
-
         ufun: The utility function that is being discounted
-        cost: discount factor
-        factor: str -> The name of the AgentMechanismInterface variable based on which discounting operate
-        callable -> must receive a mechanism info object and returns a float representing the factor
-        power: A power to raise the total cost to before discounting it from the utility_function value
-
+        cost: Cost per unit of the factor (subtracted from utility)
+        factor: str -> The name of the MechanismState variable for discounting
+                callable -> receives a MechanismState and returns a float
+        power: Exponent applied to (factor * cost) before subtraction
+        dynamic_reservation: If True, apply discounting to reserved value too
     """
 
     def __init__(
@@ -352,15 +548,73 @@ class LinDiscountedUFun(DiscountedUtilityFunction):
             id: Optional unique identifier.
             **kwargs: Additional arguments passed to parent class.
         """
-        super().__init__(
-            ufun=ufun, name=name, reserved_value=reserved_value, id=id, **kwargs
-        )
         if power is None:
             power = 1.0
+
+        # Compute stability based on cost and dynamic_reservation
+        stability = self._compute_lin_stability(ufun, cost, dynamic_reservation)
+
+        super().__init__(
+            ufun=ufun,
+            name=name,
+            reserved_value=reserved_value,
+            id=id,
+            stability=stability,
+            **kwargs,
+        )
         self.cost = cost
         self.factor = factor
         self.power = power
         self.dynamic_reservation = dynamic_reservation
+
+    @staticmethod
+    def _compute_lin_stability(
+        ufun: BaseUtilityFunction, cost: float | None, dynamic_reservation: bool
+    ) -> Stability:
+        """Compute stability flags for linear discounting.
+
+        Args:
+            ufun: The inner utility function.
+            cost: The cost factor.
+            dynamic_reservation: Whether discounting applies to reserved value.
+
+        Returns:
+            Computed stability flags ANDed with inner ufun's stability.
+        """
+        # Special case: no effective discounting
+        if cost is None or cost == 0.0:
+            return ufun.stability
+
+        # Base stability: preserves ordering and diff ratios
+        stability = STABLE_ORDERING | STABLE_DIFF_RATIOS
+
+        # Inherit session independence from inner ufun
+        if ufun.stability & SESSION_INDEPENDENT:
+            stability |= SESSION_INDEPENDENT
+
+        # Reserved value and rational/irrational stability
+        if dynamic_reservation:
+            # Everything reduces together - rational/irrational status preserved
+            stability |= (
+                STABLE_RESERVED_VALUE
+                | STABLE_RATIONAL_OUTCOMES
+                | STABLE_IRRATIONAL_OUTCOMES
+            )
+        else:
+            # Reserved value is fixed (not discounted)
+            stability |= FIXED_RESERVED_VALUE
+            if cost < 0:
+                # Utilities increase over time (negative cost), rational stays rational
+                # but irrational may become rational
+                stability |= STABLE_RATIONAL_OUTCOMES
+            else:
+                # Utilities decrease over time (positive cost), irrational stay irrational
+                # but rational may become irrational
+                stability |= STABLE_IRRATIONAL_OUTCOMES
+
+        # AND with inner ufun's stability, but clear STATE_INDEPENDENT
+        # since discounting depends on state (time/step)
+        return (stability & ufun.stability) & ~STATE_INDEPENDENT
 
     def to_dict(
         self, python_class_identifier=PYTHON_CLASS_IDENTIFIER
@@ -376,7 +630,6 @@ class LinDiscountedUFun(DiscountedUtilityFunction):
         d = super().to_dict(python_class_identifier=python_class_identifier)
         return dict(
             **d,
-            ufun=serialize(self.ufun, python_class_identifier=python_class_identifier),
             cost=self.cost,
             power=self.power,
             factor=self.factor,
@@ -393,7 +646,10 @@ class LinDiscountedUFun(DiscountedUtilityFunction):
             d: Dictionary containing serialized utility function data.
             python_class_identifier: Key used to identify the class type.
         """
+        d = d.copy()
         d.pop(python_class_identifier, None)
+        # Remove stability - it's computed from the inner ufun in __init__
+        d.pop("stability", None)
         d["ufun"] = deserialize(
             d["ufun"], python_class_identifier=python_class_identifier
         )
@@ -407,14 +663,19 @@ class LinDiscountedUFun(DiscountedUtilityFunction):
     ) -> Value:
         """Evaluates discounted utility for an offer given the current negotiation state.
 
+        Computes: u_base - ((factor * cost) ^ power)
+
         Args:
             offer: The outcome to evaluate.
             nmi: Negotiator-mechanism interface (optional).
             state: Current mechanism state used to compute the discount factor.
+
+        Returns:
+            The discounted utility value.
         """
         if offer is None and not self.dynamic_reservation:
             return self.reserved_value
-        u = self.ufun(offer)
+        u = self._ufun(offer)
         if not self.cost or self.cost == 0.0 or state is None:
             return u
         if isinstance(self.factor, str):
@@ -432,11 +693,11 @@ class LinDiscountedUFun(DiscountedUtilityFunction):
         Returns:
             XML string representation.
         """
-        if not hasattr(self.ufun, "xml"):
+        if not hasattr(self._ufun, "xml"):
             raise ValueError(
-                f"Cannot serialize because my internal ufun of type {self.ufun.type} is not serializable"
+                f"Cannot serialize because my internal ufun of type {self._ufun.type} is not serializable"
             )
-        output = self.ufun.xml(issues)  # type: ignore
+        output = self._ufun.xml(issues)  # type: ignore
         output += "</objective>\n"
         factor = None
         if self.factor is not None:
@@ -454,12 +715,12 @@ class LinDiscountedUFun(DiscountedUtilityFunction):
     @property
     def base_type(self):
         """Returns the type name of the underlying utility function."""
-        return self.ufun.type
+        return self._ufun.type
 
     @property
     def type(self):
         """Returns the type name with linear discounting suffix."""
-        return self.ufun.type + "_linearly_discounted"
+        return self._ufun.type + "_linearly_discounted"
 
     @classmethod
     def random(
@@ -494,16 +755,9 @@ class LinDiscountedUFun(DiscountedUtilityFunction):
             **kwargs,
         )
 
-    def __getattr__(self, item):
-        """Delegates attribute access to the underlying utility function."""
-        # Prevent infinite recursion during deepcopy/pickle when ufun is not yet set
-        if item == "ufun":
-            raise AttributeError(item)
-        return getattr(self.ufun, item)
-
     def __str__(self):
         """Returns a human-readable string representation."""
-        return f"{self.ufun.type}-cost:{self.cost} raised to {self.power} based on {self.factor}"
+        return f"{self._ufun.type}-cost:{self.cost} raised to {self.power} based on {self.factor}"
 
     def minmax(
         self,
@@ -525,10 +779,9 @@ class LinDiscountedUFun(DiscountedUtilityFunction):
         Returns:
             Tuple of (minimum utility, maximum utility).
         """
-        # Fix: use self.outcome_space as fallback when outcome_space is None
         if outcome_space is None:
             outcome_space = self.outcome_space
-        return self.ufun.minmax(
+        return self._ufun.minmax(
             outcome_space,
             issues,
             outcomes,

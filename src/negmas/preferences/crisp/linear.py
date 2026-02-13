@@ -3,7 +3,7 @@
 from __future__ import annotations
 
 import random
-from functools import lru_cache, partial
+from functools import partial
 from typing import Any, Callable, Iterable, Mapping, TYPE_CHECKING
 
 from negmas import warnings
@@ -507,89 +507,93 @@ class AffineUtilityFunction(StationaryMixin, UtilityFunction):
 
         Args:
             outcome_space: The outcome space to search within.
+                If provided (different from ufun's outcome space), caching is skipped.
             issues: Alternative way to specify the search space via issues.
             outcomes: Explicit set of outcomes to search (slower).
             max_cardinality: Maximum samples per issue when enumerating values.
 
         Returns:
             Tuple of (worst_outcome, best_outcome).
+
+        Note:
+            Results are cached based on stability flags. Volatile ufuns skip caching.
         """
-        return self._extreme_outcomes(outcome_space, issues, outcomes, max_cardinality)
-
-    @lru_cache
-    def _extreme_outcomes(
-        self,
-        outcome_space: OutcomeSpace | None = None,
-        issues: list[Issue] | None = None,
-        outcomes: list[Outcome] | None = None,
-        max_cardinality=1000,
-    ) -> tuple[Outcome, Outcome]:
-        """Finds the best and worst outcomes
-
-        Args:
-            ufun: The utility function
-            issues: list of issues (optional)
-            outcomes: A collection of outcomes (optional)
-            max_cardinality: the maximum number of outcomes to try sampling (if sampling is used and outcomes are not
-                            given)
-        Returns:
-            (worst, best) outcomes
-
-        """
-        # The minimum and maximum must be at one of the edges of the outcome space. Just enumerate them
-        original_os = outcome_space
-
         check_one_at_most(outcome_space, issues, outcomes)
-        outcome_space = os_or_none(outcome_space, issues, outcomes)
+        provided_space = os_or_none(outcome_space, issues, outcomes)
+
+        # Determine if we're using the ufun's own outcome space (for caching)
+        use_own_space = provided_space is None or provided_space == self.outcome_space
+
+        # Check base class cache first (only if using own outcome space and caching is allowed)
+        if (
+            use_own_space
+            and self._can_cache_extreme_outcomes()
+            and self._cached_extreme_outcomes is not None
+        ):
+            return self._cached_extreme_outcomes
+
+        # Compute the result using the optimized affine algorithm
+        original_os = outcome_space
+        outcome_space = provided_space
         if outcome_space is None:
             outcome_space = self.outcome_space
 
+        result = None
         if outcome_space is not None:
             if not isinstance(outcome_space, IndependentIssuesOS):
-                return super().extreme_outcomes(
+                result = super().extreme_outcomes(
                     original_os, issues, outcomes, max_cardinality
                 )
-            if outcomes is not None:
+            elif outcomes is not None:
                 warnings.warn(
                     "Passing outcomes and issues (or having known issues) to linear ufuns is redundant. The outcomes passed will be used which is much slower than if you do not pass them",
                     warnings.NegmasSpeedWarning,
                 )
-                return super().extreme_outcomes(
-                    outcome_space=original_os,
-                    issues=issues,
-                    outcomes=outcomes,
-                    max_cardinality=max_cardinality,
+                result = super().extreme_outcomes(
+                    original_os, issues, outcomes, max_cardinality
                 )
-            uranges = []
-            if not self.issues:
-                raise ValueError(
-                    "Cannot find extreme outcomes of a ufun without knowing its outcome-space"
-                )
-            issues = self.issues
-            for issue in issues:
-                mx, mn = float("-inf"), float("inf")
-                for v in issue.value_generator(n=max_cardinality):
-                    if v >= mx:
-                        mx = v
-                    if v < mn:
-                        mn = v
-                uranges.append((mn, mx))
+            else:
+                # Optimized algorithm for affine ufuns
+                # Use the provided outcome_space's issues, not self.issues
+                uranges = []
+                search_issues = outcome_space.issues if outcome_space else self.issues
+                if not search_issues:
+                    raise ValueError(
+                        "Cannot find extreme outcomes of a ufun without knowing its outcome-space"
+                    )
+                for issue in search_issues:
+                    mx, mn = float("-inf"), float("inf")
+                    for v in issue.value_generator(n=max_cardinality):
+                        if v >= mx:
+                            mx = v
+                        if v < mn:
+                            mn = v
+                    uranges.append((mn, mx))
 
-            best_outcome, worst_outcome = [], []
-            for w, urng in zip(self._weights, uranges):
-                if w > 0:
-                    best_outcome.append(urng[1])
-                    worst_outcome.append(urng[0])
-                else:
-                    best_outcome.append(urng[0])
-                    worst_outcome.append(urng[1])
+                best_outcome, worst_outcome = [], []
+                for w, urng in zip(self._weights, uranges):
+                    if w > 0:
+                        best_outcome.append(urng[1])
+                        worst_outcome.append(urng[0])
+                    else:
+                        best_outcome.append(urng[0])
+                        worst_outcome.append(urng[1])
 
-            return tuple(worst_outcome), tuple(best_outcome)
+                result = (tuple(worst_outcome), tuple(best_outcome))
 
-        return super().extreme_outcomes(original_os, issues, outcomes, max_cardinality)
+        if result is None:
+            result = super().extreme_outcomes(
+                original_os, issues, outcomes, max_cardinality
+            )
+
+        # Cache result if using own outcome space and caching is allowed
+        if use_own_space and self._can_cache_extreme_outcomes():
+            self._cached_extreme_outcomes = result
+
+        return result
 
     def __str__(self):
-        """str  ."""
+        """convert to a string"""
         return f"w: {self._weights}, b: {self._bias}"
 
 
@@ -953,89 +957,85 @@ class LinearAdditiveUtilityFunction(  # type: ignore
 
         Args:
             outcome_space: The outcome space to search within.
+                If provided (different from ufun's outcome space), caching is skipped.
             issues: Alternative way to specify the search space via issues.
             outcomes: Explicit set of outcomes to search (slower).
             max_cardinality: Maximum samples per issue when enumerating values.
 
         Returns:
             Tuple of (worst_outcome, best_outcome).
+
+        Note:
+            Results are cached based on stability flags. Volatile ufuns skip caching.
         """
-        return self._extreme_outcomes(outcome_space, issues, outcomes, max_cardinality)
-
-    @lru_cache
-    def _extreme_outcomes(
-        self,
-        outcome_space: OutcomeSpace | None = None,
-        issues: list[Issue] | None = None,
-        outcomes: list[Outcome] | None = None,
-        max_cardinality=1000,
-    ) -> tuple[Outcome, Outcome]:
-        """Finds the best and worst outcomes
-
-        Args:
-            ufun: The utility function
-            issues: list of issues (optional)
-            outcomes: A collection of outcomes (optional)
-            max_cardinality: the maximum number of outcomes to try sampling (if sampling is used and outcomes are not
-                            given)
-        Returns:
-            (worst, best) outcomes
-
-        """
-        # The minimum and maximum must be at one of the edges of the outcome space. Just enumerate them
-        original_os = outcome_space
-
         check_one_at_most(outcome_space, issues, outcomes)
-        outcome_space = os_or_none(outcome_space, issues, outcomes)
+        provided_space = os_or_none(outcome_space, issues, outcomes)
+
+        # Determine if we're using the ufun's own outcome space (for caching)
+        use_own_space = provided_space is None or provided_space == self.outcome_space
+
+        # Check base class cache first (only if using own outcome space and caching is allowed)
+        if (
+            use_own_space
+            and self._can_cache_extreme_outcomes()
+            and self._cached_extreme_outcomes is not None
+        ):
+            return self._cached_extreme_outcomes
+
+        # Compute the result using the optimized linear additive algorithm
+        original_os = outcome_space
+        outcome_space = provided_space
         if outcome_space is None:
             outcome_space = self.outcome_space
+
+        result = None
         if outcome_space is None or not isinstance(
             outcome_space, CartesianOutcomeSpace
         ):
-            return super().extreme_outcomes(
+            result = super().extreme_outcomes(
                 original_os, issues, outcomes, max_cardinality
             )
-        if outcomes is not None:
+        elif outcomes is not None:
             warnings.warn(
                 "Passing outcomes and issues (or having known issues) to linear ufuns is redundant. The outcomes passed will be used which is much slower than if you do not pass them",
                 warnings.NegmasSpeedWarning,
             )
-            return super().extreme_outcomes(
-                original_os,
-                issues,
-                outcomes,
-                max_cardinality,  # type:ignore
+            result = super().extreme_outcomes(
+                original_os, issues, outcomes, max_cardinality
             )
-        uranges, vranges = [], []
-        myissues: list[Issue] = outcome_space.issues  # type: ignore We checked earlier that this is an CartesianOutcomeSpace. It MUST have issues
-        for i, issue in enumerate(myissues):
-            fn = self.values[i]
-            mx, mn = float("-inf"), float("inf")
-            mxv, mnv = None, None
-            for v in issue.value_generator(n=max_cardinality):
-                uval = fn(v)
-                if uval >= mx:
-                    mx, mxv = uval, v
-                if uval < mn:
-                    mn, mnv = uval, v
-            vranges.append((mnv, mxv))
-            uranges.append((mn, mx))
+        else:
+            # Optimized algorithm for linear additive ufuns
+            uranges, vranges = [], []
+            myissues: list[Issue] = outcome_space.issues  # type: ignore
+            for i, issue in enumerate(myissues):
+                fn = self.values[i]
+                mx, mn = float("-inf"), float("inf")
+                mxv, mnv = None, None
+                for v in issue.value_generator(n=max_cardinality):
+                    uval = fn(v)
+                    if uval >= mx:
+                        mx, mxv = uval, v
+                    if uval < mn:
+                        mn, mnv = uval, v
+                vranges.append((mnv, mxv))
+                uranges.append((mn, mx))
 
-        best_outcome, worst_outcome = [], []
-        best_util, worst_util = 0.0, 0.0
-        for w, urng, vrng in zip(self.weights, uranges, vranges):
-            if w > 0:
-                best_util += w * urng[1]
-                best_outcome.append(vrng[1])
-                worst_util += w * urng[0]
-                worst_outcome.append(vrng[0])
-            else:
-                best_util += w * urng[0]
-                best_outcome.append(vrng[0])
-                worst_util += w * urng[1]
-                worst_outcome.append(vrng[1])
+            best_outcome, worst_outcome = [], []
+            for w, urng, vrng in zip(self.weights, uranges, vranges):
+                if w > 0:
+                    best_outcome.append(vrng[1])
+                    worst_outcome.append(vrng[0])
+                else:
+                    best_outcome.append(vrng[0])
+                    worst_outcome.append(vrng[1])
 
-        return tuple(worst_outcome), tuple(best_outcome)
+            result = (tuple(worst_outcome), tuple(best_outcome))
+
+        # Cache result if using own outcome space and caching is allowed
+        if use_own_space and self._can_cache_extreme_outcomes():
+            self._cached_extreme_outcomes = result
+
+        return result
 
     @classmethod
     def random(

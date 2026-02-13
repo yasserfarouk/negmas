@@ -6,6 +6,66 @@ Release 0.15.1
 
 **New Features:**
 
+* [feature] Add stability criteria system for utility functions with fine-grained caching:
+
+  - New ``Stability`` IntFlag enum in ``negmas.preferences.stability`` with flags:
+
+    - ``VOLATILE`` (0): No stability guarantees (session/state dependent)
+    - ``STATIONARY``: Fully stable (all flags set)
+    - Individual flags: ``STABLE_MIN``, ``STABLE_MAX``, ``STABLE_ORDERING``, ``STABLE_DIFF_RATIOS``,
+      ``SESSION_INDEPENDENT``, ``STATE_INDEPENDENT``, ``STABLE_RESERVED_VALUE``, ``FIXED_RESERVED_VALUE``,
+      ``STABLE_RATIONAL_OUTCOMES``, ``STABLE_IRRATIONAL_OUTCOMES``
+    - Compound flags: ``STABLE_SCALE`` (min + max + reserved), ``STABLE_OUTCOMES`` (rational + irrational)
+
+  - ``Preferences`` base class now has:
+
+    - ``stability`` property (getter/setter) accepting ``Stability | int``
+    - Convenience properties: ``has_stable_min``, ``has_stable_max``, ``has_stable_ordering``, etc.
+    - Methods: ``is_volatile()``, ``is_stationary()``, ``is_session_dependent()``, ``is_state_dependent()``
+
+  - Stability-dependent caching for expensive computations:
+
+    - ``extreme_outcomes()`` cached if: ``STABLE_ORDERING`` or ``STABLE_DIFF_RATIOS`` flag set
+    - ``minmax()`` cached if: both ``STABLE_MIN`` and ``STABLE_MAX`` flags set
+    - Stationary ufuns always cache; volatile ufuns never cache
+    - Caching skipped when a different ``outcome_space`` parameter is provided
+    - New ``clear_caches()`` method to manually clear cached values
+
+  - ``StationaryMixin`` sets ``stability=STATIONARY``; ``VolatileUFunMixin`` sets ``stability=VOLATILE``
+  - Discounted utility functions (``ExpDiscountedUFun``, ``LinDiscountedUFun``) preserve ordering and diff ratios
+    (they are state-dependent but NOT volatile - discounting is a monotonic transformation)
+  - ``Scenario.stability`` property returns bitwise AND of all ufun stabilities
+
+* [feature] Add ``UtilityFunctionAdapter`` and ``UFunConstraint`` adapter classes:
+
+  - ``UtilityFunctionAdapter``: Base class for ufuns that wrap another ufun
+
+    - Automatically inherits stability (ANDed), outcome_space, and reserved_value from inner ufun
+    - Provides ``to_stationary()``, ``to_dict()``, ``from_dict()`` methods
+
+  - ``UFunConstraint``: Wraps a ufun and applies a constraint predicate
+
+    - Returns ``-inf`` for outcomes that violate the constraint
+    - Preserves ``STABLE_ORDERING``, ``STABLE_DIFF_RATIOS``, ``STABLE_RATIONAL_OUTCOMES``, ``STABLE_IRRATIONAL_OUTCOMES``
+    - Useful for budget constraints, capacity limits, feasibility requirements
+
+* [feature] Composite utility functions now properly compute stability:
+
+  - ``WeightedUtilityFunction``: ANDs stability of all components, preserves ordering/diff ratios (linear)
+  - ``ComplexNonlinearUtilityFunction``: ANDs stability but clears ordering/diff ratios (arbitrary function)
+  - ``ProbAdapter`` and ``CrispAdapter``: Properly inherit stability from wrapped ufun
+
+* [feature] Add ``outcome_space`` and ``best_for()`` to ``ExtendedOutcome`` for multi-offer support:
+
+  - ``ExtendedOutcome`` now supports offering multiple outcomes via ``outcome_space`` attribute
+  - When only ``outcome`` is set: represents a single offer
+  - When only ``outcome_space`` is set: represents multiple acceptable offers
+  - When both are set: ``outcome`` is the preferred offer, ``outcome_space`` contains all acceptable offers
+  - New ``best_for(ufun)`` method returns the best outcome for a given utility function:
+
+    - If ``outcome_space`` is None: returns the ``outcome``
+    - If ``outcome_space`` is set: returns ``ufun.best(outcome_space)``
+
 * [feature] Add ``SingletonOutcomeSpace`` and ``SingletonIssue`` for representing single outcomes:
 
   - ``SingletonIssue``: A ``DiscreteIssue`` subclass representing an issue with a single fixed value
@@ -73,6 +133,46 @@ Release 0.15.1
   - ``GBComponent`` base class includes new callback methods for BOA-style components
   - Enables scenarios like multi-party negotiations where participants can exit gracefully
 
+* [feature] Add ``allow_none_with_data`` parameter to ``SAOMechanism`` for information-only messages:
+
+  - New ``allow_none_with_data`` parameter (default ``True``) allows negotiators to send ``None`` offers
+    with associated data (e.g., text messages, signaling information)
+  - When enabled, ``None`` offers are allowed if any data is attached to the response
+  - Accepting a ``None`` offer ends the negotiation with no agreement (graceful exit)
+  - Useful for:
+
+    - Sending information-only messages during negotiation
+    - Signaling intent without committing to an offer
+    - Graceful negotiation termination without explicit ``END_NEGOTIATION``
+
+  - ``GeniusNegotiator`` handles ``None`` offers with configurable response behavior:
+
+    - New ``none_offer_response`` parameter: ``"latest"`` (default) or ``"best"``
+    - ``"latest"``: Responds with the negotiator's last offer (if available)
+    - ``"best"``: Queries the Java agent for a new proposal
+    - Falls back to ``"best"`` if no previous offer exists
+
+  - New ``on_none_offer(state, source)`` method in ``GeniusNegotiator``:
+
+    - Override this method in subclasses to customize ``None`` offer handling
+    - Returns ``SAOResponse`` with the action and offer to respond with
+    - Enables custom strategies like random offers, conditional responses, etc.
+
+* [experimental] Support for negotiators joining multiple sequential negotiations:
+
+  - Negotiators can now be reused across multiple negotiations sequentially
+  - Owner lifecycle properly managed: owner is set when entering negotiation, cleared when exiting
+  - New ``PreferencesChangeType`` values for lifecycle tracking:
+
+    - ``Initialization``: Sent at the start of each negotiation (before ``on_negotiation_start``)
+    - ``Dissociated``: Sent when negotiation ends and owner is cleared
+
+  - Callback order guarantee: ``on_preferences_changed([Initialization])`` is always called
+    before ``on_negotiation_start()`` for consistent initialization
+  - After negotiation ends, ``_nmi`` is cleared allowing the negotiator to join another mechanism
+  - **Important**: ``ufun.owner`` is only valid during an active negotiation; it is ``None``
+    before negotiation starts and after it ends
+
 **Bug Fixes:**
 
 * [bugfix] Fix ``ModularNegotiator`` not delegating ``before_death()`` and ``cancel()`` callbacks to components
@@ -80,6 +180,17 @@ Release 0.15.1
 * [bugfix] Fix plot figures not auto-sizing to fill available space
 * [bugfix] Fix ``GeniusOpponentModel`` not initializing ``BaseUtilityFunction`` attributes properly
 * [bugfix] Fix tournament file extension bug causing ``combine()`` to fail
+
+**Improvements:**
+
+* [improvement] Negotiators now use ``ExtendedOutcome.best_for(ufun)`` instead of ``.outcome``:
+
+  - When processing ``ExtendedOutcome`` offers, negotiators now select the best outcome
+    for their utility function using ``best_for(self.ufun)`` instead of just ``.outcome``
+  - This enables proper handling of multi-offer scenarios where ``ExtendedOutcome``
+    contains an ``outcome_space`` with multiple acceptable outcomes
+  - Affects: Genius acceptance policies, TAU adapters, SAO negotiators, GB offering components
+  - Falls back to ``.outcome`` when ``ufun`` is not available
 
 **Documentation:**
 

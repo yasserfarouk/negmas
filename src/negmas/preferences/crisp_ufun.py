@@ -12,6 +12,7 @@ import numpy as np
 from negmas import warnings
 from negmas.helpers.prob import Distribution, ScipyDistribution
 from negmas.outcomes import Issue, Outcome
+from negmas.outcomes.common import check_one_at_most, os_or_none
 from negmas.outcomes.protocols import OutcomeSpace
 
 from .base_ufun import BaseUtilityFunction, _ExtremelyDynamic
@@ -213,6 +214,7 @@ class UtilityFunction(_ExtremelyDynamic, BaseUtilityFunction):
 
         Args:
             self: The utility function
+            outcome_space: The outcome space to search. If None, uses the ufun's outcome space.
             issues: List of issues (optional)
             outcomes: A collection of outcomes (optional)
             max_cardinality: the maximum number of outcomes to try sampling (if sampling is used and outcomes are not given)
@@ -221,7 +223,28 @@ class UtilityFunction(_ExtremelyDynamic, BaseUtilityFunction):
         Returns:
             (lowest, highest) utilities in that order
 
+        Note:
+            Results are cached based on stability flags (only when above_reserve=False):
+            - Stationary ufuns always cache results
+            - Volatile ufuns never cache results
+            - Ufuns with both STABLE_MIN and STABLE_MAX cache results
+            - If outcome_space/issues/outcomes are provided (different from ufun's), caching is skipped
         """
+        check_one_at_most(outcome_space, issues, outcomes)
+        provided_space = os_or_none(outcome_space, issues, outcomes)
+
+        # Determine if we're using the ufun's own outcome space (for caching)
+        use_own_space = provided_space is None or provided_space == self.outcome_space
+
+        # Check cache first (only if using own outcome space, not above_reserve, and caching is allowed)
+        if (
+            use_own_space
+            and not above_reserve
+            and self._can_cache_minmax()
+            and self._cached_minmax is not None
+        ):
+            return self._cached_minmax
+
         (worst, best) = self.extreme_outcomes(
             outcome_space,
             tuple(issues) if issues else issues,
@@ -229,6 +252,11 @@ class UtilityFunction(_ExtremelyDynamic, BaseUtilityFunction):
             max_cardinality,
         )
         w, b = self(worst), self(best)
+
+        # Cache the raw minmax result (before above_reserve adjustment)
+        if use_own_space and self._can_cache_minmax() and self._cached_minmax is None:
+            self._cached_minmax = (w, b)
+
         if above_reserve:
             r = self.reserved_value
             if r is None:
@@ -308,12 +336,33 @@ class UtilityFunction(_ExtremelyDynamic, BaseUtilityFunction):
 
 class CrispAdapter(UtilityFunction):
     """
-    Adapts any utility function to act as a crisp utility function (i.e. returning a real number)
+    Adapts any utility function to act as a crisp utility function (i.e. returning a real number).
+
+    This adapter wraps a utility function (typically probabilistic) and ensures its output
+    is always a float. It properly inherits stability from the wrapped utility function.
+
+    Attributes:
+        prob: The wrapped utility function (typically probabilistic).
     """
 
     def __init__(self, prob: BaseUtilityFunction):
-        """Initializes the instance."""
+        """Initialize the adapter with a wrapped utility function.
+
+        Args:
+            prob: The utility function to wrap.
+        """
+        # Initialize with the wrapped ufun's properties
+        super().__init__(
+            outcome_space=prob.outcome_space,
+            reserved_value=prob.reserved_value,
+            stability=prob.stability,
+        )
         self._prob = prob
+
+    @property
+    def prob(self) -> BaseUtilityFunction:
+        """The wrapped utility function."""
+        return self._prob
 
     def eval(self, offer):
         """Evaluate utility by converting probabilistic utility to crisp float value.

@@ -22,6 +22,7 @@ Notes:
 """
 
 from __future__ import annotations
+from .stability import *
 from .base import *
 from .mixins import *
 from .protocols import *
@@ -36,9 +37,11 @@ from .prob import *
 from .ops import *
 from .complex import *
 from .value_fun import *
+from .adapters import *
 
 __all__ = (
-    base.__all__
+    stability.__all__
+    + base.__all__
     + mixins.__all__
     + protocols.__all__
     + preferences.__all__
@@ -52,4 +55,5 @@ __all__ = (
     + ops.__all__
     + complex.__all__
     + value_fun.__all__
+    + adapters.__all__
 )

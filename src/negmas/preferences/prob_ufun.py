@@ -268,12 +268,33 @@ class ProbUtilityFunction(_ExtremelyDynamic, BaseUtilityFunction):
 
 class ProbAdapter(ProbUtilityFunction):
     """
-    Adapts any utility function to act as a probabilistic utility function (i.e. returning a `Distribution` )
+    Adapts any utility function to act as a probabilistic utility function (i.e. returning a `Distribution`).
+
+    This adapter wraps a utility function and ensures its output is always a Distribution.
+    It properly inherits stability from the wrapped utility function.
+
+    Attributes:
+        ufun: The wrapped utility function.
     """
 
     def __init__(self, ufun: BaseUtilityFunction):
-        """Initializes the instance."""
+        """Initialize the adapter with a wrapped utility function.
+
+        Args:
+            ufun: The utility function to wrap.
+        """
+        # Initialize with the wrapped ufun's properties
+        super().__init__(
+            outcome_space=ufun.outcome_space,
+            reserved_value=ufun.reserved_value,
+            stability=ufun.stability,
+        )
         self._ufun = ufun
+
+    @property
+    def ufun(self) -> BaseUtilityFunction:
+        """The wrapped utility function."""
+        return self._ufun
 
     def eval(self, offer: Outcome) -> Distribution:
         """Eval.

@@ -2,6 +2,7 @@
 
 from __future__ import annotations
 
+import functools
 import random
 from typing import Any, Callable, Iterable
 
@@ -13,50 +14,54 @@ from negmas.serialization import PYTHON_CLASS_IDENTIFIER, deserialize, serialize
 from .base import Value
 from .base_ufun import BaseUtilityFunction
 from .crisp.linear import LinearAdditiveUtilityFunction
+from .stability import STABLE_DIFF_RATIOS, STABLE_ORDERING, STATIONARY, Stability
 
 __all__ = ["WeightedUtilityFunction", "ComplexNonlinearUtilityFunction"]
 
 
-class _DependenceMixin:
-    """Used to set dependence properties based on the object's `values` ."""
+def _and_stability(ufuns: Iterable[BaseUtilityFunction]) -> Stability:
+    """Compute combined stability by ANDing stability of all ufuns.
 
-    def is_session_dependent(self):  # type: ignore
-        """Check if session dependent."""
-        return any(_.is_session_dependent() for _ in self.values)  # type: ignore
+    When combining utility functions, the combined stability can only be
+    as strong as the weakest link. For example, if one ufun has volatile
+    ordering, the combined ufun also has volatile ordering.
 
-    def is_stationary(self) -> bool:  # type: ignore
-        """Check if stationary.
+    Args:
+        ufuns: Iterable of utility functions to combine.
 
-        Returns:
-            bool: The result.
-        """
-        return any(_.is_stationary() for _ in self.values)  # type: ignore
-
-    def is_volatile(self) -> bool:  # type: ignore
-        """Check if volatile.
-
-        Returns:
-            bool: The result.
-        """
-        return any(_.is_volatile() for _ in self.values)  # type: ignore
-
-    def is_state_dependent(self) -> bool:  # type: ignore
-        """Check if state dependent.
-
-        Returns:
-            bool: The result.
-        """
-        return any(_.is_state_dependent() for _ in self.values)  # type: ignore
+    Returns:
+        Combined stability flags (intersection of all stability flags).
+    """
+    return functools.reduce(lambda a, b: Stability(a & b.stability), ufuns, STATIONARY)
 
 
-class WeightedUtilityFunction(_DependenceMixin, BaseUtilityFunction):
-    """A utility function composed of linear aggregation of other utility functions
+class WeightedUtilityFunction(BaseUtilityFunction):
+    """A utility function composed of linear aggregation of other utility functions.
+
+    This combines multiple utility functions using weighted sum:
+        u(o) = sum(w_i * u_i(o))
+
+    where w_i are the weights and u_i are the component utility functions.
+
+    Stability Properties:
+        - Inherits stability by ANDing all component ufuns' stability
+        - Additionally preserves STABLE_ORDERING and STABLE_DIFF_RATIOS
+          (weighted sum preserves relative ordering and ratios)
 
     Args:
         ufuns: An iterable of utility functions
         weights: Weights used for combination. If not given all weights are assumed to equal 1.
         name: Utility function name
 
+    Example:
+        >>> from negmas.preferences import LinearUtilityFunction
+        >>> from negmas.outcomes import make_issue
+        >>> issues = [make_issue(5)]
+        >>> u1 = LinearUtilityFunction(weights=[1.0], issues=issues)
+        >>> u2 = LinearUtilityFunction(weights=[0.5], issues=issues)
+        >>> combined = WeightedUtilityFunction(ufuns=[u1, u2], weights=[0.6, 0.4])
+        >>> combined.is_stationary()
+        True
     """
 
     def __init__(
@@ -72,11 +77,23 @@ class WeightedUtilityFunction(_DependenceMixin, BaseUtilityFunction):
             weights: Coefficients for the weighted sum (defaults to equal weights if not provided).
             **kwargs: Additional keyword arguments passed to the base class.
         """
-        super().__init__(**kwargs)
         self.values: list[BaseUtilityFunction] = list(ufuns)
         if weights is None:
             weights = [1.0] * len(self.values)
         self.weights = list(weights)
+
+        # Compute stability: AND of all component ufuns + linear preserves ordering/diff_ratios
+        combined_stability = _and_stability(self.values)
+        # Linear aggregation preserves ordering and diff ratios
+        combined_stability |= STABLE_ORDERING | STABLE_DIFF_RATIOS
+        # But we can only claim these if ALL components have them
+        combined_stability &= _and_stability(self.values)
+
+        # Allow user to override if needed, otherwise use computed
+        if "stability" not in kwargs:
+            kwargs["stability"] = combined_stability
+
+        super().__init__(**kwargs)
 
     def to_stationary(self):
         """Returns a stationary version with all component utility functions converted to stationary."""
@@ -180,14 +197,47 @@ class WeightedUtilityFunction(_DependenceMixin, BaseUtilityFunction):
         return cls(**d)
 
 
-class ComplexNonlinearUtilityFunction(_DependenceMixin, BaseUtilityFunction):
-    """A utility function composed of nonlinear aggregation of other utility functions
+class ComplexNonlinearUtilityFunction(BaseUtilityFunction):
+    """A utility function composed of nonlinear aggregation of other utility functions.
+
+    This combines multiple utility functions using an arbitrary combination function:
+        u(o) = f(u_1(o), u_2(o), ..., u_n(o))
+
+    where f is the combination_function.
+
+    Stability Properties:
+        - Inherits stability by ANDing all component ufuns' stability
+        - Does NOT assume STABLE_ORDERING or STABLE_DIFF_RATIOS since the
+          combination function is arbitrary (could be non-monotonic)
+        - If you know your combination function preserves these properties,
+          you can explicitly pass them via the `stability` parameter
 
     Args:
         ufuns: An iterable of utility functions
         combination_function: The function used to combine results of ufuns
         name: Utility function name
 
+    Example:
+        >>> from negmas.preferences import LinearUtilityFunction, STATIONARY
+        >>> from negmas.preferences.stability import STABLE_ORDERING, STABLE_DIFF_RATIOS
+        >>> from negmas.outcomes import make_issue
+        >>> issues = [make_issue(5)]
+        >>> u1 = LinearUtilityFunction(weights=[1.0], issues=issues)
+        >>> u2 = LinearUtilityFunction(weights=[0.5], issues=issues)
+        >>> # Product combination - by default does not assume ordering preservation
+        >>> combined = ComplexNonlinearUtilityFunction(
+        ...     ufuns=[u1, u2], combination_function=lambda vals: vals[0] * vals[1]
+        ... )
+        >>> combined.is_stationary()  # False because ordering not guaranteed
+        False
+        >>> # If you know your function preserves ordering, specify it explicitly:
+        >>> combined_explicit = ComplexNonlinearUtilityFunction(
+        ...     ufuns=[u1, u2],
+        ...     combination_function=lambda vals: vals[0] * vals[1],
+        ...     stability=STATIONARY,
+        ... )
+        >>> combined_explicit.is_stationary()
+        True
     """
 
     def __init__(
@@ -203,9 +253,21 @@ class ComplexNonlinearUtilityFunction(_DependenceMixin, BaseUtilityFunction):
             combination_function: Function that takes an iterable of utility values and returns the combined utility.
             **kwargs: Additional keyword arguments passed to the base class.
         """
-        super().__init__(**kwargs)
         self.ufuns = list(ufuns)
         self.combination_function = combination_function
+
+        # Compute stability: AND of all component ufuns
+        # We do NOT add STABLE_ORDERING or STABLE_DIFF_RATIOS since the
+        # combination function is arbitrary (could reverse ordering, etc.)
+        combined_stability = _and_stability(self.ufuns)
+        # Clear STABLE_ORDERING and STABLE_DIFF_RATIOS unless explicitly provided
+        if "stability" not in kwargs:
+            combined_stability = Stability(
+                combined_stability & ~STABLE_ORDERING & ~STABLE_DIFF_RATIOS
+            )
+            kwargs["stability"] = combined_stability
+
+        super().__init__(**kwargs)
 
     def to_stationary(self):
         """Returns a stationary version with all component utility functions converted to stationary."""
