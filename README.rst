@@ -489,7 +489,7 @@ Selected papers (see `full list <https://negmas.readthedocs.io/en/latest/publica
 
 **Negotiation Strategies**
 
-- Sengupta et al. (2021). `RL-Based Negotiating Agent Framework <https://arxiv.org/abs/2102.03588>`_. arXiv. *Cited by 48*
+- Sengupta et al. (2021). `RL-Based Negotiating Agent Framework <https://arxiv.org/abs/2102.03588>`_. IJCAI *Cited by 48*
 - Higa et al. (2023). `Reward-based Negotiating Agent Strategies <https://ojs.aaai.org/index.php/AAAI/article/view/26831>`_. AAAI. *Cited by 16*
 
 **Applications**
