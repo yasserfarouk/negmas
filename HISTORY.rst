@@ -4,6 +4,20 @@ History
 Release 0.15.1
 --------------
 
+**Security Updates:**
+
+* [security] Update cryptography from 46.0.3 to 46.0.5 (fixes CVE-2026-26007)
+* [security] Update pillow from 12.1.0 to 12.1.1 (fixes OOB Write vulnerability)
+* [security] Update nbconvert from 7.16.6 to 7.17.0 (fixes CVE-2025-53000)
+
+**Bug Fixes:**
+
+* [fix] Remove contradictory assertion in ``test_agentk_perceives_time`` that expected ``relative_time`` to be ``None`` at the last negotiation step
+
+**CI/CD Improvements:**
+
+* [ci] Add GitHub Actions concurrency control to cancel running workflows when a new push is made to the same branch (PRs continue running)
+
 **New Features:**
 
 * [feature] Add stability criteria system for utility functions with fine-grained caching:
