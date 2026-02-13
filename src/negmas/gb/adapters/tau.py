@@ -71,7 +71,7 @@ class UtilityAdapter:
     ) -> Outcome | ExtendedOutcome | None:
         """Transforms an outcome to match TAU rules by selecting the nearest unproposed outcome."""
         if isinstance(outcome, ExtendedOutcome):
-            outcome = outcome.outcome
+            outcome = outcome.best_for(self.ufun) if self.ufun else outcome.outcome
         if outcome is None:
             return outcome
         self.n_offers += 1
@@ -390,7 +390,7 @@ class TAUNegotiatorAdapter(GBNegotiator):
         else:
             my_offer = self.adapter(base_response.outcome)
         if isinstance(my_offer, ExtendedOutcome):
-            my_offer = my_offer.outcome
+            my_offer = my_offer.best_for(self.ufun) if self.ufun else my_offer.outcome
         return SAOResponse(my_response, my_offer)
 
     def propose(

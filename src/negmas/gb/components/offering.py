@@ -852,7 +852,11 @@ class NegotiatorOfferingPolicy(OfferingPolicy):
         """Delegates offer generation to the wrapped proposer negotiator."""
         r = self.proposer.propose(state)
         if isinstance(r, ExtendedOutcome):
-            return r.outcome
+            return (
+                r.best_for(self.negotiator.ufun)
+                if self.negotiator and self.negotiator.ufun
+                else r.outcome
+            )
         return r
 
 

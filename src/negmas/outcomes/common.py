@@ -27,6 +27,7 @@ __all__ = [
 
 if TYPE_CHECKING:
     from negmas.outcomes import OutcomeSpace
+    from negmas.preferences import BaseUtilityFunction
 
 Outcome = tuple
 """An outcome is a tuple of issue values."""
@@ -40,7 +41,8 @@ class ExtendedOutcome:
     proposed outcome, such as text explanations, reasoning, or metadata.
 
     Attributes:
-        outcome: The actual outcome tuple representing the proposed offer.
+        outcome: The actual outcome tuple representing the proposed offer (if outcome_space is also specified, this is interpreted as preferred offer).
+        outcome_space: An outcome space representing all proposed offers (if more than one).
         data: Optional dictionary of additional data. Can contain:
             - "text": A text message explaining the offer or providing context.
             - Any other key-value pairs for custom metadata.
@@ -63,7 +65,18 @@ class ExtendedOutcome:
     """
 
     outcome: Outcome | None
+    outcome_space: OutcomeSpace | None = None
     data: dict[str, Any] | None = None
+
+    def best_for(self, ufun: "BaseUtilityFunction") -> Outcome | None:
+        """Returns the best outcome for the given utility function from the offer.
+
+        Args:
+            ufun: The utility function to evaluate outcomes.
+        """
+        if self.outcome_space is None:
+            return self.outcome
+        return ufun.best(self.outcome_space)
 
 
 def extract_outcome(outcome: Outcome | ExtendedOutcome | None) -> Outcome | None:

@@ -211,7 +211,10 @@ class SAOPRNegotiator(GBNegotiator[SAONMI, SAOState]):
                 return ResponseType.REJECT_OFFER
         # accept only if I know what I would have proposed at this state (or the previous one) and it was worse than what I am about to proposed
         if self.preferences.is_not_worse(
-            offer, myoffer.outcome if isinstance(myoffer, ExtendedOutcome) else myoffer
+            offer,
+            myoffer.best_for(self.ufun)
+            if isinstance(myoffer, ExtendedOutcome) and self.ufun
+            else (myoffer.outcome if isinstance(myoffer, ExtendedOutcome) else myoffer),
         ):
             return ResponseType.ACCEPT_OFFER
         return ResponseType.REJECT_OFFER

@@ -143,7 +143,11 @@ class GACNext(GeniusAcceptancePolicy):
         from negmas.outcomes.common import ExtendedOutcome
 
         if isinstance(my_next_offer, ExtendedOutcome):
-            actual_offer = my_next_offer.outcome
+            actual_offer = (
+                my_next_offer.best_for(self.negotiator.ufun)
+                if self.negotiator.ufun
+                else my_next_offer.outcome
+            )
         else:
             actual_offer = my_next_offer
 
@@ -427,7 +431,11 @@ class GACCombi(GeniusAcceptancePolicy):
         from negmas.outcomes.common import ExtendedOutcome
 
         if isinstance(my_next_offer, ExtendedOutcome):
-            actual_offer = my_next_offer.outcome
+            actual_offer = (
+                my_next_offer.best_for(self.negotiator.ufun)
+                if self.negotiator.ufun
+                else my_next_offer.outcome
+            )
         else:
             actual_offer = my_next_offer
 
@@ -491,7 +499,11 @@ class GACCombiMaxInWindow(GeniusAcceptancePolicy):
             from negmas.outcomes.common import ExtendedOutcome
 
             if isinstance(my_next_offer, ExtendedOutcome):
-                actual_offer = my_next_offer.outcome
+                actual_offer = (
+                    my_next_offer.best_for(self.negotiator.ufun)
+                    if self.negotiator.ufun
+                    else my_next_offer.outcome
+                )
             else:
                 actual_offer = my_next_offer
             my_next_util = float(self.negotiator.ufun(actual_offer))
@@ -695,7 +707,11 @@ class GACCombiAvg(GeniusAcceptancePolicy):
             from negmas.outcomes.common import ExtendedOutcome
 
             if isinstance(my_next_offer, ExtendedOutcome):
-                actual_offer = my_next_offer.outcome
+                actual_offer = (
+                    my_next_offer.best_for(self.negotiator.ufun)
+                    if self.negotiator.ufun
+                    else my_next_offer.outcome
+                )
             else:
                 actual_offer = my_next_offer
             my_next_util = float(self.negotiator.ufun(actual_offer))
@@ -779,7 +795,11 @@ class GACCombiBestAvg(GeniusAcceptancePolicy):
             from negmas.outcomes.common import ExtendedOutcome
 
             if isinstance(my_next_offer, ExtendedOutcome):
-                actual_offer = my_next_offer.outcome
+                actual_offer = (
+                    my_next_offer.best_for(self.negotiator.ufun)
+                    if self.negotiator.ufun
+                    else my_next_offer.outcome
+                )
             else:
                 actual_offer = my_next_offer
             my_next_util = float(self.negotiator.ufun(actual_offer))
@@ -868,7 +888,11 @@ class GACCombiMax(GeniusAcceptancePolicy):
             from negmas.outcomes.common import ExtendedOutcome
 
             if isinstance(my_next_offer, ExtendedOutcome):
-                actual_offer = my_next_offer.outcome
+                actual_offer = (
+                    my_next_offer.best_for(self.negotiator.ufun)
+                    if self.negotiator.ufun
+                    else my_next_offer.outcome
+                )
             else:
                 actual_offer = my_next_offer
             my_next_util = float(self.negotiator.ufun(actual_offer))
@@ -949,7 +973,11 @@ class GACCombiV2(GeniusAcceptancePolicy):
         from negmas.outcomes.common import ExtendedOutcome
 
         if isinstance(my_next_offer, ExtendedOutcome):
-            actual_offer = my_next_offer.outcome
+            actual_offer = (
+                my_next_offer.best_for(self.negotiator.ufun)
+                if self.negotiator.ufun
+                else my_next_offer.outcome
+            )
         else:
             actual_offer = my_next_offer
 
@@ -1014,7 +1042,11 @@ class GACCombiV3(GeniusAcceptancePolicy):
         from negmas.outcomes.common import ExtendedOutcome
 
         if isinstance(my_next_offer, ExtendedOutcome):
-            actual_offer = my_next_offer.outcome
+            actual_offer = (
+                my_next_offer.best_for(self.negotiator.ufun)
+                if self.negotiator.ufun
+                else my_next_offer.outcome
+            )
         else:
             actual_offer = my_next_offer
 
@@ -1084,7 +1116,11 @@ class GACCombiV4(GeniusAcceptancePolicy):
             from negmas.outcomes.common import ExtendedOutcome
 
             if isinstance(my_next_offer, ExtendedOutcome):
-                actual_offer = my_next_offer.outcome
+                actual_offer = (
+                    my_next_offer.best_for(self.negotiator.ufun)
+                    if self.negotiator.ufun
+                    else my_next_offer.outcome
+                )
             else:
                 actual_offer = my_next_offer
             my_next_util = float(self.negotiator.ufun(actual_offer))
@@ -1170,7 +1206,11 @@ class GACCombiBestAvgDiscounted(GeniusAcceptancePolicy):
             from negmas.outcomes.common import ExtendedOutcome
 
             if isinstance(my_next_offer, ExtendedOutcome):
-                actual_offer = my_next_offer.outcome
+                actual_offer = (
+                    my_next_offer.best_for(self.negotiator.ufun)
+                    if self.negotiator.ufun
+                    else my_next_offer.outcome
+                )
             else:
                 actual_offer = my_next_offer
             my_next_util = float(self.negotiator.ufun(actual_offer)) * discount
@@ -1260,7 +1300,11 @@ class GACCombiMaxInWindowDiscounted(GeniusAcceptancePolicy):
             from negmas.outcomes.common import ExtendedOutcome
 
             if isinstance(my_next_offer, ExtendedOutcome):
-                actual_offer = my_next_offer.outcome
+                actual_offer = (
+                    my_next_offer.best_for(self.negotiator.ufun)
+                    if self.negotiator.ufun
+                    else my_next_offer.outcome
+                )
             else:
                 actual_offer = my_next_offer
             my_next_util = float(self.negotiator.ufun(actual_offer)) * discount
@@ -1346,7 +1390,11 @@ class GACCombiProb(GeniusAcceptancePolicy):
             from negmas.outcomes.common import ExtendedOutcome
 
             if isinstance(my_next_offer, ExtendedOutcome):
-                actual_offer = my_next_offer.outcome
+                actual_offer = (
+                    my_next_offer.best_for(self.negotiator.ufun)
+                    if self.negotiator.ufun
+                    else my_next_offer.outcome
+                )
             else:
                 actual_offer = my_next_offer
             my_next_util = float(self.negotiator.ufun(actual_offer))
@@ -1437,7 +1485,11 @@ class GACCombiProbDiscounted(GeniusAcceptancePolicy):
             from negmas.outcomes.common import ExtendedOutcome
 
             if isinstance(my_next_offer, ExtendedOutcome):
-                actual_offer = my_next_offer.outcome
+                actual_offer = (
+                    my_next_offer.best_for(self.negotiator.ufun)
+                    if self.negotiator.ufun
+                    else my_next_offer.outcome
+                )
             else:
                 actual_offer = my_next_offer
             my_next_util = float(self.negotiator.ufun(actual_offer)) * discount
@@ -1643,7 +1695,11 @@ class GACAgentFSEGA(GeniusAcceptancePolicy):
             from negmas.outcomes.common import ExtendedOutcome
 
             if isinstance(my_next_offer, ExtendedOutcome):
-                actual = my_next_offer.outcome
+                actual = (
+                    my_next_offer.best_for(self.negotiator.ufun)
+                    if self.negotiator.ufun
+                    else my_next_offer.outcome
+                )
             else:
                 actual = my_next_offer
             my_next_util = float(self.negotiator.ufun(actual))
@@ -1707,7 +1763,11 @@ class GACIAMCrazyHaggler(GeniusAcceptancePolicy):
             from negmas.outcomes.common import ExtendedOutcome
 
             if isinstance(my_next_offer, ExtendedOutcome):
-                actual = my_next_offer.outcome
+                actual = (
+                    my_next_offer.best_for(self.negotiator.ufun)
+                    if self.negotiator.ufun
+                    else my_next_offer.outcome
+                )
             else:
                 actual = my_next_offer
             my_next_util = float(self.negotiator.ufun(actual))
@@ -1895,7 +1955,11 @@ class GACIAMHaggler2010(GeniusAcceptancePolicy):
             from negmas.outcomes.common import ExtendedOutcome
 
             if isinstance(my_next_offer, ExtendedOutcome):
-                actual = my_next_offer.outcome
+                actual = (
+                    my_next_offer.best_for(self.negotiator.ufun)
+                    if self.negotiator.ufun
+                    else my_next_offer.outcome
+                )
             else:
                 actual = my_next_offer
             my_next_util = float(self.negotiator.ufun(actual))
@@ -2009,7 +2073,11 @@ class GACHardHeaded(GeniusAcceptancePolicy):
             from negmas.outcomes.common import ExtendedOutcome
 
             if isinstance(my_next_offer, ExtendedOutcome):
-                actual = my_next_offer.outcome
+                actual = (
+                    my_next_offer.best_for(self.negotiator.ufun)
+                    if self.negotiator.ufun
+                    else my_next_offer.outcome
+                )
             else:
                 actual = my_next_offer
             my_next_util = float(self.negotiator.ufun(actual))
@@ -2125,7 +2193,11 @@ class GACBRAMAgent(GeniusAcceptancePolicy):
             from negmas.outcomes.common import ExtendedOutcome
 
             if isinstance(my_next_offer, ExtendedOutcome):
-                actual = my_next_offer.outcome
+                actual = (
+                    my_next_offer.best_for(self.negotiator.ufun)
+                    if self.negotiator.ufun
+                    else my_next_offer.outcome
+                )
             else:
                 actual = my_next_offer
             my_next_util = float(self.negotiator.ufun(actual))
@@ -2234,7 +2306,11 @@ class GACNiceTitForTat(GeniusAcceptancePolicy):
             from negmas.outcomes.common import ExtendedOutcome
 
             if isinstance(my_next_offer, ExtendedOutcome):
-                actual = my_next_offer.outcome
+                actual = (
+                    my_next_offer.best_for(self.negotiator.ufun)
+                    if self.negotiator.ufun
+                    else my_next_offer.outcome
+                )
             else:
                 actual = my_next_offer
             my_next_util = float(self.negotiator.ufun(actual))
@@ -2468,7 +2544,11 @@ class GACIAMHaggler2011(GeniusAcceptancePolicy):
             from negmas.outcomes.common import ExtendedOutcome
 
             if isinstance(my_next_offer, ExtendedOutcome):
-                actual = my_next_offer.outcome
+                actual = (
+                    my_next_offer.best_for(self.negotiator.ufun)
+                    if self.negotiator.ufun
+                    else my_next_offer.outcome
+                )
             else:
                 actual = my_next_offer
             my_next_util = float(self.negotiator.ufun(actual))
@@ -2537,7 +2617,11 @@ class GACCUHKAgent(GeniusAcceptancePolicy):
             from negmas.outcomes.common import ExtendedOutcome
 
             if isinstance(my_next_offer, ExtendedOutcome):
-                actual = my_next_offer.outcome
+                actual = (
+                    my_next_offer.best_for(self.negotiator.ufun)
+                    if self.negotiator.ufun
+                    else my_next_offer.outcome
+                )
             else:
                 actual = my_next_offer
             my_next_util = float(self.negotiator.ufun(actual))
@@ -2611,7 +2695,11 @@ class GACOMACagent(GeniusAcceptancePolicy):
             from negmas.outcomes.common import ExtendedOutcome
 
             if isinstance(my_next_offer, ExtendedOutcome):
-                actual = my_next_offer.outcome
+                actual = (
+                    my_next_offer.best_for(self.negotiator.ufun)
+                    if self.negotiator.ufun
+                    else my_next_offer.outcome
+                )
             else:
                 actual = my_next_offer
             my_next_util = float(self.negotiator.ufun(actual))
@@ -2796,7 +2884,11 @@ class GACBRAMAgent2(GeniusAcceptancePolicy):
             from negmas.outcomes.common import ExtendedOutcome
 
             if isinstance(my_next_offer, ExtendedOutcome):
-                actual = my_next_offer.outcome
+                actual = (
+                    my_next_offer.best_for(self.negotiator.ufun)
+                    if self.negotiator.ufun
+                    else my_next_offer.outcome
+                )
             else:
                 actual = my_next_offer
             my_next_util = float(self.negotiator.ufun(actual))
@@ -2872,7 +2964,11 @@ class GACIAMHaggler2012(GeniusAcceptancePolicy):
             from negmas.outcomes.common import ExtendedOutcome
 
             if isinstance(my_next_offer, ExtendedOutcome):
-                actual = my_next_offer.outcome
+                actual = (
+                    my_next_offer.best_for(self.negotiator.ufun)
+                    if self.negotiator.ufun
+                    else my_next_offer.outcome
+                )
             else:
                 actual = my_next_offer
             my_next_util = float(self.negotiator.ufun(actual))
@@ -2931,7 +3027,11 @@ class GACTheNegotiatorReloaded(GeniusAcceptancePolicy):
             from negmas.outcomes.common import ExtendedOutcome
 
             if isinstance(my_next_offer, ExtendedOutcome):
-                actual = my_next_offer.outcome
+                actual = (
+                    my_next_offer.best_for(self.negotiator.ufun)
+                    if self.negotiator.ufun
+                    else my_next_offer.outcome
+                )
             else:
                 actual = my_next_offer
             my_next_util = float(self.negotiator.ufun(actual))
@@ -3025,7 +3125,11 @@ class GACTheFawkes(GeniusAcceptancePolicy):
             from negmas.outcomes.common import ExtendedOutcome
 
             if isinstance(my_next_offer, ExtendedOutcome):
-                actual = my_next_offer.outcome
+                actual = (
+                    my_next_offer.best_for(self.negotiator.ufun)
+                    if self.negotiator.ufun
+                    else my_next_offer.outcome
+                )
             else:
                 actual = my_next_offer
             my_next_util = float(self.negotiator.ufun(actual))
@@ -3280,7 +3384,11 @@ class GACMAC(GeniusAcceptancePolicy):
             from negmas.outcomes.common import ExtendedOutcome
 
             if isinstance(my_next_offer, ExtendedOutcome):
-                actual = my_next_offer.outcome
+                actual = (
+                    my_next_offer.best_for(self.negotiator.ufun)
+                    if self.negotiator.ufun
+                    else my_next_offer.outcome
+                )
             else:
                 actual = my_next_offer
             my_next_util = float(self.negotiator.ufun(actual))
