@@ -871,8 +871,8 @@ Using Native Negotiators
 
    # Run negotiation
    mechanism = SAOMechanism(issues=issues, n_steps=100)
-   mechanism.add(negotiator1, ufun=U.random(issues))
-   mechanism.add(negotiator2, ufun=U.random(issues))
+   mechanism.add(negotiator1, ufun=U.random(issues=issues))
+   mechanism.add(negotiator2, ufun=U.random(issues=issues))
    mechanism.run()
 
 Using Python-Native Genius Negotiators (Recommended)
@@ -896,8 +896,8 @@ These negotiators don't require Java or the Genius bridge.
 
    # Run negotiation
    mechanism = SAOMechanism(issues=issues, n_steps=100)
-   mechanism.add(negotiator1, ufun=U.random(issues))
-   mechanism.add(negotiator2, ufun=U.random(issues))
+   mechanism.add(negotiator1, ufun=U.random(issues=issues))
+   mechanism.add(negotiator2, ufun=U.random(issues=issues))
    mechanism.run()
 
 Using Genius Bridge Negotiators
@@ -930,7 +930,7 @@ Creating Custom Negotiators
 NegMAS offers two approaches to creating custom negotiators:
 
 1. **Inheritance**: Subclass a base negotiator and override methods
-2. **Composition**: Combine multiple negotiators using ``SAOMetaNegotiator``
+2. **Composition**: Combine multiple negotiators using ``SAOAggMetaNegotiator``
 
 Inheritance (Traditional Approach)
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
@@ -970,14 +970,14 @@ Subclass a base negotiator and implement the required methods:
 Composition (Ensemble Approach)
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
-Use ``SAOMetaNegotiator`` to combine multiple negotiators and aggregate their decisions.
+Use ``SAOAggMetaNegotiator`` to combine multiple negotiators and aggregate their decisions.
 This is useful for ensemble strategies, voting mechanisms, or dynamic strategy switching.
 
 .. code-block:: python
 
    from negmas.sao import SAOMechanism, ResponseType
    from negmas.sao.negotiators import (
-       SAOMetaNegotiator,
+       SAOAggMetaNegotiator,
        BoulwareTBNegotiator,
        NaiveTitForTatNegotiator,
        AspirationNegotiator,
@@ -986,7 +986,7 @@ This is useful for ensemble strategies, voting mechanisms, or dynamic strategy s
    from negmas.outcomes import make_issue, make_os
 
 
-   class MajorityVoteNegotiator(SAOMetaNegotiator):
+   class MajorityVoteNegotiator(SAOAggMetaNegotiator):
        """An ensemble negotiator that uses majority voting."""
 
        def aggregate_proposals(self, state, proposals, dest=None):
@@ -1031,6 +1031,14 @@ The ensemble approach is useful for:
 - **Voting strategies**: Combine multiple negotiators via majority/weighted voting
 - **Dynamic delegation**: Switch between strategies at runtime
 - **A/B testing**: Compare strategies within the same negotiation
+
+.. note::
+   **Important Consideration**: Sub-negotiators within an ensemble may behave differently
+   than they would in isolation. Their recommended offers and decisions are not guaranteed
+   to be executed in the actual negotiation, which may break implicit assumptions they make
+   about the negotiation flow. For example, a negotiator that expects its offers to be sent
+   in sequence may not work as intended if the ensemble aggregator selects offers from
+   different sub-negotiators.
 
 .. note::
    ``GBMetaNegotiator`` is also available for GB (General Bargaining) protocols

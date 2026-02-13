@@ -89,11 +89,11 @@ Quick Start
     # Add buyer (prefers low price) and seller (prefers high price)
     session.add(
         TimeBasedConcedingNegotiator(name="buyer"),
-        ufun=LUFun.random(issues, reserved_value=0.0),
+        ufun=LUFun.random(issues=issues, reserved_value=0.0),
     )
     session.add(
         TimeBasedConcedingNegotiator(name="seller"),
-        ufun=LUFun.random(issues, reserved_value=0.0),
+        ufun=LUFun.random(issues=issues, reserved_value=0.0),
     )
 
     # Run and get result
@@ -280,19 +280,19 @@ Subclass a base negotiator and implement the required methods:
 Composition (Ensemble Approach)
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
-Use ``SAOMetaNegotiator`` to combine multiple negotiators and aggregate their decisions:
+Use ``SAOAggMetaNegotiator`` to combine multiple negotiators and aggregate their decisions:
 
 .. code-block:: python
 
     from negmas.sao import SAOMechanism, ResponseType
     from negmas.sao.negotiators import (
-        SAOMetaNegotiator,
+        SAOAggMetaNegotiator,
         BoulwareTBNegotiator,
         NaiveTitForTatNegotiator,
     )
 
 
-    class MajorityVoteNegotiator(SAOMetaNegotiator):
+    class MajorityVoteNegotiator(SAOAggMetaNegotiator):
         """An ensemble negotiator that uses majority voting."""
 
         def aggregate_proposals(self, state, proposals, dest=None):
@@ -471,6 +471,7 @@ Selected papers (see `full list <https://negmas.readthedocs.io/en/latest/publica
 **Core NegMAS Research** (by the NegMAS authors)
 
 - Mohammad, Y. (2025). `Tackling the Protocol Problem in Automated Negotiation <https://www.ifaamas.org/Proceedings/aamas2025/pdfs/p246.pdf>`_. AAMAS. *Cited by 1*
+- Florijn et al. (2025). `A Survey on One-to-Many Negotiation <https://www.ijcai.org/proceedings/2025/928>`_. IJCAI. *Cited by 1*
 - Mohammad, Y. et al. (2024). `Automated Negotiation in Supply Chains: A Generalist Environment for RL/MARL <https://doi.org/10.1007/978-981-96-1072-1_1>`_. PRIMA. *Cited by 1*
 - Mohammad, Y. (2023). `Generalized Bargaining Protocols <https://doi.org/10.1007/978-981-99-8391-9_27>`_. AI 2023. *Cited by 3*
 - Mohammad, Y. (2023). `Optimal Time-based Strategy for Automated Negotiation <https://doi.org/10.1007/s10489-022-03893-x>`_. Applied Intelligence. *Cited by 9*
@@ -483,6 +484,7 @@ Selected papers (see `full list <https://negmas.readthedocs.io/en/latest/publica
 
 **Competition & Benchmarks**
 
+- Aydoğan et al. (2025). `ANAC 2024 Challenges and Results <https://www.ifaamas.org/Proceedings/aamas2025/pdfs/p2640.pdf>`_. AAMAS. *Cited by 2*
 - Aydoğan et al. (2020). `Challenges and Main Results of ANAC 2019 <https://doi.org/10.1007/978-3-030-66412-1_23>`_. EUMAS/AT. *Cited by 51*
 
 **Negotiation Strategies**

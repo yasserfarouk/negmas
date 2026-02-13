@@ -61,8 +61,8 @@ Usage Example
    issues = [make_issue(10, "price"), make_issue(5, "quantity")]
 
    # Create utility functions for each negotiator
-   ufun1 = LinearAdditiveUtilityFunction.random(issues, reserved_value=0.0)
-   ufun2 = LinearAdditiveUtilityFunction.random(issues, reserved_value=0.0)
+   ufun1 = LinearAdditiveUtilityFunction.random(issues=issues, reserved_value=0.0)
+   ufun2 = LinearAdditiveUtilityFunction.random(issues=issues, reserved_value=0.0)
 
    # Create negotiators
    n1 = GHardHeaded(name="buyer", ufun=ufun1)
@@ -240,11 +240,10 @@ Example using a Bayesian opponent model with a custom negotiator:
 
 .. code-block:: python
 
-   from negmas.gb import GBNegotiator
-   from negmas.gb.components.genius import (
-       GBayesianModel,
+   from negmas.gb.negotiators.modular import BOANegotiator
+   from negmas.gb.components import (
        GTimeDependentOffering,
-       GACNext,
+       GACTime,
    )
    from negmas.sao import SAOMechanism
    from negmas.preferences import LinearAdditiveUtilityFunction
@@ -252,15 +251,14 @@ Example using a Bayesian opponent model with a custom negotiator:
 
    # Create scenario
    issues = [make_issue(10, "price"), make_issue(5, "quantity")]
-   ufun = LinearAdditiveUtilityFunction.random(issues, reserved_value=0.0)
+   ufun = LinearAdditiveUtilityFunction.random(issues=issues, reserved_value=0.0)
 
-   # Create negotiator with Bayesian opponent modeling
-   negotiator = GBNegotiator(
-       name="bayesian_agent",
+   # Create negotiator with BOA components
+   negotiator = BOANegotiator(
+       name="boa_agent",
        ufun=ufun,
        offering=GTimeDependentOffering(e=0.5),
-       acceptance=GACNext(),
-       model=GBayesianModel(n_hypotheses=20, rationality=5.0),
+       acceptance=GACTime(t=0.95),
    )
 
 The ``GBayesianModel`` maintains multiple hypotheses about opponent preferences and

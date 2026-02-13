@@ -5,8 +5,12 @@ This page lists papers that cite, use, or mention NegMAS and its ecosystem (incl
 
 .. note::
 
-    This list is updated periodically. If you have published a paper using NegMAS that is not listed here,
-    please `open an issue <https://github.com/yasserfarouk/negmas/issues>`_ or submit a pull request.
+    This list is updated periodically using LLMs by searching academic databases.
+    While we strive for accuracy, the automated process may occasionally miss papers or include
+    incorrect information. Please **double check** these citations before reusing them.
+    If you have published a paper using NegMAS that is not listed here,
+    or if you notice any inaccuracies, please `open an issue <https://github.com/yasserfarouk/negmas/issues>`_
+    or submit a pull request.
 
     *Last updated: February 2026*
 
@@ -87,6 +91,10 @@ Papers presenting novel negotiation strategies using NegMAS:
 - Florijn, T.C.P., Tijdeman, M., Yolum, P., Baarslag, T. (2025).
   `Predicting the Outcome of Ongoing Automated Negotiations <https://doi.org/10.1007/978-981-96-1072-1_7>`_.
   In: *PRIMA 2024*. LNCS. Springer.
+
+- 清水拓夢, 藤田桂英 (2024).
+  `サプライチェーンにおける合意可能価格予測を考慮した自動交渉戦略 <https://ipsj.ixsq.nii.ac.jp/ej/?action=pages_view_main&active_action=repository_view_main_item_detail&item_id=235829&item_no=1&page_id=13&block_id=8>`_.
+  情報処理学会論文誌 (IPSJ Journal). *Cited by 1*
 
 - Aguilera-Luzon, D., de Jonge, D., Larrosa, J. (2025).
   `MiCRO for Multilateral Negotiations <https://doi.org/10.1007/978-981-96-1072-1_6>`_.
@@ -179,6 +187,10 @@ Papers on negotiation protocols and theoretical aspects:
   In: *Proceedings of IJCAI 2025*. *Cited by 1*
 
 - de Jonge, D. (2025).
+  `BINGO: An Algorithm for Automated Negotiations with Hidden Reservation Values <https://iiia.csic.es/~davedejonge/homepage/papers/bingo.pdf>`_.
+  Technical Report.
+
+- de Jonge, D. (2025).
   `Introduction to Automated Negotiation <https://arxiv.org/abs/2511.08659>`_.
   arXiv:2511.08659.
 
@@ -230,17 +242,13 @@ Papers describing other platforms that use or compare with NegMAS:
   `NegoSim: A Modular and Extendable Automated Negotiation Simulation Platform Considering EUBOA <https://doi.org/10.3390/app13179396>`_.
   *Applied Sciences*. *Cited by 7*
 
-- Keskin, M.O., Buzcu, B., Koçyiğit, B., et al. (2024).
-  `NEGOTIATOR: A Comprehensive Framework for Human-Agent Negotiation <https://doi.org/10.1145/3652988.3673933>`_.
-  In: *Proceedings of AAMAS 2024*. *Cited by 2*
-
 - Doğru, A., Keskin, M.O., Aydoğan, R. (2025).
   `Taking into Account Opponent's Arguments in Human-Agent Negotiations <https://doi.org/10.1145/3701460>`_.
   *ACM Transactions on Interactive Intelligent Systems*. *Cited by 3*
 
-- de Jonge, D. (2025).
-  `BINGO: An Algorithm for Automated Negotiations with Hidden Reservation Values <https://iiia.csic.es/~davedejonge/homepage/papers/bingo.pdf>`_.
-  Technical Report.
+- Keskin, M.O., Buzcu, B., Koçyiğit, B., et al. (2024).
+  `NEGOTIATOR: A Comprehensive Framework for Human-Agent Negotiation <https://doi.org/10.1145/3652988.3673933>`_.
+  In: *Proceedings of AAMAS 2024*. *Cited by 2*
 
 
 Applications

@@ -44,8 +44,8 @@ turns proposing and responding to offers.
     mechanism = SAOMechanism(issues=issues, n_steps=100)
 
     # Add negotiators
-    mechanism.add(AspirationNegotiator(name="buyer"), ufun=U.random(issues))
-    mechanism.add(AspirationNegotiator(name="seller"), ufun=U.random(issues))
+    mechanism.add(AspirationNegotiator(name="buyer"), ufun=U.random(issues=issues))
+    mechanism.add(AspirationNegotiator(name="seller"), ufun=U.random(issues=issues))
 
     # Run negotiation
     mechanism.run()

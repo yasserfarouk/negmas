@@ -19,6 +19,37 @@
 3. **WAIT FOR EXPLICIT "PUSH" COMMAND**
 4. Only then run `git push`
 
+## ⚠️ CRITICAL: DOCUMENTATION EXAMPLES MUST ALWAYS WORK ⚠️
+
+**ALL EXAMPLES IN README.rst AND docs/ MUST BE TESTED AND WORKING AT ALL TIMES**
+
+**BEFORE ANY COMMIT THAT CHANGES APIs OR EXAMPLES:**
+1. Test EVERY code example in `README.rst`
+2. Test EVERY code example in `docs/*.rst`
+3. All examples must run without errors
+4. Create/update test files in `coding_agents/` directory to verify examples
+
+**TEST PROCEDURE:**
+```bash
+# Test README examples
+python coding_agents/test_readme_examples.py
+
+# Test documentation examples
+python coding_agents/test_doc_examples.py
+```
+
+**WHEN UPDATING APIs:**
+1. Search for ALL usages of the old API in README.rst and docs/
+2. Update ALL examples to use the new API
+3. Test ALL updated examples
+4. Never commit broken examples
+
+**COMMON PATTERNS TO CHECK:**
+- `LinearAdditiveUtilityFunction.random()` - must use `issues=` or `outcome_space=` keyword arg
+- `SAOMetaNegotiator` with aggregation methods - should be `SAOAggMetaNegotiator`
+- Any deprecated or changed class names
+- Any deprecated or changed method signatures
+
 ## Build/Test Commands
 ```bash
 pytest                                    # Run all tests
@@ -45,6 +76,7 @@ pre-commit run --all-files                # Run all pre-commit hooks
 - **Errors**: Raise `ValueError`/`TypeError` with descriptive messages; use `negmas.warnings` for deprecations
 - **Source location**: Main code in `src/negmas/`, tests in `tests/`
 - **Docstrings**: ALWAYS test every docstring example you add using `python -c "..."` or `pytest --doctest-modules` before committing
+- **Documentation examples**: ALWAYS test README.rst and docs/*.rst examples using test files in `coding_agents/` before committing
 
 ## Agent Sandbox
 - **File Storage**: All files created for documentation, internal testing, or any other purpose must be placed in the `coding_agents/` directory. This is to avoid polluting the root directory.
