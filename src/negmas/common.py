@@ -184,6 +184,11 @@ class PreferencesChangeType(Enum):
     UncertaintyIncreased = auto()
     OSRestricted = auto()
     OSExpanded = auto()
+    StabilityReduced = auto()
+    StabilityIncreased = auto()
+    StabilityChanged = auto()
+    Initialization = auto()
+    Dissociated = auto()
 
 
 @define(frozen=True)

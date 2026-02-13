@@ -4,6 +4,141 @@ Available Negotiators
 NegMAS provides a rich set of negotiation agents for different mechanisms.
 This page lists all available negotiators organized by category.
 
+Negotiation Callback Lifecycle
+------------------------------
+
+When a negotiator participates in a negotiation, the mechanism calls various
+callbacks in a **guaranteed order**. Understanding this order is essential for
+implementing custom negotiators.
+
+Callback Order Flowchart
+~~~~~~~~~~~~~~~~~~~~~~~~
+
+.. code-block:: text
+
+    ┌─────────────────────────────────────────────────────────────────────────┐
+    │                      NEGOTIATION LIFECYCLE                              │
+    └─────────────────────────────────────────────────────────────────────────┘
+
+    1. JOINING PHASE (when negotiator.join() or mechanism.add() is called)
+       ├── join(nmi, state, preferences, role)
+       │   └── Returns True/False to accept/reject joining
+       └── [preferences assigned internally, owner NOT set yet]
+
+    2. NEGOTIATION START (when mechanism.step() or mechanism.run() is called)
+       │
+       │   ┌─────────────────────────────────────────────────────────────────┐
+       │   │  IMPORTANT: The following callbacks are called ONCE per         │
+       │   │  negotiation, in this EXACT order, regardless of when           │
+       │   │  preferences were assigned (at constructor or at join time).    │
+       │   └─────────────────────────────────────────────────────────────────┘
+       │
+       ├── [owner set on preferences]
+       ├── on_preferences_changed([Initialization])  ◄── ALWAYS FIRST (if preferences exist)
+       ├── on_negotiation_start(state)               ◄── ALWAYS SECOND
+       └── on_round_start(state)                     ◄── First round starts
+
+    3. NEGOTIATION ROUNDS (repeated until agreement, timeout, or break)
+       │
+       ├── propose(state) → Outcome | None
+       │   └── Called when it's negotiator's turn to make an offer
+       │
+       ├── respond(state, offer, source) → ResponseType
+       │   └── Called when evaluating an offer from another negotiator
+       │
+       ├── on_partner_proposal(state, partner_id, offer)
+       │   └── Notification when a partner makes a proposal
+       │
+       ├── on_partner_response(state, partner_id, outcome, response)
+       │   └── Notification when a partner responds to an offer
+       │
+       ├── on_round_end(state)
+       │   └── Called at the end of each round
+       │
+       └── on_round_start(state)  [if more rounds remain]
+           └── Called at the start of each new round
+
+    4. NEGOTIATION END
+       │
+       ├── on_negotiation_end(state)
+       │   └── Called when negotiation concludes (agreement, timeout, or break)
+       │
+       └── on_leave(state)
+           └── Called when negotiator leaves the mechanism
+           └── [owner cleared from preferences]
+           └── on_preferences_changed([Dissociated])  ◄── Notifies of disconnection
+
+
+Key Guarantees
+~~~~~~~~~~~~~~
+
+1. **Initialization Order**: ``on_preferences_changed([Initialization])`` is
+   **always** called before ``on_negotiation_start()``, regardless of when
+   preferences were set.
+
+2. **Exactly Once**: Both ``on_preferences_changed([Initialization])`` and
+   ``on_negotiation_start()`` are called **exactly once** per negotiation.
+
+3. **Before Proposals**: These initialization callbacks always occur before
+   any ``propose()`` or ``respond()`` calls.
+
+4. **Owner Lifecycle**: The preferences ``owner`` is set just before
+   ``on_preferences_changed([Initialization])`` and cleared in ``on_leave()``.
+
+5. **Dissociation Notification**: When a negotiator leaves, it
+   receive an ``on_preferences_changed([Dissociated])`` notification.
+
+Example: Tracking Callback Order
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+
+.. code-block:: python
+
+    from negmas.sao import SAOMechanism, SAONegotiator, ResponseType
+    from negmas.common import PreferencesChangeType
+
+
+    class CallbackTracker(SAONegotiator):
+        def __init__(self, **kwargs):
+            super().__init__(**kwargs)
+            self.callback_log = []
+
+        def on_preferences_changed(self, changes):
+            change_types = [c.type.name for c in changes]
+            self.callback_log.append(f"on_preferences_changed({change_types})")
+            super().on_preferences_changed(changes)
+
+        def on_negotiation_start(self, state):
+            self.callback_log.append("on_negotiation_start")
+            super().on_negotiation_start(state)
+
+        def on_round_start(self, state):
+            self.callback_log.append(f"on_round_start(step={state.step})")
+            super().on_round_start(state)
+
+        def propose(self, state, dest=None):
+            self.callback_log.append(f"propose(step={state.step})")
+            return self.nmi.random_outcome()
+
+        def respond(self, state, source=None):
+            self.callback_log.append(f"respond(step={state.step})")
+            return ResponseType.REJECT_OFFER
+
+
+    # Run a negotiation and inspect the callback order
+    tracker = CallbackTracker()
+    mechanism = SAOMechanism(issues=[...], n_steps=3)
+    mechanism.add(tracker, ufun=...)
+    mechanism.add(other_negotiator, ufun=...)
+    mechanism.run()
+
+    # Output shows guaranteed order:
+    # ['on_preferences_changed([Initialization])',
+    #  'on_negotiation_start',
+    #  'on_round_start(step=0)',
+    #  'propose(step=0)',
+    #  'respond(step=0)',
+    #  ...]
+
 Native SAO Negotiators
 ----------------------
 

@@ -8,7 +8,7 @@ from __future__ import annotations
 
 from typing import TYPE_CHECKING
 
-from ..common import PreferencesChange
+from ..common import PreferencesChange, PreferencesChangeType
 from .named import NamedObject
 
 if TYPE_CHECKING:
@@ -63,6 +63,11 @@ class Rational(NamedObject):
 
         self._preferences.owner = self
 
+    def _clear_pref_owner(self):
+        """Clear the owner reference from preferences when leaving a negotiation."""
+        if self._preferences:
+            self._preferences.owner = None
+
     def on_preferences_changed(self, changes: list[PreferencesChange]):
         """
         Called to inform the entity that its ufun has changed.
@@ -85,10 +90,18 @@ class Rational(NamedObject):
         Sets the utility function/Preferences.
 
         Args:
-
             value: The value to set to
-            force: If true, `on_preferecnes_changed()` will always be called even if `value` == `self.preferences`
+            force: If true, `on_preferences_changed()` will always be called even if `value` == `self.preferences`
+            ignore_exceptions: If true, exceptions from `on_preferences_changed` are suppressed
 
+        Returns:
+            The preferences that were set
+
+        Remarks:
+            - This method does NOT set the owner on the preferences. Owner is set
+              when the negotiator enters a negotiation (in `_on_negotiation_start`).
+            - Calls `on_preferences_changed` with Initialization when preferences are
+              set for the first time (old is None), otherwise uses General.
         """
         if value == self._preferences:
             if force:
@@ -98,13 +111,20 @@ class Rational(NamedObject):
                     if not ignore_exceptions:
                         raise e
             return self._preferences
+
         old = self._preferences
         self._preferences = value
-        if value and value.owner != self:
-            self._set_pref_owner()
+
+        # Call on_preferences_changed when preferences actually change
         if id(value) != id(old):
+            # Use Initialization when setting preferences for the first time
+            change_type = (
+                PreferencesChangeType.Initialization
+                if old is None
+                else PreferencesChangeType.General
+            )
             try:
-                self.on_preferences_changed([PreferencesChange()])
+                self.on_preferences_changed([PreferencesChange(change_type)])
             except Exception as e:
                 if not ignore_exceptions:
                     raise e

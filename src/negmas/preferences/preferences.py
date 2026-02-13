@@ -6,13 +6,15 @@ from abc import ABC, abstractmethod
 from typing import TYPE_CHECKING, Any
 
 from pathlib import Path
-from negmas.common import PreferencesChange
+from negmas.common import PreferencesChange, PreferencesChangeType
 from negmas.helpers import snake_case
 from negmas.helpers.types import get_full_type_name
 from negmas.outcomes import Outcome
 from negmas.outcomes.common import check_one_at_most, os_or_none
 from negmas.serialization import PYTHON_CLASS_IDENTIFIER, deserialize, serialize
 from negmas.types import NamedObject
+
+from .stability import Stability, STATIONARY
 
 __all__ = ["Preferences"]
 
@@ -29,6 +31,8 @@ class Preferences(NamedObject, ABC):
 
     Args:
         outcome_space: The outcome-space over which the preferences are defined
+        stability: Stability flags describing which aspects of the preferences remain stable.
+                   Default is STATIONARY (all stability flags set).
     """
 
     def __init__(
@@ -40,30 +44,130 @@ class Preferences(NamedObject, ABC):
         reserved_outcome: Outcome | None = None,
         owner: Rational | None = None,
         path: Path | None = None,
+        stability: Stability | int = STATIONARY,
         **kwargs,
     ) -> None:
         """Initialize the instance.
 
         Args:
             *args: Additional positional arguments.
+            outcome_space: The outcome space for these preferences.
+            issues: Alternative to outcome_space - tuple of issues.
+            outcomes: Alternative to outcome_space - tuple of outcomes or count.
+            reserved_outcome: The outcome when no agreement is reached.
+            owner: The rational agent that owns these preferences.
+            path: Path to the file from which preferences were loaded.
+            stability: Stability flags describing which aspects remain stable.
+                       Default is STATIONARY. Can be an int (will be converted to Stability).
             **kwargs: Additional keyword arguments.
         """
-        self.owner = owner
+        self._owner = owner
         check_one_at_most(outcome_space, issues, outcomes)
         super().__init__(*args, **kwargs)
         self.outcome_space = os_or_none(outcome_space, issues, outcomes)
         self.reserved_outcome = reserved_outcome  # type: ignore
         self._changes: list[PreferencesChange] = []
         self.path = path
+        # Convert int to Stability if needed (for deserialization)
+        self._stability = (
+            Stability(stability) if isinstance(stability, int) else stability
+        )
 
-    @abstractmethod
+    @property
+    def owner(self) -> Rational | None:
+        """Returns the owner of these preferences.
+
+        The owner is the negotiator currently using these preferences in a negotiation.
+
+        Note:
+            The owner is only valid during an active negotiation. It is set when
+            the negotiator enters a negotiation (during ``_on_negotiation_start``)
+            and cleared when the negotiation ends (during ``_on_negotiation_end``).
+            Outside of an active negotiation, owner will be ``None``.
+        """
+        return self._owner
+
+    @owner.setter
+    def owner(self, value: Rational | None) -> None:
+        """Sets the owner of these preferences.
+
+        When owner is set to None (dissociation), notifies the previous owner
+        via on_preferences_changed with Dissociated change type.
+
+        Note:
+            This is typically managed automatically by the negotiation framework.
+            The owner is set when entering a negotiation and cleared when exiting.
+        """
+        old_owner = self._owner
+        self._owner = value
+
+        # Notify old owner when being dissociated (owner set to None)
+        if old_owner is not None and value is None:
+            old_owner.on_preferences_changed(
+                [PreferencesChange(PreferencesChangeType.Dissociated)]
+            )
+
+    @property
+    def stability(self) -> Stability:
+        """Returns the stability flags for these preferences."""
+        return self._stability
+
+    @stability.setter
+    def stability(self, value: Stability | int) -> None:
+        """Sets the stability flags for these preferences.
+
+        This setter:
+        1. Skips if the new value equals the old value (no change)
+        2. Saves the new stability value
+        3. Determines the correct change type:
+           - StabilityIncreased: all old bits are in new (and more in new)
+           - StabilityReduced: all new bits are in old (and more in old)
+           - StabilityChanged: bits differ in both directions
+        4. Records the change in _changes list
+        5. Notifies the owner (if set) via on_preferences_changed callback
+
+        Args:
+            value: The new stability flags (Stability enum or int)
+        """
+        _old = self._stability
+        _new = Stability(value) if isinstance(value, int) else value
+
+        # Skip if no change
+        if _old == _new:
+            return
+
+        self._stability = _new
+
+        # Determine the correct change type based on bit comparison
+        old_has_extra = bool(_old & ~_new)  # old has bits not in new
+        new_has_extra = bool(_new & ~_old)  # new has bits not in old
+
+        if new_has_extra and not old_has_extra:
+            change_type = PreferencesChangeType.StabilityIncreased
+        elif old_has_extra and not new_has_extra:
+            change_type = PreferencesChangeType.StabilityReduced
+        else:
+            change_type = PreferencesChangeType.StabilityChanged
+
+        self._changes.append(
+            PreferencesChange(change_type, data=dict(old=_old, new=_new))
+        )
+
+        # Only notify if owner is set (i.e., negotiator is in a negotiation)
+        if self.owner is not None:
+            self.owner.on_preferences_changed(
+                [PreferencesChange(change_type, data=dict(old=_old, new=_new))]
+            )
+
     def is_volatile(self) -> bool:
         """
         Does the utility of an outcome depend on factors outside the negotiation?
 
         Remarks:
             - A volatile preferences is one that can change even for the same mechanism state due to outside influence
+            - Returns True if stability is VOLATILE (value = 0, no stability guarantees)
         """
+        return self._stability.is_volatile
 
     @abstractmethod
     def is_not_worse(self, first: Outcome | None, second: Outcome | None) -> bool:
@@ -72,17 +176,81 @@ class Preferences(NamedObject, ABC):
         """
         ...
 
-    @abstractmethod
     def is_session_dependent(self) -> bool:
         """
         Does the utility of an outcome depend on the `NegotiatorMechanismInterface`?
-        """
 
-    @abstractmethod
+        Returns True if not all stability flags are set (i.e., not fully stationary).
+        """
+        return not self._stability.is_stationary
+
     def is_state_dependent(self) -> bool:
         """
         Does the utility of an outcome depend on the negotiation state?
+
+        Returns True if not all stability flags are set (i.e., not fully stationary).
         """
+        return not self._stability.is_stationary
+
+    def is_stationary(self) -> bool:
+        """Are the preferences stationary (i.e. repeated calls return the same value for any preferences comparison or evaluation method)?"""
+        return self._stability.is_stationary
+
+    # Stability-related properties for convenient access
+    @property
+    def has_stable_min(self) -> bool:
+        """Check if minimum utility is stable."""
+        return self._stability.has_stable_min
+
+    @property
+    def has_stable_max(self) -> bool:
+        """Check if maximum utility is stable."""
+        return self._stability.has_stable_max
+
+    @property
+    def has_stable_extremes(self) -> bool:
+        """Check if extreme (best/worst) outcomes are stable."""
+        return self._stability.has_stable_extremes
+
+    @property
+    def has_stable_reserved_value(self) -> bool:
+        """Check if reserved value (relative) is stable."""
+        return self._stability.has_stable_reserved_value
+
+    @property
+    def has_fixed_reserved_value(self) -> bool:
+        """Check if reserved value (absolute) is fixed."""
+        return self._stability.has_fixed_reserved_value
+
+    @property
+    def has_stable_rational_outcomes(self) -> bool:
+        """Check if rational outcomes remain rational."""
+        return self._stability.has_stable_rational_outcomes
+
+    @property
+    def has_stable_irrational_outcomes(self) -> bool:
+        """Check if irrational outcomes remain irrational."""
+        return self._stability.has_stable_irrational_outcomes
+
+    @property
+    def has_stable_ordering(self) -> bool:
+        """Check if outcome ordering is stable."""
+        return self._stability.has_stable_ordering
+
+    @property
+    def has_stable_diff_ratios(self) -> bool:
+        """Check if relative utility differences are stable."""
+        return self._stability.has_stable_diff_ratios
+
+    @property
+    def has_stable_scale(self) -> bool:
+        """Check if scale is stable (min, max, and relative reserved value)."""
+        return self._stability.has_stable_scale
+
+    @property
+    def is_scale_invariant(self) -> bool:
+        """Check if scale-invariant (stable diff ratios and relative reserved value)."""
+        return self._stability.is_scale_invariant
 
     def to_dict(
         self, python_class_identifier=PYTHON_CLASS_IDENTIFIER
@@ -102,6 +270,7 @@ class Preferences(NamedObject, ABC):
                 self.outcome_space, python_class_identifier=python_class_identifier
             ),
             reserved_outcome=self.reserved_outcome,
+            stability=int(self._stability),
             name=self.name,
             id=self.id,
         )
@@ -119,15 +288,9 @@ class Preferences(NamedObject, ABC):
             d.get("outcome_space", None),
             python_class_identifier=python_class_identifier,
         )
+        if "stability" in d:
+            d["stability"] = Stability(d["stability"])
         return cls(**d)
-
-    def is_stationary(self) -> bool:
-        """Are the preferences stationary (i.e. repeated calls return the same value for any preferences comparion or evaluaton method)?"""
-        return (
-            not self.is_state_dependent()
-            and not self.is_volatile()
-            and not self.is_session_dependent()
-        )
 
     def changes(self) -> list[PreferencesChange]:
         """

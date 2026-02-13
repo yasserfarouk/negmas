@@ -9,6 +9,7 @@ from negmas.common import (
     MechanismState,
     NegotiatorMechanismInterface,
     PreferencesChange,
+    PreferencesChangeType,
 )
 from negmas.events import Notifiable, Notification
 from negmas.types import Rational
@@ -29,24 +30,50 @@ TState = TypeVar("TState", bound=MechanismState)
 
 class Negotiator(Rational, Notifiable, Generic[TNMI, TState]):
     """
-    Abstract negotiation agent. Base class for all negotiators
+    Abstract negotiation agent. Base class for all negotiators.
 
     Args:
+        name: Negotiator name. If not given it is assigned by the system (unique 16 characters).
+        preferences: The preferences of the agent (pass either this or ufun)
+        ufun: The ufun of the agent (overrides preferences if given)
+        parent: The `Controller` that controls this negotiator (if any)
+        owner: The `Agent` that owns this negotiator (if any)
+        id: The unique ID of the negotiator
+        private_info: Arbitrary information passed to the negotiator. As a special case
+            if a value for 'opponent_ufun' is given, it will be accessible as self.opponent_ufun
 
-           name: Negotiator name. If not given it is assigned by the system (unique 16 characters).
-           preferences: The preferences of the agent (pass either this or ufun)
-           ufun: The ufun of the agent (overrides preferences if given)
-           parent: The `Controller` that controls this neogtiator (if any)
-           owner: The `Agent` that own this negotiator (if any)
-           id: The unique ID of the negotiator
-           private_info: Arbitrary information passed to the negotiator. As a special case if a value for 'opponent_ufun' is given, it will be accessible as self.opponent_ufun
+    Callback Lifecycle:
+        When a negotiator participates in a negotiation, callbacks are invoked in this
+        **guaranteed order**:
 
-       Returns:
-           bool: True if participating in the given negotiation (or any negotiation if it was None)
+        1. **Joining Phase** (mechanism.add() or negotiator.join()):
+           - ``join(nmi, state, preferences, role)`` - can reject by returning False
 
-       Remarks:
-           - `ufun` overrides `preferences`. You need to pass only one of them
+        2. **Negotiation Start** (first mechanism.step() or mechanism.run()):
+           - [owner set on preferences]
+           - ``on_preferences_changed([Initialization])`` - ALWAYS FIRST (if preferences exist)
+           - ``on_negotiation_start(state)`` - ALWAYS SECOND
+           - ``on_round_start(state)`` - first round begins
 
+        3. **Negotiation Rounds** (repeated):
+           - ``propose(state)`` - make an offer
+           - ``respond(state, offer, source)`` - evaluate an offer
+           - ``on_partner_proposal(...)`` / ``on_partner_response(...)``
+           - ``on_round_end(state)`` / ``on_round_start(state)``
+
+        4. **Negotiation End**:
+           - ``on_negotiation_end(state)``
+           - ``on_leave(state)`` - [owner cleared from preferences]
+           - ``on_preferences_changed([Dissociated])`` - notifies disconnection
+
+        **Key Guarantees**:
+        - ``on_preferences_changed([Initialization])`` is ALWAYS called before ``on_negotiation_start()``
+        - Both are called exactly ONCE per negotiation
+        - This order is consistent regardless of when preferences were set (constructor or join)
+        - See :doc:`/negotiators` for the full callback flowchart
+
+    Remarks:
+        - `ufun` overrides `preferences`. You need to pass only one of them
     """
 
     def __init__(
@@ -148,15 +175,19 @@ class Negotiator(Rational, Notifiable, Generic[TNMI, TState]):
             Preferences | None: The previously held preferences, if any.
         """
         if self._nmi is None:
-            self._preferences = value
-            return
+            # Even when not in negotiation, we need to properly set owner
+            return super().set_preferences(
+                value, force=force, ignore_exceptions=ignore_exceptions
+            )
         if self._nmi.state.started:
             warnings.deprecated(
                 "Changing the utility function by direct assignment after the negotiation is "
                 "started is deprecated."
             )
         self._set_pref_os()
-        super().set_preferences(value, force=force)
+        return super().set_preferences(
+            value, force=force, ignore_exceptions=ignore_exceptions
+        )
 
     def _reset_pref_os(self):
         if self.__saved_prefs is not None:
@@ -188,8 +219,11 @@ class Negotiator(Rational, Notifiable, Generic[TNMI, TState]):
         return True
 
     def _dissociate(self):
+        """Dissociate from the current negotiation, clearing owner and resetting state."""
         self._nmi = None
         self._reset_pref_os()
+        # Clear owner before resetting preferences (owner is only valid during negotiation)
+        self._clear_pref_owner()
         self._preferences = self._init_preferences
         self._role = None
 
@@ -336,13 +370,27 @@ class Negotiator(Rational, Notifiable, Generic[TNMI, TState]):
 
     def _on_negotiation_start(self, state: TState) -> None:
         """
-        Internally called by the mechanism when the negotiation is about to start
+        Internally called by the mechanism when the negotiation is about to start.
+
+        Call order:
+        1. Set up preferences outcome space (_set_pref_os)
+        2. Set owner on preferences (_set_pref_owner)
+        3. on_preferences_changed(Initialization) - ALWAYS before on_negotiation_start
+        4. on_negotiation_start(state) - user callback
+
+        This ensures on_preferences_changed(Initialization) is called exactly once
+        per negotiation, before any user callbacks.
         """
         if self._preferences:
             self._set_pref_os()
+            # Set owner when entering negotiation (before calling on_preferences_changed)
+            self._set_pref_owner()
+            # Notify that preferences are now active for this negotiation
+            # This MUST happen before on_negotiation_start
+            self.on_preferences_changed(
+                [PreferencesChange(PreferencesChangeType.Initialization)]
+            )
         self.on_negotiation_start(state=state)
-        if self._preferences:
-            super().set_preferences(self._preferences, force=True)
 
     def on_round_start(self, state: TState) -> None:
         """
@@ -470,6 +518,10 @@ class Negotiator(Rational, Notifiable, Generic[TNMI, TState]):
         """
         self.on_negotiation_end(state=state)
         self._reset_pref_os()
+        # Clear owner after negotiation ends (owner is only valid during active negotiation)
+        self._clear_pref_owner()
+        # Clear nmi so negotiator can join another negotiation
+        self._nmi = None
 
     def on_notification(self, notification: Notification, notifier: str):
         """
