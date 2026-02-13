@@ -315,12 +315,7 @@ def test_agentk_perceives_time():
         neg.step()
         if neg._internal_nmi.state.ended:
             break
-        if _ == n_steps - 1:
-            assert gagent.relative_time is None, "Got a time after the last step"
-        else:
-            assert gagent.relative_time > current_time, (
-                f"Failed to get time after step {_}"
-            )
+        assert gagent.relative_time > current_time, f"Failed to get time after step {_}"
         if neg._internal_nmi.state.ended:
             break
         current_time = gagent.relative_time
