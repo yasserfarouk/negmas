@@ -46,6 +46,8 @@ from .preferences import (
     opposition_level,
     pareto_frontier,
     winwin_level,
+    Stability,
+    STATIONARY,
 )
 from .preferences.value_fun import TableFun
 
@@ -164,6 +166,75 @@ class Scenario:
             )
 
         return all(is_linear_ufun(u) for u in self.ufuns)
+
+    @property
+    def stability(self) -> Stability:
+        """Returns the combined stability of all utility functions in the scenario.
+
+        The combined stability is the bitwise AND of all ufun stabilities, meaning
+        a flag is only set if ALL ufuns have that flag set.
+
+        Returns:
+            Stability flags that are common to all ufuns in the scenario.
+
+        Examples:
+            >>> from negmas import make_issue, Scenario
+            >>> from negmas.preferences import LinearUtilityFunction, STATIONARY
+            >>> issues = [make_issue([0, 1, 2], "x")]
+            >>> u1 = LinearUtilityFunction(weights=[1.0], issues=issues)
+            >>> u2 = LinearUtilityFunction(weights=[0.5], issues=issues)
+            >>> scenario = Scenario(outcome_space=make_os(issues), ufuns=(u1, u2))
+            >>> scenario.stability == STATIONARY
+            True
+        """
+        if not self.ufuns:
+            return STATIONARY
+        result = self.ufuns[0].stability
+        for ufun in self.ufuns[1:]:
+            result = Stability(int(result) & int(ufun.stability))
+        return result
+
+    def is_volatile(self) -> bool:
+        """Check if the scenario is volatile (any ufun has no stability guarantees).
+
+        Returns True if the combined stability is VOLATILE (value = 0).
+        """
+        return self.stability.is_volatile
+
+    def is_stationary(self) -> bool:
+        """Check if all ufuns in the scenario are fully stationary.
+
+        Returns True only if ALL ufuns have ALL stability flags set.
+        """
+        return self.stability.is_stationary
+
+    def is_session_dependent(self) -> bool:
+        """Check if any ufun depends on session details (NMI)."""
+        return self.stability.is_session_dependent
+
+    def is_state_dependent(self) -> bool:
+        """Check if any ufun depends on state variables."""
+        return self.stability.is_state_dependent
+
+    @property
+    def has_stable_min(self) -> bool:
+        """Check if minimum utility is stable for all ufuns."""
+        return self.stability.has_stable_min
+
+    @property
+    def has_stable_max(self) -> bool:
+        """Check if maximum utility is stable for all ufuns."""
+        return self.stability.has_stable_max
+
+    @property
+    def has_stable_ordering(self) -> bool:
+        """Check if outcome ordering is stable for all ufuns."""
+        return self.stability.has_stable_ordering
+
+    @property
+    def has_stable_diff_ratios(self) -> bool:
+        """Check if relative utility differences are stable for all ufuns."""
+        return self.stability.has_stable_diff_ratios
 
     def plot(
         self,

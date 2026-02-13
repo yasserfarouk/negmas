@@ -62,6 +62,10 @@ class GeniusNegotiator(SAONegotiator):
                 If false, ignore these exceptions and assume a None return.
                 If None use strict for n_steps limited negotiations and not strict for time_limit
                 limited ones.
+        none_offer_response: How to respond when receiving a None offer. Options are:
+                - "latest": Respond with the latest offer made by this negotiator (default)
+                - "best": Respond with the best offer according to this negotiator's ufun
+                If "latest" is selected but no previous offer exists, falls back to "best".
     """
 
     def __init__(
@@ -78,6 +82,7 @@ class GeniusNegotiator(SAONegotiator):
         port: int = DEFAULT_JAVA_PORT,
         genius_bridge_path: str | None = None,
         strict: bool | None = None,
+        none_offer_response: str = "latest",
         id: str | None = None,
         **kwargs,
     ):
@@ -89,6 +94,7 @@ class GeniusNegotiator(SAONegotiator):
         self.__destroyed = False
         self.__started = False
         self._strict = strict
+        self._none_offer_response = none_offer_response
         self.capabilities["propose"] = can_propose
         self.add_capabilities({"genius": True})
         self.genius_bridge_path = (
@@ -300,19 +306,11 @@ class GeniusNegotiator(SAONegotiator):
 
         Returns:
             True if successfully joined, False otherwise
-
-        Raises:
-            ValueError: If the mechanism allows None offers (allow_none_with_data=True),
-                       which Genius negotiators cannot handle.
         """
         if ufun:
             preferences = ufun
         if not preferences:
             preferences = self.__preferences_received
-
-        # Check if the mechanism allows None offers - Genius negotiators cannot handle this
-        if hasattr(nmi, "allow_none_with_data") and nmi.allow_none_with_data:
-            return False
 
         result = super().join(
             nmi=nmi, state=state, preferences=preferences, ufun=None, role=role
@@ -731,6 +729,26 @@ class GeniusNegotiator(SAONegotiator):
             s = int(s / self.nmi.n_negotiators)
         return s
 
+    def on_none_offer(self, state: SAOState, source: str | None = None) -> SAOResponse:
+        """
+        Called when the negotiator receives a None offer.
+
+        Override this method to customize behavior when a None offer is received.
+        The default implementation uses `none_offer_response` setting to decide
+        whether to respond with the latest offer or the best offer.
+
+        Args:
+            state: The current SAO negotiation state
+            source: The ID of the negotiator who made the None offer
+
+        Returns:
+            SAOResponse with the action and offer to respond with
+        """
+        if self._none_offer_response == "latest" and self.__my_last_offer is not None:
+            return SAOResponse(ResponseType.REJECT_OFFER, self.__my_last_offer)
+        # Fall back to best offer (via propose_sao which queries Java agent)
+        return self.propose_sao(state, source)
+
     def respond_sao(self, state: SAOState, source: str | None = None) -> None:
         """
         Processes an incoming offer and prepares a response for SAO mechanisms.
@@ -743,8 +761,10 @@ class GeniusNegotiator(SAONegotiator):
         if offer is None and self.__my_last_offer is not None and self._strict:
             raise ValueError(f"{self._me()} got counter with a None offer.")
         if offer is None:
-            # TODO: change this to use the correct source if multilateral negotiation
-            self.propose_sao(state, source)
+            response = self.on_none_offer(state, source)
+            self.__my_last_offer = response.outcome
+            self.__my_last_response = response.response
+            self.__my_last_offer_step = self._current_step(state)
             return
         proposer_id = self.nmi.genius_id(state.current_proposer)
         current_step = self._current_step(state)

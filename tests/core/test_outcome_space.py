@@ -613,3 +613,223 @@ class TestEdgeCases:
 
         assert "1" in repr_str and "2" in repr_str
         assert "1" in str_str and "2" in str_str
+
+
+class TestExtendedOutcome:
+    """Tests for ExtendedOutcome class and best_for method."""
+
+    def test_extended_outcome_with_only_outcome(self):
+        """Test ExtendedOutcome with only an outcome."""
+        from negmas.outcomes.common import ExtendedOutcome
+
+        outcome = (5, 10)
+        extended = ExtendedOutcome(outcome=outcome)
+
+        assert extended.outcome == (5, 10)
+        assert extended.outcome_space is None
+        assert extended.data is None
+
+    def test_extended_outcome_with_outcome_and_data(self):
+        """Test ExtendedOutcome with outcome and data."""
+        from negmas.outcomes.common import ExtendedOutcome
+
+        outcome = (5, 10)
+        data = {"text": "My offer", "confidence": 0.9}
+        extended = ExtendedOutcome(outcome=outcome, data=data)
+
+        assert extended.outcome == (5, 10)
+        assert extended.data["text"] == "My offer"
+        assert extended.data["confidence"] == 0.9
+
+    def test_extended_outcome_with_outcome_space(self):
+        """Test ExtendedOutcome with only an outcome_space (multiple offers)."""
+        from negmas.outcomes.common import ExtendedOutcome
+
+        issues = [make_issue(5, name="price"), make_issue(3, name="quantity")]
+        os = make_os(issues)
+        extended = ExtendedOutcome(outcome=None, outcome_space=os)
+
+        assert extended.outcome is None
+        assert extended.outcome_space is os
+
+    def test_extended_outcome_with_both_outcome_and_outcome_space(self):
+        """Test ExtendedOutcome with both outcome and outcome_space."""
+        from negmas.outcomes.common import ExtendedOutcome
+
+        issues = [make_issue(5, name="price"), make_issue(3, name="quantity")]
+        os = make_os(issues)
+        outcome = (2, 1)
+        extended = ExtendedOutcome(outcome=outcome, outcome_space=os)
+
+        assert extended.outcome == (2, 1)
+        assert extended.outcome_space is os
+
+    def test_best_for_with_only_outcome(self):
+        """Test best_for returns the outcome when only outcome is set."""
+        from negmas.outcomes.common import ExtendedOutcome
+        from negmas.preferences import LinearUtilityFunction
+
+        issues = [make_issue(5, name="price"), make_issue(3, name="quantity")]
+        ufun = LinearUtilityFunction.random(issues=issues)
+
+        outcome = (2, 1)
+        extended = ExtendedOutcome(outcome=outcome)
+
+        result = extended.best_for(ufun)
+        assert result == outcome
+
+    def test_best_for_with_only_outcome_space(self):
+        """Test best_for returns the best outcome from outcome_space."""
+        from negmas.outcomes.common import ExtendedOutcome
+        from negmas.preferences import LinearUtilityFunction
+
+        issues = [make_issue(5, name="price"), make_issue(3, name="quantity")]
+        os = make_os(issues)
+        # Use positive weights so higher values are better
+        ufun = LinearUtilityFunction(weights=[1.0, 1.0], issues=issues)
+
+        extended = ExtendedOutcome(outcome=None, outcome_space=os)
+
+        result = extended.best_for(ufun)
+        # With positive weights, best outcome should be (4, 2) - max values
+        assert result == (4, 2)
+        # Verify it's actually the best
+        assert ufun(result) == ufun.max()
+
+    def test_best_for_with_both_outcome_and_outcome_space(self):
+        """Test best_for returns best from outcome_space when both are set."""
+        from negmas.outcomes.common import ExtendedOutcome
+        from negmas.preferences import LinearUtilityFunction
+
+        issues = [make_issue(5, name="price"), make_issue(3, name="quantity")]
+        os = make_os(issues)
+        # Use positive weights so higher values are better
+        ufun = LinearUtilityFunction(weights=[1.0, 1.0], issues=issues)
+
+        # outcome is NOT the best in the space
+        outcome = (1, 0)
+        extended = ExtendedOutcome(outcome=outcome, outcome_space=os)
+
+        result = extended.best_for(ufun)
+        # Should return best from outcome_space, not the provided outcome
+        assert result == (4, 2)
+        assert result != outcome
+
+    def test_best_for_with_none_outcome_and_none_space(self):
+        """Test best_for returns None when both outcome and outcome_space are None."""
+        from negmas.outcomes.common import ExtendedOutcome
+        from negmas.preferences import LinearUtilityFunction
+
+        issues = [make_issue(5, name="price"), make_issue(3, name="quantity")]
+        ufun = LinearUtilityFunction.random(issues=issues)
+
+        extended = ExtendedOutcome(outcome=None, outcome_space=None)
+
+        result = extended.best_for(ufun)
+        assert result is None
+
+    def test_best_for_with_singleton_outcome_space(self):
+        """Test best_for with a SingletonOutcomeSpace (single outcome in space)."""
+        from negmas.outcomes.common import ExtendedOutcome
+        from negmas.preferences import LinearUtilityFunction
+
+        issues = [make_issue(5, name="price"), make_issue(3, name="quantity")]
+        ufun = LinearUtilityFunction.random(issues=issues)
+
+        single_outcome = (3, 1)
+        singleton_os = SingletonOutcomeSpace(single_outcome, name="single")
+        extended = ExtendedOutcome(outcome=None, outcome_space=singleton_os)
+
+        result = extended.best_for(ufun)
+        assert result == single_outcome
+
+    def test_best_for_with_negative_weights(self):
+        """Test best_for correctly finds best with negative weights."""
+        from negmas.outcomes.common import ExtendedOutcome
+        from negmas.preferences import LinearUtilityFunction
+
+        issues = [make_issue(5, name="price"), make_issue(3, name="quantity")]
+        os = make_os(issues)
+        # Use negative weights so lower values are better
+        ufun = LinearUtilityFunction(weights=[-1.0, -1.0], issues=issues)
+
+        extended = ExtendedOutcome(outcome=None, outcome_space=os)
+
+        result = extended.best_for(ufun)
+        # With negative weights, best outcome should be (0, 0) - min values
+        assert result == (0, 0)
+        assert ufun(result) == ufun.max()
+
+    def test_best_for_with_mixed_weights(self):
+        """Test best_for correctly finds best with mixed positive/negative weights."""
+        from negmas.outcomes.common import ExtendedOutcome
+        from negmas.preferences import LinearUtilityFunction
+
+        issues = [make_issue(5, name="price"), make_issue(3, name="quantity")]
+        os = make_os(issues)
+        # First issue: higher is better, second issue: lower is better
+        ufun = LinearUtilityFunction(weights=[1.0, -1.0], issues=issues)
+
+        extended = ExtendedOutcome(outcome=None, outcome_space=os)
+
+        result = extended.best_for(ufun)
+        # Best should be (4, 0) - max first, min second
+        assert result == (4, 0)
+        assert ufun(result) == ufun.max()
+
+    def test_extract_outcome_with_extended_outcome(self):
+        """Test extract_outcome extracts the outcome from ExtendedOutcome."""
+        from negmas.outcomes.common import ExtendedOutcome, extract_outcome
+
+        outcome = (5, 10)
+        extended = ExtendedOutcome(outcome=outcome, data={"text": "test"})
+
+        assert extract_outcome(extended) == (5, 10)
+        assert extract_outcome(outcome) == (5, 10)
+        assert extract_outcome(None) is None
+
+    def test_extract_text_with_extended_outcome(self):
+        """Test extract_text extracts text from ExtendedOutcome data."""
+        from negmas.outcomes.common import ExtendedOutcome, extract_text
+
+        extended_with_text = ExtendedOutcome(
+            outcome=(5, 10), data={"text": "My proposal"}
+        )
+        extended_without_text = ExtendedOutcome(outcome=(5, 10), data={"other": "data"})
+        extended_no_data = ExtendedOutcome(outcome=(5, 10))
+
+        assert extract_text(extended_with_text) == "My proposal"
+        assert extract_text(extended_without_text) == ""
+        assert extract_text(extended_no_data) is None
+        assert extract_text((5, 10)) is None
+
+    def test_extended_outcome_is_frozen(self):
+        """Test that ExtendedOutcome is immutable (frozen)."""
+        from negmas.outcomes.common import ExtendedOutcome
+
+        extended = ExtendedOutcome(outcome=(5, 10))
+
+        with pytest.raises(AttributeError):
+            extended.outcome = (1, 2)  # type: ignore
+
+    def test_best_for_with_subset_outcome_space(self):
+        """Test best_for with an outcome_space that's a subset of the ufun's space."""
+        from negmas.outcomes.common import ExtendedOutcome
+        from negmas.preferences import LinearUtilityFunction
+
+        # Create ufun with larger outcome space
+        full_issues = [make_issue(10, name="price"), make_issue(5, name="quantity")]
+        ufun = LinearUtilityFunction(weights=[1.0, 1.0], issues=full_issues)
+
+        # Create a smaller subset outcome space
+        subset_issues = [make_issue(3, name="price"), make_issue(2, name="quantity")]
+        subset_os = make_os(subset_issues)
+
+        extended = ExtendedOutcome(outcome=None, outcome_space=subset_os)
+
+        result = extended.best_for(ufun)
+        # Best in subset should be (2, 1) - max values in the subset
+        assert result == (2, 1)
+        # Verify it's the best within the subset
+        for o in subset_os.enumerate():
+            assert ufun(result) >= ufun(o)
