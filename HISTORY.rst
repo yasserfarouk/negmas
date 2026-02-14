@@ -1,6 +1,18 @@
 History
 =======
 
+Release 0.15.1.post1
+--------------------
+
+**Documentation Improvements:**
+
+* Fix broken code examples in documentation (15 instances across 4 files)
+* Update publications list with recent research papers (2024-2025)
+* Add comprehensive negmas-app GUI documentation
+* Improve ecosystem diagram readability
+* Fix upgrade guide section ordering
+* Add ensemble negotiator behavior caveat
+
 Release 0.15.1
 --------------
 
