@@ -251,7 +251,8 @@ def _convert_json_columns_from_parquet(
     if json_columns is None:
         json_columns = []
         for col in df.columns:
-            if df[col].dtype == object:
+            # Check for both 'object' dtype and string dtypes (including pandas StringDtype)
+            if df[col].dtype == object or pd.api.types.is_string_dtype(df[col]):
                 sample = df[col].dropna().head(10)
                 if len(sample) > 0:
                     # Check if values look like JSON strings
@@ -501,7 +502,36 @@ def _parse_list_value(value: Any) -> Any:
     # Try to parse as a Python literal (list, tuple, dict, etc.)
     if value.startswith(("[", "(", "{")):
         try:
-            return ast.literal_eval(value)
+            # ast.literal_eval doesn't support inf/nan, so we need to handle them
+            # by replacing them with valid float representations before parsing
+            modified = value
+            # Replace inf/nan with placeholder strings, then convert back
+            modified = modified.replace("-inf", "__NEG_INF__")
+            modified = modified.replace("inf", "__POS_INF__")
+            modified = modified.replace("nan", "__NAN__")
+            modified = modified.replace("__NEG_INF__", "'-inf'")
+            modified = modified.replace("__POS_INF__", "'inf'")
+            modified = modified.replace("__NAN__", "'nan'")
+            result = ast.literal_eval(modified)
+
+            # Convert the string placeholders back to floats
+            def convert_special_floats(obj):
+                if isinstance(obj, str):
+                    if obj == "-inf":
+                        return float("-inf")
+                    elif obj == "inf":
+                        return float("inf")
+                    elif obj == "nan":
+                        return float("nan")
+                    return obj
+                elif isinstance(obj, (list, tuple)):
+                    converted = [convert_special_floats(x) for x in obj]
+                    return type(obj)(converted)
+                elif isinstance(obj, dict):
+                    return {k: convert_special_floats(v) for k, v in obj.items()}
+                return obj
+
+            return convert_special_floats(result)
         except (ValueError, SyntaxError):
             return value
     # Handle "None" string
@@ -4558,7 +4588,9 @@ def continue_cartesian_tournament(
             ),
             raw_aggregated_metrics=config.get("raw_aggregated_metrics"),
             stats_aggregated_metrics=config.get("stats_aggregated_metrics"),
-            final_score=config["final_score"],
+            final_score=tuple(config["final_score"])
+            if isinstance(config["final_score"], list)
+            else config["final_score"],
             id_reveals_type=config["id_reveals_type"],
             name_reveals_type=config["name_reveals_type"],
             raise_exceptions=config["raise_exceptions"],
