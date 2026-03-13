@@ -124,6 +124,7 @@ class UtilityFunctionAdapter(BaseUtilityFunction):
             name=self.name,
             outcome_space=self.outcome_space,
             reserved_value=self.reserved_value,
+            constraints=self._constraints,
         )
 
     def to_dict(

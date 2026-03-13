@@ -545,6 +545,7 @@ class GLAUtilityFunction(UtilityFunction):
             reserved_value=(
                 self.reserved_value + offset if shift_reserved else self.reserved_value
             ),
+            constraints=self._constraints,
         )
 
     def scale_by(self, scale: float, scale_reserved: bool = True) -> GLAUtilityFunction:
@@ -576,6 +577,7 @@ class GLAUtilityFunction(UtilityFunction):
             reserved_value=(
                 self.reserved_value * scale if scale_reserved else self.reserved_value
             ),
+            constraints=self._constraints,
         )
 
     def __str__(self) -> str:

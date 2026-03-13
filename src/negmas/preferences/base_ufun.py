@@ -14,7 +14,7 @@ from negmas import warnings
 from negmas.common import Distribution, Value
 from negmas.helpers.prob import Real, make_distribution
 from negmas.outcomes import Issue, Outcome, dict2outcome
-from negmas.outcomes.common import check_one_at_most, os_or_none
+from negmas.outcomes.common import Constraint, check_one_at_most, os_or_none
 from negmas.outcomes.issue_ops import issues_from_geniusweb_json
 from negmas.outcomes.outcome_space import make_os
 from negmas.outcomes.protocols import IndependentIssuesOS, OutcomeSpace
@@ -59,6 +59,7 @@ class BaseUtilityFunction(Preferences, ABC):
         *args,
         reserved_value: Value = float("-inf"),
         invalid_value: float | None = None,
+        constraints: Iterable[Constraint] | None = None,
         **kwargs,
     ):
         """Initialize the instance.
@@ -69,6 +70,9 @@ class BaseUtilityFunction(Preferences, ABC):
                 returns a float (mean if Distribution). Use reserved_distribution to get
                 the full distribution.
             invalid_value: The value to return for invalid outcomes.
+            constraints: An optional iterable of constraint functions. Each constraint is
+                a callable that takes an Outcome and returns True if valid, False otherwise.
+                Outcomes that fail any constraint will have utility set to -inf.
             *args: Additional positional arguments.
             **kwargs: Additional keyword arguments.
         """
@@ -80,6 +84,8 @@ class BaseUtilityFunction(Preferences, ABC):
         # Caches for min/max/extreme outcomes (only used when stability allows)
         self._cached_minmax: tuple[float, float] | None = None
         self._cached_extreme_outcomes: tuple[Outcome, Outcome] | None = None
+        # Constraints
+        self._constraints: list[Constraint] = list(constraints) if constraints else []
 
     @property
     def reserved_value(self) -> float:
@@ -108,6 +114,58 @@ class BaseUtilityFunction(Preferences, ABC):
         If the underlying value is a float, returns a delta distribution at that value.
         """
         return make_distribution(self._reserved_value)
+
+    @property
+    def constraints(self) -> list[Constraint]:
+        """Returns the list of constraint functions."""
+        return self._constraints
+
+    def add_constraint(self, constraint: Constraint) -> None:
+        """Add a constraint function to this utility function.
+
+        Args:
+            constraint: A callable that takes an Outcome and returns True if valid, False otherwise.
+
+        Remarks:
+            - Adding constraints may invalidate cached values, so caches are cleared.
+        """
+        self._constraints.append(constraint)
+        self.clear_caches()
+
+    def remove_constraint(self, constraint: Constraint) -> None:
+        """Remove a constraint function from this utility function.
+
+        Args:
+            constraint: The constraint function to remove.
+
+        Remarks:
+            - Removing constraints may change which outcomes are valid, so caches are cleared.
+        """
+        try:
+            self._constraints.remove(constraint)
+            self.clear_caches()
+        except ValueError:
+            pass  # Constraint not in list, ignore
+
+    def clear_constraints(self) -> None:
+        """Remove all constraints from this utility function.
+
+        Remarks:
+            - Clears all caches since removing constraints changes valid outcomes.
+        """
+        self._constraints.clear()
+        self.clear_caches()
+
+    def satisfies_constraints(self, outcome: Outcome) -> bool:
+        """Check if an outcome satisfies all constraints.
+
+        Args:
+            outcome: The outcome to check.
+
+        Returns:
+            True if the outcome satisfies all constraints, False otherwise.
+        """
+        return all(constraint(outcome) for constraint in self._constraints)
 
     @abstractmethod
     def eval(self, offer: Outcome) -> Value:
@@ -210,6 +268,12 @@ class BaseUtilityFunction(Preferences, ABC):
         # Convert to list to allow multiple iterations and length check
         outcomes_list = list(outcomes)
         warn_if_slow(len(outcomes_list), "Extreme Outcomes too Slow")
+
+        # Filter out outcomes that violate constraints (if any)
+        if self._constraints:
+            outcomes_list = [o for o in outcomes_list if self.satisfies_constraints(o)]
+            if not outcomes_list:
+                raise ValueError("All outcomes violate constraints")
 
         mn, mx = float("inf"), float("-inf")
         worst, best = None, None
@@ -419,7 +483,11 @@ class BaseUtilityFunction(Preferences, ABC):
 
         r = (scale * self.reserved_value) if scale_reserved else self.reserved_value
         return WeightedUtilityFunction(
-            ufuns=[self], weights=[scale], name=self.name, reserved_value=r
+            ufuns=[self],
+            weights=[scale],
+            name=self.name,
+            reserved_value=r,
+            constraints=self._constraints,
         )
 
     def scale_min_for(
@@ -841,6 +909,7 @@ class BaseUtilityFunction(Preferences, ABC):
             weights=[1, 1],
             name=self.name,
             reserved_value=r,
+            constraints=self._constraints,
         )
 
     def shift_min_for(
@@ -1094,24 +1163,22 @@ class BaseUtilityFunction(Preferences, ABC):
         Examples:
 
             >>> from negmas.preferences import UtilityFunction
-            >>> import pkg_resources
+            >>> from pathlib import Path
+            >>> import negmas
             >>> from negmas.inout import load_genius_domain
             >>> domain = load_genius_domain(
-            ...     pkg_resources.resource_filename(
-            ...         "negmas", resource_name="tests/data/Laptop/Laptop-C-domain.xml"
-            ...     )
+            ...     Path(negmas.__file__).parent.parent.parent
+            ...     / "tests/data/Laptop/Laptop-C-domain.xml"
             ... )
             >>> with open(
-            ...     pkg_resources.resource_filename(
-            ...         "negmas", resource_name="tests/data/Laptop/Laptop-C-prof1.xml"
-            ...     ),
+            ...     Path(negmas.__file__).parent.parent.parent
+            ...     / "tests/data/Laptop/Laptop-C-prof1.xml",
             ...     "r",
             ... ) as ff:
             ...     u, _ = UtilityFunction.from_xml_str(ff.read(), issues=domain.issues)
             >>> with open(
-            ...     pkg_resources.resource_filename(
-            ...         "negmas", resource_name="tests/data/Laptop/Laptop-C-prof1.xml"
-            ...     ),
+            ...     Path(negmas.__file__).parent.parent.parent
+            ...     / "tests/data/Laptop/Laptop-C-prof1.xml",
             ...     "r",
             ... ) as ff:
             ...     u, _ = UtilityFunction.from_xml_str(ff.read(), issues=domain.issues)
@@ -1403,17 +1470,16 @@ class BaseUtilityFunction(Preferences, ABC):
         Examples:
 
             >>> from negmas.preferences import UtilityFunction
-            >>> import pkg_resources
+            >>> from pathlib import Path
+            >>> import negmas
             >>> from negmas.inout import load_genius_domain
             >>> domain = load_genius_domain(
-            ...     pkg_resources.resource_filename(
-            ...         "negmas", resource_name="tests/data/Laptop/Laptop-C-domain.xml"
-            ...     )
+            ...     Path(negmas.__file__).parent.parent.parent
+            ...     / "tests/data/Laptop/Laptop-C-domain.xml"
             ... )
             >>> u, d = UtilityFunction.from_genius(
-            ...     file_name=pkg_resources.resource_filename(
-            ...         "negmas", resource_name="tests/data/Laptop/Laptop-C-prof1.xml"
-            ...     ),
+            ...     file_name=Path(negmas.__file__).parent.parent.parent
+            ...     / "tests/data/Laptop/Laptop-C-prof1.xml",
             ...     issues=domain.issues,
             ... )
             >>> u.__class__.__name__
@@ -1621,24 +1687,21 @@ class BaseUtilityFunction(Preferences, ABC):
 
             >>> from negmas.preferences import UtilityFunction
             >>> from negmas.inout import load_genius_domain
-            >>> import pkg_resources
+            >>> from pathlib import Path
+            >>> import negmas
             >>> domain = load_genius_domain(
-            ...     domain_file_name=pkg_resources.resource_filename(
-            ...         "negmas", resource_name="tests/data/Laptop/Laptop-C-domain.xml"
-            ...     )
+            ...     domain_file_name=Path(negmas.__file__).parent.parent.parent
+            ...     / "tests/data/Laptop/Laptop-C-domain.xml"
             ... )
             >>> u, d = UtilityFunction.from_genius(
-            ...     file_name=pkg_resources.resource_filename(
-            ...         "negmas", resource_name="tests/data/Laptop/Laptop-C-prof1.xml"
-            ...     ),
+            ...     file_name=Path(negmas.__file__).parent.parent.parent
+            ...     / "tests/data/Laptop/Laptop-C-prof1.xml",
             ...     issues=domain.issues,
             ... )
             >>> u.to_genius(
             ...     discount_factor=d,
-            ...     file_name=pkg_resources.resource_filename(
-            ...         "negmas",
-            ...         resource_name="tests/data/LaptopConv/Laptop-C-prof1.xml",
-            ...     ),
+            ...     file_name=Path(negmas.__file__).parent.parent.parent
+            ...     / "tests/data/LaptopConv/Laptop-C-prof1.xml",
             ...     issues=domain.issues,
             ... )
 
@@ -1693,16 +1756,17 @@ class BaseUtilityFunction(Preferences, ABC):
 
         Remarks:
 
-            - It calls the abstract method `eval` after opationally adjusting the
+            - It calls the abstract method `eval` after optionally adjusting the
               outcome type.
             - It is preferred to override eval instead of directly overriding this method
             - You cannot return None from overriden eval() functions but raise an exception (ValueError) if it was
               not possible to calculate the Value.
             - Return a float from your `eval` implementation.
             - Return the reserved value if the offer was None
+            - If the outcome violates any constraint, -inf is returned
 
         Returns:
-            The utility of the given outcome
+            The utility of the given outcome, or -inf if any constraint is violated
         """
         if offer is None:
             return self.reserved_value  # type: ignore I know that concrete subclasses will be returning the correct type
@@ -1712,6 +1776,9 @@ class BaseUtilityFunction(Preferences, ABC):
             and offer not in self.outcome_space
         ):
             return self._invalid_value
+        # Check constraints - if any constraint fails, return -inf
+        if self._constraints and not self.satisfies_constraints(offer):
+            return float("-inf")
         return self.eval(offer)
 
 

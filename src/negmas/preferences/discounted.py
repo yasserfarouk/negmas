@@ -325,6 +325,7 @@ class ExpDiscountedUFun(DiscountedUtilityFunction):
             if shift_reserved
             else self.reserved_value,
             dynamic_reservation=self.dynamic_reservation,
+            constraints=self._constraints,
         )
 
     def scale_by(self, scale: float, scale_reserved: bool = True) -> ExpDiscountedUFun:
@@ -347,6 +348,7 @@ class ExpDiscountedUFun(DiscountedUtilityFunction):
             if scale_reserved
             else self.reserved_value,
             dynamic_reservation=self.dynamic_reservation,
+            constraints=self._constraints,
         )
 
     def to_dict(

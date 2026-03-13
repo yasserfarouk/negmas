@@ -374,6 +374,7 @@ class AffineUtilityFunction(UtilityFunction):
             reserved_value=self.reserved_value
             if not shift_reserved
             else (self.reserved_value + offset),
+            constraints=self._constraints,
         )
 
     def scale_by(
@@ -404,6 +405,7 @@ class AffineUtilityFunction(UtilityFunction):
             reserved_value=self.reserved_value
             if not scale_reserved
             else (self.reserved_value * scale),
+            constraints=self._constraints,
         )
 
     def normalize_for(
@@ -472,10 +474,17 @@ class AffineUtilityFunction(UtilityFunction):
         weights = [_ * scale for _ in self._weights]
         if abs(bias) < epsilon:
             return LinearUtilityFunction(
-                weights, outcome_space=outcome_space, name=self.name
+                weights,
+                outcome_space=outcome_space,
+                name=self.name,
+                constraints=self._constraints,
             )
         return AffineUtilityFunction(
-            weights, bias, outcome_space=outcome_space, name=self.name
+            weights,
+            bias,
+            outcome_space=outcome_space,
+            name=self.name,
+            constraints=self._constraints,
         )
 
     def normalize(
@@ -539,7 +548,12 @@ class AffineUtilityFunction(UtilityFunction):
 
         result = None
         if outcome_space is not None:
-            if not isinstance(outcome_space, IndependentIssuesOS):
+            # If there are constraints, fall back to parent implementation which enumerates and filters
+            if self._constraints:
+                result = super().extreme_outcomes(
+                    original_os, issues, outcomes, max_cardinality
+                )
+            elif not isinstance(outcome_space, IndependentIssuesOS):
                 result = super().extreme_outcomes(
                     original_os, issues, outcomes, max_cardinality
                 )
@@ -986,7 +1000,12 @@ class LinearAdditiveUtilityFunction(UtilityFunction):  # type: ignore
             outcome_space = self.outcome_space
 
         result = None
-        if outcome_space is None or not isinstance(
+        # If there are constraints, fall back to parent implementation which enumerates and filters
+        if self._constraints:
+            result = super().extreme_outcomes(
+                original_os, issues, outcomes, max_cardinality
+            )
+        elif outcome_space is None or not isinstance(
             outcome_space, CartesianOutcomeSpace
         ):
             result = super().extreme_outcomes(
@@ -1230,6 +1249,7 @@ class LinearAdditiveUtilityFunction(UtilityFunction):  # type: ignore
             outcome_space=os_,
             name=self.name,
             reserved_value=r,
+            constraints=self._constraints,
         )
 
     def shift_by(
@@ -1258,6 +1278,7 @@ class LinearAdditiveUtilityFunction(UtilityFunction):  # type: ignore
                 if not shift_reserved
                 else (self.reserved_value + offset),
                 outcome_space=self.outcome_space,
+                constraints=self._constraints,
             )
         values = [v.shift_by(offset) for v in self.values]
 
@@ -1270,6 +1291,7 @@ class LinearAdditiveUtilityFunction(UtilityFunction):  # type: ignore
             if not shift_reserved
             else (self.reserved_value + offset),
             outcome_space=self.outcome_space,
+            constraints=self._constraints,
         )
 
     def scale_by(
@@ -1321,6 +1343,7 @@ class LinearAdditiveUtilityFunction(UtilityFunction):  # type: ignore
                 if not scale_reserved
                 else (self.reserved_value * wscale),
                 name=self.name,
+                constraints=self._constraints,
             )
         return LinearAdditiveUtilityFunction(
             values=[_.scale_by(scale / wscale) for _ in self.values],
@@ -1330,6 +1353,7 @@ class LinearAdditiveUtilityFunction(UtilityFunction):  # type: ignore
             if not scale_reserved
             else (self.reserved_value * wscale * scale),
             name=self.name,
+            constraints=self._constraints,
         )
 
     def __str__(self):

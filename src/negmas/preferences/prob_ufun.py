@@ -254,12 +254,22 @@ class ProbUtilityFunction(_ExtremelyDynamic, BaseUtilityFunction):
               not possible to calculate the Value.
             - Return a float from your `eval` implementation.
             - Return the reserved value if the offer was None
+            - If the outcome violates any constraint, -inf is returned
 
         Returns:
-            The utility of the given outcome
+            The utility of the given outcome, or -inf if any constraint is violated
         """
         if offer is None:
             return self.reserved_distribution
+        if (
+            self._invalid_value is not None
+            and self.outcome_space
+            and offer not in self.outcome_space
+        ):
+            return Real(self._invalid_value)
+        # Check constraints - if any constraint fails, return -inf
+        if self._constraints and not self.satisfies_constraints(offer):
+            return Real(float("-inf"))
         v = self.eval(offer)
         if isinstance(v, float):
             return Real(v)

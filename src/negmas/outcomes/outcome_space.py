@@ -20,6 +20,7 @@ from negmas.outcomes.outcome_ops import (
     outcome_is_valid,
     outcome_types_are_ok,
 )
+from negmas.outcomes.common import Constraint
 from negmas.protocols import XmlSerializable
 from negmas.serialization import PYTHON_CLASS_IDENTIFIER, deserialize, serialize
 from negmas.warnings import NegmasSpeedWarning, warn
@@ -121,6 +122,21 @@ class EnumeratingOutcomeSpace(DiscreteOutcomeSpace, OSWithValidity):
 
     name: str | None = field(eq=False, default=None)
     path: Path | None = field(eq=False, default=None)
+    _constraints: list[Constraint] = field(
+        factory=list, eq=False, repr=False, alias="constraints"
+    )
+
+    def __attrs_post_init__(self):
+        """Ensures _constraints is a mutable list."""
+        if self._constraints is None:
+            object.__setattr__(self, "_constraints", [])
+        elif not isinstance(self._constraints, list):
+            object.__setattr__(self, "_constraints", list(self._constraints))
+
+    @property
+    def constraints(self) -> list[Constraint]:
+        """Returns the list of constraint functions."""
+        return self._constraints
 
     def invalidate(self, outcome: Outcome) -> None:
         """Indicates that the outcome is invalid"""
@@ -135,9 +151,46 @@ class EnumeratingOutcomeSpace(DiscreteOutcomeSpace, OSWithValidity):
             pass
         self.update()
 
+    def add_constraint(self, constraint: Constraint) -> None:
+        """Add a constraint function to this outcome space.
+
+        Args:
+            constraint: A callable that takes an Outcome and returns True if valid, False otherwise.
+
+        Remarks:
+            - Outcomes that fail this constraint will be filtered out from enumerate, sample, etc.
+        """
+        self.constraints.append(constraint)
+
+    def remove_constraint(self, constraint: Constraint) -> None:
+        """Remove a constraint function from this outcome space.
+
+        Args:
+            constraint: The constraint function to remove.
+        """
+        try:
+            self.constraints.remove(constraint)
+        except ValueError:
+            pass  # Constraint not in list, ignore
+
+    def clear_constraints(self) -> None:
+        """Remove all constraints from this outcome space."""
+        self.constraints.clear()
+
+    def satisfies_constraints(self, outcome: Outcome) -> bool:
+        """Check if an outcome satisfies all constraints.
+
+        Args:
+            outcome: The outcome to check.
+
+        Returns:
+            True if the outcome satisfies all constraints, False otherwise.
+        """
+        return all(constraint(outcome) for constraint in self.constraints)
+
     def is_valid(self, outcome: Outcome) -> bool:
         """Checks if the given outcome is valid for that outcome space"""
-        return outcome in self._baseset
+        return outcome in self._baseset and self.satisfies_constraints(outcome)
 
     def are_types_ok(self, outcome: Outcome) -> bool:
         """Checks if the type of each value in the outcome is correct for the given issue"""
@@ -150,7 +203,11 @@ class EnumeratingOutcomeSpace(DiscreteOutcomeSpace, OSWithValidity):
     @property
     def cardinality(self) -> int:
         """The space cardinality = the number of outcomes"""
-        return len(self._baseset)
+        if not self.constraints:
+            return len(self._baseset)
+        # When constraints exist, we need to count valid outcomes
+        # Cache this if it becomes a performance issue
+        return sum(1 for _ in self.enumerate())
 
     def is_numeric(self) -> bool:
         """Checks whether all values in all outcomes are numeric"""
@@ -242,17 +299,23 @@ class EnumeratingOutcomeSpace(DiscreteOutcomeSpace, OSWithValidity):
         """
         Enumerates the outcome space returning all its outcomes (or up to max_cardinality for infinite ones)
         """
-        return self._baseset
+        if not self.constraints:
+            return self._baseset
+        return (o for o in self._baseset if self.satisfies_constraints(o))
 
     def sample(
         self, n_outcomes: int, with_replacement: bool = False, fail_if_not_enough=False
     ) -> Iterable[Outcome]:
         """Samples up to n_outcomes with or without replacement"""
-        if self.cardinality < n_outcomes and not with_replacement:
+        # Filter baseset by constraints if any
+        valid_outcomes = list(self.enumerate())
+        cardinality = len(valid_outcomes)
+
+        if cardinality < n_outcomes and not with_replacement:
             return []
         if with_replacement:
-            return (random.choice(list(self._baseset)) for _ in range(n_outcomes))
-        return random.sample(list(self._baseset), k=n_outcomes)
+            return (random.choice(valid_outcomes) for _ in range(n_outcomes))
+        return random.sample(valid_outcomes, k=n_outcomes)
 
     def limit_cardinality(
         self,
@@ -306,11 +369,61 @@ class CartesianOutcomeSpace(XmlSerializable):
     issues: tuple[Issue, ...] = field(converter=tuple)
     name: str | None = field(eq=False, default=None)
     path: Path | None = field(eq=False, default=None)
+    _constraints: list[Constraint] = field(
+        factory=list, eq=False, repr=False, alias="constraints"
+    )
 
     def __attrs_post_init__(self):
         """Generates a unique name for the outcome space if none was provided."""
         if not self.name:
             object.__setattr__(self, "name", unique_name("os", add_time=False, sep=""))
+        # Ensure _constraints is a mutable list (in case it was passed as tuple or other sequence)
+        if self._constraints is None:
+            object.__setattr__(self, "_constraints", [])
+        elif not isinstance(self._constraints, list):
+            object.__setattr__(self, "_constraints", list(self._constraints))
+
+    @property
+    def constraints(self) -> list[Constraint]:
+        """Returns the list of constraint functions."""
+        return self._constraints
+
+    def add_constraint(self, constraint: Constraint) -> None:
+        """Add a constraint function to this outcome space.
+
+        Args:
+            constraint: A callable that takes an Outcome and returns True if valid, False otherwise.
+
+        Remarks:
+            - Outcomes that fail this constraint will be filtered out from enumerate, sample, etc.
+        """
+        self._constraints.append(constraint)
+
+    def remove_constraint(self, constraint: Constraint) -> None:
+        """Remove a constraint function from this outcome space.
+
+        Args:
+            constraint: The constraint function to remove.
+        """
+        try:
+            self._constraints.remove(constraint)
+        except ValueError:
+            pass  # Constraint not in list, ignore
+
+    def clear_constraints(self) -> None:
+        """Remove all constraints from this outcome space."""
+        self._constraints.clear()
+
+    def satisfies_constraints(self, outcome: Outcome) -> bool:
+        """Check if an outcome satisfies all constraints.
+
+        Args:
+            outcome: The outcome to check.
+
+        Returns:
+            True if the outcome satisfies all constraints, False otherwise.
+        """
+        return all(constraint(outcome) for constraint in self._constraints)
 
     def __mul__(self, other: CartesianOutcomeSpace) -> CartesianOutcomeSpace:
         """Returns a new outcome space that is the Cartesian product of this space and another."""
@@ -487,13 +600,28 @@ class CartesianOutcomeSpace(XmlSerializable):
         self, n_outcomes: int, with_replacement: bool = True, fail_if_not_enough=True
     ) -> Iterable[Outcome]:
         """Samples outcomes from this space, with or without replacement."""
-        return sample_issues(
+        samples = sample_issues(
             self.issues, n_outcomes, with_replacement, fail_if_not_enough
         )
+        if not self._constraints:
+            return samples
+        # Filter by constraints
+        return (o for o in samples if self.satisfies_constraints(o))
 
     def random_outcome(self):
         """Generates a single random outcome by sampling one value from each issue."""
-        return tuple(_.rand() for _ in self.issues)
+        if not self._constraints:
+            return tuple(_.rand() for _ in self.issues)
+        # Keep generating until we find a valid outcome
+        # Note: This could be slow if constraints are very restrictive
+        max_attempts = 1000
+        for _ in range(max_attempts):
+            outcome = tuple(_.rand() for _ in self.issues)
+            if self.satisfies_constraints(outcome):
+                return outcome
+        raise ValueError(
+            f"Could not generate a random outcome satisfying all constraints after {max_attempts} attempts"
+        )
 
     def cardinality_if_discretized(
         self, levels: int, max_cardinality: int | float = float("inf")
@@ -693,9 +821,13 @@ class DiscreteCartesianOutcomeSpace(CartesianOutcomeSpace):
 
     def enumerate(self) -> Iterable[Outcome]:
         """Iterates over all possible outcomes in this discrete space."""
-        return enumerate_discrete_issues(  #  type: ignore I know that all my issues are actually discrete
+        outcomes = enumerate_discrete_issues(  #  type: ignore I know that all my issues are actually discrete
             self.issues  #  type: ignore I know that all my issues are actually discrete
         )
+        if not self._constraints:
+            return outcomes
+        # Filter by constraints
+        return (o for o in outcomes if self.satisfies_constraints(o))
 
     def limit_cardinality(
         self,
@@ -833,7 +965,7 @@ class DiscreteCartesianOutcomeSpace(CartesianOutcomeSpace):
         return self.cardinality
 
 
-@define
+@define(frozen=True)
 class SingletonOutcomeSpace(DiscreteCartesianOutcomeSpace):
     """
     A discrete outcome-space representing a single outcome.
@@ -842,16 +974,14 @@ class SingletonOutcomeSpace(DiscreteCartesianOutcomeSpace):
     e.g., for checking containment or performing set operations.
 
     Args:
-        outcome: The outcome tuple to represent
+        outcome: The outcome tuple to represent (keyword-only)
         issue_names: Optional names for the issues. If None, generates names
                      as issue00, issue01, ...
         name: Optional name for the outcome space
     """
 
-    outcome: Outcome = field(converter=tuple)
-    issue_names: Sequence[str] | None = field(default=None, eq=False)
-    name: str | None = field(eq=False, default=None)
-    path: Path | None = field(eq=False, default=None)
+    outcome: Outcome = field(converter=tuple, kw_only=True)
+    issue_names: Sequence[str] | None = field(default=None, eq=False, kw_only=True)  # type: ignore[assignment]
     issues: tuple[SingletonIssue, ...] = field(init=False)  # type: ignore[assignment]
 
     def __attrs_post_init__(self):
@@ -869,7 +999,7 @@ class SingletonOutcomeSpace(DiscreteCartesianOutcomeSpace):
             SingletonIssue(value, name=iname)
             for value, iname in zip(self.outcome, computed_names)
         )
-        # Use object.__setattr__ since the class might have frozen-like behavior from parent
+        # Use object.__setattr__ since the class is frozen
         object.__setattr__(self, "issues", computed_issues)
 
     @property

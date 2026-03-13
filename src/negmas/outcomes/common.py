@@ -4,7 +4,7 @@ Common datastructures used in the outcomes module.
 
 from __future__ import annotations
 
-from typing import TYPE_CHECKING, Any, Mapping
+from typing import TYPE_CHECKING, Any, Callable, Mapping
 from attr import define
 
 from negmas.outcomes.issue_ops import issues_from_outcomes
@@ -23,6 +23,7 @@ __all__ = [
     "extract_outcome",
     "extract_text",
     "extract_data",
+    "Constraint",
 ]
 
 if TYPE_CHECKING:
@@ -31,6 +32,12 @@ if TYPE_CHECKING:
 
 Outcome = tuple
 """An outcome is a tuple of issue values."""
+
+Constraint = Callable[[Outcome], bool]
+"""
+A binary callable that receives an outcome and returns True if the outcome
+satisfies the constraint, False otherwise.
+"""
 
 
 @define(frozen=True)
