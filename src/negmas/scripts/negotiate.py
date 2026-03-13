@@ -5,7 +5,7 @@ from copy import deepcopy
 import pandas as pd
 import sys
 import random
-from typing import Any, Optional
+from typing import Any, Optional, Callable
 from pathlib import Path
 from time import perf_counter
 from negmas.inout import serialize
@@ -13,7 +13,6 @@ from negmas.plots.util import DEFAULT_IMAGE_FORMAT
 
 import typer
 import functools
-from pandas.core.window.numba_ import Callable
 from rich import print
 from stringcase import titlecase
 

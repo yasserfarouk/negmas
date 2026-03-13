@@ -2032,22 +2032,19 @@ def load_genius_domain_from_folder(
 
     Examples:
 
-        >>> import pkg_resources
+        >>> from pathlib import Path
+        >>> import negmas
         >>> from negmas import load_genius_domain_from_folder
 
         Try loading and running a domain with predetermined agents:
         >>> domain = load_genius_domain_from_folder(
-        ...     pkg_resources.resource_filename(
-        ...         "negmas", resource_name="tests/data/Laptop"
-        ...     )
+        ...     Path(negmas.__file__).parent.parent.parent / "tests/data/Laptop"
         ... )
 
 
         Try loading a domain and check the resulting ufuns
         >>> domain = load_genius_domain_from_folder(
-        ...     pkg_resources.resource_filename(
-        ...         "negmas", resource_name="tests/data/Laptop"
-        ...     )
+        ...     Path(negmas.__file__).parent.parent.parent / "tests/data/Laptop"
         ... )
 
         >>> domain.n_issues, domain.n_negotiators
@@ -2058,9 +2055,7 @@ def load_genius_domain_from_folder(
 
         Try loading a domain forcing a single issue space
         >>> domain = load_genius_domain_from_folder(
-        ...     pkg_resources.resource_filename(
-        ...         "negmas", resource_name="tests/data/Laptop"
-        ...     )
+        ...     Path(negmas.__file__).parent.parent.parent / "tests/data/Laptop"
         ... ).to_single_issue()
         >>> domain.n_issues, domain.n_negotiators
         (1, 2)
@@ -2069,8 +2064,8 @@ def load_genius_domain_from_folder(
 
 
         Try loading a domain with nonlinear ufuns:
-        >>> folder_name = pkg_resources.resource_filename(
-        ...     "negmas", resource_name="tests/data/10issues"
+        >>> folder_name = (
+        ...     Path(negmas.__file__).parent.parent.parent / "tests/data/10issues"
         ... )
         >>> domain = load_genius_domain_from_folder(folder_name)
         >>> print(domain.n_issues)

@@ -17,7 +17,6 @@ import os
 from pathlib import Path
 from typing import Callable
 
-import pkg_resources
 import pytest
 
 from negmas.genius.bridge import genius_bridge_is_running
@@ -31,10 +30,9 @@ TIMELIMIT = 60
 def laptop_domain():
     """Load the Laptop negotiation domain for testing."""
     from negmas.inout import Scenario
+    import negmas
 
-    base_folder = pkg_resources.resource_filename(
-        "negmas", resource_name="tests/data/Laptop"
-    )
+    base_folder = Path(negmas.__file__).parent.parent.parent / "tests/data/Laptop"
     domain = Scenario.from_genius_folder(Path(base_folder))
     assert domain is not None
     return domain
@@ -44,10 +42,9 @@ def laptop_domain():
 def car_domain():
     """Load the Car-A negotiation domain for testing."""
     from negmas.inout import Scenario
+    import negmas
 
-    base_folder = pkg_resources.resource_filename(
-        "negmas", resource_name="tests/data/Car-A-domain"
-    )
+    base_folder = Path(negmas.__file__).parent.parent.parent / "tests/data/Car-A-domain"
     domain = Scenario.from_genius_folder(Path(base_folder))
     assert domain is not None
     return domain

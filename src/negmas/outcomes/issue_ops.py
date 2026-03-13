@@ -562,22 +562,20 @@ def issues_to_genius(issues: Sequence[Issue], file_name: PathLike | str) -> None
 
     Examples:
 
-        >>> import pkg_resources
+        >>> from pathlib import Path
+        >>> import negmas
         >>> issues, _ = issues_from_genius(
-        ...     file_name=pkg_resources.resource_filename(
-        ...         "negmas", resource_name="tests/data/Laptop/Laptop-C-domain.xml"
-        ...     )
+        ...     file_name=Path(negmas.__file__).parent.parent.parent
+        ...     / "tests/data/Laptop/Laptop-C-domain.xml"
         ... )
         >>> issues_to_genius(
         ...     issues=issues,
-        ...     file_name=pkg_resources.resource_filename(
-        ...         "negmas", resource_name="tests/data/LaptopConv/Laptop-C-domain.xml"
-        ...     ),
+        ...     file_name=Path(negmas.__file__).parent.parent.parent
+        ...     / "tests/data/LaptopConv/Laptop-C-domain.xml",
         ... )
         >>> issues2, _ = issues_from_genius(
-        ...     file_name=pkg_resources.resource_filename(
-        ...         "negmas", resource_name="tests/data/LaptopConv/Laptop-C-domain.xml"
-        ...     )
+        ...     file_name=Path(negmas.__file__).parent.parent.parent
+        ...     / "tests/data/LaptopConv/Laptop-C-domain.xml"
         ... )
         >>> print("\\n".join([" ".join(list(issue.all)) for issue in issues]))
         Dell Macintosh HP
@@ -591,9 +589,8 @@ def issues_to_genius(issues: Sequence[Issue], file_name: PathLike | str) -> None
         - Forcing Single outcome
 
         >>> issues, _ = issues_from_genius(
-        ...     file_name=pkg_resources.resource_filename(
-        ...         "negmas", resource_name="tests/data/Laptop/Laptop-C-domain.xml"
-        ...     )
+        ...     file_name=Path(negmas.__file__).parent.parent.parent
+        ...     / "tests/data/Laptop/Laptop-C-domain.xml"
         ... )
         >>> print([list(issue.all) for issue in issues])
         [['Dell', 'Macintosh', 'HP'], ['60 Gb', '80 Gb', '120 Gb'], ["19'' LCD", "20'' LCD", "23'' LCD"]]
@@ -679,17 +676,20 @@ def issues_from_xml_str(
 
     Examples:
 
-        >>> import pkg_resources
-        >>> domain_file_name = pkg_resources.resource_filename(
-        ...     "negmas", resource_name="tests/data/Laptop/Laptop-C-domain.xml"
+        >>> from pathlib import Path
+        >>> import negmas
+        >>> domain_file_name = (
+        ...     Path(negmas.__file__).parent.parent.parent
+        ...     / "tests/data/Laptop/Laptop-C-domain.xml"
         ... )
         >>> with open(domain_file_name, "r") as ff:
         ...     issues, _ = issues_from_xml_str(ff.read())
         >>> print([_.cardinality for _ in issues])
         [3, 3, 3]
 
-        >>> domain_file_name = pkg_resources.resource_filename(
-        ...     "negmas", resource_name="tests/data/fuzzyagent/single_issue_domain.xml"
+        >>> domain_file_name = (
+        ...     Path(negmas.__file__).parent.parent.parent
+        ...     / "tests/data/fuzzyagent/single_issue_domain.xml"
         ... )
         >>> with open(domain_file_name, "r") as ff:
         ...     issues, _ = issues_from_xml_str(ff.read())
@@ -833,11 +833,11 @@ def issues_from_geniusweb(
 
     Examples:
 
-        >>> import pkg_resources
+        >>> from pathlib import Path
+        >>> import negmas
         >>> issues, _ = issues_from_genius(
-        ...     file_name=pkg_resources.resource_filename(
-        ...         "negmas", resource_name="tests/data/Laptop/Laptop-C-domain.xml"
-        ...     )
+        ...     file_name=Path(negmas.__file__).parent.parent.parent
+        ...     / "tests/data/Laptop/Laptop-C-domain.xml"
         ... )
         >>> print([_.name for _ in issues])
         ['Laptop', 'Harddisk', 'External Monitor']
@@ -878,11 +878,11 @@ def issues_from_genius(
 
     Examples:
 
-        >>> import pkg_resources
+        >>> from pathlib import Path
+        >>> import negmas
         >>> issues, _ = issues_from_genius(
-        ...     file_name=pkg_resources.resource_filename(
-        ...         "negmas", resource_name="tests/data/Laptop/Laptop-C-domain.xml"
-        ...     )
+        ...     file_name=Path(negmas.__file__).parent.parent.parent
+        ...     / "tests/data/Laptop/Laptop-C-domain.xml"
         ... )
         >>> print([_.name for _ in issues])
         ['Laptop', 'Harddisk', 'External Monitor']

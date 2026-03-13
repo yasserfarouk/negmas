@@ -1,7 +1,7 @@
 # ruff: noqa: F405, F403
 
 from __future__ import annotations
-import pkg_resources
+from pathlib import Path
 import pytest
 
 from negmas.genius.ginfo import TESTED_NEGOTIATORS
@@ -112,7 +112,10 @@ def do_test_genius_agent(
         agent_class_name = AgentFactory.__name__
     # print(f"Running {AgentClass.__name__}")
     for domain in DOMAINS:
-        base_folder = pkg_resources.resource_filename("negmas", resource_name=domain)
+        # Get the negmas package directory and construct path to domain
+        import negmas
+
+        base_folder = Path(negmas.__file__).parent.parent / domain
 
         # check that it can run without errors with two different ufuns
         for opponent_type in (ToughNegotiator, Atlas3):
