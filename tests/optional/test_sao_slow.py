@@ -10,13 +10,13 @@ from typing import Sequence
 
 import hypothesis.strategies as st
 import numpy as np
-import pkg_resources
 import pytest
 import pytest_check as check
 from hypothesis import HealthCheck, example, given, settings
 from pytest import mark
 
 import negmas
+
 from negmas import SAOSyncController
 from negmas.gb.negotiators.randneg import RandomAlwaysAcceptingNegotiator
 from negmas.genius import genius_bridge_is_running
@@ -1046,8 +1046,9 @@ def test_no_limits_raise_warning():
     from negmas.inout import load_genius_domain_from_folder
 
     with pytest.warns(UserWarning):
-        folder_name = pkg_resources.resource_filename(
-            "negmas", resource_name="tests/data/cameradomain"
+        folder_name = (
+            Path(negmas.__file__).parent.parent.parent
+            / "tests/data/scenarios/anac/y2013/cameradomain"
         )
 
         load_genius_domain_from_folder(
@@ -1410,21 +1411,18 @@ def test_auto_checkpoint(tmp_path, single_checkpoint, checkpoint_every, exist_ok
     reason="No Genius Bridge, skipping genius-agent tests",
 )
 def test_genius_in_sao_with_time_limit_and_nsteps_raises_warning():
-    from negmas.genius import GeniusNegotiator
+    from negmas.genius.gnegotiators import Atlas3
     from negmas.inout import load_genius_domain_from_folder
 
     with pytest.warns(UserWarning, match=".*has a .*"):
-        folder_name = pkg_resources.resource_filename(
-            "negmas", resource_name="tests/data/cameradomain"
+        folder_name = (
+            Path(negmas.__file__).parent.parent.parent
+            / "tests/data/scenarios/anac/y2013/cameradomain"
         )
 
         d = load_genius_domain_from_folder(folder_name)
         mechanism = d.make_session(n_steps=60, time_limit=180)
-        a1 = GeniusNegotiator(
-            java_class_name="agents.anac.y2017.ponpokoagent.PonPokoAgent",
-            domain_file_name=d.outcome_space.path,
-            utility_file_name=d.ufuns[0].path,
-        )
+        a1 = Atlas3(preferences=d.ufuns[0])
         mechanism.add(a1)
 
 
@@ -1433,36 +1431,41 @@ def test_genius_in_sao_with_time_limit_and_nsteps_raises_warning():
     reason="No Genius Bridge, skipping genius-agent tests",
 )
 def test_genius_in_sao_with_time_limit_or_nsteps_raises_no_warning():
-    from negmas.genius import GeniusNegotiator
+    from negmas.genius.gnegotiators import Atlas3
     from negmas.inout import load_genius_domain_from_folder
+    from negmas.warnings import NegmasStepAndTimeLimitWarning
 
-    with warnings.catch_warnings():
-        warnings.simplefilter("error")
-        folder_name = pkg_resources.resource_filename(
-            "negmas", resource_name="tests/data/cameradomain"
+    with warnings.catch_warnings(record=True) as w:
+        warnings.simplefilter("always")
+        folder_name = (
+            Path(negmas.__file__).parent.parent.parent
+            / "tests/data/scenarios/anac/y2013/cameradomain"
         )
         d = load_genius_domain_from_folder(folder_name)
         mechanism = d.make_session(n_steps=None, time_limit=180)
-        a1 = GeniusNegotiator(
-            java_class_name="agents.anac.y2017.ponpokoagent.PonPokoAgent",
-            domain_file_name=d.outcome_space.path,
-            utility_file_name=d.ufuns[0].path,
-        )
+        a1 = Atlas3(preferences=d.ufuns[0])
         mechanism.add(a1)
+        # Check that no NegmasStepAndTimeLimitWarning was raised
+        step_time_warnings = [
+            x for x in w if issubclass(x.category, NegmasStepAndTimeLimitWarning)
+        ]
+        assert len(step_time_warnings) == 0, f"Unexpected warning: {step_time_warnings}"
 
-    with warnings.catch_warnings():
-        warnings.simplefilter("error")
-        folder_name = pkg_resources.resource_filename(
-            "negmas", resource_name="tests/data/cameradomain"
+    with warnings.catch_warnings(record=True) as w:
+        warnings.simplefilter("always")
+        folder_name = (
+            Path(negmas.__file__).parent.parent.parent
+            / "tests/data/scenarios/anac/y2013/cameradomain"
         )
         d = load_genius_domain_from_folder(folder_name)
         mechanism = d.make_session(n_steps=60, time_limit=None)
-        a1 = GeniusNegotiator(
-            java_class_name="agents.anac.y2017.ponpokoagent.PonPokoAgent",
-            domain_file_name=d.outcome_space.path,
-            utility_file_name=d.ufuns[0].path,
-        )
+        a1 = Atlas3(preferences=d.ufuns[0])
         mechanism.add(a1)
+        # Check that no NegmasStepAndTimeLimitWarning was raised
+        step_time_warnings = [
+            x for x in w if issubclass(x.category, NegmasStepAndTimeLimitWarning)
+        ]
+        assert len(step_time_warnings) == 0, f"Unexpected warning: {step_time_warnings}"
 
 
 def make_mapping():
