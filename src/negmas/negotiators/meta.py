@@ -19,6 +19,63 @@ if TYPE_CHECKING:
 __all__ = ["MetaNegotiator"]
 
 
+def _ensure_negotiators(
+    negotiators: Iterable[Negotiator] | None,
+    negotiator_types: Iterable[type[Negotiator]] | None,
+    negotiator_params: Iterable[dict[str, Any]] | None,
+) -> list[Negotiator]:
+    """Create negotiator instances from either negotiators or types+params.
+
+    Args:
+        negotiators: Optional iterable of Negotiator instances.
+        negotiator_types: Optional iterable of Negotiator types to instantiate.
+        negotiator_params: Optional iterable of parameter dicts for each type.
+
+    Returns:
+        A list of Negotiator instances.
+
+    Raises:
+        ValueError: If both negotiators and negotiator_types are provided,
+            or if neither is provided.
+    """
+    if negotiators is not None and negotiator_types is not None:
+        raise ValueError(
+            "Cannot specify both 'negotiators' and 'negotiator_types'. "
+            "Use either negotiators (instances) or negotiator_types (classes)."
+        )
+
+    if negotiators is None and negotiator_types is None:
+        raise ValueError(
+            "Must specify either 'negotiators' (instances) or 'negotiator_types' (classes)."
+        )
+
+    # If negotiators provided, return them as a list
+    if negotiators is not None:
+        return list(negotiators)
+
+    # Create negotiators from types
+    if negotiator_types is None:
+        return []
+
+    types_list = list(negotiator_types)
+    if negotiator_params is None:
+        # No params provided, use empty dicts
+        return [neg_type() for neg_type in types_list]
+
+    # Params provided
+    params_list = list(negotiator_params)
+    if len(params_list) != len(types_list):
+        raise ValueError(
+            f"Length of negotiator_params ({len(params_list)}) must match "
+            f"length of negotiator_types ({len(types_list)})"
+        )
+
+    return [
+        neg_type(**params)
+        for neg_type, params in zip(types_list, params_list, strict=True)
+    ]
+
+
 class MetaNegotiator(Negotiator):
     """
     A meta-negotiator that contains and delegates to multiple full `Negotiator` objects.
@@ -32,7 +89,9 @@ class MetaNegotiator(Negotiator):
     and `respond` (in protocol-specific subclasses like `GBMetaNegotiator`).
 
     Args:
-        negotiators: An iterable of `Negotiator` instances to manage.
+        negotiators: An iterable of `Negotiator` instances to manage. Mutually exclusive with `negotiator_types`.
+        negotiator_types: An iterable of `Negotiator` types to instantiate. Mutually exclusive with `negotiators`.
+        negotiator_params: Optional iterable of parameter dicts for each negotiator type. Only used with `negotiator_types`.
         negotiator_names: Optional names for the negotiators.
         share_ufun: If True (default), sub-negotiators will share the parent's ufun.
         share_nmi: If True (default), sub-negotiators will receive the parent's NMI on join.
@@ -45,12 +104,38 @@ class MetaNegotiator(Negotiator):
         - All lifecycle callbacks are delegated to all sub-negotiators.
         - Protocol-specific subclasses (e.g., `GBMetaNegotiator`) must implement
           aggregation strategies for `propose` and `respond`.
+        - You can either pass `negotiators` (instances) OR `negotiator_types` (classes to instantiate).
+          If using `negotiator_types`, you can optionally provide `negotiator_params` (parameter dicts).
+
+    Examples:
+        Create a meta-negotiator from existing negotiator instances::
+
+            >>> from negmas.sao.negotiators import BoulwareTBNegotiator, ConcederTBNegotiator
+            >>> from negmas.sao.negotiators import MeanMetaNegotiator
+            >>> meta = MeanMetaNegotiator(
+            ...     negotiators=[BoulwareTBNegotiator(), ConcederTBNegotiator()]
+            ... )
+
+        Create a meta-negotiator from negotiator types::
+
+            >>> meta = MeanMetaNegotiator(
+            ...     negotiator_types=[BoulwareTBNegotiator, ConcederTBNegotiator]
+            ... )
+
+        Create a meta-negotiator from types with parameters::
+
+            >>> meta = MeanMetaNegotiator(
+            ...     negotiator_types=[BoulwareTBNegotiator, ConcederTBNegotiator],
+            ...     negotiator_params=[{"name": "boulware"}, {"name": "conceder"}]
+            ... )
     """
 
     def __init__(
         self,
         *args,
-        negotiators: Iterable[Negotiator],
+        negotiators: Iterable[Negotiator] | None = None,
+        negotiator_types: Iterable[type[Negotiator]] | None = None,
+        negotiator_params: Iterable[dict[str, Any]] | None = None,
         negotiator_names: Iterable[str] | None = None,
         share_ufun: bool = True,
         share_nmi: bool = True,
@@ -60,7 +145,9 @@ class MetaNegotiator(Negotiator):
 
         Args:
             *args: Positional arguments for the base Negotiator.
-            negotiators: The sub-negotiators to manage.
+            negotiators: The sub-negotiators to manage (instances). Mutually exclusive with negotiator_types.
+            negotiator_types: Types to instantiate as sub-negotiators. Mutually exclusive with negotiators.
+            negotiator_params: Optional parameter dicts for each negotiator type.
             negotiator_names: Optional names for the sub-negotiators.
             share_ufun: Whether sub-negotiators should share the parent's ufun.
             share_nmi: Whether sub-negotiators should receive the parent's NMI.
@@ -72,8 +159,13 @@ class MetaNegotiator(Negotiator):
         self._share_ufun = share_ufun
         self._share_nmi = share_nmi
 
+        # Create negotiators from either instances or types
+        negotiator_instances = _ensure_negotiators(
+            negotiators, negotiator_types, negotiator_params
+        )
+
         for neg, name in zip(
-            negotiators,
+            negotiator_instances,
             negotiator_names if negotiator_names else itertools.repeat(None),
         ):
             self.add_negotiator(neg, name=name)

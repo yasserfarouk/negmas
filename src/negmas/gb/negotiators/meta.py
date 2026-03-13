@@ -4,10 +4,10 @@ from __future__ import annotations
 
 from abc import abstractmethod
 from collections import defaultdict
-from typing import TYPE_CHECKING, Iterable
+from typing import TYPE_CHECKING, Any, Iterable
 
 from negmas.common import MechanismState, NegotiatorMechanismInterface
-from negmas.negotiators.meta import MetaNegotiator
+from negmas.negotiators.meta import MetaNegotiator, _ensure_negotiators
 from negmas.outcomes import Outcome
 from negmas.outcomes.common import ExtendedOutcome
 
@@ -39,7 +39,9 @@ class GBMetaNegotiator(MetaNegotiator, GBNegotiator):
     to define how proposals and responses from sub-negotiators are combined.
 
     Args:
-        negotiators: An iterable of `GBNegotiator` instances to manage.
+        negotiators: An iterable of `GBNegotiator` instances to manage. Mutually exclusive with `negotiator_types`.
+        negotiator_types: An iterable of `GBNegotiator` types to instantiate. Mutually exclusive with `negotiators`.
+        negotiator_params: Optional iterable of parameter dicts for each negotiator type. Only used with `negotiator_types`.
         negotiator_names: Optional names for the negotiators.
         share_ufun: If True (default), sub-negotiators will share the parent's ufun.
         share_nmi: If True (default), sub-negotiators will receive the parent's NMI on join.
@@ -50,12 +52,16 @@ class GBMetaNegotiator(MetaNegotiator, GBNegotiator):
         - `propose` collects proposals from all sub-negotiators and aggregates them.
         - `respond` collects responses from all sub-negotiators and aggregates them.
         - All GB-specific callbacks are delegated to all sub-negotiators.
+        - You can either pass `negotiators` (instances) OR `negotiator_types` (classes to instantiate).
+          If using `negotiator_types`, you can optionally provide `negotiator_params` (parameter dicts).
     """
 
     def __init__(
         self,
         *args,
-        negotiators: Iterable[GBNegotiator],
+        negotiators: Iterable[GBNegotiator] | None = None,
+        negotiator_types: Iterable[type[GBNegotiator]] | None = None,
+        negotiator_params: Iterable[dict[str, Any]] | None = None,
         negotiator_names: Iterable[str] | None = None,
         share_ufun: bool = True,
         share_nmi: bool = True,
@@ -65,12 +71,19 @@ class GBMetaNegotiator(MetaNegotiator, GBNegotiator):
 
         Args:
             *args: Positional arguments for the base MetaNegotiator.
-            negotiators: The GB sub-negotiators to manage.
+            negotiators: The GB sub-negotiators to manage (instances). Mutually exclusive with negotiator_types.
+            negotiator_types: Types to instantiate as sub-negotiators. Mutually exclusive with negotiators.
+            negotiator_params: Optional parameter dicts for each negotiator type.
             negotiator_names: Optional names for the sub-negotiators.
             share_ufun: Whether sub-negotiators should share the parent's ufun.
             share_nmi: Whether sub-negotiators should receive the parent's NMI.
             **kwargs: Keyword arguments for the base MetaNegotiator.
         """
+        # Create negotiators from either instances or types
+        negotiator_instances = _ensure_negotiators(
+            negotiators, negotiator_types, negotiator_params
+        )
+
         # Initialize with empty negotiators first, then add them
         super().__init__(
             *args,
@@ -86,7 +99,7 @@ class GBMetaNegotiator(MetaNegotiator, GBNegotiator):
         import itertools
 
         for neg, name in zip(
-            negotiators,
+            negotiator_instances,
             negotiator_names if negotiator_names else itertools.repeat(None),
         ):
             self.add_negotiator(neg, name=name)

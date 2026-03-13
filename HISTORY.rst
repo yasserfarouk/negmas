@@ -1,6 +1,65 @@
 History
 =======
 
+Release 0.15.2
+--------------
+
+**New Features:**
+
+* [feature] Add ``negotiator_types`` and ``negotiator_params`` support to ``MetaNegotiator`` classes:
+
+  - ``MetaNegotiator`` and all subclasses now accept either:
+
+    - ``negotiators``: Iterable of pre-instantiated ``Negotiator`` instances (existing behavior)
+    - ``negotiator_types``: Iterable of ``Negotiator`` types to instantiate automatically
+    - ``negotiator_params``: Optional iterable of parameter dicts for each negotiator type
+
+  - Parameters are mutually exclusive: use either ``negotiators`` OR ``negotiator_types``
+  - When using ``negotiator_types``, ``negotiator_params`` can optionally provide initialization parameters
+  - Length of ``negotiator_params`` must match length of ``negotiator_types`` if provided
+  - Proper validation with clear error messages for invalid parameter combinations
+  - Applies to all meta-negotiator classes:
+
+    - ``MetaNegotiator`` (base class)
+    - ``GBMetaNegotiator`` (GB protocol)
+    - ``SAOMetaNegotiator`` (SAO protocol)
+    - ``SAOAggMetaNegotiator`` (SAO aggregation)
+    - ``RangeMetaNegotiator`` (utility range sampling)
+    - ``MeanMetaNegotiator`` (mean utility sampling)
+    - ``OSMeanMetaNegotiator`` (outcome space averaging)
+
+  - Example usage::
+
+      # Old way (still works)
+      meta = MeanMetaNegotiator(
+          negotiators=[BoulwareTBNegotiator(), ConcederTBNegotiator()],
+          ufun=my_ufun
+      )
+
+      # New way - simpler, no need to instantiate
+      meta = MeanMetaNegotiator(
+          negotiator_types=[BoulwareTBNegotiator, ConcederTBNegotiator],
+          ufun=my_ufun
+      )
+
+      # With parameters
+      meta = MeanMetaNegotiator(
+          negotiator_types=[BoulwareTBNegotiator, ConcederTBNegotiator],
+          negotiator_params=[{"name": "boulware"}, {"name": "conceder"}],
+          ufun=my_ufun
+      )
+
+  - Simplifies meta-negotiator creation by eliminating the need to manually instantiate sub-negotiators
+  - Backward compatible: existing code using ``negotiators`` parameter continues to work
+
+**Documentation Improvements:**
+
+* [docs] Improve ecosystem diagram readability with better SVG formatting
+
+**Maintenance:**
+
+* [chore] Mark CameraB scenario as normalized in metadata
+
 Release 0.15.1.post1
 --------------------
 

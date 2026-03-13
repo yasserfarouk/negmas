@@ -16,6 +16,9 @@ from negmas.sao.negotiators import (
     BoulwareTBNegotiator,
     ConcederTBNegotiator,
     LinearTBNegotiator,
+    MeanMetaNegotiator,
+    RangeMetaNegotiator,
+    OSMeanMetaNegotiator,
 )
 from negmas.sao.common import ResponseType as SAOResponseType
 
@@ -500,7 +503,6 @@ class TestRangeMetaNegotiator:
 
     def test_create_range_meta_negotiator(self):
         """Test creating a RangeMetaNegotiator."""
-        from negmas.sao.negotiators import RangeMetaNegotiator
 
         issues = [make_issue(10, "price"), make_issue(5, "quantity")]
         os = make_os(issues)
@@ -515,7 +517,6 @@ class TestRangeMetaNegotiator:
 
     def test_range_meta_negotiator_in_mechanism(self):
         """Test RangeMetaNegotiator working in a SAOMechanism."""
-        from negmas.sao.negotiators import RangeMetaNegotiator
 
         issues = [make_issue(10, "price"), make_issue(5, "quantity")]
         os = make_os(issues)
@@ -540,7 +541,6 @@ class TestRangeMetaNegotiator:
 
     def test_range_meta_negotiator_with_three_negotiators(self):
         """Test RangeMetaNegotiator with three sub-negotiators."""
-        from negmas.sao.negotiators import RangeMetaNegotiator
 
         issues = [make_issue(10, "price")]
         os = make_os(issues)
@@ -567,7 +567,6 @@ class TestRangeMetaNegotiator:
 
     def test_range_meta_negotiator_custom_cardinality(self):
         """Test RangeMetaNegotiator with custom max_cardinality."""
-        from negmas.sao.negotiators import RangeMetaNegotiator
 
         issues = [make_issue(5, "price")]
         os = make_os(issues)
@@ -728,7 +727,7 @@ class TestRangeAndMeanMetaNegotiatorImports:
 
     def test_import_from_sao_negotiators(self):
         """Test importing the new negotiators from negmas.sao.negotiators."""
-        from negmas.sao.negotiators import RangeMetaNegotiator, MeanMetaNegotiator
+        from negmas.sao.negotiators import MeanMetaNegotiator
 
         assert RangeMetaNegotiator is not None
         assert MeanMetaNegotiator is not None
@@ -736,7 +735,6 @@ class TestRangeAndMeanMetaNegotiatorImports:
     def test_import_from_sao(self):
         """Test importing from negmas.sao works."""
         from negmas.sao.negotiators import (
-            RangeMetaNegotiator,
             MeanMetaNegotiator,
             SAOMetaNegotiator,
             SAOAggMetaNegotiator,
@@ -753,7 +751,6 @@ class TestOSMeanMetaNegotiator:
 
     def test_create_outcome_space_mean_meta_negotiator(self):
         """Test creating an OSMeanMetaNegotiator."""
-        from negmas.sao.negotiators import OSMeanMetaNegotiator
 
         issues = [make_issue(10, "price"), make_issue(5, "quantity")]
         os = make_os(issues)
@@ -768,7 +765,6 @@ class TestOSMeanMetaNegotiator:
 
     def test_outcome_space_mean_meta_negotiator_in_mechanism(self):
         """Test OSMeanMetaNegotiator working in a SAOMechanism."""
-        from negmas.sao.negotiators import OSMeanMetaNegotiator
 
         issues = [make_issue(10, "price"), make_issue(5, "quantity")]
         os = make_os(issues)
@@ -793,7 +789,6 @@ class TestOSMeanMetaNegotiator:
 
     def test_outcome_space_mean_meta_negotiator_with_three_negotiators(self):
         """Test OSMeanMetaNegotiator with three sub-negotiators."""
-        from negmas.sao.negotiators import OSMeanMetaNegotiator
 
         issues = [make_issue(10, "price")]
         os = make_os(issues)
@@ -820,7 +815,6 @@ class TestOSMeanMetaNegotiator:
 
     def test_outcome_space_mean_meta_negotiator_with_categorical_issues(self):
         """Test OSMeanMetaNegotiator with categorical issues."""
-        from negmas.sao.negotiators import OSMeanMetaNegotiator
 
         # Create issues with mixed types: numeric and categorical
         issues = [
@@ -848,7 +842,6 @@ class TestOSMeanMetaNegotiator:
 
     def test_outcome_space_mean_meta_negotiator_reaches_agreement(self):
         """Test that OSMeanMetaNegotiator can reach agreements."""
-        from negmas.sao.negotiators import OSMeanMetaNegotiator
 
         issues = [make_issue(5, "price")]
         os = make_os(issues)
@@ -874,9 +867,180 @@ class TestOSMeanMetaNegotiator:
 
     def test_outcome_space_mean_meta_negotiator_import(self):
         """Test that OSMeanMetaNegotiator is properly exported."""
-        from negmas.sao.negotiators import OSMeanMetaNegotiator, SAOAggMetaNegotiator
+        from negmas.sao.negotiators import SAOAggMetaNegotiator
 
         assert issubclass(OSMeanMetaNegotiator, SAOAggMetaNegotiator)
+
+
+class TestMetaNegotiatorWithTypes:
+    """Test cases for MetaNegotiator with negotiator_types parameter."""
+
+    def test_meta_negotiator_with_types(self):
+        """Test creating MetaNegotiator from types instead of instances."""
+        from negmas.outcomes import make_issue, make_os
+        from negmas.preferences import LinearAdditiveUtilityFunction as U
+
+        issues = [make_issue(10, "price")]
+        os = make_os(issues)
+        ufun = U.random(outcome_space=os, reserved_value=0.0)
+
+        meta = MeanMetaNegotiator(
+            negotiator_types=[BoulwareTBNegotiator, ConcederTBNegotiator], ufun=ufun
+        )
+
+        assert len(meta.negotiators) == 2
+        assert isinstance(meta.negotiators[0], BoulwareTBNegotiator)
+        assert isinstance(meta.negotiators[1], ConcederTBNegotiator)
+
+    def test_meta_negotiator_with_types_and_params(self):
+        """Test creating MetaNegotiator with types and parameters."""
+        from negmas.outcomes import make_issue, make_os
+        from negmas.preferences import LinearAdditiveUtilityFunction as U
+
+        issues = [make_issue(10, "price")]
+        os = make_os(issues)
+        ufun = U.random(outcome_space=os, reserved_value=0.0)
+
+        meta = MeanMetaNegotiator(
+            negotiator_types=[BoulwareTBNegotiator, ConcederTBNegotiator],
+            negotiator_params=[{"name": "boulware"}, {"name": "conceder"}],
+            ufun=ufun,
+        )
+
+        assert len(meta.negotiators) == 2
+        assert meta.negotiators[0].name == "boulware"
+        assert meta.negotiators[1].name == "conceder"
+
+    def test_meta_negotiator_types_in_mechanism(self):
+        """Test that meta-negotiators created from types work in negotiations."""
+        from negmas.outcomes import make_issue, make_os
+        from negmas.preferences import LinearAdditiveUtilityFunction as U
+        from negmas.sao import SAOMechanism
+
+        issues = [make_issue(10, "price")]
+        os = make_os(issues)
+        ufun1 = U.random(outcome_space=os, reserved_value=0.0)
+        ufun2 = U.random(outcome_space=os, reserved_value=0.0)
+
+        meta = MeanMetaNegotiator(
+            negotiator_types=[BoulwareTBNegotiator, ConcederTBNegotiator], ufun=ufun1
+        )
+        opponent = ConcederTBNegotiator(ufun=ufun2)
+
+        mechanism = SAOMechanism(issues=issues, n_steps=50)
+        mechanism.add(meta)
+        mechanism.add(opponent)
+        result = mechanism.run()
+
+        assert not result.running
+
+    def test_error_both_negotiators_and_types(self):
+        """Test error when both negotiators and negotiator_types are provided."""
+        from negmas.outcomes import make_issue, make_os
+        from negmas.preferences import LinearAdditiveUtilityFunction as U
+
+        issues = [make_issue(10, "price")]
+        os = make_os(issues)
+        ufun = U.random(outcome_space=os, reserved_value=0.0)
+
+        with pytest.raises(ValueError, match="Cannot specify both"):
+            MeanMetaNegotiator(
+                negotiators=[BoulwareTBNegotiator()],
+                negotiator_types=[ConcederTBNegotiator],
+                ufun=ufun,
+            )
+
+    def test_error_neither_negotiators_nor_types(self):
+        """Test error when neither negotiators nor negotiator_types are provided."""
+        from negmas.outcomes import make_issue, make_os
+        from negmas.preferences import LinearAdditiveUtilityFunction as U
+
+        issues = [make_issue(10, "price")]
+        os = make_os(issues)
+        ufun = U.random(outcome_space=os, reserved_value=0.0)
+
+        with pytest.raises(ValueError, match="Must specify either"):
+            MeanMetaNegotiator(ufun=ufun)
+
+    def test_error_mismatched_params_length(self):
+        """Test error when negotiator_params length doesn't match negotiator_types."""
+        from negmas.outcomes import make_issue, make_os
+        from negmas.preferences import LinearAdditiveUtilityFunction as U
+
+        issues = [make_issue(10, "price")]
+        os = make_os(issues)
+        ufun = U.random(outcome_space=os, reserved_value=0.0)
+
+        with pytest.raises(ValueError, match="Length of negotiator_params"):
+            MeanMetaNegotiator(
+                negotiator_types=[BoulwareTBNegotiator, ConcederTBNegotiator],
+                negotiator_params=[{"name": "only_one"}],
+                ufun=ufun,
+            )
+
+    def test_backward_compatibility_with_instances(self):
+        """Test that passing instances still works (backward compatibility)."""
+        from negmas.outcomes import make_issue, make_os
+        from negmas.preferences import LinearAdditiveUtilityFunction as U
+
+        issues = [make_issue(10, "price")]
+        os = make_os(issues)
+        ufun = U.random(outcome_space=os, reserved_value=0.0)
+
+        # Old way - passing instances
+        meta = MeanMetaNegotiator(
+            negotiators=[BoulwareTBNegotiator(), ConcederTBNegotiator()], ufun=ufun
+        )
+
+        assert len(meta.negotiators) == 2
+
+    def test_range_meta_negotiator_with_types(self):
+        """Test RangeMetaNegotiator with negotiator_types."""
+        from negmas.outcomes import make_issue, make_os
+        from negmas.preferences import LinearAdditiveUtilityFunction as U
+
+        issues = [make_issue(10, "price")]
+        os = make_os(issues)
+        ufun = U.random(outcome_space=os, reserved_value=0.0)
+
+        meta = RangeMetaNegotiator(
+            negotiator_types=[BoulwareTBNegotiator, ConcederTBNegotiator], ufun=ufun
+        )
+
+        assert len(meta.negotiators) == 2
+        assert isinstance(meta.negotiators[0], BoulwareTBNegotiator)
+        assert isinstance(meta.negotiators[1], ConcederTBNegotiator)
+
+    def test_osmean_meta_negotiator_with_types(self):
+        """Test OSMeanMetaNegotiator with negotiator_types."""
+        from negmas.outcomes import make_issue, make_os
+        from negmas.preferences import LinearAdditiveUtilityFunction as U
+
+        issues = [make_issue(10, "price")]
+        os = make_os(issues)
+        ufun = U.random(outcome_space=os, reserved_value=0.0)
+
+        meta = OSMeanMetaNegotiator(
+            negotiator_types=[BoulwareTBNegotiator, ConcederTBNegotiator], ufun=ufun
+        )
+
+        assert len(meta.negotiators) == 2
+
+    def test_gb_meta_negotiator_with_types(self):
+        """Test GBMetaNegotiator with negotiator_types."""
+        from negmas.outcomes import make_issue, make_os
+        from negmas.preferences import LinearAdditiveUtilityFunction as U
+
+        issues = [make_issue(10, "price")]
+        os = make_os(issues)
+        ufun = U.random(outcome_space=os, reserved_value=0.0)
+
+        meta = MajorityVoteGBMetaNegotiator(
+            negotiator_types=[AspirationNegotiator, AspirationNegotiator], ufun=ufun
+        )
+
+        assert len(meta.negotiators) == 2
+        assert all(isinstance(n, AspirationNegotiator) for n in meta.negotiators)
 
 
 if __name__ == "__main__":

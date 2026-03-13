@@ -3,10 +3,10 @@
 from __future__ import annotations
 
 from abc import abstractmethod
-from typing import TYPE_CHECKING, Iterable
+from typing import TYPE_CHECKING, Any, Iterable
 
 from negmas.common import MechanismState, NegotiatorMechanismInterface
-from negmas.negotiators.meta import MetaNegotiator
+from negmas.negotiators.meta import MetaNegotiator, _ensure_negotiators
 from negmas.outcomes import Outcome
 from negmas.outcomes.common import ExtendedOutcome
 
@@ -36,7 +36,9 @@ class SAOMetaNegotiator(MetaNegotiator, SAONegotiator):
     behaves. This is straightforward - just decide how to use your sub-negotiators.
 
     Args:
-        negotiators: An iterable of `SAONegotiator` instances to manage.
+        negotiators: An iterable of `SAONegotiator` instances to manage. Mutually exclusive with `negotiator_types`.
+        negotiator_types: An iterable of `SAONegotiator` types to instantiate. Mutually exclusive with `negotiators`.
+        negotiator_params: Optional iterable of parameter dicts for each negotiator type. Only used with `negotiator_types`.
         negotiator_names: Optional names for the negotiators.
         share_ufun: If True (default), sub-negotiators will share the parent's ufun.
         share_nmi: If True (default), sub-negotiators will receive the parent's NMI on join.
@@ -48,6 +50,8 @@ class SAOMetaNegotiator(MetaNegotiator, SAONegotiator):
         - Subclasses can implement any strategy: delegation to a single negotiator,
           aggregation of multiple negotiators, or custom logic that uses sub-negotiators
           for advice/context only.
+        - You can either pass `negotiators` (instances) OR `negotiator_types` (classes to instantiate).
+          If using `negotiator_types`, you can optionally provide `negotiator_params` (parameter dicts).
 
     Example:
         A simple passthrough meta-negotiator that delegates to its first sub-negotiator::
@@ -59,17 +63,12 @@ class SAOMetaNegotiator(MetaNegotiator, SAONegotiator):
                 def respond(self, state, source=None):
                     return self._negotiators[0].respond(state, source=source)
 
-        A filtering meta-negotiator that modifies proposals::
+        Creating with negotiator types instead of instances::
 
-            class FilteringMeta(SAOMetaNegotiator):
-                def propose(self, state, dest=None):
-                    proposal = self._negotiators[0].propose(state, dest=dest)
-                    if proposal and sum(proposal) < 10:
-                        return self.ufun.extreme_outcomes()[1]  # best outcome
-                    return proposal
-
-                def respond(self, state, source=None):
-                    return self._negotiators[0].respond(state, source=source)
+            meta = MeanMetaNegotiator(
+                negotiator_types=[BoulwareTBNegotiator, ConcederTBNegotiator],
+                negotiator_params=[{"name": "boulware"}, {"name": "conceder"}],
+            )
 
     See Also:
         SAOAggMetaNegotiator: Implementation that aggregates proposals/responses
@@ -79,7 +78,9 @@ class SAOMetaNegotiator(MetaNegotiator, SAONegotiator):
     def __init__(
         self,
         *args,
-        negotiators: Iterable[SAONegotiator],
+        negotiators: Iterable[SAONegotiator] | None = None,
+        negotiator_types: Iterable[type[SAONegotiator]] | None = None,
+        negotiator_params: Iterable[dict[str, Any]] | None = None,
         negotiator_names: Iterable[str] | None = None,
         share_ufun: bool = True,
         share_nmi: bool = True,
@@ -89,12 +90,19 @@ class SAOMetaNegotiator(MetaNegotiator, SAONegotiator):
 
         Args:
             *args: Positional arguments for the base MetaNegotiator.
-            negotiators: The SAO sub-negotiators to manage.
+            negotiators: The SAO sub-negotiators to manage (instances). Mutually exclusive with negotiator_types.
+            negotiator_types: Types to instantiate as sub-negotiators. Mutually exclusive with negotiators.
+            negotiator_params: Optional parameter dicts for each negotiator type.
             negotiator_names: Optional names for the sub-negotiators.
             share_ufun: Whether sub-negotiators should share the parent's ufun.
             share_nmi: Whether sub-negotiators should receive the parent's NMI.
             **kwargs: Keyword arguments for the base MetaNegotiator.
         """
+        # Create negotiators from either instances or types
+        negotiator_instances = _ensure_negotiators(
+            negotiators, negotiator_types, negotiator_params
+        )
+
         # Initialize with empty negotiators first, then add them
         super().__init__(
             *args,
@@ -110,7 +118,7 @@ class SAOMetaNegotiator(MetaNegotiator, SAONegotiator):
         import itertools
 
         for neg, name in zip(
-            negotiators,
+            negotiator_instances,
             negotiator_names if negotiator_names else itertools.repeat(None),
         ):
             self.add_negotiator(neg, name=name)
@@ -265,7 +273,9 @@ class SAOAggMetaNegotiator(SAOMetaNegotiator):
     to define how proposals and responses from sub-negotiators are combined.
 
     Args:
-        negotiators: An iterable of `SAONegotiator` instances to manage.
+        negotiators: An iterable of `SAONegotiator` instances to manage. Mutually exclusive with `negotiator_types`.
+        negotiator_types: An iterable of `SAONegotiator` types to instantiate. Mutually exclusive with `negotiators`.
+        negotiator_params: Optional iterable of parameter dicts for each negotiator type. Only used with `negotiator_types`.
         negotiator_names: Optional names for the negotiators.
         share_ufun: If True (default), sub-negotiators will share the parent's ufun.
         share_nmi: If True (default), sub-negotiators will receive the parent's NMI on join.
@@ -392,7 +402,9 @@ class RangeMetaNegotiator(SAOAggMetaNegotiator):
     For response aggregation, it uses majority voting among sub-negotiators.
 
     Args:
-        negotiators: An iterable of `SAONegotiator` instances to manage.
+        negotiators: An iterable of `SAONegotiator` instances to manage. Mutually exclusive with `negotiator_types`.
+        negotiator_types: An iterable of `SAONegotiator` types to instantiate. Mutually exclusive with `negotiators`.
+        negotiator_params: Optional iterable of parameter dicts for each negotiator type. Only used with `negotiator_types`.
         negotiator_names: Optional names for the negotiators.
         max_cardinality: Maximum number of outcomes to sample when searching for outcomes
             in the utility range. Defaults to 10000.
@@ -416,7 +428,8 @@ class RangeMetaNegotiator(SAOAggMetaNegotiator):
         >>>
         >>> # Create a range meta-negotiator with diverse strategies
         >>> meta = RangeMetaNegotiator(
-        ...     negotiators=[BoulwareTBNegotiator(), ConcederTBNegotiator()], ufun=ufun1
+        ...     negotiator_types=[BoulwareTBNegotiator, ConcederTBNegotiator],
+        ...     ufun=ufun1,
         ... )
         >>> opponent = ConcederTBNegotiator(ufun=ufun2)
         >>>
@@ -431,13 +444,20 @@ class RangeMetaNegotiator(SAOAggMetaNegotiator):
     def __init__(
         self,
         *args,
-        negotiators: Iterable[SAONegotiator],
+        negotiators: Iterable[SAONegotiator] | None = None,
+        negotiator_types: Iterable[type[SAONegotiator]] | None = None,
+        negotiator_params: Iterable[dict[str, Any]] | None = None,
         negotiator_names: Iterable[str] | None = None,
         max_cardinality: int = 10000,
         **kwargs,
     ):
         super().__init__(
-            *args, negotiators=negotiators, negotiator_names=negotiator_names, **kwargs
+            *args,
+            negotiators=negotiators,
+            negotiator_types=negotiator_types,
+            negotiator_params=negotiator_params,
+            negotiator_names=negotiator_names,
+            **kwargs,
         )
         self._max_cardinality = max_cardinality
 
@@ -544,7 +564,9 @@ class MeanMetaNegotiator(SAOAggMetaNegotiator):
     For response aggregation, it uses majority voting among sub-negotiators.
 
     Args:
-        negotiators: An iterable of `SAONegotiator` instances to manage.
+        negotiators: An iterable of `SAONegotiator` instances to manage. Mutually exclusive with `negotiator_types`.
+        negotiator_types: An iterable of `SAONegotiator` types to instantiate. Mutually exclusive with `negotiators`.
+        negotiator_params: Optional iterable of parameter dicts for each negotiator type. Only used with `negotiator_types`.
         negotiator_names: Optional names for the negotiators.
         initial_epsilon: Initial utility range around the mean to search. Defaults to 0.05.
         epsilon_step: How much to expand the range on each iteration. Defaults to 0.1.
@@ -569,7 +591,8 @@ class MeanMetaNegotiator(SAOAggMetaNegotiator):
         >>>
         >>> # Create a mean meta-negotiator with diverse strategies
         >>> meta = MeanMetaNegotiator(
-        ...     negotiators=[BoulwareTBNegotiator(), ConcederTBNegotiator()], ufun=ufun1
+        ...     negotiator_types=[BoulwareTBNegotiator, ConcederTBNegotiator],
+        ...     ufun=ufun1,
         ... )
         >>> opponent = ConcederTBNegotiator(ufun=ufun2)
         >>>
@@ -584,7 +607,9 @@ class MeanMetaNegotiator(SAOAggMetaNegotiator):
     def __init__(
         self,
         *args,
-        negotiators: Iterable[SAONegotiator],
+        negotiators: Iterable[SAONegotiator] | None = None,
+        negotiator_types: Iterable[type[SAONegotiator]] | None = None,
+        negotiator_params: Iterable[dict[str, Any]] | None = None,
         negotiator_names: Iterable[str] | None = None,
         initial_epsilon: float = 0.05,
         epsilon_step: float = 0.1,
@@ -592,7 +617,12 @@ class MeanMetaNegotiator(SAOAggMetaNegotiator):
         **kwargs,
     ):
         super().__init__(
-            *args, negotiators=negotiators, negotiator_names=negotiator_names, **kwargs
+            *args,
+            negotiators=negotiators,
+            negotiator_types=negotiator_types,
+            negotiator_params=negotiator_params,
+            negotiator_names=negotiator_names,
+            **kwargs,
         )
         self._initial_epsilon = initial_epsilon
         self._epsilon_step = epsilon_step
@@ -721,7 +751,9 @@ class OSMeanMetaNegotiator(SAOAggMetaNegotiator):
     For response aggregation, it uses majority voting among sub-negotiators.
 
     Args:
-        negotiators: An iterable of `SAONegotiator` instances to manage.
+        negotiators: An iterable of `SAONegotiator` instances to manage. Mutually exclusive with `negotiator_types`.
+        negotiator_types: An iterable of `SAONegotiator` types to instantiate. Mutually exclusive with `negotiators`.
+        negotiator_params: Optional iterable of parameter dicts for each negotiator type. Only used with `negotiator_types`.
         negotiator_names: Optional names for the negotiators.
         *args: Additional positional arguments passed to the base class.
         **kwargs: Additional keyword arguments passed to the base class.
@@ -750,7 +782,8 @@ class OSMeanMetaNegotiator(SAOAggMetaNegotiator):
         >>>
         >>> # Create an outcome-space mean meta-negotiator
         >>> meta = OSMeanMetaNegotiator(
-        ...     negotiators=[BoulwareTBNegotiator(), ConcederTBNegotiator()], ufun=ufun1
+        ...     negotiator_types=[BoulwareTBNegotiator, ConcederTBNegotiator],
+        ...     ufun=ufun1,
         ... )
         >>> opponent = ConcederTBNegotiator(ufun=ufun2)
         >>>
