@@ -52,9 +52,31 @@ Release 0.15.2
   - Simplifies meta-negotiator creation by eliminating the need to manually instantiate sub-negotiators
   - Backward compatible: existing code using ``negotiators`` parameter continues to work
 
+* [feature] Add comprehensive constraint system for outcome spaces and utility functions:
+
+  - New ``Constraint`` type (``Callable[[Outcome], bool]``) for filtering outcomes
+  - Outcome space constraints: filter outcomes from ``enumerate()``, ``sample()``, ``random_outcome()``
+  - Utility function constraints: return ``-inf`` for outcomes violating constraints
+  - Zero performance overhead when no constraints are present
+  - AND logic: all constraints must be satisfied for an outcome to be valid
+  - Constraint preservation through operations (normalize, scale, shift, etc.)
+  - Supports all outcome space types and utility function classes
+
+**Bug Fixes:**
+
+* [fix] Replace deprecated ``pkg_resources`` with ``Path`` API for locating test data files
+* [fix] Resolve tournament serialization issues with parquet and CSV files (handle StringDtype, inf/nan values)
+* [fix] Update Genius warning tests to use Atlas3 negotiator for reliability
+
+**Security Updates:**
+
+* [security] Bump tornado from 6.5.4 to 6.5.5 (fixes DoS and cookie validation vulnerabilities)
+* [security] Bump orjson from 3.11.5 to 3.11.6 (fixes recursion limit vulnerability)
+
 **Documentation Improvements:**
 
 * [docs] Improve ecosystem diagram readability with better SVG formatting
+* [docs] Update tutorials with improved examples and formatting
 
 **Maintenance:**
 

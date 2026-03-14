@@ -104,8 +104,7 @@ try to do that
 
 .. code:: ipython3
 
-    class RandomNegotiator(SAONegotiator):
-        ...
+    class RandomNegotiator(SAONegotiator): ...
 
 
     try:
@@ -260,7 +259,6 @@ negotiation ended.
 
     fig = px.histogram(x=ended_at, nbins=20, title="Distribution of Negotiation End Steps")
     fig.update_layout(xaxis_title="End Step", yaxis_title="Count")
-    fig.show()
 
 
 
@@ -926,7 +924,7 @@ type.
         xaxis_title="Advantage",
         yaxis_title="Density",
     )
-    fig.show()
+    fig
 
 
 

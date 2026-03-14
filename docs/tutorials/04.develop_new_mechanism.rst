@@ -246,7 +246,6 @@ example, how does the reservation value affect the outcome:
     fig.update_yaxes(title_text="Utility received", row=1, col=1)
     fig.update_yaxes(title_text="Agreement Reached", row=2, col=1)
     fig.update_layout(height=600)
-    fig.show()
 
 
 
@@ -319,7 +318,6 @@ What happens if the utility value of a negotiator had a different slope:
     fig.update_yaxes(title_text="Utility received", row=1, col=1)
     fig.update_yaxes(title_text="Agreement Reached", row=2, col=1)
     fig.update_layout(height=600)
-    fig.show()
 
 
 
@@ -531,7 +529,6 @@ negotiation
                 )
             )
         fig.update_layout(xaxis_title="Agent 1's utility", yaxis_title="Agent 2's utility")
-        fig.show()
 
 Let’s implement a random negotiator that ends the negotiation if it
 finds that it is impossible to get a positive utility anymore (due to

@@ -47,7 +47,7 @@ We can now start world simulations using our new world and agent
 
 .. code:: ipython3
 
-    world = TripsWorld(n_steps=10, construct_graphs=True)
+    world = TripsWorld(n_steps=_N_STEPS_SHORT, construct_graphs=True)
     for i in range(5):
         world.join(RandomPerson(name=f"a{i}"))
     world.run_with_progress()
@@ -78,7 +78,6 @@ expect :math:`40` negotiations at every step.
     fig = go.Figure()
     fig.add_trace(go.Scatter(y=world.stats["n_negotiations"], mode="lines"))
     fig.update_layout(xaxis_title="Simulation Step", yaxis_title="N. Negotiations")
-    fig.show()
 
 
 
@@ -100,7 +99,6 @@ as a pandas dataframe.
     fig = go.Figure()
     fig.add_trace(go.Bar(x=list(range(world.n_steps)), y=stats_df(world)["step_time"]))
     fig.update_layout(xaxis_title="Simulation Step", yaxis_title="Time (s)")
-    fig.show()
 
 
 
@@ -120,7 +118,7 @@ correspond to the total welfare)
     fig.update_layout(
         xaxis_title="Simulation Step", yaxis_title="Activity Level ($)\nTotal Welfare"
     )
-    fig.show()
+    fig
 
 
 
@@ -145,7 +143,6 @@ We can see a picture of contracting in this world as follows:
         )
     )
     fig.update_layout(xaxis_title="Simulation Step", yaxis_title="N. Contracts")
-    fig.show()
 
 
 
@@ -161,7 +158,6 @@ We can also check the breaches that happened
     fig = go.Figure()
     fig.add_trace(go.Scatter(y=world.stats["breach_level"], mode="lines"))
     fig.update_layout(xaxis_title="Simulation Step", yaxis_title="Total Breach Level")
-    fig.show()
 
 
 
@@ -187,7 +183,7 @@ We can actually check what happens to ALL agents
         yaxis_title="Player Total Utility",
         legend=dict(x=0, y=0),
     )
-    fig.show()
+    fig
 
 
 
@@ -209,6 +205,24 @@ simulation:
 
 
 .. image:: 06.develop_new_agent_files/06.develop_new_agent_17_0.png
+
+
+
+
+.. parsed-literal::
+
+    (None,
+     [<networkx.classes.digraph.DiGraph at 0x1168f3b60>,
+      <networkx.classes.digraph.DiGraph at 0x116490550>,
+      <networkx.classes.digraph.DiGraph at 0x11697df90>,
+      <networkx.classes.digraph.DiGraph at 0x116a1c050>,
+      <networkx.classes.digraph.DiGraph at 0x116a1c180>,
+      <networkx.classes.digraph.DiGraph at 0x11696fbf0>,
+      <networkx.classes.digraph.DiGraph at 0x1169ea140>,
+      <networkx.classes.digraph.DiGraph at 0x1169ea250>,
+      <networkx.classes.digraph.DiGraph at 0x11699e550>,
+      <networkx.classes.digraph.DiGraph at 0x11699e750>])
+
 
 
 Making a Better Agent for the Trips World
@@ -269,7 +283,7 @@ Let’s try it
 
 .. code:: ipython3
 
-    world = TripsWorld(n_steps=20, construct_graphs=True)
+    world = TripsWorld(n_steps=_N_STEPS_LONG, construct_graphs=True)
     for i in range(3):
         world.join(RandomPerson(name=f"rand-{i}"))
     for i in range(3):
@@ -310,7 +324,7 @@ Let’s check how did our agent do
         yaxis_title="Player Total Utility",
         legend=dict(x=0, y=0),
     )
-    fig.show()
+    fig
 
 
 

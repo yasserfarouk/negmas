@@ -1,34 +1,3 @@
-.. code:: ipython3
-
-    # This is to make the results reproducible if you are using the Jupyter notebook version.
-    from rich import print
-    from random import seed
-    import warnings
-
-    warnings.filterwarnings("ignore")
-
-    import plotly.io as pio
-    pio.renderers.default = "png"  # Use PNG for smaller docs
-
-    from IPython.display import display, HTML
-
-    display(HTML("<style>.container { width:95% !important; }</style>"))
-    import random
-
-    random.seed(203)
-    import numpy as np
-
-    np.random.seed(345)
-    from rich import print
-    from pathlib import Path
-
-
-
-.. raw:: html
-
-    <style>.container { width:95% !important; }</style>
-
-
 Getting Started
 ===============
 
@@ -200,7 +169,7 @@ We can also plot the negotiation.
 
 
 
-.. image:: getting_started_files/getting_started_10_0.png
+.. image:: getting_started_files/getting_started_9_0.png
 
 
 The most commonly used method for visualizing a negotiation is to plot

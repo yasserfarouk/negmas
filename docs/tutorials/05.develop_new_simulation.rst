@@ -444,33 +444,17 @@ The callbacks related to this are:
 .. code:: python
 
        def on_contract_signed(self, contract: Contract) -> None: ...
-
-
        def executable_contracts(self) -> Collection[Contract]: ...
-
-
        def order_contracts_for_execution(
            self, contracts: Collection[Contract]
        ) -> Collection[Contract]: ...
-
-
        def start_contract_execution(self, contract: Contract) -> Optional[Set[Breach]]: ...
-
-
        def complete_contract_execution(
            self, contract: Contract, breaches: List[Breach], resolution: Contract
        ) -> None: ...
-
-
        def delete_executed_contracts(self) -> None: ...
-
-
        def contract_record(self, contract: Contract) -> Dict[str, Any]: ...
-
-
        def breach_record(self, breach: Breach) -> Dict[str, Any]: ...
-
-
        def contract_size(self, contract: Contract) -> float: ...
 
 The names are almost self-explanatory and we will go through them one by
@@ -613,12 +597,10 @@ unnecessary details from developers of agents targeting our
 
     class Person(Agent, ABC):
         @abstractmethod
-        def step(self):
-            ...
+        def step(self): ...
 
         @abstractmethod
-        def init(self):
-            ...
+        def init(self): ...
 
         @abstractmethod
         def respond_to_negotiation_request(
@@ -626,8 +608,7 @@ unnecessary details from developers of agents targeting our
             initiator: str,
             partners: List[str],
             mechanism: NegotiatorMechanismInterface,
-        ) -> Optional[Negotiator]:
-            ...
+        ) -> Optional[Negotiator]: ...
 
         def _respond_to_negotiation_request(
             self,
@@ -732,11 +713,7 @@ during the simulation. These are:
 .. code:: python
 
        def on_neg_request_rejected(self, req_id: str, by: Optional[List[str]]): ...
-
-
        def on_neg_request_accepted(self, req_id: str, mechanism: AgentMechanismInterface): ...
-
-
        def on_negotiation_failure(
            self,
            partners: List[str],
@@ -744,26 +721,16 @@ during the simulation. These are:
            mechanism: AgentMechanismInterface,
            state: MechanismState,
        ): ...
-
-
        def on_negotiation_success(
            self, contract: Contract, mechanism: AgentMechanismInterface
        ): ...
-
-
        def set_renegotiation_agenda(
            self, contract: Contract, breaches: List[Breach]
        ) -> Optional[RenegotiationRequest]: ...
-
-
        def respond_to_renegotiation_request(
            self, contract: Contract, breaches: List[Breach], agenda: RenegotiationRequest
        ) -> Optional[Negotiator]: ...
-
-
        def on_contract_executed(self, contract: Contract): ...
-
-
        def on_contract_breached(self, contract: Contract, breaches: List[Breach]): ...
 
 These callbacks are called by the world at key points of the process
