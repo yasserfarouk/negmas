@@ -234,6 +234,55 @@ def color_to_rgba(color, alpha: float = 1.0) -> str:
     return f"rgba(0,0,0,{alpha})"
 
 
+def _get_legend_config(only2d: bool, no2d: bool) -> dict:
+    """Get legend configuration based on plot mode.
+
+    Args:
+        only2d: Whether only the 2D plot is shown.
+        no2d: Whether the 2D plot is hidden (only offer utilities shown).
+
+    Returns:
+        Dictionary with legend configuration for fig.update_layout().
+    """
+    if only2d or no2d:
+        # Single plot type: legend to the right, outside the figure
+        return dict(orientation="v", yanchor="middle", y=0.5, xanchor="left", x=1.02)
+    else:
+        # Both 2D and offer plots: horizontal legend below the figure
+        # traceorder="normal" is required for horizontal orientation to work
+        # with subplot figures that have legendgrouptitle set on traces
+        # y=-0.25 places legend well below x-axis labels to avoid overlap
+        return dict(
+            orientation="h",
+            yanchor="top",
+            y=-0.25,
+            xanchor="center",
+            x=0.5,
+            traceorder="normal",
+            tracegroupgap=10,
+            itemwidth=40,
+            font=dict(size=11),
+        )
+
+
+def _get_margin_config(only2d: bool, no2d: bool) -> dict:
+    """Get margin configuration based on plot mode.
+
+    Args:
+        only2d: Whether only the 2D plot is shown.
+        no2d: Whether the 2D plot is hidden (only offer utilities shown).
+
+    Returns:
+        Dictionary with margin configuration for fig.update_layout().
+    """
+    if only2d or no2d:
+        # Single plot: tighter margins, legend is on the right
+        return dict(l=50, r=120, t=30, b=50)
+    else:
+        # Both plots: need more bottom margin for horizontal legend below axis labels
+        return dict(l=50, r=50, t=30, b=120)
+
+
 ALL_MARKERS = [
     "square",
     "circle",
@@ -1667,11 +1716,14 @@ def plot_offline_run(
     ids: list[str],
     ufuns: list[BaseUtilityFunction] | tuple[BaseUtilityFunction, ...],
     agreement: Outcome | None,
-    timedout: bool,
-    broken: bool,
-    has_error: bool,
+    timedout: bool = False,
+    broken: bool = False,
+    has_error: bool = False,
     errstr: str = "",
     names: list[str] | None = None,
+    outcomes: list[Outcome] | None = None,
+    outcome_space: OutcomeSpace | None = None,
+    end_reason: str | None = None,
     *,
     negotiators: tuple[int, int] | tuple[str, str] | None = (0, 1),
     save_fig: bool = False,
@@ -1726,6 +1778,10 @@ def plot_offline_run(
         has_error: Whether an error occurred during negotiation.
         errstr: Error message string if has_error is True.
         names: Display names for negotiators (defaults to IDs if None).
+        outcomes: List of outcomes to plot. If None, derived from outcome_space or ufuns[0].
+        outcome_space: The outcome space for the negotiation. If None, uses ufuns[0].outcome_space.
+        end_reason: Pre-formatted end reason string. If provided, overrides the automatic
+                   reason generation from timedout/broken/has_error/errstr.
         save_fig: If True, save the figure to disk.
         path: Directory path where to save the figure (if save_fig is True).
         fig_name: Filename for the saved figure. If provided with an extension (e.g., "plot.png"),
@@ -1784,6 +1840,15 @@ def plot_offline_run(
     if not only2d:
         all_ufuns = ufuns
         for a, neg in enumerate(ids):
+            # Only show legend in offer utilities if 2D plot is not shown (to avoid duplicate legends)
+            # When both 2D and offer utilities are shown, the 2D plot provides the legend
+            show_offer_legend = (
+                no2d  # Only show legend when 2D plot is hidden
+                and (
+                    not common_legend or a == 0
+                )  # Show for first negotiator when common_legend
+                and not simple_offers_view
+            )
             plot_offer_utilities(
                 trace=trace,
                 negotiator=neg,
@@ -1799,7 +1864,7 @@ def plot_offline_run(
                 markers=markers,
                 ignore_none_offers=ignore_none_offers,
                 ylimits=ylimits,
-                show_legend=(not common_legend or a == 0) and not simple_offers_view,
+                show_legend=show_offer_legend,
                 show_x_label=a == len(ids) - 1,
                 show_reserved=show_reserved,
                 xdim=xdim,
@@ -1812,6 +1877,9 @@ def plot_offline_run(
     if not no2d:
         if not show_end_reason:
             reason = None
+        elif end_reason is not None:
+            # Use pre-formatted end_reason if provided
+            reason = end_reason
         else:
             if timedout:
                 reason = "Negotiation Timedout"
@@ -1828,14 +1896,20 @@ def plot_offline_run(
             else:
                 reason = "Unknown state!!"
 
-        assert len(ufuns) and ufuns[0].outcome_space
+        # Use provided outcome_space or fall back to ufuns[0].outcome_space
+        if outcome_space is None:
+            assert len(ufuns) and ufuns[0].outcome_space
+            outcome_space = ufuns[0].outcome_space
+        # Use provided outcomes or derive from outcome_space
+        if outcomes is None:
+            outcomes = list(outcome_space.enumerate_or_sample(levels=10))
         plot_2dutils(
             trace=trace,
             plotting_ufuns=plotting_ufuns,
             plotting_negotiators=plotting_negotiators,
             offering_negotiators=ids,
-            outcome_space=ufuns[0].outcome_space,
-            outcomes=list(ufuns[0].outcome_space.enumerate_or_sample(levels=10)),
+            outcome_space=outcome_space,
+            outcomes=outcomes,
             fig=fig,
             row=1,
             col=1,
@@ -1869,10 +1943,13 @@ def plot_offline_run(
         )
 
     # Update layout - use autosize for responsive sizing in viewers
+    # Legend placement depends on plot mode:
+    # - Single plot type (only2d or no2d): legend to the right, outside
+    # - Both plots: horizontal legend below, multi-column
+    legend_config = _get_legend_config(only2d=only2d, no2d=no2d)
+    margin_config = _get_margin_config(only2d=only2d, no2d=no2d)
     fig.update_layout(
-        autosize=True,
-        showlegend=True,
-        legend=dict(orientation="h", yanchor="bottom", y=1.02, xanchor="center", x=0.5),
+        autosize=True, showlegend=True, legend=legend_config, margin=margin_config
     )
 
     if save_fig:
@@ -1943,186 +2020,91 @@ def plot_mechanism_run(
 ):
     """Plots a complete visualization of a negotiation mechanism run.
 
+    This is a convenience wrapper around `plot_offline_run` that extracts the
+    necessary data from a live mechanism object.
+
     Args:
         mechanism: The mechanism object containing negotiation state and history.
     """
-    assert not (no2d and only2d), "Cannot specify no2d and only2d together"
+    # Extract data from mechanism
+    state = mechanism.state
+    agreement = mechanism.agreement
 
-    if negotiators is None:
-        negotiators = (0, 1)
-    if len(negotiators) != 2:
-        raise ValueError(
-            "Cannot plot the 2D plot for the mechanism run without knowing two plotting negotiators"
-        )
-    plotting_negotiators = []
-    plotting_ufuns = []
-    for n in negotiators:
-        if isinstance(n, int):
-            i = n
-        else:
-            i = mechanism.negotiator_index(n)
-            if i is None:
-                raise ValueError(f"Cannot find negotiator with ID {n}")
-        plotting_negotiators.append(mechanism.negotiators[i].id)
-        plotting_ufuns.append(mechanism.negotiators[i].ufun)
-
-    name_map = dict(zip(mechanism.negotiator_ids, mechanism.negotiator_names))
-    colors, markers = make_colors_and_markers(
-        colors, markers, len(mechanism.negotiators), colormap
-    )
-
-    # Create figure with subplots
-    n_negotiators = mechanism.nmi.n_negotiators
-    if only2d:
-        fig = go.Figure()
-    elif no2d:
-        fig = make_subplots(rows=n_negotiators, cols=1, shared_xaxes=True)
-    else:
-        # Create subplot layout: 2D plot on left, offer plots on right
-        fig = make_subplots(
-            rows=n_negotiators,
-            cols=2,
-            column_widths=[0.5, 0.5],
-            specs=[
-                [{"rowspan": n_negotiators}, {}] if i == 0 else [None, {}]
-                for i in range(n_negotiators)
-            ],
-            horizontal_spacing=0.1,
-            vertical_spacing=0.05,
-        )
-
-    # Plot offer utilities
-    if not only2d:
-        all_ufuns = [_.ufun for _ in mechanism.negotiators]
-        for a, neg in enumerate(mechanism.negotiator_ids):
-            # Only show legend in offer utilities if 2D plot is not shown (to avoid duplicate legends)
-            # When both 2D and offer utilities are shown, the 2D plot provides the legend
-            show_offer_legend = (
-                no2d  # Only show legend when 2D plot is hidden
-                and (
-                    not common_legend or a == 0
-                )  # Show for first negotiator when common_legend
-                and not simple_offers_view
-            )
-            plot_offer_utilities(
-                trace=mechanism.full_trace,
-                negotiator=neg,
-                plotting_ufuns=[all_ufuns[a]] if simple_offers_view else all_ufuns,
-                plotting_negotiators=[neg]
-                if simple_offers_view
-                else mechanism.negotiator_ids,
-                fig=fig,
-                row=a + 1,
-                col=2 if not no2d else 1,
-                name_map=name_map,
-                colors=colors,
-                markers=markers,
-                ignore_none_offers=ignore_none_offers,
-                ylimits=ylimits,
-                show_legend=show_offer_legend,
-                show_x_label=a == len(mechanism.negotiator_ids) - 1,
-                show_reserved=show_reserved,
-                xdim=xdim,
-                colorizer=colorizer,
-                first_color_index=a if simple_offers_view else 0,
-                mark_offers_view=mark_offers_view,
-            )
-
-    # Plot 2D utilities
-    if not no2d:
-        agreement = mechanism.agreement
-        state = mechanism.state
-        if not state.erred_negotiator:
-            erredneg = errdetails = ""
-        else:
-            try:
-                ids = mechanism.negotiator_ids
-                names = mechanism.negotiator_names
-                erredneg = names[ids.index(state.erred_negotiator)]
-                errdetails = state.error_details.split("\n")[-1][-30:]
-            except Exception:
-                erredneg = errdetails = ""
-
-        if not show_end_reason:
-            reason = None
-        else:
-            if state.timedout:
-                reason = "Negotiation Timedout"
-            elif agreement is not None:
-                reason = "Negotiation Success"
-            elif state.has_error:
-                reason = f"ERROR by {erredneg}: {errdetails}"
-            elif agreement is not None:
-                reason = "Agreement Reached"
-            elif state.broken:
-                reason = "Negotiation Ended"
-            elif agreement is None:
-                reason = "No Agreement"
+    # Build end_reason string with mechanism-specific error details
+    end_reason: str | None = None
+    if show_end_reason:
+        if state.timedout:
+            end_reason = "Negotiation Timedout"
+        elif agreement is not None:
+            end_reason = "Negotiation Success"
+        elif state.has_error:
+            # Extract detailed error info from mechanism
+            if state.erred_negotiator:
+                try:
+                    ids = mechanism.negotiator_ids
+                    names = mechanism.negotiator_names
+                    erredneg = names[ids.index(state.erred_negotiator)]
+                    errdetails = state.error_details.split("\n")[-1][-30:]
+                    end_reason = f"ERROR by {erredneg}: {errdetails}"
+                except Exception:
+                    end_reason = "Negotiation ERROR"
             else:
-                reason = "Unknown state!!"
-
-        plot_2dutils(
-            trace=mechanism.full_trace,
-            plotting_ufuns=plotting_ufuns,
-            plotting_negotiators=plotting_negotiators,
-            offering_negotiators=mechanism.negotiator_ids,
-            outcome_space=mechanism.outcome_space,
-            outcomes=mechanism.discrete_outcomes(),
-            fig=fig,
-            row=1,
-            col=1,
-            name_map=name_map,
-            with_lines=with_lines,
-            show_agreement=show_agreement,
-            show_pareto_distance=show_pareto_distance,
-            show_nash_distance=show_nash_distance,
-            show_kalai_distance=show_kalai_distance,
-            show_ks_distance=show_ks_distance,
-            show_max_welfare_distance=show_max_welfare_distance,
-            show_max_relative_welfare_distance=show_max_relative_welfare_distance,
-            show_annotations=show_annotations,
-            show_reserved=show_reserved,
-            colors=colors,
-            markers=markers,
-            agreement=mechanism.agreement,
-            end_reason=reason,
-            extra_annotation=extra_annotation,
-            colorizer=colorizer,
-            show_total_time=show_total_time,
-            show_relative_time=show_relative_time,
-            show_n_steps=show_n_steps,
-            fast=fast,
-            mark_pareto_points=mark_pareto_points,
-            mark_all_outcomes=mark_all_outcomes,
-            mark_nash_points=mark_nash_points,
-            mark_kalai_points=mark_kalai_points,
-            mark_ks_points=mark_ks_points,
-            mark_max_welfare_points=mark_max_welfare_points,
-        )
-
-    # Update layout - use autosize for responsive sizing in viewers
-    fig.update_layout(
-        autosize=True,
-        showlegend=True,
-        legend=dict(orientation="h", yanchor="bottom", y=1.02, xanchor="center", x=0.5),
-    )
-
-    if save_fig:
-        if fig_name is None:
-            fig_name = str(uuid.uuid4()) + f".{image_format}"
-        elif not pathlib.Path(fig_name).suffix:
-            # User provided name without extension, add image_format
-            fig_name = f"{fig_name}.{image_format}"
-        # else: User provided name with extension, use as-is
-
-        if path is None:
-            path_ = pathlib.Path().absolute()
+                end_reason = "Negotiation ERROR"
+        elif state.broken:
+            end_reason = "Negotiation Ended"
+        elif agreement is None:
+            end_reason = "No Agreement"
         else:
-            path_ = pathlib.Path(path)
-        path_.mkdir(parents=True, exist_ok=True)
-        fig.write_image(str(path_ / fig_name))
+            end_reason = "Unknown state!!"
 
-    if show:
-        fig.show()
-        return None
-    return fig
+    # Delegate to plot_offline_run
+    return plot_offline_run(
+        trace=mechanism.full_trace,
+        ids=mechanism.negotiator_ids,
+        ufuns=[neg.ufun for neg in mechanism.negotiators],
+        agreement=agreement,
+        names=mechanism.negotiator_names,
+        outcomes=mechanism.discrete_outcomes(),
+        outcome_space=mechanism.outcome_space,
+        end_reason=end_reason,
+        negotiators=negotiators,
+        save_fig=save_fig,
+        path=path,
+        fig_name=fig_name,
+        image_format=image_format,
+        ignore_none_offers=ignore_none_offers,
+        with_lines=with_lines,
+        show_agreement=show_agreement,
+        show_pareto_distance=show_pareto_distance,
+        show_nash_distance=show_nash_distance,
+        show_kalai_distance=show_kalai_distance,
+        show_ks_distance=show_ks_distance,
+        show_max_welfare_distance=show_max_welfare_distance,
+        show_max_relative_welfare_distance=show_max_relative_welfare_distance,
+        show_end_reason=show_end_reason,
+        show_annotations=show_annotations,
+        show_reserved=show_reserved,
+        show_total_time=show_total_time,
+        show_relative_time=show_relative_time,
+        show_n_steps=show_n_steps,
+        colors=colors,
+        markers=markers,
+        colormap=colormap,
+        ylimits=ylimits,
+        common_legend=common_legend,
+        extra_annotation=extra_annotation,
+        xdim=xdim,
+        colorizer=colorizer,
+        only2d=only2d,
+        no2d=no2d,
+        fast=fast,
+        simple_offers_view=simple_offers_view,
+        mark_offers_view=mark_offers_view,
+        mark_pareto_points=mark_pareto_points,
+        mark_all_outcomes=mark_all_outcomes,
+        mark_nash_points=mark_nash_points,
+        mark_kalai_points=mark_kalai_points,
+        mark_ks_points=mark_ks_points,
+        mark_max_welfare_points=mark_max_welfare_points,
+        show=show,
+    )

@@ -77,6 +77,20 @@ Release 0.15.2
 
 * [docs] Improve ecosystem diagram readability with better SVG formatting
 * [docs] Update tutorials with improved examples and formatting
+* [docs] Fix plot legend positioning in negotiation visualizations:
+
+  - Legend now placed horizontally below figure (not overlapping x-axis labels)
+  - Proper spacing between legend items with readable font size
+  - Vertical legend on the right for single-plot modes (only2d/no2d)
+
+**Code Improvements:**
+
+* [refactor] Refactor ``plot_mechanism_run`` to delegate to ``plot_offline_run``:
+
+  - Eliminates ~100 lines of duplicated plotting code
+  - Both functions now share identical legend and margin configuration
+  - Added optional ``outcomes``, ``outcome_space``, and ``end_reason`` parameters to ``plot_offline_run``
+  - Fixed duplicate legend bug in ``plot_offline_run`` when both 2D and offer plots are shown
 
 **Maintenance:**
 

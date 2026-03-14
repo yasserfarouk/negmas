@@ -143,3 +143,23 @@ pre-commit run --all-files                # Run all pre-commit hooks
 5. Add any new ecosystem projects to the appropriate category
 6. Remove or mark as deprecated any archived/abandoned projects
 7. Ensure both `docs/overview.rst` and `README.rst` are in sync
+
+
+**Release Process:**
+
+I do not use Travis CLI, I use Github Actions.
+
+You must do the following steps for doing a release:
+
+1. confirm the tests pass locally with the genius bridge running.
+2. confirm that all commits since the last release are included in HISTORY.rst (minor ones like chores may be ignored).
+3. make sure the docs build successfully.
+4. commit everything and push.
+5. include any security prs.
+6. ASK ME AND CONRIRM the new version number. Give me the latest version on pypi and the
+   version currently in pyproject.toml and suggest the new version.
+7. tag with the new version number.
+8. monitor Github actions until all actions pass.
+9. push with tags and monitor again.
+10. after pypi is updated from github actions confim the version.
+11. make a release on github which includes the changes for this release from HISTORY.rst.
