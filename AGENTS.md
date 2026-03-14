@@ -159,7 +159,7 @@ You must do the following steps for doing a release:
 6. ASK ME AND CONRIRM the new version number. Give me the latest version on pypi and the
    version currently in pyproject.toml and suggest the new version.
 7. tag with the new version number.
-8. monitor Github actions until all actions pass.
+8. monitor Github actions until all actions pass (NOTE: SlowCI takes hours, no need to wait for it).
 9. push with tags and monitor again.
 10. after pypi is updated from github actions confim the version.
 11. make a release on github which includes the changes for this release from HISTORY.rst.
