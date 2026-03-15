@@ -14,7 +14,7 @@ import os
 import pathlib
 from os import PathLike
 from pathlib import Path
-from typing import TYPE_CHECKING, Any, Iterable, Literal
+from typing import TYPE_CHECKING, Any, Callable, Iterable, Literal
 
 import inflect
 import numpy as np
@@ -40,6 +40,7 @@ __all__ = [
     "load_table",
     "add_records",
     "save_table",
+    "safe_write_file",
     "TYPE_START",
     "has_needed_files",
 ]
@@ -581,6 +582,92 @@ def add_records(
     data.to_csv(str(file_name), index=False, index_label="", mode=mode, header=new_file)
 
 
+def safe_write_file(
+    write_func: Callable[[Path], None],
+    path: Path,
+    *,
+    max_retries: int = 3,
+    base_delay: float = 0.1,
+    fallback_func: Callable[[Path], None] | None = None,
+    fallback_path: Path | None = None,
+) -> Path:
+    """Write a file with atomic writes and retry logic.
+
+    Uses a temporary file and atomic rename to prevent partial writes
+    and handle concurrent access issues in parallel environments.
+
+    Args:
+        write_func: A callable that takes a Path and writes data to it
+        path: Target path for the file
+        max_retries: Number of retry attempts for transient errors
+        base_delay: Base delay in seconds for exponential backoff
+        fallback_func: Optional fallback write function if primary fails
+        fallback_path: Path to use for fallback (required if fallback_func provided)
+
+    Returns:
+        The path where the file was actually written (may differ if fallback used)
+
+    Raises:
+        The last encountered error if all retries fail and no fallback is available
+    """
+    import random
+    import tempfile
+    import time
+
+    # Create temp file in same directory for atomic rename
+    temp_fd, temp_path_str = tempfile.mkstemp(
+        suffix=".tmp", dir=path.parent, prefix=path.stem + "_"
+    )
+    temp_path = Path(temp_path_str)
+
+    try:
+        os.close(temp_fd)  # Close the file descriptor, write_func will reopen
+
+        last_error: Exception | None = None
+        for attempt in range(max_retries):
+            try:
+                # Write to temp file
+                write_func(temp_path)
+                # Atomic rename (POSIX guarantees atomicity, Windows best-effort)
+                os.replace(temp_path, path)
+                return path  # Success
+            except (PermissionError, OSError) as e:
+                last_error = e
+                if attempt < max_retries - 1:
+                    # Exponential backoff with random jitter to avoid thundering herd
+                    delay = base_delay * (2**attempt)
+                    jitter = random.uniform(0, delay * 0.5)  # Add up to 50% jitter
+                    time.sleep(delay + jitter)
+
+        # All retries failed
+        if (
+            fallback_func is not None
+            and fallback_path is not None
+            and last_error is not None
+        ):
+            # Try fallback
+            warnings.warn(
+                f"Failed to write file after {max_retries} attempts "
+                f"({last_error}). Falling back to: {fallback_path}",
+                warnings.NegmasIOWarning,
+            )
+            fallback_func(fallback_path)
+            return fallback_path
+
+        # No fallback, raise the error
+        if last_error is not None:
+            raise last_error
+        raise RuntimeError("Unexpected state: no error but write failed")
+
+    finally:
+        # Clean up temp file if it still exists
+        try:
+            if temp_path.exists():
+                temp_path.unlink()
+        except OSError:
+            pass
+
+
 def save_table(
     data: pd.DataFrame | list[dict[str, Any]] | list[tuple] | list[list],
     path: Path | str,
@@ -677,21 +764,29 @@ def save_table(
 
     # Save based on format
     if storage_format == "csv":
-        if index:
-            if index_label:
-                df.to_csv(path, index_label=index_label)
+
+        def write_csv(p: Path) -> None:
+            if index:
+                if index_label:
+                    df.to_csv(p, index_label=index_label)
+                else:
+                    df.to_csv(p, index=True)
             else:
-                df.to_csv(path, index=True)
-        else:
-            df.to_csv(path, index=False)
+                df.to_csv(p, index=False)
+
+        path = safe_write_file(write_csv, path)
     elif storage_format == "gzip":
-        if index:
-            if index_label:
-                df.to_csv(path, index_label=index_label, compression="gzip")
+
+        def write_gzip(p: Path) -> None:
+            if index:
+                if index_label:
+                    df.to_csv(p, index_label=index_label, compression="gzip")
+                else:
+                    df.to_csv(p, index=True, compression="gzip")
             else:
-                df.to_csv(path, index=True, compression="gzip")
-        else:
-            df.to_csv(path, index=False, compression="gzip")
+                df.to_csv(p, index=False, compression="gzip")
+
+        path = safe_write_file(write_gzip, path)
     elif storage_format == "parquet":
         # Parquet can't handle arbitrary Python objects like tuples
         # Convert object columns with non-serializable types to strings
@@ -706,7 +801,20 @@ def save_table(
                         df_parquet[col] = df_parquet[col].apply(
                             lambda x: str(x) if x is not None else None
                         )
-        df_parquet.to_parquet(path, index=index)
+
+        def write_parquet(p: Path) -> None:
+            df_parquet.to_parquet(p, index=index)
+
+        def write_csv_fallback(p: Path) -> None:
+            df_parquet.to_csv(p, index=index)
+
+        # Use safe write with retry logic and optional CSV fallback
+        path = safe_write_file(
+            write_parquet,
+            path,
+            fallback_func=write_csv_fallback,
+            fallback_path=path.with_suffix(".csv"),
+        )
     else:
         raise ValueError(
             f"Unknown storage_format: {storage_format}. Expected 'csv', 'gzip', or 'parquet'."
@@ -716,7 +824,7 @@ def save_table(
 
 
 def load_table(
-    path: Path | str, *, as_dataframe: bool = True
+    path: Path | str, *, as_dataframe: bool = True, try_alternatives: bool = True
 ) -> "pd.DataFrame | list[dict[str, Any]]":
     """Load tabular data from a file.
 
@@ -729,13 +837,16 @@ def load_table(
             - ".csv.gz" or ".gz": Gzip-compressed CSV file
             - ".parquet": Parquet binary format
         as_dataframe: If True, return a pandas DataFrame. If False, return a list of dicts.
+        try_alternatives: If True and the specified file is not found, try loading
+            from alternative formats (e.g., if "data.parquet" doesn't exist, try
+            "data.csv" and "data.csv.gz"). This helps recover from fallback writes.
 
     Returns:
         A pandas DataFrame or list of dicts containing the loaded data.
 
     Raises:
         ValueError: If the file extension is not supported.
-        FileNotFoundError: If the file does not exist.
+        FileNotFoundError: If the file does not exist (and no alternatives found).
 
     Examples:
         >>> import tempfile, os
@@ -752,6 +863,27 @@ def load_table(
     path = Path(path).expanduser().absolute()
 
     if not path.exists():
+        if try_alternatives:
+            # Try alternative formats based on the requested file's stem
+            stem = path.stem
+            # Handle .csv.gz case where stem would be "file.csv"
+            if stem.endswith(".csv"):
+                stem = stem[:-4]
+            parent = path.parent
+
+            # Define alternative extensions to try
+            alternatives = [".csv", ".parquet", ".csv.gz"]
+            for alt_ext in alternatives:
+                alt_path = parent / (stem + alt_ext)
+                if alt_path.exists() and alt_path != path:
+                    warnings.warn(
+                        f"File not found: {path}. Loading from alternative: {alt_path}",
+                        warnings.NegmasIOWarning,
+                    )
+                    return load_table(
+                        alt_path, as_dataframe=as_dataframe, try_alternatives=False
+                    )
+
         raise FileNotFoundError(f"File not found: {path}")
 
     # Determine format based on extension
