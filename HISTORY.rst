@@ -1,6 +1,18 @@
 History
 =======
 
+Release 0.15.4
+--------------
+
+**Breaking Changes:**
+
+* [refactor] Remove ``Dissociated`` notification from preferences lifecycle:
+
+  - The ``on_preferences_changed([Dissociated])`` callback is no longer sent when a negotiator leaves
+  - The ``Dissociated`` enum value is kept in ``PreferencesChangeType`` for backward compatibility but is never sent
+  - Removed Dissociated handling from offering policies (CABOfferingPolicy, WAROfferingPolicy, OfferBest, OfferTop)
+  - Updated documentation to reflect the simplified lifecycle
+
 Release 0.15.3 (Hotfix)
 -----------------------
 
