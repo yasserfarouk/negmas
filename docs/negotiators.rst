@@ -65,8 +65,6 @@ Callback Order Flowchart
        │
        └── on_leave(state)
            └── Called when negotiator leaves the mechanism
-           └── [owner cleared from preferences]
-           └── on_preferences_changed([Dissociated])  ◄── Notifies of disconnection
 
 
 Key Guarantees
@@ -88,10 +86,7 @@ Key Guarantees
 4. **Owner Lifecycle**: The preferences ``owner`` is set just before
    ``on_preferences_changed([Initialization])`` and cleared in ``on_leave()``.
 
-5. **Dissociation Notification**: When a negotiator leaves, it receives an
-   ``on_preferences_changed([Dissociated])`` notification.
-
-6. **No Preferences**: If a negotiator has no preferences set,
+5. **No Preferences**: If a negotiator has no preferences set,
    ``on_preferences_changed([Initialization])`` is not called - this is
    expected behavior, not an error.
 

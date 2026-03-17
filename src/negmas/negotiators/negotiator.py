@@ -64,7 +64,6 @@ class Negotiator(Rational, Notifiable, Generic[TNMI, TState]):
         4. **Negotiation End**:
            - ``on_negotiation_end(state)``
            - ``on_leave(state)`` - [owner cleared from preferences]
-           - ``on_preferences_changed([Dissociated])`` - notifies disconnection
 
         **Key Guarantees**:
         - ``on_preferences_changed([Initialization])`` is ALWAYS called before ``on_negotiation_start()``

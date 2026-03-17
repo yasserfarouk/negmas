@@ -173,6 +173,7 @@ class PreferencesChangeType(Enum):
         - Received by the `on_preferences_changed` method of `Rational` entities to inform them about a change in preferences.
         - Note that the `Rational` entity needs to call `changes` explicitly and call its own `on_preferences_changed` to handle changes that happen without assignment to `preferences` of the `Rational` entity.
         - If the `preferences` of the `Rational` agent are changed through assignment, its `on_preferences_changed` will be called with the appropriate `PreferencesChange` list.
+        - The `Dissociated` type is deprecated and kept only for backward compatibility. It is never sent by the system.
     """
 
     General = auto()
@@ -188,7 +189,7 @@ class PreferencesChangeType(Enum):
     StabilityIncreased = auto()
     StabilityChanged = auto()
     Initialization = auto()
-    Dissociated = auto()
+    Dissociated = auto()  # Deprecated: kept for backward compatibility, never sent
 
 
 @define(frozen=True)

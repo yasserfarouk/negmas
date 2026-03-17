@@ -91,21 +91,11 @@ class Preferences(NamedObject, ABC):
     def owner(self, value: Rational | None) -> None:
         """Sets the owner of these preferences.
 
-        When owner is set to None (dissociation), notifies the previous owner
-        via on_preferences_changed with Dissociated change type.
-
         Note:
             This is typically managed automatically by the negotiation framework.
             The owner is set when entering a negotiation and cleared when exiting.
         """
-        old_owner = self._owner
         self._owner = value
-
-        # Notify old owner when being dissociated (owner set to None)
-        if old_owner is not None and value is None:
-            old_owner.on_preferences_changed(
-                [PreferencesChange(PreferencesChangeType.Dissociated)]
-            )
 
     @property
     def stability(self) -> Stability:
