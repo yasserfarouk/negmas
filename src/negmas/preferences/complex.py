@@ -32,7 +32,11 @@ def _and_stability(ufuns: Iterable[BaseUtilityFunction]) -> Stability:
     Returns:
         Combined stability flags (intersection of all stability flags).
     """
-    return functools.reduce(lambda a, b: Stability(a & b.stability), ufuns, STATIONARY)
+    return functools.reduce(
+        lambda a, b: Stability(a & getattr(b, "stability", STATIONARY)),
+        ufuns,
+        STATIONARY,
+    )
 
 
 class WeightedUtilityFunction(BaseUtilityFunction):
