@@ -74,10 +74,13 @@ Key Guarantees
 
 1. **Initialization Order**: ``on_preferences_changed([Initialization])`` is
    **always** called before ``on_negotiation_start()``, regardless of when
-   preferences were set.
+   preferences were set (in constructor, via ``set_preferences()``, or via
+   ``mechanism.add(ufun=...)``).
 
 2. **Exactly Once**: Both ``on_preferences_changed([Initialization])`` and
    ``on_negotiation_start()`` are called **exactly once** per negotiation.
+   If the same preferences would trigger a duplicate ``Initialization`` call,
+   a warning is issued and the duplicate is ignored.
 
 3. **Before Proposals**: These initialization callbacks always occur before
    any ``propose()`` or ``respond()`` calls.
@@ -85,8 +88,12 @@ Key Guarantees
 4. **Owner Lifecycle**: The preferences ``owner`` is set just before
    ``on_preferences_changed([Initialization])`` and cleared in ``on_leave()``.
 
-5. **Dissociation Notification**: When a negotiator leaves, it
-   receive an ``on_preferences_changed([Dissociated])`` notification.
+5. **Dissociation Notification**: When a negotiator leaves, it receives an
+   ``on_preferences_changed([Dissociated])`` notification.
+
+6. **No Preferences**: If a negotiator has no preferences set,
+   ``on_preferences_changed([Initialization])`` is not called - this is
+   expected behavior, not an error.
 
 Example: Tracking Callback Order
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~

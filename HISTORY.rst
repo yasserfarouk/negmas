@@ -1,6 +1,20 @@
 History
 =======
 
+Release 0.15.3 (Hotfix)
+-----------------------
+
+**Bug Fixes:**
+
+* [fix] Fix ``on_preferences_changed([Initialization])`` being called twice for negotiators:
+
+  - The ``Initialization`` callback is now guaranteed to be called exactly once per negotiation
+  - Called ALWAYS before ``on_negotiation_start()``, regardless of when preferences were set
+  - If the same preferences would trigger a duplicate call, a warning is issued and the duplicate is ignored
+  - Fixed ``TimeBasedOfferingPolicy`` and other offering policies to handle ``Dissociated`` change type properly
+  - Added ``_initialized_pref_id`` tracking to prevent duplicate initialization calls
+  - Updated documentation with clear callback order guarantees
+
 Release 0.15.2
 --------------
 
@@ -63,6 +77,15 @@ Release 0.15.2
   - Supports all outcome space types and utility function classes
 
 **Bug Fixes:**
+
+* [fix] Fix ``on_preferences_changed([Initialization])`` being called twice for negotiators:
+
+  - The ``Initialization`` callback is now guaranteed to be called exactly once per negotiation
+  - Called ALWAYS before ``on_negotiation_start()``, regardless of when preferences were set
+  - If the same preferences would trigger a duplicate call, a warning is issued and the duplicate is ignored
+  - Fixed ``TimeBasedOfferingPolicy`` and other offering policies to handle ``Dissociated`` change type properly
+  - Added ``_initialized_pref_id`` tracking to prevent duplicate initialization calls
+  - Updated documentation with clear callback order guarantees
 
 * [fix] Replace deprecated ``pkg_resources`` with ``Path`` API for locating test data files
 * [fix] Resolve tournament serialization issues with parquet and CSV files (handle StringDtype, inf/nan values)

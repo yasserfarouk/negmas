@@ -276,9 +276,34 @@ class TimeBasedOfferingPolicy(OfferingPolicy):
     sorter: PresortingInverseUtilityFunction | None = field(repr=False, default=None)
 
     def on_preferences_changed(self, changes: list[PreferencesChange]):
-        """Initializes the outcome sorter when preferences are set or changed."""
+        """Initializes the outcome sorter when preferences are set or changed.
+
+        Handles different change types appropriately:
+        - Initialization/General: Initialize the sorter (warn if already initialized)
+        - Dissociated: Clear the sorter (preferences are being removed)
+        - Scale/ReservedValue/ReservedOutcome: Ignored (don't affect outcome ordering)
+        """
+        # Handle Dissociated: clear the sorter when preferences are removed
+        if any(_.type == PreferencesChangeType.Dissociated for _ in changes):
+            self.sorter = None
+            return
+
         if not self.negotiator or not self.negotiator.ufun:
             return
+
+        # Skip changes that don't affect outcome ordering
+        if all(
+            _.type
+            in (
+                PreferencesChangeType.Scale,
+                PreferencesChangeType.ReservedOutcome,
+                PreferencesChangeType.ReservedValue,
+            )
+            for _ in changes
+        ):
+            return
+
+        # For Initialization or General changes, initialize the sorter
         if self.sorter is not None:
             warnings.warn(
                 "Sorter is already initialized. May be on_preferences_changed is called twice!!"
@@ -319,7 +344,18 @@ class MiCROOfferingPolicy(OfferingPolicy):
     _sent: set[Outcome] = field(factory=set)
 
     def on_preferences_changed(self, changes: list[PreferencesChange]):
-        """Reinitializes the sorter and resets offer tracking on significant preference changes."""
+        """Reinitializes the sorter and resets offer tracking on significant preference changes.
+
+        Handles Dissociated changes by clearing the sorter.
+        """
+        # Handle Dissociated: clear the sorter when preferences are removed
+        if any(_.type == PreferencesChangeType.Dissociated for _ in changes):
+            self.sorter = None
+            self.next_indx = 0
+            self._received = set()
+            self._sent = set()
+            return
+
         if not self.negotiator or not self.negotiator.ufun:
             return
         if any(
@@ -480,7 +516,17 @@ class CABOfferingPolicy(OfferingPolicy):
     _repeating: bool = field(init=False, default=False)
 
     def on_preferences_changed(self, changes: list[PreferencesChange]):
-        """Initializes the outcome sorter on significant preference changes."""
+        """Initializes the outcome sorter on significant preference changes.
+
+        Handles Dissociated changes by clearing the sorter.
+        """
+        # Handle Dissociated: clear the sorter when preferences are removed
+        if any(_.type == PreferencesChangeType.Dissociated for _ in changes):
+            self.sorter = None
+            self.next_indx = 0
+            self._repeating = False
+            return
+
         if not self.negotiator or not self.negotiator.ufun:
             return
         if any(
@@ -559,7 +605,19 @@ class WAROfferingPolicy(OfferingPolicy):
     _irrational_index: int = field(init=False, default=-1)
 
     def on_preferences_changed(self, changes: list[PreferencesChange]):
-        """Initializes outcome sorter and irrational offer tracking on preference changes."""
+        """Initializes outcome sorter and irrational offer tracking on preference changes.
+
+        Handles Dissociated changes by clearing the sorter.
+        """
+        # Handle Dissociated: clear the sorter when preferences are removed
+        if any(_.type == PreferencesChangeType.Dissociated for _ in changes):
+            self.sorter = None
+            self.next_indx = 0
+            self._repeating = False
+            self._irrational = True
+            self._irrational_index = -1
+            return
+
         if not self.negotiator or not self.negotiator.ufun:
             return
         self._irrational = True
@@ -711,7 +769,15 @@ class OfferBest(OfferingPolicy):
     _best: Outcome | None = None
 
     def on_preferences_changed(self, changes: list[PreferencesChange]):
-        """Finds and caches the best outcome when preferences change."""
+        """Finds and caches the best outcome when preferences change.
+
+        Handles Dissociated changes by clearing the cached best outcome.
+        """
+        # Handle Dissociated: clear the cached best when preferences are removed
+        if any(_.type == PreferencesChangeType.Dissociated for _ in changes):
+            self._best = None
+            return
+
         if not self.negotiator or not self.negotiator.ufun:
             return
         _, self._best = self.negotiator.ufun.extreme_outcomes()
@@ -737,7 +803,15 @@ class OfferTop(OfferingPolicy):
     _top: list[Outcome] | None = field(init=False, default=None)
 
     def on_preferences_changed(self, changes: list[PreferencesChange]):
-        """Computes the set of top outcomes based on fraction and k constraints."""
+        """Computes the set of top outcomes based on fraction and k constraints.
+
+        Handles Dissociated changes by clearing the cached top outcomes.
+        """
+        # Handle Dissociated: clear the cached top outcomes when preferences are removed
+        if any(_.type == PreferencesChangeType.Dissociated for _ in changes):
+            self._top = None
+            return
+
         if not self.negotiator or not self.negotiator.ufun:
             return
         if any(

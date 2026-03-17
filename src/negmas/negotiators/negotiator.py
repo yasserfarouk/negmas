@@ -114,6 +114,9 @@ class Negotiator(Rational, Notifiable, Generic[TNMI, TState]):
         self._preferences = preferences
         self.__saved_pref_os = None
         self.__saved_prefs = None
+        # Track the id of preferences for which Initialization was called
+        # This prevents duplicate Initialization calls for the same preferences
+        self._initialized_pref_id: int | None = None
 
     @property
     def ami(self) -> TNMI:
@@ -164,30 +167,105 @@ class Negotiator(Rational, Notifiable, Generic[TNMI, TState]):
     def set_preferences(
         self, value: Preferences | None, force=False, ignore_exceptions: bool = False
     ) -> Preferences | None:
-        """Set the negotiator's preferences, with optional constraint handling.
+        """Set the negotiator's preferences, with deferred Initialization for deterministic ordering.
 
         Args:
             value: The new preferences to assign to this negotiator.
-            force: If True, bypass validation and set preferences unconditionally.
-            ignore_exceptions: If True, suppress any exceptions during assignment.
+            force: If True, call on_preferences_changed even if value equals current preferences.
+            ignore_exceptions: If True, suppress any exceptions during callback.
 
         Returns:
-            Preferences | None: The previously held preferences, if any.
+            Preferences | None: The preferences that were set.
+
+        Remarks:
+            - **Before joining a negotiation** (nmi is None): Preferences are stored
+              but `on_preferences_changed([Initialization])` is NOT called. The
+              Initialization callback is deferred to `_on_negotiation_start` to ensure
+              deterministic ordering (always after join, before on_negotiation_start).
+            - **After joining but before start**: Same as above - Initialization deferred.
+            - **After negotiation started**: If this is the first time setting preferences,
+              `on_preferences_changed([Initialization])` is called immediately (we missed
+              `_on_negotiation_start`). If replacing existing preferences, uses General.
+            - This ensures `on_preferences_changed([Initialization])` is called exactly
+              once per negotiation, regardless of when preferences were set.
         """
+        old = self._preferences
+
         if self._nmi is None:
-            # Even when not in negotiation, we need to properly set owner
-            return super().set_preferences(
-                value, force=force, ignore_exceptions=ignore_exceptions
-            )
-        if self._nmi.state.started:
+            # Not in negotiation yet - just store preferences, defer Initialization
+            # to _on_negotiation_start for deterministic ordering
+            if value == old:
+                if force:
+                    try:
+                        self.on_preferences_changed([PreferencesChange()])
+                    except Exception as e:
+                        if not ignore_exceptions:
+                            raise e
+                return self._preferences
+
+            self._preferences = value
+            # Do NOT call on_preferences_changed([Initialization]) here!
+            # It will be called in _on_negotiation_start
+            # But if we're replacing existing preferences, call General
+            if old is not None and id(value) != id(old):
+                try:
+                    self.on_preferences_changed(
+                        [PreferencesChange(PreferencesChangeType.General)]
+                    )
+                except Exception as e:
+                    if not ignore_exceptions:
+                        raise e
+            return self._preferences
+
+        # We are in a negotiation (nmi is set)
+        is_first_time = old is None and value is not None
+        negotiation_started = self._nmi.state.started
+
+        if negotiation_started and not is_first_time and value is not None:
             warnings.deprecated(
                 "Changing the utility function by direct assignment after the negotiation is "
                 "started is deprecated."
             )
+
+        if value == old:
+            if force:
+                try:
+                    self.on_preferences_changed([PreferencesChange()])
+                except Exception as e:
+                    if not ignore_exceptions:
+                        raise e
+            return self._preferences
+
         self._set_pref_os()
-        return super().set_preferences(
-            value, force=force, ignore_exceptions=ignore_exceptions
-        )
+        self._preferences = value
+
+        if id(value) != id(old):
+            if is_first_time:
+                # First time setting preferences
+                if negotiation_started:
+                    # Negotiation already started - we missed _on_negotiation_start
+                    # so call Initialization now and track the pref id
+                    self._set_pref_owner()
+                    self._initialized_pref_id = id(value)
+                    try:
+                        self.on_preferences_changed(
+                            [PreferencesChange(PreferencesChangeType.Initialization)]
+                        )
+                    except Exception as e:
+                        if not ignore_exceptions:
+                            raise e
+                # else: Initialization will be called in _on_negotiation_start
+            else:
+                # Replacing existing preferences - use General
+                try:
+                    self.on_preferences_changed(
+                        [PreferencesChange(PreferencesChangeType.General)]
+                    )
+                except Exception as e:
+                    if not ignore_exceptions:
+                        raise e
+
+        return self._preferences
 
     def _reset_pref_os(self):
         if self.__saved_prefs is not None:
@@ -382,14 +460,25 @@ class Negotiator(Rational, Notifiable, Generic[TNMI, TState]):
         per negotiation, before any user callbacks.
         """
         if self._preferences:
+            pref_id = id(self._preferences)
             self._set_pref_os()
             # Set owner when entering negotiation (before calling on_preferences_changed)
             self._set_pref_owner()
             # Notify that preferences are now active for this negotiation
             # This MUST happen before on_negotiation_start
-            self.on_preferences_changed(
-                [PreferencesChange(PreferencesChangeType.Initialization)]
-            )
+            # Check if Initialization was already called for these exact preferences
+            if self._initialized_pref_id == pref_id:
+                # Same preferences already initialized - warn and skip
+                warnings.warn(
+                    "on_preferences_changed(Initialization) called twice for the same "
+                    "preferences. This is a performance issue - the second call is ignored."
+                )
+            else:
+                # First time or different preferences - call Initialization
+                self._initialized_pref_id = pref_id
+                self.on_preferences_changed(
+                    [PreferencesChange(PreferencesChangeType.Initialization)]
+                )
         self.on_negotiation_start(state=state)
 
     def on_round_start(self, state: TState) -> None:
@@ -522,6 +611,8 @@ class Negotiator(Rational, Notifiable, Generic[TNMI, TState]):
         self._clear_pref_owner()
         # Clear nmi so negotiator can join another negotiation
         self._nmi = None
+        # Reset initialized pref id so negotiator can be reused in another negotiation
+        self._initialized_pref_id = None
 
     def on_notification(self, notification: Notification, notifier: str):
         """
