@@ -1006,6 +1006,10 @@ class CompletedRun(Generic[TState]):
         mark_ks_points: bool = True,
         mark_max_welfare_points: bool = True,
         show: bool = True,
+        square: bool = True,
+        dark: bool = False,
+        color_blind: bool = False,
+        fontsize: int | None = None,
     ):
         """Visualize the completed negotiation run showing offers and utilities in 2D space.
 
@@ -1054,6 +1058,7 @@ class CompletedRun(Generic[TState]):
             mark_ks_points: Whether to mark KS points.
             mark_max_welfare_points: Whether to mark maximum welfare points.
             show: Whether to display the figure immediately.
+            square: Whether to make the 2D utility space plot square (equal aspect ratio).
 
         Returns:
             Plotly figure object if show=False, None otherwise.
@@ -1159,6 +1164,10 @@ class CompletedRun(Generic[TState]):
             mark_ks_points=mark_ks_points,
             mark_max_welfare_points=mark_max_welfare_points,
             show=show,
+            square=square,
+            dark=dark,
+            color_blind=color_blind,
+            fontsize=fontsize,
         )
 
 

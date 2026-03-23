@@ -629,6 +629,15 @@ def run(
     show_n_steps: bool = typer.Option(
         True, help="Show N. Steps", rich_help_panel="Plotting"
     ),
+    dark: bool = typer.Option(
+        False, "--dark", help="Use dark theme for plots", rich_help_panel="Plotting"
+    ),
+    color_blind: bool = typer.Option(
+        False,
+        "--color-blind",
+        help="Use color-blind friendly colors",
+        rich_help_panel="Plotting",
+    ),
     # Saving to Disk
     save_path: Optional[Path] = typer.Option(
         None,
@@ -1257,6 +1266,8 @@ def run(
                 fast=fast,
                 simple_offers_view=simple_offers_view,
                 show=plot_show,
+                dark=dark,
+                color_blind=color_blind,
             )
         if save_path and save_history:
             if hasattr(session, "full_trace"):

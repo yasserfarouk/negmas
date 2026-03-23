@@ -1463,6 +1463,10 @@ def _complete_negotiator(ctx, param, incomplete):
     type=click.Choice(["fail", "warn", "silent"], case_sensitive=False),
     help="What to do when multiple registry entries match a short name: 'fail' (show table and exit), 'warn' (show table but continue), 'silent' (use prioritized match without warning). Default: warn",
 )
+@click.option("--dark", is_flag=True, default=False, help="Use dark theme for plots")
+@click.option(
+    "--color-blind", is_flag=True, default=False, help="Use color-blind friendly colors"
+)
 def negotiate(
     agents: str,
     scenario: str,
@@ -1480,6 +1484,8 @@ def negotiate(
     scenario_source: str | None,
     refresh_registry: bool,
     on_multiple_matches: str,
+    dark: bool,
+    color_blind: bool,
 ):
     """Run a negotiation between agents using a given scenario.
 

@@ -246,7 +246,14 @@ def _get_legend_config(only2d: bool, no2d: bool) -> dict:
     """
     if only2d or no2d:
         # Single plot type: legend to the right, outside the figure
-        return dict(orientation="v", yanchor="middle", y=0.5, xanchor="left", x=1.02)
+        return dict(
+            orientation="v",
+            yanchor="middle",
+            y=0.5,
+            xanchor="left",
+            x=1.02,
+            font=dict(size=LEGEND_FONTSIZE),
+        )
     else:
         # Both 2D and offer plots: horizontal legend below the figure
         # traceorder="normal" is required for horizontal orientation to work
@@ -261,7 +268,7 @@ def _get_legend_config(only2d: bool, no2d: bool) -> dict:
             traceorder="normal",
             tracegroupgap=10,
             itemwidth=40,
-            font=dict(size=11),
+            font=dict(size=LEGEND_FONTSIZE),
         )
 
 
@@ -326,6 +333,40 @@ KS_SCALE = 12
 WELFARE_SCALE = 12
 OUTCOMES_SCALE = 6
 PARETO_SCALE = 8
+
+# Font size hierarchy (from largest to smallest)
+# Base font size for axis labels - other sizes are calculated relative to this
+DEFAULT_FONTSIZE = 14  # Default base font size for axis labels
+AXIS_LABEL_FONTSIZE = 14  # Axis labels (largest)
+LEGEND_FONTSIZE = 14  # Legend entries (same as axis labels)
+INFO_BOX_FONTSIZE = 13  # Internal text box (pareto distance, etc.)
+POINT_ANNOTATION_FONTSIZE = 11  # Point annotations like Nash, Kalai (smallest)
+
+
+def get_font_sizes(fontsize: int | None = None) -> tuple[int, int, int, int]:
+    """Calculate font sizes for different plot elements based on a base font size.
+
+    Args:
+        fontsize: Base font size for axis labels. If None, uses DEFAULT_FONTSIZE (14).
+
+    Returns:
+        A tuple of (axis_label_fontsize, legend_fontsize, info_box_fontsize, point_annotation_fontsize)
+
+    The hierarchy is:
+        - Axis labels: fontsize (base)
+        - Legend: fontsize (same as axis labels)
+        - Info box: fontsize - 1
+        - Point annotations: fontsize - 3
+    """
+    if fontsize is None:
+        fontsize = DEFAULT_FONTSIZE
+    return (
+        fontsize,  # axis labels
+        fontsize,  # legend (same as axis labels)
+        fontsize - 1,  # info box
+        fontsize - 3,  # point annotations
+    )
+
 
 TNegotiator = TypeVar("TNegotiator", bound=Negotiator)
 TNMI = TypeVar("TNMI", bound=NegotiatorMechanismInterface, covariant=True)
@@ -401,6 +442,39 @@ PLOTLY_COLORMAPS = {
     "turbo": "Turbo",
 }
 
+# Color-blind friendly color sequence (from plotly.express.colors.qualitative.Safe)
+# This palette is designed to be distinguishable by people with various types of color vision deficiency
+COLOR_BLIND_SAFE_COLORS = [
+    "rgb(136, 204, 238)",  # light blue
+    "rgb(204, 102, 119)",  # rose
+    "rgb(221, 204, 119)",  # tan
+    "rgb(17, 119, 51)",  # green
+    "rgb(51, 34, 136)",  # indigo
+    "rgb(170, 68, 153)",  # purple
+    "rgb(68, 170, 153)",  # teal
+    "rgb(153, 153, 51)",  # olive
+    "rgb(136, 34, 85)",  # wine
+    "rgb(102, 17, 0)",  # brown
+    "rgb(136, 136, 136)",  # gray
+]
+
+# Bright colors optimized for dark mode backgrounds
+# These colors have high luminosity and saturation to stand out against dark backgrounds
+DARK_MODE_COLORS = [
+    "rgb(0, 191, 255)",  # deep sky blue
+    "rgb(255, 99, 132)",  # bright pink/red
+    "rgb(50, 205, 50)",  # lime green
+    "rgb(255, 206, 86)",  # golden yellow
+    "rgb(153, 102, 255)",  # medium purple
+    "rgb(255, 159, 64)",  # orange
+    "rgb(0, 255, 255)",  # cyan
+    "rgb(255, 105, 180)",  # hot pink
+    "rgb(144, 238, 144)",  # light green
+    "rgb(255, 215, 0)",  # gold
+    "rgb(186, 85, 211)",  # medium orchid
+    "rgb(127, 255, 212)",  # aquamarine
+]
+
 
 def get_cmap_colors(n: int, name: str = DEFAULT_COLORMAP) -> list[str]:
     """Returns a list of n distinct colors from a colormap.
@@ -433,7 +507,14 @@ def get_cmap_colors(n: int, name: str = DEFAULT_COLORMAP) -> list[str]:
     return colors
 
 
-def make_colors_and_markers(colors, markers, n: int, colormap=DEFAULT_COLORMAP):
+def make_colors_and_markers(
+    colors,
+    markers,
+    n: int,
+    colormap=DEFAULT_COLORMAP,
+    color_blind: bool = False,
+    dark: bool = False,
+):
     """Generates color and marker lists for plotting multiple series.
 
     Args:
@@ -441,9 +522,21 @@ def make_colors_and_markers(colors, markers, n: int, colormap=DEFAULT_COLORMAP):
         markers: Predefined marker list, or None to auto-generate.
         n: Number of distinct colors/markers needed.
         colormap: Name of colormap to use when auto-generating colors.
+        color_blind: If True, use color-blind friendly colors instead of colormap.
+        dark: If True, use bright colors optimized for dark backgrounds.
     """
     if not colors:
-        colors = get_cmap_colors(n, colormap)
+        if color_blind:
+            # Use color-blind friendly colors, cycling if needed
+            colors = [
+                COLOR_BLIND_SAFE_COLORS[i % len(COLOR_BLIND_SAFE_COLORS)]
+                for i in range(n)
+            ]
+        elif dark:
+            # Use bright colors optimized for dark backgrounds
+            colors = [DARK_MODE_COLORS[i % len(DARK_MODE_COLORS)] for i in range(n)]
+        else:
+            colors = get_cmap_colors(n, colormap)
     if not markers:
         markers = [ALL_MARKERS[i % len(ALL_MARKERS)] for i in range(n)]
     return colors, markers
@@ -472,6 +565,9 @@ def plot_offer_utilities(
     colorizer: Colorizer | None = None,
     first_color_index: int = 0,
     mark_offers_view: bool = True,
+    color_blind: bool = False,
+    dark: bool = False,
+    fontsize: int | None = None,
 ):
     """Plots utility values of offers over time for a specific negotiator.
 
@@ -497,17 +593,22 @@ def plot_offer_utilities(
         show_reserved: Whether to show reserved value lines.
         colorizer: Function to compute opacity for each trace element.
         first_color_index: Index offset for color assignment.
+        fontsize: Base font size for axis labels. Other font sizes are calculated relative to this.
+                 If None, uses DEFAULT_FONTSIZE (14).
         mark_offers_view: Whether to mark special states (errors, agreement, timeout).
     """
     if colorizer is None:
         colorizer = default_colorizer
+
+    # Get font sizes from base fontsize
+    axis_fontsize, _, _, _ = get_font_sizes(fontsize)
 
     map_ = make_callable(name_map)
     if fig is None:
         fig = go.Figure()
 
     colors, markers = make_colors_and_markers(
-        colors, markers, len(plotting_negotiators), colormap
+        colors, markers, len(plotting_negotiators), colormap, color_blind, dark
     )
     if first_color_index:
         colors = (
@@ -631,11 +732,15 @@ def plot_offer_utilities(
         if negotiator in plotting_negotiators and not simple_offers_view
         else "utility"
     )
-    _update_yaxes_safe(fig, title_text=ylabel, row=row, col=col)
+    _update_yaxes_safe(
+        fig, title_text=ylabel, title_font_size=axis_fontsize, row=row, col=col
+    )
     if ylimits is not None:
         _update_yaxes_safe(fig, range=ylimits, row=row, col=col)
     if show_x_label:
-        _update_xaxes_safe(fig, title_text=xdim, row=row, col=col)
+        _update_xaxes_safe(
+            fig, title_text=xdim, title_font_size=axis_fontsize, row=row, col=col
+        )
 
     return fig
 
@@ -680,6 +785,10 @@ def plot_2dutils(
     colorizer: Colorizer | None = None,
     fast: bool = False,
     backend: str = "plotly",
+    square: bool = True,
+    color_blind: bool = False,
+    dark: bool = False,
+    fontsize: int | None = None,
 ):
     """Plots negotiation trace in 2D utility space for two negotiators.
 
@@ -723,6 +832,9 @@ def plot_2dutils(
         colorizer: Function to compute opacity for each trace element.
         fast: Whether to skip expensive calculations (Pareto, Nash, etc.).
         backend: Plotting backend to use. Either "matplotlib" or "plotly". Default is "plotly".
+        square: Whether to make the 2D plot square (equal aspect ratio). Default is True.
+        fontsize: Base font size for axis labels. Other font sizes are calculated relative to this.
+                 If None, uses DEFAULT_FONTSIZE (14).
 
     Returns:
         A matplotlib Figure object if backend="matplotlib", or a plotly Figure object if backend="plotly".
@@ -769,6 +881,10 @@ def plot_2dutils(
             fig=fig,
             colorizer=colorizer,
             fast=fast,
+            square=square,
+            color_blind=color_blind,
+            dark=dark,
+            fontsize=fontsize,
         )
     elif backend == "plotly":
         return _plot_2dutils_plotly(
@@ -810,6 +926,10 @@ def plot_2dutils(
             col=col,
             colorizer=colorizer,
             fast=fast,
+            square=square,
+            color_blind=color_blind,
+            dark=dark,
+            fontsize=fontsize,
         )
     else:
         raise ValueError(
@@ -854,6 +974,10 @@ def _plot_2dutils_matplotlib(
     fig=None,
     colorizer: Colorizer | None = None,
     fast: bool = False,
+    square: bool = True,
+    color_blind: bool = False,
+    dark: bool = False,
+    fontsize: int | None = None,
 ):
     """Matplotlib implementation of 2D utility space plotting."""
     import matplotlib.pyplot as plt
@@ -861,6 +985,11 @@ def _plot_2dutils_matplotlib(
 
     if not colorizer:
         colorizer = default_colorizer
+
+    # Get font sizes from base fontsize
+    axis_fontsize, legend_fontsize, info_fontsize, annotation_fontsize = get_font_sizes(
+        fontsize
+    )
 
     if fig is None:
         fig, ax = plt.subplots(figsize=(10, 8))
@@ -883,7 +1012,7 @@ def _plot_2dutils_matplotlib(
 
     utils = [tuple(f(o) for f in plotting_ufuns) for o in outcomes]
     colors_list, markers_list = make_colors_and_markers(
-        colors, markers, len(offering_negotiators), colormap
+        colors, markers, len(offering_negotiators), colormap, color_blind, dark
     )
 
     # Convert plotly colors to matplotlib format
@@ -1066,7 +1195,7 @@ def _plot_2dutils_matplotlib(
             0.02,
             "\n".join(txt_lines),
             transform=ax.transAxes,
-            fontsize=9,
+            fontsize=info_fontsize,
             verticalalignment="bottom",
             bbox=dict(boxstyle="round", facecolor="wheat", alpha=0.5),
         )
@@ -1173,7 +1302,7 @@ def _plot_2dutils_matplotlib(
                         (mwelfare[0], mwelfare[1]),
                         xytext=(5, 5),
                         textcoords="offset points",
-                        fontsize=8,
+                        fontsize=annotation_fontsize,
                     )
 
         if kalai_pts and mark_kalai_points:
@@ -1195,7 +1324,7 @@ def _plot_2dutils_matplotlib(
                         (kalai[0], kalai[1]),
                         xytext=(5, 5),
                         textcoords="offset points",
-                        fontsize=8,
+                        fontsize=annotation_fontsize,
                     )
 
         if ks_pts and mark_ks_points:
@@ -1217,7 +1346,7 @@ def _plot_2dutils_matplotlib(
                         (ks[0], ks[1]),
                         xytext=(5, 5),
                         textcoords="offset points",
-                        fontsize=8,
+                        fontsize=annotation_fontsize,
                     )
 
         if nash_pts and mark_nash_points:
@@ -1239,7 +1368,7 @@ def _plot_2dutils_matplotlib(
                         (nash[0], nash[1]),
                         xytext=(5, 5),
                         textcoords="offset points",
-                        fontsize=8,
+                        fontsize=annotation_fontsize,
                     )
 
     # Plot agreement
@@ -1261,14 +1390,18 @@ def _plot_2dutils_matplotlib(
                 (plotting_ufuns[0](agreement), plotting_ufuns[1](agreement)),
                 xytext=(5, 5),
                 textcoords="offset points",
-                fontsize=8,
+                fontsize=annotation_fontsize,
             )
 
     # Set labels and legend
-    ax.set_xlabel(f"{agent_names[0]}(0) utility")
-    ax.set_ylabel(f"{agent_names[1]}(1) utility")
-    ax.legend(loc="best", fontsize=8)
+    ax.set_xlabel(f"{agent_names[0]}(0) utility", fontsize=axis_fontsize)
+    ax.set_ylabel(f"{agent_names[1]}(1) utility", fontsize=axis_fontsize)
+    ax.legend(loc="best", fontsize=legend_fontsize)
     ax.grid(True, alpha=0.3)
+
+    # Make the plot square if requested
+    if square:
+        ax.set_aspect("equal", adjustable="box")
 
     return fig
 
@@ -1312,10 +1445,17 @@ def _plot_2dutils_plotly(
     col: int = 1,
     colorizer: Colorizer | None = None,
     fast: bool = False,
+    square: bool = True,
+    color_blind: bool = False,
+    dark: bool = False,
+    fontsize: int | None = None,
 ):
     """Plotly implementation of 2D utility space plotting."""
     if not colorizer:
         colorizer = default_colorizer
+
+    # Get font sizes from base fontsize
+    axis_fontsize, _, info_fontsize, _ = get_font_sizes(fontsize)
 
     if fig is None:
         fig = go.Figure()
@@ -1334,7 +1474,7 @@ def _plot_2dutils_plotly(
 
     utils = [tuple(f(o) for f in plotting_ufuns) for o in outcomes]
     colors, markers = make_colors_and_markers(
-        colors, markers, len(offering_negotiators), colormap
+        colors, markers, len(offering_negotiators), colormap, color_blind, dark
     )
 
     agreement_utility = tuple(u(agreement) for u in plotting_ufuns)
@@ -1507,7 +1647,7 @@ def _plot_2dutils_plotly(
             yref="y domain",
             text="<br>".join(txt_lines),
             showarrow=False,
-            font=dict(size=10, color="black"),
+            font=dict(size=info_fontsize, color="white" if dark else "black"),
             align="left",
             xanchor="left",
             yanchor="bottom",
@@ -1690,13 +1830,14 @@ def _plot_2dutils_plotly(
                 y=[plotting_ufuns[1](agreement)],
                 mode="markers+text" if show_annotations else "markers",
                 marker=dict(
-                    color="black",
+                    color="white" if dark else "black",
                     symbol="star",
                     size=AGREEMENT_SCALE,
                     opacity=AGREEMENT_ALPHA,
                 ),
                 text=["Agreement"] if show_annotations else None,
                 textposition="top right",
+                textfont=dict(color="white" if dark else "black"),
                 name="Agreement",
                 showlegend=True,
             ),
@@ -1705,8 +1846,24 @@ def _plot_2dutils_plotly(
         )
 
     # Update axes
-    _update_xaxes_safe(fig, title_text=agent_names[0] + "(0) utility", row=row, col=col)
-    _update_yaxes_safe(fig, title_text=agent_names[1] + "(1) utility", row=row, col=col)
+    _update_xaxes_safe(
+        fig,
+        title_text=agent_names[0] + "(0) utility",
+        title_font_size=axis_fontsize,
+        row=row,
+        col=col,
+    )
+    _update_yaxes_safe(
+        fig,
+        title_text=agent_names[1] + "(1) utility",
+        title_font_size=axis_fontsize,
+        row=row,
+        col=col,
+    )
+
+    # Make the plot square if requested
+    if square:
+        _update_xaxes_safe(fig, scaleanchor="y", scaleratio=1, row=row, col=col)
 
     return fig
 
@@ -1765,6 +1922,10 @@ def plot_offline_run(
     mark_ks_points: bool = True,
     mark_max_welfare_points: bool = True,
     show: bool = True,
+    square: bool = True,
+    dark: bool = False,
+    color_blind: bool = False,
+    fontsize: int | None = None,
 ):
     """Plots a negotiation run from saved trace data (without a live mechanism).
 
@@ -1815,7 +1976,9 @@ def plot_offline_run(
         plotting_ufuns.append(ufuns[i])
 
     name_map = dict(zip(ids, names))
-    colors, markers = make_colors_and_markers(colors, markers, len(ids), colormap)
+    colors, markers = make_colors_and_markers(
+        colors, markers, len(ids), colormap, color_blind, dark
+    )
 
     # Create figure with subplots
     if only2d:
@@ -1871,6 +2034,9 @@ def plot_offline_run(
                 colorizer=colorizer,
                 first_color_index=a if simple_offers_view else 0,
                 mark_offers_view=mark_offers_view,
+                color_blind=color_blind,
+                dark=dark,
+                fontsize=fontsize,
             )
 
     # Plot 2D utilities
@@ -1940,6 +2106,10 @@ def plot_offline_run(
             mark_kalai_points=mark_kalai_points,
             mark_ks_points=mark_ks_points,
             mark_max_welfare_points=mark_max_welfare_points,
+            square=square,
+            color_blind=color_blind,
+            dark=dark,
+            fontsize=fontsize,
         )
 
     # Update layout - use autosize for responsive sizing in viewers
@@ -1948,9 +2118,12 @@ def plot_offline_run(
     # - Both plots: horizontal legend below, multi-column
     legend_config = _get_legend_config(only2d=only2d, no2d=no2d)
     margin_config = _get_margin_config(only2d=only2d, no2d=no2d)
-    fig.update_layout(
+    layout_kwargs: dict = dict(
         autosize=True, showlegend=True, legend=legend_config, margin=margin_config
     )
+    if dark:
+        layout_kwargs["template"] = "plotly_dark"
+    fig.update_layout(**layout_kwargs)
 
     if save_fig:
         if fig_name is None:
@@ -2017,6 +2190,10 @@ def plot_mechanism_run(
     mark_ks_points: bool = True,
     mark_max_welfare_points: bool = True,
     show: bool = True,
+    square: bool = True,
+    dark: bool = False,
+    color_blind: bool = False,
+    fontsize: int | None = None,
 ):
     """Plots a complete visualization of a negotiation mechanism run.
 
@@ -2107,4 +2284,8 @@ def plot_mechanism_run(
         mark_ks_points=mark_ks_points,
         mark_max_welfare_points=mark_max_welfare_points,
         show=show,
+        square=square,
+        dark=dark,
+        color_blind=color_blind,
+        fontsize=fontsize,
     )
