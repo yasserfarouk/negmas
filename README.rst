@@ -743,6 +743,10 @@ Tit-for-Tat 戦略
         result = session.run()
         print(f"{name}: Agreement={result.agreement}, Rounds={result.step}")
 
+以下の Markdown 版ファイルも併せて参照できます：
+
+- ``parameter-history.md``
+
 ANL パラメータの推移 (2010-2025)
 ---------------------------------
 
