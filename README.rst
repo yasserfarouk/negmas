@@ -1,6 +1,8 @@
 NegMAS: Negotiation Multi-Agent System
 ======================================
 
+`FUJIMOTO README <fujimoto-readme>`_
+
 .. start-badges
 
 .. image:: https://img.shields.io/pypi/pyversions/negmas.svg
@@ -527,3 +529,61 @@ Acknowledgements
 
 NegMAS was developed at the NEC-AIST collaborative laboratory. It uses scenarios from
 ANAC 2010-2018 competitions obtained from the `Genius Platform <http://ii.tudelft.nl/genius>`_.
+
+.. _fujimoto-readme:
+
+FUJIMOTO README
+===============
+
+このプロジェクトの取説です。
+
+フォルダ構成
+------------
+
+- ``config/`` : 設定ファイル（例: anac2019scml.json）
+- ``docs/`` : ドキュメントファイル（Sphinx ドキュメント、チュートリアルなど）
+- ``etc/`` : その他の補助ファイル（HTML レイアウト、ノートブック実行スクリプトなど）
+- ``notebooks/`` : Jupyter ノートブック（チュートリアルやデモ）
+- ``src/`` : ソースコード（negmas パッケージ本体）
+- ``tests/`` : テストコード
+
+インポートについて
+------------------
+
+``from negmas import SAOMechanism, AspirationNegotiator, make_issue`` などのインポートは、``src/negmas/`` フォルダから取得しています。
+
+このプロジェクトは開発中なので、``src/`` が Python パスに含まれています。pip インストールされている場合も、``src/negmas/`` がモジュールとして認識されます。
+
+from negmas import でインポート可能な主なモジュール
+--------------------------------------------------
+
+### メカニズム (Mechanisms)
+- ``SAOMechanism`` : Stacked Alternating Offers メカニズム
+- ``Mechanism`` : 基本メカニズムクラス
+- ``MechanismStepResult`` : メカニズムステップ結果
+- ``Traceable`` : トレース可能なメカニズム
+
+### 交渉者 (Negotiators)
+- ``AspirationNegotiator`` : Aspiration ベースの交渉者
+- ``TimeBasedConcedingNegotiator`` : 時間ベースの譲歩交渉者
+- ``Negotiator`` : 基本交渉者クラス
+- ``NegotiatorInfo`` : 交渉者情報
+
+### 効用関数 (Preferences)
+- ``LinearAdditiveUtilityFunction`` : 線形加法効用関数
+- ``UtilityFunction`` : 基本効用関数クラス
+- ``AffineUtilityFunction`` : アフィン効用関数
+- ``ConstUtilityFunction`` : 定数効用関数
+
+### 結果空間 (Outcomes)
+- ``make_issue`` : Issue 作成関数
+- ``Issue`` : 基本 Issue クラス
+- ``Outcome`` : 結果クラス
+- ``OutcomeSpace`` : 結果空間クラス
+
+### その他
+- ``Scenario`` : シナリオクラス
+- ``GeniusBridge`` : Genius ブリッジ
+- ``Registry`` : レジストリクラス
+
+完全な一覧は ``src/negmas/__init__.py`` の ``__all__`` を参照してください。
