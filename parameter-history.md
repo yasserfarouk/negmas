@@ -21,6 +21,38 @@
 | 2024 | True   | False    | False        | True      | True        | False       | False       | False       | False     | False | False     | True                | False                        |
 | 2025 | True   | False    | False        | True      | True        | False       | False       | False       | False     | False | True      | False               | False                        |
 
+## 統計サマリー
+
+- `linear` : 15/16 年で True (93.8%)
+- `learning` : 6/16 年で True (37.5%)
+- `multilateral` : 4/16 年で True (25.0%)
+- `bilateral` : 8/16 年で True (50.0%)
+- `reservation` : 14/16 年で True (87.5%)
+- `discounting` : 6/16 年で True (37.5%)
+- `uncertainty` : 3/16 年で True (18.8%)
+- `elicitation` : 4/16 年で True (25.0%)
+- `geniusweb` : 4/16 年で True (25.0%)
+- `java` : 10/16 年で True (62.5%)
+- `multideal` : 1/16 年で True (6.3%)
+- `known_opponent_ufun` : 1/16 年で True (6.3%)
+- `known_opponent_reserved_value` : 0/16 年で True (0.0%)
+
+## 直近の 2025 年時点の値
+
+- `linear`: True
+- `learning`: False
+- `multilateral`: False
+- `bilateral`: True
+- `reservation`: True
+- `discounting`: False
+- `uncertainty`: False
+- `elicitation`: False
+- `geniusweb`: False
+- `java`: False
+- `multideal`: True
+- `known_opponent_ufun`: False
+- `known_opponent_reserved_value`: False
+
 ## 用語説明
 
 - `linear`: 効用関数が線形かどうか
