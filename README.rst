@@ -138,6 +138,27 @@ Quick Start
     # Visualize
     session.plot()
 
+Agent Design Guidelines
+------------------------
+
+When designing negotiation agents for competitive environments like ANAC/ANL, consider the following principles for robustness and adaptability:
+
+**Adaptability to Unknown Environments**
+- Agents cannot access environment variables at runtime, and some parameters (e.g., opponent utility functions, domain details) may be revealed only at or after competition start.
+- Design agents that can adapt to varying conditions: linear vs. non-linear utilities, presence/absence of reservation values, time discounting, uncertainty, etc.
+
+**Robust Strategy Design**
+- Combine multiple approaches: rule-based tactics, learning mechanisms, and fallback strategies.
+- Avoid over-specialization to specific opponents or domains; aim for general-purpose negotiation capabilities.
+- Test agents across diverse scenarios to ensure consistent performance.
+
+**Key Considerations**
+- **Information Asymmetry**: Opponent information may be incomplete or probabilistic.
+- **Dynamic Environments**: Negotiation protocols, time constraints, and utility structures can vary.
+- **Performance Metrics**: Balance agreement rate, utility achieved, and robustness across conditions.
+
+For ANAC/ANL competitions, focus on creating agents that perform well across the spectrum of possible environment configurations rather than optimizing for known cases.
+
 Command Line Interface
 ----------------------
 
@@ -747,43 +768,4 @@ Tit-for-Tat 戦略
 
 - ``parameter-history.md``
 
-ANL パラメータの推移 (2010-2025)
----------------------------------
 
-各年の ANL/ANAC 大会の環境パラメータの推移を示します：
-
-+------+-------+---------+-------------+----------+------------+-------------+------------+------------+------------+-----------+-----------+----------------+-----------------------------+
-| Year | linear | learning | multilateral | bilateral | reservation | discounting | uncertainty | elicitation | geniusweb | java | multideal | known_opponent_ufun | known_opponent_reserved_value |
-+======+=======+=========+=============+==========+============+=============+============+============+============+===========+===========+================+=============================+
-| 2010 | True  | False   | False       | True     | False      | True        | False      | False      | False      | True | False    | False          | False                       |
-+------+-------+---------+-------------+----------+------------+-------------+------------+------------+------------+-----------+-----------+----------------+-----------------------------+
-| 2011 | True  | False   | False       | True     | False      | True        | False      | False      | False      | True | False    | False          | False                       |
-+------+-------+---------+-------------+----------+------------+-------------+------------+------------+------------+-----------+-----------+----------------+-----------------------------+
-| 2012 | True  | False   | False       | True     | True       | True        | False      | False      | False      | True | False    | False          | False                       |
-+------+-------+---------+-------------+----------+------------+-------------+------------+------------+------------+-----------+-----------+----------------+-----------------------------+
-| 2013 | True  | True    | False       | True     | True       | True        | False      | False      | False      | True | False    | False          | False                       |
-+------+-------+---------+-------------+----------+------------+-------------+------------+------------+------------+-----------+-----------+----------------+-----------------------------+
-| 2014 | False | False   | False       | True     | True       | False       | False      | False      | False      | True | False    | False          | False                       |
-+------+-------+---------+-------------+----------+------------+-------------+------------+------------+------------+-----------+-----------+----------------+-----------------------------+
-| 2015 | True  | False   | True        | False    | True       | False       | False      | False      | False      | True | False    | False          | False                       |
-+------+-------+---------+-------------+----------+------------+-------------+------------+------------+------------+-----------+-----------+----------------+-----------------------------+
-| 2016 | True  | False   | True        | False    | True       | False       | False      | False      | False      | True | False    | False          | False                       |
-+------+-------+---------+-------------+----------+------------+-------------+------------+------------+------------+-----------+-----------+----------------+-----------------------------+
-| 2017 | True  | True    | True        | False    | True       | False       | False      | False      | False      | True | False    | False          | False                       |
-+------+-------+---------+-------------+----------+------------+-------------+------------+------------+------------+-----------+-----------+----------------+-----------------------------+
-| 2018 | True  | True    | True        | False    | True       | True        | False      | False      | False      | True | False    | False          | False                       |
-+------+-------+---------+-------------+----------+------------+-------------+------------+------------+------------+-----------+-----------+----------------+-----------------------------+
-| 2019 | True  | False   | False       | True     | True       | False       | True       | False      | False      | True | False    | False          | False                       |
-+------+-------+---------+-------------+----------+------------+-------------+------------+------------+------------+-----------+-----------+----------------+-----------------------------+
-| 2020 | True  | False   | False       | False    | True       | False       | True       | True       | True       | True | False    | False          | False                       |
-+------+-------+---------+-------------+----------+------------+-------------+------------+------------+------------+-----------+-----------+----------------+-----------------------------+
-| 2021 | True  | True    | False       | False    | True       | False       | True       | True       | True       | True | False    | False          | False                       |
-+------+-------+---------+-------------+----------+------------+-------------+------------+------------+------------+-----------+-----------+----------------+-----------------------------+
-| 2022 | True  | True    | False       | False    | True       | False       | False      | True       | True       | False | False    | False          | False                       |
-+------+-------+---------+-------------+----------+------------+-------------+------------+------------+------------+-----------+-----------+----------------+-----------------------------+
-| 2023 | True  | True    | False       | False    | True       | False       | False      | True       | True       | False | False    | False          | False                       |
-+------+-------+---------+-------------+----------+------------+-------------+------------+------------+------------+-----------+-----------+----------------+-----------------------------+
-| 2024 | True  | False   | False       | True     | True       | False       | False      | False      | False      | False | False    | True           | False                       |
-+------+-------+---------+-------------+----------+------------+-------------+------------+------------+------------+-----------+-----------+----------------+-----------------------------+
-| 2025 | True  | False   | False       | True     | True       | False       | False      | False      | False      | False | True     | False          | False                       |
-+------+-------+---------+-------------+----------+------------+-------------+------------+------------+------------+-----------+-----------+----------------+-----------------------------+
