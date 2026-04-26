@@ -1,0 +1,32 @@
+<negotiation_template>
+<utility_space number_of_issues="3">
+<objective description="" etype="objective" index="0" name="root" type="objective">
+    <issue etype="discrete" index="1" name="Barriers" type="discrete" vtype="discrete">
+        <item index="1" value="Age Line" cost="0" description="Age Line">
+        </item>
+        <item index="2" value="Salvio Hexia" cost="0" description="Salvio Hexia">
+        </item>
+        <item index="3" value="Impervius" cost="0" description="Impervius">
+        </item>
+    </issue>
+    <issue etype="discrete" index="2" name="Shields" type="discrete" vtype="discrete">
+        <item index="1" value="Protego" cost="0" description="Protego">
+        </item>
+        <item index="2" value="Protego Maxima" cost="0" description="Protego Maxima">
+        </item>
+        <item index="3" value="Protego Duo" cost="0" description="Protego Duo">
+        </item>
+        <item index="4" value="Protego Horibilis" cost="0" description="Protego Horibilis">
+        </item>
+    </issue>
+    <issue etype="discrete" index="3" name="Warnings" type="discrete" vtype="discrete">
+        <item index="1" value="Cave Inimicum" cost="0" description="Cave Inimicum">
+        </item>
+        <item index="2" value="Colloportus" cost="0" description="Colloportus">
+        </item>
+        <item index="3" value="Muffliato" cost="0" description="Muffliato">
+        </item>
+    </issue>
+</objective>
+</utility_space>
+</negotiation_template>

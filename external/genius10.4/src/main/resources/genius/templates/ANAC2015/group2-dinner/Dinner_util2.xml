@@ -1,0 +1,72 @@
+<utility_space> 
+<objective index="0" description="" name="Dinner" type="objective" etype="objective"> 
+<issue index="1" name="Vegetarian (yes/no)" vtype="discrete" type="discrete" etype="discrete"> 
+<item index="1" value="Vegetarian" evaluation="3"> 
+</item> 
+<item index="2" value="Meat" evaluation="7"> 
+</item> 
+</issue> 
+<issue index="2" name="Where to eat" vtype="discrete" type="discrete" etype="discrete"> 
+<item index="1" value="Home(make it yourself)" evaluation="6"> 
+</item> 
+<item index="2" value="Home(take away)" evaluation="5"> 
+</item> 
+<item index="3" value="Cheap Restaurant" evaluation="4"> 
+</item> 
+<item index="4" value="Fancy Restaurant" evaluation="2"> 
+</item> 
+</issue> 
+<issue index="3" name="Origin" vtype="discrete" type="discrete" etype="discrete"> 
+<item index="1" value="Dutch food" evaluation="1"> 
+</item> 
+<item index="2" value="Asian food" evaluation="6"> 
+</item> 
+<item index="3" value="Italian food" evaluation="2"> 
+</item> 
+<item index="4" value="French food" evaluation="0"> 
+</item> 
+<item index="5" value="Greek food" evaluation="3"> 
+</item> 
+<item index="6" value="Turkish food" evaluation="4"> 
+</item> 
+</issue> 
+<issue index="4" name="time" vtype="discrete" type="discrete" etype="discrete"> 
+<item index="1" value="18:00" evaluation="1"> 
+</item> 
+<item index="2" value="19:00" evaluation="2"> 
+</item> 
+<item index="3" value="20:00" evaluation="4"> 
+</item> 
+<item index="4" value="21:00" evaluation="2"> 
+</item> 
+<item index="5" value="22:00" evaluation="1"> 
+</item> 
+</issue> 
+<issue index="5" name="Spicyness" vtype="discrete" type="discrete" etype="discrete"> 
+<item index="1" value="not spicy at all" evaluation="0"> 
+</item> 
+<item index="2" value="somewhat spicy" evaluation="1"> 
+</item> 
+<item index="3" value="pretty spicy" evaluation="4"> 
+</item> 
+<item index="4" value="very spicy" evaluation="5"> 
+</item> 
+<item index="5" value="HOT" evaluation="5"> 
+</item> 
+</issue> 
+<weight index="1" value="0.13003888842901845"> 
+</weight> 
+<weight index="2" value="0.21942458630683648"> 
+</weight> 
+<weight index="3" value="0.12917847414166145"> 
+</weight> 
+<weight index="4" value="0.16913711604013906"> 
+</weight> 
+<weight index="5" value="0.35222093508234464"> 
+</weight> 
+</objective> 
+<discount_factor value="1.0"> 
+</discount_factor> 
+<reservation value="0.0"> 
+</reservation> 
+</utility_space> 

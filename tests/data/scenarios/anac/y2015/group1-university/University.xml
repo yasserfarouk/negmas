@@ -1,0 +1,64 @@
+<negotiation_template>
+<utility_space number_of_issues="5">
+<objective description="" etype="objective" index="0" name="root" type="objective">
+    <issue etype="discrete" index="1" name="Study" type="discrete" vtype="discrete">
+        <item index="1" value="TI" cost="0" description="TI">
+        </item>
+        <item index="2" value="TW" cost="0" description="TW">
+        </item>
+        <item index="3" value="EE" cost="0" description="EE">
+        </item>
+        <item index="4" value="TBM" cost="0" description="TBM">
+        </item>
+        <item index="5" value="WB" cost="0" description="WB">
+        </item>
+    </issue>
+    <issue etype="discrete" index="2" name="Faculty" type="discrete" vtype="discrete">
+        <item index="1" value="EWI" cost="0" description="EWI">
+        </item>
+        <item index="2" value="3ME" cost="0" description="3ME">
+        </item>
+        <item index="3" value="TPM" cost="0" description="TPM">
+        </item>
+    </issue>
+    <issue etype="discrete" index="3" name="Job Prospect" type="discrete" vtype="discrete">
+        <item index="1" value="Manager" cost="0" description="Manager">
+        </item>
+        <item index="2" value="Developer" cost="0" description="Developer">
+        </item>
+        <item index="3" value="Jobless" cost="0" description="Jobless">
+        </item>
+        <item index="4" value="Engineer" cost="0" description="Engineer">
+        </item>
+        <item index="5" value="CEO" cost="0" description="CEO">
+        </item>
+    </issue>
+    <issue etype="discrete" index="4" name="Housing" type="discrete" vtype="discrete">
+        <item index="1" value="House" cost="0" description="House">
+        </item>
+        <item index="2" value="Under the bridge" cost="0" description="Under the bridge">
+        </item>
+        <item index="3" value="Single Room" cost="0" description="Single Room">
+        </item>
+        <item index="4" value="Studio" cost="0" description="Studio">
+        </item>
+        <item index="5" value="Parents" cost="0" description="Parents">
+        </item>
+        <item index="6" value="Cave" cost="0" description="Cave">
+        </item>
+    </issue>
+    <issue etype="discrete" index="5" name="Partime Job" type="discrete" vtype="discrete">
+        <item index="1" value="None" cost="0" description="None">
+        </item>
+        <item index="2" value="Supermarket" cost="0" description="Supermarket">
+        </item>
+        <item index="3" value="Catering" cost="0" description="Catering">
+        </item>
+        <item index="4" value="Fastfood Restaurant" cost="0" description="Fastfood Restaurant">
+        </item>
+        <item index="5" value="Restaurant" cost="0" description="Restaurant">
+        </item>
+    </issue>
+</objective>
+</utility_space>
+</negotiation_template>

@@ -1,0 +1,57 @@
+<?xml version="1.0" encoding="UTF-8" standalone="yes"?>
+<repository fileName="agentrepository.xml">
+    <items>
+        <agentRepItems>
+            <agentRepItem description="ANAC 2010 - AgentFSEGA" classPath="agents.anac.y2010.AgentFSEGA.AgentFSEGA" agentName="ANAC 2010 - AgentFSEGA"/>
+            <agentRepItem description="ANAC 2010 - AgentK" classPath="agents.anac.y2010.AgentK.Agent_K" agentName="ANAC 2010 - AgentK (compatible with non-linear utility spaces)"/>
+            <agentRepItem description="ANAC 2010 - IAMhaggler" classPath="agents.anac.y2010.Southampton.IAMhaggler" agentName="ANAC 2010 - IAMhaggler"/>
+            <agentRepItem description="ANAC 2010 - IAMcrazyHaggler" classPath="agents.anac.y2010.Southampton.IAMcrazyHaggler" agentName="ANAC 2010 - IAMcrazyHaggler"/>
+            <agentRepItem description="ANAC 2010 - AgentSmith" classPath="agents.anac.y2010.AgentSmith.AgentSmith" agentName="ANAC 2010 - AgentSmith"/>
+            <agentRepItem description="ANAC 2010 - Nozomi" classPath="agents.anac.y2010.Nozomi.Nozomi" agentName="ANAC 2010 - Nozomi"/>
+            <agentRepItem description="ANAC 2010 - Yushu" classPath="agents.anac.y2010.Yushu.Yushu" agentName="ANAC 2010 - Yushu"/>
+            <agentRepItem description="ANAC 2011 - TheNegotiator" classPath="agents.anac.y2011.TheNegotiator.TheNegotiator" agentName="ANAC 2011 - TheNegotiator"/>
+            <agentRepItem description="ANAC 2011 - ValueModelAgent" classPath="agents.anac.y2011.ValueModelAgent.ValueModelAgent" agentName="ANAC 2011 - ValueModelAgent"/>
+            <agentRepItem description="ANAC 2011 - Gahboninho" classPath="agents.anac.y2011.Gahboninho.Gahboninho" agentName="ANAC 2011 - Gahboninho (compatible with non-linear utility spaces)"/>
+            <agentRepItem description="ANAC 2011 - BRAMAgent" classPath="agents.anac.y2011.BramAgent.BRAMAgent" agentName="ANAC 2011 - BRAMAgent"/>
+            <agentRepItem description="ANAC 2011 - HardHeaded" classPath="agents.anac.y2011.HardHeaded.KLH" agentName="ANAC 2011 - HardHeaded"/>
+            <agentRepItem description="ANAC 2011 - Nice Tit for Tat" classPath="agents.anac.y2011.Nice_Tit_for_Tat.NiceTitForTat" agentName="ANAC 2011 - Nice Tit fo Tat"/>
+            <agentRepItem description="ANAC 2011 - IAMhaggler2011" classPath="agents.anac.y2011.IAMhaggler2011.IAMhaggler2011" agentName="ANAC 2011 - IAMhaggler2011"/>
+            <agentRepItem description="ANAC 2011 - AgentK2" classPath="agents.anac.y2011.AgentK2.Agent_K2" agentName="ANAC 2011 - AgentK2 (compatible with non-linear utility spaces)"/>
+            <agentRepItem description="ANAC 2012 - AgentLG" classPath="agents.anac.y2012.AgentLG.AgentLG" agentName="ANAC 2012 - AgentLG"/>
+            <agentRepItem description="ANAC 2012 - AgentMR" classPath="agents.anac.y2012.AgentMR.AgentMR" agentName="ANAC 2012 - AgentMR"/>
+            <agentRepItem description="ANAC 2012 - The Negotiator Reloaded" classPath="agents.anac.y2012.TheNegotiatorReloaded.TheNegotiatorReloaded" agentName="ANAC 2012 - The Negotiator Reloaded"/>
+            <agentRepItem description="ANAC 2012 - BRAMAgent2" classPath="agents.anac.y2012.BRAMAgent2.BRAMAgent2" agentName="ANAC 2012 - BRAMAgent2"/>
+            <agentRepItem description="ANAC 2012 - CUHKAgent" classPath="agents.anac.y2012.CUHKAgent.CUHKAgent" agentName="ANAC 2012 - CUHKAgent"/>
+            <agentRepItem description="ANAC 2012 - IAMhaggler2012" classPath="agents.anac.y2012.IAMhaggler2012.IAMhaggler2012" agentName="ANAC 2012 - IAMhaggler2012"/>
+            <agentRepItem description="ANAC 2012 - MetaAgent" classPath="agents.anac.y2012.MetaAgent.MetaAgent" agentName="ANAC 2012 - MetaAgent"/>
+            <agentRepItem description="ANAC 2012 - OMACAgent" classPath="agents.anac.y2012.OMACagent.OMACagent" agentName="ANAC 2012 - OMACAgent"/>
+            <agentRepItem description="ANAC 2013 - InoxAgent" classPath="agents.anac.y2013.InoxAgent.InoxAgent" agentName="ANAC 2013 - InoxAgent"/>
+            <agentRepItem description="ANAC 2013 - TheFawkes" classPath="agents.anac.y2013.TheFawkes.TheFawkes" agentName="ANAC 2013 - TheFawkes"/>
+            <agentRepItem description="ANAC 2013 - AgentKF" classPath="agents.anac.y2013.AgentKF.AgentKF" agentName="ANAC 2013 - AgentKF (compatible with non-linear utility spaces)"/>
+            <agentRepItem description="ANAC 2013 - GAgent" classPath="agents.anac.y2013.GAgent.AgentI" agentName="ANAC 2013 - GAgent"/>
+            <agentRepItem description="ANAC 2013 - Meta-Agent" classPath="agents.anac.y2013.MetaAgent.MetaAgent" agentName="ANAC 2013 - Meta-Agent"/>
+            <agentRepItem description="ANAC 2013 - Slava Agent" classPath="agents.anac.y2013.SlavaAgent.SlavaAgent" agentName="ANAC 2013 - SlavaAgent (compatible with non-linear utility spaces)"/>
+            <agentRepItem description="ANAC 2013 - TMFAgent" classPath="agents.anac.y2013.TMFAgent.TMFAgent" agentName="ANAC 2013 - TMFAgent"/>
+            <agentRepItem description="Simple UI agent" classPath="agents.UIAgent" agentName="UIAgent"/>
+            <agentRepItem description="UI agent with advanced GUI (by Alina)" classPath="agents.UIAgentExtended" agentName="UIAgent Extended"/>
+            <agentRepItem description="The Random Walker" classPath="agents.SimpleAgent" agentName="The Random Walker (compatible with non-linear utility spaces)"/>
+            <agentRepItem description="Improved Random Walker" classPath="agents.SimpleAgt2" agentName="Improved Random Walker"/>
+            <agentRepItem description="Trade-Off agent designed by P. Faratin, C. Sierra and N. R. Jennings" classPath="agents.SimilarityAgent" agentName="Trade-Off agent"/>
+            <agentRepItem description="Fuzzy agent designed by Zaynab Raeesy and Ryszard Kowalczyk" classPath="agents.FuzzyAgent" agentName="FuzzyAgent"/>
+            <agentRepItem description="Boulware" classPath="agents.TimeDependentAgentBoulware" agentName="Boulware"/>
+            <agentRepItem description="Conceder" classPath="agents.TimeDependentAgentConceder" agentName="Conceder"/>
+            <agentRepItem description="Hardliner" classPath="agents.TimeDependentAgentHardliner" agentName="Hardliner"/>
+            <agentRepItem description="Conceder Linear" classPath="agents.TimeDependentAgentLinear" agentName="Conceder Linear"/>
+            <agentRepItem description="Immediate Acceptor" classPath="agents.ImmediateAcceptor" agentName="Immediate Acceptor (compatible with non-linear utility spaces)"/>
+            <agentRepItem description="Implementation of optimal bidder." classPath="agents.OptimalBidderSimple" agentName="OptimalBidderSimple"/>
+            <agentRepItem description="Implementation of FunctionalAcceptor." classPath="agents.FunctionalAcceptor" agentName="FunctionalAcceptor"/>
+            <agentRepItem description="" classPath="agents.BayesianAgent" agentName="BayesianAgent"/>
+            <agentRepItem description="" classPath="agents.ABMPAgent2" agentName="ABMPAgent2"/>
+        </agentRepItems>
+        <partyRepItems/>
+        <domainRepItem/>
+        <protocolRepItem/>
+        <multiPartyProtocolRepItem/>
+    </items>
+    <filename>agentrepository.xml</filename>
+</repository>

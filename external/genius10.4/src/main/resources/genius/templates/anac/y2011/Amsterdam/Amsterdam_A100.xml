@@ -1,0 +1,92 @@
+<utility_space type="UNCERTAIN"> 
+<objective name="Amsterdam_domain" index="0" description="" etype="objective" type="objective"> 
+<issue vtype="discrete" name="Venue" index="1" etype="discrete" type="discrete"> 
+<item evaluation="2.0" index="1" description="Nice shopping trip" value="Shopping"> 
+</item> 
+<item evaluation="4.0" index="2" description="Educational trip" value="Museum"> 
+</item> 
+<item evaluation="2.0" index="3" description="Just enjoy yourself" value="Dancing"> 
+</item> 
+<item evaluation="1.0" index="4" description="Have a nice diner" value="Diner"> 
+</item> 
+</issue> 
+<issue vtype="discrete" name="Time of arrival" index="2" etype="discrete" type="discrete"> 
+<item evaluation="1.0" index="1" description="Arrive in the morning" value="Morning"> 
+</item> 
+<item evaluation="3.0" index="2" description="Arrive in the afternoon" value="Afternoon"> 
+</item> 
+<item evaluation="1.0" index="3" description="Arrive in the evening" value="Evening"> 
+</item> 
+</issue> 
+<issue vtype="discrete" name="Day of the week" index="3" etype="discrete" type="discrete"> 
+<item evaluation="6.0" index="1" value="Monday"> 
+</item> 
+<item evaluation="3.0" index="2" value="Tuesday"> 
+</item> 
+<item evaluation="4.0" index="3" value="Wednesday"> 
+</item> 
+<item evaluation="5.0" index="4" value="Thursday"> 
+</item> 
+<item evaluation="1.0" index="5" value="Friday"> 
+</item> 
+<item evaluation="1.0" index="6" value="Saturday"> 
+</item> 
+<item evaluation="6.0" index="7" value="Sunday"> 
+</item> 
+</issue> 
+<issue vtype="discrete" name="Duration" index="4" etype="discrete" type="discrete"> 
+<item evaluation="3.0" index="1" value="One day"> 
+</item> 
+<item evaluation="2.0" index="2" value="One night"> 
+</item> 
+<item evaluation="1.0" index="3" value="One week"> 
+</item> 
+</issue> 
+<issue vtype="discrete" name="Transportation" index="5" etype="discrete" type="discrete"> 
+<item evaluation="3.0" index="1" value="Public transport"> 
+</item> 
+<item evaluation="1.0" index="2" value="Car"> 
+</item> 
+<item evaluation="2.0" index="3" value="Combination"> 
+</item> 
+</issue> 
+<issue vtype="discrete" name="Souvenirs" index="6" etype="discrete" type="discrete"> 
+<item evaluation="3.0" index="1" value="None"> 
+</item> 
+<item evaluation="4.0" index="2" value="Tulips"> 
+</item> 
+<item evaluation="1.0" index="3" value="Cheese"> 
+</item> 
+<item evaluation="1.0" index="4" value="Waterpipe"> 
+</item> 
+</issue> 
+<weight index="1" value="0.18"> 
+</weight> 
+<weight index="2" value="0.22"> 
+</weight> 
+<weight index="3" value="0.13"> 
+</weight> 
+<weight index="4" value="0.12"> 
+</weight> 
+<weight index="5" value="0.23"> 
+</weight> 
+<weight index="6" value="0.12"> 
+</weight> 
+</objective> 
+<discount_factor value="1.0"> 
+</discount_factor> 
+<reservation value="0.889322"> 
+</reservation> 
+<comparisons> 
+100 
+</comparisons> 
+<errors> 
+0 
+</errors> 
+<fixed_seed> 
+true 
+</fixed_seed> 
+<experimental> 
+false 
+</experimental> 
+</utility_space> 

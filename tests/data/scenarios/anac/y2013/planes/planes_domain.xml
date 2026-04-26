@@ -1,0 +1,30 @@
+<negotiation_template>
+<utility_space number_of_issues="3">
+<objective description="" etype="objective" index="0" name="root" type="objective">
+    <issue etype="discrete" index="1" name="Plane" type="discrete" vtype="discrete">
+        <item index="1" value="Piper" cost="0" description="Piper">
+        </item>
+        <item index="2" value="Aircraft4" cost="0" description="Aircraft4">
+        </item>
+        <item index="3" value="Boing747" cost="0" description="Boing747">
+        </item>
+    </issue>
+    <issue etype="discrete" index="2" name="Engine" type="discrete" vtype="discrete">
+        <item index="1" value="Rocket" cost="0" description="Rocket">
+        </item>
+        <item index="2" value="Jet" cost="0" description="Jet">
+        </item>
+        <item index="3" value="Turbo" cost="0" description="Turbo">
+        </item>
+    </issue>
+    <issue etype="discrete" index="3" name="Technology" type="discrete" vtype="discrete">
+        <item index="1" value="Old radio" cost="0" description="Old radio">
+        </item>
+        <item index="2" value="Regular computer" cost="0" description="Regular computer">
+        </item>
+        <item index="3" value="Super computer" cost="0" description="Super computer">
+        </item>
+    </issue>
+</objective>
+</utility_space>
+</negotiation_template>

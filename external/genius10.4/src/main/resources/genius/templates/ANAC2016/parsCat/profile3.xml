@@ -1,0 +1,120 @@
+<utility_space> 
+<objective index="0" description="" name="smart_ energy_ grids" type="objective" etype="objective"> 
+<issue index="1" name="0000-0300" vtype="discrete" type="discrete" etype="discrete"> 
+<item index="1" value="0kW" evaluation="0"> 
+</item> 
+<item index="2" value="25kW" evaluation="2"> 
+</item> 
+<item index="3" value="50kW" evaluation="3"> 
+</item> 
+<item index="4" value="75kW" evaluation="4"> 
+</item> 
+<item index="5" value="100kW" evaluation="5"> 
+</item> 
+</issue> 
+<issue index="2" name="0300-0600" vtype="discrete" type="discrete" etype="discrete"> 
+<item index="1" value="0kW" evaluation="0"> 
+</item> 
+<item index="2" value="25kW" evaluation="2"> 
+</item> 
+<item index="3" value="50kW" evaluation="3"> 
+</item> 
+<item index="4" value="75kW" evaluation="4"> 
+</item> 
+<item index="5" value="100kW" evaluation="5"> 
+</item> 
+</issue> 
+<issue index="3" name="0600-0900" vtype="discrete" type="discrete" etype="discrete"> 
+<item index="1" value="0kW" evaluation="0"> 
+</item> 
+<item index="2" value="25kW" evaluation="2"> 
+</item> 
+<item index="3" value="50kW" evaluation="3"> 
+</item> 
+<item index="4" value="75kW" evaluation="4"> 
+</item> 
+<item index="5" value="100kW" evaluation="5"> 
+</item> 
+</issue> 
+<issue index="4" name="0900-1200" vtype="discrete" type="discrete" etype="discrete"> 
+<item index="1" value="0kW" evaluation="0"> 
+</item> 
+<item index="2" value="25kW" evaluation="2"> 
+</item> 
+<item index="3" value="50kW" evaluation="3"> 
+</item> 
+<item index="4" value="75kW" evaluation="4"> 
+</item> 
+<item index="5" value="100kW" evaluation="5"> 
+</item> 
+</issue> 
+<issue index="5" name="1200-1500" vtype="discrete" type="discrete" etype="discrete"> 
+<item index="1" value="0kW" evaluation="0"> 
+</item> 
+<item index="2" value="25kW" evaluation="2"> 
+</item> 
+<item index="3" value="50kW" evaluation="3"> 
+</item> 
+<item index="4" value="75kW" evaluation="4"> 
+</item> 
+<item index="5" value="100kW" evaluation="5"> 
+</item> 
+</issue> 
+<issue index="6" name="1500-1800" vtype="discrete" type="discrete" etype="discrete"> 
+<item index="1" value="0kW" evaluation="0"> 
+</item> 
+<item index="2" value="25kW" evaluation="2"> 
+</item> 
+<item index="3" value="50kW" evaluation="3"> 
+</item> 
+<item index="4" value="75kW" evaluation="4"> 
+</item> 
+<item index="5" value="100kW" evaluation="5"> 
+</item> 
+</issue> 
+<issue index="7" name="1800-2100" vtype="discrete" type="discrete" etype="discrete"> 
+<item index="1" value="0kW" evaluation="0"> 
+</item> 
+<item index="2" value="25kW" evaluation="2"> 
+</item> 
+<item index="3" value="50kW" evaluation="3"> 
+</item> 
+<item index="4" value="75kW" evaluation="4"> 
+</item> 
+<item index="5" value="100kW" evaluation="5"> 
+</item> 
+</issue> 
+<issue index="8" name="2100-0000" vtype="discrete" type="discrete" etype="discrete"> 
+<item index="1" value="0kW" evaluation="0"> 
+</item> 
+<item index="2" value="25kW" evaluation="2"> 
+</item> 
+<item index="3" value="50kW" evaluation="3"> 
+</item> 
+<item index="4" value="75kW" evaluation="4"> 
+</item> 
+<item index="5" value="100kW" evaluation="5"> 
+</item> 
+</issue> 
+<weight index="1" value="0.0233451404160976"> 
+</weight> 
+<weight index="2" value="0.05343240053917455"> 
+</weight> 
+<weight index="3" value="0.10855186022768051"> 
+</weight> 
+<weight index="4" value="0.12949980203141964"> 
+</weight> 
+<weight index="5" value="0.16444770586168042"> 
+</weight> 
+<weight index="6" value="0.221384364666749"> 
+</weight> 
+<weight index="7" value="0.18432648666623544"> 
+</weight> 
+<weight index="8" value="0.11501223959096284"> 
+</weight> 
+</objective> 
+<discount_factor value="1.0"> 
+</discount_factor> 
+<reservation value="0.0"> 
+</reservation> 
+</utility_space> 

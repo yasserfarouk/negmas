@@ -1,0 +1,37 @@
+<?xml version="1.0" encoding="UTF-8" standalone="yes"?>
+<multilateralTournamentsConfiguration>
+	<tournaments>
+		<tournament>
+			<deadline>
+				<value>12</value>
+				<type>TIME</type>
+			</deadline>
+			<protocolItem hasMediatorProfile="false" hasMediator="false"
+				description="Each agents makes offer, counter-offer, or accepts"
+				classPath="genius.core.protocol.StackedAlternatingOffersProtocol"
+				protocolName="Stacked Alternating Offers Protocol for Multi-Lateral Negotiation (SAOPMN)" />
+			<partyRepItems>
+				<party classPath="agents.anac.y2015.group2.Group2">
+					<properties />
+				</party>
+				<party classPath="agents.anac.y2015.pokerface.PokerFace">
+					<properties />
+				</party>
+				<party
+					classPath="agents.anac.y2015.TUDMixedStrategyAgent.TUDMixedStrategyAgent">
+					<properties />
+				</party>
+			</partyRepItems>
+			<partyProfileItems>
+				<item url="file:etc/templates/partydomain/party1_utility.xml" />
+				<item url="file:etc/templates/partydomain/party2_utility.xml" />
+			</partyProfileItems>
+			<repeats>1</repeats>
+			<numberOfPartiesPerSession>2</numberOfPartiesPerSession>
+			<repetitionAllowed>false</repetitionAllowed>
+			<persistentDataType>DISABLED</persistentDataType>
+		</tournament>
+
+
+	</tournaments>
+</multilateralTournamentsConfiguration>

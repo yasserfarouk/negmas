@@ -1,0 +1,76 @@
+<utility_space type="UNCERTAIN"> 
+<objective name="SmartEnergyGrid" index="0" description="" etype="objective" type="objective"> 
+<issue vtype="discrete" name="06-09" index="1" etype="discrete" type="discrete"> 
+<item evaluation="7.0" index="1" value="0 kW,"> 
+</item> 
+<item evaluation="11.0" index="2" value="25 kW,"> 
+</item> 
+<item evaluation="37.0" index="3" value="50 kW,"> 
+</item> 
+<item evaluation="79.0" index="4" value="75 kW,"> 
+</item> 
+<item evaluation="100.0" index="5" value="100 kW,"> 
+</item> 
+</issue> 
+<issue vtype="discrete" name="09-19" index="2" etype="discrete" type="discrete"> 
+<item evaluation="23.0" index="1" value="0 kW,"> 
+</item> 
+<item evaluation="21.0" index="2" value="25 kW,"> 
+</item> 
+<item evaluation="17.0" index="3" value="50 kW,"> 
+</item> 
+<item evaluation="16.0" index="4" value="75 kW,"> 
+</item> 
+<item evaluation="15.0" index="5" value="100 kW,"> 
+</item> 
+</issue> 
+<issue vtype="discrete" name="19-22" index="3" etype="discrete" type="discrete"> 
+<item evaluation="1.0" index="1" value="0 kW,"> 
+</item> 
+<item evaluation="17.0" index="2" value="25 kW,"> 
+</item> 
+<item evaluation="31.0" index="3" value="50 kW,"> 
+</item> 
+<item evaluation="51.0" index="4" value="75 kW,"> 
+</item> 
+<item evaluation="100.0" index="5" value="100 kW,"> 
+</item> 
+</issue> 
+<issue vtype="discrete" name="22-06" index="4" etype="discrete" type="discrete"> 
+<item evaluation="51.0" index="1" value="0 kW,"> 
+</item> 
+<item evaluation="53.0" index="2" value="25 kW,"> 
+</item> 
+<item evaluation="57.0" index="3" value="50 kW,"> 
+</item> 
+<item evaluation="61.0" index="4" value="75 kW,"> 
+</item> 
+<item evaluation="67.0" index="5" value="100 kW,"> 
+</item> 
+</issue> 
+<weight index="1" value="0.09919283499861924"> 
+</weight> 
+<weight index="2" value="0.2032898691783548"> 
+</weight> 
+<weight index="3" value="0.3133146468776936"> 
+</weight> 
+<weight index="4" value="0.3842026489453324"> 
+</weight> 
+</objective> 
+<discount_factor value="1.0"> 
+</discount_factor> 
+<reservation value="0.138873"> 
+</reservation> 
+<comparisons> 
+20 
+</comparisons> 
+<errors> 
+0 
+</errors> 
+<fixed_seed> 
+true 
+</fixed_seed> 
+<experimental> 
+false 
+</experimental> 
+</utility_space> 

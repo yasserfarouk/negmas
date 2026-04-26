@@ -1,0 +1,58 @@
+<negotiation_template>
+<utility_space number_of_issues="5">
+<objective description="" etype="objective" index="0" name="root" type="objective">
+    <issue etype="discrete" index="1" name="Mammal" type="discrete" vtype="discrete">
+        <item index="1" value="Lion" cost="0" description="Lion">
+        </item>
+        <item index="2" value="Elephant" cost="0" description="Elephant">
+        </item>
+        <item index="3" value="Cow" cost="0" description="Cow">
+        </item>
+        <item index="4" value="Mouse" cost="0" description="Mouse">
+        </item>
+        <item index="5" value="Kangaroo" cost="0" description="Kangaroo">
+        </item>
+        <item index="6" value="Dolphin" cost="0" description="Dolphin">
+        </item>
+    </issue>
+    <issue etype="discrete" index="2" name="Birds" type="discrete" vtype="discrete">
+        <item index="1" value="Eagle" cost="0" description="Eagle">
+        </item>
+        <item index="2" value="Swallow" cost="0" description="Swallow">
+        </item>
+        <item index="3" value="Pelican" cost="0" description="Pelican">
+        </item>
+        <item index="4" value="Penguin" cost="0" description="Penguin">
+        </item>
+    </issue>
+    <issue etype="discrete" index="3" name="Reptiles" type="discrete" vtype="discrete">
+        <item index="1" value="Crocodile" cost="0" description="Crocodile">
+        </item>
+        <item index="2" value="Lizard" cost="0" description="Lizard">
+        </item>
+        <item index="3" value="Tortoise" cost="0" description="Tortoise">
+        </item>
+        <item index="4" value="Snake" cost="0" description="Snake">
+        </item>
+    </issue>
+    <issue etype="discrete" index="4" name="Amphibian" type="discrete" vtype="discrete">
+        <item index="1" value="Frog" cost="0" description="Frog">
+        </item>
+        <item index="2" value="Salamander" cost="0" description="Salamander">
+        </item>
+        <item index="3" value="Newt" cost="0" description="Newt">
+        </item>
+    </issue>
+    <issue etype="discrete" index="5" name="Primates" type="discrete" vtype="discrete">
+        <item index="1" value="Human" cost="0" description="Human">
+        </item>
+        <item index="2" value="Chimpanzee" cost="0" description="Chimpanzee">
+        </item>
+        <item index="3" value="Gorilla" cost="0" description="Gorilla">
+        </item>
+        <item index="4" value="Orangutan" cost="0" description="Orangutan">
+        </item>
+    </issue>
+</objective>
+</utility_space>
+</negotiation_template>

@@ -1,0 +1,56 @@
+<negotiation_template> 
+<utility_space number_of_issues="5"> 
+<objective index="0" description="" name="holiday" type="objective" etype="objective"> 
+<issue index="1" name="Destination" vtype="discrete" type="discrete" etype="discrete"> 
+<item index="1" value="London"> 
+</item> 
+<item index="2" value="Paris"> 
+</item> 
+<item index="3" value="Amsterdam"> 
+</item> 
+<item index="4" value="Miami"> 
+</item> 
+</issue> 
+<issue index="2" name="Duration" vtype="discrete" type="discrete" etype="discrete"> 
+<item index="1" value="3"> 
+</item> 
+<item index="2" value="7"> 
+</item> 
+<item index="3" value="10"> 
+</item> 
+<item index="4" value="14"> 
+</item> 
+</issue> 
+<issue index="3" name="Budget" vtype="discrete" type="discrete" etype="discrete"> 
+<item index="1" value="400"> 
+</item> 
+<item index="2" value="700"> 
+</item> 
+<item index="3" value="1000"> 
+</item> 
+<item index="4" value="1500"> 
+</item> 
+</issue> 
+<issue index="4" name="Activities" vtype="discrete" type="discrete" etype="discrete"> 
+<item index="1" value="Museum"> 
+</item> 
+<item index="2" value="Sport"> 
+</item> 
+<item index="3" value="Restaurant"> 
+</item> 
+<item index="4" value="Historical Places"> 
+</item> 
+</issue> 
+<issue index="5" name="Transportation" vtype="discrete" type="discrete" etype="discrete"> 
+<item index="1" value="Car"> 
+</item> 
+<item index="2" value="Bus"> 
+</item> 
+<item index="3" value="Train"> 
+</item> 
+<item index="4" value="Air Plane"> 
+</item> 
+</issue> 
+</objective> 
+</utility_space> 
+</negotiation_template> 

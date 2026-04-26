@@ -1,0 +1,21 @@
+<?xml version="1.0" encoding="UTF-8" standalone="yes"?>
+<repository fileName="agentrepository.xml">
+    <items>
+        <agentRepItems>
+            <agentRepItem description="Other - Bayesian Agent" classPath="agents.BayesianAgent" agentName="Other - Bayesian Agent"/>
+            <agentRepItem description="Other - Simple UI agent" classPath="agents.UIAgent" agentName="Other - Simple UI agent"/>
+            <agentRepItem description="Other - SimpleAgent" classPath="agents.SimpleAgent" agentName="Other - SimpleAgent"/>
+            <agentRepItem description="Other - TDT Boulware" classPath="agents.TimeDependentAgentBoulware" agentName="Other - TDT Boulware"/>
+        	<agentRepItem description="Other - TDT Conceder" classPath="agents.TimeDependentAgentConceder" agentName="Other - TDT Conceder"/>
+			<agentRepItem description="ANAC 2011 - Gahboninho" classPath="agents.anac.y2011.Gahboninho.Gahboninho" agentName="ANAC 2011 - Gahboninho"/>
+        	<agentRepItem description="ANAC 2011 - HardHeaded" classPath="agents.anac.y2011.HardHeaded.KLH" agentName="ANAC 2011 - HardHeaded"/>
+        	<agentRepItem description="ANAC 2011 - IAMhaggler2011" classPath="agents.anac.y2011.IAMhaggler2011.IAMhaggler2011" agentName="ANAC 2011 - IAMhaggler2011"/>
+			<agentRepItem description="ANAC 2012 - AgentLG" classPath="agents.anac.y2012.AgentLG.AgentLG" agentName="ANAC 2012 - AgentLG"/>		
+			<agentRepItem description="ANAC 2012 - CUHKAgent" classPath="agents.anac.y2012.CUHKAgent.CUHKAgent" agentName="ANAC 2012 - CUHKAgent"/>	
+			<agentRepItem description="ANAC 2012 - OMACAgent" classPath="agents.anac.y2012.OMACagent.OMACagent" agentName="ANAC 2012 - OMACAgent"/>
+        </agentRepItems>
+        <domainRepItem/>
+        <protocolRepItem/>
+    </items>
+    <filename>agentrepository.xml</filename>
+</repository>

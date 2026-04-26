@@ -1,0 +1,12 @@
+@ Time-Effect 1.0
+@ Opt-Out 1.0
+@ Status-Quo 1.0
+! first_issue*a*0.3
+opt1 opt2 opt3
+0.1 0.5 1.0
+0.1 0.2 0.3
+
+! second_issue*a*0.7
+opt4 opt5 opt6
+1.0 0.5 0.1
+0.1 0.2 0.3

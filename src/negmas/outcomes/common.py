@@ -1,0 +1,187 @@
+"""
+Common datastructures used in the outcomes module.
+"""
+
+from __future__ import annotations
+
+from typing import TYPE_CHECKING, Any, Callable, Mapping
+from attr import define
+
+from negmas.outcomes.issue_ops import issues_from_outcomes
+
+__all__ = [
+    "Outcome",
+    "ExtendedOutcome",
+    "PartialOutcomeDict",
+    "PartialOutcomeTuple",
+    "OutcomeRange",
+    "check_one_and_only",
+    "check_one_at_most",
+    "ensure_os",
+    "os_or_none",
+    "DEFAULT_LEVELS",
+    "extract_outcome",
+    "extract_text",
+    "extract_data",
+    "Constraint",
+]
+
+if TYPE_CHECKING:
+    from negmas.outcomes import OutcomeSpace
+    from negmas.preferences import BaseUtilityFunction
+
+Outcome = tuple
+"""An outcome is a tuple of issue values."""
+
+Constraint = Callable[[Outcome], bool]
+"""
+A binary callable that receives an outcome and returns True if the outcome
+satisfies the constraint, False otherwise.
+"""
+
+
+@define(frozen=True)
+class ExtendedOutcome:
+    """An outcome with optional data fields.
+
+    This class allows offering policies to return additional data alongside the
+    proposed outcome, such as text explanations, reasoning, or metadata.
+
+    Attributes:
+        outcome: The actual outcome tuple representing the proposed offer (if outcome_space is also specified, this is interpreted as preferred offer).
+        outcome_space: An outcome space representing all proposed offers (if more than one).
+        data: Optional dictionary of additional data. Can contain:
+            - "text": A text message explaining the offer or providing context.
+            - Any other key-value pairs for custom metadata.
+
+    Example:
+        >>> from negmas.outcomes.common import ExtendedOutcome
+        >>> outcome = (5, 10)  # price=5, quantity=10
+        >>> extended = ExtendedOutcome(
+        ...     outcome=outcome,
+        ...     data={"text": "I propose this fair price", "confidence": 0.9},
+        ... )
+        >>> extended.outcome
+        (5, 10)
+        >>> extended.data["text"]
+        'I propose this fair price'
+
+    See Also:
+        - :class:`negmas.gb.common.ExtendedResponseType`: For extending acceptance responses.
+        - :meth:`negmas.sao.common.SAOResponse.from_extended`: For creating SAOResponse from extended types.
+    """
+
+    outcome: Outcome | None
+    outcome_space: OutcomeSpace | None = None
+    data: dict[str, Any] | None = None
+
+    def best_for(self, ufun: "BaseUtilityFunction") -> Outcome | None:
+        """Returns the best outcome for the given utility function from the offer.
+
+        Args:
+            ufun: The utility function to evaluate outcomes.
+        """
+        if self.outcome_space is None:
+            return self.outcome
+        return ufun.best(self.outcome_space)
+
+
+def extract_outcome(outcome: Outcome | ExtendedOutcome | None) -> Outcome | None:
+    """Extracts the underlying `Outcome` tuple"""
+    if not isinstance(outcome, ExtendedOutcome):
+        return outcome
+    return outcome.outcome
+
+
+def extract_text(outcome: Outcome | ExtendedOutcome | None) -> str | None:
+    """Extracts the underlying `Outcome` tuple"""
+    if not isinstance(outcome, ExtendedOutcome) or not outcome.data:
+        return None
+    return outcome.data.get("text", "")
+
+
+def extract_data(outcome: Outcome | ExtendedOutcome | None) -> dict[str, Any] | None:
+    """Extracts the underlying `Outcome` tuple"""
+    if not isinstance(outcome, ExtendedOutcome) or not outcome.data:
+        return None
+    return outcome.data.get("data", None)
+
+
+PartialOutcomeDict = Mapping[int, Any]
+"""A partial outcome is a simple mapping between issue INDEX and its value. Both a `tuple` and a `dict[int, Any]` satisfy this definition."""
+
+PartialOutcomeTuple = tuple
+"""A partial outcome is a partial outcome by mapping missing issues to None"""
+
+OutcomeRange = Mapping[int, Any]
+"""An outcome range is a a mapping between issue INDEX and either a value, a list of values or a Tuple with two values"""
+
+DEFAULT_LEVELS = 10
+
+
+def check_one_at_most(outcome_space, issues, outcomes) -> None:
+    """Ensures that at most one of the three inputs is given (i.e. not None)"""
+    if outcomes and issues:
+        raise ValueError("You cannot pass `issues` and `outcomes`")
+    if outcomes and outcome_space:
+        raise ValueError("You cannot pass `outcome_space` and `outcomes`")
+    if issues and outcome_space:
+        raise ValueError("You cannot pass `issues` and `outcome_space`")
+
+
+def check_one_and_only(outcome_space, issues, outcomes) -> None:
+    """Ensures that one and only one of the three inputs is given (i.e. not None)"""
+    if not outcomes and not issues and not outcome_space:
+        raise ValueError("You must pass `outcome_spae`, `issues` or `outcomes`")
+    if outcomes and issues:
+        raise ValueError("You cannot pass `issues` and `outcomes`")
+    if outcomes and outcome_space:
+        raise ValueError("You cannot pass `outcome_space` and `outcomes`")
+    if issues and outcome_space:
+        raise ValueError("You cannot pass `issues` and `outcomes`")
+
+
+def os_or_none(outcome_space, issues, outcomes) -> OutcomeSpace | None:
+    """
+    Returns an outcome space from either an outcome-space, a list of issues, a list of outcomes, or the number of outcomes
+
+    Remakrs:
+        - Precedence is in the order of paramters `outcome_space` > `issues` > `outcomes`.
+        - If nothing is given, it will just return None
+        - Will not copy the outcome-space if it is given
+        - A `CartesianOutcomeSpace` will be created if an outcome-space is not given
+        - If outcomes is given or all issues are discrete, a `DiscreteCartesianOutcomeSpace` will be created
+    """
+    from negmas.outcomes.outcome_space import make_os
+
+    if outcome_space:
+        return outcome_space
+    if issues:
+        return make_os(issues)
+    if not outcomes:
+        return None
+    return make_os(issues_from_outcomes(outcomes))
+
+
+def ensure_os(outcome_space, issues, outcomes) -> OutcomeSpace:
+    """
+    Returns an outcome space from either an outcome-space, a list of issues, a list of outcomes, or the number of outcomes
+
+    Remakrs:
+        - Precedence is in the order of paramters `outcome_space` > `issues` > `outcomes`.
+        - If neither is given, a `ValueError` exception will be raised.
+        - Will not copy the outcome-space if it is given
+        - A `CartesianOutcomeSpace` will be created if an outcome-space is not given
+        - If outcomes is given or all issues are discrete, a `DiscreteCartesianOutcomeSpace` will be created
+    """
+    from negmas.outcomes.outcome_space import make_os
+
+    if outcome_space:
+        return outcome_space
+    if issues:
+        return make_os(issues)
+    if not outcomes:
+        raise ValueError(
+            "No way to create an outcome-space: outcome_space, issses, and outcomes are all None or empty"
+        )
+    return make_os(issues_from_outcomes(outcomes))

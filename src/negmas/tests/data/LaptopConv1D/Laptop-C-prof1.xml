@@ -1,0 +1,63 @@
+<utility_space type="any" number_of_issues="1">
+<objective index="1" etype="objective" type="objective" description="" name="any">
+<issue index="1" etype="discrete" type="discrete" vtype="discrete" name="Laptop-Harddisk-External Monitor">
+    <item index="1" value="('Dell', '60 Gb', "19'' LCD")"  cost="0"  evaluation="0.5887961185746264" description="('Dell', '60 Gb', "19'' LCD")">
+    </item>
+    <item index="2" value="('Dell', '60 Gb', "20'' LCD")"  cost="0"  evaluation="0.40740200879076527" description="('Dell', '60 Gb', "20'' LCD")">
+    </item>
+    <item index="3" value="('Dell', '60 Gb', "23'' LCD")"  cost="0"  evaluation="0.49809906368269585" description="('Dell', '60 Gb', "23'' LCD")">
+    </item>
+    <item index="4" value="('Dell', '80 Gb', "19'' LCD")"  cost="0"  evaluation="0.39479516200759546" description="('Dell', '80 Gb', "19'' LCD")">
+    </item>
+    <item index="5" value="('Dell', '80 Gb', "20'' LCD")"  cost="0"  evaluation="0.21340105222373418" description="('Dell', '80 Gb', "20'' LCD")">
+    </item>
+    <item index="6" value="('Dell', '80 Gb', "23'' LCD")"  cost="0"  evaluation="0.3040981071156649" description="('Dell', '80 Gb', "23'' LCD")">
+    </item>
+    <item index="7" value="('Dell', '120 Gb', "19'' LCD")"  cost="0"  evaluation="0.1813941097838614" description="('Dell', '120 Gb', "19'' LCD")">
+    </item>
+    <item index="8" value="('Dell', '120 Gb', "20'' LCD")"  cost="0"  evaluation="0.0" description="('Dell', '120 Gb', "20'' LCD")">
+    </item>
+    <item index="9" value="('Dell', '120 Gb', "23'' LCD")"  cost="0"  evaluation="0.0906970548919307" description="('Dell', '120 Gb', "23'' LCD")">
+    </item>
+    <item index="10" value="('Macintosh', '60 Gb', "19'' LCD")"  cost="0"  evaluation="0.7715533992081258" description="('Macintosh', '60 Gb', "19'' LCD")">
+    </item>
+    <item index="11" value="('Macintosh', '60 Gb', "20'' LCD")"  cost="0"  evaluation="0.5901592894242647" description="('Macintosh', '60 Gb', "20'' LCD")">
+    </item>
+    <item index="12" value="('Macintosh', '60 Gb', "23'' LCD")"  cost="0"  evaluation="0.6808563443161952" description="('Macintosh', '60 Gb', "23'' LCD")">
+    </item>
+    <item index="13" value="('Macintosh', '80 Gb', "19'' LCD")"  cost="0"  evaluation="0.5775524426410947" description="('Macintosh', '80 Gb', "19'' LCD")">
+    </item>
+    <item index="14" value="('Macintosh', '80 Gb', "20'' LCD")"  cost="0"  evaluation="0.39615833285723345" description="('Macintosh', '80 Gb', "20'' LCD")">
+    </item>
+    <item index="15" value="('Macintosh', '80 Gb', "23'' LCD")"  cost="0"  evaluation="0.48685538774916415" description="('Macintosh', '80 Gb', "23'' LCD")">
+    </item>
+    <item index="16" value="('Macintosh', '120 Gb', "19'' LCD")"  cost="0"  evaluation="0.3641513904173608" description="('Macintosh', '120 Gb', "19'' LCD")">
+    </item>
+    <item index="17" value="('Macintosh', '120 Gb', "20'' LCD")"  cost="0"  evaluation="0.18275728063349939" description="('Macintosh', '120 Gb', "20'' LCD")">
+    </item>
+    <item index="18" value="('Macintosh', '120 Gb', "23'' LCD")"  cost="0"  evaluation="0.2734543355254301" description="('Macintosh', '120 Gb', "23'' LCD")">
+    </item>
+    <item index="19" value="('HP', '60 Gb', "19'' LCD")"  cost="0"  evaluation="1.0" description="('HP', '60 Gb', "19'' LCD")">
+    </item>
+    <item index="20" value="('HP', '60 Gb', "20'' LCD")"  cost="0"  evaluation="0.8186058902161386" description="('HP', '60 Gb', "20'' LCD")">
+    </item>
+    <item index="21" value="('HP', '60 Gb', "23'' LCD")"  cost="0"  evaluation="0.9093029451080694" description="('HP', '60 Gb', "23'' LCD")">
+    </item>
+    <item index="22" value="('HP', '80 Gb', "19'' LCD")"  cost="0"  evaluation="0.8059990434329689" description="('HP', '80 Gb', "19'' LCD")">
+    </item>
+    <item index="23" value="('HP', '80 Gb', "20'' LCD")"  cost="0"  evaluation="0.6246049336491075" description="('HP', '80 Gb', "20'' LCD")">
+    </item>
+    <item index="24" value="('HP', '80 Gb', "23'' LCD")"  cost="0"  evaluation="0.7153019885410383" description="('HP', '80 Gb', "23'' LCD")">
+    </item>
+    <item index="25" value="('HP', '120 Gb', "19'' LCD")"  cost="0"  evaluation="0.592597991209235" description="('HP', '120 Gb', "19'' LCD")">
+    </item>
+    <item index="26" value="('HP', '120 Gb', "20'' LCD")"  cost="0"  evaluation="0.41120388142537345" description="('HP', '120 Gb', "20'' LCD")">
+    </item>
+    <item index="27" value="('HP', '120 Gb', "23'' LCD")"  cost="0"  evaluation="0.5019009363173041" description="('HP', '120 Gb', "23'' LCD")">
+    </item>
+</issue>
+<weight index="1" value="1.0">
+</weight>
+</objective>
+<reservation value="-0.5394338367525076" />
+</utility_space>

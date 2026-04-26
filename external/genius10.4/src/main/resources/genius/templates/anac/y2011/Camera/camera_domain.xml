@@ -1,0 +1,80 @@
+<negotiation_template number_of_sessions="1">
+	<agent class="" name="" utility_space="">
+	</agent>
+	<agent class="" name="" utility_space="">
+	</agent>
+	<utility_space number_of_issues="0">
+		<objective index="0" description="" name="root" etype="objective"
+			type="objective">
+			<issue index="1" name="Maker" etype="discrete" type="discrete"
+				vtype="discrete">
+				<item index="1" value="Canon">
+				</item>
+				<item index="2" value="Nikon">
+				</item>
+				<item index="3" value="Pentax">
+				</item>
+				<item index="4" value="Sony">
+				</item>
+				<item index="5" value="Panasonic">
+				</item>
+			</issue>
+			<issue index="2" name="Body" etype="discrete" type="discrete"
+				vtype="discrete">
+				<item index="1" value="Full size">
+				</item>
+				<item index="2" value="APS-C">
+				</item>
+				<item index="3" value="Micro Four Thirds">
+				</item>
+				<item index="4" value="compact">
+				</item>
+			</issue>
+			<issue index="3" name="Lens" etype="discrete" type="discrete"
+				vtype="discrete">
+				<item index="1" value="High end model">
+				</item>
+				<item index="2" value="Middle range model">
+				</item>
+				<item index="3" value="Entry model">
+				</item>
+			</issue>
+			<issue index="4" name="Tripod" etype="discrete" type="discrete"
+				vtype="discrete">
+				<item index="1" value="GITZO">
+				</item>
+				<item index="2" value="Manfrotto">
+				</item>
+				<item index="3" value="Induro">
+				</item>
+			</issue>
+			<issue index="5" name="Bag" etype="discrete" type="discrete"
+				vtype="discrete">
+				<item index="1" value="Domke">
+				</item>
+				<item index="2" value="Lowepro">
+				</item>
+				<item index="3" value="Tamrac">
+				</item>
+				<item index="4" value="National Geographic">
+				</item>
+				<item index="5" value="Artizan and Artist">
+				</item>
+			</issue>
+			<issue index="6" name="Accessory" etype="discrete" type="discrete"
+				vtype="discrete">
+				<item index="1" value="Electronic Flash">
+				</item>
+				<item index="2" value="Battery Grip">
+				</item>
+				<item index="3" value="Memory">
+				</item>
+				<item index="4" value="Strap">
+				</item>
+			</issue>
+		</objective>
+		<discount_factor>
+			<value>0.890596104</value>
+		</discount_factor>
+	</utility_space>
+</negotiation_template>

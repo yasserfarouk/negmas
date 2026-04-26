@@ -1,0 +1,109 @@
+<?xml version="1.0" encoding="UTF-8" standalone="yes"?>
+<repository fileName="boarepository.xml">
+	<biddingstrategies>
+		<biddingstrategy description="Other - Time dependent" classpath="negotiator.boaframework.offeringstrategy.other.TimeDependent_Offering"/>
+		<biddingstrategy description="Other - Offer decreasing utility" classpath="negotiator.boaframework.offeringstrategy.other.ChoosingAllBids"/>
+		<biddingstrategy description="Other - IAH predictor" classpath="negotiator.boaframework.offeringstrategy.IAMHaggler_Test_Offering"/>
+		<biddingstrategy description="Other - Random walker" classpath="negotiator.boaframework.offeringstrategy.other.Random_Offering"/>
+		<biddingstrategy description="2013 - TheFawkes" classpath="negotiator.boaframework.offeringstrategy.anac2013.Fawkes_Offering"/>
+		<biddingstrategy description="2013 - InoxAgent" classpath="negotiator.boaframework.offeringstrategy.anac2013.InoxAgent_Offering"/>
+		<biddingstrategy description="2013 - InoxAgent_OneIssue" classpath="negotiator.boaframework.offeringstrategy.anac2013.InoxAgent_Offering_OneIssue"/>
+		<biddingstrategy description="2012 - CUHKAgent" classpath="negotiator.boaframework.offeringstrategy.anac2012.CUHKAgent_Offering"/>
+		<biddingstrategy description="2012 - AgentLG" classpath="negotiator.boaframework.offeringstrategy.anac2012.AgentLG_Offering"/>
+		<biddingstrategy description="2012 - OMACagent" classpath="negotiator.boaframework.offeringstrategy.anac2012.OMACagent_Offering"/>
+		<biddingstrategy description="2012 - The Negotiator Reloaded" classpath="negotiator.boaframework.offeringstrategy.anac2012.TheNegotiatorReloaded_Offering"/>
+		<biddingstrategy description="2012 - BRAMAgent2" classpath="negotiator.boaframework.offeringstrategy.anac2012.BRAMAgent2_Offering"/>
+		<biddingstrategy description="2012 - IAMHaggler2012" classpath="negotiator.boaframework.offeringstrategy.anac2012.IAMHaggler2012_Offering"/>
+		<biddingstrategy description="2012 - AgentMR" classpath="negotiator.boaframework.offeringstrategy.anac2012.AgentMR_Offering"/>
+		<biddingstrategy description="2011 - IAMHaggler2011" classpath="negotiator.boaframework.offeringstrategy.anac2011.IAMhaggler2011_Offering"/>
+		<biddingstrategy description="2011 - BRAMAgent" classpath="negotiator.boaframework.offeringstrategy.anac2011.BRAMAgent_Offering"/>
+		<biddingstrategy description="2011 - Gahboninho" classpath="negotiator.boaframework.offeringstrategy.anac2011.Gahboninho_Offering"/>
+		<biddingstrategy description="2011 - Nice-Tit-For-Tat" classpath="negotiator.boaframework.offeringstrategy.anac2011.NiceTitForTat_Offering"/>
+		<biddingstrategy description="2011 - The Negotiator" classpath="negotiator.boaframework.offeringstrategy.anac2011.TheNegotiator_Offering"/>
+		<biddingstrategy description="2011 - HardHeaded" classpath="negotiator.boaframework.offeringstrategy.anac2011.HardHeaded_Offering"/>
+		<biddingstrategy description="2011 - Agent K2" classpath="negotiator.boaframework.offeringstrategy.anac2011.AgentK2_Offering"/>
+		<biddingstrategy description="2011 - ValueModelAgent" classpath="negotiator.boaframework.offeringstrategy.anac2011.ValueModelAgent_Offering"/>
+		<biddingstrategy description="2010 - Nozomi" classpath="negotiator.boaframework.offeringstrategy.anac2010.Nozomi_Offering"/>
+		<biddingstrategy description="2010 - IAMHaggler2010" classpath="negotiator.boaframework.offeringstrategy.anac2010.IAMhaggler2010_Offering"/>
+		<biddingstrategy description="2010 - Yushu" classpath="negotiator.boaframework.offeringstrategy.anac2010.Yushu_Offering"/>
+		<biddingstrategy description="2010 - Agent Smith" classpath="negotiator.boaframework.offeringstrategy.anac2010.AgentSmith_Offering"/>
+		<biddingstrategy description="2010 - Agent K" classpath="negotiator.boaframework.offeringstrategy.anac2010.AgentK_Offering"/>
+		<biddingstrategy description="2010 - IAMcrazyHaggler" classpath="negotiator.boaframework.offeringstrategy.anac2010.IAMCrazyHaggler_Offering"/>
+		<biddingstrategy description="2010 - Agent FSEGA" classpath="negotiator.boaframework.offeringstrategy.anac2010.AgentFSEGA_Offering"/>
+		<biddingstrategy description="Other - Better Time dependent" classpath="negotiator.boaframework.offeringstrategy.other.GeniusTimeDependent_Offering"/>
+
+	</biddingstrategies>
+	<acceptanceconditions>
+		<acceptancecondition description="Other - Next" classpath="negotiator.boaframework.acceptanceconditions.other.AC_Next"/>
+		<acceptancecondition description="Other - Gap" classpath="negotiator.boaframework.acceptanceconditions.other.AC_Gap"/>
+		<acceptancecondition description="Other - False" classpath="negotiator.boaframework.acceptanceconditions.other.AC_False"/>
+		<acceptancecondition description="Other - Uncertain" classpath="negotiator.boaframework.acceptanceconditions.other.AC_Uncertain"/>
+		<acceptancecondition description="Other - Time" classpath="negotiator.boaframework.acceptanceconditions.other.AC_Time"/>
+		<acceptancecondition description="Other - CombiV4" classpath="negotiator.boaframework.acceptanceconditions.other.AC_CombiV4"/>
+		<acceptancecondition description="Other - CombiV3" classpath="negotiator.boaframework.acceptanceconditions.other.AC_CombiV3"/>
+		<acceptancecondition description="Other - CombiV2" classpath="negotiator.boaframework.acceptanceconditions.other.AC_CombiV2"/>		
+		<acceptancecondition description="Other - CombiMaxInWindow" classpath="negotiator.boaframework.acceptanceconditions.other.AC_CombiMaxInWindow"/>
+		<acceptancecondition description="Other - True" classpath="negotiator.boaframework.acceptanceconditions.other.AC_True"/>
+		<acceptancecondition description="Other - Constant" classpath="negotiator.boaframework.acceptanceconditions.other.AC_Const"/>
+		<acceptancecondition description="Other - Previous" classpath="negotiator.boaframework.acceptanceconditions.other.AC_Previous"/>
+		<acceptancecondition description="Multi Acceptance Criteria" classpath="genius.core.boaframework.Multi_AcceptanceCondition"/>
+		
+
+		<acceptancecondition description="2013 - TheFawkes" classpath="negotiator.boaframework.acceptanceconditions.anac2013.AC_TheFawkes"/>
+		<acceptancecondition description="2013 - InoxAgent" classpath="negotiator.boaframework.acceptanceconditions.anac2013.AC_InoxAgent"/>
+		<acceptancecondition description="2013 - InoxAgent_OneIssue" classpath="negotiator.boaframework.acceptanceconditions.anac2013.AC_InoxAgent_OneIssue"/>
+		<acceptancecondition description="2012 - CUHKAgent" classpath="negotiator.boaframework.acceptanceconditions.anac2012.AC_CUHKAgent"/>
+		<acceptancecondition description="2012 - BRAMAgent2" classpath="negotiator.boaframework.acceptanceconditions.anac2012.AC_BRAMAgent2"/>
+		<acceptancecondition description="2012 - OMACagent" classpath="negotiator.boaframework.acceptanceconditions.anac2012.AC_OMACagent"/>
+		<acceptancecondition description="2012 - IAMHaggler2012" classpath="negotiator.boaframework.acceptanceconditions.anac2012.AC_IAMHaggler2012"/>
+		<acceptancecondition description="2012 - AgentMR" classpath="negotiator.boaframework.acceptanceconditions.anac2012.AC_AgentMR"/>
+		<acceptancecondition description="2012 - AgentLG" classpath="negotiator.boaframework.acceptanceconditions.anac2012.AC_AgentLG"/>
+		<acceptancecondition description="2012 - The Negotiator Reloaded" classpath="negotiator.boaframework.acceptanceconditions.anac2012.AC_TheNegotiatorReloaded"/>
+		<acceptancecondition description="2011 - BRAMAgent" classpath="negotiator.boaframework.acceptanceconditions.anac2011.AC_BRAMAgent"/>
+		<acceptancecondition description="2011 - IAMHaggler2011" classpath="negotiator.boaframework.acceptanceconditions.anac2011.AC_IAMHaggler2011"/>
+		<acceptancecondition description="2011 - Gahboninho" classpath="negotiator.boaframework.acceptanceconditions.anac2011.AC_Gahboninho"/>
+		<acceptancecondition description="2011 - The Negotiator" classpath="negotiator.boaframework.acceptanceconditions.anac2011.AC_TheNegotiator"/>
+		<acceptancecondition description="2011 - Nice-Tit-For-Tat" classpath="negotiator.boaframework.acceptanceconditions.anac2011.AC_NiceTitForTat"/>
+		<acceptancecondition description="2011 - HardHeaded" classpath="negotiator.boaframework.acceptanceconditions.anac2011.AC_HardHeaded"/>
+		<acceptancecondition description="2011 - Agent K2" classpath="negotiator.boaframework.acceptanceconditions.anac2011.AC_AgentK2"/>
+		<acceptancecondition description="2011 - ValueModelAgent" classpath="negotiator.boaframework.acceptanceconditions.anac2011.AC_ValueModelAgent"/>
+		<acceptancecondition description="2010 - IAMHaggler2010" classpath="negotiator.boaframework.acceptanceconditions.anac2010.AC_IAMHaggler2010"/>
+		<acceptancecondition description="2010 - Yushu" classpath="negotiator.boaframework.acceptanceconditions.anac2010.AC_Yushu"/>
+		<acceptancecondition description="2010 - Agent Smith" classpath="negotiator.boaframework.acceptanceconditions.anac2010.AC_AgentSmith"/>
+		<acceptancecondition description="2010 - Agent FSEGA" classpath="negotiator.boaframework.acceptanceconditions.anac2010.AC_AgentFSEGA"/>
+		<acceptancecondition description="2010 - Agent K" classpath="negotiator.boaframework.acceptanceconditions.anac2010.AC_AgentK"/>
+		<acceptancecondition description="2010 - IAMcrazyHaggler" classpath="negotiator.boaframework.acceptanceconditions.anac2010.AC_IAMcrazyHaggler"/>
+		<acceptancecondition description="2010 - Nozomi" classpath="negotiator.boaframework.acceptanceconditions.anac2010.AC_Nozomi"/>
+	</acceptanceconditions>
+	<opponentmodels>
+		<opponentmodel description="CUHKFrequencyModelV2" classpath="negotiator.boaframework.opponentmodel.CUHKFrequencyModelV2"/>
+		<opponentmodel description="IAMhaggler Bayesian Model" classpath="negotiator.boaframework.opponentmodel.IAMhagglerBayesianModel"/>
+		<opponentmodel description="AgentLG Model" classpath="negotiator.boaframework.opponentmodel.AgentLGModel"/>
+		<opponentmodel description="Perfect Model" classpath="negotiator.boaframework.opponentmodel.PerfectModel"/>
+		<opponentmodel description="TheFawkes_OM" classpath="negotiator.boaframework.opponentmodel.TheFawkes_OM"/>
+		<opponentmodel description="AgentX Frequency Model" classpath="negotiator.boaframework.opponentmodel.AgentXFrequencyModel"/>
+		<opponentmodel description="Bayesian Model" classpath="negotiator.boaframework.opponentmodel.BayesianModel"/>
+		<opponentmodel description="Perfect Scalable Bay. Model" classpath="negotiator.boaframework.opponentmodel.PerfectScalableBayesianModel"/>
+		<opponentmodel description="The Negotiator Reloaded Model" classpath="negotiator.boaframework.opponentmodel.IAMhagglerBayesianModel"/>
+		<opponentmodel description="No Model" classpath="genius.core.boaframework.NoModel"/>
+		<opponentmodel description="FSEGA Bayesian Model" classpath="negotiator.boaframework.opponentmodel.FSEGABayesianModel"/>
+		<opponentmodel description="Smith Frequency Model V2" classpath="negotiator.boaframework.opponentmodel.SmithFrequencyModelV2"/>
+		<opponentmodel description="Perfect IAMhaggler Bay. Model" classpath="negotiator.boaframework.opponentmodel.PerfectIAMhagglerBayesianModel"/>
+		<opponentmodel description="Uniform Model" classpath="negotiator.boaframework.opponentmodel.UniformModel"/>
+		<opponentmodel description="Default Model" classpath="negotiator.boaframework.opponentmodel.DefaultModel"/>
+		<opponentmodel description="InoxAgent_OM" classpath="negotiator.boaframework.opponentmodel.InoxAgent_OM"/>
+		<opponentmodel description="Worst Model" classpath="negotiator.boaframework.opponentmodel.WorstModel"/>
+		<opponentmodel description="Nash Frequency Model" classpath="negotiator.boaframework.opponentmodel.NashFrequencyModel"/>
+		<opponentmodel description="Scalable Bayesian Model" classpath="negotiator.boaframework.opponentmodel.ScalableBayesianModel"/>
+		<opponentmodel description="Opposite Model" classpath="negotiator.boaframework.opponentmodel.OppositeModel"/>
+		<opponentmodel description="Smith Frequency Model" classpath="negotiator.boaframework.opponentmodel.SmithFrequencyModel"/>
+		<opponentmodel description="HardHeaded Frequency Model" classpath="negotiator.boaframework.opponentmodel.HardHeadedFrequencyModel"/>
+	</opponentmodels>
+	<omstrategies>
+		<omstrategy description="Best bid" classpath="negotiator.boaframework.omstrategy.BestBid"/>
+		<omstrategy description="Random" classpath="negotiator.boaframework.omstrategy.NullStrategy"/>
+		<omstrategy description="TheFawkes" classpath="negotiator.boaframework.omstrategy.TheFawkes_OMS"/>
+		<omstrategy description="NTFT" classpath="negotiator.boaframework.omstrategy.NTFTstrategy"/>
+		<omstrategy description="Offer best n" classpath="negotiator.boaframework.omstrategy.OfferBestN"/>
+	</omstrategies>
+</repository>

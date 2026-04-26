@@ -1,0 +1,51 @@
+<?xml version="1.0"?>
+<utility_space>
+  <objective index="1" description="" name="Fitness" type="objective" etype="objective">
+    <issue index="2" name="kind of fitness" vtype="discrete" type="discrete" etype="discrete">
+      <item index="1" value="swimming" cost="0.0" evaluation="3" />
+      <item index="2" value="yoga" cost="0.0" evaluation="4" />
+      <item index="3" value="aerobics" cost="0.0" evaluation="2" />
+      <item index="4" value="running" cost="0.0" evaluation="1" />
+      <item index="5" value="tennis" cost="0.0" evaluation="5" />
+    </issue>
+    <issue index="3" name="time to do" vtype="discrete" type="discrete" etype="discrete">
+      <item index="1" value="30minutes" cost="0.0" evaluation="3" />
+      <item index="2" value="1hour" cost="0.0" evaluation="4" />
+      <item index="3" value="3hour" cost="0.0" evaluation="2" />
+      <item index="4" value="5hour" cost="0.0" evaluation="1" />
+    </issue>
+    <issue index="4" name="distance" vtype="discrete" type="discrete" etype="discrete">
+      <item index="1" value="0km" cost="0.0" evaluation="3" />
+      <item index="2" value="~1km" cost="0.0" evaluation="4" />
+      <item index="3" value="~40km" cost="0.0" evaluation="2" />
+      <item index="4" value="~80km" cost="0.0" evaluation="1" />
+    </issue>
+    <issue index="5" name="intensity" vtype="discrete" type="discrete" etype="discrete">
+      <item index="1" value="light" cost="0.0" evaluation="2" />
+      <item index="2" value="moderate" cost="0.0" evaluation="3" />
+      <item index="3" value="as training" cost="0.0" evaluation="4" />
+      <item index="4" value="as boot-camp" cost="0.0" evaluation="1" />
+    </issue>
+    <issue index="6" vtype="discrete" etype="discrete" type="discrete" name="Price($)">
+      <item index="1" value="0" evaluation="10"/>
+      <item index="2" value="1" evaluation="9"/>
+      <item index="3" value="2" evaluation="8"/>
+      <item index="4" value="3" evaluation="7"/>
+      <item index="5" value="4" evaluation="6"/>
+      <item index="6" value="5" evaluation="5"/>
+      <item index="7" value="6" evaluation="4"/>
+      <item index="8" value="7" evaluation="3"/>
+      <item index="9" value="8" evaluation="2"/>
+      <item index="10" value="9" evaluation="1"/>
+      <item index="11" value="10" evaluation="0"/>
+    </issue>
+    <weight index="2" value="0.15354168265071755" />
+    <weight index="3" value="0.04506011216336407" />
+    <weight index="4" value="0.2981224975326285" />
+    <weight index="5" value="0.29905439297725833" />
+    <weight index="6" value="0.20422131467603144" />
+    <weight index="1" value="1.0" />
+  </objective>
+  <discount_factor value="0.50" />
+<reservation value="0.00" />
+</utility_space>

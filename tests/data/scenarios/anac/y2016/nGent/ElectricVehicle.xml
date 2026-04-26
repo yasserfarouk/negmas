@@ -1,0 +1,24 @@
+<negotiation_template>
+<utility_space number_of_issues="3">
+<objective description="" etype="objective" index="0" name="root" type="objective">
+    <issue etype="discrete" index="1" name="EnergyConsumption" type="discrete" vtype="discrete">
+        <item index="1" value="Low" cost="0" description="Low">
+        </item>
+        <item index="2" value="High" cost="0" description="High">
+        </item>
+    </issue>
+    <issue etype="discrete" index="2" name="EnginePower" type="discrete" vtype="discrete">
+        <item index="1" value="Low" cost="0" description="Low">
+        </item>
+        <item index="2" value="High" cost="0" description="High">
+        </item>
+    </issue>
+    <issue etype="discrete" index="3" name="Price" type="discrete" vtype="discrete">
+        <item index="1" value="Low" cost="0" description="Low">
+        </item>
+        <item index="2" value="High" cost="0" description="High">
+        </item>
+    </issue>
+</objective>
+</utility_space>
+</negotiation_template>

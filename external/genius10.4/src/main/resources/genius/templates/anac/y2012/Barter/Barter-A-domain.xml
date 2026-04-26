@@ -1,0 +1,26 @@
+<?xml version="1.0"?>
+<negotiation_template number_of_sessions="1">
+  <utility_space number_of_issues="3">
+    <objective index="0" etype="objective" type="objective" description="" name="Barter">
+      <issue index="1" etype="discrete" type="discrete" name="price">
+        <item index="1" value="3gm"/>
+        <item index="2" value="4gm"/>
+        <item index="3" value="5gm"/>
+        <item index="4" value="6gm"/>
+      </issue>
+      <issue index="2" etype="discrete" type="discrete" name="CookingOil">
+        <item index="1" value="4ml"/>
+        <item index="2" value="5ml"/>
+        <item index="3" value="6ml"/>
+        <item index="4" value="7ml"/>
+        <item index="5" value="8ml"/>
+      </issue>
+      <issue index="3" etype="discrete" type="discrete" name="Sugar">
+        <item index="1" value="4gm"/>
+        <item index="2" value="6gm"/>
+        <item index="3" value="8gm"/>
+        <item index="4" value="10gm"/>
+      </issue>
+    </objective>
+  </utility_space>
+</negotiation_template>

@@ -1,0 +1,52 @@
+<negotiation_template> 
+<utility_space number_of_issues="5"> 
+<objective index="0" description="" name="Vacation" type="objective" etype="objective"> 
+<issue index="1" name="Location" vtype="discrete" type="discrete" etype="discrete"> 
+<item index="1" value="Paris"> 
+</item> 
+<item index="2" value="Rome"> 
+</item> 
+<item index="3" value="London"> 
+</item> 
+<item index="4" value="Istanbul"> 
+</item> 
+<item index="5" value="Dubai"> 
+</item> 
+</issue> 
+<issue index="2" name="Travel" vtype="discrete" type="discrete" etype="discrete"> 
+<item index="1" value="Car"> 
+</item> 
+<item index="2" value="Boat"> 
+</item> 
+<item index="3" value="Train"> 
+</item> 
+<item index="4" value="Airplane"> 
+</item> 
+</issue> 
+<issue index="3" name="Duration (weeks)" lowerbound="1" upperbound="4" vtype="integer" type="integer" etype="integer"> 
+</issue> 
+<issue index="4" name="Activities" vtype="discrete" type="discrete" etype="discrete"> 
+<item index="1" value="Walking"> 
+</item> 
+<item index="2" value="Sightseeing"> 
+</item> 
+<item index="3" value="Beach"> 
+</item> 
+<item index="4" value="Nothing"> 
+</item> 
+</issue> 
+<issue index="5" name="Sleeping" vtype="discrete" type="discrete" etype="discrete"> 
+<item index="1" value="Hotel"> 
+</item> 
+<item index="2" value="Appartment"> 
+</item> 
+<item index="3" value="Hostel"> 
+</item> 
+<item index="4" value="Cabin"> 
+</item> 
+<item index="5" value="Camping"> 
+</item> 
+</issue> 
+</objective> 
+</utility_space> 
+</negotiation_template> 

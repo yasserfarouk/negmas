@@ -1,0 +1,35 @@
+<?xml version="1.0"?>
+<negotiation_template number_of_sessions="1">
+  <agent utility_space="" name="" class="">
+</agent>
+  <agent utility_space="" name="" class="">
+</agent>
+  <utility_space number_of_issues="0">
+    <objective index="0" description="" name="root" type="objective" etype="objective">
+      <issue index="1" name="Fifty_Fifty" vtype="discrete" type="discrete" etype="discrete">
+        <item index="1" value="100_0">
+</item>
+        <item index="2" value="90_10">
+</item>
+        <item index="3" value="80_20">
+</item>
+        <item index="4" value="70_30">
+</item>
+        <item index="5" value="60_40">
+</item>
+        <item index="6" value="50_50">
+</item>
+        <item index="7" value="40_60">
+</item>
+        <item index="8" value="30_70">
+</item>
+        <item index="9" value="20_80">
+</item>
+        <item index="10" value="10_90">
+</item>
+        <item index="11" value="0_100">
+</item>
+      </issue>
+    </objective>
+  </utility_space>
+</negotiation_template>

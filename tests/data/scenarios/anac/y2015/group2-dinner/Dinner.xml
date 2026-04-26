@@ -1,0 +1,60 @@
+<negotiation_template>
+<utility_space number_of_issues="5">
+<objective description="" etype="objective" index="0" name="root" type="objective">
+    <issue etype="discrete" index="1" name="Vegetarian (yes/no)" type="discrete" vtype="discrete">
+        <item index="1" value="Vegetarian" cost="0" description="Vegetarian">
+        </item>
+        <item index="2" value="Meat" cost="0" description="Meat">
+        </item>
+    </issue>
+    <issue etype="discrete" index="2" name="Where to eat" type="discrete" vtype="discrete">
+        <item index="1" value="Home(make it yourself)" cost="0" description="Home(make it yourself)">
+        </item>
+        <item index="2" value="Home(take away)" cost="0" description="Home(take away)">
+        </item>
+        <item index="3" value="Cheap Restaurant" cost="0" description="Cheap Restaurant">
+        </item>
+        <item index="4" value="Fancy Restaurant" cost="0" description="Fancy Restaurant">
+        </item>
+    </issue>
+    <issue etype="discrete" index="3" name="Origin" type="discrete" vtype="discrete">
+        <item index="1" value="Dutch food" cost="0" description="Dutch food">
+        </item>
+        <item index="2" value="Asian food" cost="0" description="Asian food">
+        </item>
+        <item index="3" value="Italian food" cost="0" description="Italian food">
+        </item>
+        <item index="4" value="French food" cost="0" description="French food">
+        </item>
+        <item index="5" value="Greek food" cost="0" description="Greek food">
+        </item>
+        <item index="6" value="Turkish food" cost="0" description="Turkish food">
+        </item>
+    </issue>
+    <issue etype="discrete" index="4" name="time" type="discrete" vtype="discrete">
+        <item index="1" value="18:00" cost="0" description="18:00">
+        </item>
+        <item index="2" value="19:00" cost="0" description="19:00">
+        </item>
+        <item index="3" value="20:00" cost="0" description="20:00">
+        </item>
+        <item index="4" value="21:00" cost="0" description="21:00">
+        </item>
+        <item index="5" value="22:00" cost="0" description="22:00">
+        </item>
+    </issue>
+    <issue etype="discrete" index="5" name="Spicyness" type="discrete" vtype="discrete">
+        <item index="1" value="not spicy at all" cost="0" description="not spicy at all">
+        </item>
+        <item index="2" value="somewhat spicy" cost="0" description="somewhat spicy">
+        </item>
+        <item index="3" value="pretty spicy" cost="0" description="pretty spicy">
+        </item>
+        <item index="4" value="very spicy" cost="0" description="very spicy">
+        </item>
+        <item index="5" value="HOT" cost="0" description="HOT">
+        </item>
+    </issue>
+</objective>
+</utility_space>
+</negotiation_template>

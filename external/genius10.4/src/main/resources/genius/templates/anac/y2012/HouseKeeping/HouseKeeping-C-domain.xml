@@ -1,0 +1,36 @@
+<?xml version="1.0"?>
+<negotiation_template number_of_sessions="1">
+  <agent utility_space="" name="" class=""> </agent>
+  <agent utility_space="" name="" class=""> </agent>
+  <utility_space number_of_issues="0">
+    <objective index="0" description="" name="Housekeeping" type="objective" etype="objective">
+      <issue index="1" name="Floor Mopping" vtype="discrete" type="discrete" etype="discrete">
+        <item index="1" value="Husbend" />
+        <item index="2" value="Wife" />
+        <item index="3" value="Both" />
+        <item index="4" value="Maid" />
+      </issue>
+      <issue index="2" name="Dishes Cleaning" vtype="discrete" type="discrete" etype="discrete">
+        <item index="1" value="Husbend" />
+        <item index="2" value="Wife" />
+        <item index="3" value="Both" />
+      </issue>
+      <issue index="3" name="Laundry" vtype="discrete" type="discrete" etype="discrete">
+        <item index="1" value="Husbend" />
+        <item index="2" value="Wife" />
+      </issue>
+      <issue index="4" name="Cooking" vtype="discrete" type="discrete" etype="discrete">
+        <item index="1" value="Husbend" />
+        <item index="2" value="Wife" />
+        <item index="3" value="Both" />
+        <item index="4" value="Take-away food" />
+      </issue>
+      <issue index="5" name="Gardening" vtype="discrete" type="discrete" etype="discrete">
+        <item index="1" value="Husbend" />
+        <item index="2" value="Wife" />
+        <item index="3" value="Both" />
+        <item index="4" value="Gardener" />
+      </issue>
+    </objective>
+  </utility_space>
+</negotiation_template>

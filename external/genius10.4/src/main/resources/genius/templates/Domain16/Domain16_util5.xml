@@ -1,0 +1,136 @@
+<utility_space> 
+<objective index="0" description="" name="Domain16" type="objective" etype="objective"> 
+<issue index="1" name="a" vtype="discrete" type="discrete" etype="discrete"> 
+<item index="1" value="a1" evaluation="1"> 
+</item> 
+<item index="2" value="a2" evaluation="5"> 
+</item> 
+</issue> 
+<issue index="2" name="b" vtype="discrete" type="discrete" etype="discrete"> 
+<item index="1" value="b1" evaluation="1"> 
+</item> 
+<item index="2" value="b2" evaluation="4"> 
+</item> 
+</issue> 
+<issue index="3" name="c" vtype="discrete" type="discrete" etype="discrete"> 
+<item index="1" value="c1" evaluation="4"> 
+</item> 
+<item index="2" value="c2" evaluation="4"> 
+</item> 
+</issue> 
+<issue index="4" name="d" vtype="discrete" type="discrete" etype="discrete"> 
+<item index="1" value="d1" evaluation="4"> 
+</item> 
+<item index="2" value="d2" evaluation="4"> 
+</item> 
+</issue> 
+<issue index="5" name="e" vtype="discrete" type="discrete" etype="discrete"> 
+<item index="1" value="e1" evaluation="5"> 
+</item> 
+<item index="2" value="e2" evaluation="2"> 
+</item> 
+</issue> 
+<issue index="6" name="g" vtype="discrete" type="discrete" etype="discrete"> 
+<item index="1" value="g1" evaluation="3"> 
+</item> 
+<item index="2" value="g2" evaluation="9"> 
+</item> 
+</issue> 
+<issue index="7" name="f" vtype="discrete" type="discrete" etype="discrete"> 
+<item index="1" value="f1" evaluation="4"> 
+</item> 
+<item index="2" value="f2" evaluation="1"> 
+</item> 
+</issue> 
+<issue index="8" name="h" vtype="discrete" type="discrete" etype="discrete"> 
+<item index="1" value="h1" evaluation="1"> 
+</item> 
+<item index="2" value="h2" evaluation="9"> 
+</item> 
+</issue> 
+<issue index="9" name="i" vtype="discrete" type="discrete" etype="discrete"> 
+<item index="1" value="i1" evaluation="1"> 
+</item> 
+<item index="2" value="i2" evaluation="8"> 
+</item> 
+</issue> 
+<issue index="10" name="j" vtype="discrete" type="discrete" etype="discrete"> 
+<item index="1" value="j1" evaluation="1"> 
+</item> 
+<item index="2" value="j2" evaluation="4"> 
+</item> 
+</issue> 
+<issue index="11" name="k" vtype="discrete" type="discrete" etype="discrete"> 
+<item index="1" value="k1" evaluation="1"> 
+</item> 
+<item index="2" value="k2" evaluation="5"> 
+</item> 
+</issue> 
+<issue index="12" name="l" vtype="discrete" type="discrete" etype="discrete"> 
+<item index="1" value="l1" evaluation="8"> 
+</item> 
+<item index="2" value="l2" evaluation="9"> 
+</item> 
+</issue> 
+<issue index="13" name="m" vtype="discrete" type="discrete" etype="discrete"> 
+<item index="1" value="m1" evaluation="5"> 
+</item> 
+<item index="2" value="m2" evaluation="8"> 
+</item> 
+</issue> 
+<issue index="14" name="n" vtype="discrete" type="discrete" etype="discrete"> 
+<item index="1" value="n1" evaluation="5"> 
+</item> 
+<item index="2" value="n2" evaluation="6"> 
+</item> 
+</issue> 
+<issue index="15" name="o" vtype="discrete" type="discrete" etype="discrete"> 
+<item index="1" value="o1" evaluation="6"> 
+</item> 
+<item index="2" value="o2" evaluation="9"> 
+</item> 
+</issue> 
+<issue index="16" name="p" vtype="discrete" type="discrete" etype="discrete"> 
+<item index="1" value="p1" evaluation="3"> 
+</item> 
+<item index="2" value="p2" evaluation="5"> 
+</item> 
+</issue> 
+<weight index="1" value="0.0825567748641329"> 
+</weight> 
+<weight index="2" value="0.13471623790378146"> 
+</weight> 
+<weight index="3" value="0.11557058775988231"> 
+</weight> 
+<weight index="4" value="0.10847915245102767"> 
+</weight> 
+<weight index="5" value="0.07331830746475711"> 
+</weight> 
+<weight index="6" value="0.08029202041068695"> 
+</weight> 
+<weight index="7" value="0.10428657560125822"> 
+</weight> 
+<weight index="8" value="8.276718126633898E-5"> 
+</weight> 
+<weight index="9" value="0.1522951025327068"> 
+</weight> 
+<weight index="10" value="0.0010724181181229078"> 
+</weight> 
+<weight index="11" value="0.0441194443031498"> 
+</weight> 
+<weight index="12" value="0.02407436912539595"> 
+</weight> 
+<weight index="13" value="0.027060866209675048"> 
+</weight> 
+<weight index="14" value="0.004030352107656202"> 
+</weight> 
+<weight index="15" value="0.007023073774508008"> 
+</weight> 
+<weight index="16" value="0.04102195019199228"> 
+</weight> 
+</objective> 
+<discount_factor value="0.4"> 
+</discount_factor> 
+<reservation value="0.7"> 
+</reservation> 
+</utility_space> 

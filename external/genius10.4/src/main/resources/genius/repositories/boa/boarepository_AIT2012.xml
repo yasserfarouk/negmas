@@ -1,0 +1,54 @@
+<?xml version="1.0" encoding="UTF-8" standalone="yes"?>
+<repository fileName="boarepository.xml">
+    <biddingstrategies>
+		<biddingstrategy description="Other - Offer decreasing utility" classPath="negotiator.boaframework.offeringstrategy.other.ChoosingAllBids"/>
+		<biddingstrategy description="Other - Random walker" classPath="negotiator.boaframework.offeringstrategy.other.Random_Offering"/>
+		<biddingstrategy description="Other - Better Time dependent" classPath="negotiator.boaframework.offeringstrategy.other.GeniusTimeDependent_Offering">		
+			<parameter name="e" default="1.0" description="Concession rate"/>
+			<parameter name="k" default="0.0" description="Offset"/>
+			<parameter name="min" default="0.0" description="Minimum utility"/>
+			<parameter name="max" default="0.99" description="Maximum utility"/>
+		</biddingstrategy>
+		<biddingstrategy description="2011 - Agent K2" classPath="negotiator.boaframework.offeringstrategy.anac2011.AgentK2_Offering"/>
+		<biddingstrategy description="2011 - BRAMAgent" classPath="negotiator.boaframework.offeringstrategy.anac2011.BRAMAgent_Offering"/>
+		<biddingstrategy description="2011 - HardHeaded" classPath="negotiator.boaframework.offeringstrategy.anac2011.HardHeaded_Offering"/>
+		<biddingstrategy description="2011 - Nice-Tit-For-Tat" classPath="negotiator.boaframework.offeringstrategy.anac2011.NiceTitForTat_Offering"/>
+		<biddingstrategy description="2011 - The Negotiator" classPath="negotiator.boaframework.offeringstrategy.anac2011.TheNegotiator_Offering"/>
+		<biddingstrategy description="2011 - IAMHaggler2011" classPath="negotiator.boaframework.offeringstrategy.anac2011.IAMhaggler2011_Offering"/>
+	</biddingstrategies>
+	<acceptanceconditions>
+		<acceptancecondition description="Other - False" classPath="negotiator.boaframework.acceptanceconditions.other.AC_False"/>
+		<acceptancecondition description="Other - Time" classPath="negotiator.boaframework.acceptanceconditions.other.AC_Time">
+			<parameter name="t" default="0.99" description="If time greater than t, then accept"/>
+		</acceptancecondition>
+		<acceptancecondition description="Other - Constant" classPath="negotiator.boaframework.acceptanceconditions.other.AC_Const">
+			<parameter name="c" default="0.9" description="If utility of opponent's bid greater than c, then accept"/>
+		</acceptancecondition>
+		<acceptancecondition description="Other - Next" classPath="negotiator.boaframework.acceptanceconditions.other.AC_Next">		
+			<parameter name="a" default="1.0" description="Accept when the opponent's utility * a + b is greater than the utility of our current bid"/>
+			<parameter name="b" default="0.0" description="Accept when the opponent's utility * a + b is greater than the utility of our current bid"/>
+		</acceptancecondition>
+		<acceptancecondition description="2011 - Agent K2" classPath="negotiator.boaframework.acceptanceconditions.anac2011.AC_AgentK2"/>
+		<acceptancecondition description="2011 - BRAMAgent" classPath="negotiator.boaframework.acceptanceconditions.anac2011.AC_BRAMAgent"/>
+		<acceptancecondition description="2011 - HardHeaded" classPath="negotiator.boaframework.acceptanceconditions.anac2011.AC_HardHeaded"/>
+		<acceptancecondition description="2011 - Nice-Tit-For-Tat" classPath="negotiator.boaframework.acceptanceconditions.anac2011.AC_NiceTitForTat"/>
+		<acceptancecondition description="2011 - The Negotiator" classPath="negotiator.boaframework.acceptanceconditions.anac2011.AC_TheNegotiator"/>
+		<acceptancecondition description="2011 - IAMHaggler2011" classPath="negotiator.boaframework.acceptanceconditions.anac2011.AC_IAMHaggler2011"/>
+	</acceptanceconditions>
+	<opponentmodels>
+		<opponentmodel description="No Model" classPath="negotiator.boaframework.opponentmodel.NoModel"/>
+		<opponentmodel description="HardHeaded Frequency Model" classPath="negotiator.boaframework.opponentmodel.HardHeadedFrequencyModel">
+			<parameter name="l" default="0.2" description="The learning coefficient determines how quickly the issue weights are learned"/>
+		</opponentmodel>
+		<opponentmodel description="Scalable Bayesian Model" classPath="negotiator.boaframework.opponentmodel.ScalableBayesianModel"/>
+		<opponentmodel description="IAMhaggler Bayesian Model" classPath="negotiator.boaframework.opponentmodel.IAMhagglerBayesianModel"/>
+		<opponentmodel description="Smith Frequency Model V2" classPath="negotiator.boaframework.opponentmodel.SmithFrequencyModelV2"/>
+		<opponentmodel description="Nash Frequency Model" classPath="negotiator.boaframework.opponentmodel.NashFrequencyModel"/>
+		<opponentmodel description="CUHKFrequencyModelV2" classPath="negotiator.boaframework.opponentmodel.CUHKFrequencyModelV2"/>
+	</opponentmodels>
+	<omstrategies>
+		<omstrategy description="Best bid" classPath="negotiator.boaframework.omstrategy.BestBid">
+			<parameter name="t" default="1.0" description="Time after which the OM should not be updated"/>	
+		</omstrategy>
+	</omstrategies>
+</repository>

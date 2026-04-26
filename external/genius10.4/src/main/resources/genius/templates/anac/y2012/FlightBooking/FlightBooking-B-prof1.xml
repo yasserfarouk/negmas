@@ -1,0 +1,26 @@
+<?xml version="1.0"?>
+<utility_space number_of_issues="3">
+	<objective index="0" etype="objective" type="objective" description="" name="FlightBooking">
+		<weight index="1" value="0.35"/>
+		<weight index="2" value="0.35"/>
+		<weight index="3" value="0.3"/>
+		<issue index="1" etype="discrete" type="discrete" name="price">
+			<item index="1" value="150000yen" evaluation="1" cost="0"/>
+			<item index="2" value="200000yen" evaluation="2" cost="0"/>
+			<item index="3" value="250000yen" evaluation="3" cost="0"/>
+			<item index="4" value="300000yen" evaluation="4" cost="0"/>
+		</issue>
+		<issue index="2" etype="discrete" type="discrete" name="DepartureAirPort">
+			<item index="1" value="CentrAir" evaluation="2" cost="0"/>
+			<item index="2" value="Narita" evaluation="3" cost="0"/>
+			<item index="3" value="Kansai" evaluation="1" cost="0"/>
+		</issue>
+		<issue index="3" etype="discrete" type="discrete" name="DepartureDate">
+			<item index="1" value="Sep2_2011" evaluation="1" cost="0"/>
+			<item index="2" value="Sep3_2011" evaluation="3" cost="0"/>
+			<item index="3" value="Sep4_2011" evaluation="2" cost="0"/>
+		</issue>
+	</objective>
+	<discount_factor value="1.0"/>
+	<reservation value="0.25" />
+</utility_space>

@@ -1,0 +1,22 @@
+<utility_space> 
+<objective index="0" description="" name="Domain1" type="objective" etype="objective"> 
+<issue index="1" name="a" vtype="discrete" type="discrete" etype="discrete"> 
+<item index="1" value="a1" evaluation="3"> 
+</item> 
+<item index="2" value="a2" evaluation="5"> 
+</item> 
+<item index="3" value="a3" evaluation="4"> 
+</item> 
+<item index="4" value="a4" evaluation="3"> 
+</item> 
+<item index="5" value="a5" evaluation="2"> 
+</item> 
+</issue> 
+<weight index="1" value="1.0"> 
+</weight> 
+</objective> 
+<discount_factor value="1.0"> 
+</discount_factor> 
+<reservation value="0.5"> 
+</reservation> 
+</utility_space> 

@@ -1,0 +1,2 @@
+This code comes from a sun example. It was part of a jar dependency but with maven that does not work so well
+so the code is now plugged in hard in the core.

@@ -1,0 +1,77 @@
+<utility_space>
+
+	<objective index="0" description="" name="Jobs" type="objective"
+		etype="objective">
+		<issue index="1" name="salary" vtype="discrete" type="discrete"
+			etype="discrete">
+			<item index="1" value="2000" evaluation="0.0">
+			</item>
+			<item index="2" value="2500" evaluation="0.25">
+			</item>
+			<item index="3" value="3000" evaluation="0.5">
+			</item>
+			<item index="4" value="3500" evaluation="0.75">
+			</item>
+			<item index="5" value="4000" evaluation="1.0">
+			</item>
+		</issue>
+		<issue index="2" name="fte" vtype="discrete" type="discrete"
+			etype="discrete">
+			<item index="1" value="0.6" evaluation="0.25">
+			</item>
+			<item index="2" value="0.8" evaluation="0.50">
+			</item>
+			<item index="3" value="1.0" evaluation="0.75">
+			</item>
+		</issue>
+		<issue index="3" name="work from home" vtype="discrete" type="discrete"
+			etype="discrete">
+			<item index="1" value="0" evaluation="0.33333333333333">
+			</item>
+			<item index="2" value="1" evaluation="0.5">
+			</item>
+			<item index="3" value="2" evaluation="0.66666666666666">
+			</item>
+		</issue>
+		<issue index="4" name="lease car" vtype="discrete" type="discrete"
+			etype="discrete">
+			<item index="1" value="yes" evaluation="1">
+			</item>
+			<item index="2" value="no" evaluation="0">
+			</item>
+		</issue>
+		<issue index="5" name="permanent contract" vtype="discrete"
+			type="discrete" etype="discrete">
+			<item index="1" value="yes" evaluation="1">
+			</item>
+			<item index="2" value="no" evaluation="0">
+			</item>
+		</issue>
+		<issue index="6" name="career development opportunities" vtype="discrete"
+			type="discrete" etype="discrete">
+			<item index="1" value="low" evaluation="0.0">
+			</item>
+			<item index="2" value="medium" evaluation="0.5">
+			</item>
+			<item index="3" value="high" evaluation="1.0">
+			</item>
+		</issue>
+
+		<weight index="1" value="0.24">
+		</weight>
+		<weight index="2" value="0.32">
+		</weight>
+		<weight index="3" value="0.18">
+		</weight>
+		<weight index="4" value="0.06">
+		</weight>
+		<weight index="5" value="0.16">
+		</weight>
+		<weight index="6" value="0.04">
+		</weight>
+	</objective>
+	<discount_factor value="1.0">
+	</discount_factor>
+	<reservation value="0.0">
+	</reservation>
+</utility_space> 

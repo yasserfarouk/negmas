@@ -1,0 +1,402 @@
+
+――――――――――――――――――――――――――――――――――――――――――――――――――――――――――――――――――――――――――――――――――――――――――――――――――――――――――――――――――― [doctest] negmas.helpers.inout.load_table ――――――――――――――――――――――――――――――――――――――――――――――――――――――――――――――――――――――――――――――――――――――――――――――――――――――――――――――――――――
+740 Examples:
+741     >>> import tempfile, os
+742     >>> # Round-trip test: save and load a CSV file
+743     >>> with tempfile.TemporaryDirectory() as tmpdir:
+UNEXPECTED EXCEPTION: FileNotFoundError('File not found: /var/folders/51/d42424vj0jn8ntjscwsld_x40000gn/T/tmpo5xmu5or/data.csv')
+Traceback (most recent call last):
+  File "<doctest negmas.helpers.inout.load_table[1]>", line 4, in <module>
+  File "/Users/yasser/code/projects/negmas/src/negmas/helpers/inout.py", line 755, in load_table
+    raise FileNotFoundError(f"File not found: {path}")
+FileNotFoundError: File not found: /var/folders/51/d42424vj0jn8ntjscwsld_x40000gn/T/tmpo5xmu5or/data.csv
+/Users/yasser/code/projects/negmas/src/negmas/helpers/inout.py:743: UnexpectedException
+
+ src/negmas/helpers/inout.py::[doctest] negmas.helpers.inout.load_table ⨯                                                                                                                                                                                            5% ▌
+
+―――――――――――――――――――――――――――――――――――――――――――――――――――――――――――――――――――――――――――――――――――――――――――――――――――――――――――――――――― TestMechanismSave.test_save_single_file_csv ―――――――――――――――――――――――――――――――――――――――――――――――――――――――――――――――――――――――――――――――――――――――――――――――――――――――――――――――――――
+
+self = <tests.core.test_common.TestMechanismSave object at 0x11b691e50>, tmp_path = PosixPath('/private/var/folders/51/d42424vj0jn8ntjscwsld_x40000gn/T/pytest-of-yasser/pytest-6/test_save_single_file_csv0')
+
+    def test_save_single_file_csv(self, tmp_path):
+        """Test saving to a single CSV file."""
+        m = SAOMechanism(outcomes=[(i,) for i in range(10)], n_steps=10)
+        m.add(RandomNegotiator(name="n1"))
+        m.add(RandomNegotiator(name="n2"))
+        m.run()
+
+        result = m.save(tmp_path, "test_single", single_file=True)
+
+        assert result.exists()
+>       assert result.suffix == ".csv"
+E       AssertionError: assert '.parquet' == '.csv'
+E
+E         - .csv
+E         + .parquet
+
+tests/core/test_common.py:106: AssertionError
+
+ tests/core/test_common.py::TestMechanismSave.test_save_single_file_csv ⨯                                                                                                                                                                                           10% █
+
+―――――――――――――――――――――――――――――――――――――――――――――――――――――――――――――――――――――――――――――――――――――――――――――――――――――――――――――――― TestMechanismSave.test_save_directory_structure ―――――――――――――――――――――――――――――――――――――――――――――――――――――――――――――――――――――――――――――――――――――――――――――――――――――――――――――――――
+
+self = <tests.core.test_common.TestMechanismSave object at 0x11b7b0c30>, tmp_path = PosixPath('/private/var/folders/51/d42424vj0jn8ntjscwsld_x40000gn/T/pytest-of-yasser/pytest-6/test_save_directory_structure0')
+
+    def test_save_directory_structure(self, tmp_path):
+        """Test saving creates proper directory structure."""
+        m = SAOMechanism(outcomes=[(i,) for i in range(10)], n_steps=10)
+        m.add(RandomNegotiator(name="n1"))
+        m.add(RandomNegotiator(name="n2"))
+        m.run()
+
+        result = m.save(tmp_path, "test_dir", single_file=False)
+
+        assert result.is_dir()
+>       assert (result / "trace.csv").exists()
+E       AssertionError: assert False
+E        +  where False = exists()
+E        +    where exists = (PosixPath('/private/var/folders/51/d42424vj0jn8ntjscwsld_x40000gn/T/pytest-of-yasser/pytest-6/test_save_directory_structure0/test_dir') / 'trace.csv').exists
+
+tests/core/test_common.py:131: AssertionError
+
+ tests/core/test_common.py::TestMechanismSave.test_save_directory_structure ⨯                                                                                                                                                                                       15% █▌
+
+――――――――――――――――――――――――――――――――――――――――――――――――――――――――――――――――――――――――――――――――――――――――――――――――――――――――――――――――― TestMechanismSave.test_save_full_trace_source ――――――――――――――――――――――――――――――――――――――――――――――――――――――――――――――――――――――――――――――――――――――――――――――――――――――――――――――――――
+
+self = <tests.core.test_common.TestMechanismSave object at 0x11b63b020>, tmp_path = PosixPath('/private/var/folders/51/d42424vj0jn8ntjscwsld_x40000gn/T/pytest-of-yasser/pytest-6/test_save_full_trace_source0')
+
+    def test_save_full_trace_source(self, tmp_path):
+        """Test saving with full_trace as source."""
+        m = SAOMechanism(outcomes=[(i,) for i in range(10)], n_steps=10)
+        m.add(RandomNegotiator(name="n1"))
+        m.add(RandomNegotiator(name="n2"))
+        m.run()
+
+        result = m.save(
+            tmp_path, "test_full_trace", single_file=True, source="full_trace"
+        )
+
+        assert result.exists()
+        # Read and check columns
+        with open(result) as f:
+>           header = f.readline().strip()
+                     ^^^^^^^^^^^^
+
+tests/core/test_common.py:195:
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _
+
+self = <encodings.utf_8.IncrementalDecoder object at 0x11dd16ed0>
+input = b'PAR1\x15\x04\x15 \x15$L\x15\x04\x15\x00\x12\x00\x00\x10<\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x0b\xeb\xe2 ?\x15\x00\x15\x12\x15\x16,\x15\x06\x15\x10\x15\x06\x15\x06\x1c\x18\x08\x00\x00\x00\x0b\xeb\xe2 ?\x18\x08\x00\x00\x00\x00\x00\x00\x00\x80\x16\x00(\x08\x00\x00\x00\x0b\xeb\xe2 ?\x18\x08\x00\x00\x00\x00\x00\x00\x00\x80\x11\x11\x00\x00\x00\t \x02\x00\x00\x00\x06\x01\x01\x03\x04\x15\x04\x15 \x15$L\x15\x04\x15\x00\x12\x00\x00\x10<F\x17]t\xd1E\xb7?F\x17]t\xd1E\xc7?\x15\x00\x15\x12\x15\x16,\x15\x06\x15\x10\x15\x06\x15\x06\x1c\x18\x08F\x17]t\xd1E\xc7?\x18\x08F\x17]t\xd1E\xb7?\x16\x00(\x08F\x17]t\xd1E\xc7?\x18\x08F\x17]t\xd1E\xb7?\x11\x11\x00\x00\x00\t \x02\x00\x00\x00\x06\x01\x01\x03\x04\x15\x04\x15 \x15$L\x15\x04\x15\x00\x12\x00\x00\x10<\x00\x00\x00\x00\x00\x00\x00\x00\x01\x00\x00\x00\x00\x00\x00\x00\x15\x00\x15\x12\x15\x16,\x15\x06\x15\x10\x15\x06\x15\x06\x1c\x18\x08\x01\x00\x00\x00\x00\x00\x00\x00\x18\x08\x00\x00\x00\x00\x00\x00\x00\x00\x16\x00(\x08\x01\x00\x00\x00\x00\x00\x00\x00\x18\x08\x00\x00\x00\x00\x00\x00\x00\x00\x11\x11\x00\x00\x00\t \x02\x00\x00\x00\x06\x01\x01\x03\x04\x15\x04\x15\xac\x01\x15\xac\x01L\x15\x04\x15\x00\x12\x00\x00V\xa8\'\x00\x00\x00n1-d76e1c83-b3d9-42bd-9e5f-a0f1dde9f10a\x05+\x942-dde87374-87d9-4ed6-97aa-78f3df74c109\x15\x00\x15\x12\x15\x16,\x15\x06\x15\x10\x15\x06\x15\x06\x1c6\x00(\'n2-dde87374-87d9-4ed6-97aa-78f3df74c109\x18\'n1-d76e1c83-b3d9-42bd-9e5f-a0f1dde9f10a\x11\x11\x00\x00\x00\t \x02\x00\x00\x00\x06\x01\x01\x03\x02\x15\x04\x15 \x15$L\x15\x04\x15\x00\x12\x00\x00\x10<\x04\x00\x00\x00(7,)\x04\x00\x00\x00(3,)\x15\x00\x15\x12\x15\x16,\x15\x06\x15\x10\x15\x06\x15\x06\x1c6\x02(\x04(7,)\x18\x04(3,)\x11\x11\x00\x00\x00\t \x02\x00\x00\x00\x03\x03\x01\x03\x02\x15\x04\x15\x0c\x15\x10L\x15\x02\x15\x00\x12\x00\x00\x06\x14\x02\x00\x00\x00{}\x15\x00\x15\x12\x15\x16,\x15\x06\x15\x10\x15\x06\x15\x06\x1c6\x00(\x02{}\x18\x02{}\x11\x11\x00\x00\x00\t \x02\x00\x00\x00\x06\x01\x01\x06\x00\x15\x04\x150\x154L\x15\x04\x15\x00\x12\x00\x00\x18\\\n\x00\x00\x00continuing\x06\x00\x00\x00broken\x15\x00\x15\x12\x15\x16,\x15\x06\x15\x10\x15\x06\x15\x06\x1c6\x00(\ncontinuing\x18\x06broken\x11\x11\x00\x00\x00\t \x02\x00\x00\x00\x06\x01\x01\x03\x04\x15\x04\x15\x00\x15\x02L\x15\x00\x15\x00\x12\x00\x00\x00\x15\x00\x15\x0e\x15\x12,\x15\x06\x15\x10\x15\x06\x15\x06\x1c\x00\x00\x00\x07\x18\x02\x00\x00\x00\x06\x00\x00\x15\x04\x15\x00\x15\x02L\x15\x00\x15\x00\x12\x00\x00\x00\x15\x00\x15\x0e\x15\x12,\x15\x06\x15\x10\x15\x06\x15\x06\x1c\x00\x00\x00\x07\x18\x02\x00\x00\x00\x06\x00\x00\x15\x04\x19\xac5\x00\x18\x06schema\x15\x12\x00\x15\n%\x02\x18\x04time\x00\x15\n%\x02\x18\rrelative_time\x00\x15\x04%\x02\x18\x04step\x00\x15\x0c%\x02\x18\nnegotiator%\x00L\x1c\x00\x00\x00\x15\x0c%\x02\x18\x05offer%\x00L\x1c\x00\x00\x00\x15\x0c%\x02\x18\tresponses%\x00L\x1c\x00\x00\x00\x15\x0c%\x02\x18\x05state%\x00L\x1c\x00\x00\x00\x15\x02%\x02\x18\x04textl\xbc\x00\x00\x00\x15\x02%\x02\x18\x04datal\xbc\x00\x00\x00\x16\x06\x19\x1c\x19\x9c&\x00\x1c\x15\n\x195\x00\x06\x10\x19\x18\x04time\x15\x02\x16\x06\x16\xcc\x01\x16\xd4\x01&H&\x08\x1c\x18\x08\x00\x00\x00\x0b\xeb\xe2 ?\x18\x08\x00\x00\x00\x00\x00\x00\x00\x80\x16\x00(\x08\x00\x00\x00\x0b\xeb\xe2 ?\x18\x08\x00\x00\x00\x00\x00\x00\x00\x80\x11\x11\x00\x19,\x15\x04\x15\x00\x15\x02\x00\x15\x00\x15\x10\x15\x02\x00<)\x06\x19&\x00\x06\x00\x00\x00&\x00\x1c\x15\n\x195\x00\x06\x10\x19\x18\rrelative_time\x15\x02\x16\x06\x16\xcc\x01\x16\xd4\x01&\x9c\x02&\xdc\x01\x1c\x18\x08F\x17]t\xd1E\xc7?\x18\x08F\x17]t\xd1E\xb7?\x16\x00(\x08F\x17]t\xd1E\xc7?\x18\x08F\x17]t\xd1E\xb7?\x11\x11\x00\x19,\x15\x04\x15\x00\x15\x02\x00\x15\x00\x15\x10\x15\x02\x00<)\x06\x19&\x00\x06\x00\x00\x00&\x00\x1c\x15\x04\x195\x00\x06\x10\x19\x18\x04step\x15\x02\x16\x06\x16\xcc\x01\x16\xd4\x01&\xf0\x03&\xb0\x03\x1c\x18\x08\x01\x00\x00\x00\x00\x00\x00\x00\x18\x08\x00\x00\x00\x00\x00\x00\x00\x00\x16\x00(\x08\x01\x00\x00\x00\x00\x00\x00\x00\x18\x08\x00\x00\x00\x00\x00\x00\x00\x00\x11\x11\x00\x19,\x15\x04\x15\x00\x15\x02\x00\x15\x00\x15\x10\x15\x02\x00<)\x06\x19&\x00\x06\x00\x00\x00&\x00\x1c\x15\x0c\x195\x00\x06\x10\x19\x18\nnegotiator\x15\x02\x16\x06\x16\xb0\x03\x16\xb4\x03&\xd0\x06&\x84\x05\x1c6\x00(\'n2-dde87374-87d9-4ed6-97aa-78f3df74c109\x18\'n1-d76e1c83-b3d9-42bd-9e5f-a0f1dde9f10a\x11\x11\x00\x19,\x15\x04\x15\x00\x15\x02\x00\x15\x00\x15\x10\x15\x02\x00<\x16\xea\x01\x19\x06\x19&\x00\x06\x00\x00\x00&\x00\x1c\x15\x0c\x195\x00\x06\x10\x19\x18\x05offer\x15\x02\x16\x06\x16\x94\x01\x16\x9c\x01&\xf8\x08&\xb8\x08\x1c6\x02(\x04(7,)\x18\x04(3,)\x11\x11\x00\x19,\x15\x04\x15\x00\x15\x02\x00\x15\x00\x15\x10\x15\x02\x00<\x16\x10\x19\x06\x19&\x02\x04\x00\x00\x00&\x00\x1c\x15\x0c\x195\x00\x06\x10\x19\x18\tresponses\x15\x02\x16\x06\x16x\x16\x80\x01&\x80\n&\xd4\t\x1c6\x00(\x02{}\x18\x02{}\x11\x11\x00\x19,\x15\x04\x15\x00\x15\x02\x00\x15\x00\x15\x10\x15\x02\x00<\x16\x0c\x19\x06\x19&\x00\x06\x00\x00\x00&\x00\x1c\x15\x0c\x195\x00\x06\x10\x19\x18\x05state\x15\x02\x16\x06\x16\xb4\x01\x16\xbc\x01&\xa4\x0b&\xd4\n\x1c6\x00(\ncontinuing\x18\x06broken\x11\x11\x00\x19,\x15\x04\x15\x00\x15\x02\x00\x15\x00\x15\x10\x15\x02\x00<\x164\x19\x06\x19&\x00\x06\x00\x00\x00&\x00\x1c\x15\x02\x195\x00\x06\x10\x19\x18\x04text\x15\x02\x16\x06\x16P\x16V&\xae\x0c&\x90\x0c),\x15\x04\x15\x00\x15\x02\x00\x15\x00\x15\x10\x15\x02\x00<)\x06\x19&\x06\x00\x00\x00\x00&\x00\x1c\x15\x02\x195\x00\x06\x10\x19\x18\x04data\x15\x02\x16\x06\x16P\x16V&\x84\r&\xe6\x0c),\x15\x04\x15\x00\x15\x02\x00\x15\x00\x15\x10\x15\x02\x00<)\x06\x19&\x06\x00\x00\x00\x00\x16\xf4\x0c\x16\x06&\x08\x16\xb4\r\x00\x19,\x18\x06pandas\x18\x90\t{"index_columns": [], "column_indexes": [], "columns": [{"name": "time", "field_name": "time", "pandas_type": "float64", "numpy_type": "float64", "metadata": null}, {"name": "relative_time", "field_name": "relative_time", "pandas_type": "float64", "numpy_type": "float64", "metadata": null}, {"name": "step", "field_name": "step", "pandas_type": "int64", "numpy_type": "int64", "metadata": null}, {"name": "negotiator", "field_name": "negotiator", "pandas_type": "unicode", "numpy_type": "object", "metadata": null}, {"name": "offer", "field_name": "offer", "pandas_type": "unicode", "numpy_type": "object", "metadata": null}, {"name": "responses", "field_name": "responses", "pandas_type": "unicode", "numpy_type": "object", "metadata": null}, {"name": "state", "field_name": "state", "pandas_type": "unicode", "numpy_type": "object", "metadata": null}, {"name": "text", "field_name": "text", "pandas_type": "empty", "numpy_type": "object", "metadata": null}, {"name": "data", "field_name": "data", "pandas_type": "empty", "numpy_type": "object", "metadata": null}], "attributes": {}, "creator": {"library": "pyarrow", "version": "22.0.0"}, "pandas_version": "2.3.3"}\x00\x18\x0cARROW:schema\x18\x98\x12/////8gGAAAQAAAAAAAKAA4ABgAFAAgACgAAAAABBAAQAAAAAAAKAAwAAAAEAAgACgAAAMgEAAAEAAAAAQAAAAwAAAAIAAwABAAIAAgAAACgBAAABAAAAJAEAAB7ImluZGV4X2NvbHVtbnMiOiBbXSwgImNvbHVtbl9pbmRleGVzIjogW10sICJjb2x1bW5zIjogW3sibmFtZSI6ICJ0aW1lIiwgImZpZWxkX25hbWUiOiAidGltZSIsICJwYW5kYXNfdHlwZSI6ICJmbG9hdDY0IiwgIm51bXB5X3R5cGUiOiAiZmxvYXQ2NCIsICJtZXRhZGF0YSI6IG51bGx9LCB7Im5hbWUiOiAicmVsYXRpdmVfdGltZSIsICJmaWVsZF9uYW1lIjogInJlbGF0aXZlX3RpbWUiLCAicGFuZGFzX3R5cGUiOiAiZmxvYXQ2NCIsICJudW1weV90eXBlIjogImZsb2F0NjQiLCAibWV0YWRhdGEiOiBudWxsfSwgeyJuYW1lIjogInN0ZXAiLCAiZmllbGRfbmFtZSI6ICJzdGVwIiwgInBhbmRhc190eXBlIjogImludDY0IiwgIm51bXB5X3R5cGUiOiAiaW50NjQiLCAibWV0YWRhdGEiOiBudWxsfSwgeyJuYW1lIjogIm5lZ290aWF0b3IiLCAiZmllbGRfbmFtZSI6ICJuZWdvdGlhdG9yIiwgInBhbmRhc190eXBlIjogInVuaWNvZGUiLCAibnVtcHlfdHlwZSI6ICJvYmplY3QiLCAibWV0YWRhdGEiOiBudWxsfSwgeyJuYW1lIjogIm9mZmVyIiwgImZpZWxkX25hbWUiOiAib2ZmZXIiLCAicGFuZGFzX3R5cGUiOiAidW5pY29kZSIsICJudW1weV90eXBlIjogIm9iamVjdCIsICJtZXRhZGF0YSI6IG51bGx9LCB7Im5hbWUiOiAicmVzcG9uc2VzIiwgImZpZWxkX25hbWUiOiAicmVzcG9uc2VzIiwgInBhbmRhc190eXBlIjogInVuaWNvZGUiLCAibnVtcHlfdHlwZSI6ICJvYmplY3QiLCAibWV0YWRhdGEiOiBudWxsfSwgeyJuYW1lIjogInN0YXRlIiwgImZpZWxkX25hbWUiOiAic3RhdGUiLCAicGFuZGFzX3R5cGUiOiAidW5pY29kZSIsICJudW1weV90eXBlIjogIm9iamVjdCIsICJtZXRhZGF0YSI6IG51bGx9LCB7Im5hbWUiOiAidGV4dCIsICJmaWVsZF9uYW1lIjogInRleHQiLCAicGFuZGFzX3R5cGUiOiAiZW1wdHkiLCAibnVtcHlfdHlwZSI6ICJvYmplY3QiLCAibWV0YWRhdGEiOiBudWxsfSwgeyJuYW1lIjogImRhdGEiLCAiZmllbGRfbmFtZSI6ICJkYXRhIiwgInBhbmRhc190eXBlIjogImVtcHR5IiwgIm51bXB5X3R5cGUiOiAib2JqZWN0IiwgIm1ldGFkYXRhIjogbnVsbH1dLCAiYXR0cmlidXRlcyI6IHt9LCAiY3JlYXRvciI6IHsibGlicmFyeSI6ICJweWFycm93IiwgInZlcnNpb24iOiAiMjIuMC4wIn0sICJwYW5kYXNfdmVyc2lvbiI6ICIyLjMuMyJ9AAAAAAYAAABwYW5kYXMAAAkAAACcAQAAVAEAABgBAADkAAAAuAAAAIgAAABcAAAAMAAAAAQAAACY/v//AAABARAAAAAYAAAABAAAAAAAAAAEAAAAZGF0YQAAAAAw////wP7//wAAAQEQAAAAGAAAAAQAAAAAAAAABAAAAHRleHQAAAAAWP///+j+//8AAAEFEAAAABgAAAAEAAAAAAAAAAUAAABzdGF0ZQAAAID///8Q////AAABBRAAAAAcAAAABAAAAAAAAAAJAAAAcmVzcG9uc2VzAAAArP///zz///8AAAEFEAAAABgAAAAEAAAAAAAAAAUAAABvZmZlcgAAANT///9k////AAABBRAAAAAgAAAABAAAAAAAAAAKAAAAbmVnb3RpYXRvcgAABAAEAAQAAACU////AAABAhAAAAAgAAAABAAAAAAAAAAEAAAAc3RlcAAAAAAIAAwACAAHAAgAAAAAAAABQAAAAMz///8AAAEDEAAAACAAAAAEAAAAAAAAAA0AAAByZWxhdGl2ZV90aW1lAAAAxv///wAAAgAQABQACAAGAAcADAAAABAAEAAAAAAAAQMQAAAAHAAAAAQAAAAAAAAABAAAAHRpbWUAAAYACAAGAAYAAAAAAAIAAAAAAA==\x00\x18 parquet-cpp-arrow version 22.0.0\x19\x9c\x1c\x00\x00\x1c\x00\x00\x1c\x00\x00\x1c\x00\x00\x1c\x00\x00\x1c\x00\x00\x1c\x00\x00\x1c\x00\x00\x1c\x00\x00\x00\n\x12\x00\x00PAR1'
+final = False
+
+>   ???
+E   UnicodeDecodeError: 'utf-8' codec can't decode byte 0xeb in position 32: invalid continuation byte
+
+<frozen codecs>:325: UnicodeDecodeError
+
+ tests/core/test_common.py::TestMechanismSave.test_save_full_trace_source ⨯                                                                                                                                                                                         20% ██
+
+―――――――――――――――――――――――――――――――――――――――――――――――――――――――――――――――――――――――――――――――――――――――――――――――――――――――――――――――――― TestMechanismSave.test_save_overwrite_false ―――――――――――――――――――――――――――――――――――――――――――――――――――――――――――――――――――――――――――――――――――――――――――――――――――――――――――――――――――
+
+self = <tests.core.test_common.TestMechanismSave object at 0x11b8c46e0>, tmp_path = PosixPath('/private/var/folders/51/d42424vj0jn8ntjscwsld_x40000gn/T/pytest-of-yasser/pytest-6/test_save_overwrite_false0')
+
+    def test_save_overwrite_false(self, tmp_path):
+        """Test that overwrite=False doesn't overwrite existing files."""
+        m = SAOMechanism(outcomes=[(i,) for i in range(10)], n_steps=10)
+        m.add(RandomNegotiator(name="n1"))
+        m.add(RandomNegotiator(name="n2"))
+        m.run()
+
+        # First save
+        m.save(tmp_path, "test_no_overwrite", single_file=True)
+>       first_size = (tmp_path / "test_no_overwrite.csv").stat().st_size
+                     ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+
+tests/core/test_common.py:259:
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _
+
+self = PosixPath('/private/var/folders/51/d42424vj0jn8ntjscwsld_x40000gn/T/pytest-of-yasser/pytest-6/test_save_overwrite_false0/test_no_overwrite.csv')
+
+    def stat(self, *, follow_symlinks=True):
+        """
+        Return the result of the stat() system call on this path, like
+        os.stat() does.
+        """
+>       return os.stat(self, follow_symlinks=follow_symlinks)
+               ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+E       FileNotFoundError: [Errno 2] No such file or directory: '/private/var/folders/51/d42424vj0jn8ntjscwsld_x40000gn/T/pytest-of-yasser/pytest-6/test_save_overwrite_false0/test_no_overwrite.csv'
+
+../../../.local/share/uv/python/cpython-3.14.0-macos-aarch64-none/lib/python3.14/pathlib/__init__.py:659: FileNotFoundError
+
+ tests/core/test_common.py::TestMechanismSave.test_save_overwrite_false ⨯                                                                                                                                                                                           25% ██▌
+
+―――――――――――――――――――――――――――――――――――――――――――――――――――――――――――――――――――――――――――――――――――――――――――――――――――――――――――――――― TestMechanismSave.test_save_returns_correct_path ――――――――――――――――――――――――――――――――――――――――――――――――――――――――――――――――――――――――――――――――――――――――――――――――――――――――――――――――
+
+self = <tests.core.test_common.TestMechanismSave object at 0x11b8c47d0>, tmp_path = PosixPath('/private/var/folders/51/d42424vj0jn8ntjscwsld_x40000gn/T/pytest-of-yasser/pytest-6/test_save_returns_correct_path0')
+
+    def test_save_returns_correct_path(self, tmp_path):
+        """Test that save returns the correct path."""
+        m = SAOMechanism(outcomes=[(i,) for i in range(10)], n_steps=10)
+        m.add(RandomNegotiator(name="n1"))
+        m.add(RandomNegotiator(name="n2"))
+        m.run()
+
+        # Single file
+        result = m.save(tmp_path, "test_path", single_file=True)
+>       assert result == tmp_path / "test_path.csv"
+E       AssertionError: assert PosixPath('/private/var/folders/51/d42424vj0jn8ntjscwsld_x40000gn/T/pytest-of-yasser/pytest-6/test_save_returns_correct_path0/test_path.parquet') == (PosixPath('/private/var/folders/51/d42424vj0jn8ntjscwsld_x40000gn/T/pytest-of-yasser/pytest-6/test_save_returns_correct_path0') / 'test_path.csv')
+
+tests/core/test_common.py:282: AssertionError
+
+ tests/core/test_common.py::TestMechanismSave.test_save_returns_correct_path ⨯                                                                                                                                                                                      30% ███
+ tests/core/test_common.py::TestCompletedRun.test_completed_run_save_single_file ✓                                                                                                                                                                                  35% ███▌
+ tests/core/test_common.py::TestCompletedRun.test_completed_run_save_directory ✓                                                                                                                                                                                    40% ████
+
+――――――――――――――――――――――――――――――――――――――――――――――――――――――――――――――――――――――――――――――――――――――――――――――――――――――――― TestPerNegotiatorSaving.test_save_per_negotiator_file_content ――――――――――――――――――――――――――――――――――――――――――――――――――――――――――――――――――――――――――――――――――――――――――――――――――――――――――
+
+self = <tests.core.test_common.TestPerNegotiatorSaving object at 0x11b7b16e0>, tmp_path = PosixPath('/private/var/folders/51/d42424vj0jn8ntjscwsld_x40000gn/T/pytest-of-yasser/pytest-6/test_save_per_negotiator_file_0')
+
+    def test_save_per_negotiator_file_content(self, tmp_path):
+        """Test that per-negotiator files have correct columns."""
+        import pandas as pd
+
+        m = SAOMechanism(outcomes=[(i,) for i in range(10)], n_steps=10)
+        m.add(RandomNegotiator(name="buyer"))
+        m.add(RandomNegotiator(name="seller"))
+        m.run()
+
+        result = m.save(
+            tmp_path, "test_content", per_negotiator=True, source="full_trace"
+        )
+
+        neg_dir = result / "negotiator_behavior"
+        files = list(neg_dir.iterdir())
+
+        for f in files:
+>           df = pd.read_csv(f)
+                 ^^^^^^^^^^^^^^
+
+tests/core/test_common.py:752:
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _
+.venv/lib/python3.14/site-packages/pandas/io/parsers/readers.py:1026: in read_csv
+    return _read(filepath_or_buffer, kwds)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+.venv/lib/python3.14/site-packages/pandas/io/parsers/readers.py:620: in _read
+    parser = TextFileReader(filepath_or_buffer, **kwds)
+             ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+.venv/lib/python3.14/site-packages/pandas/io/parsers/readers.py:1620: in __init__
+    self._engine = self._make_engine(f, self.engine)
+                   ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+.venv/lib/python3.14/site-packages/pandas/io/parsers/readers.py:1898: in _make_engine
+    return mapping[engine](f, **self.options)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+.venv/lib/python3.14/site-packages/pandas/io/parsers/c_parser_wrapper.py:93: in __init__
+    self._reader = parsers.TextReader(src, **kwds)
+                   ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+pandas/_libs/parsers.pyx:574: in pandas._libs.parsers.TextReader.__cinit__
+    ???
+pandas/_libs/parsers.pyx:663: in pandas._libs.parsers.TextReader._get_header
+    ???
+pandas/_libs/parsers.pyx:874: in pandas._libs.parsers.TextReader._tokenize_rows
+    ???
+pandas/_libs/parsers.pyx:891: in pandas._libs.parsers.TextReader._check_tokenize_status
+    ???
+pandas/_libs/parsers.pyx:2053: in pandas._libs.parsers.raise_parser_error
+    ???
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _
+
+self = <encodings.utf_8.IncrementalDecoder object at 0x11dd6a930>
+input = b'PAR1\x15\x04\x15\x10\x15\x14L\x15\x02\x15\x00\x12\x00\x00\x08\x1c\x00\x00\x00\x00\x00\x00\x00\x00\x15\x00\x15\x12\x15\x16,\x15\x02\x15\x10\x15\x06\x15\x06\x1c\x18\x08\x00\x00\x00\x00\x00\x00\x00\x00\x18\x08\x00\x00\x00\x00\x00\x00\x00\x80\x16\x00(\x08\x00\x00\x00\x00\x00\x00\x00\x00\x18\x08\x00\x00\x00\x00\x00\x00\x00\x80\x11\x11\x00\x00\x00\t \x02\x00\x00\x00\x02\x01\x01\x02\x00\x15\x04\x15\x10\x15\x14L\x15\x02\x15\x00\x12\x00\x00\x08\x1cF\x17]t\xd1E\xb7?\x15\x00\x15\x12\x15\x16,\x15\x02\x15\x10\x15\x06\x15\x06\x1c\x18\x08F\x17]t\xd1E\xb7?\x18\x08F\x17]t\xd1E\xb7?\x16\x00(\x08F\x17]t\xd1E\xb7?\x18\x08F\x17]t\xd1E\xb7?\x11\x11\x00\x00\x00\t \x02\x00\x00\x00\x02\x01\x01\x02\x00\x15\x04\x15\x10\x15\x14L\x15\x02\x15\x00\x12\x00\x00\x08\x1c\x00\x00\x00\x00\x00\x00\x00\x00\x15\x00\x15\x12\x15\x16,\x15\x02\x15\x10\x15\x06\x15\x06\x1c\x18\x08\x00\x00\x00\x00\x00\x00\x00\x00\x18\x08\x00\x00\x00\x00\x00\x00\x00\x00\x16\x00(\x08\x00\x00\x00\x00\x00\x00\x00\x00\x18\x08\x00\x00\x00\x00\x00\x00\x00\x00\x11\x11\x00\x00\x00\t \x02\x00\x00\x00\x02\x01\x01\x02\x00\x15\x04\x15\x10\x15\x14L\x15\x02\x15\x00\x12\x00\x00\x08\x1c\x04\x00\x00\x00(5,)\x15\x00\x15\x12\x15\x16,\x15\x02\x15\x10\x15\x06\x15\x06\x1c6\x00(\x04(5,)\x18\x04(5,)\x11\x11\x00\x00\x00\t \x02\x00\x00\x00\x02\x01\x01\x02\x00\x15\x04\x15\x1c\x15 L\x15\x02\x15\x00\x12\x00\x00\x0e4\n\x00\x00\x00continuing\x15\x00\x15\x12\x15\x16,\x15\x02\x15\x10\x15\x06\x15\x06\x1c6\x00(\ncontinuing\x18\ncontinuing\x11\x11\x00\x00\x00\t \x02\x00\x00\x00\x02\x01\x01\x02\x00\x15\x04\x15\x00\x15\x02L\x15\x00\x15\x00\x12\x00\x00\x00\x15\x00\x15\x0e\x15\x12,\x15\x02\x15\x10\x15\x06\x15\x06\x1c\x00\x00\x00\x07\x18\x02\x00\x00\x00\x02\x00\x00\x15\x04\x15\x00\x15\x02L\x15\x00\x15\x00\x12\x00\x00\x00\x15\x00\x15\x0e\x15\x12,\x15\x02\x15\x10\x15\x06\x15\x06\x1c\x00\x00\x00\x07\x18\x02\x00\x00\x00\x02\x00\x00\x15\x04\x19\x8c5\x00\x18\x06schema\x15\x0e\x00\x15\n%\x02\x18\x04time\x00\x15\n%\x02\x18\rrelative_time\x00\x15\x04%\x02\x18\x04step\x00\x15\x0c%\x02\x18\x05offer%\x00L\x1c\x00\x00\x00\x15\x0c%\x02\x18\x08response%\x00L\x1c\x00\x00\x00\x15\x02%\x02\x18\x04textl\xbc\x00\x00\x00\x15\x02%\x02\x18\x04datal\xbc\x00\x00\x00\x16\x02\x19\x1c\x19|&\x00\x1c\x15\n\x195\x00\x06\x10\x19\x18\x04time\x15\x02\x16\x02\x16\xbc\x01\x16\xc4\x01&8&\x08\x1c\x18\x08\x00\x00\x00\x00\x00\x00\x00\x00\x18\x08\x00\x00\x00\x00\x00\x00\x00\x80\x16\x00(\x08\x00\x00\x00\x00\x00\x00\x00\x00\x18\x08\x00\x00\x00\x00\x00\x00\x00\x80\x11\x11\x00\x19,\x15\x04\x15\x00\x15\x02\x00\x15\x00\x15\x10\x15\x02\x00<)\x06\x19&\x00\x02\x00\x00\x00&\x00\x1c\x15\n\x195\x00\x06\x10\x19\x18\rrelative_time\x15\x02\x16\x02\x16\xbc\x01\x16\xc4\x01&\xfc\x01&\xcc\x01\x1c\x18\x08F\x17]t\xd1E\xb7?\x18\x08F\x17]t\xd1E\xb7?\x16\x00(\x08F\x17]t\xd1E\xb7?\x18\x08F\x17]t\xd1E\xb7?\x11\x11\x00\x19,\x15\x04\x15\x00\x15\x02\x00\x15\x00\x15\x10\x15\x02\x00<)\x06\x19&\x00\x02\x00\x00\x00&\x00\x1c\x15\x04\x195\x00\x06\x10\x19\x18\x04step\x15\x02\x16\x02\x16\xbc\x01\x16\xc4\x01&\xc0\x03&\x90\x03\x1c\x18\x08\x00\x00\x00\x00\x00\x00\x00\x00\x18\x08\x00\x00\x00\x00\x00\x00\x00\x00\x16\x00(\x08\x00\x00\x00\x00\x00\x00\x00\x00\x18\x08\x00\x00\x00\x00\x00\x00\x00\x00\x11\x11\x00\x19,\x15\x04\x15\x00\x15\x02\x00\x15\x00\x15\x10\x15\x02\x00<)\x06\x19&\x00\x02\x00\x00\x00&\x00\x1c\x15\x0c\x195\x00\x06\x10\x19\x18\x05offer\x15\x02\x16\x02\x16\x84\x01\x16\x8c\x01&\x84\x05&\xd4\x04\x1c6\x00(\x04(5,)\x18\x04(5,)\x11\x11\x00\x19,\x15\x04\x15\x00\x15\x02\x00\x15\x00\x15\x10\x15\x02\x00<\x16\x08\x19\x06\x19&\x00\x02\x00\x00\x00&\x00\x1c\x15\x0c\x195\x00\x06\x10\x19\x18\x08response\x15\x02\x16\x02\x16\xa8\x01\x16\xb0\x01&\x9c\x06&\xe0\x05\x1c6\x00(\ncontinuing\x18\ncontinuing\x11\x11\x00\x19,\x15\x04\x15\x00\x15\x02\x00\x15\x00\x15\x10\x15\x02\x00<\x16\x14\x19\x06\x19&\x00\x02\x00\x00\x00&\x00\x1c\x15\x02\x195\x00\x06\x10\x19\x18\x04text\x15\x02\x16\x02\x16P\x16V&\xae\x07&\x90\x07),\x15\x04\x15\x00\x15\x02\x00\x15\x00\x15\x10\x15\x02\x00<)\x06\x19&\x02\x00\x00\x00\x00&\x00\x1c\x15\x02\x195\x00\x06\x10\x19\x18\x04data\x15\x02\x16\x02\x16P\x16V&\x84\x08&\xe6\x07),\x15\x04\x15\x00\x15\x02\x00\x15\x00\x15\x10\x15\x02\x00<)\x06\x19&\x02\x00\x00\x00\x00\x16\x80\x08\x16\x02&\x08\x16\xb4\x08\x00\x19,\x18\x06pandas\x18\xa8\x07{"index_columns": [], "column_indexes": [], "columns": [{"name": "time", "field_name": "time", "pandas_type": "float64", "numpy_type": "float64", "metadata": null}, {"name": "relative_time", "field_name": "relative_time", "pandas_type": "float64", "numpy_type": "float64", "metadata": null}, {"name": "step", "field_name": "step", "pandas_type": "int64", "numpy_type": "int64", "metadata": null}, {"name": "offer", "field_name": "offer", "pandas_type": "unicode", "numpy_type": "object", "metadata": null}, {"name": "response", "field_name": "response", "pandas_type": "unicode", "numpy_type": "object", "metadata": null}, {"name": "text", "field_name": "text", "pandas_type": "empty", "numpy_type": "object", "metadata": null}, {"name": "data", "field_name": "data", "pandas_type": "empty", "numpy_type": "object", "metadata": null}], "attributes": {}, "creator": {"library": "pyarrow", "version": "22.0.0"}, "pandas_version": "2.3.3"}\x00\x18\x0cARROW:schema\x18\xe0\x0e/////4AFAAAQAAAAAAAKAA4ABgAFAAgACgAAAAABBAAQAAAAAAAKAAwAAAAEAAgACgAAAOADAAAEAAAAAQAAAAwAAAAIAAwABAAIAAgAAAC4AwAABAAAAKgDAAB7ImluZGV4X2NvbHVtbnMiOiBbXSwgImNvbHVtbl9pbmRleGVzIjogW10sICJjb2x1bW5zIjogW3sibmFtZSI6ICJ0aW1lIiwgImZpZWxkX25hbWUiOiAidGltZSIsICJwYW5kYXNfdHlwZSI6ICJmbG9hdDY0IiwgIm51bXB5X3R5cGUiOiAiZmxvYXQ2NCIsICJtZXRhZGF0YSI6IG51bGx9LCB7Im5hbWUiOiAicmVsYXRpdmVfdGltZSIsICJmaWVsZF9uYW1lIjogInJlbGF0aXZlX3RpbWUiLCAicGFuZGFzX3R5cGUiOiAiZmxvYXQ2NCIsICJudW1weV90eXBlIjogImZsb2F0NjQiLCAibWV0YWRhdGEiOiBudWxsfSwgeyJuYW1lIjogInN0ZXAiLCAiZmllbGRfbmFtZSI6ICJzdGVwIiwgInBhbmRhc190eXBlIjogImludDY0IiwgIm51bXB5X3R5cGUiOiAiaW50NjQiLCAibWV0YWRhdGEiOiBudWxsfSwgeyJuYW1lIjogIm9mZmVyIiwgImZpZWxkX25hbWUiOiAib2ZmZXIiLCAicGFuZGFzX3R5cGUiOiAidW5pY29kZSIsICJudW1weV90eXBlIjogIm9iamVjdCIsICJtZXRhZGF0YSI6IG51bGx9LCB7Im5hbWUiOiAicmVzcG9uc2UiLCAiZmllbGRfbmFtZSI6ICJyZXNwb25zZSIsICJwYW5kYXNfdHlwZSI6ICJ1bmljb2RlIiwgIm51bXB5X3R5cGUiOiAib2JqZWN0IiwgIm1ldGFkYXRhIjogbnVsbH0sIHsibmFtZSI6ICJ0ZXh0IiwgImZpZWxkX25hbWUiOiAidGV4dCIsICJwYW5kYXNfdHlwZSI6ICJlbXB0eSIsICJudW1weV90eXBlIjogIm9iamVjdCIsICJtZXRhZGF0YSI6IG51bGx9LCB7Im5hbWUiOiAiZGF0YSIsICJmaWVsZF9uYW1lIjogImRhdGEiLCAicGFuZGFzX3R5cGUiOiAiZW1wdHkiLCAibnVtcHlfdHlwZSI6ICJvYmplY3QiLCAibWV0YWRhdGEiOiBudWxsfV0sICJhdHRyaWJ1dGVzIjoge30sICJjcmVhdG9yIjogeyJsaWJyYXJ5IjogInB5YXJyb3ciLCAidmVyc2lvbiI6ICIyMi4wLjAifSwgInBhbmRhc192ZXJzaW9uIjogIjIuMy4zIn0AAAAABgAAAHBhbmRhcwAABwAAAEABAAD4AAAAvAAAAIwAAABcAAAAMAAAAAQAAADs/v//AAABARAAAAAYAAAABAAAAAAAAAAEAAAAZGF0YQAAAACE////FP///wAAAQEQAAAAGAAAAAQAAAAAAAAABAAAAHRleHQAAAAArP///zz///8AAAEFEAAAABwAAAAEAAAAAAAAAAgAAAByZXNwb25zZQAAAADY////aP///wAAAQUQAAAAHAAAAAQAAAAAAAAABQAAAG9mZmVyAAAABAAEAAQAAACU////AAABAhAAAAAgAAAABAAAAAAAAAAEAAAAc3RlcAAAAAAIAAwACAAHAAgAAAAAAAABQAAAAMz///8AAAEDEAAAACAAAAAEAAAAAAAAAA0AAAByZWxhdGl2ZV90aW1lAAAAxv///wAAAgAQABQACAAGAAcADAAAABAAEAAAAAAAAQMQAAAAHAAAAAQAAAAAAAAABAAAAHRpbWUAAAYACAAGAAYAAAAAAAIA\x00\x18 parquet-cpp-arrow version 22.0.0\x19|\x1c\x00\x00\x1c\x00\x00\x1c\x00\x00\x1c\x00\x00\x1c\x00\x00\x1c\x00\x00\x1c\x00\x00\x00V\x0e\x00\x00PAR1'
+final = False
+
+>   ???
+E   UnicodeDecodeError: 'utf-8' codec can't decode byte 0x80 in position 63: invalid start byte
+
+<frozen codecs>:325: UnicodeDecodeError
+
+ tests/core/test_common.py::TestPerNegotiatorSaving.test_save_per_negotiator_file_content ⨯                                                                                                                                                                         45% ████▌
+
+――――――――――――――――――――――――――――――――――――――――――――――――――――――――――――――――――――――――――――――――――――――――――――――――――――――――――――――――――――――― test_save_table_list_of_dicts_csv ――――――――――――――――――――――――――――――――――――――――――――――――――――――――――――――――――――――――――――――――――――――――――――――――――――――――――――――――――――――――
+
+tmp_path = PosixPath('/private/var/folders/51/d42424vj0jn8ntjscwsld_x40000gn/T/pytest-of-yasser/pytest-6/test_save_table_list_of_dicts_0')
+
+    def test_save_table_list_of_dicts_csv(tmp_path):
+        """Test saving a list of dicts as CSV."""
+        from negmas.helpers.inout import save_table
+
+        data = [{"a": 1, "b": 2}, {"a": 3, "b": 4}]
+        path = save_table(data, tmp_path / "test.csv")
+
+        assert path.exists()
+>       assert path.suffix == ".csv"
+E       AssertionError: assert '.parquet' == '.csv'
+E
+E         - .csv
+E         + .parquet
+
+tests/core/test_inout.py:607: AssertionError
+
+ tests/core/test_inout.py::test_save_table_list_of_dicts_csv ⨯                                                                                                                                                                                                      50% █████
+
+――――――――――――――――――――――――――――――――――――――――――――――――――――――――――――――――――――――――――――――――――――――――――――――――――――――――――――――――――――――――― test_save_table_dataframe_csv ――――――――――――――――――――――――――――――――――――――――――――――――――――――――――――――――――――――――――――――――――――――――――――――――――――――――――――――――――――――――――
+
+tmp_path = PosixPath('/private/var/folders/51/d42424vj0jn8ntjscwsld_x40000gn/T/pytest-of-yasser/pytest-6/test_save_table_dataframe_csv0')
+
+    def test_save_table_dataframe_csv(tmp_path):
+        """Test saving a DataFrame as CSV."""
+        import pandas as pd
+
+        from negmas.helpers.inout import save_table
+
+        df = pd.DataFrame({"x": [1, 2, 3], "y": [4, 5, 6]})
+        path = save_table(df, tmp_path / "test.csv")
+
+        assert path.exists()
+        with open(path) as f:
+>           content = f.read()
+                      ^^^^^^^^
+
+tests/core/test_inout.py:626:
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _
+
+self = <encodings.utf_8.IncrementalDecoder object at 0x11e072030>
+input = b'PAR1\x15\x04\x150\x15.L\x15\x06\x15\x00\x12\x00\x00\x18\x04\x01\x00\t\x01<\x02\x00\x00\x00\x00\x00\x00\x00\x03\x00\x00\x00\x00\x00\x00\x00\x15\x00\x15\x14\x15\x18,\x15\x06\x15\x10\x15\x06\x15\x06\x1c\x18\x08\x03\x00\x00\x00\x00\x00\x00\x00\x18\x08\x01\x00\x00\x00\x00\x00\x00\x00\x16\x00(\x08\x03\x00\x00\x00\x00\x00\x00\x00\x18\x08\x01\x00\x00\x00\x00\x00\x00\x00\x11\x11\x00\x00\x00\n$\x02\x00\x00\x00\x06\x01\x02\x03$\x00\x15\x04\x150\x15.L\x15\x06\x15\x00\x12\x00\x00\x18\x04\x04\x00\t\x01<\x05\x00\x00\x00\x00\x00\x00\x00\x06\x00\x00\x00\x00\x00\x00\x00\x15\x00\x15\x14\x15\x18,\x15\x06\x15\x10\x15\x06\x15\x06\x1c\x18\x08\x06\x00\x00\x00\x00\x00\x00\x00\x18\x08\x04\x00\x00\x00\x00\x00\x00\x00\x16\x00(\x08\x06\x00\x00\x00\x00\x00\x00\x00\x18\x08\x04\x00\x00\x00\x00\x00\x00\x00\x11\x11\x00\x00\x00\n$\x02\x00\x00\x00\x06\x01\x02\x03$\x00\x15\x04\x19<5\x00\x18\x06schema\x15\x04\x00\x15\x04%\x02\x18\x01x\x00\x15\x04%\x02\x18\x01y\x00\x16\x06\x19\x1c\x19,&\x00\x1c\x15\x04\x195\x00\x06\x10\x19\x18\x01x\x15\x02\x16\x06\x16\xde\x01\x16\xe0\x01&R&\x08\x1c\x18\x08\x03\x00\x00\x00\x00\x00\x00\x00\x18\x08\x01\x00\x00\x00\x00\x00\x00\x00\x16\x00(\x08\x03\x00\x00\x00\x00\x00\x00\x00\x18\x08\x01\x00\x00\x00\x00\x00\x00\x00\x11\x11\x00\x19,\x15\x04\x15\x00\x15\x02\x00\x15\x00\x15\x10\x15\x02\x00<)\x06\x19&\x00\x06\x00\x00\x00&\x00\x1c\x15\x04\x195\x00\x06\x10\x19\x18\x01y\x15\x02\x16\x06\x16\xde\x01\x16\xe0\x01&\xb2\x02&\xe8\x01\x1c\x18\x08\x06\x00\x00\x00\x00\x00\x00\x00\x18\x08\x04\x00\x00\x00\x00\x00\x00\x00\x16\x00(\x08\x06\x00\x00\x00\x00\x00\x00\x00\x18\x08\x04\x00\x00\x00\x00\x00\x00\x00\x11\x11\x00\x19,\x15\x04\x15\x00\x15\x02\x00\x15\x00\x15\x10\x15\x02\x00<)\x06\x19&\x00\x06\x00\x00\x00\x16\xbc\x03\x16\x06&\x08\x16\xc0\x03\x00\x19,\x18\x06pandas\x18\xe3\x02{"index_columns": [], "column_indexes": [], "columns": [{"name": "x", "field_name": "x", "pandas_type": "int64", "numpy_type": "int64", "metadata": null}, {"name": "y", "field_name": "y", "pandas_type": "int64", "numpy_type": "int64", "metadata": null}], "attributes": {}, "creator": {"library": "pyarrow", "version": "22.0.0"}, "pandas_version": "2.3.3"}\x00\x18\x0cARROW:schema\x18\x8c\x06/////0ACAAAQAAAAAAAKAA4ABgAFAAgACgAAAAABBAAQAAAAAAAKAAwAAAAEAAgACgAAAJgBAAAEAAAAAQAAAAwAAAAIAAwABAAIAAgAAABwAQAABAAAAGMBAAB7ImluZGV4X2NvbHVtbnMiOiBbXSwgImNvbHVtbl9pbmRleGVzIjogW10sICJjb2x1bW5zIjogW3sibmFtZSI6ICJ4IiwgImZpZWxkX25hbWUiOiAieCIsICJwYW5kYXNfdHlwZSI6ICJpbnQ2NCIsICJudW1weV90eXBlIjogImludDY0IiwgIm1ldGFkYXRhIjogbnVsbH0sIHsibmFtZSI6ICJ5IiwgImZpZWxkX25hbWUiOiAieSIsICJwYW5kYXNfdHlwZSI6ICJpbnQ2NCIsICJudW1weV90eXBlIjogImludDY0IiwgIm1ldGFkYXRhIjogbnVsbH1dLCAiYXR0cmlidXRlcyI6IHt9LCAiY3JlYXRvciI6IHsibGlicmFyeSI6ICJweWFycm93IiwgInZlcnNpb24iOiAiMjIuMC4wIn0sICJwYW5kYXNfdmVyc2lvbiI6ICIyLjMuMyJ9AAYAAABwYW5kYXMAAAIAAABEAAAABAAAANT///8AAAECEAAAABQAAAAEAAAAAAAAAAEAAAB5AAAAxP///wAAAAFAAAAAEAAUAAgABgAHAAwAAAAQABAAAAAAAAECEAAAABwAAAAEAAAAAAAAAAEAAAB4AAAACAAMAAgABwAIAAAAAAAAAUAAAAA=\x00\x18 parquet-cpp-arrow version 22.0.0\x19,\x1c\x00\x00\x1c\x00\x00\x00\xb6\x05\x00\x00PAR1'
+final = True
+
+>   ???
+E   UnicodeDecodeError: 'utf-8' codec can't decode byte 0xde in position 286: invalid continuation byte
+
+<frozen codecs>:325: UnicodeDecodeError
+
+ tests/core/test_inout.py::test_save_table_dataframe_csv ⨯                                                                                                                                                                                                          55% █████▌
+
+――――――――――――――――――――――――――――――――――――――――――――――――――――――――――――――――――――――――――――――――――――――――――――――――――――――――――――――――――――――――――― test_save_table_with_index ―――――――――――――――――――――――――――――――――――――――――――――――――――――――――――――――――――――――――――――――――――――――――――――――――――――――――――――――――――――――――――
+
+tmp_path = PosixPath('/private/var/folders/51/d42424vj0jn8ntjscwsld_x40000gn/T/pytest-of-yasser/pytest-6/test_save_table_with_index0')
+
+    def test_save_table_with_index(tmp_path):
+        """Test saving with index enabled."""
+        import pandas as pd
+
+        from negmas.helpers.inout import save_table
+
+        df = pd.DataFrame({"x": [1, 2], "y": [3, 4]})
+        path = save_table(df, tmp_path / "test.csv", index=True, index_label="idx")
+
+        with open(path) as f:
+>           content = f.read()
+                      ^^^^^^^^
+
+tests/core/test_inout.py:640:
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _
+
+self = <encodings.utf_8.IncrementalDecoder object at 0x11dd6b350>
+input = b'PAR1\x15\x04\x15 \x15$L\x15\x04\x15\x00\x12\x00\x00\x10<\x01\x00\x00\x00\x00\x00\x00\x00\x02\x00\x00\x00\x00\x00\x00\x00\x15\x00\x15\x12\x15\x16,\x15\x04\x15\x10\x15\x06\x15\x06\x1c\x18\x08\x02\x00\x00\x00\x00\x00\x00\x00\x18\x08\x01\x00\x00\x00\x00\x00\x00\x00\x16\x00(\x08\x02\x00\x00\x00\x00\x00\x00\x00\x18\x08\x01\x00\x00\x00\x00\x00\x00\x00\x11\x11\x00\x00\x00\t \x02\x00\x00\x00\x04\x01\x01\x03\x02\x15\x04\x15 \x15$L\x15\x04\x15\x00\x12\x00\x00\x10<\x03\x00\x00\x00\x00\x00\x00\x00\x04\x00\x00\x00\x00\x00\x00\x00\x15\x00\x15\x12\x15\x16,\x15\x04\x15\x10\x15\x06\x15\x06\x1c\x18\x08\x04\x00\x00\x00\x00\x00\x00\x00\x18\x08\x03\x00\x00\x00\x00\x00\x00\x00\x16\x00(\x08\x04\x00\x00\x00\x00\x00\x00\x00\x18\x08\x03\x00\x00\x00\x00\x00\x00\x00\x11\x11\x00\x00\x00\t \x02\x00\x00\x00\x04\x01\x01\x03\x02\x15\x04\x15 \x15$L\x15\x04\x15\x00\x12\x00\x00\x10<\x00\x00\x00\x00\x00\x00\x00\x00\x01\x00\x00\x00\x00\x00\x00\x00\x15\x00\x15\x12\x15\x16,\x15\x04\x15\x10\x15\x06\x15\x06\x1c\x18\x08\x01\x00\x00\x00\x00\x00\x00\x00\x18\x08\x00\x00\x00\x00\x00\x00\x00\x00\x16\x00(\x08\x01\x00\x00\x00\x00\x00\x00\x00\x18\x08\x00\x00\x00\x00\x00\x00\x00\x00\x11\x11\x00\x00\x00\t \x02\x00\x00\x00\x04\x01\x01\x03\x02\x15\x04\x19L5\x00\x18\x06schema\x15\x06\x00\x15\x04%\x02\x18\x01x\x00\x15\x04%\x02\x18\x01y\x00\x15\x04%\x02\x18\x11__index_level_0__\x00\x16\x04\x19\x1c\x19<&\x00\x1c\x15\x04\x195\x00\x06\x10\x19\x18\x01x\x15\x02\x16\x04\x16\xcc\x01\x16\xd4\x01&H&\x08\x1c\x18\x08\x02\x00\x00\x00\x00\x00\x00\x00\x18\x08\x01\x00\x00\x00\x00\x00\x00\x00\x16\x00(\x08\x02\x00\x00\x00\x00\x00\x00\x00\x18\x08\x01\x00\x00\x00\x00\x00\x00\x00\x11\x11\x00\x19,\x15\x04\x15\x00\x15\x02\x00\x15\x00\x15\x10\x15\x02\x00<)\x06\x19&\x00\x04\x00\x00\x00&\x00\x1c\x15\x04\x195\x00\x06\x10\x19\x18\x01y\x15\x02\x16\x04\x16\xcc\x01\x16\xd4\x01&\x9c\x02&\xdc\x01\x1c\x18\x08\x04\x00\x00\x00\x00\x00\x00\x00\x18\x08\x03\x00\x00\x00\x00\x00\x00\x00\x16\x00(\x08\x04\x00\x00\x00\x00\x00\x00\x00\x18\x08\x03\x00\x00\x00\x00\x00\x00\x00\x11\x11\x00\x19,\x15\x04\x15\x00\x15\x02\x00\x15\x00\x15\x10\x15\x02\x00<)\x06\x19&\x00\x04\x00\x00\x00&\x00\x1c\x15\x04\x195\x00\x06\x10\x19\x18\x11__index_level_0__\x15\x02\x16\x04\x16\xcc\x01\x16\xd4\x01&\xf0\x03&\xb0\x03\x1c\x18\x08\x01\x00\x00\x00\x00\x00\x00\x00\x18\x08\x00\x00\x00\x00\x00\x00\x00\x00\x16\x00(\x08\x01\x00\x00\x00\x00\x00\x00\x00\x18\x08\x00\x00\x00\x00\x00\x00\x00\x00\x11\x11\x00\x19,\x15\x04\x15\x00\x15\x02\x00\x15\x00\x15\x10\x15\x02\x00<)\x06\x19&\x00\x04\x00\x00\x00\x16\xe4\x04\x16\x04&\x08\x16\xfc\x04\x00\x19,\x18\x06pandas\x18\xe1\x04{"index_columns": ["__index_level_0__"], "column_indexes": [{"name": null, "field_name": null, "pandas_type": "unicode", "numpy_type": "object", "metadata": {"encoding": "UTF-8"}}], "columns": [{"name": "x", "field_name": "x", "pandas_type": "int64", "numpy_type": "int64", "metadata": null}, {"name": "y", "field_name": "y", "pandas_type": "int64", "numpy_type": "int64", "metadata": null}, {"name": null, "field_name": "__index_level_0__", "pandas_type": "int64", "numpy_type": "int64", "metadata": null}], "attributes": {}, "creator": {"library": "pyarrow", "version": "22.0.0"}, "pandas_version": "2.3.3"}\x00\x18\x0cARROW:schema\x18\xb8\t/////4ADAAAQAAAAAAAKAA4ABgAFAAgACgAAAAABBAAQAAAAAAAKAAwAAAAEAAgACgAAAJgCAAAEAAAAAQAAAAwAAAAIAAwABAAIAAgAAABwAgAABAAAAGECAAB7ImluZGV4X2NvbHVtbnMiOiBbIl9faW5kZXhfbGV2ZWxfMF9fIl0sICJjb2x1bW5faW5kZXhlcyI6IFt7Im5hbWUiOiBudWxsLCAiZmllbGRfbmFtZSI6IG51bGwsICJwYW5kYXNfdHlwZSI6ICJ1bmljb2RlIiwgIm51bXB5X3R5cGUiOiAib2JqZWN0IiwgIm1ldGFkYXRhIjogeyJlbmNvZGluZyI6ICJVVEYtOCJ9fV0sICJjb2x1bW5zIjogW3sibmFtZSI6ICJ4IiwgImZpZWxkX25hbWUiOiAieCIsICJwYW5kYXNfdHlwZSI6ICJpbnQ2NCIsICJudW1weV90eXBlIjogImludDY0IiwgIm1ldGFkYXRhIjogbnVsbH0sIHsibmFtZSI6ICJ5IiwgImZpZWxkX25hbWUiOiAieSIsICJwYW5kYXNfdHlwZSI6ICJpbnQ2NCIsICJudW1weV90eXBlIjogImludDY0IiwgIm1ldGFkYXRhIjogbnVsbH0sIHsibmFtZSI6IG51bGwsICJmaWVsZF9uYW1lIjogIl9faW5kZXhfbGV2ZWxfMF9fIiwgInBhbmRhc190eXBlIjogImludDY0IiwgIm51bXB5X3R5cGUiOiAiaW50NjQiLCAibWV0YWRhdGEiOiBudWxsfV0sICJhdHRyaWJ1dGVzIjoge30sICJjcmVhdG9yIjogeyJsaWJyYXJ5IjogInB5YXJyb3ciLCAidmVyc2lvbiI6ICIyMi4wLjAifSwgInBhbmRhc192ZXJzaW9uIjogIjIuMy4zIn0AAAAGAAAAcGFuZGFzAAADAAAAhAAAAEQAAAAEAAAAmP///wAAAQIQAAAAJAAAAAQAAAAAAAAAEQAAAF9faW5kZXhfbGV2ZWxfMF9fAAAAmP///wAAAAFAAAAA1P///wAAAQIQAAAAFAAAAAQAAAAAAAAAAQAAAHkAAADE////AAAAAUAAAAAQABQACAAGAAcADAAAABAAEAAAAAAAAQIQAAAAHAAAAAQAAAAAAAAAAQAAAHgAAAAIAAwACAAHAAgAAAAAAAABQAAAAA==\x00\x18 parquet-cpp-arrow version 22.0.0\x19<\x1c\x00\x00\x1c\x00\x00\x1c\x00\x00\x00\xf1\x08\x00\x00PAR1'
+final = True
+
+>   ???
+E   UnicodeDecodeError: 'utf-8' codec can't decode byte 0xcc in position 404: invalid continuation byte
+
+<frozen codecs>:325: UnicodeDecodeError
+
+ tests/core/test_inout.py::test_save_table_with_index ⨯                                                                                                                                                                                                             60% ██████
+
+――――――――――――――――――――――――――――――――――――――――――――――――――――――――――――――――――――――――――――――――――――――――――――――――――――――――――――――――――――――――― test_save_table_list_of_tuples ―――――――――――――――――――――――――――――――――――――――――――――――――――――――――――――――――――――――――――――――――――――――――――――――――――――――――――――――――――――――――
+
+tmp_path = PosixPath('/private/var/folders/51/d42424vj0jn8ntjscwsld_x40000gn/T/pytest-of-yasser/pytest-6/test_save_table_list_of_tuples0')
+
+    def test_save_table_list_of_tuples(tmp_path):
+        """Test saving a list of tuples with columns."""
+        from negmas.helpers.inout import save_table
+
+        data = [(1, 2), (3, 4)]
+        path = save_table(data, tmp_path / "test.csv", columns=["col1", "col2"])
+
+        with open(path) as f:
+>           content = f.read()
+                      ^^^^^^^^
+
+tests/core/test_inout.py:652:
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _
+
+self = <encodings.utf_8.IncrementalDecoder object at 0x11e13fb90>
+input = b'PAR1\x15\x04\x15 \x15$L\x15\x04\x15\x00\x12\x00\x00\x10<\x01\x00\x00\x00\x00\x00\x00\x00\x03\x00\x00\x00\x00\x00\x00\x00\x15\x00\x15\x12\x15\x16,\x15\x04\x15\x10\x15\x06\x15\x06\x1c\x18\x08\x03\x00\x00\x00\x00\x00\x00\x00\x18\x08\x01\x00\x00\x00\x00\x00\x00\x00\x16\x00(\x08\x03\x00\x00\x00\x00\x00\x00\x00\x18\x08\x01\x00\x00\x00\x00\x00\x00\x00\x11\x11\x00\x00\x00\t \x02\x00\x00\x00\x04\x01\x01\x03\x02\x15\x04\x15 \x15$L\x15\x04\x15\x00\x12\x00\x00\x10<\x02\x00\x00\x00\x00\x00\x00\x00\x04\x00\x00\x00\x00\x00\x00\x00\x15\x00\x15\x12\x15\x16,\x15\x04\x15\x10\x15\x06\x15\x06\x1c\x18\x08\x04\x00\x00\x00\x00\x00\x00\x00\x18\x08\x02\x00\x00\x00\x00\x00\x00\x00\x16\x00(\x08\x04\x00\x00\x00\x00\x00\x00\x00\x18\x08\x02\x00\x00\x00\x00\x00\x00\x00\x11\x11\x00\x00\x00\t \x02\x00\x00\x00\x04\x01\x01\x03\x02\x15\x04\x19<5\x00\x18\x06schema\x15\x04\x00\x15\x04%\x02\x18\x04col1\x00\x15\x04%\x02\x18\x04col2\x00\x16\x04\x19\x1c\x19,&\x00\x1c\x15\x04\x195\x00\x06\x10\x19\x18\x04col1\x15\x02\x16\x04\x16\xcc\x01\x16\xd4\x01&H&\x08\x1c\x18\x08\x03\x00\x00\x00\x00\x00\x00\x00\x18\x08\x01\x00\x00\x00\x00\x00\x00\x00\x16\x00(\x08\x03\x00\x00\x00\x00\x00\x00\x00\x18\x08\x01\x00\x00\x00\x00\x00\x00\x00\x11\x11\x00\x19,\x15\x04\x15\x00\x15\x02\x00\x15\x00\x15\x10\x15\x02\x00<)\x06\x19&\x00\x04\x00\x00\x00&\x00\x1c\x15\x04\x195\x00\x06\x10\x19\x18\x04col2\x15\x02\x16\x04\x16\xcc\x01\x16\xd4\x01&\x9c\x02&\xdc\x01\x1c\x18\x08\x04\x00\x00\x00\x00\x00\x00\x00\x18\x08\x02\x00\x00\x00\x00\x00\x00\x00\x16\x00(\x08\x04\x00\x00\x00\x00\x00\x00\x00\x18\x08\x02\x00\x00\x00\x00\x00\x00\x00\x11\x11\x00\x19,\x15\x04\x15\x00\x15\x02\x00\x15\x00\x15\x10\x15\x02\x00<)\x06\x19&\x00\x04\x00\x00\x00\x16\x98\x03\x16\x04&\x08\x16\xa8\x03\x00\x19,\x18\x06pandas\x18\xef\x02{"index_columns": [], "column_indexes": [], "columns": [{"name": "col1", "field_name": "col1", "pandas_type": "int64", "numpy_type": "int64", "metadata": null}, {"name": "col2", "field_name": "col2", "pandas_type": "int64", "numpy_type": "int64", "metadata": null}], "attributes": {}, "creator": {"library": "pyarrow", "version": "22.0.0"}, "pandas_version": "2.3.3"}\x00\x18\x0cARROW:schema\x18\xac\x06/////1gCAAAQAAAAAAAKAA4ABgAFAAgACgAAAAABBAAQAAAAAAAKAAwAAAAEAAgACgAAAKQBAAAEAAAAAQAAAAwAAAAIAAwABAAIAAgAAAB8AQAABAAAAG8BAAB7ImluZGV4X2NvbHVtbnMiOiBbXSwgImNvbHVtbl9pbmRleGVzIjogW10sICJjb2x1bW5zIjogW3sibmFtZSI6ICJjb2wxIiwgImZpZWxkX25hbWUiOiAiY29sMSIsICJwYW5kYXNfdHlwZSI6ICJpbnQ2NCIsICJudW1weV90eXBlIjogImludDY0IiwgIm1ldGFkYXRhIjogbnVsbH0sIHsibmFtZSI6ICJjb2wyIiwgImZpZWxkX25hbWUiOiAiY29sMiIsICJwYW5kYXNfdHlwZSI6ICJpbnQ2NCIsICJudW1weV90eXBlIjogImludDY0IiwgIm1ldGFkYXRhIjogbnVsbH1dLCAiYXR0cmlidXRlcyI6IHt9LCAiY3JlYXRvciI6IHsibGlicmFyeSI6ICJweWFycm93IiwgInZlcnNpb24iOiAiMjIuMC4wIn0sICJwYW5kYXNfdmVyc2lvbiI6ICIyLjMuMyJ9AAYAAABwYW5kYXMAAAIAAABIAAAABAAAAND///8AAAECEAAAABgAAAAEAAAAAAAAAAQAAABjb2wyAAAAAMD///8AAAABQAAAABAAFAAIAAYABwAMAAAAEAAQAAAAAAABAhAAAAAgAAAABAAAAAAAAAAEAAAAY29sMQAAAAAIAAwACAAHAAgAAAAAAAABQAAAAAAAAAA=\x00\x18 parquet-cpp-arrow version 22.0.0\x19,\x1c\x00\x00\x1c\x00\x00\x00\xee\x05\x00\x00PAR1'
+final = True
+
+>   ???
+E   UnicodeDecodeError: 'utf-8' codec can't decode byte 0xcc in position 283: invalid continuation byte
+
+<frozen codecs>:325: UnicodeDecodeError
+
+ tests/core/test_inout.py::test_save_table_list_of_tuples ⨯                                                                                                                                                                                                         65% ██████▌
+
+―――――――――――――――――――――――――――――――――――――――――――――――――――――――――――――――――――――――――――――――――――――――――――――――――――――――――――――――――――― test_save_table_empty_list_with_columns ―――――――――――――――――――――――――――――――――――――――――――――――――――――――――――――――――――――――――――――――――――――――――――――――――――――――――――――――――――――
+
+tmp_path = PosixPath('/private/var/folders/51/d42424vj0jn8ntjscwsld_x40000gn/T/pytest-of-yasser/pytest-6/test_save_table_empty_list_wit0')
+
+    def test_save_table_empty_list_with_columns(tmp_path):
+        """Test saving an empty list with columns specified."""
+        import pandas as pd
+
+        from negmas.helpers.inout import save_table
+
+        data = []
+        path = save_table(data, tmp_path / "test.csv", columns=["a", "b"])
+
+        assert path.exists()
+>       df = pd.read_csv(path)
+             ^^^^^^^^^^^^^^^^^
+
+tests/core/test_inout.py:721:
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _
+.venv/lib/python3.14/site-packages/pandas/io/parsers/readers.py:1026: in read_csv
+    return _read(filepath_or_buffer, kwds)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+.venv/lib/python3.14/site-packages/pandas/io/parsers/readers.py:620: in _read
+    parser = TextFileReader(filepath_or_buffer, **kwds)
+             ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+.venv/lib/python3.14/site-packages/pandas/io/parsers/readers.py:1620: in __init__
+    self._engine = self._make_engine(f, self.engine)
+                   ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+.venv/lib/python3.14/site-packages/pandas/io/parsers/readers.py:1898: in _make_engine
+    return mapping[engine](f, **self.options)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+.venv/lib/python3.14/site-packages/pandas/io/parsers/c_parser_wrapper.py:93: in __init__
+    self._reader = parsers.TextReader(src, **kwds)
+                   ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+pandas/_libs/parsers.pyx:574: in pandas._libs.parsers.TextReader.__cinit__
+    ???
+pandas/_libs/parsers.pyx:663: in pandas._libs.parsers.TextReader._get_header
+    ???
+pandas/_libs/parsers.pyx:874: in pandas._libs.parsers.TextReader._tokenize_rows
+    ???
+pandas/_libs/parsers.pyx:891: in pandas._libs.parsers.TextReader._check_tokenize_status
+    ???
+pandas/_libs/parsers.pyx:2053: in pandas._libs.parsers.raise_parser_error
+    ???
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _
+
+self = <encodings.utf_8.IncrementalDecoder object at 0x11e13e030>
+input = b'PAR1\x15\x04\x15\x00\x15\x02L\x15\x00\x15\x00\x12\x00\x00\x00\x15\x04\x15\x00\x15\x02L\x15\x00\x15\x00\x12\x00\x00\x00\x15\x04\x19<5\x00\x18\x06schema\x15\x04\x00\x15\x02%\x02\x18\x01al\xbc\x00\x00\x00\x15\x02%\x02\x18\x01bl\xbc\x00\x00\x00\x16\x00\x19\x1c\x19,&\x00\x1c\x15\x02\x19%\x00\x06\x19\x18\x01a\x15\x02\x16\x00\x16\x1c\x16\x1e&\x00&\x08)\x1c\x15\x04\x15\x00\x15\x02\x00\x00\x00&\x00\x1c\x15\x02\x19%\x00\x06\x19\x18\x01b\x15\x02\x16\x00\x16\x1c\x16\x1e&\x00&&)\x1c\x15\x04\x15\x00\x15\x02\x00\x00\x00\x168\x16\x00&\x08\x16<\x00\x19,\x18\x06pandas\x18\xe5\x02{"index_columns": [], "column_indexes": [], "columns": [{"name": "a", "field_name": "a", "pandas_type": "empty", "numpy_type": "object", "metadata": null}, {"name": "b", "field_name": "b", "pandas_type": "empty", "numpy_type": "object", "metadata": null}], "attributes": {}, "creator": {"library": "pyarrow", "version": "22.0.0"}, "pandas_version": "2.3.3"}\x00\x18\x0cARROW:schema\x18\xf8\x05/////zACAAAQAAAAAAAKAA4ABgAFAAgACgAAAAABBAAQAAAAAAAKAAwAAAAEAAgACgAAAJwBAAAEAAAAAQAAAAwAAAAIAAwABAAIAAgAAAB0AQAABAAAAGUBAAB7ImluZGV4X2NvbHVtbnMiOiBbXSwgImNvbHVtbl9pbmRleGVzIjogW10sICJjb2x1bW5zIjogW3sibmFtZSI6ICJhIiwgImZpZWxkX25hbWUiOiAiYSIsICJwYW5kYXNfdHlwZSI6ICJlbXB0eSIsICJudW1weV90eXBlIjogIm9iamVjdCIsICJtZXRhZGF0YSI6IG51bGx9LCB7Im5hbWUiOiAiYiIsICJmaWVsZF9uYW1lIjogImIiLCAicGFuZGFzX3R5cGUiOiAiZW1wdHkiLCAibnVtcHlfdHlwZSI6ICJvYmplY3QiLCAibWV0YWRhdGEiOiBudWxsfV0sICJhdHRyaWJ1dGVzIjoge30sICJjcmVhdG9yIjogeyJsaWJyYXJ5IjogInB5YXJyb3ciLCAidmVyc2lvbiI6ICIyMi4wLjAifSwgInBhbmRhc192ZXJzaW9uIjogIjIuMy4zIn0AAAAGAAAAcGFuZGFzAAACAAAAPAAAAAQAAADc////AAABARAAAAAUAAAABAAAAAAAAAABAAAAYgAAAMz///8QABQACAAGAAcADAAAABAAEAAAAAAAAQEQAAAAGAAAAAQAAAAAAAAAAQAAAGEAAAAEAAQABAAAAA==\x00\x18 parquet-cpp-arrow version 22.0.0\x19,\x1c\x00\x00\x1c\x00\x00\x00(\x05\x00\x00PAR1'
+final = False
+
+>   ???
+E   UnicodeDecodeError: 'utf-8' codec can't decode byte 0xbc in position 59: invalid start byte
+
+<frozen codecs>:325: UnicodeDecodeError
+
+ tests/core/test_inout.py::test_save_table_empty_list_with_columns ⨯                                                                                                                                                                                                70% ███████
+
+――――――――――――――――――――――――――――――――――――――――――――――――――――――――――――――――――――――――――――――――――――――――――――――――――――――――――――――――――――――――― test_save_table_default_format ―――――――――――――――――――――――――――――――――――――――――――――――――――――――――――――――――――――――――――――――――――――――――――――――――――――――――――――――――――――――――
+
+    def test_save_table_default_format():
+        """Test that DEFAULT_TABLE_STORAGE_FORMAT is csv for backward compatibility."""
+        from negmas.helpers.inout import DEFAULT_TABLE_STORAGE_FORMAT
+
+>       assert DEFAULT_TABLE_STORAGE_FORMAT == "csv"
+E       AssertionError: assert 'parquet' == 'csv'
+E
+E         - csv
+E         + parquet
+
+tests/core/test_inout.py:741: AssertionError

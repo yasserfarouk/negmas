@@ -1,0 +1,24 @@
+<utility_space number_of_issues="2">
+	<weight index="1" value="0.5"/>
+	<weight index="2" value="0.5"/>
+	<issue index="1" name="Type of Food">
+		<item index="1" value="Chinese" evaluation="20"/>
+		<item index="2" value="French" evaluation="55"/>
+		<item index="3" value="Indian" evaluation="80"/>
+		<item index="4" value="Italian" evaluation="50"/>
+		<item index="5" value="Pub" evaluation="40"/>
+		<item index="6" value="Thai" evaluation="60"/>
+		<item index="7" value="Turkish" evaluation="20"/>
+		<item index="8" value="unspecified" evaluation="0"/>
+	</issue>
+	<issue index="2" name="Location">
+		<item index="1" value="Amersfoort" evaluation="20"/>
+		<item index="2" value="Amsterdam" evaluation="90"/>
+		<item index="3" value="Delft" evaluation="50"/>
+		<item index="4" value="Den Haag" evaluation="50"/>
+		<item index="5" value="Gouda" evaluation="10"/>
+		<item index="6" value="Rotterdam" evaluation="30"/>
+		<item index="7" value="Utrecht" evaluation="30"/>
+		<item index="8" value="unspecified" evaluation="0"/>
+	</issue>             
+</utility_space>

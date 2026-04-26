@@ -1,0 +1,39 @@
+name: JupyterNotebooks
+on:
+  push:
+    branches: ["*"]
+  pull_request:
+    branches: ["*"]
+concurrency:
+  group: ${{ github.workflow }}-${{ github.event_name == 'pull_request' && github.event.pull_request.number || github.ref }}
+  cancel-in-progress: ${{ github.event_name == 'push' }}
+jobs:
+  tests:
+    name: "Python ${{ matrix.python-version }}"
+    runs-on: "ubuntu-latest"
+    timeout-minutes: 240
+    strategy:
+      matrix:
+        python-version: ["3.10", "3.11", "3.12", "3.13", "3.14"]
+    steps:
+      - uses: "actions/checkout@v4"
+      - name: Install uv
+        uses: astral-sh/setup-uv@v3
+        with:
+          enable-cache: true
+      - name: Set up Python ${{ matrix.python-version }}
+        run: uv python install ${{ matrix.python-version }}
+      - name: Install the project
+        run: uv sync --extra testing --extra dev
+      - name: "Install Genius Bridge"
+        run: uv run negmas genius-setup
+      - name: "Install Jupyter Kernel"
+        run: uv run -m ipykernel install --user --name=negmas
+      - uses: actions/setup-java@v4
+        with:
+          distribution: "zulu"
+          java-version: "21"
+      - name: "running genius bridge"
+        run: "java -jar $HOME/negmas/files/geniusbridge.jar --silent --no-logs &"
+      - name: "Run pytest for ${{ matrix.python-version }}"
+        run: "uv run pytest tests/optional/test_jupyter.py || uv run pytest --last-failed tests/optional/test_jupyter.py"

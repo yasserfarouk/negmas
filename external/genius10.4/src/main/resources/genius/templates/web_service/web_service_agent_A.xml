@@ -1,0 +1,12 @@
+<utility_space> 
+<objective index="1" etype="objective" type="objective" description="" name="web_service"> 
+<issue index="2" etype="integer" type="integer" vtype="integer" name="Agent_B_revenue"> 
+<range lowerbound="0" upperbound="2000"> 
+</range> 
+<evaluator etype="integer" parameter0="1" parameter1="-0.0005" ftype="linear"> 
+</evaluator> 
+</issue> 
+<weight index="2" value="1.0"> 
+</weight> 
+</objective> 
+</utility_space> 

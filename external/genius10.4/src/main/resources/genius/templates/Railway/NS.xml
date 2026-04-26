@@ -1,0 +1,163 @@
+<?xml version="1.0" encoding="utf-8" ?>
+<utility_space type="constraint">
+  <objective index="0" description="" name="Railway" type="objective" etype="objective">
+    <issue index="1" name="WhoShowup" vtype="discrete" type="discrete" etype="discrete">
+      <item index="1" value="None"/>
+      <item index="2" value="Only NS"/>
+      <item index="3" value="Only ProRail"/>
+      <item index="4" value="Only Minister"/>
+      <item index="5" value="NS+ProRail"/>
+      <item index="6" value="NS+Minister"/>
+      <item index="7" value="ProRail+Minister"/>
+      <item index="8" value="All"/>
+    </issue>
+    <issue index="2" name="PercentageBlameMinister" vtype="discrete" type="discrete" etype="discrete">
+      <item index="1" value="0"/>
+      <item index="2" value="1"/>
+      <item index="3" value="5"/>
+      <item index="4" value="25"/>
+    </issue>
+    <issue index="3" name="PercentageBlameNS" vtype="discrete" type="discrete" etype="discrete">
+      <item index="1" value="0"/>
+      <item index="2" value="25"/>
+      <item index="3" value="33"/>
+      <item index="4" value="66"/>
+    </issue>
+    <issue index="4" name="PercentageBlameProRail" vtype="discrete" type="discrete" etype="discrete">
+      <item index="1" value="0"/>
+      <item index="2" value="10"/>
+      <item index="3" value="25"/>
+      <item index="4" value="33"/>
+    </issue>
+    <issue index="5" name="MoneyFlowToNS" vtype="discrete" type="discrete" etype="discrete">
+      <item index="1" value="-10"/>
+      <item index="2" value="-1"/>
+      <item index="3" value="0"/>
+      <item index="4" value="250"/>
+    </issue>
+    <issue index="6" name="MoneyFlowToProRail" vtype="discrete" type="discrete" etype="discrete">
+      <item index="1" value="-5"/>
+      <item index="2" value="0"/>
+      <item index="3" value="100"/>
+      <item index="4" value="250"/>
+      <item index="5" value="500"/>
+    </issue>
+    <issue index="7" name="ControlActionofMinister" vtype="discrete" type="discrete" etype="discrete">
+      <item index="1" value="NS=businessAsUsual+ProRail=businessAsUsual"/>
+      <item index="2" value="NS=businessAsUsual+ProRail=warning"/>
+      <item index="3" value="NS=businessAsUsual+ProRail=penalty"/>
+      <item index="4" value="NS=businessAsUsual+ProRail=reorganization"/>
+      <item index="5" value="NS=warning+ProRail=businessAsUsual"/>
+      <item index="6" value="NS=warning+ProRail=warning"/>
+      <item index="7" value="NS=warning+ProRail=penalty"/>
+      <item index="8" value="NS=warning+ProRail=reorganization"/>
+      <item index="9" value="NS=penalty+ProRail=businessAsUsual"/>
+      <item index="10" value="NS=penalty+ProRail=warning"/>
+      <item index="11" value="NS=penalty+ProRail=penalty"/>
+      <item index="12" value="NS=penalty+ProRail=reorganization"/>
+      <item index="13" value="NS=fireDirector+ProRail=businessAsUsual"/>
+      <item index="14" value="NS=fireDirector+ProRail=warning"/>
+      <item index="15" value="NS=fireDirector+ProRail=penalty"/>
+      <item index="16" value="NS=fireDirector+ProRail=reorganization"/>
+    </issue>
+    <issue index="8" name="SolutionTime" vtype="discrete" type="discrete" etype="discrete">
+      <item index="1" value="No deadline"/>
+      <item index="2" value="Today"/>
+      <item index="3" value="Within a week"/>
+      <item index="4" value="Within a month"/>
+    </issue>
+    <rules>
+      <ranks>
+        <issue index="1">
+          <item index="1" rank="4" value="None"/>
+          <item index="2" rank="1" value="Only NS"/>
+          <item index="3" rank="7" value="Only ProRail"/>
+          <item index="4" rank="5" value="Only Minister"/>
+          <item index="5" rank="2" value="NS+ProRail"/>
+          <item index="6" rank="2" value="NS+Minister"/>
+          <item index="7" rank="6" value="ProRail+Minister"/>
+          <item index="8" rank="3" value="All"/>
+        </issue>
+        <issue index="2">
+          <item index="1" rank="1" value="0"/>
+          <item index="2" rank="2" value="1"/>
+          <item index="3" rank="3" value="5"/>
+          <item index="4" rank="4" value="25"/>
+        </issue>
+        <issue index="3">
+          <item index="1" rank="4" value="0"/>
+          <item index="2" rank="3" value="25"/>
+          <item index="3" rank="2" value="33"/>
+          <item index="4" rank="1" value="66"/>
+        </issue>
+        <issue index="4">
+          <item index="1" rank="1" value="0"/>
+          <item index="2" rank="2" value="10"/>
+          <item index="3" rank="3" value="25"/>
+          <item index="4" rank="4" value="33"/>
+        </issue>
+        <issue index="5">
+          <item index="1" rank="1" value="-10"/>
+          <item index="2" rank="2" value="-1"/>
+          <item index="3" rank="3" value="0"/>
+          <item index="4" rank="4" value="250"/>
+        </issue>
+        <issue index="6">
+          <item index="1" rank="1" value="-5"/>
+          <item index="2" rank="2" value="0"/>
+          <item index="3" rank="3" value="100"/>
+          <item index="4" rank="4" value="250"/>
+          <item index="5" rank="5" value="500"/>
+        </issue>
+        <issue index="7">
+          <item index="1" rank="13" value="NS=businessAsUsual+ProRail=businessAsUsual"/>
+          <item index="2" rank="14" value="NS=businessAsUsual+ProRail=warning"/>
+          <item index="3" rank="15" value="NS=businessAsUsual+ProRail=penalty"/>
+          <item index="4" rank="16" value="NS=businessAsUsual+ProRail=reorganization"/>
+          <item index="5" rank="9" value="NS=warning+ProRail=businessAsUsual"/>
+          <item index="6" rank="10" value="NS=warning+ProRail=warning"/>
+          <item index="7" rank="11" value="NS=warning+ProRail=penalty"/>
+          <item index="8" rank="12" value="NS=warning+ProRail=reorganization"/>
+          <item index="9" rank="5" value="NS=penalty+ProRail=businessAsUsual"/>
+          <item index="10" rank="6" value="NS=penalty+ProRail=warning"/>
+          <item index="11" rank="7" value="NS=penalty+ProRail=penalty"/>
+          <item index="12" rank="8" value="NS=penalty+ProRail=reorganization"/>
+          <item index="13" rank="1" value="NS=fireDirector+ProRail=businessAsUsual"/>
+          <item index="14" rank="2" value="NS=fireDirector+ProRail=warning"/>
+          <item index="15" rank="3" value="NS=fireDirector+ProRail=penalty"/>
+          <item index="16" rank="4" value="NS=fireDirector+ProRail=reorganization"/>
+        </issue>
+        <issue index="8">
+          <item index="1" rank="4" value="No deadline"/>
+          <item index="2" rank="1" value="Today"/>
+          <item index="3" rank="2" value="Within a week"/>
+          <item index="4" rank="3" value="Within a month"/>
+        </issue>
+      </ranks>
+     
+      <constraints>
+    
+        <constraint type="inclusiveZeroOutcomeConstraint">
+          <checkassignment index="5" condition="numeric=positive"/>
+          <checkassignment index="7" condition="NS=penalty"/>
+        </constraint>
+        
+        <constraint type="inclusiveZeroOutcomeConstraint">
+          <checkassignment index="6" condition="numeric=positive"/>
+          <checkassignment index="7" condition="ProRail=penalty"/>
+        </constraint>
+        
+        <constraint type="conditionalZeroOutcomeConstraint">
+          <checkassignment index="5" condition="numeric=negative"/>
+          <checkassignment index="7" condition="NS=penalty"/>
+        </constraint>
+    
+        <constraint type="conditionalZeroOutcomeConstraint">
+          <checkassignment index="6" condition="numeric=negative"/>
+          <checkassignment index="7" condition="ProRail=penalty"/>
+        </constraint>
+   
+      </constraints>
+    </rules>
+  </objective>
+</utility_space>

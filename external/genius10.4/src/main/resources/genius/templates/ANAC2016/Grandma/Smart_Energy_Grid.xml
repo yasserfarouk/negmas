@@ -1,0 +1,32 @@
+<negotiation_template> 
+<utility_space number_of_issues="3"> 
+<objective index="0" description="" name="Smart_Energy_Grid" type="objective" etype="objective"> 
+<issue index="1" name="Energy Price" lowerbound="10" upperbound="50" vtype="integer" type="integer" etype="integer"> 
+</issue> 
+<issue index="2" name="Energy cost distribution over day" vtype="discrete" type="discrete" etype="discrete"> 
+<item index="1" value="Morning"> 
+</item> 
+<item index="2" value="Midday"> 
+</item> 
+<item index="3" value="Afternoon"> 
+</item> 
+<item index="4" value="Night"> 
+</item> 
+</issue> 
+<issue index="3" name="Energy source" vtype="discrete" type="discrete" etype="discrete"> 
+<item index="1" value="Wind"> 
+</item> 
+<item index="2" value="Solar"> 
+</item> 
+<item index="3" value="Hydro"> 
+</item> 
+<item index="4" value="Coal"> 
+</item> 
+<item index="5" value="Nuclear"> 
+</item> 
+<item index="6" value="Natural gas"> 
+</item> 
+</issue> 
+</objective> 
+</utility_space> 
+</negotiation_template> 

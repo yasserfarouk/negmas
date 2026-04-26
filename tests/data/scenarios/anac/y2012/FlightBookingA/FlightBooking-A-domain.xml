@@ -1,0 +1,32 @@
+<negotiation_template>
+<utility_space number_of_issues="3">
+<objective description="" etype="objective" index="0" name="root" type="objective">
+    <issue etype="discrete" index="1" name="price" type="discrete" vtype="discrete">
+        <item index="1" value="150000yen" cost="0" description="150000yen">
+        </item>
+        <item index="2" value="200000yen" cost="0" description="200000yen">
+        </item>
+        <item index="3" value="250000yen" cost="0" description="250000yen">
+        </item>
+        <item index="4" value="300000yen" cost="0" description="300000yen">
+        </item>
+    </issue>
+    <issue etype="discrete" index="2" name="DepartureAirPort" type="discrete" vtype="discrete">
+        <item index="1" value="CentrAir" cost="0" description="CentrAir">
+        </item>
+        <item index="2" value="Narita" cost="0" description="Narita">
+        </item>
+        <item index="3" value="Kansai" cost="0" description="Kansai">
+        </item>
+    </issue>
+    <issue etype="discrete" index="3" name="DepartureDate" type="discrete" vtype="discrete">
+        <item index="1" value="Sep2_2011" cost="0" description="Sep2_2011">
+        </item>
+        <item index="2" value="Sep3_2011" cost="0" description="Sep3_2011">
+        </item>
+        <item index="3" value="Sep4_2011" cost="0" description="Sep4_2011">
+        </item>
+    </issue>
+</objective>
+</utility_space>
+</negotiation_template>

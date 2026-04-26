@@ -1,0 +1,30 @@
+<negotiation_template>
+<utility_space number_of_issues="3">
+<objective description="" etype="objective" index="0" name="root" type="objective">
+    <issue etype="discrete" index="1" name="Laptop" type="discrete" vtype="discrete">
+        <item index="1" value="Dell" cost="0" description="Dell">
+        </item>
+        <item index="2" value="Macintosh" cost="0" description="Macintosh">
+        </item>
+        <item index="3" value="HP" cost="0" description="HP">
+        </item>
+    </issue>
+    <issue etype="discrete" index="2" name="Harddisk" type="discrete" vtype="discrete">
+        <item index="1" value="60 Gb" cost="0" description="60 Gb">
+        </item>
+        <item index="2" value="80 Gb" cost="0" description="80 Gb">
+        </item>
+        <item index="3" value="120 Gb" cost="0" description="120 Gb">
+        </item>
+    </issue>
+    <issue etype="discrete" index="3" name="External Monitor" type="discrete" vtype="discrete">
+        <item index="1" value="19'' LCD" cost="0" description="19'' LCD">
+        </item>
+        <item index="2" value="20'' LCD" cost="0" description="20'' LCD">
+        </item>
+        <item index="3" value="23'' LCD" cost="0" description="23'' LCD">
+        </item>
+    </issue>
+</objective>
+</utility_space>
+</negotiation_template>

@@ -1,0 +1,58 @@
+<negotiation_template>
+<utility_space number_of_issues="3">
+<objective description="" etype="objective" index="0" name="root" type="objective">
+    <issue etype="discrete" index="1" name="Cost" type="discrete" vtype="discrete">
+        <item index="1" value="GreaterThanOrEqual5.2bn" cost="0" description="GreaterThanOrEqual5.2bn">
+        </item>
+        <item index="2" value="5.0bn" cost="0" description="5.0bn">
+        </item>
+        <item index="3" value="4.8bn" cost="0" description="4.8bn">
+        </item>
+        <item index="4" value="4.6bn" cost="0" description="4.6bn">
+        </item>
+        <item index="5" value="4.4bn" cost="0" description="4.4bn">
+        </item>
+        <item index="6" value="4.2bn" cost="0" description="4.2bn">
+        </item>
+        <item index="7" value="4.0bn" cost="0" description="4.0bn">
+        </item>
+        <item index="8" value="3.8bn" cost="0" description="3.8bn">
+        </item>
+        <item index="9" value="3.6bn" cost="0" description="3.6bn">
+        </item>
+        <item index="10" value="LessThanOrEqual3.4bn" cost="0" description="LessThanOrEqual3.4bn">
+        </item>
+    </issue>
+    <issue etype="discrete" index="2" name="Noise" type="discrete" vtype="discrete">
+        <item index="1" value="LessThan10000" cost="0" description="LessThan10000">
+        </item>
+        <item index="2" value="10000" cost="0" description="10000">
+        </item>
+        <item index="3" value="20000" cost="0" description="20000">
+        </item>
+        <item index="4" value="30000" cost="0" description="30000">
+        </item>
+        <item index="5" value="40000" cost="0" description="40000">
+        </item>
+        <item index="6" value="50000" cost="0" description="50000">
+        </item>
+        <item index="7" value="GreaterThan50000" cost="0" description="GreaterThan50000">
+        </item>
+    </issue>
+    <issue etype="discrete" index="3" name="AccidentLevelPerMillionPassengerMiles" type="discrete" vtype="discrete">
+        <item index="1" value="GreaterThanOrEqual0.1" cost="0" description="GreaterThanOrEqual0.1">
+        </item>
+        <item index="2" value="0.08" cost="0" description="0.08">
+        </item>
+        <item index="3" value="0.06" cost="0" description="0.06">
+        </item>
+        <item index="4" value="0.04" cost="0" description="0.04">
+        </item>
+        <item index="5" value="0.02" cost="0" description="0.02">
+        </item>
+        <item index="6" value="LessThan0.02" cost="0" description="LessThan0.02">
+        </item>
+    </issue>
+</objective>
+</utility_space>
+</negotiation_template>

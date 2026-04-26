@@ -1,0 +1,58 @@
+<negotiation_template> 
+<utility_space number_of_issues="5"> 
+<objective index="0" description="" name="Animal" type="objective" etype="objective"> 
+<issue index="1" name="Mammal" vtype="discrete" type="discrete" etype="discrete"> 
+<item index="1" value="Lion"> 
+</item> 
+<item index="2" value="Elephant"> 
+</item> 
+<item index="3" value="Cow"> 
+</item> 
+<item index="4" value="Mouse"> 
+</item> 
+<item index="5" value="Kangaroo"> 
+</item> 
+<item index="6" value="Dolphin"> 
+</item> 
+</issue> 
+<issue index="2" name="Birds" vtype="discrete" type="discrete" etype="discrete"> 
+<item index="1" value="Eagle"> 
+</item> 
+<item index="2" value="Swallow"> 
+</item> 
+<item index="3" value="Pelican"> 
+</item> 
+<item index="4" value="Penguin"> 
+</item> 
+</issue> 
+<issue index="3" name="Reptiles" vtype="discrete" type="discrete" etype="discrete"> 
+<item index="1" value="Crocodile"> 
+</item> 
+<item index="2" value="Lizard"> 
+</item> 
+<item index="3" value="Tortoise"> 
+</item> 
+<item index="4" value="Snake"> 
+</item> 
+</issue> 
+<issue index="4" name="Amphibian" vtype="discrete" type="discrete" etype="discrete"> 
+<item index="1" value="Frog"> 
+</item> 
+<item index="2" value="Salamander"> 
+</item> 
+<item index="3" value="Newt"> 
+</item> 
+</issue> 
+<issue index="5" name="Primates" vtype="discrete" type="discrete" etype="discrete"> 
+<item index="1" value="Human"> 
+</item> 
+<item index="2" value="Chimpanzee"> 
+</item> 
+<item index="3" value="Gorilla"> 
+</item> 
+<item index="4" value="Orangutan"> 
+</item> 
+</issue> 
+</objective> 
+</utility_space> 
+</negotiation_template> 

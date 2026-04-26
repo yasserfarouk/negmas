@@ -1,0 +1,70 @@
+<utility_space type="UNCERTAIN"> 
+<objective name="New sporthal" index="0" description="" etype="objective" type="objective"> 
+<issue vtype="discrete" name="grandstand" index="1" etype="discrete" type="discrete"> 
+<item evaluation="1.0" index="1" value="no grandstand"> 
+</item> 
+<item evaluation="6.0" index="2" value="retractible grandstand"> 
+</item> 
+<item evaluation="4.0" index="3" value="normal grandstand"> 
+</item> 
+</issue> 
+<issue vtype="discrete" name="Floor" index="2" etype="discrete" type="discrete"> 
+<item evaluation="3.0" index="1" value="Wood"> 
+</item> 
+<item evaluation="3.0" index="2" value="Lineleum"> 
+</item> 
+<item evaluation="5.0" index="3" value="Soft mats"> 
+</item> 
+</issue> 
+<issue vtype="discrete" name="Sports bar" index="3" etype="discrete" type="discrete"> 
+<item evaluation="1.0" index="1" value="No bar"> 
+</item> 
+<item evaluation="4.0" index="2" value="Small bar"> 
+</item> 
+<item evaluation="6.0" index="3" value="Big bar"> 
+</item> 
+</issue> 
+<issue vtype="discrete" name="Budget for aparatusses" index="4" etype="discrete" type="discrete"> 
+<item evaluation="1.0" index="1" value="€10,000"> 
+</item> 
+<item evaluation="3.0" index="2" value="€20,000"> 
+</item> 
+<item evaluation="5.0" index="3" value="€40,000"> 
+</item> 
+</issue> 
+<issue vtype="discrete" name="Amount of dressing rooms" index="5" etype="discrete" type="discrete"> 
+<item evaluation="3.0" index="1" value="2"> 
+</item> 
+<item evaluation="4.0" index="2" value="4"> 
+</item> 
+<item evaluation="4.0" index="3" value="6"> 
+</item> 
+</issue> 
+<weight index="1" value="0.14052092079314"> 
+</weight> 
+<weight index="2" value="0.12539995528913275"> 
+</weight> 
+<weight index="3" value="0.1934460586016723"> 
+</weight> 
+<weight index="4" value="0.41155095683387277"> 
+</weight> 
+<weight index="5" value="0.12908210848218216"> 
+</weight> 
+</objective> 
+<discount_factor value="1.0"> 
+</discount_factor> 
+<reservation value="0.828415"> 
+</reservation> 
+<comparisons> 
+20 
+</comparisons> 
+<errors> 
+0 
+</errors> 
+<fixed_seed> 
+true 
+</fixed_seed> 
+<experimental> 
+false 
+</experimental> 
+</utility_space> 

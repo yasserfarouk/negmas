@@ -1,0 +1,15 @@
+<?xml version="1.0" encoding="UTF-8" standalone="yes"?>
+<repository fileName="protocolrepository.xml">
+    <items>
+        <agentRepItems/>
+        <partyRepItems/>
+        <domainRepItem/>
+        <protocolRepItem>
+            <protocolRepItem description="Alternating Offers" classPath="negotiator.protocol.alternatingoffers.AlternatingOffersProtocol" protocolName="Alternating Offers"/>
+            <!--protocolRepItem description="Auction" classPath="negotiator.protocol.auction.AuctionProtocol" protocolName="Auction"/-->
+            <!--protocolRepItem description="MultiPhaseAuction" classPath="negotiator.protocol.auction.MultiPhaseAuctionProtocol" protocolName="MultiPhaseAuction"/-->
+        </protocolRepItem>
+        <multiPartyProtocolRepItem/>
+    </items>
+    <filename>protocolrepository.xml</filename>
+</repository>

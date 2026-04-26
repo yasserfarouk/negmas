@@ -1,0 +1,66 @@
+<utility_space> 
+<objective index="0" description="" name="Vacation" type="objective" etype="objective"> 
+<issue index="1" name="Location" vtype="discrete" type="discrete" etype="discrete"> 
+<item index="1" value="Paris" evaluation="4"> 
+</item> 
+<item index="2" value="Rome" evaluation="5"> 
+</item> 
+<item index="3" value="London" evaluation="1"> 
+</item> 
+<item index="4" value="Istanbul" evaluation="2"> 
+</item> 
+<item index="5" value="Dubai" evaluation="3"> 
+</item> 
+</issue> 
+<issue index="2" name="Travel" vtype="discrete" type="discrete" etype="discrete"> 
+<item index="1" value="Car" evaluation="2"> 
+</item> 
+<item index="2" value="Boat" evaluation="1"> 
+</item> 
+<item index="3" value="Train" evaluation="4"> 
+</item> 
+<item index="4" value="Airplane" evaluation="3"> 
+</item> 
+</issue> 
+<issue index="3" name="Duration (weeks)" lowerbound="1" upperbound="4" vtype="integer" type="integer" etype="integer"> 
+<evaluator slope="-0.16666666666666666" offset="1.0" ftype="linear"> 
+</evaluator> 
+</issue> 
+<issue index="4" name="Activities" vtype="discrete" type="discrete" etype="discrete"> 
+<item index="1" value="Walking" evaluation="2"> 
+</item> 
+<item index="2" value="Sightseeing" evaluation="3"> 
+</item> 
+<item index="3" value="Beach" evaluation="4"> 
+</item> 
+<item index="4" value="Nothing" evaluation="1"> 
+</item> 
+</issue> 
+<issue index="5" name="Sleeping" vtype="discrete" type="discrete" etype="discrete"> 
+<item index="1" value="Hotel" evaluation="1"> 
+</item> 
+<item index="2" value="Appartment" evaluation="2"> 
+</item> 
+<item index="3" value="Hostel" evaluation="3"> 
+</item> 
+<item index="4" value="Cabin" evaluation="4"> 
+</item> 
+<item index="5" value="Camping" evaluation="5"> 
+</item> 
+</issue> 
+<weight index="1" value="0.20066840706761038"> 
+</weight> 
+<weight index="2" value="0.22759659561403653"> 
+</weight> 
+<weight index="3" value="0.22742759974114368"> 
+</weight> 
+<weight index="4" value="0.22225123167474164"> 
+</weight> 
+<weight index="5" value="0.1220561659024678"> 
+</weight> 
+</objective> 
+<discount_factor value="1.0"> 
+</discount_factor> 
+<reservation value="0.3"> 
+</reservation> 
+</utility_space> 

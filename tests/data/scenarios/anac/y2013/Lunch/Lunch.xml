@@ -1,0 +1,66 @@
+<negotiation_template>
+<utility_space number_of_issues="6">
+<objective description="" etype="objective" index="0" name="root" type="objective">
+    <issue etype="discrete" index="1" name="salad" type="discrete" vtype="discrete">
+        <item index="1" value="green" cost="0" description="green">
+        </item>
+        <item index="2" value="potato" cost="0" description="potato">
+        </item>
+        <item index="3" value="caesar" cost="0" description="caesar">
+        </item>
+        <item index="4" value="sea" cost="0" description="sea">
+        </item>
+    </issue>
+    <issue etype="discrete" index="2" name="soup" type="discrete" vtype="discrete">
+        <item index="1" value="corn(ice)" cost="0" description="corn(ice)">
+        </item>
+        <item index="2" value="corn(hot)" cost="0" description="corn(hot)">
+        </item>
+        <item index="3" value="onion" cost="0" description="onion">
+        </item>
+        <item index="4" value="miso" cost="0" description="miso">
+        </item>
+    </issue>
+    <issue etype="discrete" index="3" name="carbohydrate" type="discrete" vtype="discrete">
+        <item index="1" value="rice" cost="0" description="rice">
+        </item>
+        <item index="2" value="bread(roll)" cost="0" description="bread(roll)">
+        </item>
+        <item index="3" value="bread(rye)" cost="0" description="bread(rye)">
+        </item>
+        <item index="4" value="bread(french)" cost="0" description="bread(french)">
+        </item>
+    </issue>
+    <issue etype="discrete" index="4" name="main" type="discrete" vtype="discrete">
+        <item index="1" value="beef" cost="0" description="beef">
+        </item>
+        <item index="2" value="pork" cost="0" description="pork">
+        </item>
+        <item index="3" value="chicken" cost="0" description="chicken">
+        </item>
+        <item index="4" value="fish" cost="0" description="fish">
+        </item>
+    </issue>
+    <issue etype="discrete" index="5" name="drink" type="discrete" vtype="discrete">
+        <item index="1" value="coke" cost="0" description="coke">
+        </item>
+        <item index="2" value="tea" cost="0" description="tea">
+        </item>
+        <item index="3" value="green tea" cost="0" description="green tea">
+        </item>
+        <item index="4" value="apple" cost="0" description="apple">
+        </item>
+        <item index="5" value="orange" cost="0" description="orange">
+        </item>
+    </issue>
+    <issue etype="discrete" index="6" name="dessert" type="discrete" vtype="discrete">
+        <item index="1" value="cake" cost="0" description="cake">
+        </item>
+        <item index="2" value="sherbet" cost="0" description="sherbet">
+        </item>
+        <item index="3" value="ice cream" cost="0" description="ice cream">
+        </item>
+    </issue>
+</objective>
+</utility_space>
+</negotiation_template>

@@ -1,0 +1,36 @@
+<?xml version="1.0"?>
+<negotiation_template number_of_sessions="3">
+  <utility_space number_of_issues="2">
+    <objective index="0" etype="objective" type="objective" description="" name="AirPortSiteSelection">
+      <issue index="1" etype="discrete" type="discrete" name="Cost">
+        <item index="1" value="GreaterThanOrEqual5.2bn"/>
+        <item index="2" value="5.0bn"/>
+        <item index="3" value="4.8bn"/>
+        <item index="4" value="4.6bn"/>
+        <item index="5" value="4.4bn"/>
+        <item index="6" value="4.2bn"/>
+        <item index="7" value="4.0bn"/>
+        <item index="8" value="3.8bn"/>
+        <item index="9" value="3.6bn"/>
+        <item index="10" value="LessThanOrEqual3.4bn"/>
+      </issue>
+      <issue index="2" etype="discrete" type="discrete" name="Noise">
+        <item index="1" value="LessThan10000"/>
+        <item index="2" value="10000"/>
+        <item index="3" value="20000"/>
+        <item index="4" value="30000"/>
+        <item index="5" value="40000"/>
+        <item index="6" value="50000"/>
+        <item index="7" value="GreaterThan50000"/>
+      </issue>
+      <issue index="3" etype="discrete" type="discrete" name="AccidentLevelPerMillionPassengerMiles">
+        <item index="1" value="GreaterThanOrEqual0.1"/>
+        <item index="2" value="0.08"/>
+        <item index="3" value="0.06"/>
+        <item index="4" value="0.04"/>
+        <item index="5" value="0.02"/>
+        <item index="6" value="LessThan0.02"/>
+      </issue>
+    </objective>
+  </utility_space>
+</negotiation_template>

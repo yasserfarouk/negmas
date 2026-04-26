@@ -1,0 +1,58 @@
+<negotiation_template> 
+<utility_space number_of_issues="4"> 
+<objective index="0" description="" name="Icecream" type="objective" etype="objective"> 
+<issue index="1" name="howmuch" vtype="discrete" type="discrete" etype="discrete"> 
+<item index="1" value="10"> 
+</item> 
+<item index="2" value="15"> 
+</item> 
+<item index="3" value="20"> 
+</item> 
+<item index="4" value="25"> 
+</item> 
+<item index="5" value="30"> 
+</item> 
+</issue> 
+<issue index="2" name="size" vtype="discrete" type="discrete" etype="discrete"> 
+<item index="1" value="one"> 
+</item> 
+<item index="2" value="two"> 
+</item> 
+<item index="3" value="three"> 
+</item> 
+<item index="4" value="parfait"> 
+</item> 
+</issue> 
+<issue index="3" name="cone" vtype="discrete" type="discrete" etype="discrete"> 
+<item index="1" value="waffle"> 
+</item> 
+<item index="2" value="standard"> 
+</item> 
+<item index="3" value="sandwiched"> 
+</item> 
+<item index="4" value="cup"> 
+</item> 
+</issue> 
+<issue index="4" name="taste" vtype="discrete" type="discrete" etype="discrete"> 
+<item index="1" value="chocolate"> 
+</item> 
+<item index="2" value="mint"> 
+</item> 
+<item index="3" value="strawberry"> 
+</item> 
+<item index="4" value="Vanilla"> 
+</item> 
+<item index="5" value="mocha"> 
+</item> 
+<item index="6" value="caramel"> 
+</item> 
+<item index="7" value="green tea"> 
+</item> 
+<item index="8" value="cookie and cream"> 
+</item> 
+<item index="9" value="choco chips"> 
+</item> 
+</issue> 
+</objective> 
+</utility_space> 
+</negotiation_template> 

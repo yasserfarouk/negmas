@@ -1,0 +1,95 @@
+<?xml version="1.0" encoding="UTF-8" standalone="yes"?>
+<repository fileName="partyrepository.xml">
+	<items>
+		<agentRepItems />
+		<partyRepItems>
+			<partyRepItem description="Agent for group n" classPath="negotiator.groupn.Groupn"
+				partyName="Group n" protocolClassPath="negotiator.protocol.StackedAlternatingOffersProtocol" />
+			<partyRepItem description="Deadline-based boulware agent"
+				classPath="negotiator.parties.BoulwareNegotiationParty" partyName="Boulware"
+				protocolClassPath="negotiator.protocol.StackedAlternatingOffersProtocol" />
+			<partyRepItem description="Deadline-based conceder agent"
+				classPath="negotiator.parties.ConcederNegotiationParty" partyName="Conceder"
+				protocolClassPath="negotiator.protocol.StackedAlternatingOffersProtocol" />
+			<partyRepItem description="Simple UI party"
+				classPath="negotiator.parties.CounterOfferHumanNegotiationParty"
+				partyName="UI Party" protocolClassPath="negotiator.protocol.StackedAlternatingOffersProtocol">
+			</partyRepItem>
+			<partyRepItem description="Random party"
+				classPath="negotiator.parties.RandomCounterOfferNegotiationParty"
+				partyName="Random party" protocolClassPath="negotiator.protocol.StackedAlternatingOffersProtocol">
+			</partyRepItem>
+
+			<!--  ANAC2015 agents -->
+			<partyRepItem description="1. Phoenix"
+				classPath="agents.anac.y2015.Phoenix.PhoenixParty" partyName="ANAC2015-1-Phoenix"
+				protocolClassPath="negotiator.protocol.StackedAlternatingOffersProtocol" />
+			<partyRepItem description="2. CUHK"
+				classPath="agents.anac.y2015.cuhkagent2015.CUHKAgent2015" partyName="ANAC2015-2-CUHK"
+				protocolClassPath="negotiator.protocol.StackedAlternatingOffersProtocol" />
+			<partyRepItem description="3. Pars"
+				classPath="agents.anac.y2015.ui.ParsAgent" partyName="ANAC2015-3-Pars"
+				protocolClassPath="negotiator.protocol.StackedAlternatingOffersProtocol" />
+			<partyRepItem description="4. Ares"
+				classPath="agents.anac.y2015.AresParty.AresParty" partyName="ANAC2015-4-Ares"
+				protocolClassPath="negotiator.protocol.StackedAlternatingOffersProtocol" />
+			<partyRepItem description="5. Mercury "
+				classPath="agents.anac.y2015.Mercury.Mercury" partyName="ANAC2015-5-Mercury"
+				protocolClassPath="negotiator.protocol.StackedAlternatingOffersProtocol" />
+			<partyRepItem description="6. Atlas"
+				classPath="agents.anac.y2015.Atlas3.Atlas3" partyName="ANAC2015-6-Atlas"
+				protocolClassPath="negotiator.protocol.StackedAlternatingOffersProtocol" />
+			<partyRepItem description="7. AgentH "
+				classPath="agents.anac.y2015.agenth.AgentH" partyName="ANAC2015-7-AgentH"
+				protocolClassPath="negotiator.protocol.StackedAlternatingOffersProtocol" />
+			<partyRepItem description="8. SENGOKU"
+				classPath="agents.anac.y2015.SENGOKU.SENGOKU" partyName="ANAC2015-8-SENGOKU"
+				protocolClassPath="negotiator.protocol.StackedAlternatingOffersProtocol" />
+			<partyRepItem description="9. AgentW"
+				classPath="agents.anac.y2015.AgentW.AgentW" partyName="ANAC2015-9-AgentW"
+				protocolClassPath="negotiator.protocol.StackedAlternatingOffersProtocol" />
+			<partyRepItem description="10.  agents.anac.y2015.AgentX.AgentX "
+				classPath="agents.anac.y2015.AgentX.AgentX" partyName="ANAC2015-10-AgentX"
+				protocolClassPath="negotiator.protocol.StackedAlternatingOffersProtocol" />
+			<partyRepItem description="11. DrageKnight"
+				classPath="agents.anac.y2015.DrageKnight.DrageKnight" partyName="ANAC2015-11-DrageKnight"
+				protocolClassPath="negotiator.protocol.StackedAlternatingOffersProtocol" />
+			<partyRepItem description="12. Kawaii"
+				classPath="agents.anac.y2015.fairy.kawaii" partyName="ANAC2015-12-Kawaii"
+				protocolClassPath="negotiator.protocol.StackedAlternatingOffersProtocol" />
+			<partyRepItem description="13. Buyog"
+				classPath="agents.anac.y2015.agentBuyogV2.AgentBuyogMain" partyName="ANAC2015-13-Buyog"
+				protocolClassPath="negotiator.protocol.StackedAlternatingOffersProtocol" />
+			<partyRepItem description="14. XianFa"
+				classPath="agents.anac.y2015.xianfa.XianFaAgent" partyName="ANAC2015-14-XianFa"
+				protocolClassPath="negotiator.protocol.StackedAlternatingOffersProtocol" />
+			<partyRepItem description="15. Neo"
+				classPath="agents.anac.y2015.AgentNeo.Groupn" partyName="ANAC2015-15-Neo"
+				protocolClassPath="negotiator.protocol.StackedAlternatingOffersProtocol" />
+			<partyRepItem description="17. HP"
+				classPath="agents.anac.y2015.AgentHP.AgentHP" partyName="ANAC2015-17-HP"
+				protocolClassPath="negotiator.protocol.StackedAlternatingOffersProtocol" />
+			<partyRepItem description="18. agents.anac.y2015.group2.Group2 "
+				classPath="agents.anac.y2015.group2.Group2" partyName="ANAC2015-18-Group2"
+				protocolClassPath="negotiator.protocol.StackedAlternatingOffersProtocol" />
+			<partyRepItem description="19. PokerFace"
+				classPath="agents.anac.y2015.pokerface.PokerFace" partyName="ANAC2015-19-PokerFace"
+				protocolClassPath="negotiator.protocol.StackedAlternatingOffersProtocol" />
+			<partyRepItem description="20. TUDMixedStrategy"
+				classPath="agents.anac.y2015.TUDMixedStrategyAgent.TUDMixedStrategyAgent" partyName="ANAC2015-20-TUDMixedStrategy"
+				protocolClassPath="negotiator.protocol.StackedAlternatingOffersProtocol" />
+			<partyRepItem description="21. Mean"
+				classPath="agents.anac.y2015.meanBot.MeanBot" partyName="ANAC2015-21-Mean"
+				protocolClassPath="negotiator.protocol.StackedAlternatingOffersProtocol" />
+			<partyRepItem description="22. PNegotiator"
+				classPath="agents.anac.y2015.pnegotiator.PNegotiator" partyName="ANAC2015-22-PNegotiator"
+				protocolClassPath="negotiator.protocol.StackedAlternatingOffersProtocol" />
+
+
+		</partyRepItems>
+		<domainRepItem />
+		<protocolRepItem />
+		<multiPartyProtocolRepItem />
+	</items>
+	<filename>partyrepository.xml</filename>
+</repository>

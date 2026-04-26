@@ -1,0 +1,46 @@
+<?xml version="1.0"?>
+<negotiation_template number_of_sessions="1">
+  <agent utility_space="" name="" class=""> </agent>
+  <agent utility_space="" name="" class=""> </agent>
+  <utility_space number_of_issues="0">
+    <objective index="0" description="" name="MusicCollection" type="objective" etype="objective">
+      <issue index="1" name="Classical" vtype="discrete" type="discrete" etype="discrete">
+        <item index="1" value="Bach" />
+        <item index="2" value="Mozart" />
+        <item index="3" value="Beethoven" />
+        <item index="4" value="Prokofiev" />
+      </issue>
+      <issue index="2" name="Rock" vtype="discrete" type="discrete" etype="discrete">
+        <item index="1" value="Chuck Berry" />
+        <item index="2" value="The Beatles" />
+        <item index="3" value="The Doors" />
+        <item index="4" value="Camel" />
+        <item index="5" value="Nirvana" />
+      </issue>
+      <issue index="3" name="Jazz" vtype="discrete" type="discrete" etype="discrete">
+        <item index="1" value="Louie Armstrong" />
+        <item index="2" value="Charlie Parker" />
+        <item index="3" value="Miles Davis" />
+        <item index="4" value="John Coltrane" />
+        <item index="5" value="Herbie Hancock" />
+        <item index="6" value="Cal Tjader" />
+      </issue>
+      <issue index="4" name="Pop" vtype="discrete" type="discrete" etype="discrete">
+        <item index="1" value="Michael Jackson" />
+        <item index="2" value="Madonna" />
+        <item index="3" value="Elton John" />
+      </issue>
+      <issue index="5" name="Brazil" vtype="discrete" type="discrete" etype="discrete">
+        <item index="1" value="Gilberto Gil" />
+        <item index="2" value="Antonio Carlos Jobim" />
+        <item index="3" value="Astrud Gilberto" />
+      </issue>
+      <issue index="6" name="Latin" vtype="discrete" type="discrete" etype="discrete">
+        <item index="1" value="Eddie Palmieri" />
+        <item index="2" value="Maraca" />
+        <item index="3" value="Gypsy Kings" />
+        <item index="4" value="Tito Puente" />
+      </issue>
+    </objective>
+  </utility_space>
+</negotiation_template>

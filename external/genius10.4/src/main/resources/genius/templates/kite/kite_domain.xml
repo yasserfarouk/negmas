@@ -1,0 +1,18 @@
+<negotiation_template number_of_sessions="1">
+	<utility_space number_of_issues="0">
+		<objective index="0" etype="objective" type="objective"
+			description="" name="KiteDomain">
+			<issue index="1" etype="discrete" type="discrete" vtype="discrete"
+				name="Kite">
+				<item index="1" value="a" cost="0" description="a">
+				</item>
+				<item index="2" value="b" cost="0" description="b">
+				</item>
+				<item index="3" value="c" cost="0" description="c">
+				</item>
+				<item index="4" value="d" cost="0" description="d">
+				</item>
+			</issue>
+		</objective>
+	</utility_space>
+</negotiation_template> 

@@ -1,0 +1,34 @@
+<utility_space> 
+<objective index="1" etype="objective" type="objective" description="" name="LaptopDomain"> 
+<issue index="2" etype="discrete" type="discrete" vtype="discrete" name="Laptop"> 
+<item index="1" value="Dell" cost="700" description="cheap laptop" evaluation="null"> 
+</item> 
+<item index="2" value="Macintosh" cost="800" description="quality laptop" evaluation="null"> 
+</item> 
+<item index="3" value="HP" cost="900" description="gamer laptop" evaluation="null"> 
+</item> 
+</issue> 
+<issue index="3" etype="discrete" type="discrete" vtype="discrete" name="Harddisk"> 
+<item index="1" value="60 Gb"  cost="0" description="the default internal HD" evaluation="null"> 
+</item> 
+<item index="2" value="80 Gb"  cost="50" description="some extra space" evaluation="null"> 
+</item> 
+<item index="3" value="120 Gb"  cost="100" description="enough for dual-boot or video editing" evaluation="null"> 
+</item> 
+</issue> 
+<issue index="4" etype="discrete" type="discrete" vtype="discrete" name="External Monitor"> 
+<item index="1" value="19'' LCD"  cost="250" description="nothing special" evaluation="null"> 
+</item> 
+<item index="2" value="20'' LCD" cost="350" description="fast switching, high contrast" evaluation="null"> 
+</item> 
+<item index="3" value="23'' LCD"  cost="450" description="nice to play movies, lots of space" evaluation="null"> 
+</item> 
+</issue> 
+<weight index="2" value="0.33333"> 
+</weight> 
+<weight index="3" value="0.33333"> 
+</weight> 
+<weight index="4" value="0.33334">
+</weight> 
+</objective> 
+</utility_space> 

@@ -1,0 +1,14 @@
+<negotiation_template>
+<utility_space number_of_issues="1">
+<objective description="" etype="objective" index="0" name="root" type="objective">
+    <issue etype="discrete" index="1" name="NiceOrDie" type="discrete" vtype="discrete">
+        <item index="1" value="100_16" cost="0" description="100_16">
+        </item>
+        <item index="2" value="16_100" cost="0" description="16_100">
+        </item>
+        <item index="3" value="29_29" cost="0" description="29_29">
+        </item>
+    </issue>
+</objective>
+</utility_space>
+</negotiation_template>

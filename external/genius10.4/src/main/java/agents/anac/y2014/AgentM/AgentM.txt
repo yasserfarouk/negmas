@@ -1,0 +1,77 @@
+Found the constructor: public negotiator.protocol.alternatingoffers.AlternatingOffersProtocol(negotiator.repository.AgentRepItem[],negotiator.repository.ProfileRepItem[],java.util.HashMap[],int) throws java.lang.Exception
+Reservation value: 0.6
+Discount value: 0.95
+Reservation value: 0.6
+Discount value: 0.95
+Configuration for startingAgent not set. Using default: 0.
+Configuration for accessPartnerPreferences not set. Using default: false.
+Configuration for appendModeAndDeadline not set. Using default: false.
+Configuration for disableGUI not set. Using default: false.
+Configuration for logNegotiationTrace not set. Using default: false.
+Configuration for disableGUI not set. Using default: false.
+[BidPoint [nullutilA[0.6061776],utilB[1.0],, BidPoint [nullutilA[0.8108108],utilB[0.95596594],, BidPoint [nullutilA[0.91795367],utilB[0.90767044],, BidPoint [nullutilA[1.0],utilB[0.7698864],]
+Configuration for protocolMode not set. Using default: false.
+Real-time negotiation start. 1396579674
+waiting NEGO_TIMEOUT=190000
+Configuration for allowPausingTimeline not set. Using default: false.
+Configuration for protocolMode not set. Using default: false.
+Configuration for allowPausingTimeline not set. Using default: false.
+Started time line of 180 seconds.
+Starting match num: 0
+There is no history yet.
+Starting match num: 0
+There is no history yet.
+Negotiation started. Agent AgentM starts.
+Configuration for logFinalAccuracy not set. Using default: false.
+Problem with received bid:null. cancelling bidding
+Configuration for oneSidedBidding not set. Using default: false.
+java.lang.NullPointerException
+	at negotiator.utility.InclusiveHyperRectangle.getUtility(InclusiveHyperRectangle.java:48)
+	at negotiator.utility.UtilityFunction.getUtility(UtilityFunction.java:108)
+	at negotiator.utility.NonlinearUtilitySpace.getUtility(NonlinearUtilitySpace.java:277)
+	at negotiator.utility.UtilitySpace.getUtilityWithDiscount(UtilitySpace.java:360)
+	at negotiator.protocol.alternatingoffers.AlternatingOffersBilateralAtomicNegoSession.createOutcome(AlternatingOffersBilateralAtomicNegoSession.java:856)
+	at negotiator.protocol.alternatingoffers.AlternatingOffersBilateralAtomicNegoSession.run(AlternatingOffersBilateralAtomicNegoSession.java:364)
+	at java.lang.Thread.run(Thread.java:744)
+java.lang.NullPointerException
+	at negotiator.utility.InclusiveHyperRectangle.getUtility(InclusiveHyperRectangle.java:48)
+	at negotiator.utility.UtilityFunction.getUtility(UtilityFunction.java:108)
+	at negotiator.utility.NonlinearUtilitySpace.getUtility(NonlinearUtilitySpace.java:277)
+	at negotiator.utility.UtilitySpace.getUtilityWithDiscount(UtilitySpace.java:360)
+	at negotiator.protocol.alternatingoffers.AlternatingOffersBilateralAtomicNegoSession.createOutcome(AlternatingOffersBilateralAtomicNegoSession.java:857)
+	at negotiator.protocol.alternatingoffers.AlternatingOffersBilateralAtomicNegoSession.run(AlternatingOffersBilateralAtomicNegoSession.java:364)
+	at java.lang.Thread.run(Thread.java:744)
+WARNING: Caught exception:, java.lang.NullPointerException
+negotiator.utility.InclusiveHyperRectangle.getUtility(InclusiveHyperRectangle.java:48)
+negotiator.utility.UtilityFunction.getUtility(UtilityFunction.java:108)
+negotiator.utility.NonlinearUtilitySpace.getUtility(NonlinearUtilitySpace.java:277)
+negotiator.protocol.alternatingoffers.AlternatingOffersBilateralAtomicNegoSession.createOutcome(AlternatingOffersBilateralAtomicNegoSession.java:859)
+negotiator.protocol.alternatingoffers.AlternatingOffersBilateralAtomicNegoSession.run(AlternatingOffersBilateralAtomicNegoSession.java:364)
+java.lang.Thread.run(Thread.java:744)
+WARNING: Protocol error by AgentAgentM, java.lang.NullPointerException
+negotiator.utility.InclusiveHyperRectangle.getUtility(InclusiveHyperRectangle.java:48)
+negotiator.utility.UtilityFunction.getUtility(UtilityFunction.java:108)
+negotiator.utility.NonlinearUtilitySpace.getUtility(NonlinearUtilitySpace.java:277)
+negotiator.protocol.alternatingoffers.AlternatingOffersBilateralAtomicNegoSession.createOutcome(AlternatingOffersBilateralAtomicNegoSession.java:859)
+negotiator.protocol.alternatingoffers.AlternatingOffersBilateralAtomicNegoSession.run(AlternatingOffersBilateralAtomicNegoSession.java:364)
+java.lang.Thread.run(Thread.java:744)
+Caught exception. Agent [AgentM] crashed. Last known action = (Accept). Emergency outcome: (rvA, rvB).. Details: java.lang.NullPointerException
+Producing reservation outcome of utility 0.6, 0.6. Reason: Caught exception. Agent [AgentM] crashed. Last known action = (Accept). Emergency outcome: (rvA, rvB).. Details: java.lang.NullPointerException
+Configuration for logFinalAccuracy not set. Using default: false.
+Configuration for logNegotiationTrace not set. Using default: false.
+Configuration for logDetailedAnalysis not set. Using default: false.
+Configuration for appendModeAndDeadline not set. Using default: false.
+Configuration for appendModeAndDeadline not set. Using default: false.
+Creating log file: log/2014-04-04 11.47.33.xml
+WARNING: Exception during writing s:java.lang.NullPointerException, negotiator.exceptions.Warning$MyWarningException at negotiator.protocol.alternatingoffers.AlternatingOffersProtocol.writeOutcomeToLog(AlternatingOffersProtocol.java:324)
+java.lang.NullPointerException
+	at negotiator.NegotiationOutcome.getAcceptedBid(NegotiationOutcome.java:649)
+	at negotiator.NegotiationOutcome.toXML(NegotiationOutcome.java:492)
+	at negotiator.NegotiationOutcome.toXML(NegotiationOutcome.java:472)
+	at negotiator.protocol.alternatingoffers.AlternatingOffersProtocol.writeOutcomeToLog(AlternatingOffersProtocol.java:318)
+	at negotiator.protocol.alternatingoffers.AlternatingOffersProtocol.createExtraLogData(AlternatingOffersProtocol.java:280)
+	at negotiator.protocol.alternatingoffers.AlternatingOffersProtocol.runNegotiationSession(AlternatingOffersProtocol.java:206)
+	at negotiator.protocol.alternatingoffers.AlternatingOffersProtocol.startNegotiation(AlternatingOffersProtocol.java:122)
+	at negotiator.protocol.alternatingoffers.AlternatingOffersProtocol.run(AlternatingOffersProtocol.java:102)
+	at java.lang.Thread.run(Thread.java:744)
+Configuration for logNegotiationTrace not set. Using default: false.

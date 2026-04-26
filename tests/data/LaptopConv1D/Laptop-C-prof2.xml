@@ -1,0 +1,64 @@
+<utility_space type="any" number_of_issues="1">
+<objective index="1" etype="objective" type="objective" description="" name="any">
+<issue index="1" etype="discrete" type="discrete" vtype="discrete" name="Laptop-Harddisk-External Monitor">
+    <item index="1" value="Dell+60 Gb+19'' LCD"  cost="0"  evaluation="0.24849213897760034" description="Dell+60 Gb+19'' LCD">
+    </item>
+    <item index="2" value="Dell+60 Gb+20'' LCD"  cost="0"  evaluation="0.2094651115323505" description="Dell+60 Gb+20'' LCD">
+    </item>
+    <item index="3" value="Dell+60 Gb+23'' LCD"  cost="0"  evaluation="0.1704380840871007" description="Dell+60 Gb+23'' LCD">
+    </item>
+    <item index="4" value="Dell+80 Gb+19'' LCD"  cost="0"  evaluation="0.4034358517840555" description="Dell+80 Gb+19'' LCD">
+    </item>
+    <item index="5" value="Dell+80 Gb+20'' LCD"  cost="0"  evaluation="0.36440882433880567" description="Dell+80 Gb+20'' LCD">
+    </item>
+    <item index="6" value="Dell+80 Gb+23'' LCD"  cost="0"  evaluation="0.3253817968935559" description="Dell+80 Gb+23'' LCD">
+    </item>
+    <item index="7" value="Dell+120 Gb+19'' LCD"  cost="0"  evaluation="0.07805405489049963" description="Dell+120 Gb+19'' LCD">
+    </item>
+    <item index="8" value="Dell+120 Gb+20'' LCD"  cost="0"  evaluation="0.039027027445249815" description="Dell+120 Gb+20'' LCD">
+    </item>
+    <item index="9" value="Dell+120 Gb+23'' LCD"  cost="0"  evaluation="0.0" description="Dell+120 Gb+23'' LCD">
+    </item>
+    <item index="10" value="Macintosh+60 Gb+19'' LCD"  cost="0"  evaluation="0.8450562871935449" description="Macintosh+60 Gb+19'' LCD">
+    </item>
+    <item index="11" value="Macintosh+60 Gb+20'' LCD"  cost="0"  evaluation="0.806029259748295" description="Macintosh+60 Gb+20'' LCD">
+    </item>
+    <item index="12" value="Macintosh+60 Gb+23'' LCD"  cost="0"  evaluation="0.7670022323030452" description="Macintosh+60 Gb+23'' LCD">
+    </item>
+    <item index="13" value="Macintosh+80 Gb+19'' LCD"  cost="0"  evaluation="1.0" description="Macintosh+80 Gb+19'' LCD">
+    </item>
+    <item index="14" value="Macintosh+80 Gb+20'' LCD"  cost="0"  evaluation="0.9609729725547502" description="Macintosh+80 Gb+20'' LCD">
+    </item>
+    <item index="15" value="Macintosh+80 Gb+23'' LCD"  cost="0"  evaluation="0.9219459451095003" description="Macintosh+80 Gb+23'' LCD">
+    </item>
+    <item index="16" value="Macintosh+120 Gb+19'' LCD"  cost="0"  evaluation="0.6746182031064439" description="Macintosh+120 Gb+19'' LCD">
+    </item>
+    <item index="17" value="Macintosh+120 Gb+20'' LCD"  cost="0"  evaluation="0.6355911756611942" description="Macintosh+120 Gb+20'' LCD">
+    </item>
+    <item index="18" value="Macintosh+120 Gb+23'' LCD"  cost="0"  evaluation="0.5965641482159444" description="Macintosh+120 Gb+23'' LCD">
+    </item>
+    <item index="19" value="HP+60 Gb+19'' LCD"  cost="0"  evaluation="0.5136317604069089" description="HP+60 Gb+19'' LCD">
+    </item>
+    <item index="20" value="HP+60 Gb+20'' LCD"  cost="0"  evaluation="0.47460473296165917" description="HP+60 Gb+20'' LCD">
+    </item>
+    <item index="21" value="HP+60 Gb+23'' LCD"  cost="0"  evaluation="0.43557770551640934" description="HP+60 Gb+23'' LCD">
+    </item>
+    <item index="22" value="HP+80 Gb+19'' LCD"  cost="0"  evaluation="0.6685754732133642" description="HP+80 Gb+19'' LCD">
+    </item>
+    <item index="23" value="HP+80 Gb+20'' LCD"  cost="0"  evaluation="0.6295484457681143" description="HP+80 Gb+20'' LCD">
+    </item>
+    <item index="24" value="HP+80 Gb+23'' LCD"  cost="0"  evaluation="0.5905214183228645" description="HP+80 Gb+23'' LCD">
+    </item>
+    <item index="25" value="HP+120 Gb+19'' LCD"  cost="0"  evaluation="0.3431936763198083" description="HP+120 Gb+19'' LCD">
+    </item>
+    <item index="26" value="HP+120 Gb+20'' LCD"  cost="0"  evaluation="0.30416664887455847" description="HP+120 Gb+20'' LCD">
+    </item>
+    <item index="27" value="HP+120 Gb+23'' LCD"  cost="0"  evaluation="0.2651396214293087" description="HP+120 Gb+23'' LCD">
+    </item>
+</issue>
+<weight index="1" value="1.0">
+</weight>
+</objective>
+<discount_factor value="1.0" />
+<reservation value="0.0" />
+</utility_space>

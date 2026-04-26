@@ -1,0 +1,87 @@
+<?xml version="1.0" encoding="UTF-8" standalone="yes"?>
+<multilateralTournamentsConfiguration>
+	<tournaments>
+		<tournament>
+			<deadline>
+				<value>30</value>
+				<type>ROUND</type>
+			</deadline>
+			<protocolItem hasMediatorProfile="false" hasMediator="false"
+				description="Each agents makes offer, counter-offer, or accepts"
+				classPath="genius.core.protocol.StackedAlternatingOffersProtocol"
+				protocolName="Stacked Alternating Offers Protocol for Multi-Lateral Negotiation (SAOPMN)" />
+			<partyRepItems>
+				<party protocolClassPath="negotiator.protocol.StackedAlternatingOffersProtocol"
+					description="Boulware " classPath="negotiator.parties.BoulwareNegotiationParty"
+					partyName="Boulware">
+					<properties />
+				</party>
+				<party protocolClassPath="negotiator.protocol.StackedAlternatingOffersProtocol"
+					description="Conceder" classPath="negotiator.parties.ConcederNegotiationParty"
+					partyName="Conceder">
+					<properties />
+				</party>
+				<party protocolClassPath="negotiator.protocol.StackedAlternatingOffersProtocol"
+					description="Conceder" classPath="negotiator.parties.ConcederNegotiationParty"
+					partyName="Conceder">
+					<properties />
+				</party>
+			</partyRepItems>
+			<partyProfileItems>
+				<item url="file:etc/templates/partydomain/party1_utility.xml" />
+				<item url="file:etc/templates/partydomain/party2_utility.xml" />
+				<item url="file:etc/templates/partydomain/party3_utility.xml" />
+			</partyProfileItems>
+			<repeats>1</repeats>
+			<numberOfPartiesPerSession>3</numberOfPartiesPerSession>
+			<repetitionAllowed>false</repetitionAllowed>
+			<persistentDataType>DISABLED</persistentDataType>
+		</tournament>
+
+		<tournament>
+			<deadline>
+				<value>10</value>
+				<type>ROUND</type>
+			</deadline>
+			<protocolItem hasMediatorProfile="false" hasMediator="false"
+				description="Each agents makes offer, counter-offer, or accepts"
+				classPath="genius.core.protocol.StackedAlternatingOffersProtocol"
+				protocolName="Stacked Alternating Offers Protocol for Multi-Lateral Negotiation (SAOPMN)" />
+			<partyRepItems>
+				<party protocolClassPath="negotiator.protocol.StackedAlternatingOffersProtocol"
+					description="Boulware " classPath="negotiator.parties.BoulwareNegotiationParty"
+					partyName="Boulware">
+					<properties />
+				</party>
+				<party protocolClassPath="negotiator.protocol.StackedAlternatingOffersProtocol"
+					description="Boulware " classPath="negotiator.parties.BoulwareNegotiationParty"
+					partyName="Boulware">
+					<properties />
+				</party>
+
+				<party protocolClassPath="negotiator.protocol.StackedAlternatingOffersProtocol"
+					description="Conceder" classPath="negotiator.parties.ConcederNegotiationParty"
+					partyName="Conceder">
+					<properties />
+				</party>
+				<party protocolClassPath="negotiator.protocol.StackedAlternatingOffersProtocol"
+					description="Conceder" classPath="negotiator.parties.ConcederNegotiationParty"
+					partyName="Conceder">
+					<properties />
+				</party>
+
+			</partyRepItems>
+			<partyProfileItems>
+				<item url="file:etc/templates/partydomain/party3_utility.xml" />
+				<item url="file:etc/templates/partydomain/party4_utility.xml" />
+				<item url="file:etc/templates/partydomain/party5_utility.xml" />
+				<item url="file:etc/templates/partydomain/party6_utility.xml" />
+			</partyProfileItems>
+			<repeats>1</repeats>
+			<numberOfPartiesPerSession>4</numberOfPartiesPerSession>
+			<repetitionAllowed>false</repetitionAllowed>
+			<persistentDataType>DISABLED</persistentDataType>
+		</tournament>
+
+	</tournaments>
+</multilateralTournamentsConfiguration>

@@ -1,0 +1,71 @@
+<utility_space> 
+    <reservation value="0" />
+<objective index="0" description="" name="GroceryDomain" type="objective" etype="objective"> 
+<issue index="1" name="Bread type" vtype="discrete" type="discrete" etype="discrete"> 
+<item index="1" value="Baguette" cost="0.0" evaluation="10"> 
+</item> 
+<item index="2" value="Crackers" cost="0.0" evaluation="5"> 
+</item> 
+<item index="3" value="Croissants" cost="0.0" evaluation="2"> 
+</item> 
+<item index="4" value="Plain bread" cost="0.0" evaluation="1"> 
+</item> 
+</issue>
+<issue index="2" name="Fruit" vtype="discrete" type="discrete" etype="discrete"> 
+<item index="1" value="Apples" cost="0.0" evaluation="10"> 
+</item> 
+<item index="2" value="Bananas" cost="0.0" evaluation="3"> 
+</item> 
+<item index="3" value="Cherries" cost="0.0" evaluation="1"> 
+</item> 
+<item index="4" value="Grapes" cost="0.0" evaluation="2"> 
+</item> 
+<item index="5" value="Pears" cost="0.0" evaluation="5"> 
+</item> 
+</issue> 
+<issue index="3" name="Snacks" vtype="discrete" type="discrete" etype="discrete"> 
+<item index="1" value="Chocolate bars" cost="0.0" evaluation="2"> 
+</item> 
+<item index="2" value="Doughnuts" cost="0.0" evaluation="10"> 
+</item> 
+<item index="3" value="Nachos" cost="0.0" evaluation="1"> 
+</item> 
+<item index="4" value="Popcorn" cost="0.0" evaluation="5"> 
+</item> 
+</issue> 
+<issue index="4" name="Spreads" vtype="discrete" type="discrete" etype="discrete"> 
+<item index="1" value="Cheese" cost="0.0" evaluation="1"> 
+</item> 
+<item index="2" value="Jam" cost="0.0" evaluation="10"> 
+</item> 
+<item index="3" value="Peanut butter" cost="0.0" evaluation="2"> 
+</item> 
+<item index="4" value="Sandwichspread" cost="0.0" evaluation="5"> 
+</item> 
+</issue> 
+<issue index="5" name="Vegetables" vtype="discrete" type="discrete" etype="discrete"> 
+<item index="1" value="Beans" cost="0.0" evaluation="1"> 
+</item> 
+<item index="2" value="Broccoli" cost="0.0" evaluation="3"> 
+</item> 
+<item index="3" value="Leek" cost="0.0" evaluation="5"> 
+</item> 
+<item index="4" value="Potatoes" cost="0.0" evaluation="10"> 
+</item> 
+<item index="5" value="Spinach" cost="0.0" evaluation="2"> 
+</item> 
+</issue> 
+<weight index="1" value="0.2"> 
+</weight> 
+<weight index="2" value="0.05"> 
+</weight> 
+<weight index="3" value="0.5"> 
+</weight> 
+<weight index="4" value="0.15"> 
+</weight> 
+<weight index="5" value="0.10"> 
+</weight> 
+</objective> 
+<discount_factor value="0.805562132">
+</discount_factor>
+</utility_space> 

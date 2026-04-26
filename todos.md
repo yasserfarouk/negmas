@@ -1,0 +1,2 @@
+- correct loading and saving of HyperRectangleUFuns. Currently, it seems that evaluating this ufuns is not correct. It has to do with using names/indices for the ranges I think.
+- get normalization to work

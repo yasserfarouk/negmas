@@ -1,0 +1,64 @@
+<negotiation_template>
+	<utility_space number_of_issues="6">
+		<objective index="0" description="" name="Jobs" type="objective"
+			etype="objective">
+			<issue index="1" name="salary" vtype="discrete" type="discrete"
+				etype="discrete">
+				<item index="1" value="2000">
+				</item>
+				<item index="2" value="2500">
+				</item>
+				<item index="3" value="3000">
+				</item>
+				<item index="4" value="3500">
+				</item>
+				<item index="5" value="4000">
+				</item>
+			</issue>
+			<issue index="2" name="fte" vtype="discrete" type="discrete"
+				etype="discrete">
+				<item index="1" value="0.6">
+				</item>
+				<item index="2" value="0.8">
+				</item>
+				<item index="3" value="1.0">
+				</item>
+			</issue>
+			<issue index="3" name="work from home" vtype="discrete" type="discrete"
+				etype="discrete">
+				<item index="1" value="0">
+				</item>
+				<item index="2" value="1">
+				</item>
+				<item index="3" value="2">
+				</item>
+			</issue>
+			<issue index="4" name="lease car" vtype="discrete" type="discrete"
+				etype="discrete">
+				<item index="1" value="yes">
+				</item>
+				<item index="2" value="no">
+				</item>
+			</issue>
+			<issue index="5" name="permanent contract" vtype="discrete"
+				type="discrete" etype="discrete">
+				<item index="1" value="yes">
+				</item>
+				<item index="2" value="no">
+				</item>
+			</issue>
+			<issue index="6" name="career development opportunities" vtype="discrete"
+				type="discrete" etype="discrete">
+				<item index="1" value="low">
+				</item>
+				<item index="2" value="medium">
+				</item>
+				<item index="3" value="high">
+				</item>
+			</issue>
+
+
+
+		</objective>
+	</utility_space>
+</negotiation_template> 

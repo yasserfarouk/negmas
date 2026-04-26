@@ -1,0 +1,22 @@
+<negotiation_template>
+	<utility_space number_of_issues="3">
+		<objective index="0" description="" name="Defensive Charms" type="objective" etype="objective">
+			<issue index="1" vtype="discrete" type="discrete" name="Barriers">
+				<item index="1" value="Age Line"></item>
+				<item index="2" value="Salvio Hexia"></item>
+				<item index="3" value="Impervius"></item>
+			</issue>
+			<issue index="2" vtype="discrete" type="discrete" name="Shields">
+				<item index="1" value="Protego"></item>
+				<item index="2" value="Protego Maxima"></item>
+				<item index="3" value="Protego Duo"></item>
+				<item index="4" value="Protego Horibilis"></item>
+			</issue>
+			<issue index="3" vtype="discrete" type="discrete" name="Warnings">
+				<item index="1" value="Cave Inimicum"></item>
+				<item index="2" value="Colloportus"></item>
+				<item index="3" value="Muffliato"></item>
+			</issue>
+		</objective>
+	</utility_space>
+</negotiation_template>

@@ -1,0 +1,65 @@
+<?xml version="1.0"?>
+<negotiation_template number_of_sessions="1">
+  <agent utility_space="" name="" class="">
+</agent>
+  <agent utility_space="" name="" class="">
+</agent>
+  <utility_space number_of_issues="0">
+    <objective index="0" description="" name="BBQ" type="objective" etype="objective">
+      <issue index="1" name="Meat" vtype="discrete" type="discrete" etype="discrete">
+        <item index="1" description="Buy cheap meat, and lots of it." value="Burgers and chicken" cost="100.0">
+			</item>
+        <item index="2" description="Assorted fish, ready for the barbecue." value="Fish" cost="170.0">
+			</item>
+        <item index="3" description="More expensive meat, but also much tastier." value="Luxury meats" cost="200.0">
+			</item>
+        <item index="4" description="Assorted biologically acceptable meats." value="Biological" cost="250.0">
+			</item>
+        <item index="5" description="Meat replacements only, vegetarian hamburgers etcetera." value="Vegetarian" cost="250.0">
+			</item>
+        <item index="6" description="No meat at all." value="None" cost="0.0">
+			</item>
+      </issue>
+      <issue index="2" name="Drinks" vtype="discrete" type="discrete" etype="discrete">
+        <item index="1" description="Soda, lemonade and the likes only. No alcoholic beverages." value="Non-Alcoholic" cost="150.0">
+			</item>
+        <item index="2" description="Beer, wine and soda." value="Beer plus" cost="250.0">
+			</item>
+        <item index="3" description="Biological beer. Yes, it exists." value="Bio-beer" cost="300.0">
+			</item>
+        <item index="4" description="Expensive alcoholic stuff. Good wine and beer." value="Luxury alcoholic" cost="400.0">
+			</item>
+      </issue>
+      <issue index="3" name="Location" vtype="discrete" type="discrete" etype="discrete">
+        <item index="1" description="Someone's balcony. Has just enough space and is easy to reach, but hidden in shade." value="Balcony" cost="10.0">
+			</item>
+        <item index="2" description="An open place in the woods. Plenty of room there, little chance of disturbances, but hard to reach." value="Woods" cost="150.0">
+			</item>
+        <item index="3" description="A reservable spot in the Park. Close to everyone, but very busy in this season." value="Park" cost="200.0">
+			</item>
+        <item index="4" description="Barbecue on the beach. Furthest of all locations, requires a permit but has a fantastic atmosphere." value="Beach" cost="300.0">
+			</item>
+      </issue>
+      <issue index="4" name="Vegetables" vtype="discrete" type="discrete" etype="discrete">
+        <item index="1" description="No vegetables. Why bother, it's a barbecue." value="None" cost="0.0">
+			</item>
+        <item index="2" description="Cheap vegetables. Anything that's 50% off will do." value="Cheap veggies" cost="100.0">
+			</item>
+        <item index="3" description="Good vegetables. A little more work for preparation and cutting." value="Good veggies" cost="200.0">
+		</item>
+        <item index="4" description="Prepared vegetables. For those who do not want to cut, at some extra cost." value="Prepared veggies" cost="300.0">
+		</item>
+        <item index="5" description="Excellent vegetables. Go all out with stuffed bell peppers, tomato specials, very good salads etcetera." value="Superveggies" cost="350.0">
+		</item>
+      </issue>
+      <issue index="5" name="BBQ type" vtype="discrete" type="discrete" etype="discrete">
+        <item index="1" description="Disposable barbecue. Cheap, but can only be used once" value="Disposable" cost="100.0">
+			</item>
+        <item index="2" description="The standard barbecue. Coles not included." value="Normal" cost="200.0">
+			</item>
+        <item index="3" description="Gas barbecue. Can even be used inside. Durable and expensive." value="Gas" cost="300.0">
+			</item>
+      </issue>
+    </objective>
+  </utility_space>
+</negotiation_template>

@@ -1,0 +1,66 @@
+<negotiation_template>
+<utility_space number_of_issues="6">
+<objective description="" etype="objective" index="0" name="root" type="objective">
+    <issue etype="discrete" index="1" name="Venue" type="discrete" vtype="discrete">
+        <item index="1" value="Shopping" cost="0" description="Shopping">
+        </item>
+        <item index="2" value="Museum" cost="0" description="Museum">
+        </item>
+        <item index="3" value="Dancing" cost="0" description="Dancing">
+        </item>
+        <item index="4" value="Diner" cost="0" description="Diner">
+        </item>
+    </issue>
+    <issue etype="discrete" index="2" name="Time of arrival" type="discrete" vtype="discrete">
+        <item index="1" value="Morning" cost="0" description="Morning">
+        </item>
+        <item index="2" value="Afternoon" cost="0" description="Afternoon">
+        </item>
+        <item index="3" value="Evening" cost="0" description="Evening">
+        </item>
+    </issue>
+    <issue etype="discrete" index="3" name="Day of the week" type="discrete" vtype="discrete">
+        <item index="1" value="Monday" cost="0" description="Monday">
+        </item>
+        <item index="2" value="Tuesday" cost="0" description="Tuesday">
+        </item>
+        <item index="3" value="Wednesday" cost="0" description="Wednesday">
+        </item>
+        <item index="4" value="Thursday" cost="0" description="Thursday">
+        </item>
+        <item index="5" value="Friday" cost="0" description="Friday">
+        </item>
+        <item index="6" value="Saturday" cost="0" description="Saturday">
+        </item>
+        <item index="7" value="Sunday" cost="0" description="Sunday">
+        </item>
+    </issue>
+    <issue etype="discrete" index="4" name="Duration" type="discrete" vtype="discrete">
+        <item index="1" value="One day" cost="0" description="One day">
+        </item>
+        <item index="2" value="One night" cost="0" description="One night">
+        </item>
+        <item index="3" value="One week" cost="0" description="One week">
+        </item>
+    </issue>
+    <issue etype="discrete" index="5" name="Transportation" type="discrete" vtype="discrete">
+        <item index="1" value="Public transport" cost="0" description="Public transport">
+        </item>
+        <item index="2" value="Car" cost="0" description="Car">
+        </item>
+        <item index="3" value="Combination" cost="0" description="Combination">
+        </item>
+    </issue>
+    <issue etype="discrete" index="6" name="Souvenirs" type="discrete" vtype="discrete">
+        <item index="1" value="None" cost="0" description="None">
+        </item>
+        <item index="2" value="Tulips" cost="0" description="Tulips">
+        </item>
+        <item index="3" value="Cheese" cost="0" description="Cheese">
+        </item>
+        <item index="4" value="Waterpipe" cost="0" description="Waterpipe">
+        </item>
+    </issue>
+</objective>
+</utility_space>
+</negotiation_template>

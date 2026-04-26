@@ -1,0 +1,60 @@
+<negotiation_template>
+<utility_space number_of_issues="5">
+<objective description="" etype="objective" index="0" name="root" type="objective">
+    <issue etype="discrete" index="1" name="Brand" type="discrete" vtype="discrete">
+        <item index="1" value="HP" cost="0" description="HP">
+        </item>
+        <item index="2" value="Motorola" cost="0" description="Motorola">
+        </item>
+        <item index="3" value="Nokia" cost="0" description="Nokia">
+        </item>
+        <item index="4" value="Apple" cost="0" description="Apple">
+        </item>
+    </issue>
+    <issue etype="discrete" index="2" name="Color" type="discrete" vtype="discrete">
+        <item index="1" value="White" cost="0" description="White">
+        </item>
+        <item index="2" value="Grey" cost="0" description="Grey">
+        </item>
+        <item index="3" value="Black" cost="0" description="Black">
+        </item>
+        <item index="4" value="Silver" cost="0" description="Silver">
+        </item>
+        <item index="5" value="Red" cost="0" description="Red">
+        </item>
+    </issue>
+    <issue etype="discrete" index="3" name="Operating System" type="discrete" vtype="discrete">
+        <item index="1" value="Windows Mobile" cost="0" description="Windows Mobile">
+        </item>
+        <item index="2" value="Android" cost="0" description="Android">
+        </item>
+        <item index="3" value="Apple" cost="0" description="Apple">
+        </item>
+        <item index="4" value="BlackBerry" cost="0" description="BlackBerry">
+        </item>
+    </issue>
+    <issue etype="discrete" index="4" name="Memory" type="discrete" vtype="discrete">
+        <item index="1" value="510M" cost="0" description="510M">
+        </item>
+        <item index="2" value="1G" cost="0" description="1G">
+        </item>
+        <item index="3" value="2G" cost="0" description="2G">
+        </item>
+        <item index="4" value="4G" cost="0" description="4G">
+        </item>
+    </issue>
+    <issue etype="discrete" index="5" name="Screen Resolution" type="discrete" vtype="discrete">
+        <item index="1" value="240*400" cost="0" description="240*400">
+        </item>
+        <item index="2" value="480*800" cost="0" description="480*800">
+        </item>
+        <item index="3" value="600*1024" cost="0" description="600*1024">
+        </item>
+        <item index="4" value="800*1280" cost="0" description="800*1280">
+        </item>
+        <item index="5" value="1280*1280" cost="0" description="1280*1280">
+        </item>
+    </issue>
+</objective>
+</utility_space>
+</negotiation_template>

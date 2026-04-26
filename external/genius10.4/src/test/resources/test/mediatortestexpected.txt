@@ -1,0 +1,3 @@
+sep=;
+Run time (s);Round;Exception;deadline;Agreement;Discounted;#agreeing;min.util.;max.util.;Dist. to Pareto;Dist. to Nash;Social Welfare;Agent 1;Agent 2;Agent 3;Utility 1;Utility 2;Utility 3;Disc. Util. 1;Disc. Util. 2;Disc. Util. 3;Perceived. Util. 1;Perceived. Util. 2;Perceived. Util. 3;Profile 1;Profile 2;Profile 3
+0.059;31;;30rounds;Yes;No;4;0.49456;0.77129;0.18578;0.48987;2.50918;FixedOrderFlippingMediator@0;HillClimber@1;HillClimber@2;0.6216666666666666;0.6216666666666666;0.4945572209141002;0.6216666666666666;0.6216666666666666;0.4945572209141002;0.6216666666666666;0.6216666666666666;0.4945572209141002;party1_utility.xml;party1_utility.xml;party2_utility.xml

@@ -1,0 +1,46 @@
+<negotiation_template>
+<utility_space number_of_issues="5">
+<objective description="" etype="objective" index="0" name="root" type="objective">
+    <issue etype="discrete" index="1" name="Horse Power" type="discrete" vtype="discrete">
+        <item index="1" value="Below 200" cost="0" description="Below 200">
+        </item>
+        <item index="2" value="200 Or more" cost="0" description="200 Or more">
+        </item>
+    </issue>
+    <issue etype="discrete" index="2" name="Seats" type="discrete" vtype="discrete">
+        <item index="1" value="2" cost="0" description="2">
+        </item>
+        <item index="2" value="5" cost="0" description="5">
+        </item>
+        <item index="3" value="7" cost="0" description="7">
+        </item>
+    </issue>
+    <issue etype="discrete" index="3" name="Mileage" type="discrete" vtype="discrete">
+        <item index="1" value="Below 10.000km" cost="0" description="Below 10.000km">
+        </item>
+        <item index="2" value="Between 10.000 and 20.000km" cost="0" description="Between 10.000 and 20.000km">
+        </item>
+        <item index="3" value="Above 20.000km" cost="0" description="Above 20.000km">
+        </item>
+    </issue>
+    <issue etype="discrete" index="4" name="Km per Liter Consumption" type="discrete" vtype="discrete">
+        <item index="1" value="5" cost="0" description="5">
+        </item>
+        <item index="2" value="10" cost="0" description="10">
+        </item>
+        <item index="3" value="15" cost="0" description="15">
+        </item>
+        <item index="4" value="20" cost="0" description="20">
+        </item>
+    </issue>
+    <issue etype="discrete" index="5" name="Wheels" type="discrete" vtype="discrete">
+        <item index="1" value="3" cost="0" description="3">
+        </item>
+        <item index="2" value="4" cost="0" description="4">
+        </item>
+        <item index="3" value="6" cost="0" description="6">
+        </item>
+    </issue>
+</objective>
+</utility_space>
+</negotiation_template>

@@ -1,0 +1,120 @@
+{
+	"LinearAdditiveUtilitySpace": {
+		"issueUtilities": {
+			"type": {
+				"discreteutils": {
+					"valueUtilities": {
+						"swimming": 0.6,
+						"yoga": 0.8,
+						"aerobics": 0.4,
+						"running": 0.2,
+						"tennis": 0.9
+					}
+				}
+			},
+			"duration": {
+				"discreteutils": {
+					"valueUtilities": {
+						"30 min": 0.44,
+						"1 hour": 0.8,
+						"3 hours": 0.22,
+						"5 hours": 0.11
+					}
+				}
+			},
+			"distance": {
+				"discreteutils": {
+					"valueUtilities": {
+						"0 km": 0.75,
+						"1 km": 1.0,
+						"5 km": 0.5,
+						"40 km": 0.25
+					}
+				}
+			},
+			"intensity": {
+				"discreteutils": {
+					"valueUtilities": {
+						"light": 0.3,
+						"moderate": 0.55,
+						"training": 1.0,
+						"bootcamp": 0.14
+					}
+				}
+			},
+			"price": {
+				"discreteutils": {
+					"valueUtilities": {
+						"$5": 1.0,
+						"$15": 0.5,
+						"$50": 0.2,
+						"$200": 0.1
+					}
+				}
+			}
+		},
+		"issueWeights": {
+			"type": 0.15,
+			"duration": 0.05,
+			"distance": 0.3,
+			"intensity": 0.3,
+			"price": 0.2
+		},
+		"domain": {
+			"name": "fitness",
+			"issuesValues": {
+				"type": {
+					"values": [
+						"swimming",
+						"yoga",
+						"aerobics",
+						"running",
+						"tennis"
+					]
+				},
+				"duration": {
+					"values": [
+						"30 min",
+						"1 hour",
+						"3 hours",
+						"5 hours"
+					]
+				},
+				"distance": {
+					"values": [
+						"0 km",
+						"1 km",
+						"5 km",
+						"40 km"
+					]
+				},
+				"intensity": {
+					"values": [
+						"light",
+						"moderate",
+						"training",
+						"bootcamp"
+					]
+				},
+				"price": {
+					"values": [
+						"$5",
+						"$15",
+						"$50",
+						"$200"
+					]
+				}
+			}
+		},
+		"name": "fitness1",
+		"reservationBid": {
+			"issuevalues": {
+				"type": "running",
+				"duration": "3 hours",
+				"distance": "40 km",
+				"intensity": "bootcamp",
+				"price": "$50"
+			}
+		}
+	}
+}

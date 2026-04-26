@@ -1,0 +1,26 @@
+from __future__ import annotations
+import os
+
+__all__ = [
+    "NEGMAS_RUNALL_TESTS",
+    "NEGMAS_ON_GITHUB",
+    "NEGMAS_FASTRUN",
+    "NEGMAS_RUN_GENIUS",
+    "NEGMAS_RUN_TOURNAMENTS",
+    "NEGMAS_RUN_TEMP_FAILING",
+]
+
+NEGMAS_RUNALL_TESTS = bool(os.environ.get("NEGMAS_RUNALL_TESTS", False))
+NEGMAS_ON_GITHUB = bool(os.environ.get("GITHUB_ACTIONS", False))
+NEGMAS_FASTRUN = bool(
+    os.environ.get("NEGMAS_FASTRUN", NEGMAS_ON_GITHUB or not NEGMAS_RUNALL_TESTS)
+)
+NEGMAS_RUN_TEMP_FAILING = bool(
+    os.environ.get("NEGMAS_RUN_TEMP_FAILING", NEGMAS_RUNALL_TESTS)
+)
+NEGMAS_RUN_GENIUS = bool(
+    os.environ.get("NEGMAS_RUN_GENIUS", not NEGMAS_FASTRUN or NEGMAS_RUNALL_TESTS)
+)
+NEGMAS_RUN_TOURNAMENTS = bool(
+    os.environ.get("NEGMAS_RUN_TOURNAMENTS", not NEGMAS_FASTRUN or NEGMAS_RUNALL_TESTS)
+)

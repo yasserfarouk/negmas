@@ -1,0 +1,68 @@
+<negotiation_template>
+<utility_space number_of_issues="6">
+<objective description="" etype="objective" index="0" name="root" type="objective">
+    <issue etype="discrete" index="1" name="Classical" type="discrete" vtype="discrete">
+        <item index="1" value="Bach" cost="0" description="Bach">
+        </item>
+        <item index="2" value="Mozart" cost="0" description="Mozart">
+        </item>
+        <item index="3" value="Beethoven" cost="0" description="Beethoven">
+        </item>
+        <item index="4" value="Prokofiev" cost="0" description="Prokofiev">
+        </item>
+    </issue>
+    <issue etype="discrete" index="2" name="Rock" type="discrete" vtype="discrete">
+        <item index="1" value="Chuck Berry" cost="0" description="Chuck Berry">
+        </item>
+        <item index="2" value="The Beatles" cost="0" description="The Beatles">
+        </item>
+        <item index="3" value="The Doors" cost="0" description="The Doors">
+        </item>
+        <item index="4" value="Camel" cost="0" description="Camel">
+        </item>
+        <item index="5" value="Nirvana" cost="0" description="Nirvana">
+        </item>
+    </issue>
+    <issue etype="discrete" index="3" name="Jazz" type="discrete" vtype="discrete">
+        <item index="1" value="Louie Armstrong" cost="0" description="Louie Armstrong">
+        </item>
+        <item index="2" value="Charlie Parker" cost="0" description="Charlie Parker">
+        </item>
+        <item index="3" value="Miles Davis" cost="0" description="Miles Davis">
+        </item>
+        <item index="4" value="John Coltrane" cost="0" description="John Coltrane">
+        </item>
+        <item index="5" value="Herbie Hancock" cost="0" description="Herbie Hancock">
+        </item>
+        <item index="6" value="Cal Tjader" cost="0" description="Cal Tjader">
+        </item>
+    </issue>
+    <issue etype="discrete" index="4" name="Pop" type="discrete" vtype="discrete">
+        <item index="1" value="Michael Jackson" cost="0" description="Michael Jackson">
+        </item>
+        <item index="2" value="Madonna" cost="0" description="Madonna">
+        </item>
+        <item index="3" value="Elton John" cost="0" description="Elton John">
+        </item>
+    </issue>
+    <issue etype="discrete" index="5" name="Brazil" type="discrete" vtype="discrete">
+        <item index="1" value="Gilberto Gil" cost="0" description="Gilberto Gil">
+        </item>
+        <item index="2" value="Antonio Carlos Jobim" cost="0" description="Antonio Carlos Jobim">
+        </item>
+        <item index="3" value="Astrud Gilberto" cost="0" description="Astrud Gilberto">
+        </item>
+    </issue>
+    <issue etype="discrete" index="6" name="Latin" type="discrete" vtype="discrete">
+        <item index="1" value="Eddie Palmieri" cost="0" description="Eddie Palmieri">
+        </item>
+        <item index="2" value="Maraca" cost="0" description="Maraca">
+        </item>
+        <item index="3" value="Gypsy Kings" cost="0" description="Gypsy Kings">
+        </item>
+        <item index="4" value="Tito Puente" cost="0" description="Tito Puente">
+        </item>
+    </issue>
+</objective>
+</utility_space>
+</negotiation_template>

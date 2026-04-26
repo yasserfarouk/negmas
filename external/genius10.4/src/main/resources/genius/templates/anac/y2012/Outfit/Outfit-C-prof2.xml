@@ -1,0 +1,33 @@
+<?xml version="1.0"?>
+<utility_space>
+  <objective index="0" description="" name="outfit" type="objective" etype="objective">
+    <issue index="1" name="shirts" vtype="discrete" type="discrete" etype="discrete">
+      <item index="1" value="T-shirt" cost="0.0" evaluation="50" />
+      <item index="2" value="Blouse" cost="0.0" evaluation="10" />
+      <item index="3" value="Polo shirt" cost="0.0" evaluation="30" />
+      <item index="4" value="sweaters" cost="0.0" evaluation="40" />
+    </issue>
+    <issue index="2" name="pants" vtype="discrete" type="discrete" etype="discrete">
+      <item index="1" value="Demin" cost="0.0" evaluation="100" />
+      <item index="2" value="leather pants" cost="0.0" evaluation="10" />
+      <item index="3" value="classic pants" cost="0.0" evaluation="80" />
+      <item index="4" value="bermuda shorts" cost="0.0" evaluation="50" />
+    </issue>
+    <issue index="3" name="shoes" vtype="discrete" type="discrete" etype="discrete">
+      <item index="1" value="sneakers" cost="0.0" evaluation="30" />
+      <item index="2" value="boots" cost="0.0" evaluation="25" />
+      <item index="3" value="slipers" cost="0.0" evaluation="10" />
+      <item index="4" value="sandals" cost="0.0" evaluation="20" />
+    </issue>
+    <issue index="4" name="accessories" vtype="discrete" type="discrete" etype="discrete">
+      <item index="1" value="hat" cost="0.0" evaluation="10" />
+      <item index="2" value="sunglasses" cost="0.0" evaluation="80" />
+    </issue>
+    <weight index="1" value="0.3790199160561041" />
+    <weight index="2" value="0.31779084542289004" />
+    <weight index="3" value="0.10202998610198678" />
+    <weight index="4" value="0.20115925241901905" />
+  </objective>
+  <discount_factor value="1.00" />
+<reservation value="0.00" />
+</utility_space>

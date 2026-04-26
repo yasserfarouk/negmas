@@ -1,0 +1,30 @@
+name: Documentation
+on:
+  push:
+    branches: ["main"]
+  pull_request:
+    branches: ["main"]
+concurrency:
+  group: ${{ github.workflow }}-${{ github.event_name == 'pull_request' && github.event.pull_request.number || github.ref }}
+  cancel-in-progress: ${{ github.event_name == 'push' }}
+jobs:
+  docs:
+    name: "Build Documentation"
+    runs-on: "ubuntu-latest"
+    timeout-minutes: 60
+    steps:
+      - uses: "actions/checkout@v4"
+      - name: Install uv
+        uses: astral-sh/setup-uv@v3
+      - name: Setup Python
+        run: uv python install 3.13
+      - name: Install the project
+        run: uv sync --all-extras
+      - uses: r-lib/actions/setup-pandoc@v1
+      - name: "Install documentation requirements"
+        run: |
+          ulimit -n 50000
+          uv pip install -r docs/requirements.txt
+      - name: "Create documentation"
+        run: sh make_docs.sh
+        working-directory: ./docs

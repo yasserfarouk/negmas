@@ -1,0 +1,12 @@
+<utility_space>
+<objective index="0" description="" name="root" type="objective" etype="objective">
+<issue index="1" name="One_and_only_issue" vtype="real" type="real" etype="real">
+<range lowerbound="10.0" upperbound="40.0">
+</range>
+<evaluator ftype="linear" parameter1="0.03333333" parameter0="-0.3333333">
+</evaluator>
+</issue>
+<weight index="1" value="1.0">
+</weight>
+</objective>
+</utility_space>

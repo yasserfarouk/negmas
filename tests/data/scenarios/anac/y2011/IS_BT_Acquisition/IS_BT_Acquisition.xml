@@ -1,0 +1,50 @@
+<negotiation_template>
+<utility_space number_of_issues="5">
+<objective description="" etype="objective" index="0" name="root" type="objective">
+    <issue etype="discrete" index="1" name="Price" type="discrete" vtype="discrete">
+        <item index="1" value="1 million $" cost="0" description="1 million $">
+        </item>
+        <item index="2" value="2.5 million $" cost="0" description="2.5 million $">
+        </item>
+        <item index="3" value="5 million $" cost="0" description="5 million $">
+        </item>
+        <item index="4" value="8 million $" cost="0" description="8 million $">
+        </item>
+    </issue>
+    <issue etype="discrete" index="2" name="IP" type="discrete" vtype="discrete">
+        <item index="1" value="IS receives all IP" cost="0" description="IS receives all IP">
+        </item>
+        <item index="2" value="IS receives the patents, industrial design rights and trade secrets" cost="0" description="IS receives the patents, industrial design rights and trade secrets">
+        </item>
+        <item index="3" value="BI-Tech founders maintain all IP" cost="0" description="BI-Tech founders maintain all IP">
+        </item>
+    </issue>
+    <issue etype="discrete" index="3" name="Stocks" type="discrete" vtype="discrete">
+        <item index="1" value="BI-Tech founders get 2%" cost="0" description="BI-Tech founders get 2%">
+        </item>
+        <item index="2" value="BI-Tech founders get 2% + jobs at IS" cost="0" description="BI-Tech founders get 2% + jobs at IS">
+        </item>
+        <item index="3" value="BI-Tech founders get 5%" cost="0" description="BI-Tech founders get 5%">
+        </item>
+        <item index="4" value="BI-Tech founders get 5% + jobs " cost="0" description="BI-Tech founders get 5% + jobs ">
+        </item>
+    </issue>
+    <issue etype="discrete" index="4" name="EmployeeAgreements" type="discrete" vtype="discrete">
+        <item index="1" value="salary raise of 15%" cost="0" description="salary raise of 15%">
+        </item>
+        <item index="2" value="same conditions" cost="0" description="same conditions">
+        </item>
+        <item index="3" value="private contracts" cost="0" description="private contracts">
+        </item>
+        <item index="4" value="half fired and half private contracts" cost="0" description="half fired and half private contracts">
+        </item>
+    </issue>
+    <issue etype="discrete" index="5" name="Legal Liability" type="discrete" vtype="discrete">
+        <item index="1" value="past activities remains with Bi-Tech" cost="0" description="past activities remains with Bi-Tech">
+        </item>
+        <item index="2" value="IS liable for all activities" cost="0" description="IS liable for all activities">
+        </item>
+    </issue>
+</objective>
+</utility_space>
+</negotiation_template>

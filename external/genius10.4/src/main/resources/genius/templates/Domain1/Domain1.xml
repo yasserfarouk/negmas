@@ -1,0 +1,18 @@
+<negotiation_template> 
+<utility_space number_of_issues="1"> 
+<objective index="0" description="" name="Domain1" type="objective" etype="objective"> 
+<issue index="1" name="a" vtype="discrete" type="discrete" etype="discrete"> 
+<item index="1" value="a1"> 
+</item> 
+<item index="2" value="a2"> 
+</item> 
+<item index="3" value="a3"> 
+</item> 
+<item index="4" value="a4"> 
+</item> 
+<item index="5" value="a5"> 
+</item> 
+</issue> 
+</objective> 
+</utility_space> 
+</negotiation_template> 

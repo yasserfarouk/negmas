@@ -1,0 +1,70 @@
+<utility_space> 
+<objective index="0" description="" name="building_construction" type="objective" etype="objective"> 
+<issue index="1" name="yard_size" vtype="discrete" type="discrete" etype="discrete"> 
+<item index="1" value="large" evaluation="0"> 
+</item> 
+<item index="2" value="medium" evaluation="0"> 
+</item> 
+<item index="3" value="small" evaluation="10"> 
+</item> 
+<item index="4" value="none" evaluation="100"> 
+</item> 
+</issue> 
+<issue index="2" name="windows" vtype="discrete" type="discrete" etype="discrete"> 
+<item index="1" value="single glazing" evaluation="0"> 
+</item> 
+<item index="2" value="double glazing" evaluation="0"> 
+</item> 
+</issue> 
+<issue index="3" name="architecture_style" vtype="discrete" type="discrete" etype="discrete"> 
+<item index="1" value="modern" evaluation="0"> 
+</item> 
+<item index="2" value="common" evaluation="100"> 
+</item> 
+<item index="3" value="old_fashioned" evaluation="80"> 
+</item> 
+</issue> 
+<issue index="4" name="mortgage_needed" vtype="discrete" type="discrete" etype="discrete"> 
+<item index="1" value="small" evaluation="100"> 
+</item> 
+<item index="2" value="medium" evaluation="60"> 
+</item> 
+<item index="3" value="large" evaluation="10"> 
+</item> 
+</issue> 
+<issue index="5" name="construction_time" vtype="discrete" type="discrete" etype="discrete"> 
+<item index="1" value="short" evaluation="100"> 
+</item> 
+<item index="2" value="medium" evaluation="1"> 
+</item> 
+<item index="3" value="long" evaluation="1"> 
+</item> 
+</issue> 
+<issue index="6" name="internet_connection" vtype="discrete" type="discrete" etype="discrete"> 
+<item index="1" value="satellite" evaluation="0"> 
+</item> 
+<item index="2" value="phone_line" evaluation="0"> 
+</item> 
+<item index="3" value="cable" evaluation="0"> 
+</item> 
+<item index="4" value="fiberglass" evaluation="0"> 
+</item> 
+</issue> 
+<weight index="1" value="0.2980965817813192"> 
+</weight> 
+<weight index="2" value="3.542261618610307E-6"> 
+</weight> 
+<weight index="3" value="0.30200545606077406"> 
+</weight> 
+<weight index="4" value="0.0540490522096037"> 
+</weight> 
+<weight index="5" value="0.3458394964185706"> 
+</weight> 
+<weight index="6" value="5.8712681138672735E-6"> 
+</weight> 
+</objective> 
+<discount_factor value="1.0"> 
+</discount_factor> 
+<reservation value="0.0"> 
+</reservation> 
+</utility_space> 

@@ -1,0 +1,26 @@
+<negotiation_template> 
+<utility_space number_of_issues="3"> 
+<objective index="0" description="" name="ElectricVehicle" type="objective" etype="objective"> 
+<issue index="1" name="EnergyConsumption" vtype="discrete" type="discrete" etype="discrete"> 
+<item index="1" value="Low"> 
+</item> 
+<item index="2" value="High"> 
+</item> 
+</issue> 
+
+<issue index="2" name="EnginePower" vtype="discrete" type="discrete" etype="discrete"> 
+<item index="1" value="Low"> 
+</item> 
+<item index="2" value="High"> 
+</item> 
+</issue> 
+
+<issue index="3" name="Price" vtype="discrete" type="discrete" etype="discrete"> 
+<item index="1" value="Low"> 
+</item> 
+<item index="2" value="High"> 
+</item> 
+</issue> 
+</objective> 
+</utility_space> 
+</negotiation_template> 

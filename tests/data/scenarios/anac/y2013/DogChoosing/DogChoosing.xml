@@ -1,0 +1,48 @@
+<negotiation_template>
+<utility_space number_of_issues="5">
+<objective description="" etype="objective" index="0" name="root" type="objective">
+    <issue etype="discrete" index="1" name="Furry" type="discrete" vtype="discrete">
+        <item index="1" value="Short_fur" cost="0" description="Short_fur">
+        </item>
+        <item index="2" value="Medium_fur" cost="0" description="Medium_fur">
+        </item>
+        <item index="3" value="Long_fur" cost="0" description="Long_fur">
+        </item>
+    </issue>
+    <issue etype="discrete" index="2" name="Size" type="discrete" vtype="discrete">
+        <item index="1" value="Small" cost="0" description="Small">
+        </item>
+        <item index="2" value="Medium" cost="0" description="Medium">
+        </item>
+        <item index="3" value="Big" cost="0" description="Big">
+        </item>
+    </issue>
+    <issue etype="discrete" index="3" name="Calm-Playful" type="discrete" vtype="discrete">
+        <item index="1" value="Calm" cost="0" description="Calm">
+        </item>
+        <item index="2" value="Playful" cost="0" description="Playful">
+        </item>
+    </issue>
+    <issue etype="discrete" index="4" name="Independent-Needy" type="discrete" vtype="discrete">
+        <item index="1" value="Independent" cost="0" description="Independent">
+        </item>
+        <item index="2" value="numb" cost="0" description="numb">
+        </item>
+        <item index="3" value="Needy" cost="0" description="Needy">
+        </item>
+    </issue>
+    <issue etype="discrete" index="5" name="Color" type="discrete" vtype="discrete">
+        <item index="1" value="White" cost="0" description="White">
+        </item>
+        <item index="2" value="Black" cost="0" description="Black">
+        </item>
+        <item index="3" value="Brown" cost="0" description="Brown">
+        </item>
+        <item index="4" value="Golden" cost="0" description="Golden">
+        </item>
+        <item index="5" value="Spotted" cost="0" description="Spotted">
+        </item>
+    </issue>
+</objective>
+</utility_space>
+</negotiation_template>

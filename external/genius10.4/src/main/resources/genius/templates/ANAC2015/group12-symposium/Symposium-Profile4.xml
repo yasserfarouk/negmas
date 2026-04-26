@@ -1,0 +1,76 @@
+<utility_space> 
+<objective index="0" description="" name="symposium" type="objective" etype="objective"> 
+<issue index="1" name="Location" vtype="discrete" type="discrete" etype="discrete"> 
+<item index="1" value="Tu Delft" evaluation="1"> 
+</item> 
+<item index="2" value="Erasumus" evaluation="2"> 
+</item> 
+<item index="3" value="TU Eindhoven" evaluation="3"> 
+</item> 
+<item index="4" value="TU Twente" evaluation="4"> 
+</item> 
+</issue> 
+<issue index="2" name="Morning Slot" vtype="discrete" type="discrete" etype="discrete"> 
+<item index="1" value="Mr. Bidarra" evaluation="1"> 
+</item> 
+<item index="2" value="Mr. Eisemann" evaluation="2"> 
+</item> 
+<item index="3" value="Mr. Bossos" evaluation="3"> 
+</item> 
+<item index="4" value="Mr. Goedeovergeburen" evaluation="4"> 
+</item> 
+</issue> 
+<issue index="3" name="Afternoon Slot" vtype="discrete" type="discrete" etype="discrete"> 
+<item index="1" value="Mr. Talkolot" evaluation="1"> 
+</item> 
+<item index="2" value="Mr. Ahuff" evaluation="2"> 
+</item> 
+<item index="3" value="Miss. Getbizzy" evaluation="3"> 
+</item> 
+</issue> 
+<issue index="4" name="Evening Slot" vtype="discrete" type="discrete" etype="discrete"> 
+<item index="1" value="Mr. Gates" evaluation="1"> 
+</item> 
+<item index="2" value="Mr. Umbertotan" evaluation="2"> 
+</item> 
+<item index="3" value="Mr. Han" evaluation="3"> 
+</item> 
+<item index="4" value="Mr. LeeLoo" evaluation="4"> 
+</item> 
+</issue> 
+<issue index="5" name="Drinks" vtype="discrete" type="discrete" etype="discrete"> 
+<item index="1" value="Coffee & Thee" evaluation="1"> 
+</item> 
+<item index="2" value="Alcoholic beverages" evaluation="2"> 
+</item> 
+<item index="3" value="non-Alcoholic beverages" evaluation="3"> 
+</item> 
+</issue> 
+<issue index="6" name="Date" vtype="discrete" type="discrete" etype="discrete"> 
+<item index="1" value="September" evaluation="1"> 
+</item> 
+<item index="2" value="October" evaluation="2"> 
+</item> 
+<item index="3" value="November" evaluation="3"> 
+</item> 
+<item index="4" value="December" evaluation="4"> 
+</item> 
+</issue> 
+<weight index="1" value="0.13524840139104954"> 
+</weight> 
+<weight index="2" value="0.10415419536123538"> 
+</weight> 
+<weight index="3" value="0.02106646011671278"> 
+</weight> 
+<weight index="4" value="0.014052339128055024"> 
+</weight> 
+<weight index="5" value="0.4453651435613835"> 
+</weight> 
+<weight index="6" value="0.2801134604415637"> 
+</weight> 
+</objective> 
+<discount_factor value="1.0"> 
+</discount_factor> 
+<reservation value="0.0"> 
+</reservation> 
+</utility_space> 

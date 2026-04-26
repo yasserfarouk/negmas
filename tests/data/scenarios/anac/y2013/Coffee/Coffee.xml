@@ -1,0 +1,42 @@
+<negotiation_template>
+<utility_space number_of_issues="3">
+<objective description="" etype="objective" index="0" name="root" type="objective">
+    <issue etype="discrete" index="1" name="Bean" type="discrete" vtype="discrete">
+        <item index="1" value="Blue Mountain" cost="0" description="Blue Mountain">
+        </item>
+        <item index="2" value="Bourbon" cost="0" description="Bourbon">
+        </item>
+        <item index="3" value="Colombian" cost="0" description="Colombian">
+        </item>
+        <item index="4" value="Java" cost="0" description="Java">
+        </item>
+        <item index="5" value="Paname" cost="0" description="Paname">
+        </item>
+        <item index="6" value="Santos" cost="0" description="Santos">
+        </item>
+        <item index="7" value="Uganda" cost="0" description="Uganda">
+        </item>
+    </issue>
+    <issue etype="discrete" index="2" name="Sugar" type="discrete" vtype="discrete">
+        <item index="1" value="no" cost="0" description="no">
+        </item>
+        <item index="2" value="little" cost="0" description="little">
+        </item>
+        <item index="3" value="some" cost="0" description="some">
+        </item>
+        <item index="4" value="much" cost="0" description="much">
+        </item>
+    </issue>
+    <issue etype="discrete" index="3" name="Milk" type="discrete" vtype="discrete">
+        <item index="1" value="no" cost="0" description="no">
+        </item>
+        <item index="2" value="little" cost="0" description="little">
+        </item>
+        <item index="3" value="some" cost="0" description="some">
+        </item>
+        <item index="4" value="much" cost="0" description="much">
+        </item>
+    </issue>
+</objective>
+</utility_space>
+</negotiation_template>

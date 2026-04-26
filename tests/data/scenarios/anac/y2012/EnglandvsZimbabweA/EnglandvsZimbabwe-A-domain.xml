@@ -1,0 +1,52 @@
+<negotiation_template>
+<utility_space number_of_issues="5">
+<objective description="" etype="objective" index="0" name="root" type="objective">
+    <issue etype="discrete" index="1" name="Size of Fund" type="discrete" vtype="discrete">
+        <item index="1" value="$100 Billion" cost="0" description="$100 Billion">
+        </item>
+        <item index="2" value="$50 Billion" cost="0" description="$50 Billion">
+        </item>
+        <item index="3" value="$10 billion" cost="0" description="$10 billion">
+        </item>
+        <item index="4" value="No agreement" cost="0" description="No agreement">
+        </item>
+    </issue>
+    <issue etype="discrete" index="2" name="Impact on Other Aid" type="discrete" vtype="discrete">
+        <item index="1" value="No reduction" cost="0" description="No reduction">
+        </item>
+        <item index="2" value="Reduction equal to half of fund size" cost="0" description="Reduction equal to half of fund size">
+        </item>
+        <item index="3" value="Reduction equal to fund size" cost="0" description="Reduction equal to fund size">
+        </item>
+        <item index="4" value="No agreement" cost="0" description="No agreement">
+        </item>
+    </issue>
+    <issue etype="discrete" index="3" name="Zimbabwe Trade Policy" type="discrete" vtype="discrete">
+        <item index="1" value="Zimbabwe will reduce tariffs on imports" cost="0" description="Zimbabwe will reduce tariffs on imports">
+        </item>
+        <item index="2" value="Zimbabwe will increase tariffs on imports" cost="0" description="Zimbabwe will increase tariffs on imports">
+        </item>
+        <item index="3" value="No agreement" cost="0" description="No agreement">
+        </item>
+    </issue>
+    <issue etype="discrete" index="4" name="England Trade Policy" type="discrete" vtype="discrete">
+        <item index="1" value="England will reduce imports" cost="0" description="England will reduce imports">
+        </item>
+        <item index="2" value="England will increase imports" cost="0" description="England will increase imports">
+        </item>
+        <item index="3" value="No agreement" cost="0" description="No agreement">
+        </item>
+    </issue>
+    <issue etype="discrete" index="5" name="Forum on Other Health Issues" type="discrete" vtype="discrete">
+        <item index="1" value="Creation of fund" cost="0" description="Creation of fund">
+        </item>
+        <item index="2" value="Creation of committee to discuss creation of fund" cost="0" description="Creation of committee to discuss creation of fund">
+        </item>
+        <item index="3" value="Creation of committee to develop agenda" cost="0" description="Creation of committee to develop agenda">
+        </item>
+        <item index="4" value="No" cost="0" description="No">
+        </item>
+    </issue>
+</objective>
+</utility_space>
+</negotiation_template>

@@ -1,0 +1,26 @@
+<negotiation_template number_of_sessions="5">
+	<agent name="Janet" class="negotiation.group0.SimpleAgent" utility_space="Janet_two_issue_mv.xml"/>
+	<agent name="Marty" class="negotiation.group0.SimpleAgent" utility_space="Marty_two_issue_mv.xml"/>
+	<utility_space number_of_issues="2">
+		<issue index="1" name="Type of Food">
+			<item index="1" value="Chinese"/>
+			<item index="2" value="French"/>
+			<item index="3" value="Indian"/>
+			<item index="4" value="Italian"/>
+			<item index="5" value="Pub"/>
+			<item index="6" value="Thai"/>
+			<item index="7" value="Turkish"/>
+			<item index="8" value="unspecified"/>
+		</issue>
+		<issue index="2" name="Location">
+			<item index="1" value="Amersfoort"/>
+			<item index="2" value="Amsterdam"/>
+			<item index="3" value="Delft"/>
+			<item index="4" value="Den Haag"/>
+			<item index="5" value="Gouda"/>
+			<item index="6" value="Rotterdam"/>
+			<item index="7" value="Utrecht"/>
+			<item index="8" value="unspecified"/>
+		</issue>             
+	</utility_space>
+</negotiation_template>

@@ -1,0 +1,71 @@
+<?xml version="1.0"?>
+<utility_space>
+  <objective index="0" description="" name="Phone" type="objective" etype="objective">
+    <issue index="1" name="Brand" vtype="discrete" type="discrete" etype="discrete">
+      <item index="1" value="HP" cost="0.0" evaluation="10">
+</item>
+      <item index="2" value="Motorola" cost="0.0" evaluation="5">
+</item>
+      <item index="3" value="Nokia" cost="0.0" evaluation="2">
+</item>
+      <item index="4" value="Apple" cost="0.0" evaluation="1">
+</item>
+    </issue>
+    <issue index="2" name="Color" vtype="discrete" type="discrete" etype="discrete">
+      <item index="1" value="White" cost="0.0" evaluation="10">
+</item>
+      <item index="2" value="Grey" cost="0.0" evaluation="3">
+</item>
+      <item index="3" value="Black" cost="0.0" evaluation="1">
+</item>
+      <item index="4" value="Silver" cost="0.0" evaluation="2">
+</item>
+      <item index="5" value="Red" cost="0.0" evaluation="5">
+</item>
+    </issue>
+    <issue index="3" name="Operating System" vtype="discrete" type="discrete" etype="discrete">
+      <item index="1" value="Windows Mobile" cost="0.0" evaluation="2">
+</item>
+      <item index="2" value="Android" cost="0.0" evaluation="10">
+</item>
+      <item index="3" value="Apple" cost="0.0" evaluation="1">
+</item>
+      <item index="4" value="BlackBerry" cost="0.0" evaluation="5">
+</item>
+    </issue>
+    <issue index="4" name="Memory" vtype="discrete" type="discrete" etype="discrete">
+      <item index="1" value="510M" cost="0.0" evaluation="1">
+</item>
+      <item index="2" value="1G" cost="0.0" evaluation="10">
+</item>
+      <item index="3" value="2G" cost="0.0" evaluation="2">
+</item>
+      <item index="4" value="4G" cost="0.0" evaluation="5">
+</item>
+    </issue>
+    <issue index="5" name="Screen Resolution" vtype="discrete" type="discrete" etype="discrete">
+      <item index="1" value="240*400" cost="0.0" evaluation="1">
+</item>
+      <item index="2" value="480*800" cost="0.0" evaluation="3">
+</item>
+      <item index="3" value="600*1024" cost="0.0" evaluation="5">
+</item>
+      <item index="4" value="800*1280" cost="0.0" evaluation="10">
+</item>
+      <item index="5" value="1280*1280" cost="0.0" evaluation="2">
+</item>
+    </issue>
+    <weight index="1" value="0.19809841554214838">
+</weight>
+    <weight index="2" value="0.04601302397681726">
+</weight>
+    <weight index="3" value="0.49714223885671444">
+</weight>
+    <weight index="4" value="0.15232377562964988">
+</weight>
+    <weight index="5" value="0.1">
+</weight>
+  </objective>
+  <discount_factor value="1.00" />
+<reservation value="0.50" />
+</utility_space>

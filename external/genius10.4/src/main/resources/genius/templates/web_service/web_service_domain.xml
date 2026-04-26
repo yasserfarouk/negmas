@@ -1,0 +1,14 @@
+<negotiation_template number_of_sessions="1"> 
+<agent class="" name="" utility_space=""> 
+</agent> 
+<agent class="" name="" utility_space=""> 
+</agent> 
+<utility_space number_of_issues="0"> 
+<objective index="1" etype="objective" type="objective" description="" name="web_service"> 
+<issue index="2" etype="integer" type="integer" vtype="integer" name="Agent_B_revenue"> 
+<range lowerbound="0" upperbound="2000"> 
+</range> 
+</issue> 
+</objective> 
+</utility_space> 
+</negotiation_template> 

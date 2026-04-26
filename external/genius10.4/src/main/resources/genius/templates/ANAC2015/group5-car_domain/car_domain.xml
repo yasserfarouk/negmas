@@ -1,0 +1,46 @@
+<negotiation_template> 
+<utility_space number_of_issues="4"> 
+<objective name="car_domain" index="0" description="" etype="objective" type="objective"> 
+<issue vtype="discrete" name="Brand" index="1" etype="discrete" type="discrete"> 
+<item index="1" value="Ford"> 
+</item> 
+<item index="2" value="BMW"> 
+</item> 
+<item index="3" value="Toyota"> 
+</item> 
+<item index="4" value="Kia"> 
+</item> 
+</issue> 
+<issue vtype="discrete" name="Car Type" index="2" etype="discrete" type="discrete"> 
+<item index="1" value="SUV"> 
+</item> 
+<item index="2" value="Station Wagon"> 
+</item> 
+<item index="3" value="Sedan"> 
+</item> 
+<item index="4" value="Convertible"> 
+</item> 
+</issue> 
+<issue vtype="discrete" name="Colour" index="3" etype="discrete" type="discrete"> 
+<item index="1" value="Blue"> 
+</item> 
+<item index="2" value="Green"> 
+</item> 
+<item index="3" value="Red"> 
+</item> 
+<item index="4" value="Black"> 
+</item> 
+<item index="5" value="Gray"> 
+</item> 
+</issue> 
+<issue vtype="discrete" name="Additional Features" index="4" etype="discrete" type="discrete"> 
+<item index="1" value="Basic"> 
+</item> 
+<item index="2" value="Sports"> 
+</item> 
+<item index="3" value="Luxury"> 
+</item> 
+</issue> 
+</objective> 
+</utility_space> 
+</negotiation_template> 

@@ -1,0 +1,65 @@
+<?xml version="1.0" encoding="UTF-8" standalone="yes"?>
+<repository fileName="partyrepository.xml">
+	<items>
+		<agentRepItems />
+		<partyRepItems>
+			<partyRepItem classPath="agents.anac.y2019.agentgg.AgentGG">
+				<properties />
+			</partyRepItem>
+			<partyRepItem classPath="agents.anac.y2019.agentgp.AgentGP">
+				<properties />
+			</partyRepItem>
+			<partyRepItem classPath="agents.anac.y2019.agentlarry.AgentLarry">
+				<properties />
+			</partyRepItem>
+			<partyRepItem classPath="agents.anac.y2019.dandikagent.dandikAgent">
+				<properties />
+			</partyRepItem>
+			<partyRepItem classPath="agents.anac.y2019.eagent.EAgent">
+				<properties />
+			</partyRepItem>
+			<partyRepItem classPath="agents.anac.y2019.fsega2019.agent.FSEGA2019">
+				<properties />
+			</partyRepItem>
+			<partyRepItem classPath="agents.anac.y2019.garavelagent.GaravelAgent">
+				<properties />
+			</partyRepItem>
+			<partyRepItem classPath="agents.anac.y2019.gravity.Gravity">
+				<properties />
+			</partyRepItem>
+			<partyRepItem classPath="agents.anac.y2019.harddealer.HardDealer">
+				<properties />
+			</partyRepItem>
+			<partyRepItem classPath="agents.anac.y2019.kagent.KAgent">
+				<properties />
+			</partyRepItem>
+			<partyRepItem classPath="agents.anac.y2019.kakesoba.KakeSoba">
+				<properties />
+			</partyRepItem>
+			<partyRepItem classPath="agents.anac.y2019.minf.MINF">
+				<properties />
+			</partyRepItem>
+			<partyRepItem classPath="agents.anac.y2019.podagent.Group1_BOA">
+				<properties />
+			</partyRepItem>
+			<partyRepItem classPath="agents.anac.y2019.sacra.SACRA">
+				<properties />
+			</partyRepItem>
+			<partyRepItem classPath="agents.anac.y2019.saga.SAGA">
+				<properties />
+			</partyRepItem>
+			<partyRepItem classPath="agents.anac.y2019.solveragent.SolverAgent">
+				<properties />
+			</partyRepItem>
+			<partyRepItem classPath="agents.anac.y2019.thenewdeal.TheNewDeal">
+				<properties />
+			</partyRepItem>
+			<partyRepItem classPath="agents.anac.y2019.winkyagent.winkyAgent">
+				<properties />
+			</partyRepItem>
+		</partyRepItems>
+		<domainRepItem />
+		<protocolRepItem />
+		<multiPartyProtocolRepItem />
+	</items>
+</repository>

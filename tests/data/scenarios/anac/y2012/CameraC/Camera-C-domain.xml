@@ -1,0 +1,66 @@
+<negotiation_template>
+<utility_space number_of_issues="6">
+<objective description="" etype="objective" index="0" name="root" type="objective">
+    <issue etype="discrete" index="1" name="Maker" type="discrete" vtype="discrete">
+        <item index="1" value="Canon" cost="0" description="Canon">
+        </item>
+        <item index="2" value="Nikon" cost="0" description="Nikon">
+        </item>
+        <item index="3" value="Pentax" cost="0" description="Pentax">
+        </item>
+        <item index="4" value="Sony" cost="0" description="Sony">
+        </item>
+        <item index="5" value="Panasonic" cost="0" description="Panasonic">
+        </item>
+    </issue>
+    <issue etype="discrete" index="2" name="Body" type="discrete" vtype="discrete">
+        <item index="1" value="Full size" cost="0" description="Full size">
+        </item>
+        <item index="2" value="APS-C" cost="0" description="APS-C">
+        </item>
+        <item index="3" value="Micro Four Thirds" cost="0" description="Micro Four Thirds">
+        </item>
+        <item index="4" value="compact" cost="0" description="compact">
+        </item>
+    </issue>
+    <issue etype="discrete" index="3" name="Lens" type="discrete" vtype="discrete">
+        <item index="1" value="High end model" cost="0" description="High end model">
+        </item>
+        <item index="2" value="Middle range model" cost="0" description="Middle range model">
+        </item>
+        <item index="3" value="Entry model" cost="0" description="Entry model">
+        </item>
+    </issue>
+    <issue etype="discrete" index="4" name="Tripod" type="discrete" vtype="discrete">
+        <item index="1" value="GITZO" cost="0" description="GITZO">
+        </item>
+        <item index="2" value="Manfrotto" cost="0" description="Manfrotto">
+        </item>
+        <item index="3" value="Induro" cost="0" description="Induro">
+        </item>
+    </issue>
+    <issue etype="discrete" index="5" name="Bag" type="discrete" vtype="discrete">
+        <item index="1" value="Domke" cost="0" description="Domke">
+        </item>
+        <item index="2" value="Lowepro" cost="0" description="Lowepro">
+        </item>
+        <item index="3" value="Tamrac" cost="0" description="Tamrac">
+        </item>
+        <item index="4" value="National Geographic" cost="0" description="National Geographic">
+        </item>
+        <item index="5" value="Artizan and Artist" cost="0" description="Artizan and Artist">
+        </item>
+    </issue>
+    <issue etype="discrete" index="6" name="Accessory" type="discrete" vtype="discrete">
+        <item index="1" value="Electronic Flash" cost="0" description="Electronic Flash">
+        </item>
+        <item index="2" value="Battery Grip" cost="0" description="Battery Grip">
+        </item>
+        <item index="3" value="Memory" cost="0" description="Memory">
+        </item>
+        <item index="4" value="Strap" cost="0" description="Strap">
+        </item>
+    </issue>
+</objective>
+</utility_space>
+</negotiation_template>

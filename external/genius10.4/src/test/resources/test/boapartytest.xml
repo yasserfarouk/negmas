@@ -1,0 +1,112 @@
+<?xml version="1.0" encoding="UTF-8" standalone="yes"?>
+<multilateralTournamentsConfiguration>
+	<tournaments>
+		<tournament>
+			<deadline>
+				<value>30</value>
+				<type>ROUND</type>
+			</deadline>
+			<protocolItem hasMediatorProfile="false"
+				hasMediator="false"
+				description="Each agents makes offer, counter-offer, or accepts"
+				classPath="genius.core.protocol.StackedAlternatingOffersProtocol"
+				protocolName="Stacked Alternating Offers Protocol for Multi-Lateral Negotiation (SAOPMN)" />
+			<partyRepItems>
+				<boaparty partyName="test3">
+					<properties />
+					<biddingStrategy>
+						<item
+							classpath="negotiator.boaframework.offeringstrategy.anac2010.Nozomi_Offering" />
+					</biddingStrategy>
+					<acceptanceStrategy>
+						<item
+							classpath="negotiator.boaframework.acceptanceconditions.anac2011.AC_BRAMAgent" />
+					</acceptanceStrategy>
+					<opponentModel>
+						<parameters value="0" name="m" />
+						<item
+							classpath="negotiator.boaframework.opponentmodel.BayesianModel" />
+					</opponentModel>
+					<omStrategy>
+						<item
+							classpath="negotiator.boaframework.omstrategy.TheFawkes_OMS" />
+					</omStrategy>
+				</boaparty>
+
+			</partyRepItems>
+			<partyProfileItems>
+				<item url="file:etc/templates/partydomain/party1_utility.xml" />
+			</partyProfileItems>
+
+			<partyBItems>
+				<party classPath="agents.BayesianAgent">
+					<properties />
+				</party>
+			</partyBItems>
+			<partyBProfiles>
+				<item url="file:etc/templates/partydomain/party2_utility.xml" />
+			</partyBProfiles>
+
+
+			<repeats>1</repeats>
+			<numberOfPartiesPerSession>2</numberOfPartiesPerSession>
+			<repetitionAllowed>true</repetitionAllowed>
+			<persistentDataType>DISABLED</persistentDataType>
+		</tournament>
+
+		<!-- test AC_Uncertain -->
+		<tournament>
+			<deadline>
+				<value>30</value>
+				<type>ROUND</type>
+			</deadline>
+			<protocolItem hasMediatorProfile="false"
+				hasMediator="false"
+				description="Each agents makes offer, counter-offer, or accepts"
+				classPath="genius.core.protocol.StackedAlternatingOffersProtocol"
+				protocolName="Stacked Alternating Offers Protocol for Multi-Lateral Negotiation (SAOPMN)" />
+			<partyRepItems>
+				<boaparty partyName="test3">
+					<properties />
+					<biddingStrategy>
+						<item
+							classpath="negotiator.boaframework.offeringstrategy.anac2010.Nozomi_Offering" />
+					</biddingStrategy>
+					<acceptanceStrategy>
+						<item
+							classpath="negotiator.boaframework.acceptanceconditions.other.AC_Uncertain" />
+					</acceptanceStrategy>
+					<opponentModel>
+						<parameters value="0" name="m" />
+						<item
+							classpath="negotiator.boaframework.opponentmodel.BayesianModel" />
+					</opponentModel>
+					<omStrategy>
+						<item
+							classpath="negotiator.boaframework.omstrategy.TheFawkes_OMS" />
+					</omStrategy>
+				</boaparty>
+
+			</partyRepItems>
+			<partyProfileItems>
+				<item url="file:etc/templates/partydomain/party1_utility.xml" />
+			</partyProfileItems>
+
+			<partyBItems>
+				<party classPath="agents.BayesianAgent">
+					<properties />
+				</party>
+			</partyBItems>
+			<partyBProfiles>
+				<item url="file:etc/templates/partydomain/party2_utility.xml" />
+			</partyBProfiles>
+
+
+			<repeats>1</repeats>
+			<numberOfPartiesPerSession>2</numberOfPartiesPerSession>
+			<repetitionAllowed>true</repetitionAllowed>
+			<persistentDataType>DISABLED</persistentDataType>
+		</tournament>
+
+	</tournaments>
+</multilateralTournamentsConfiguration>

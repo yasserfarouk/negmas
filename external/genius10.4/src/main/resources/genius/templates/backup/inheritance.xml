@@ -1,0 +1,41 @@
+<negotiation_template number_of_sessions="5">
+	<agent name="Janet" class="negotiator.agents.SimpleAgent" utility_space="inheritance_Janet.xml"/>
+	<agent name="Marty" class="negotiator.agents.SimpleAgent" utility_space="inheritance_Marty.xml"/>
+	<utility_space number_of_issues="7">
+		<issue index="1" name="house">
+			<item index="1" value="Janet"/>
+			<item index="2" value="Marty"/>
+			<item index="3" value="unspecified"/>
+		</issue>
+		<issue index="2" name="law_firm">
+			<item index="1" value="Janet"/>
+			<item index="2" value="Marty"/>
+			<item index="3" value="unspecified"/>
+		</issue>
+		<issue index="3" name="car">
+			<item index="1" value="Janet"/>
+			<item index="2" value="Marty"/>
+			<item index="3" value="unspecified"/>
+		</issue>
+		<issue index="4" name="sailboat">
+			<item index="1" value="Janet"/>
+			<item index="2" value="Marty"/>
+			<item index="3" value="unspecified"/>
+		</issue>
+		<issue index="5" name="land">
+			<item index="1" value="Janet"/>
+			<item index="2" value="Marty"/>
+			<item index="3" value="unspecified"/>
+		</issue>
+		<issue index="6" name="furniture">
+			<item index="1" value="Janet"/>
+			<item index="2" value="Marty"/>
+			<item index="3" value="unspecified"/>
+		</issue>
+		<issue index="7" name="garage">
+			<item index="1" value="Janet"/>
+			<item index="2" value="Marty"/>
+			<item index="3" value="unspecified"/>
+		</issue>
+	</utility_space>
+</negotiation_template>

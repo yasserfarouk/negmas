@@ -1,0 +1,94 @@
+<?xml version="1.0" encoding="UTF-8" standalone="yes"?>
+<repository fileName="partyrepository.xml">
+	<items>
+		<agentRepItems />
+		<partyRepItems>
+			<!-- ANAC 2016 -->
+			<partyRepItem protocolClassPath="negotiator.protocol.StackedAlternatingOffersProtocol"
+				description="AgentHP" classPath="agents.anac.y2016.agenthp2.AgentHP2_main"
+				partyName="HP2-anac2016">
+				<properties />
+			</partyRepItem>
+			<partyRepItem protocolClassPath="negotiator.protocol.StackedAlternatingOffersProtocol"
+				description="AgentLight" classPath="agents.anac.y2016.agentlight.AgentLight"
+				partyName="Light-anac2016">
+				<properties />
+			</partyRepItem>
+			<partyRepItem protocolClassPath="negotiator.protocol.StackedAlternatingOffersProtocol"
+				description="Atlas3" classPath="agents.anac.y2016.atlas3.Atlas3"
+				partyName="Atlas3-anac2016">
+				<properties />
+			</partyRepItem>
+			<partyRepItem protocolClassPath="negotiator.protocol.StackedAlternatingOffersProtocol"
+				description="Caduceus" classPath="agents.anac.y2016.caduceus.Caduceus"
+				partyName="Caduceus-anac2016">
+				<properties />
+			</partyRepItem>
+			<partyRepItem protocolClassPath="negotiator.protocol.StackedAlternatingOffersProtocol"
+				description="ClockWork" classPath="agents.anac.y2016.clockworkagent.ClockworkAgent"
+				partyName="ClockWork-anac2016">
+				<properties />
+			</partyRepItem>
+			<partyRepItem protocolClassPath="negotiator.protocol.StackedAlternatingOffersProtocol"
+				description="Farma" classPath="agents.anac.y2016.farma.Farma"
+				partyName="Farma-anac2016">
+				<properties />
+			</partyRepItem>
+			<partyRepItem protocolClassPath="negotiator.protocol.StackedAlternatingOffersProtocol"
+				description="Grandma" classPath="agents.anac.y2016.grandma.GrandmaAgent"
+				partyName="Grandma-anac2016">
+				<properties />
+			</partyRepItem>
+			<partyRepItem protocolClassPath="negotiator.protocol.StackedAlternatingOffersProtocol"
+				description="MaxOops" classPath="agents.anac.y2016.maxoops.MaxOops"
+				partyName="MaxOops-anac2016">
+				<properties />
+			</partyRepItem>
+			<partyRepItem protocolClassPath="negotiator.protocol.StackedAlternatingOffersProtocol"
+				description="My" classPath="agents.anac.y2016.myagent.MyAgent"
+				partyName="My-anac2016">
+				<properties />
+			</partyRepItem>
+			<partyRepItem protocolClassPath="negotiator.protocol.StackedAlternatingOffersProtocol"
+				description="CBAgent" classPath="agents.anac.y2016.ngent.Ngent"
+				partyName="Ngent-anac2016">
+				<properties />
+			</partyRepItem>
+			<partyRepItem protocolClassPath="negotiator.protocol.StackedAlternatingOffersProtocol"
+				description="Pars2" classPath="agents.anac.y2016.pars2.ParsAgent2"
+				partyName="Pars2-anac2016">
+				<properties />
+			</partyRepItem>
+			<partyRepItem protocolClassPath="negotiator.protocol.StackedAlternatingOffersProtocol"
+				description="Parscat" classPath="agents.anac.y2016.parscat.ParsCat"
+				partyName="ParsCat-anac2016">
+				<properties />
+			</partyRepItem>
+			<partyRepItem protocolClassPath="negotiator.protocol.StackedAlternatingOffersProtocol"
+				description="SY" classPath="agents.anac.y2016.syagent.SYAgent"
+				partyName="SY-anac2016">
+				<properties />
+			</partyRepItem>
+			<partyRepItem protocolClassPath="negotiator.protocol.StackedAlternatingOffersProtocol"
+				description="Terra" classPath="agents.anac.y2016.terra.Terra"
+				partyName="Terra-anac2016">
+				<properties />
+			</partyRepItem>
+			<partyRepItem protocolClassPath="negotiator.protocol.StackedAlternatingOffersProtocol"
+				description="YX" classPath="agents.anac.y2016.yxagent.YXAgent"
+				partyName="YX-anac2016">
+				<properties />
+			</partyRepItem>
+			<partyRepItem protocolClassPath="negotiator.protocol.StackedAlternatingOffersProtocol"
+				description="Smith" classPath="agents.anac.y2016.agentsmith.AgentSmith"
+				partyName="Smith-anac2016">
+				<properties />
+			</partyRepItem>
+
+		</partyRepItems>
+		<domainRepItem />
+		<protocolRepItem />
+		<multiPartyProtocolRepItem />
+	</items>
+	<filename>partyrepository.xml</filename>
+</repository>

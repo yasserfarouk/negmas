@@ -1,0 +1,45 @@
+<negotiation_template number_of_sessions="1">
+	<agent class="agents.BayesianAgent" name="seller"
+		utility_space="laptop_seller_utility.xml">
+	</agent>
+	<agent class="agents.UIAgent" name="buyer" utility_space="laptop_buyer_utility.xml">
+	</agent>
+	<utility_space number_of_issues="0">
+		<objective index="1" etype="objective" type="objective"
+			description="" name="LaptopDomain">
+			<issue index="2" etype="discrete" type="discrete" vtype="discrete"
+				name="Laptop">
+				<item index="1" value="Dell" cost="700" description="cheap laptop">
+				</item>
+				<item index="2" value="Macintosh" cost="800" description="quality laptop">
+				</item>
+				<item index="3" value="HP" cost="900" description="gamer laptop">
+				</item>
+				<similarity_function type="binary" weight="0.333333"/>
+			</issue>
+			<issue index="3" etype="discrete" type="discrete" vtype="discrete"
+				name="Harddisk">
+				<item index="1" value="60 Gb" cost="0" description="the default internal HD">
+				</item>
+				<item index="2" value="80 Gb" cost="50" description="some extra space">
+				</item>
+				<item index="3" value="120 Gb" cost="100"
+					description="enough for dual-boot or video editing">
+				</item>
+				<similarity_function type="binary" weight="0.333333"/>
+			</issue>
+			<issue index="4" etype="discrete" type="discrete" vtype="discrete"
+				name="External Monitor">
+				<item index="1" value="19'' LCD" cost="250" description="nothing special">
+				</item>
+				<item index="2" value="20'' LCD" cost="350"
+					description="fast switching, high contrast">
+				</item>
+				<item index="3" value="23'' LCD" cost="450"
+					description="nice to play movies, lots of space">
+				</item>
+				<similarity_function type="binary" weight="0.33333"/>
+			</issue>
+		</objective>
+	</utility_space>
+</negotiation_template> 

@@ -1,0 +1,80 @@
+<utility_space type="UNCERTAIN"> 
+<objective name="holiday" index="0" description="" etype="objective" type="objective"> 
+<issue vtype="discrete" name="Destination" index="1" etype="discrete" type="discrete"> 
+<item evaluation="1.0" index="1" value="London"> 
+</item> 
+<item evaluation="2.0" index="2" value="Paris"> 
+</item> 
+<item evaluation="3.0" index="3" value="Amsterdam"> 
+</item> 
+<item evaluation="4.0" index="4" value="Miami"> 
+</item> 
+</issue> 
+<issue vtype="discrete" name="Duration" index="2" etype="discrete" type="discrete"> 
+<item evaluation="1.0" index="1" value="3"> 
+</item> 
+<item evaluation="2.0" index="2" value="7"> 
+</item> 
+<item evaluation="3.0" index="3" value="10"> 
+</item> 
+<item evaluation="4.0" index="4" value="14"> 
+</item> 
+</issue> 
+<issue vtype="discrete" name="Budget" index="3" etype="discrete" type="discrete"> 
+<item evaluation="1.0" index="1" value="400"> 
+</item> 
+<item evaluation="2.0" index="2" value="700"> 
+</item> 
+<item evaluation="3.0" index="3" value="1000"> 
+</item> 
+<item evaluation="4.0" index="4" value="1500"> 
+</item> 
+</issue> 
+<issue vtype="discrete" name="Activities" index="4" etype="discrete" type="discrete"> 
+<item evaluation="1.0" index="1" value="Museum"> 
+</item> 
+<item evaluation="2.0" index="2" value="Sport"> 
+</item> 
+<item evaluation="3.0" index="3" value="Restaurant"> 
+</item> 
+<item evaluation="4.0" index="4" value="Historical Places"> 
+</item> 
+</issue> 
+<issue vtype="discrete" name="Transportation" index="5" etype="discrete" type="discrete"> 
+<item evaluation="1.0" index="1" value="Car"> 
+</item> 
+<item evaluation="2.0" index="2" value="Bus"> 
+</item> 
+<item evaluation="3.0" index="3" value="Train"> 
+</item> 
+<item evaluation="4.0" index="4" value="Air Plane"> 
+</item> 
+</issue> 
+<weight index="1" value="0.13123172545953757"> 
+</weight> 
+<weight index="2" value="0.13719383064545781"> 
+</weight> 
+<weight index="3" value="0.24528754323220603"> 
+</weight> 
+<weight index="4" value="0.24018932579840763"> 
+</weight> 
+<weight index="5" value="0.246097574864391"> 
+</weight> 
+</objective> 
+<discount_factor value="1.0"> 
+</discount_factor> 
+<reservation value="0.247226"> 
+</reservation> 
+<comparisons> 
+100 
+</comparisons> 
+<errors> 
+0 
+</errors> 
+<fixed_seed> 
+true 
+</fixed_seed> 
+<experimental> 
+false 
+</experimental> 
+</utility_space> 

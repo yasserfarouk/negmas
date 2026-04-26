@@ -1,0 +1,10 @@
+<negotiation_template> 
+<utility_space number_of_issues="2"> 
+<objective index="0" description="" name="test" type="objective" etype="objective"> 
+<issue index="1" name="een" lowerbound="1" upperbound="7" vtype="integer" type="integer" etype="integer"> 
+</issue> 
+<issue index="2" name="twee" lowerbound="1" upperbound="7" vtype="integer" type="integer" etype="integer"> 
+</issue> 
+</objective> 
+</utility_space> 
+</negotiation_template> 

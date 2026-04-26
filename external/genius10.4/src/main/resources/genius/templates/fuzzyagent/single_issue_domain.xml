@@ -1,0 +1,14 @@
+<negotiation_template number_of_sessions="3"> 
+<agent utility_space="buyer_utility.xml" name="Buyer" class="agents.FuzzyAgent"> 
+</agent> 
+<agent utility_space="seller_utility.xml" name="Seller" class="agents.FuzzyAgent"> 
+</agent> 
+<utility_space number_of_issues="0"> 
+<objective index="0" description="" name="root" type="objective" etype="objective"> 
+<issue index="1" name="One_and_only_issue" vtype="real" type="real" etype="real"> 
+<range lowerbound="10.0" upperbound="40.0"> 
+</range> 
+</issue> 
+</objective> 
+</utility_space> 
+</negotiation_template> 

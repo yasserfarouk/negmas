@@ -1,0 +1,28 @@
+<negotiation_template>
+<utility_space number_of_issues="3">
+<objective description="" etype="objective" index="0" name="root" type="objective">
+    <issue etype="discrete" index="1" name="Roles" type="discrete" vtype="discrete">
+        <item index="1" value="Driver" cost="0" description="Driver">
+        </item>
+        <item index="2" value="Hostage Taker" cost="0" description="Hostage Taker">
+        </item>
+        <item index="3" value="Money Grabber" cost="0" description="Money Grabber">
+        </item>
+    </issue>
+    <issue etype="discrete" index="2" name="Escape Plan" type="discrete" vtype="discrete">
+        <item index="1" value="Car" cost="0" description="Car">
+        </item>
+        <item index="2" value="Hellicopter" cost="0" description="Hellicopter">
+        </item>
+        <item index="3" value="Horse" cost="0" description="Horse">
+        </item>
+    </issue>
+    <issue etype="discrete" index="3" name="Money Split" type="discrete" vtype="discrete">
+        <item index="1" value="Proportional to Performance" cost="0" description="Proportional to Performance">
+        </item>
+        <item index="2" value="Equally" cost="0" description="Equally">
+        </item>
+    </issue>
+</objective>
+</utility_space>
+</negotiation_template>

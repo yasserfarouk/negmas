@@ -1,0 +1,746 @@
+<?xml version="1.0" encoding="UTF-8" standalone="yes"?>
+<repository fileName="domainrepository.xml">
+    <items>
+        <agentRepItems/>
+        <partyRepItems/>
+        <domainRepItem>
+            <domainRepItem url="file:etc/templates/partydomain/party_domain.xml">
+                <profile url="file:etc/templates/partydomain/party1_utility.xml"/>
+                <profile url="file:etc/templates/partydomain/party2_utility.xml"/>
+                <profile url="file:etc/templates/partydomain/party3_utility.xml"/>
+                <profile url="file:etc/templates/partydomain/party4_utility.xml"/>
+                <profile url="file:etc/templates/partydomain/party5_utility.xml"/>
+                <profile url="file:etc/templates/partydomain/party6_utility.xml"/>
+                <profile url="file:etc/templates/partydomain/party7_utility.xml"/>
+                <profile url="file:etc/templates/partydomain/party8_utility.xml"/>
+                <profile url="file:etc/templates/partydomain/party9_utility.xml"/>
+                <profile url="file:etc/templates/partydomain/party1_utility_u10.xml"/>
+                <profile url="file:etc/templates/partydomain/party1_utility_u20.xml"/>
+                <profile url="file:etc/templates/partydomain/party1_utility_u50.xml"/>
+                <profile url="file:etc/templates/partydomain/party2_utility_u10.xml"/>
+                <profile url="file:etc/templates/partydomain/party2_utility_u20.xml"/>
+                <profile url="file:etc/templates/partydomain/party2_utility_u50.xml"/>
+            </domainRepItem>
+		    <domainRepItem url="file:etc/templates/anac/y2011/Laptop/laptop_domain.xml">
+                <profile url="file:etc/templates/anac/y2011/Laptop/laptop_buyer_utility.xml"/>
+                <profile url="file:etc/templates/anac/y2011/Laptop/laptop_seller_utility.xml"/>
+                <profile url="file:etc/templates/anac/y2011/Laptop/laptop_seller_utility_u10.xml"/>
+                <profile url="file:etc/templates/anac/y2011/Laptop/laptop_seller_utility_u20.xml"/>
+                <profile url="file:etc/templates/anac/y2011/Laptop/laptop_buyer_utility.xml"/>
+                <profile url="file:etc/templates/anac/y2011/Laptop/laptop_buyer_utility_u10.xml"/>
+                <profile url="file:etc/templates/anac/y2011/Laptop/laptop_buyer_utility_u20.xml"/>
+            </domainRepItem>
+			<domainRepItem url="file:etc/templates/ItexvsCypressDomain/ItexvsCypress_domain.xml">
+                <profile url="file:etc/templates/ItexvsCypressDomain/ItexvsCypress_CypressAReserve00.xml"/>
+                <profile url="file:etc/templates/ItexvsCypressDomain/ItexvsCypress_ItexBReserve00.xml"/>
+            </domainRepItem>
+			<domainRepItem url="file:etc/templates/pie/pie_domain.xml">
+                <profile url="file:etc/templates/pie/pie_A.xml"/>
+                <profile url="file:etc/templates/pie/pie_B.xml"/>
+            </domainRepItem>
+            <domainRepItem url="file:etc/templates/ANAC2016/AgentHp2/energy_grid_domain.xml">
+                <profile url="file:etc/templates/ANAC2016/AgentHp2/consumer.xml"/>
+                <profile url="file:etc/templates/ANAC2016/AgentHp2/producer.xml"/>
+                <profile url="file:etc/templates/ANAC2016/AgentHp2/provider.xml"/>
+            </domainRepItem>
+            <domainRepItem url="file:etc/templates/ANAC2016/AgentLightSmartGrid/SmartEnergyGrid.xml">
+                <profile url="file:etc/templates/ANAC2016/AgentLightSmartGrid/SmartEnergyGrid_util1.xml"/>
+                <profile url="file:etc/templates/ANAC2016/AgentLightSmartGrid/SmartEnergyGrid_util2.xml"/>
+                <profile url="file:etc/templates/ANAC2016/AgentLightSmartGrid/SmartEnergyGrid_util3.xml"/>
+            </domainRepItem>
+            <domainRepItem url="file:etc/templates/ANAC2016/AgentSmith/DomainAce.xml">
+                <profile url="file:etc/templates/ANAC2016/AgentSmith/DomainAce_util1.xml"/>
+                <profile url="file:etc/templates/ANAC2016/AgentSmith/DomainAce_util2.xml"/>
+                <profile url="file:etc/templates/ANAC2016/AgentSmith/DomainAce_util3.xml"/>
+            </domainRepItem>
+            <domainRepItem url="file:etc/templates/ANAC2016/Atlas3/triangularFight.xml">
+                <profile url="file:etc/templates/ANAC2016/Atlas3/triangularFight_util1.xml"/>
+                <profile url="file:etc/templates/ANAC2016/Atlas3/triangularFight_util2.xml"/>
+                <profile url="file:etc/templates/ANAC2016/Atlas3/triangularFight_util3.xml"/>
+            </domainRepItem>
+            <domainRepItem url="file:etc/templates/ANAC2016/Caduceus/Smart_Grid.xml">
+                <profile url="file:etc/templates/ANAC2016/Caduceus/Smart_Grid_util1.xml"/>
+                <profile url="file:etc/templates/ANAC2016/Caduceus/Smart_Grid_util2.xml"/>
+                <profile url="file:etc/templates/ANAC2016/Caduceus/Smart_Grid_util3.xml"/>
+            </domainRepItem>
+            <domainRepItem url="file:etc/templates/ANAC2016/ClockWork/SmartGridDomain.xml">
+                <profile url="file:etc/templates/ANAC2016/ClockWork/SmartGridDomain_util1.xml"/>
+                <profile url="file:etc/templates/ANAC2016/ClockWork/SmartGridDomain_util2.xml"/>
+                <profile url="file:etc/templates/ANAC2016/ClockWork/SmartGridDomain_util3.xml"/>
+            </domainRepItem>
+            <domainRepItem url="file:etc/templates/ANAC2016/Farma/DomainTwF.xml">
+                <profile url="file:etc/templates/ANAC2016/Farma/DomainTwF_util1.xml"/>
+                <profile url="file:etc/templates/ANAC2016/Farma/DomainTwF_util2.xml"/>
+                <profile url="file:etc/templates/ANAC2016/Farma/DomainTwF_util3.xml"/>
+            </domainRepItem>
+            <domainRepItem url="file:etc/templates/ANAC2016/GrandMa/Smart_Energy_Grid.xml">
+                <profile url="file:etc/templates/ANAC2016/GrandMa/Smart_Energy_Grid_util1.xml"/>
+                <profile url="file:etc/templates/ANAC2016/GrandMa/Smart_Energy_Grid_util2.xml"/>
+                <profile url="file:etc/templates/ANAC2016/GrandMa/Smart_Energy_Grid_util3.xml"/>
+            </domainRepItem>
+            <domainRepItem url="file:etc/templates/ANAC2016/Maxoops/WindFarm.xml">
+                <profile url="file:etc/templates/ANAC2016/Maxoops/WindFarm_util1.xml"/>
+                <profile url="file:etc/templates/ANAC2016/Maxoops/WindFarm_util2.xml"/>
+                <profile url="file:etc/templates/ANAC2016/Maxoops/WindFarm_util3.xml"/>
+            </domainRepItem>
+            <domainRepItem url="file:etc/templates/ANAC2016/myAgent/KDomain.xml">
+                <profile url="file:etc/templates/ANAC2016/myAgent/KDomain_util1.xml"/>
+                <profile url="file:etc/templates/ANAC2016/myAgent/KDomain_util2.xml"/>
+                <profile url="file:etc/templates/ANAC2016/myAgent/KDomain_util3.xml"/>
+            </domainRepItem>
+            <domainRepItem url="file:etc/templates/ANAC2016/nGent/ElectricVehicle.xml">
+                <profile url="file:etc/templates/ANAC2016/nGent/ElectricVehicle_profile1.xml"/>
+                <profile url="file:etc/templates/ANAC2016/nGent/ElectricVehicle_profile2.xml"/>
+                <profile url="file:etc/templates/ANAC2016/nGent/ElectricVehicle_profile3.xml"/>
+            </domainRepItem>
+            <domainRepItem url="file:etc/templates/ANAC2016/parsAgent2/PEnergy.xml">
+                <profile url="file:etc/templates/ANAC2016/parsAgent2/PEnergy_util1.xml"/>
+                <profile url="file:etc/templates/ANAC2016/parsAgent2/PEnergy_util2.xml"/>
+                <profile url="file:etc/templates/ANAC2016/parsAgent2/PEnergy_util3.xml"/>
+            </domainRepItem>
+            <domainRepItem url="file:etc/templates/ANAC2016/parsCat/domain.xml">
+                <profile url="file:etc/templates/ANAC2016/parsCat/profile1.xml"/>
+                <profile url="file:etc/templates/ANAC2016/parsCat/profile2.xml"/>
+                <profile url="file:etc/templates/ANAC2016/parsCat/profile3.xml"/>
+            </domainRepItem>
+            <domainRepItem url="file:etc/templates/ANAC2016/SYAgent/JapanTrip.xml">
+                <profile url="file:etc/templates/ANAC2016/SYAgent/JapanTrip_util1.xml"/>
+                <profile url="file:etc/templates/ANAC2016/SYAgent/JapanTrip_util2.xml"/>
+                <profile url="file:etc/templates/ANAC2016/SYAgent/JapanTrip_util3.xml"/>
+            </domainRepItem>
+            <domainRepItem url="file:etc/templates/ANAC2016/Terra/NewDomain.xml">
+                <profile url="file:etc/templates/ANAC2016/Terra/NewDomain_util1.xml"/>
+                <profile url="file:etc/templates/ANAC2016/Terra/NewDomain_util2.xml"/>
+                <profile url="file:etc/templates/ANAC2016/Terra/NewDomain_util3.xml"/>
+            </domainRepItem>
+            <domainRepItem url="file:etc/templates/ANAC2016/YXagent/Smart_Energy_Grid.xml">
+                <profile url="file:etc/templates/ANAC2016/YXagent/Smart_Energy_Grid_util2.xml"/>
+                <profile url="file:etc/templates/ANAC2016/YXagent/Smart_Energy_Grid_util3.xml"/>
+                <profile url="file:etc/templates/ANAC2016/YXagent/Smart_Energy_Grid_util4.xml"/>
+            </domainRepItem>
+            <domainRepItem url="file:etc/templates/ANAC2015/group1-university/University.xml">
+                <profile url="file:etc/templates/ANAC2015/group1-university/University_util1.xml"/>
+                <profile url="file:etc/templates/ANAC2015/group1-university/University_util2.xml"/>
+                <profile url="file:etc/templates/ANAC2015/group1-university/University_util3.xml"/>
+                <profile url="file:etc/templates/ANAC2015/group1-university/University_util4.xml"/>
+                <profile url="file:etc/templates/ANAC2015/group1-university/University_util5.xml"/>
+                <profile url="file:etc/templates/ANAC2015/group1-university/University_util6.xml"/>
+                <profile url="file:etc/templates/ANAC2015/group1-university/University_util7.xml"/>
+                <profile url="file:etc/templates/ANAC2015/group1-university/University_util8.xml"/>
+                <profile url="file:etc/templates/ANAC2015/group1-university/University_util9.xml"/>
+            </domainRepItem>
+            <domainRepItem url="file:etc/templates/ANAC2015/group2-new_sporthal/New_sporthal.xml">
+                <profile url="file:etc/templates/ANAC2015/group2-new_sporthal/New_sporthal_util1.xml"/>
+                <profile url="file:etc/templates/ANAC2015/group2-new_sporthal/New_sporthal_util2.xml"/>
+                <profile url="file:etc/templates/ANAC2015/group2-new_sporthal/New_sporthal_util3.xml"/>
+            </domainRepItem>
+            <domainRepItem url="file:etc/templates/ANAC2015/group2-politics/Politics.xml">
+                <profile url="file:etc/templates/ANAC2015/group2-politics/Politics_util1.xml"/>
+                <profile url="file:etc/templates/ANAC2015/group2-politics/Politics_util2.xml"/>
+                <profile url="file:etc/templates/ANAC2015/group2-politics/Politics_util3.xml"/>
+            </domainRepItem>
+            <domainRepItem url="file:etc/templates/ANAC2015/group3-bank_robbery/Bank_Robbery.xml">
+                <profile url="file:etc/templates/ANAC2015/group3-bank_robbery/Bank_Robbery_util1.xml"/>
+                <profile url="file:etc/templates/ANAC2015/group3-bank_robbery/Bank_Robbery_util2.xml"/>
+                <profile url="file:etc/templates/ANAC2015/group3-bank_robbery/Bank_Robbery_util3.xml"/>
+                <profile url="file:etc/templates/ANAC2015/group3-bank_robbery/Bank_Robbery_util4.xml"/>
+                <profile url="file:etc/templates/ANAC2015/group3-bank_robbery/Bank_Robbery_util5.xml"/>
+                <profile url="file:etc/templates/ANAC2015/group3-bank_robbery/Bank_Robbery_util6.xml"/>
+                <profile url="file:etc/templates/ANAC2015/group3-bank_robbery/Bank_Robbery_util7.xml"/>
+                <profile url="file:etc/templates/ANAC2015/group3-bank_robbery/Bank_Robbery_util8.xml"/>
+                <profile url="file:etc/templates/ANAC2015/group3-bank_robbery/Bank_Robbery_util9.xml"/>
+            </domainRepItem>
+            <domainRepItem url="file:etc/templates/ANAC2015/group4-zoning_plan/Group4.xml">
+                <profile url="file:etc/templates/ANAC2015/group4-zoning_plan/Group4_util1.xml"/>
+                <profile url="file:etc/templates/ANAC2015/group4-zoning_plan/Group4_util2.xml"/>
+                <profile url="file:etc/templates/ANAC2015/group4-zoning_plan/Group4_util3.xml"/>
+                <profile url="file:etc/templates/ANAC2015/group4-zoning_plan/Group4_util4.xml"/>
+                <profile url="file:etc/templates/ANAC2015/group4-zoning_plan/Group4_util5.xml"/>
+                <profile url="file:etc/templates/ANAC2015/group4-zoning_plan/Group4_util6.xml"/>
+                <profile url="file:etc/templates/ANAC2015/group4-zoning_plan/Group4_util7.xml"/>
+                <profile url="file:etc/templates/ANAC2015/group4-zoning_plan/Group4_util8.xml"/>
+                <profile url="file:etc/templates/ANAC2015/group4-zoning_plan/Group4_util9.xml"/>
+            </domainRepItem>
+            <domainRepItem url="file:etc/templates/ANAC2015/group5-car_domain/car_domain.xml">
+                <profile url="file:etc/templates/ANAC2015/group5-car_domain/car-Profile1.xml"/>
+                <profile url="file:etc/templates/ANAC2015/group5-car_domain/car-Profile2.xml"/>
+                <profile url="file:etc/templates/ANAC2015/group5-car_domain/car-Profile3.xml"/>
+                <profile url="file:etc/templates/ANAC2015/group5-car_domain/car-Profile4.xml"/>
+                <profile url="file:etc/templates/ANAC2015/group5-car_domain/car-Profile5.xml"/>
+                <profile url="file:etc/templates/ANAC2015/group5-car_domain/car-Profile6.xml"/>
+                <profile url="file:etc/templates/ANAC2015/group5-car_domain/car-Profile7.xml"/>
+                <profile url="file:etc/templates/ANAC2015/group5-car_domain/car-Profile8.xml"/>
+                <profile url="file:etc/templates/ANAC2015/group5-car_domain/car-Profile9.xml"/>
+            </domainRepItem>
+            <domainRepItem url="file:etc/templates/ANAC2015/group6-tram/Tram.xml">
+                <profile url="file:etc/templates/ANAC2015/group6-tram/Tram_Profile1.xml"/>
+                <profile url="file:etc/templates/ANAC2015/group6-tram/Tram_Profile2.xml"/>
+                <profile url="file:etc/templates/ANAC2015/group6-tram/Tram_Profile3.xml"/>
+                <profile url="file:etc/templates/ANAC2015/group6-tram/Tram_Profile4.xml"/>
+                <profile url="file:etc/templates/ANAC2015/group6-tram/Tram_Profile5.xml"/>
+                <profile url="file:etc/templates/ANAC2015/group6-tram/Tram_Profile6.xml"/>
+                <profile url="file:etc/templates/ANAC2015/group6-tram/Tram_Profile7.xml"/>
+                <profile url="file:etc/templates/ANAC2015/group6-tram/Tram_Profile8.xml"/>
+                <profile url="file:etc/templates/ANAC2015/group6-tram/Tram_Profile9.xml"/>
+            </domainRepItem>
+            <domainRepItem url="file:etc/templates/ANAC2015/group7-movie/movie.xml">
+                <profile url="file:etc/templates/ANAC2015/group7-movie/movie-profile1.xml"/>
+                <profile url="file:etc/templates/ANAC2015/group7-movie/movie-profile2.xml"/>
+                <profile url="file:etc/templates/ANAC2015/group7-movie/movie-profile3.xml"/>
+                <profile url="file:etc/templates/ANAC2015/group7-movie/movie-profile4.xml"/>
+                <profile url="file:etc/templates/ANAC2015/group7-movie/movie-profile5.xml"/>
+                <profile url="file:etc/templates/ANAC2015/group7-movie/movie-profile6.xml"/>
+                <profile url="file:etc/templates/ANAC2015/group7-movie/movie-profile7.xml"/>
+                <profile url="file:etc/templates/ANAC2015/group7-movie/movie-profile8.xml"/>
+                <profile url="file:etc/templates/ANAC2015/group7-movie/movie-profile9.xml"/>
+            </domainRepItem>
+            <domainRepItem url="file:etc/templates/ANAC2015/group8-holiday/holiday.xml">
+                <profile url="file:etc/templates/ANAC2015/group8-holiday/holiday-Profile1.xml"/>
+                <profile url="file:etc/templates/ANAC2015/group8-holiday/holiday-Profile2.xml"/>
+                <profile url="file:etc/templates/ANAC2015/group8-holiday/holiday-Profile3.xml"/>
+                <profile url="file:etc/templates/ANAC2015/group8-holiday/holiday-Profile4.xml"/>
+                <profile url="file:etc/templates/ANAC2015/group8-holiday/holiday-Profile5.xml"/>
+                <profile url="file:etc/templates/ANAC2015/group8-holiday/holiday-Profile6.xml"/>
+                <profile url="file:etc/templates/ANAC2015/group8-holiday/holiday-Profile7.xml"/>
+                <profile url="file:etc/templates/ANAC2015/group8-holiday/holiday-Profile8.xml"/>
+                <profile url="file:etc/templates/ANAC2015/group8-holiday/holiday-Profile9.xml"/>
+            </domainRepItem>
+            <domainRepItem url="file:etc/templates/ANAC2015/group9-killer_robot/KillerRobot.xml">
+                <profile url="file:etc/templates/ANAC2015/group9-killer_robot/KillerRobot_util1.xml"/>
+                <profile url="file:etc/templates/ANAC2015/group9-killer_robot/KillerRobot_util2.xml"/>
+                <profile url="file:etc/templates/ANAC2015/group9-killer_robot/KillerRobot_util3.xml"/>
+                <profile url="file:etc/templates/ANAC2015/group9-killer_robot/KillerRobot_util4.xml"/>
+                <profile url="file:etc/templates/ANAC2015/group9-killer_robot/KillerRobot_util5.xml"/>
+            </domainRepItem>
+            <domainRepItem url="file:etc/templates/ANAC2015/group9-killer_robot/KillerRobot.xml">
+                <profile url="file:etc/templates/ANAC2015/group9-killer_robot/KillerRobot_util1.xml"/>
+                <profile url="file:etc/templates/ANAC2015/group9-killer_robot/KillerRobot_util2.xml"/>
+                <profile url="file:etc/templates/ANAC2015/group9-killer_robot/KillerRobot_util3.xml"/>
+                <profile url="file:etc/templates/ANAC2015/group9-killer_robot/KillerRobot_util4.xml"/>
+                <profile url="file:etc/templates/ANAC2015/group9-killer_robot/KillerRobot_util5.xml"/>
+            </domainRepItem>
+            <domainRepItem url="file:etc/templates/ANAC2015/group11-car_purchase/car_purchase_domain.xml">
+                <profile url="file:etc/templates/ANAC2015/group11-car_purchase/car_purchase_util1.xml"/>
+                <profile url="file:etc/templates/ANAC2015/group11-car_purchase/car_purchase_util2.xml"/>
+                <profile url="file:etc/templates/ANAC2015/group11-car_purchase/car_purchase_util3.xml"/>
+                <profile url="file:etc/templates/ANAC2015/group11-car_purchase/car_purchase_util4.xml"/>
+                <profile url="file:etc/templates/ANAC2015/group11-car_purchase/car_purchase_util5.xml"/>
+                <profile url="file:etc/templates/ANAC2015/group11-car_purchase/car_purchase_util6.xml"/>
+                <profile url="file:etc/templates/ANAC2015/group11-car_purchase/car_purchase_util7.xml"/>
+                <profile url="file:etc/templates/ANAC2015/group11-car_purchase/car_purchase_util8.xml"/>
+                <profile url="file:etc/templates/ANAC2015/group11-car_purchase/car_purchase_util9.xml"/>
+            </domainRepItem>
+            <domainRepItem url="file:etc/templates/ANAC2015/group12-symposium/symposium.xml">
+                <profile url="file:etc/templates/ANAC2015/group12-symposium/Symposium-Profile1.xml"/>
+                <profile url="file:etc/templates/ANAC2015/group12-symposium/Symposium-Profile2.xml"/>
+                <profile url="file:etc/templates/ANAC2015/group12-symposium/Symposium-Profile3.xml"/>
+                <profile url="file:etc/templates/ANAC2015/group12-symposium/Symposium-Profile4.xml"/>
+                <profile url="file:etc/templates/ANAC2015/group12-symposium/Symposium-Profile5.xml"/>
+                <profile url="file:etc/templates/ANAC2015/group12-symposium/Symposium-Profile6.xml"/>
+                <profile url="file:etc/templates/ANAC2015/group12-symposium/Symposium-Profile7.xml"/>
+                <profile url="file:etc/templates/ANAC2015/group12-symposium/Symposium-Profile8.xml"/>
+                <profile url="file:etc/templates/ANAC2015/group12-symposium/Symposium-Profile9.xml"/>
+            </domainRepItem>
+            <domainRepItem url="file:etc/templates/anac/y2010/EnglandZimbabwe/EnglandZimbabwe_domain.xml">
+                <profile url="file:etc/templates/anac/y2010/EnglandZimbabwe/England.xml"/>
+                <profile url="file:etc/templates/anac/y2010/EnglandZimbabwe/Zimbabwe.xml"/>
+            </domainRepItem>
+            <domainRepItem url="file:etc/templates/anac/y2010/ItexvsCypress/ItexvsCypress_domain.xml">
+                <profile url="file:etc/templates/anac/y2010/ItexvsCypress/ItexvsCypress_Cypress.xml"/>
+                <profile url="file:etc/templates/anac/y2010/ItexvsCypress/ItexvsCypress_Itex.xml"/>
+            </domainRepItem>
+            <domainRepItem url="file:etc/templates/anac/y2010/Travel/travel_domain.xml">
+                <profile url="file:etc/templates/anac/y2010/Travel/travel_chox.xml"/>
+                <profile url="file:etc/templates/anac/y2010/Travel/travel_fanny.xml"/>
+            </domainRepItem>
+            <domainRepItem url="file:etc/templates/anac/y2011/Car/adg.xml">
+                <profile url="file:etc/templates/anac/y2011/Car/adg_deal.xml"/>
+                <profile url="file:etc/templates/anac/y2011/Car/adg_deal2.xml"/>
+            </domainRepItem>
+            <domainRepItem url="file:etc/templates/anac/y2011/Amsterdam/Amsterdam_domain.xml">
+                <profile url="file:etc/templates/anac/y2011/Amsterdam/Amsterdam_party1.xml"/>
+                <profile url="file:etc/templates/anac/y2011/Amsterdam/Amsterdam_party2.xml"/>
+            </domainRepItem>
+            <domainRepItem url="file:etc/templates/anac/y2011/Camera/camera_domain.xml">
+                <profile url="file:etc/templates/anac/y2011/Camera/camera_seller_utility.xml"/>
+                <profile url="file:etc/templates/anac/y2011/Camera/camera_buyer_utility.xml"/>
+            </domainRepItem>
+            <domainRepItem url="file:etc/templates/anac/y2011/NiceOrDie/NiceOrDie.xml">
+                <profile url="file:etc/templates/anac/y2011/NiceOrDie/NiceOrDie1.xml"/>
+                <profile url="file:etc/templates/anac/y2011/NiceOrDie/NiceOrDie2.xml"/>
+            </domainRepItem>
+            <domainRepItem url="file:etc/templates/anac/y2011/Energy/energy_domain.xml">
+                <profile url="file:etc/templates/anac/y2011/Energy/energy_consumer.xml"/>
+                <profile url="file:etc/templates/anac/y2011/Energy/energy_distributor.xml"/>
+            </domainRepItem>
+            <domainRepItem url="file:etc/templates/anac/y2011/Grocery/Grocery_domain.xml">
+                <profile url="file:etc/templates/anac/y2011/Grocery/Grocery_domain_sam.xml"/>
+                <profile url="file:etc/templates/anac/y2011/Grocery/Grocery_domain_mary.xml"/>
+            </domainRepItem>
+            <domainRepItem url="file:etc/templates/anac/y2011/IS_BT_Acquisition/IS_BT_Acquisition.xml">
+                <profile url="file:etc/templates/anac/y2011/IS_BT_Acquisition/IS_BT_Acquisition_IS_prof.xml"/>
+                <profile url="file:etc/templates/anac/y2011/IS_BT_Acquisition/IS_BT_Acquisition_BT_prof.xml"/>
+            </domainRepItem>
+            <domainRepItem url="file:etc/templates/anac/y2012/Acquisition/Acquisition-A-domain.xml">
+                <profile url="file:etc/templates/anac/y2012/Acquisition/Acquisition-A-prof1.xml"/>
+                <profile url="file:etc/templates/anac/y2012/Acquisition/Acquisition-A-prof2.xml"/>
+            </domainRepItem>
+            <domainRepItem url="file:etc/templates/anac/y2012/Acquisition/Acquisition-B-domain.xml">
+                <profile url="file:etc/templates/anac/y2012/Acquisition/Acquisition-B-prof1.xml"/>
+                <profile url="file:etc/templates/anac/y2012/Acquisition/Acquisition-B-prof2.xml"/>
+            </domainRepItem>
+            <domainRepItem url="file:etc/templates/anac/y2012/Acquisition/Acquisition-C-domain.xml">
+                <profile url="file:etc/templates/anac/y2012/Acquisition/Acquisition-C-prof1.xml"/>
+                <profile url="file:etc/templates/anac/y2012/Acquisition/Acquisition-C-prof2.xml"/>
+            </domainRepItem>
+            <domainRepItem url="file:etc/templates/anac/y2012/AirportSiteSelection/AirportSiteSelection-A-domain.xml">
+                <profile url="file:etc/templates/anac/y2012/AirportSiteSelection/AirportSiteSelection-A-prof1.xml"/>
+                <profile url="file:etc/templates/anac/y2012/AirportSiteSelection/AirportSiteSelection-A-prof2.xml"/>
+            </domainRepItem>
+            <domainRepItem url="file:etc/templates/anac/y2012/AirportSiteSelection/AirportSiteSelection-B-domain.xml">
+                <profile url="file:etc/templates/anac/y2012/AirportSiteSelection/AirportSiteSelection-B-prof1.xml"/>
+                <profile url="file:etc/templates/anac/y2012/AirportSiteSelection/AirportSiteSelection-B-prof2.xml"/>
+            </domainRepItem>
+            <domainRepItem url="file:etc/templates/anac/y2012/AirportSiteSelection/AirportSiteSelection-C-domain.xml">
+                <profile url="file:etc/templates/anac/y2012/AirportSiteSelection/AirportSiteSelection-C-prof1.xml"/>
+                <profile url="file:etc/templates/anac/y2012/AirportSiteSelection/AirportSiteSelection-C-prof2.xml"/>
+            </domainRepItem>
+            <domainRepItem url="file:etc/templates/anac/y2012/Amsterdam/Amsterdam-A-domain.xml">
+                <profile url="file:etc/templates/anac/y2012/Amsterdam/Amsterdam-A-prof1.xml"/>
+                <profile url="file:etc/templates/anac/y2012/Amsterdam/Amsterdam-A-prof2.xml"/>
+            </domainRepItem>
+            <domainRepItem url="file:etc/templates/anac/y2012/Amsterdam/Amsterdam-B-domain.xml">
+                <profile url="file:etc/templates/anac/y2012/Amsterdam/Amsterdam-B-prof1.xml"/>
+                <profile url="file:etc/templates/anac/y2012/Amsterdam/Amsterdam-B-prof2.xml"/>
+            </domainRepItem>
+            <domainRepItem url="file:etc/templates/anac/y2012/Amsterdam/Amsterdam-C-domain.xml">
+                <profile url="file:etc/templates/anac/y2012/Amsterdam/Amsterdam-C-prof1.xml"/>
+                <profile url="file:etc/templates/anac/y2012/Amsterdam/Amsterdam-C-prof2.xml"/>
+            </domainRepItem>
+            <domainRepItem url="file:etc/templates/anac/y2012/Barbecue/Barbecue-A-domain.xml">
+                <profile url="file:etc/templates/anac/y2012/Barbecue/Barbecue-A-prof1.xml"/>
+                <profile url="file:etc/templates/anac/y2012/Barbecue/Barbecue-A-prof2.xml"/>
+            </domainRepItem>
+            <domainRepItem url="file:etc/templates/anac/y2012/Barbecue/Barbecue-B-domain.xml">
+                <profile url="file:etc/templates/anac/y2012/Barbecue/Barbecue-B-prof1.xml"/>
+                <profile url="file:etc/templates/anac/y2012/Barbecue/Barbecue-B-prof2.xml"/>
+            </domainRepItem>
+            <domainRepItem url="file:etc/templates/anac/y2012/Barbecue/Barbecue-C-domain.xml">
+                <profile url="file:etc/templates/anac/y2012/Barbecue/Barbecue-C-prof1.xml"/>
+                <profile url="file:etc/templates/anac/y2012/Barbecue/Barbecue-C-prof2.xml"/>
+            </domainRepItem>
+            <domainRepItem url="file:etc/templates/anac/y2012/Barter/Barter-A-domain.xml">
+                <profile url="file:etc/templates/anac/y2012/Barter/Barter-A-prof1.xml"/>
+                <profile url="file:etc/templates/anac/y2012/Barter/Barter-A-prof2.xml"/>
+            </domainRepItem>
+            <domainRepItem url="file:etc/templates/anac/y2012/Barter/Barter-B-domain.xml">
+                <profile url="file:etc/templates/anac/y2012/Barter/Barter-B-prof1.xml"/>
+                <profile url="file:etc/templates/anac/y2012/Barter/Barter-B-prof2.xml"/>
+            </domainRepItem>
+            <domainRepItem url="file:etc/templates/anac/y2012/Barter/Barter-C-domain.xml">
+                <profile url="file:etc/templates/anac/y2012/Barter/Barter-C-prof1.xml"/>
+                <profile url="file:etc/templates/anac/y2012/Barter/Barter-C-prof2.xml"/>
+            </domainRepItem>
+            <domainRepItem url="file:etc/templates/anac/y2012/Camera/Camera-A-domain.xml">
+                <profile url="file:etc/templates/anac/y2012/Camera/Camera-A-prof1.xml"/>
+                <profile url="file:etc/templates/anac/y2012/Camera/Camera-A-prof2.xml"/>
+            </domainRepItem>
+            <domainRepItem url="file:etc/templates/anac/y2012/Camera/Camera-B-domain.xml">
+                <profile url="file:etc/templates/anac/y2012/Camera/Camera-B-prof1.xml"/>
+                <profile url="file:etc/templates/anac/y2012/Camera/Camera-B-prof2.xml"/>
+            </domainRepItem>
+            <domainRepItem url="file:etc/templates/anac/y2012/Camera/Camera-C-domain.xml">
+                <profile url="file:etc/templates/anac/y2012/Camera/Camera-C-prof1.xml"/>
+                <profile url="file:etc/templates/anac/y2012/Camera/Camera-C-prof2.xml"/>
+            </domainRepItem>
+            <domainRepItem url="file:etc/templates/anac/y2012/Car/Car-A-domain.xml">
+                <profile url="file:etc/templates/anac/y2012/Car/Car-A-prof1.xml"/>
+                <profile url="file:etc/templates/anac/y2012/Car/Car-A-prof2.xml"/>
+            </domainRepItem>
+            <domainRepItem url="file:etc/templates/anac/y2012/Car/Car-B-domain.xml">
+                <profile url="file:etc/templates/anac/y2012/Car/Car-B-prof1.xml"/>
+                <profile url="file:etc/templates/anac/y2012/Car/Car-B-prof2.xml"/>
+            </domainRepItem>
+            <domainRepItem url="file:etc/templates/anac/y2012/Car/Car-C-domain.xml">
+                <profile url="file:etc/templates/anac/y2012/Car/Car-C-prof1.xml"/>
+                <profile url="file:etc/templates/anac/y2012/Car/Car-C-prof2.xml"/>
+            </domainRepItem>
+            <domainRepItem url="file:etc/templates/anac/y2012/Energy/Energy-A-domain.xml">
+                <profile url="file:etc/templates/anac/y2012/Energy/Energy-A-prof1.xml"/>
+                <profile url="file:etc/templates/anac/y2012/Energy/Energy-A-prof2.xml"/>
+            </domainRepItem>
+            <domainRepItem url="file:etc/templates/anac/y2012/Energy/Energy-B-domain.xml">
+                <profile url="file:etc/templates/anac/y2012/Energy/Energy-B-prof1.xml"/>
+                <profile url="file:etc/templates/anac/y2012/Energy/Energy-B-prof2.xml"/>
+            </domainRepItem>
+            <domainRepItem url="file:etc/templates/anac/y2012/Energy/Energy-C-domain.xml">
+                <profile url="file:etc/templates/anac/y2012/Energy/Energy-C-prof1.xml"/>
+                <profile url="file:etc/templates/anac/y2012/Energy/Energy-C-prof2.xml"/>
+            </domainRepItem>
+            <domainRepItem url="file:etc/templates/anac/y2012/EnergySmall/EnergySmall-A-domain.xml">
+                <profile url="file:etc/templates/anac/y2012/EnergySmall/EnergySmall-A-prof1.xml"/>
+                <profile url="file:etc/templates/anac/y2012/EnergySmall/EnergySmall-A-prof2.xml"/>
+            </domainRepItem>
+            <domainRepItem url="file:etc/templates/anac/y2012/EnergySmall/EnergySmall-B-domain.xml">
+                <profile url="file:etc/templates/anac/y2012/EnergySmall/EnergySmall-B-prof1.xml"/>
+                <profile url="file:etc/templates/anac/y2012/EnergySmall/EnergySmall-B-prof2.xml"/>
+            </domainRepItem>
+            <domainRepItem url="file:etc/templates/anac/y2012/EnergySmall/EnergySmall-C-domain.xml">
+                <profile url="file:etc/templates/anac/y2012/EnergySmall/EnergySmall-C-prof1.xml"/>
+                <profile url="file:etc/templates/anac/y2012/EnergySmall/EnergySmall-C-prof2.xml"/>
+            </domainRepItem>
+            <domainRepItem url="file:etc/templates/anac/y2012/EnglandvsZimbabwe/EnglandvsZimbabwe-A-domain.xml">
+                <profile url="file:etc/templates/anac/y2012/EnglandvsZimbabwe/EnglandvsZimbabwe-A-prof1.xml"/>
+                <profile url="file:etc/templates/anac/y2012/EnglandvsZimbabwe/EnglandvsZimbabwe-A-prof2.xml"/>
+            </domainRepItem>
+            <domainRepItem url="file:etc/templates/anac/y2012/EnglandvsZimbabwe/EnglandvsZimbabwe-B-domain.xml">
+                <profile url="file:etc/templates/anac/y2012/EnglandvsZimbabwe/EnglandvsZimbabwe-B-prof1.xml"/>
+                <profile url="file:etc/templates/anac/y2012/EnglandvsZimbabwe/EnglandvsZimbabwe-B-prof2.xml"/>
+            </domainRepItem>
+            <domainRepItem url="file:etc/templates/anac/y2012/EnglandvsZimbabwe/EnglandvsZimbabwe-C-domain.xml">
+                <profile url="file:etc/templates/anac/y2012/EnglandvsZimbabwe/EnglandvsZimbabwe-C-prof1.xml"/>
+                <profile url="file:etc/templates/anac/y2012/EnglandvsZimbabwe/EnglandvsZimbabwe-C-prof2.xml"/>
+            </domainRepItem>
+            <domainRepItem url="file:etc/templates/anac/y2012/Fitness/Fitness-A-domain.xml">
+                <profile url="file:etc/templates/anac/y2012/Fitness/Fitness-A-prof1.xml"/>
+                <profile url="file:etc/templates/anac/y2012/Fitness/Fitness-A-prof2.xml"/>
+            </domainRepItem>
+            <domainRepItem url="file:etc/templates/anac/y2012/Fitness/Fitness-B-domain.xml">
+                <profile url="file:etc/templates/anac/y2012/Fitness/Fitness-B-prof1.xml"/>
+                <profile url="file:etc/templates/anac/y2012/Fitness/Fitness-B-prof2.xml"/>
+            </domainRepItem>
+            <domainRepItem url="file:etc/templates/anac/y2012/Fitness/Fitness-C-domain.xml">
+                <profile url="file:etc/templates/anac/y2012/Fitness/Fitness-C-prof1.xml"/>
+                <profile url="file:etc/templates/anac/y2012/Fitness/Fitness-C-prof2.xml"/>
+            </domainRepItem>
+            <domainRepItem url="file:etc/templates/anac/y2012/FiftyFifty/FiftyFifty-A-domain.xml">
+                <profile url="file:etc/templates/anac/y2012/FiftyFifty/FiftyFifty-A-prof1.xml"/>
+                <profile url="file:etc/templates/anac/y2012/FiftyFifty/FiftyFifty-A-prof2.xml"/>
+            </domainRepItem>
+            <domainRepItem url="file:etc/templates/anac/y2012/FiftyFifty/FiftyFifty-B-domain.xml">
+                <profile url="file:etc/templates/anac/y2012/FiftyFifty/FiftyFifty-B-prof1.xml"/>
+                <profile url="file:etc/templates/anac/y2012/FiftyFifty/FiftyFifty-B-prof2.xml"/>
+            </domainRepItem>
+            <domainRepItem url="file:etc/templates/anac/y2012/FiftyFifty/FiftyFifty-C-domain.xml">
+                <profile url="file:etc/templates/anac/y2012/FiftyFifty/FiftyFifty-C-prof1.xml"/>
+                <profile url="file:etc/templates/anac/y2012/FiftyFifty/FiftyFifty-C-prof2.xml"/>
+            </domainRepItem>
+            <domainRepItem url="file:etc/templates/anac/y2012/FlightBooking/FlightBooking-A-domain.xml">
+                <profile url="file:etc/templates/anac/y2012/FlightBooking/FlightBooking-A-prof1.xml"/>
+                <profile url="file:etc/templates/anac/y2012/FlightBooking/FlightBooking-A-prof2.xml"/>
+            </domainRepItem>
+            <domainRepItem url="file:etc/templates/anac/y2012/FlightBooking/FlightBooking-B-domain.xml">
+                <profile url="file:etc/templates/anac/y2012/FlightBooking/FlightBooking-B-prof1.xml"/>
+                <profile url="file:etc/templates/anac/y2012/FlightBooking/FlightBooking-B-prof2.xml"/>
+            </domainRepItem>
+            <domainRepItem url="file:etc/templates/anac/y2012/FlightBooking/FlightBooking-C-domain.xml">
+                <profile url="file:etc/templates/anac/y2012/FlightBooking/FlightBooking-C-prof1.xml"/>
+                <profile url="file:etc/templates/anac/y2012/FlightBooking/FlightBooking-C-prof2.xml"/>
+            </domainRepItem>
+            <domainRepItem url="file:etc/templates/anac/y2012/Grocery/Grocery-A-domain.xml">
+                <profile url="file:etc/templates/anac/y2012/Grocery/Grocery-A-prof1.xml"/>
+                <profile url="file:etc/templates/anac/y2012/Grocery/Grocery-A-prof2.xml"/>
+            </domainRepItem>
+            <domainRepItem url="file:etc/templates/anac/y2012/Grocery/Grocery-B-domain.xml">
+                <profile url="file:etc/templates/anac/y2012/Grocery/Grocery-B-prof1.xml"/>
+                <profile url="file:etc/templates/anac/y2012/Grocery/Grocery-B-prof2.xml"/>
+            </domainRepItem>
+            <domainRepItem url="file:etc/templates/anac/y2012/Grocery/Grocery-C-domain.xml">
+                <profile url="file:etc/templates/anac/y2012/Grocery/Grocery-C-prof1.xml"/>
+                <profile url="file:etc/templates/anac/y2012/Grocery/Grocery-C-prof2.xml"/>
+            </domainRepItem>
+            <domainRepItem url="file:etc/templates/anac/y2012/HouseKeeping/HouseKeeping-A-domain.xml">
+                <profile url="file:etc/templates/anac/y2012/HouseKeeping/HouseKeeping-A-prof1.xml"/>
+                <profile url="file:etc/templates/anac/y2012/HouseKeeping/HouseKeeping-A-prof2.xml"/>
+            </domainRepItem>
+            <domainRepItem url="file:etc/templates/anac/y2012/HouseKeeping/HouseKeeping-B-domain.xml">
+                <profile url="file:etc/templates/anac/y2012/HouseKeeping/HouseKeeping-B-prof1.xml"/>
+                <profile url="file:etc/templates/anac/y2012/HouseKeeping/HouseKeeping-B-prof2.xml"/>
+            </domainRepItem>
+            <domainRepItem url="file:etc/templates/anac/y2012/HouseKeeping/HouseKeeping-C-domain.xml">
+                <profile url="file:etc/templates/anac/y2012/HouseKeeping/HouseKeeping-C-prof1.xml"/>
+                <profile url="file:etc/templates/anac/y2012/HouseKeeping/HouseKeeping-C-prof2.xml"/>
+            </domainRepItem>
+            <domainRepItem url="file:etc/templates/anac/y2012/ItexvsCypress/ItexvsCypress-A-domain.xml">
+                <profile url="file:etc/templates/anac/y2012/ItexvsCypress/ItexvsCypress-A-prof1.xml"/>
+                <profile url="file:etc/templates/anac/y2012/ItexvsCypress/ItexvsCypress-A-prof2.xml"/>
+            </domainRepItem>
+            <domainRepItem url="file:etc/templates/anac/y2012/ItexvsCypress/ItexvsCypress-B-domain.xml">
+                <profile url="file:etc/templates/anac/y2012/ItexvsCypress/ItexvsCypress-B-prof1.xml"/>
+                <profile url="file:etc/templates/anac/y2012/ItexvsCypress/ItexvsCypress-B-prof2.xml"/>
+            </domainRepItem>
+            <domainRepItem url="file:etc/templates/anac/y2012/ItexvsCypress/ItexvsCypress-C-domain.xml">
+                <profile url="file:etc/templates/anac/y2012/ItexvsCypress/ItexvsCypress-C-prof1.xml"/>
+                <profile url="file:etc/templates/anac/y2012/ItexvsCypress/ItexvsCypress-C-prof2.xml"/>
+            </domainRepItem>
+            <domainRepItem url="file:etc/templates/anac/y2012/Laptop/Laptop-A-domain.xml">
+                <profile url="file:etc/templates/anac/y2012/Laptop/Laptop-A-prof1.xml"/>
+                <profile url="file:etc/templates/anac/y2012/Laptop/Laptop-A-prof2.xml"/>
+            </domainRepItem>
+            <domainRepItem url="file:etc/templates/anac/y2012/Laptop/Laptop-B-domain.xml">
+                <profile url="file:etc/templates/anac/y2012/Laptop/Laptop-B-prof1.xml"/>
+                <profile url="file:etc/templates/anac/y2012/Laptop/Laptop-B-prof2.xml"/>
+            </domainRepItem>
+            <domainRepItem url="file:etc/templates/anac/y2012/Laptop/Laptop-C-domain.xml">
+                <profile url="file:etc/templates/anac/y2012/Laptop/Laptop-C-prof1.xml"/>
+                <profile url="file:etc/templates/anac/y2012/Laptop/Laptop-C-prof2.xml"/>
+            </domainRepItem>
+            <domainRepItem url="file:etc/templates/anac/y2012/MusicCollection/MusicCollection-A-domain.xml">
+                <profile url="file:etc/templates/anac/y2012/MusicCollection/MusicCollection-A-prof1.xml"/>
+                <profile url="file:etc/templates/anac/y2012/MusicCollection/MusicCollection-A-prof2.xml"/>
+            </domainRepItem>
+            <domainRepItem url="file:etc/templates/anac/y2012/MusicCollection/MusicCollection-B-domain.xml">
+                <profile url="file:etc/templates/anac/y2012/MusicCollection/MusicCollection-B-prof1.xml"/>
+                <profile url="file:etc/templates/anac/y2012/MusicCollection/MusicCollection-B-prof2.xml"/>
+            </domainRepItem>
+            <domainRepItem url="file:etc/templates/anac/y2012/MusicCollection/MusicCollection-C-domain.xml">
+                <profile url="file:etc/templates/anac/y2012/MusicCollection/MusicCollection-C-prof1.xml"/>
+                <profile url="file:etc/templates/anac/y2012/MusicCollection/MusicCollection-C-prof2.xml"/>
+            </domainRepItem>
+            <domainRepItem url="file:etc/templates/anac/y2012/NiceOrDie/NiceOrDie-A-domain.xml">
+                <profile url="file:etc/templates/anac/y2012/NiceOrDie/NiceOrDie-A-prof1.xml"/>
+                <profile url="file:etc/templates/anac/y2012/NiceOrDie/NiceOrDie-A-prof2.xml"/>
+            </domainRepItem>
+            <domainRepItem url="file:etc/templates/anac/y2012/NiceOrDie/NiceOrDie-B-domain.xml">
+                <profile url="file:etc/templates/anac/y2012/NiceOrDie/NiceOrDie-B-prof1.xml"/>
+                <profile url="file:etc/templates/anac/y2012/NiceOrDie/NiceOrDie-B-prof2.xml"/>
+            </domainRepItem>
+            <domainRepItem url="file:etc/templates/anac/y2012/NiceOrDie/NiceOrDie-C-domain.xml">
+                <profile url="file:etc/templates/anac/y2012/NiceOrDie/NiceOrDie-C-prof1.xml"/>
+                <profile url="file:etc/templates/anac/y2012/NiceOrDie/NiceOrDie-C-prof2.xml"/>
+            </domainRepItem>
+            <domainRepItem url="file:etc/templates/anac/y2012/Outfit/Outfit-A-domain.xml">
+                <profile url="file:etc/templates/anac/y2012/Outfit/Outfit-A-prof1.xml"/>
+                <profile url="file:etc/templates/anac/y2012/Outfit/Outfit-A-prof2.xml"/>
+            </domainRepItem>
+            <domainRepItem url="file:etc/templates/anac/y2012/Outfit/Outfit-B-domain.xml">
+                <profile url="file:etc/templates/anac/y2012/Outfit/Outfit-B-prof1.xml"/>
+                <profile url="file:etc/templates/anac/y2012/Outfit/Outfit-B-prof2.xml"/>
+            </domainRepItem>
+            <domainRepItem url="file:etc/templates/anac/y2012/Outfit/Outfit-C-domain.xml">
+                <profile url="file:etc/templates/anac/y2012/Outfit/Outfit-C-prof1.xml"/>
+                <profile url="file:etc/templates/anac/y2012/Outfit/Outfit-C-prof2.xml"/>
+            </domainRepItem>
+            <domainRepItem url="file:etc/templates/anac/y2012/Phone/Phone-A-domain.xml">
+                <profile url="file:etc/templates/anac/y2012/Phone/Phone-A-prof1.xml"/>
+                <profile url="file:etc/templates/anac/y2012/Phone/Phone-A-prof2.xml"/>
+            </domainRepItem>
+            <domainRepItem url="file:etc/templates/anac/y2012/Phone/Phone-B-domain.xml">
+                <profile url="file:etc/templates/anac/y2012/Phone/Phone-B-prof1.xml"/>
+                <profile url="file:etc/templates/anac/y2012/Phone/Phone-B-prof2.xml"/>
+            </domainRepItem>
+            <domainRepItem url="file:etc/templates/anac/y2012/Phone/Phone-C-domain.xml">
+                <profile url="file:etc/templates/anac/y2012/Phone/Phone-C-prof1.xml"/>
+                <profile url="file:etc/templates/anac/y2012/Phone/Phone-C-prof2.xml"/>
+            </domainRepItem>
+            <domainRepItem url="file:etc/templates/anac/y2012/RentalHouse/RentalHouse-A-domain.xml">
+                <profile url="file:etc/templates/anac/y2012/RentalHouse/RentalHouse-A-prof1.xml"/>
+                <profile url="file:etc/templates/anac/y2012/RentalHouse/RentalHouse-A-prof2.xml"/>
+            </domainRepItem>
+            <domainRepItem url="file:etc/templates/anac/y2012/RentalHouse/RentalHouse-B-domain.xml">
+                <profile url="file:etc/templates/anac/y2012/RentalHouse/RentalHouse-B-prof1.xml"/>
+                <profile url="file:etc/templates/anac/y2012/RentalHouse/RentalHouse-B-prof2.xml"/>
+            </domainRepItem>
+            <domainRepItem url="file:etc/templates/anac/y2012/RentalHouse/RentalHouse-C-domain.xml">
+                <profile url="file:etc/templates/anac/y2012/RentalHouse/RentalHouse-C-prof1.xml"/>
+                <profile url="file:etc/templates/anac/y2012/RentalHouse/RentalHouse-C-prof2.xml"/>
+            </domainRepItem>
+            <domainRepItem url="file:etc/templates/anac/y2012/Supermarket/Supermarket-A-domain.xml">
+                <profile url="file:etc/templates/anac/y2012/Supermarket/Supermarket-A-prof1.xml"/>
+                <profile url="file:etc/templates/anac/y2012/Supermarket/Supermarket-A-prof2.xml"/>
+            </domainRepItem>
+            <domainRepItem url="file:etc/templates/anac/y2012/Supermarket/Supermarket-B-domain.xml">
+                <profile url="file:etc/templates/anac/y2012/Supermarket/Supermarket-B-prof1.xml"/>
+                <profile url="file:etc/templates/anac/y2012/Supermarket/Supermarket-B-prof2.xml"/>
+            </domainRepItem>
+            <domainRepItem url="file:etc/templates/anac/y2012/Supermarket/Supermarket-C-domain.xml">
+                <profile url="file:etc/templates/anac/y2012/Supermarket/Supermarket-C-prof1.xml"/>
+                <profile url="file:etc/templates/anac/y2012/Supermarket/Supermarket-C-prof2.xml"/>
+            </domainRepItem>
+            <domainRepItem url="file:etc/templates/anac/y2012/Travel/Travel-A-domain.xml">
+                <profile url="file:etc/templates/anac/y2012/Travel/Travel-A-prof1.xml"/>
+                <profile url="file:etc/templates/anac/y2012/Travel/Travel-A-prof2.xml"/>
+            </domainRepItem>
+            <domainRepItem url="file:etc/templates/anac/y2012/Travel/Travel-B-domain.xml">
+                <profile url="file:etc/templates/anac/y2012/Travel/Travel-B-prof1.xml"/>
+                <profile url="file:etc/templates/anac/y2012/Travel/Travel-B-prof2.xml"/>
+            </domainRepItem>
+            <domainRepItem url="file:etc/templates/anac/y2012/Travel/Travel-C-domain.xml">
+                <profile url="file:etc/templates/anac/y2012/Travel/Travel-C-prof1.xml"/>
+                <profile url="file:etc/templates/anac/y2012/Travel/Travel-C-prof2.xml"/>
+            </domainRepItem>
+            <domainRepItem url="file:etc/templates/linear/IntegerDomain/IntegerDomain.xml">
+                <profile url="file:etc/templates/linear/IntegerDomain/IntegerDomain-prof1.xml"/>
+                <profile url="file:etc/templates/linear/IntegerDomain/IntegerDomain-prof2.xml"/>
+            </domainRepItem>
+            <domainRepItem url="file:etc/templates/thompson/thompson_employment.xml">
+                <profile url="file:etc/templates/thompson/thompson_employer_utilityspace.xml"/>
+                <profile url="file:etc/templates/thompson/thompson_employee_utilityspace.xml"/>
+            </domainRepItem>
+            <domainRepItem url="file:etc/templates/anac/y2013/Acquisition/Acquisition-A-domain.xml">
+                <profile url="file:etc/templates/anac/y2013/Acquisition/Acquisition-A-prof1.xml"/>
+                <profile url="file:etc/templates/anac/y2013/Acquisition/Acquisition-A-prof2.xml"/>
+            </domainRepItem>
+            <domainRepItem url="file:etc/templates/anac/y2013/Animal/Animal.xml">
+                <profile url="file:etc/templates/anac/y2013/Animal/Animal_util1.xml"/>
+                <profile url="file:etc/templates/anac/y2013/Animal/Animal_util2.xml"/>
+            </domainRepItem>
+            <domainRepItem url="file:etc/templates/anac/y2013/cameradomain/Camera-A-domain.xml">
+                <profile url="file:etc/templates/anac/y2013/cameradomain/Camera-A-prof1.xml"/>
+                <profile url="file:etc/templates/anac/y2013/cameradomain/Camera-A-prof2.xml"/>
+            </domainRepItem>
+            <domainRepItem url="file:etc/templates/anac/y2013/Coffee/Coffee.xml">
+                <profile url="file:etc/templates/anac/y2013/Coffee/Coffee_util1.xml"/>
+                <profile url="file:etc/templates/anac/y2013/Coffee/Coffee_util2.xml"/>
+            </domainRepItem>
+            <domainRepItem url="file:etc/templates/anac/y2013/DefensiveCharms/DefensiveCharms.xml">
+                <profile url="file:etc/templates/anac/y2013/DefensiveCharms/DefensiveCharms_util1.xml"/>
+                <profile url="file:etc/templates/anac/y2013/DefensiveCharms/DefensiveCharms_util2.xml"/>
+            </domainRepItem>
+            <domainRepItem url="file:etc/templates/anac/y2013/DogChoosing/DogChoosing.xml">
+                <profile url="file:etc/templates/anac/y2013/DogChoosing/DogChoosing_util1.xml"/>
+                <profile url="file:etc/templates/anac/y2013/DogChoosing/DogChoosing_util2.xml"/>
+            </domainRepItem>
+            <domainRepItem url="file:etc/templates/anac/y2013/Fifty2013/FiftyFifty2013_domain.xml">
+                <profile url="file:etc/templates/anac/y2013/Fifty2013/FiftyFifty2013_prof1.xml"/>
+                <profile url="file:etc/templates/anac/y2013/Fifty2013/FiftyFifty2013_prof2.xml"/>
+            </domainRepItem>
+            <domainRepItem url="file:etc/templates/anac/y2013/HouseKeeping/HouseKeeping-C-domain.xml">
+                <profile url="file:etc/templates/anac/y2013/HouseKeeping/HouseKeeping-C-prof1.xml"/>
+                <profile url="file:etc/templates/anac/y2013/HouseKeeping/HouseKeeping-C-prof2.xml"/>
+            </domainRepItem>
+            <domainRepItem url="file:etc/templates/anac/y2013/Icecream/Icecream.xml">
+                <profile url="file:etc/templates/anac/y2013/Icecream/Icecream_util1.xml"/>
+                <profile url="file:etc/templates/anac/y2013/Icecream/Icecream_util2.xml"/>
+            </domainRepItem>
+            <domainRepItem url="file:etc/templates/anac/y2013/Kitchen/Kitchen-domain.xml">
+                <profile url="file:etc/templates/anac/y2013/Kitchen/Kitchen-husband.xml"/>
+                <profile url="file:etc/templates/anac/y2013/Kitchen/Kitchen-wife.xml"/>
+            </domainRepItem>
+            <domainRepItem url="file:etc/templates/anac/y2013/Laptop/Laptop-C-domain.xml">
+                <profile url="file:etc/templates/anac/y2013/Laptop/Laptop-C-prof1.xml"/>
+                <profile url="file:etc/templates/anac/y2013/Laptop/Laptop-C-prof2.xml"/>
+            </domainRepItem>
+            <domainRepItem url="file:etc/templates/anac/y2013/Lunch/Lunch.xml">
+                <profile url="file:etc/templates/anac/y2013/Lunch/Lunch_util1.xml"/>
+                <profile url="file:etc/templates/anac/y2013/Lunch/Lunch_util2.xml"/>
+            </domainRepItem>
+            <domainRepItem url="file:etc/templates/anac/y2013/NiceOrDie/NiceOrDie-B-domain.xml">
+                <profile url="file:etc/templates/anac/y2013/NiceOrDie/NiceOrDie-B-prof1.xml"/>
+                <profile url="file:etc/templates/anac/y2013/NiceOrDie/NiceOrDie-B-prof2.xml"/>
+            </domainRepItem>
+            <domainRepItem url="file:etc/templates/anac/y2013/Outfit/Outfit-B-domain.xml">
+                <profile url="file:etc/templates/anac/y2013/Outfit/Outfit-B-prof1.xml"/>
+                <profile url="file:etc/templates/anac/y2013/Outfit/Outfit-B-prof2.xml"/>
+            </domainRepItem>
+            <domainRepItem url="file:etc/templates/anac/y2013/planes/planes_domain.xml">
+                <profile url="file:etc/templates/anac/y2013/planes/plane_buyer_utility.xml"/>
+                <profile url="file:etc/templates/anac/y2013/planes/plane_seller_utility.xml"/>
+            </domainRepItem>
+            <domainRepItem url="file:etc/templates/anac/y2013/SmartPhone/SmartPhone.xml">
+                <profile url="file:etc/templates/anac/y2013/SmartPhone/SmartPhone_util1.xml"/>
+                <profile url="file:etc/templates/anac/y2013/SmartPhone/SmartPhone_util2.xml"/>
+            </domainRepItem>
+            <domainRepItem url="file:etc/templates/anac/y2013/Ultimatum/Ultimatum.xml">
+                <profile url="file:etc/templates/anac/y2013/Ultimatum/Ultimatum_util1.xml"/>
+                <profile url="file:etc/templates/anac/y2013/Ultimatum/Ultimatum_util2.xml"/>
+            </domainRepItem>
+            <domainRepItem url="file:etc/templates/anac/y2013/Wholesaler/Wholesaler-domain.xml">
+                <profile url="file:etc/templates/anac/y2013/Wholesaler/Wholesaler-prof1.xml"/>
+                <profile url="file:etc/templates/anac/y2013/Wholesaler/Wholesaler-prof2.xml"/>
+            </domainRepItem>
+            <domainRepItem url="file:etc/templates/anac/y2014/10issues/10issues-domain.xml">
+                <profile url="file:etc/templates/anac/y2014/10issues/profile-1.xml"/>
+                <profile url="file:etc/templates/anac/y2014/10issues/profile-2.xml"/>
+            </domainRepItem>
+            <domainRepItem url="file:etc/templates/anac/y2014/10issuesDiscounted/10issuesDiscounted-domain.xml">
+                <profile url="file:etc/templates/anac/y2014/10issuesDiscounted/profile-1.xml"/>
+                <profile url="file:etc/templates/anac/y2014/10issuesDiscounted/profile-2.xml"/>
+            </domainRepItem>
+            <domainRepItem url="file:etc/templates/anac/y2014/10issueswithRV/10issueswithRV-domain.xml">
+                <profile url="file:etc/templates/anac/y2014/10issueswithRV/profile-1.xml"/>
+                <profile url="file:etc/templates/anac/y2014/10issueswithRV/profile-2.xml"/>
+            </domainRepItem>
+            <domainRepItem url="file:etc/templates/anac/y2014/10issuesDiscountedwithRV/10issuesDiscountedwithRV-domain.xml">
+                <profile url="file:etc/templates/anac/y2014/10issuesDiscountedwithRV/profile-1.xml"/>
+                <profile url="file:etc/templates/anac/y2014/10issuesDiscountedwithRV/profile-2.xml"/>
+            </domainRepItem>
+            <domainRepItem url="file:etc/templates/anac/y2014/30issues/30issues-domain.xml">
+                <profile url="file:etc/templates/anac/y2014/30issues/profile-1.xml"/>
+                <profile url="file:etc/templates/anac/y2014/30issues/profile-2.xml"/>
+            </domainRepItem>
+            <domainRepItem url="file:etc/templates/anac/y2014/30issuesDiscounted/30issuesDiscounted-domain.xml">
+                <profile url="file:etc/templates/anac/y2014/30issuesDiscounted/profile-1.xml"/>
+                <profile url="file:etc/templates/anac/y2014/30issuesDiscounted/profile-2.xml"/>
+            </domainRepItem>
+            <domainRepItem url="file:etc/templates/anac/y2014/30issueswithRV/30issueswithRV-domain.xml">
+                <profile url="file:etc/templates/anac/y2014/30issueswithRV/profile-1.xml"/>
+                <profile url="file:etc/templates/anac/y2014/30issueswithRV/profile-2.xml"/>
+            </domainRepItem>
+            <domainRepItem url="file:etc/templates/anac/y2014/30issuesDiscountedwithRV/30issuesDiscountedwithRV-domain.xml">
+                <profile url="file:etc/templates/anac/y2014/30issuesDiscountedwithRV/profile-1.xml"/>
+                <profile url="file:etc/templates/anac/y2014/30issuesDiscountedwithRV/profile-2.xml"/>
+            </domainRepItem>
+            <domainRepItem url="file:etc/templates/anac/y2014/50issues/50issues-domain.xml">
+                <profile url="file:etc/templates/anac/y2014/50issues/profile-1.xml"/>
+                <profile url="file:etc/templates/anac/y2014/50issues/profile-2.xml"/>
+            </domainRepItem>
+            <domainRepItem url="file:etc/templates/anac/y2014/50issuesDiscounted/50issuesDiscounted-domain.xml">
+                <profile url="file:etc/templates/anac/y2014/50issuesDiscounted/profile-1.xml"/>
+                <profile url="file:etc/templates/anac/y2014/50issuesDiscounted/profile-2.xml"/>
+            </domainRepItem>
+            <domainRepItem url="file:etc/templates/anac/y2014/50issueswithRV/50issueswithRV-domain.xml">
+                <profile url="file:etc/templates/anac/y2014/50issueswithRV/profile-1.xml"/>
+                <profile url="file:etc/templates/anac/y2014/50issueswithRV/profile-2.xml"/>
+            </domainRepItem>
+            <domainRepItem url="file:etc/templates/anac/y2014/50issuesDiscountedwithRV/50issuesDiscountedwithRV-domain.xml">
+                <profile url="file:etc/templates/anac/y2014/50issuesDiscountedwithRV/profile-1.xml"/>
+                <profile url="file:etc/templates/anac/y2014/50issuesDiscountedwithRV/profile-2.xml"/>
+            </domainRepItem>
+            <domainRepItem url="file:etc/templates/Jobs/Jobs.xml">
+                <profile url="file:etc/templates/Jobs/Jobs_util1.xml"/>
+                <profile url="file:etc/templates/Jobs/Jobs_util2.xml"/>
+            </domainRepItem>
+            <domainRepItem url="file:etc/templates/Domain1/Domain1.xml">
+                <profile url="file:etc/templates/Domain1/Domain1_util1.xml"/>
+                <profile url="file:etc/templates/Domain1/Domain1_util2.xml"/>
+                <profile url="file:etc/templates/Domain1/Domain1_util3.xml"/>
+                <profile url="file:etc/templates/Domain1/Domain1_util4.xml"/>
+            </domainRepItem>
+            <domainRepItem url="file:etc/templates/Domain2/Domain2.xml">
+                <profile url="file:etc/templates/Domain2/Domain2_util1.xml"/>
+                <profile url="file:etc/templates/Domain2/Domain2_util2.xml"/>
+                <profile url="file:etc/templates/Domain2/Domain2_util3.xml"/>
+                <profile url="file:etc/templates/Domain2/Domain2_util4.xml"/>
+                <profile url="file:etc/templates/Domain2/Domain2_util5.xml"/>
+                <profile url="file:etc/templates/Domain2/Domain2_util6.xml"/>
+            </domainRepItem>
+            <domainRepItem url="file:etc/templates/Domain4/Domain4.xml">
+                <profile url="file:etc/templates/Domain4/Domain4_util1.xml"/>
+                <profile url="file:etc/templates/Domain4/Domain4_util2.xml"/>
+                <profile url="file:etc/templates/Domain4/Domain4_util3.xml"/>
+                <profile url="file:etc/templates/Domain4/Domain4_util4.xml"/>
+                <profile url="file:etc/templates/Domain4/Domain4_util5.xml"/>
+                <profile url="file:etc/templates/Domain4/Domain4_util6.xml"/>
+            </domainRepItem>
+            <domainRepItem url="file:etc/templates/Domain8/Domain8.xml">
+                <profile url="file:etc/templates/Domain8/Domain8_util1.xml"/>
+                <profile url="file:etc/templates/Domain8/Domain8_util2.xml"/>
+                <profile url="file:etc/templates/Domain8/Domain8_util3.xml"/>
+                <profile url="file:etc/templates/Domain8/Domain8_util4.xml"/>
+                <profile url="file:etc/templates/Domain8/Domain8_util5.xml"/>
+                <profile url="file:etc/templates/Domain8/Domain8_util6.xml"/>
+            </domainRepItem>
+            <domainRepItem url="file:etc/templates/Domain16/Domain16.xml">
+                <profile url="file:etc/templates/Domain16/Domain16_util1.xml"/>
+                <profile url="file:etc/templates/Domain16/Domain16_util2.xml"/>
+                <profile url="file:etc/templates/Domain16/Domain16_util3.xml"/>
+                <profile url="file:etc/templates/Domain16/Domain16_util4.xml"/>
+                <profile url="file:etc/templates/Domain16/Domain16_util5.xml"/>
+                <profile url="file:etc/templates/Domain16/Domain16_util6.xml"/>
+            </domainRepItem>
+        </domainRepItem>
+        <protocolRepItem/>
+        <multiPartyProtocolRepItem/>
+    </items>
+</repository>

@@ -1,0 +1,50 @@
+<negotiation_template>
+<utility_space number_of_issues="5">
+<objective description="" etype="objective" index="0" name="root" type="objective">
+    <issue etype="discrete" index="1" name="Floor Mopping" type="discrete" vtype="discrete">
+        <item index="1" value="Husbend" cost="0" description="Husbend">
+        </item>
+        <item index="2" value="Wife" cost="0" description="Wife">
+        </item>
+        <item index="3" value="Both" cost="0" description="Both">
+        </item>
+        <item index="4" value="Maid" cost="0" description="Maid">
+        </item>
+    </issue>
+    <issue etype="discrete" index="2" name="Dishes Cleaning" type="discrete" vtype="discrete">
+        <item index="1" value="Husbend" cost="0" description="Husbend">
+        </item>
+        <item index="2" value="Wife" cost="0" description="Wife">
+        </item>
+        <item index="3" value="Both" cost="0" description="Both">
+        </item>
+    </issue>
+    <issue etype="discrete" index="3" name="Laundry" type="discrete" vtype="discrete">
+        <item index="1" value="Husbend" cost="0" description="Husbend">
+        </item>
+        <item index="2" value="Wife" cost="0" description="Wife">
+        </item>
+    </issue>
+    <issue etype="discrete" index="4" name="Cooking" type="discrete" vtype="discrete">
+        <item index="1" value="Husbend" cost="0" description="Husbend">
+        </item>
+        <item index="2" value="Wife" cost="0" description="Wife">
+        </item>
+        <item index="3" value="Both" cost="0" description="Both">
+        </item>
+        <item index="4" value="Take-away food" cost="0" description="Take-away food">
+        </item>
+    </issue>
+    <issue etype="discrete" index="5" name="Gardening" type="discrete" vtype="discrete">
+        <item index="1" value="Husbend" cost="0" description="Husbend">
+        </item>
+        <item index="2" value="Wife" cost="0" description="Wife">
+        </item>
+        <item index="3" value="Both" cost="0" description="Both">
+        </item>
+        <item index="4" value="Gardener" cost="0" description="Gardener">
+        </item>
+    </issue>
+</objective>
+</utility_space>
+</negotiation_template>

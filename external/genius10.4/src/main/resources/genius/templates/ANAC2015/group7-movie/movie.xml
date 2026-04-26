@@ -1,0 +1,18 @@
+<negotiation_template> 
+<utility_space number_of_issues="2"> 
+<objective name="movie" index="0" description="" etype="objective" type="objective"> 
+<issue vtype="discrete" name="location" index="1" etype="discrete" type="discrete"> 
+<item index="1" value="pathe"> 
+</item> 
+<item index="2" value="wolff"> 
+</item> 
+</issue> 
+<issue vtype="discrete" name="movie" index="2" etype="discrete" type="discrete"> 
+<item index="1" value="finding nemo"> 
+</item> 
+<item index="2" value="the good, the bad & the ugly"> 
+</item> 
+</issue> 
+</objective> 
+</utility_space> 
+</negotiation_template> 

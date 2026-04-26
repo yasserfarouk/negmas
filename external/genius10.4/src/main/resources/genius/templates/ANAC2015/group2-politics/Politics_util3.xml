@@ -1,0 +1,98 @@
+<utility_space> 
+<objective index="0" description="" name="Politics" type="objective" etype="objective"> 
+<issue index="1" name="Social Security" vtype="discrete" type="discrete" etype="discrete"> 
+<item index="1" value="no welfare and no health insurance" evaluation="0"> 
+</item> 
+<item index="2" value="welfare and no health insurance" evaluation="2"> 
+</item> 
+<item index="3" value="no welfare and health insurance" evaluation="5"> 
+</item> 
+<item index="4" value="welfare and health insurance" evaluation="9"> 
+</item> 
+</issue> 
+<issue index="2" name="Labor tax" vtype="discrete" type="discrete" etype="discrete"> 
+<item index="1" value="Low labor tax" evaluation="4"> 
+</item> 
+<item index="2" value="Medium labor tax" evaluation="6"> 
+</item> 
+<item index="3" value="High labor tax" evaluation="2"> 
+</item> 
+</issue> 
+<issue index="3" name="Environmental tax" vtype="discrete" type="discrete" etype="discrete"> 
+<item index="1" value="Low tax" evaluation="4"> 
+</item> 
+<item index="2" value="Medium tax" evaluation="5"> 
+</item> 
+<item index="3" value="High tax" evaluation="1"> 
+</item> 
+</issue> 
+<issue index="4" name="Usage of army" vtype="discrete" type="discrete" etype="discrete"> 
+<item index="1" value="No army" evaluation="0"> 
+</item> 
+<item index="2" value="Army just for defence" evaluation="5"> 
+</item> 
+<item index="3" value="Army for peace mission" evaluation="6"> 
+</item> 
+<item index="4" value="Army for offencive missions" evaluation="0"> 
+</item> 
+</issue> 
+<issue index="5" name="Immigration policy" vtype="discrete" type="discrete" etype="discrete"> 
+<item index="1" value="Closed borders" evaluation="0"> 
+</item> 
+<item index="2" value="Just refugees" evaluation="5"> 
+</item> 
+<item index="3" value="Just people from the EU" evaluation="2"> 
+</item> 
+<item index="4" value="People from the EU and refugees" evaluation="7"> 
+</item> 
+<item index="5" value="Open borders" evaluation="1"> 
+</item> 
+</issue> 
+<issue index="6" name="Stay or leave EU" vtype="discrete" type="discrete" etype="discrete"> 
+<item index="1" value="stay" evaluation="8"> 
+</item> 
+<item index="2" value="leave" evaluation="2"> 
+</item> 
+</issue> 
+<issue index="7" name="National or globalized economy" vtype="discrete" type="discrete" etype="discrete"> 
+<item index="1" value="Only dependent on national products" evaluation="5"> 
+</item> 
+<item index="2" value="Mostly dependent on national products, but some export" evaluation="10"> 
+</item> 
+<item index="3" value="somewhat dependent on export" evaluation="5"> 
+</item> 
+<item index="4" value="mostly dependent on export" evaluation="0"> 
+</item> 
+</issue> 
+<issue index="8" name="Drug policy" vtype="discrete" type="discrete" etype="discrete"> 
+<item index="1" value="All drugs legal" evaluation="0"> 
+</item> 
+<item index="2" value="Softdrugs legal" evaluation="1"> 
+</item> 
+<item index="3" value="Softdrugs tolerated" evaluation="3"> 
+</item> 
+<item index="4" value="All drugs illegal" evaluation="10"> 
+</item> 
+</issue> 
+<weight index="1" value="0.180049427437"> 
+</weight> 
+<weight index="2" value="0.12169039571639426"> 
+</weight> 
+<weight index="3" value="0.06338375962484283"> 
+</weight> 
+<weight index="4" value="0.06130140113195696"> 
+</weight> 
+<weight index="5" value="0.11003331097647509"> 
+</weight> 
+<weight index="6" value="0.057167682598228506"> 
+</weight> 
+<weight index="7" value="0.25927157734360906"> 
+</weight> 
+<weight index="8" value="0.1471024451714933"> 
+</weight> 
+</objective> 
+<discount_factor value="1.0"> 
+</discount_factor> 
+<reservation value="0.0"> 
+</reservation> 
+</utility_space> 

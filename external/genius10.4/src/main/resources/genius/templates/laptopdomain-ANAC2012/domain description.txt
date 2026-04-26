@@ -1,0 +1,13 @@
+This domain is a slight variation of the laptop domain from the qualification rounds. Two parties, a seller and a buyer, are negotiating the specifications of a laptop. The domain has three issues:
+
+- The standard laptop brand
+- The size of the hard disk
+- The size of the external monitor
+
+Each issue has only three options, making it a very small domain of 27 possible bids.
+
+For example, in a negotiation about buying a laptop the buyer may prefer to have
+a middle-sized screen but the seller may prefer to sell laptops with small
+screens because s/he has more of those in stock. They could, however, agree on
+the brand of laptop that they want to buy/sell. An outcome of a negotiation
+reconciles such differences and results in a purchase.

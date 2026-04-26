@@ -1,0 +1,62 @@
+<utility_space> 
+<objective index="0" description="" name="Group 4" type="objective" etype="objective"> 
+<issue index="1" name="Segmentation" vtype="discrete" type="discrete" etype="discrete"> 
+<item index="1" value="all to one(farmer)" evaluation="100"> 
+</item> 
+<item index="2" value="all to one(cons. comp.)" evaluation="0"> 
+</item> 
+<item index="3" value="all to one(municipality)" evaluation="10"> 
+</item> 
+<item index="4" value="all to two(farmer & mun.)" evaluation="60"> 
+</item> 
+<item index="5" value="all to two(farmer & cons. comp.)" evaluation="55"> 
+</item> 
+<item index="6" value="all to two(mun. & cons. comp.)" evaluation="0"> 
+</item> 
+<item index="7" value="33%,33%,33%" evaluation="30"> 
+</item> 
+</issue> 
+<issue index="2" name="Water Canal" vtype="discrete" type="discrete" etype="discrete"> 
+<item index="1" value="Big" evaluation="60"> 
+</item> 
+<item index="2" value="Medium" evaluation="100"> 
+</item> 
+<item index="3" value="Small" evaluation="90"> 
+</item> 
+<item index="4" value="None" evaluation="10"> 
+</item> 
+</issue> 
+<issue index="3" name="Park" vtype="discrete" type="discrete" etype="discrete"> 
+<item index="1" value="Big" evaluation="0"> 
+</item> 
+<item index="2" value="Medium" evaluation="0"> 
+</item> 
+<item index="3" value="Small" evaluation="0"> 
+</item> 
+<item index="4" value="None" evaluation="0"> 
+</item> 
+</issue> 
+<issue index="4" name="Functionality" vtype="discrete" type="discrete" etype="discrete"> 
+<item index="1" value="Farming" evaluation="100"> 
+</item> 
+<item index="2" value="Commercial" evaluation="25"> 
+</item> 
+<item index="3" value="Housing" evaluation="50"> 
+</item> 
+<item index="4" value="Industrial" evaluation="0"> 
+</item> 
+</issue> 
+<weight index="1" value="0.39751957672713284"> 
+</weight> 
+<weight index="2" value="0.09611566105652411"> 
+</weight> 
+<weight index="3" value="3.249965769639436E-5"> 
+</weight> 
+<weight index="4" value="0.5063322625586466"> 
+</weight> 
+</objective> 
+<discount_factor value="1.0"> 
+</discount_factor> 
+<reservation value="0.0"> 
+</reservation> 
+</utility_space> 

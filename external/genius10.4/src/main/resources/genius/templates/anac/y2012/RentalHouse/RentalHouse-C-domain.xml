@@ -1,0 +1,27 @@
+<?xml version="1.0"?>
+<negotiation_template number_of_sessions="1">
+  <utility_space number_of_issues="4">
+    <objective index="0" etype="objective" type="objective" description="" name="RentalHouse">
+      <issue index="1" etype="discrete" type="discrete" name="price">
+        <item index="1" value="40000yen"/>
+        <item index="2" value="45000yen"/>
+        <item index="3" value="50000yen"/>
+        <item index="4" value="55000yen"/>
+        <item index="5" value="60000yen"/>
+      </issue>
+      <issue index="2" etype="discrete" type="discrete" name="Style">
+        <item index="1" value="Japanese"/>
+        <item index="2" value="Western"/>
+      </issue>
+      <issue index="3" etype="discrete" type="discrete" name="AcceptableLocations">
+        <item index="1" value="NearToFukiageStation"/>
+        <item index="2" value="NearToTsrumaiStation"/>
+        <item index="3" value="NearToGokisoStation"/>
+      </issue>
+      <issue index="4" etype="discrete" type="discrete" name="WaterHeaterType">
+        <item index="1" value="Electric"/>
+        <item index="2" value="Gas"/>
+      </issue>
+    </objective>
+  </utility_space>
+</negotiation_template>

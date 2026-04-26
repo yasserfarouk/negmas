@@ -1,0 +1,42 @@
+<negotiation_template> 
+<utility_space number_of_issues="3"> 
+<objective index="0" description="" name="Coffee" type="objective" etype="objective"> 
+<issue index="1" name="Bean" vtype="discrete" type="discrete" etype="discrete"> 
+<item index="1" value="Blue Mountain"> 
+</item> 
+<item index="2" value="Bourbon"> 
+</item> 
+<item index="3" value="Colombian"> 
+</item> 
+<item index="4" value="Java"> 
+</item> 
+<item index="5" value="Paname"> 
+</item> 
+<item index="6" value="Santos"> 
+</item> 
+<item index="7" value="Uganda"> 
+</item> 
+</issue> 
+<issue index="2" name="Sugar" vtype="discrete" type="discrete" etype="discrete"> 
+<item index="1" value="no"> 
+</item> 
+<item index="2" value="little"> 
+</item> 
+<item index="3" value="some"> 
+</item> 
+<item index="4" value="much"> 
+</item> 
+</issue> 
+<issue index="3" name="Milk" vtype="discrete" type="discrete" etype="discrete"> 
+<item index="1" value="no"> 
+</item> 
+<item index="2" value="little"> 
+</item> 
+<item index="3" value="some"> 
+</item> 
+<item index="4" value="much"> 
+</item> 
+</issue> 
+</objective> 
+</utility_space> 
+</negotiation_template> 

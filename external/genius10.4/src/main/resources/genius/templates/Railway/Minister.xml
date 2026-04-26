@@ -1,0 +1,344 @@
+<?xml version="1.0" encoding="utf-8" ?>
+<utility_space type="constraint">
+
+  <objective index="0" description="" name="Railway" type="objective" etype="objective">
+    <issue index="1" name="WhoShowup" vtype="discrete" type="discrete" etype="discrete">
+      <item index="1" value="None"/>
+      <item index="2" value="Only NS"/>
+      <item index="3" value="Only ProRail"/>
+      <item index="4" value="Only Minister"/>
+      <item index="5" value="NS+ProRail"/>
+      <item index="6" value="NS+Minister"/>
+      <item index="7" value="ProRail+Minister"/>
+      <item index="8" value="All"/>
+    </issue>
+    <issue index="2" name="PercentageBlameMinister" vtype="discrete" type="discrete" etype="discrete">
+      <item index="1" value="0"/>
+      <item index="2" value="1"/>
+      <item index="3" value="5"/>
+      <item index="4" value="25"/>
+    </issue>
+    <issue index="3" name="PercentageBlameNS" vtype="discrete" type="discrete" etype="discrete">
+      <item index="1" value="0"/>
+      <item index="2" value="25"/>
+      <item index="3" value="33"/>
+      <item index="4" value="66"/>
+    </issue>
+    <issue index="4" name="PercentageBlameProRail" vtype="discrete" type="discrete" etype="discrete">
+      <item index="1" value="0"/>
+      <item index="2" value="10"/>
+      <item index="3" value="25"/>
+      <item index="4" value="33"/>
+    </issue>
+    <issue index="5" name="MoneyFlowToNS" vtype="discrete" type="discrete" etype="discrete">
+      <item index="1" value="-10"/>
+      <item index="2" value="-1"/>
+      <item index="3" value="0"/>
+      <item index="4" value="250"/>
+    </issue>
+    <issue index="6" name="MoneyFlowToProRail" vtype="discrete" type="discrete" etype="discrete">
+      <item index="1" value="-5"/>
+      <item index="2" value="0"/>
+      <item index="3" value="100"/>
+      <item index="4" value="250"/>
+      <item index="5" value="500"/>
+    </issue>
+    <issue index="7" name="ControlActionofMinister" vtype="discrete" type="discrete" etype="discrete">
+      <item index="1" value="NS=businessAsUsual+ProRail=businessAsUsual"/>
+      <item index="2" value="NS=businessAsUsual+ProRail=warning"/>
+      <item index="3" value="NS=businessAsUsual+ProRail=penalty"/>
+      <item index="4" value="NS=businessAsUsual+ProRail=reorganization"/>
+      <item index="5" value="NS=warning+ProRail=businessAsUsual"/>
+      <item index="6" value="NS=warning+ProRail=warning"/>
+      <item index="7" value="NS=warning+ProRail=penalty"/>
+      <item index="8" value="NS=warning+ProRail=reorganization"/>
+      <item index="9" value="NS=penalty+ProRail=businessAsUsual"/>
+      <item index="10" value="NS=penalty+ProRail=warning"/>
+      <item index="11" value="NS=penalty+ProRail=penalty"/>
+      <item index="12" value="NS=penalty+ProRail=reorganization"/>
+      <item index="13" value="NS=fireDirector+ProRail=businessAsUsual"/>
+      <item index="14" value="NS=fireDirector+ProRail=warning"/>
+      <item index="15" value="NS=fireDirector+ProRail=penalty"/>
+      <item index="16" value="NS=fireDirector+ProRail=reorganization"/>
+    </issue>
+    <issue index="8" name="SolutionTime" vtype="discrete" type="discrete" etype="discrete">
+      <item index="1" value="No deadline"/>
+      <item index="2" value="Today"/>
+      <item index="3" value="Within a week"/>
+      <item index="4" value="Within a month"/>
+    </issue>
+    <rules>
+      <ranks>
+        <issue index="1">
+          <item index="1" rank="1" value="None"/>
+          <item index="2" rank="5" value="Only NS"/>
+          <item index="3" rank="5" value="Only ProRail"/>
+          <item index="4" rank="2" value="Only Minister"/>
+          <item index="5" rank="6" value="NS+ProRail"/>
+          <item index="6" rank="3" value="NS+Minister"/>
+          <item index="7" rank="3" value="ProRail+Minister"/>
+          <item index="8" rank="4" value="All"/>
+        </issue>
+        <issue index="2">
+          <item index="1" rank="4" value="0"/>
+          <item index="2" rank="3" value="1"/>
+          <item index="3" rank="2" value="5"/>
+          <item index="4" rank="1" value="25"/>
+        </issue>
+        <issue index="3">
+          <item index="1" rank="1" value="0"/>
+          <item index="2" rank="2" value="25"/>
+          <item index="3" rank="3" value="33"/>
+          <item index="4" rank="4" value="66"/>
+        </issue>
+        <issue index="4">
+          <item index="1" rank="1" value="0"/>
+          <item index="2" rank="2" value="10"/>
+          <item index="3" rank="3" value="25"/>
+          <item index="4" rank="4" value="33"/>
+        </issue>
+        <issue index="5">
+          <item index="1" rank="4" value="-10"/>
+          <item index="2" rank="3" value="-1"/>
+          <item index="3" rank="2" value="0"/>
+          <item index="4" rank="1" value="250"/>
+        </issue>
+        <issue index="6">
+          <item index="1" rank="5" value="-5"/>
+          <item index="2" rank="4" value="0"/>
+          <item index="3" rank="3" value="100"/>
+          <item index="4" rank="2" value="250"/>
+          <item index="5" rank="1" value="500"/>
+        </issue>
+        <issue index="7">
+          <item index="1" rank="1" value="NS=businessAsUsual+ProRail=businessAsUsual"/>
+          <item index="2" rank="3" value="NS=businessAsUsual+ProRail=warning"/>
+          <item index="3" rank="8" value="NS=businessAsUsual+ProRail=penalty"/>
+          <item index="4" rank="4" value="NS=businessAsUsual+ProRail=reorganization"/>
+          <item index="5" rank="3" value="NS=warning+ProRail=businessAsUsual"/>
+          <item index="6" rank="7" value="NS=warning+ProRail=warning"/>
+          <item index="7" rank="9" value="NS=warning+ProRail=penalty"/>
+          <item index="8" rank="5" value="NS=warning+ProRail=reorganization"/>
+          <item index="9" rank="8" value="NS=penalty+ProRail=businessAsUsual"/>
+          <item index="10" rank="9" value="NS=penalty+ProRail=warning"/>
+          <item index="11" rank="10" value="NS=penalty+ProRail=penalty"/>
+          <item index="12" rank="6" value="NS=penalty+ProRail=reorganization"/>
+          <item index="13" rank="4" value="NS=fireDirector+ProRail=businessAsUsual"/>
+          <item index="14" rank="5" value="NS=fireDirector+ProRail=warning"/>
+          <item index="15" rank="6" value="NS=fireDirector+ProRail=penalty"/>
+          <item index="16" rank="2" value="NS=fireDirector+ProRail=reorganization"/>
+        </issue>
+        <issue index="8">
+          <item index="1" rank="1" value="No deadline"/>
+          <item index="2" rank="4" value="Today"/>
+          <item index="3" rank="3" value="Within a week"/>
+          <item index="4" rank="2" value="Within a month"/>
+        </issue>
+      </ranks>
+     
+      <constraints>
+
+         <constraint type="inclusiveZeroOutcomeConstraint">
+          <checkassignment index="5" condition="numeric=positive"/>
+          <checkassignment index="7" condition="NS=penalty"/>
+        </constraint>
+        
+        <constraint type="inclusiveZeroOutcomeConstraint">
+          <checkassignment index="6" condition="numeric=positive"/>
+          <checkassignment index="7" condition="ProRail=penalty"/>
+        </constraint>
+        
+        <constraint type="conditionalZeroOutcomeConstraint">
+          <checkassignment index="5" condition="numeric=negative"/>
+          <checkassignment index="7" condition="NS=penalty"/>
+        </constraint>
+    
+        <constraint type="conditionalZeroOutcomeConstraint">
+          <checkassignment index="6" condition="numeric=negative"/>
+          <checkassignment index="7" condition="ProRail=penalty"/>
+        </constraint>
+   
+
+		 <constraint type="zeroConstraint" index="2">
+          <valueassignment index="2" value="0"/>
+          <valueassignment index="3" value="0"/>
+          <valueassignment index="4" value="0"/>
+        </constraint>
+      
+         <constraint type="zeroConstraint" index="5">
+          <valueassignment index="5" value="250"/>
+          <valueassignment index="6" value="500"/>
+         </constraint>
+         
+         <constraint type="zeroConstraint" index="6">
+          <valueassignment index="5" value="250"/>
+          <valueassignment index="6" value="500"/>
+         </constraint>
+         
+         
+         <constraint type="zeroConstraint" index="6">
+          <valueassignment index="6" value="250"/>
+          <valueassignment index="8" value="Within a week"/>
+         </constraint>
+        
+        <constraint type="zeroConstraint" index="6">
+          <valueassignment index="6" value="500"/>
+          <valueassignment index="8" value="Within a week"/>
+        </constraint>
+      
+           
+        <constraint type="zeroConstraint" index="6">
+          <valueassignment index="6" value="100"/>
+          <valueassignment index="8" value="Within a month"/>
+        </constraint>
+        <constraint type="zeroConstraint" index="6">
+          <valueassignment index="6" value="250"/>
+          <valueassignment index="8" value="Within a month"/>
+        </constraint>
+        <constraint type="zeroConstraint" index="6">
+          <valueassignment index="6" value="500"/>
+          <valueassignment index="8" value="Within a month"/>
+        </constraint>
+   
+   
+        <constraint type="zeroConstraint" index="6">
+          <valueassignment index="6" value="100"/>
+          <valueassignment index="8" value="No deadline"/>
+        </constraint>
+        <constraint type="zeroConstraint" index="6">
+          <valueassignment index="6" value="250"/>
+          <valueassignment index="8" value="No deadline"/>
+        </constraint>
+        <constraint type="zeroConstraint" index="6">
+          <valueassignment index="6" value="500"/>
+          <valueassignment index="8" value="No deadline"/>
+        </constraint>
+        
+             
+      	<constraint type="zeroConstraint" index="5">
+          <valueassignment index="5" value="250"/>
+          <valueassignment index="8" value="Within a week"/>
+        </constraint>
+        
+          <constraint type="zeroConstraint" index="5">
+          <valueassignment index="5" value="250"/>
+          <valueassignment index="8" value="Within a month"/>
+        </constraint>
+      
+        <constraint type="zeroConstraint" index="5">
+          <valueassignment index="5" value="250"/>
+          <valueassignment index="8" value="No deadline"/>
+        </constraint>
+      
+                    
+         <constraint type="zeroConstraint" index="1">
+          <valueassignment index="1" value="Only Minister"/>
+          <valueassignment index="8" value="Within a month"/>
+        </constraint>
+        <constraint type="zeroConstraint" index="1">
+          <valueassignment index="1" value="NS+Minister"/>
+          <valueassignment index="8" value="Within a month"/>
+        </constraint>
+        <constraint type="zeroConstraint" index="1">
+          <valueassignment index="1" value="ProRail+Minister"/>
+          <valueassignment index="8" value="Within a month"/>
+        </constraint>
+        <constraint type="zeroConstraint" index="1">
+          <valueassignment index="1" value="All"/>
+          <valueassignment index="8" value="Within a month"/>
+        </constraint>
+        <constraint type="zeroConstraint" index="1">
+          <valueassignment index="1" value="Only Minister"/>
+          <valueassignment index="8" value="No deadline"/>
+        </constraint>
+        <constraint type="zeroConstraint" index="1">
+          <valueassignment index="1" value="NS+Minister"/>
+          <valueassignment index="8" value="No deadline"/>
+        </constraint>
+        <constraint type="zeroConstraint" index="1">
+          <valueassignment index="1" value="ProRail+Minister"/>
+          <valueassignment index="8" value="No deadline"/>
+        </constraint>
+        <constraint type="zeroConstraint" index="1">
+          <valueassignment index="1" value="All"/>
+          <valueassignment index="8" value="No deadline"/>
+        </constraint>
+
+        <constraint type="sumZeroConstraint" index="7" value="penalty" min="66"  max="100">
+          <item index="2" />
+          <item index="3" />
+          <item index="4" />
+        </constraint>
+
+        <constraint type="sumZeroNotConstraint" index="7" value="NS=fireDirector+ProRail=reorganize" min="0"  max="0">
+          <item index="2" />
+          <item index="3" />
+          <item index="4" />
+        </constraint>
+
+
+        <constraint type="sumZeroConstraintList" index="7" max="1" min="1">
+            <condition value="NS=fireDirector"/>
+            <condition value="ProRail=reorganize"/>
+            <item index="2"/>
+            <item index="3"/>
+            <item index="4"/>
+        </constraint>
+        
+        
+        <constraint type="sumZeroNotConstraint" index="7" value="NS=penalty+ProRail=penalty" min="2"  max="50">
+          <item index="2" />
+          <item index="3" />
+          <item index="4" />
+        </constraint>
+
+        <constraint type="sumZeroConstraint" index="5" value="250" min="51"  max="65">
+          <item index="2" />
+          <item index="3" />
+          <item index="4" />
+        </constraint>
+
+        <constraint type="sumZeroConstraintList" index="6"  min="51"  max="65">
+         <condition value="100"/>
+         <condition value="250"/>
+         <condition value="500"/>
+          <item index="2" />
+          <item index="3" />
+          <item index="4" />
+        </constraint>
+        
+
+        
+        <constraint type="conditionalZeroConstraint" index="7" value="ProRail=reorganize" >
+          <valueassignment index="2" value="0"/>
+          <valueassignment index="3" value="0"/>
+          <valueassignment index="4" value="10"/>
+        </constraint>
+        <constraint type="conditionalZeroConstraint" index="7" value="NS=fireDirector" >
+          <valueassignment index="2" value="0"/>
+          <valueassignment index="3" value="25"/>
+          <valueassignment index="4" value="0"/>
+        </constraint>
+        <constraint type="conditionalZeroConstraint" index="7" value="ProRail=reorganize" >
+          <valueassignment index="2" value="0"/>
+          <valueassignment index="3" value="0"/>
+          <valueassignment index="4" value="25"/>
+        </constraint>
+        <constraint type="conditionalZeroConstraint" index="7" value="ProRail=reorganize" >
+          <valueassignment index="2" value="1"/>
+          <valueassignment index="3" value="0"/>
+          <valueassignment index="4" value="10"/>
+        </constraint>
+        <constraint type="conditionalZeroConstraint" index="7" value="ProRail=reorganize" >
+          <valueassignment index="2" value="5"/>
+          <valueassignment index="3" value="0"/>
+          <valueassignment index="4" value="10"/>
+        </constraint>
+
+   
+        
+                 
+      </constraints>
+    </rules>
+  </objective>
+</utility_space>

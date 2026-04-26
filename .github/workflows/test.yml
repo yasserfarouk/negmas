@@ -1,0 +1,38 @@
+name: CI
+on:
+  push:
+    branches: ["*"]
+  pull_request:
+    branches: ["*"]
+concurrency:
+  group: ${{ github.workflow }}-${{ github.event_name == 'pull_request' && github.event.pull_request.number || github.ref }}
+  cancel-in-progress: ${{ github.event_name == 'push' }}
+jobs:
+  tests:
+    name: "Python ${{ matrix.python-version }} on ${{ matrix.os }}"
+    runs-on: ${{ matrix.os }}
+    timeout-minutes: 180
+    strategy:
+      fail-fast: false
+      matrix:
+        os: [ubuntu-latest, windows-latest, macos-latest]
+        python-version: ["3.10", "3.11", "3.12", "3.13", "3.14"]
+    steps:
+      - uses: "actions/checkout@v4"
+      - name: Install uv
+        uses: astral-sh/setup-uv@v3
+        with:
+          enable-cache: true
+      - name: Set up Python ${{ matrix.python-version }}
+        run: uv python install ${{ matrix.python-version }}
+      - name: Install the project
+        run: uv sync --extra testing --extra dev
+      - name: "Install Jupyter Kernel"
+        run: uv run -m ipykernel install --user --name=negmas
+      - name: "Install Genius Bridge"
+        run: uv run negmas genius-setup
+      - name: "Run pytest for ${{ matrix.python-version }}"
+        env:
+          NEGMAS_IGNORE_TEST_NOTEBOOKS: "True"
+          NEGMAS_FASTRUN: "True"
+        run: "uv run pytest src/negmas tests/core || uv run pytest --last-failed src/negmas tests/core"

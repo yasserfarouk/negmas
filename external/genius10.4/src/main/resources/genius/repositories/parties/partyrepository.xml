@@ -1,0 +1,456 @@
+<?xml version="1.0" encoding="UTF-8" standalone="yes"?>
+<repository fileName="partyrepository.xml">
+	<items>
+		<agentRepItems />
+		<partyRepItems>
+			<partyRepItem classPath="negotiator.parties.BoulwareNegotiationParty">
+				<properties />
+			</partyRepItem>
+			<partyRepItem classPath="negotiator.parties.ConcederNegotiationParty">
+				<properties />
+			</partyRepItem>
+			<partyRepItem classPath="agents.UIAgent">
+				<properties />
+			</partyRepItem>
+			<partyRepItem classPath="agents.UIAgentExtended">
+				<properties />
+			</partyRepItem>
+			<partyRepItem classPath="agents.SimpleAgent">
+				<properties />
+			</partyRepItem>
+			<partyRepItem classPath="negotiator.parties.RandomCounterOfferNegotiationParty">
+				<properties />
+			</partyRepItem>
+			<partyRepItem classPath="negotiator.parties.RandomParty">
+				<properties />
+			</partyRepItem>
+			<partyRepItem classPath="negotiator.parties.RandomParty2">
+				<properties />
+			</partyRepItem>
+			<partyRepItem classPath="agents.anac.y2018.agent33.Agent33">
+                <properties/>
+            </partyRepItem>
+            <partyRepItem classPath="agents.anac.y2018.agentherb.AgentHerb">
+                <properties/>
+            </partyRepItem>
+            <partyRepItem classPath="agents.anac.y2018.agentnp1.AgentNP1">
+                <properties/>
+            </partyRepItem>
+            <partyRepItem classPath="agents.anac.y2018.agreeableagent2018.AgreeableAgent2018">
+                <properties/>
+            </partyRepItem>
+            <partyRepItem classPath="agents.anac.y2018.ateamagent.ATeamAgent">
+                <properties/>
+            </partyRepItem>
+            <partyRepItem classPath="agents.anac.y2018.beta_one.Group2">
+                <properties/>
+            </partyRepItem>
+            <partyRepItem classPath="agents.anac.y2018.condagent.ConDAgent">
+                <properties/>
+            </partyRepItem>
+            <partyRepItem classPath="agents.anac.y2018.exp_rubick.Exp_Rubick">
+                <properties/>
+            </partyRepItem>
+            <partyRepItem classPath="agents.anac.y2018.fullagent.FullAgent">
+                <properties/>
+            </partyRepItem>
+            <partyRepItem classPath="agents.anac.y2018.groupy.GroupY">
+                <properties/>
+            </partyRepItem>
+            <partyRepItem classPath="agents.anac.y2018.iqson.IQSun2018">
+                <properties/>
+            </partyRepItem>
+            <partyRepItem classPath="agents.anac.y2018.lancelot.Lancelot">
+                <properties/>
+            </partyRepItem>
+            <partyRepItem classPath="agents.anac.y2018.libra.Libra">
+                <properties/>
+            </partyRepItem>
+            <partyRepItem classPath="agents.anac.y2018.meng_wan.Agent36">
+                <properties/>
+            </partyRepItem>
+            <partyRepItem classPath="agents.anac.y2018.ponpokorampage.PonPokoRampage">
+                <properties/>
+            </partyRepItem>
+            <partyRepItem classPath="agents.anac.y2018.seto.Seto">
+                <properties/>
+            </partyRepItem>
+            <partyRepItem classPath="agents.anac.y2018.shiboy.Shiboy">
+                <properties/>
+            </partyRepItem>
+            <partyRepItem classPath="agents.anac.y2018.smac_agent.SMAC_Agent">
+                <properties/>
+            </partyRepItem>
+            <partyRepItem classPath="agents.anac.y2018.sontag.Sontag">
+                <properties/>
+            </partyRepItem>
+            <partyRepItem classPath="agents.anac.y2018.yeela.Yeela">
+                <properties/>
+            </partyRepItem>
+			<partyRepItem classPath="agents.anac.y2017.agentf.AgentF">
+				<properties />
+			</partyRepItem>
+			<partyRepItem classPath="agents.anac.y2017.caduceusdc16.CaduceusDC16">
+				<properties />
+			</partyRepItem>
+			<partyRepItem classPath="agents.anac.y2017.parsagent3.ShahAgent">
+				<properties />
+			</partyRepItem>
+			<partyRepItem classPath="agents.anac.y2017.mamenchis.Mamenchis">
+				<properties />
+			</partyRepItem>
+			<partyRepItem classPath="agents.anac.y2017.ponpokoagent.PonPokoAgent">
+				<properties />
+			</partyRepItem>
+			<partyRepItem classPath="agents.anac.y2017.agentkn.AgentKN">
+				<properties />
+			</partyRepItem>
+			<partyRepItem classPath="agents.anac.y2017.rubick.Rubick">
+				<properties />
+			</partyRepItem>
+			<partyRepItem classPath="agents.anac.y2017.simpleagent.SimpleAgent">
+				<properties />
+			</partyRepItem>
+
+
+			<partyRepItem classPath="agents.anac.y2016.agenthp2.AgentHP2_main">
+				<properties />
+			</partyRepItem>
+			<partyRepItem classPath="agents.anac.y2016.agentlight.AgentLight">
+				<properties />
+			</partyRepItem>
+			<partyRepItem classPath="agents.anac.y2016.atlas3.Atlas32016">
+				<properties />
+			</partyRepItem>
+			<partyRepItem classPath="agents.anac.y2016.caduceus.Caduceus">
+				<properties />
+			</partyRepItem>
+			<partyRepItem classPath="agents.anac.y2016.clockworkagent.ClockworkAgent">
+				<properties />
+			</partyRepItem>
+			<partyRepItem classPath="agents.anac.y2016.farma.Farma">
+				<properties />
+			</partyRepItem>
+			<partyRepItem classPath="agents.anac.y2016.grandma.GrandmaAgent">
+				<properties />
+			</partyRepItem>
+			<partyRepItem classPath="agents.anac.y2016.maxoops.MaxOops">
+				<properties />
+			</partyRepItem>
+			<partyRepItem classPath="agents.anac.y2016.myagent.MyAgent">
+				<properties />
+			</partyRepItem>
+			<partyRepItem classPath="agents.anac.y2016.ngent.Ngent">
+				<properties />
+			</partyRepItem>
+			<partyRepItem classPath="agents.anac.y2016.pars2.ParsAgent2">
+				<properties />
+			</partyRepItem>
+			<partyRepItem classPath="agents.anac.y2016.parscat.ParsCat">
+				<properties />
+			</partyRepItem>
+			<partyRepItem classPath="agents.anac.y2016.syagent.SYAgent">
+				<properties />
+			</partyRepItem>
+			<partyRepItem classPath="agents.anac.y2016.terra.Terra">
+				<properties />
+			</partyRepItem>
+			<partyRepItem classPath="agents.anac.y2016.yxagent.YXAgent">
+				<properties />
+			</partyRepItem>
+			<partyRepItem classPath="agents.anac.y2016.agentsmith.AgentSmith2016">
+				<properties />
+			</partyRepItem>
+
+
+			<partyRepItem classPath="agents.anac.y2015.Phoenix.PhoenixParty">
+				<properties />
+			</partyRepItem>
+			<partyRepItem classPath="agents.anac.y2015.cuhkagent2015.CUHKAgent2015">
+				<properties />
+			</partyRepItem>
+			<partyRepItem classPath="agents.anac.y2015.ParsAgent.ParsAgent">
+				<properties />
+			</partyRepItem>
+			<partyRepItem classPath="agents.anac.y2015.AresParty.AresParty">
+				<properties />
+			</partyRepItem>
+			<partyRepItem classPath="agents.anac.y2015.Mercury.Mercury">
+				<properties />
+			</partyRepItem>
+			<partyRepItem classPath="agents.anac.y2015.Atlas3.Atlas3">
+				<properties />
+			</partyRepItem>
+			<partyRepItem classPath="agents.anac.y2015.agenth.AgentH">
+				<properties />
+			</partyRepItem>
+			<partyRepItem classPath="agents.anac.y2015.SENGOKU.SENGOKU">
+				<properties />
+			</partyRepItem>
+			<partyRepItem classPath="agents.anac.y2015.AgentW.AgentW">
+				<properties />
+			</partyRepItem>
+			<partyRepItem classPath="agents.anac.y2015.AgentX.AgentX">
+				<properties />
+			</partyRepItem>
+			<partyRepItem classPath="agents.anac.y2015.DrageKnight.DrageKnight">
+				<properties />
+			</partyRepItem>
+			<partyRepItem classPath="agents.anac.y2015.fairy.kawaii">
+				<properties />
+			</partyRepItem>
+			<partyRepItem classPath="agents.anac.y2015.agentBuyogV2.AgentBuyogMain">
+				<properties />
+			</partyRepItem>
+			<partyRepItem classPath="agents.anac.y2015.xianfa.XianFaAgent">
+				<properties />
+			</partyRepItem>
+			<partyRepItem classPath="agents.anac.y2015.AgentNeo.Groupn">
+				<properties />
+			</partyRepItem>
+			<partyRepItem classPath="agents.anac.y2015.AgentHP.AgentHP">
+				<properties />
+			</partyRepItem>
+			<partyRepItem classPath="agents.anac.y2015.group2.Group2">
+				<properties />
+			</partyRepItem>
+			<partyRepItem classPath="agents.anac.y2015.pokerface.PokerFace">
+				<properties />
+			</partyRepItem>
+			<partyRepItem
+				classPath="agents.anac.y2015.TUDMixedStrategyAgent.TUDMixedStrategyAgent">
+				<properties />
+			</partyRepItem>
+			<partyRepItem classPath="agents.anac.y2015.meanBot.MeanBot">
+				<properties />
+			</partyRepItem>
+			<partyRepItem classPath="agents.anac.y2015.pnegotiator.PNegotiator">
+				<properties />
+			</partyRepItem>
+			<partyRepItem classPath="agents.anac.y2015.RandomDance.RandomDance">
+				<properties />
+			</partyRepItem>
+			<partyRepItem classPath="agents.anac.y2015.JonnyBlack.JonnyBlack">
+				<properties />
+			</partyRepItem>
+			<partyRepItem classPath="agents.UtilityBasedAcceptor">
+				<properties />
+			</partyRepItem>
+			<partyRepItem classPath="agents.anac.y2010.AgentFSEGA.AgentFSEGA">
+				<properties />
+			</partyRepItem>
+			<partyRepItem classPath="agents.anac.y2010.AgentK.Agent_K">
+				<properties />
+			</partyRepItem>
+			<partyRepItem classPath="agents.anac.y2010.Southampton.IAMhaggler">
+				<properties />
+			</partyRepItem>
+			<partyRepItem classPath="agents.anac.y2010.Southampton.IAMcrazyHaggler">
+				<properties />
+			</partyRepItem>
+			<partyRepItem classPath="agents.anac.y2010.AgentSmith.AgentSmith">
+				<properties />
+			</partyRepItem>
+			<partyRepItem classPath="agents.anac.y2010.Nozomi.Nozomi">
+				<properties />
+			</partyRepItem>
+			<partyRepItem classPath="agents.anac.y2010.Yushu.Yushu">
+				<properties />
+			</partyRepItem>
+			<partyRepItem classPath="agents.anac.y2011.TheNegotiator.TheNegotiator">
+				<properties />
+			</partyRepItem>
+			<partyRepItem classPath="agents.anac.y2011.ValueModelAgent.ValueModelAgent">
+				<properties />
+			</partyRepItem>
+			<partyRepItem classPath="agents.anac.y2011.Gahboninho.Gahboninho">
+				<properties />
+			</partyRepItem>
+			<partyRepItem classPath="agents.anac.y2011.BramAgent.BRAMAgent">
+				<properties />
+			</partyRepItem>
+			<partyRepItem classPath="agents.anac.y2011.HardHeaded.KLH">
+				<properties />
+			</partyRepItem>
+			<partyRepItem classPath="agents.anac.y2011.Nice_Tit_for_Tat.NiceTitForTat">
+				<properties />
+			</partyRepItem>
+			<partyRepItem classPath="agents.anac.y2011.IAMhaggler2011.IAMhaggler2011">
+				<properties />
+			</partyRepItem>
+			<partyRepItem classPath="agents.anac.y2011.AgentK2.Agent_K2">
+				<properties />
+			</partyRepItem>
+			<partyRepItem classPath="agents.anac.y2012.AgentLG.AgentLG">
+				<properties />
+			</partyRepItem>
+			<partyRepItem classPath="agents.anac.y2012.AgentMR.AgentMR">
+				<properties />
+			</partyRepItem>
+			<partyRepItem
+				classPath="agents.anac.y2012.TheNegotiatorReloaded.TheNegotiatorReloaded">
+				<properties />
+			</partyRepItem>
+			<partyRepItem classPath="agents.anac.y2012.BRAMAgent2.BRAMAgent2">
+				<properties />
+			</partyRepItem>
+			<partyRepItem classPath="agents.anac.y2012.CUHKAgent.CUHKAgent">
+				<properties />
+			</partyRepItem>
+			<partyRepItem classPath="agents.anac.y2012.IAMhaggler2012.IAMhaggler2012">
+				<properties />
+			</partyRepItem>
+			<partyRepItem classPath="agents.anac.y2012.MetaAgent.MetaAgent">
+				<properties />
+			</partyRepItem>
+			<partyRepItem classPath="agents.anac.y2012.OMACagent.OMACagent">
+				<properties />
+			</partyRepItem>
+			<partyRepItem classPath="agents.anac.y2013.InoxAgent.InoxAgent">
+				<properties />
+			</partyRepItem>
+			<partyRepItem classPath="agents.anac.y2013.TheFawkes.TheFawkes">
+				<properties />
+			</partyRepItem>
+			<partyRepItem classPath="agents.anac.y2013.AgentKF.AgentKF">
+				<properties />
+			</partyRepItem>
+			<partyRepItem classPath="agents.anac.y2013.GAgent.AgentI">
+				<properties />
+			</partyRepItem>
+			<partyRepItem classPath="agents.anac.y2013.MetaAgent.MetaAgent2013">
+				<properties />
+			</partyRepItem>
+			<partyRepItem classPath="agents.anac.y2013.SlavaAgent.SlavaAgent">
+				<properties />
+			</partyRepItem>
+			<partyRepItem classPath="agents.anac.y2013.TMFAgent.TMFAgent">
+				<properties />
+			</partyRepItem>
+			<partyRepItem classPath="agents.anac.y2014.AgentM.AgentM">
+				<properties />
+			</partyRepItem>
+			<partyRepItem classPath="agents.anac.y2014.AgentQuest.AgentQuest">
+				<properties />
+			</partyRepItem>
+			<partyRepItem classPath="agents.anac.y2014.AgentTD.AgentTD">
+				<properties />
+			</partyRepItem>
+			<partyRepItem classPath="agents.anac.y2014.AgentTRP.AgentTRP">
+				<properties />
+			</partyRepItem>
+			<partyRepItem classPath="agents.anac.y2014.AgentWhale.WhaleAgent">
+				<properties />
+			</partyRepItem>
+			<partyRepItem classPath="agents.anac.y2014.AgentYK.AgentYK">
+				<properties />
+			</partyRepItem>
+			<partyRepItem classPath="agents.anac.y2014.ArisawaYaki.ArisawaYaki">
+				<properties />
+			</partyRepItem>
+			<partyRepItem classPath="agents.anac.y2014.Aster.Aster">
+				<properties />
+			</partyRepItem>
+			<partyRepItem classPath="agents.anac.y2014.Atlas.Atlas">
+				<properties />
+			</partyRepItem>
+			<partyRepItem classPath="agents.anac.y2014.BraveCat.BraveCat">
+				<properties />
+			</partyRepItem>
+			<partyRepItem classPath="agents.anac.y2014.DoNA.DoNA">
+				<properties />
+			</partyRepItem>
+			<partyRepItem classPath="agents.anac.y2014.E2Agent.AnacSampleAgent">
+				<properties />
+			</partyRepItem>
+			<partyRepItem classPath="agents.anac.y2014.Flinch.Flinch">
+				<properties />
+			</partyRepItem>
+			<partyRepItem classPath="agents.anac.y2014.Gangster.Gangster">
+				<properties />
+			</partyRepItem>
+			<partyRepItem classPath="agents.anac.y2014.KGAgent.KGAgent">
+				<properties />
+			</partyRepItem>
+			<partyRepItem classPath="agents.anac.y2014.SimpaticoAgent.Simpatico">
+				<properties />
+			</partyRepItem>
+			<partyRepItem classPath="agents.anac.y2014.Sobut.Sobut">
+				<properties />
+			</partyRepItem>
+			<partyRepItem classPath="agents.anac.y2014.TUDelftGroup2.Group2Agent">
+				<properties />
+			</partyRepItem>
+			<partyRepItem classPath="agents.SimilarityAgent">
+				<properties />
+			</partyRepItem>
+			<partyRepItem classPath="agents.FuzzyAgent">
+				<properties />
+			</partyRepItem>
+			<partyRepItem classPath="agents.TimeDependentAgentBoulware">
+				<properties />
+			</partyRepItem>
+			<partyRepItem classPath="agents.TimeDependentAgentConceder">
+				<properties />
+			</partyRepItem>
+			<partyRepItem classPath="agents.TimeDependentAgentHardliner">
+				<properties />
+			</partyRepItem>
+			<partyRepItem classPath="agents.TimeDependentAgentLinear">
+				<properties />
+			</partyRepItem>
+			<partyRepItem classPath="agents.ImmediateAcceptor">
+				<properties />
+			</partyRepItem>
+			<partyRepItem classPath="agents.OptimalBidderSimple">
+				<properties />
+			</partyRepItem>
+			<partyRepItem classPath="agents.FunctionalAcceptor">
+				<properties />
+			</partyRepItem>
+			<partyRepItem classPath="agents.BayesianAgent">
+				<properties />
+			</partyRepItem>
+			<partyRepItem classPath="agents.ABMPAgent2">
+				<properties />
+			</partyRepItem>
+			<partyRepItem classPath="parties.AlternatingMultipleOffers.RandomAmopParty">
+				<properties />
+			</partyRepItem>
+			<partyRepItem
+				classPath="parties.AlternatingMultipleOffers.RandomAmopPartyMajority">
+				<properties />
+			</partyRepItem>
+			<partyRepItem classPath="parties.simplemediator.RandomFlippingMediator">
+				<properties>
+					<property>isMediator</property>
+				</properties>
+			</partyRepItem>
+			<partyRepItem classPath="parties.simplemediator.FixedOrderFlippingMediator">
+				<properties>
+					<property>isMediator</property>
+				</properties>
+			</partyRepItem>
+			<partyRepItem classPath="parties.simplemediator.HillClimber">
+				<properties />
+			</partyRepItem>
+			<partyRepItem classPath="parties.simplemediator.Annealer">
+				<properties />
+			</partyRepItem>
+			<partyRepItem classPath="parties.simplemediator.FeedbackParty">
+				<properties />
+			</partyRepItem>
+			<partyRepItem classPath="parties.feedbackmediator.FeedbackMediator">
+				<properties>
+					<property>isMediator</property>
+				</properties>
+			</partyRepItem>
+			<partyRepItem classPath="negotiator.parties.FeedbackHillClimber">
+				<properties />
+			</partyRepItem>
+		</partyRepItems>
+		<domainRepItem />
+		<protocolRepItem />
+		<multiPartyProtocolRepItem />
+	</items>
+</repository>

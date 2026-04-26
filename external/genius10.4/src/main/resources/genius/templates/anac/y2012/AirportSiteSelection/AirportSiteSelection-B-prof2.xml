@@ -1,0 +1,40 @@
+<?xml version="1.0"?>
+<utility_space number_of_issues="2">
+  <objective index="0" etype="objective" type="objective" description="" name="FlightBooking">
+    <weight index="1" value="0.25"/>
+    <weight index="2" value="0.25"/>
+    <weight index="3" value="0.5"/>
+    <issue index="1" etype="discrete" type="discrete" name="Cost">
+      <item index="1" value="GreaterThanOrEqual5.2bn" evaluation="1" cost="10"/>
+      <item index="2" value="5.0bn" evaluation="9" cost="0"/>
+      <item index="3" value="4.8bn" evaluation="8" cost="0"/>
+      <item index="4" value="4.6bn" evaluation="7" cost="0"/>
+      <item index="5" value="4.4bn" evaluation="6" cost="0"/>
+      <item index="6" value="4.2bn" evaluation="5" cost="0"/>
+      <item index="7" value="4.0bn" evaluation="4" cost="0"/>
+      <item index="8" value="3.8bn" evaluation="3" cost="0"/>
+      <item index="9" value="3.6bn" evaluation="2" cost="0"/>
+      <item index="10" value="LessThanOrEqual3.4bn" evaluation="1" cost="0"/>
+    </issue>
+    <issue index="2" etype="discrete" type="discrete" name="Noise">
+      <item index="1" value="LessThan10000" evaluation="7" cost="0"/>
+      <item index="2" value="10000" evaluation="6" cost="0"/>
+      <item index="3" value="20000" evaluation="5" cost="0"/>
+      <item index="4" value="30000" evaluation="4" cost="0"/>
+      <item index="5" value="40000" evaluation="3" cost="0"/>
+      <item index="6" value="50000" evaluation="2" cost="0"/>
+      <item index="7" value="GreaterThan50000" evaluation="1" cost="0"/>
+    </issue>
+    <issue index="3" etype="discrete" type="discrete" name="AccidentLevelPerMillionPassengerMiles">
+      <item index="1" value="GreaterThanOrEqual0.1" evaluation="0" cost="0"/>
+      <item index="2" value="0.08" evaluation="1" cost="0"/>
+      <item index="3" value="0.06" evaluation="2" cost="0"/>
+      <item index="4" value="0.04" evaluation="3" cost="0"/>
+      <item index="5" value="0.02" evaluation="4" cost="0"/>
+      <item index="6" value="LessThan0.02" evaluation="5" cost="0"/>
+    </issue>
+  </objective>
+  <discount_factor value="0.50" />
+<reservation value="0.25" />
+  
+</utility_space>

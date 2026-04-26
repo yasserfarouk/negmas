@@ -1,0 +1,76 @@
+<negotiation_template> 
+<utility_space number_of_issues="6"> 
+<objective index="0" description="" name="Smart Phone" type="objective" etype="objective"> 
+<issue index="1" name="Maker" vtype="discrete" type="discrete" etype="discrete"> 
+<item index="1" value="Apple"> 
+</item> 
+<item index="2" value="Samson"> 
+</item> 
+<item index="3" value="Sony"> 
+</item> 
+<item index="4" value="Black Berry"> 
+</item> 
+<item index="5" value="Nokia"> 
+</item> 
+<item index="6" value="HTC"> 
+</item> 
+</issue> 
+<issue index="2" name="Screen Size" vtype="discrete" type="discrete" etype="discrete"> 
+<item index="1" value="2.4"> 
+</item> 
+<item index="2" value="2.8"> 
+</item> 
+<item index="3" value="3.0"> 
+</item> 
+<item index="4" value="3.2"> 
+</item> 
+<item index="5" value="3.6"> 
+</item> 
+</issue> 
+<issue index="3" name="Color" vtype="discrete" type="discrete" etype="discrete"> 
+<item index="1" value="Black"> 
+</item> 
+<item index="2" value="White"> 
+</item> 
+<item index="3" value="Red"> 
+</item> 
+<item index="4" value="Blue"> 
+</item> 
+<item index="5" value="Silver"> 
+</item> 
+</issue> 
+<issue index="4" name="Carrier" vtype="discrete" type="discrete" etype="discrete"> 
+<item index="1" value="Verizon Wireless"> 
+</item> 
+<item index="2" value="AT & T Mobility"> 
+</item> 
+<item index="3" value="Sprint Nextel"> 
+</item> 
+<item index="4" value="T-Mobile USA"> 
+</item> 
+</issue> 
+<issue index="5" name="OS" vtype="discrete" type="discrete" etype="discrete"> 
+<item index="1" value="Android"> 
+</item> 
+<item index="2" value="iOS"> 
+</item> 
+<item index="3" value="Windows Mobile"> 
+</item> 
+<item index="4" value="Black Berry"> 
+</item> 
+</issue> 
+<issue index="6" name=" Accessory" vtype="discrete" type="discrete" etype="discrete"> 
+<item index="1" value="Camera"> 
+</item> 
+<item index="2" value="Blue tooth"> 
+</item> 
+<item index="3" value="Water Proof"> 
+</item> 
+<item index="4" value="Infrared communication"> 
+</item> 
+<item index="5" value="Good Battery"> 
+</item> 
+</issue> 
+</objective> 
+</utility_space> 
+</negotiation_template> 

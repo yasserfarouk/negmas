@@ -1,0 +1,21 @@
+<utility_space number_of_issues="3">
+	<weight index="1" value="0.45"/>
+	<weight index="2" value="0.25"/>
+	<weight index="3" value="0.30"/>
+	<issue index="1" name="First Issue">
+        	<item index="1" value="0" evaluation="0"/>
+		<item index="2" value="100" evaluation="19"/>
+		<item index="3" value="200" evaluation="36"/>
+		<item index="4" value="unspecified" evaluation="0.0"/>
+	</issue>
+	<issue index="2" name="Second Issue">
+		<item index="1" value="0-500" evaluation="0"/>
+		<item index="2" value="501-600" evaluation="43.75"/>
+		<item index="3" value="unspecified" evaluation="100"/>
+	</issue>             
+	<issue index="3" name="Third Issue">
+		<item index="1" value="0 days" evaluation="0"/>
+		<item index="2" value="2 days" evaluation="20"/>
+		<item index="3" value="unspecified" evaluation="100"/>
+	</issue>             
+</utility_space>

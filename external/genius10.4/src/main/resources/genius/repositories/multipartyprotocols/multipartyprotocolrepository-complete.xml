@@ -1,0 +1,42 @@
+<?xml version="1.0" encoding="UTF-8" standalone="yes"?>
+<repository fileName="multipartyprotocolrepository.xml">
+    <items>
+        <agentRepItems/>
+        <partyRepItems/>
+        <domainRepItem/>
+        <protocolRepItem/>
+        <multiPartyProtocolRepItem>
+            <multiPartyProtocolRepItem
+                    description="Each agents makes offer, counter-offer, or accepts"
+                    classPath="negotiator.protocol.StackedAlternatingOffersProtocol"
+                    protocolName="Stacked Alternating Offers Protocol for Multi-Lateral Negotiation (SAOPMN)"
+                    hasMediator="false"
+                    hasMediatorProfile="false" />
+            <multiPartyProtocolRepItem
+                    description="Each agents votes on first agent's offer"
+                    classPath="negotiator.protocol.AlternatingMultipleOfferProtocol"
+                    protocolName="Alternating Multiple Offers Protocol (AMOP)"
+                    hasMediator="false"
+                    hasMediatorProfile="false" />
+            <multiPartyProtocolRepItem
+                    description="Alternating Majority Consensus Protocol"
+                    classPath="negotiator.protocol.AlternatingMajorityConsensusProtocol"
+                    protocolName="Alternating Majority Consensus Protocol"
+                    hasMediator="false"
+                    hasMediatorProfile="false" />
+            <multiPartyProtocolRepItem
+                    description="Mediated Single Text Negotiation Protocol (MSTNP)"
+                    classPath="negotiator.protocol.SimpleMediatorBasedProtocol"
+                    protocolName="Mediated Single Text Negotiation Protocol (MSTNP)"
+                    hasMediator="true"
+                    hasMediatorProfile="false" />
+            <!--<multiPartyProtocolRepItem-->
+                    <!--description="Mediator proposes and gets feedback, all agents have to accept (consensus)"-->
+                    <!--classPath="negotiator.protocol.MediatorFeedbackProtocol"-->
+                    <!--protocolName="Mediator Protocol With Feedback"-->
+                    <!--hasMediator="true"-->
+                    <!--hasMediatorProfile="false" />-->
+        </multiPartyProtocolRepItem>
+    </items>
+    <filename>multipartyprotocolrepository.xml</filename>
+</repository>

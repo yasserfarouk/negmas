@@ -1,0 +1,102 @@
+<negotiation_template>
+<utility_space number_of_issues="7">
+<objective description="" etype="objective" index="0" name="root" type="objective">
+    <issue etype="discrete" index="1" name="Atmosphere" type="discrete" vtype="discrete">
+        <item index="1" value="Cultural heritage" cost="0" description="Cultural heritage">
+        </item>
+        <item index="2" value="Local traditions" cost="0" description="Local traditions">
+        </item>
+        <item index="3" value="Political stability" cost="0" description="Political stability">
+        </item>
+        <item index="4" value="Security (personal)" cost="0" description="Security (personal)">
+        </item>
+        <item index="5" value="Liveliness" cost="0" description="Liveliness">
+        </item>
+        <item index="6" value="Turistic activities" cost="0" description="Turistic activities">
+        </item>
+        <item index="7" value="Hospitality" cost="0" description="Hospitality">
+        </item>
+    </issue>
+    <issue etype="discrete" index="2" name="Amusement" type="discrete" vtype="discrete">
+        <item index="1" value="Nightlife and entertainment" cost="0" description="Nightlife and entertainment">
+        </item>
+        <item index="2" value="Nightclubs" cost="0" description="Nightclubs">
+        </item>
+        <item index="3" value="Excursion" cost="0" description="Excursion">
+        </item>
+        <item index="4" value="Casinos" cost="0" description="Casinos">
+        </item>
+        <item index="5" value="Zoo" cost="0" description="Zoo">
+        </item>
+        <item index="6" value="Festivals" cost="0" description="Festivals">
+        </item>
+        <item index="7" value="Amusement park" cost="0" description="Amusement park">
+        </item>
+    </issue>
+    <issue etype="discrete" index="3" name="Culinary" type="discrete" vtype="discrete">
+        <item index="1" value="Local cuisine" cost="0" description="Local cuisine">
+        </item>
+        <item index="2" value="Lunch facilities" cost="0" description="Lunch facilities">
+        </item>
+        <item index="3" value="International cuisine" cost="0" description="International cuisine">
+        </item>
+        <item index="4" value="Cooking workshops" cost="0" description="Cooking workshops">
+        </item>
+    </issue>
+    <issue etype="discrete" index="4" name="Shopping" type="discrete" vtype="discrete">
+        <item index="1" value="Shopping malls" cost="0" description="Shopping malls">
+        </item>
+        <item index="2" value="Markets" cost="0" description="Markets">
+        </item>
+        <item index="3" value="Streets" cost="0" description="Streets">
+        </item>
+        <item index="4" value="Small boutiques" cost="0" description="Small boutiques">
+        </item>
+    </issue>
+    <issue etype="discrete" index="5" name="Culture" type="discrete" vtype="discrete">
+        <item index="1" value="Museum" cost="0" description="Museum">
+        </item>
+        <item index="2" value="Music hall" cost="0" description="Music hall">
+        </item>
+        <item index="3" value="Theater" cost="0" description="Theater">
+        </item>
+        <item index="4" value="Art gallery" cost="0" description="Art gallery">
+        </item>
+        <item index="5" value="Cinema" cost="0" description="Cinema">
+        </item>
+        <item index="6" value="Congress center" cost="0" description="Congress center">
+        </item>
+    </issue>
+    <issue etype="discrete" index="6" name="Sport" type="discrete" vtype="discrete">
+        <item index="1" value="Bike tours" cost="0" description="Bike tours">
+        </item>
+        <item index="2" value="Hiking" cost="0" description="Hiking">
+        </item>
+        <item index="3" value="Indoor activities" cost="0" description="Indoor activities">
+        </item>
+        <item index="4" value="Outdoor activities" cost="0" description="Outdoor activities">
+        </item>
+        <item index="5" value="Adventure" cost="0" description="Adventure">
+        </item>
+    </issue>
+    <issue etype="discrete" index="7" name="Environment" type="discrete" vtype="discrete">
+        <item index="1" value="Parks and Gardens" cost="0" description="Parks and Gardens">
+        </item>
+        <item index="2" value="Square" cost="0" description="Square">
+        </item>
+        <item index="3" value="Historical places" cost="0" description="Historical places">
+        </item>
+        <item index="4" value="See, river, etc." cost="0" description="See, river, etc.">
+        </item>
+        <item index="5" value="Monuments" cost="0" description="Monuments">
+        </item>
+        <item index="6" value="Special streets" cost="0" description="Special streets">
+        </item>
+        <item index="7" value="Palace" cost="0" description="Palace">
+        </item>
+        <item index="8" value="Landscape and nature" cost="0" description="Landscape and nature">
+        </item>
+    </issue>
+</objective>
+</utility_space>
+</negotiation_template>

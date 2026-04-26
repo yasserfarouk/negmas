@@ -1,0 +1,51 @@
+<?xml version="1.0"?>
+<utility_space>
+  <objective index="0" description="" name="MusicCollection" type="objective" etype="objective">
+    <issue index="1" name="Classical" vtype="discrete" type="discrete" etype="discrete">
+      <item index="1" value="Bach" cost="0.0" evaluation="1" />
+      <item index="2" value="Mozart" cost="0.0" evaluation="3" />
+      <item index="3" value="Beethoven" cost="0.0" evaluation="2" />
+      <item index="4" value="Prokofiev" cost="0.0" evaluation="4" />
+    </issue>
+    <issue index="2" name="Rock" vtype="discrete" type="discrete" etype="discrete">
+      <item index="1" value="Chuck Berry" cost="0.0" evaluation="2" />
+      <item index="2" value="The Beatles" cost="0.0" evaluation="1" />
+      <item index="3" value="The Doors" cost="0.0" evaluation="3" />
+      <item index="4" value="Camel" cost="0.0" evaluation="5" />
+      <item index="5" value="Nirvana" cost="0.0" evaluation="2" />
+    </issue>
+    <issue index="3" name="Jazz" vtype="discrete" type="discrete" etype="discrete">
+      <item index="1" value="Louie Armstrong" cost="0.0" evaluation="5" />
+      <item index="2" value="Charlie Parker" cost="0.0" evaluation="6" />
+      <item index="3" value="Miles Davis" cost="0.0" evaluation="3" />
+      <item index="4" value="John Coltrane" cost="0.0" evaluation="2" />
+      <item index="5" value="Herbie Hancock" cost="0.0" evaluation="1" />
+      <item index="6" value="Cal Tjader" cost="0.0" evaluation="4" />
+    </issue>
+    <issue index="4" name="Pop" vtype="discrete" type="discrete" etype="discrete">
+      <item index="1" value="Michael Jackson" cost="0.0" evaluation="1" />
+      <item index="2" value="Madonna" cost="0.0" evaluation="3" />
+      <item index="3" value="Elton John" cost="0.0" evaluation="2" />
+    </issue>
+    <issue index="5" name="Brazil" vtype="discrete" type="discrete" etype="discrete">
+      <item index="1" value="Gilberto Gil" cost="0.0" evaluation="1" />
+      <item index="2" value="Antonio Carlos Jobim" cost="0.0" evaluation="3" />
+      <item index="3" value="Astrud Gilberto" cost="0.0" evaluation="2" />
+    </issue>
+    <issue index="6" name="Latin" vtype="discrete" type="discrete" etype="discrete">
+      <item index="1" value="Eddie Palmieri" cost="0.0" evaluation="4" />
+      <item index="2" value="Maraca" cost="0.0" evaluation="3" />
+      <item index="3" value="Gypsy Kings" cost="0.0" evaluation="1" />
+      <item index="4" value="Tito Puente" cost="0.0" evaluation="2" />
+    </issue>
+    <weight index="1" value="0.05531288218227788" />
+    <weight index="2" value="0.20360658284207878" />
+    <weight index="3" value="0.3518519199555933" />
+    <weight index="4" value="0.06515828475708359" />
+    <weight index="5" value="0.1240703302629664" />
+    <weight index="6" value="0.2" />
+  </objective>
+  <discount_factor value="1.00" />
+<reservation value="0.25" />
+  
+</utility_space>

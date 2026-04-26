@@ -1,0 +1,43 @@
+<?xml version="1.0" encoding="UTF-8" standalone="yes"?>
+<repository fileName="multipartyprotocolrepository.xml">
+	<items>
+		<agentRepItems />
+		<partyRepItems />
+		<domainRepItem />
+		<protocolRepItem />
+		<multiPartyProtocolRepItem>
+
+			<multiPartyProtocolRepItem
+				description="Each agents makes offer, counter-offer, or accepts"
+				classPath="genius.core.protocol.StackedAlternatingOffersProtocol"
+				protocolName="Stacked Alternating Offers Protocol"
+				hasMediator="false" hasMediatorProfile="false" />
+
+			<multiPartyProtocolRepItem description="Simple Mediator Based Protocol"
+				classPath="genius.core.protocol.SimpleMediatorBasedProtocol"
+				protocolName="Simple Mediator Based Protocol" hasMediator="true"
+				hasMediatorProfile="false" />
+
+			<multiPartyProtocolRepItem
+				description="Mediator Feedback Based Multiparty Protocol" 
+				classPath="genius.core.protocol.MediatorFeedbackBasedProtocol"
+				protocolName="Mediator Feedback Based Multiparty Protocol"
+				hasMediator="true" hasMediatorProfile="false" />
+
+
+			<multiPartyProtocolRepItem
+				description="All agents place an offer, then they all vote on offers till majority"
+				classPath="genius.core.protocol.AlternatingMajorityConsensusProtocol"
+				protocolName="AlternatingMajorityConsensusProtocol" hasMediator="false"
+				hasMediatorProfile="false" />
+
+			<multiPartyProtocolRepItem
+				description="All agents place an offer, then they all vote on offers till consensus"
+				classPath="genius.core.protocol.AlternatingMultipleOffersProtocol"
+				protocolName="AlternatingMultipleOffersProtocol" hasMediator="false"
+				hasMediatorProfile="false" />
+
+
+		</multiPartyProtocolRepItem>
+	</items>
+</repository>

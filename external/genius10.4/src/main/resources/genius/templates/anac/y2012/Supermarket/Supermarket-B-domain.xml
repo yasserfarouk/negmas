@@ -1,0 +1,64 @@
+<?xml version="1.0"?>
+<negotiation_template number_of_sessions="1">
+  <agent utility_space="" name="" class=""> </agent>
+  <agent utility_space="" name="" class=""> </agent>
+  <utility_space number_of_issues="0">
+    <objective index="0" description="" name="GroceryDomain" type="objective" etype="objective">
+      <issue index="1" name="Bread type" vtype="discrete" type="discrete" etype="discrete">
+        <item index="1" value="Baguette" />
+        <item index="2" value="Crackers" />
+        <item index="3" value="Croissants" />
+        <item index="4" value="Plain bread" />
+      </issue>
+      <issue index="2" name="Fruit" vtype="discrete" type="discrete" etype="discrete">
+        <item index="1" value="Apples" />
+        <item index="2" value="Bananas" />
+        <item index="3" value="Cherries" />
+        <item index="4" value="Grapes" />
+        <item index="5" value="Pears" />
+        <item index="6" value="Oranges" />
+        <item index="7" value="Melons" />
+        <item index="8" value="Strawberries" />
+      </issue>
+      <issue index="3" name="Snacks" vtype="discrete" type="discrete" etype="discrete">
+        <item index="1" value="Chocolate bars" />
+        <item index="2" value="Doughnuts" />
+        <item index="3" value="Nachos" />
+        <item index="4" value="Popcorn" />
+        <item index="5" value="Potato Chips" />
+        <item index="6" value="Candy" />
+        <item index="7" value="Cookies" />
+      </issue>
+      <issue index="4" name="Spreads" vtype="discrete" type="discrete" etype="discrete">
+        <item index="1" value="Cheese" />
+        <item index="2" value="Jam" />
+        <item index="3" value="Peanut butter" />
+        <item index="4" value="Sandwichspread" />
+        <item index="5" value="Chocolate" />
+        <item index="6" value="Ham" />
+        <item index="7" value="Salami"/>
+        <item index="8" value="Egg Salad"/>
+      </issue>
+      <issue index="5" name="Vegetables" vtype="discrete" type="discrete" etype="discrete">
+        <item index="1" value="Beans" />
+        <item index="2" value="Broccoli" />
+        <item index="3" value="Leek" />
+        <item index="4" value="Potatoes" />
+        <item index="5" value="Spinach" />
+        <item index="6" value="Carrots" />
+        <item index="7" value="Tomatos" />
+      </issue>
+      <issue index="6" name="Drinks" vtype="discrete" type="discrete" etype="discrete">
+        <item index="1" value="Energy Drinks" />
+        <item index="2" value="Milk" />
+        <item index="3" value="Tea" />
+        <item index="4" value="Coffee" />
+        <item index="5" value="Juice" />
+        <item index="6" value="Coca Cola"/>
+        <item index="7" value="Fanta"/>
+        <item index="8" value="Beer" />
+        <item index="9" value="Wine"/>
+      </issue>
+    </objective>
+  </utility_space>
+</negotiation_template>

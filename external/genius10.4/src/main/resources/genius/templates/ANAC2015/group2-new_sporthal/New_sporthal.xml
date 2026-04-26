@@ -1,0 +1,46 @@
+<negotiation_template> 
+<utility_space number_of_issues="5"> 
+<objective index="0" description="" name="New sporthal" type="objective" etype="objective"> 
+<issue index="1" name="grandstand" vtype="discrete" type="discrete" etype="discrete"> 
+<item index="1" value="no grandstand"> 
+</item> 
+<item index="2" value="retractible grandstand"> 
+</item> 
+<item index="3" value="normal grandstand"> 
+</item> 
+</issue> 
+<issue index="2" name="Floor" vtype="discrete" type="discrete" etype="discrete"> 
+<item index="1" value="Wood"> 
+</item> 
+<item index="2" value="Lineleum"> 
+</item> 
+<item index="3" value="Soft mats"> 
+</item> 
+</issue> 
+<issue index="3" name="Sports bar" vtype="discrete" type="discrete" etype="discrete"> 
+<item index="1" value="No bar"> 
+</item> 
+<item index="2" value="Small bar"> 
+</item> 
+<item index="3" value="Big bar"> 
+</item> 
+</issue> 
+<issue index="4" name="Budget for aparatusses" vtype="discrete" type="discrete" etype="discrete"> 
+<item index="1" value="€10,000"> 
+</item> 
+<item index="2" value="€20,000"> 
+</item> 
+<item index="3" value="€40,000"> 
+</item> 
+</issue> 
+<issue index="5" name="Amount of dressing rooms" vtype="discrete" type="discrete" etype="discrete"> 
+<item index="1" value="2"> 
+</item> 
+<item index="2" value="4"> 
+</item> 
+<item index="3" value="6"> 
+</item> 
+</issue> 
+</objective> 
+</utility_space> 
+</negotiation_template> 

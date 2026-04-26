@@ -1,0 +1,51 @@
+<utility_space> 
+<reservation value="0.4" />
+<objective index="0" description="" name="root" type="objective" etype="objective"> 
+<issue index="1" name="Price" vtype="discrete" type="discrete" etype="discrete"> 
+<item index="1" value="$4.37" cost="0.0" evaluation="1"> 
+</item> 
+<item index="2" value="$4.12" cost="0.0" evaluation="10"> 
+</item> 
+<item index="3" value="$3.98" cost="0.0" evaluation="25"> 
+</item> 
+<item index="4" value="$3.71" cost="0.0" evaluation="33"> 
+</item> 
+<item index="5" value="$3.47" cost="0.0" evaluation="40"> 
+</item> 
+</issue> 
+<issue index="2" name="Delivery" vtype="discrete" type="discrete" etype="discrete"> 
+<item index="1" value="60 days" cost="0.0" evaluation="1"> 
+</item> 
+<item index="2" value="45 days" cost="0.0" evaluation="10"> 
+</item> 
+<item index="3" value="30 days" cost="0.0" evaluation="19"> 
+</item> 
+<item index="4" value="20 days" cost="0.0" evaluation="25"> 
+</item> 
+</issue> 
+<issue index="3" name="Payment" vtype="discrete" type="discrete" etype="discrete"> 
+<item index="1" value="Upon delivery" cost="0.0" evaluation="15"> 
+</item> 
+<item index="2" value="30 days after delivery" cost="0.0" evaluation="6"> 
+</item> 
+<item index="3" value="60 days after delivery" cost="0.0" evaluation="1"> 
+</item> 
+</issue> 
+<issue index="4" name="Returns" vtype="discrete" type="discrete" etype="discrete"> 
+<item index="1" value="Full price" cost="0.0" evaluation="20"> 
+</item> 
+<item index="2" value="5% spoilage allowed" cost="0.0" evaluation="7"> 
+</item> 
+<item index="3" value="10% spoilage allowed" cost="0.0" evaluation="1"> 
+</item> 
+</issue> 
+<weight index="1" value="0.4700166576535899"> 
+</weight> 
+<weight index="2" value="0.1220816713696379"> 
+</weight> 
+<weight index="3" value="0.17727008190772825"> 
+</weight> 
+<weight index="4" value="0.2306315890690439"> 
+</weight> 
+</objective> 
+</utility_space> 

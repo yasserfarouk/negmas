@@ -1,0 +1,36 @@
+<?xml version="1.0"?>
+<negotiation_template number_of_sessions="1">
+  <agent utility_space="" name="" class=""> </agent>
+  <agent utility_space="" name="" class=""> </agent>
+  <utility_space number_of_issues="0">
+    <objective index="0" description="" name="Acquisition" type="objective" etype="objective">
+      <issue index="1" name="Price" vtype="discrete" type="discrete" etype="discrete">
+        <item index="1" value="1 million $" />
+        <item index="2" value="2.5 million $" />
+        <item index="3" value="5 million $" />
+        <item index="4" value="8 million $" />
+      </issue>
+      <issue index="2" name="IP" vtype="discrete" type="discrete" etype="discrete">
+        <item index="1" value="IS receives all IP" />
+        <item index="2" value="IS receives the patents, industrial design rights and trade secrets" />
+        <item index="3" value="BI-Tech founders maintain all IP" />
+      </issue>
+      <issue index="3" name="Stocks" vtype="discrete" type="discrete" etype="discrete">
+        <item index="1" value="BI-Tech founders get 2%" />
+        <item index="2" value="BI-Tech founders get 2% + jobs at IS" />
+        <item index="3" value="BI-Tech founders get 5%" />
+        <item index="4" value="BI-Tech founders get 5% + jobs " />
+      </issue>
+      <issue index="4" name="EmployeeAgreements" vtype="discrete" type="discrete" etype="discrete">
+        <item index="1" value="salary raise of 15%" />
+        <item index="2" value="same conditions" />
+        <item index="3" value="private contracts" />
+        <item index="4" value="half fired and half private contracts" />
+      </issue>
+      <issue index="5" name="Legal Liability" vtype="discrete" type="discrete" etype="discrete">
+        <item index="1" value="past activities remains with Bi-Tech" />
+        <item index="2" value="IS liable for all activities" />
+      </issue>
+    </objective>
+  </utility_space>
+</negotiation_template>

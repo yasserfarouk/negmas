@@ -1,0 +1,76 @@
+<negotiation_template>
+<utility_space number_of_issues="7">
+<objective description="" etype="objective" index="0" name="root" type="objective">
+    <issue etype="discrete" index="1" name="Number of Wind Turbines" type="discrete" vtype="discrete">
+        <item index="1" value="less than or equal to 20" cost="0" description="less than or equal to 20">
+        </item>
+        <item index="2" value="larger than 20, less than or equal to 40" cost="0" description="larger than 20, less than or equal to 40">
+        </item>
+        <item index="3" value="larger than 40, less than or equal to 60" cost="0" description="larger than 40, less than or equal to 60">
+        </item>
+        <item index="4" value="larger than 60, less than or equal to 80" cost="0" description="larger than 60, less than or equal to 80">
+        </item>
+        <item index="5" value="larger than 80, less than or equal to 100" cost="0" description="larger than 80, less than or equal to 100">
+        </item>
+        <item index="6" value="larger than 100, less than or equal to 120" cost="0" description="larger than 100, less than or equal to 120">
+        </item>
+        <item index="7" value="larger than 120, less than or equal to 140" cost="0" description="larger than 120, less than or equal to 140">
+        </item>
+        <item index="8" value="larger than 140" cost="0" description="larger than 140">
+        </item>
+    </issue>
+    <issue etype="discrete" index="2" name="Price Per Wind Turbine" type="discrete" vtype="discrete">
+        <item index="1" value="very expensive" cost="0" description="very expensive">
+        </item>
+        <item index="2" value="expensive" cost="0" description="expensive">
+        </item>
+        <item index="3" value="fair" cost="0" description="fair">
+        </item>
+        <item index="4" value="cheap" cost="0" description="cheap">
+        </item>
+        <item index="5" value="very cheap" cost="0" description="very cheap">
+        </item>
+    </issue>
+    <issue etype="discrete" index="3" name="Sound" type="discrete" vtype="discrete">
+        <item index="1" value="loud and noisy" cost="0" description="loud and noisy">
+        </item>
+        <item index="2" value="low but noisy" cost="0" description="low but noisy">
+        </item>
+        <item index="3" value="nearly slient" cost="0" description="nearly slient">
+        </item>
+    </issue>
+    <issue etype="discrete" index="4" name="Spacing" type="discrete" vtype="discrete">
+        <item index="1" value="as close as possible" cost="0" description="as close as possible">
+        </item>
+        <item index="2" value="fairly close" cost="0" description="fairly close">
+        </item>
+        <item index="3" value="far to each other" cost="0" description="far to each other">
+        </item>
+    </issue>
+    <issue etype="discrete" index="5" name="Size Of Wind Turbines" type="discrete" vtype="discrete">
+        <item index="1" value="largest in the world" cost="0" description="largest in the world">
+        </item>
+        <item index="2" value="larger than most of wind turbines around the world" cost="0" description="larger than most of wind turbines around the world">
+        </item>
+        <item index="3" value="average size of wind turbines around the world" cost="0" description="average size of wind turbines around the world">
+        </item>
+        <item index="4" value="smaller than most of wind turbines around the world" cost="0" description="smaller than most of wind turbines around the world">
+        </item>
+        <item index="5" value="smallest in the world" cost="0" description="smallest in the world">
+        </item>
+    </issue>
+    <issue etype="discrete" index="6" name="Onshore or Offshore" type="discrete" vtype="discrete">
+        <item index="1" value="onshore" cost="0" description="onshore">
+        </item>
+        <item index="2" value="offshore" cost="0" description="offshore">
+        </item>
+    </issue>
+    <issue etype="discrete" index="7" name="Material" type="discrete" vtype="discrete">
+        <item index="1" value="glass fiber" cost="0" description="glass fiber">
+        </item>
+        <item index="2" value="carbon fiber" cost="0" description="carbon fiber">
+        </item>
+    </issue>
+</objective>
+</utility_space>
+</negotiation_template>

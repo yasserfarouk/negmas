@@ -1,0 +1,92 @@
+<utility_space>
+<objective name="Wind Farm" index="0" description="" etype="objective" type="objective">
+<issue vtype="discrete" name="Number of Wind Turbines" index="1" etype="discrete" type="discrete">
+<item evaluation="1" index="1" value="less than or equal to 20">
+</item>
+<item evaluation="1" index="2" value="larger than 20, less than or equal to 40">
+</item>
+<item evaluation="1" index="3" value="larger than 40, less than or equal to 60">
+</item>
+<item evaluation="1" index="4" value="larger than 60, less than or equal to 80">
+</item>
+<item evaluation="1" index="5" value="larger than 80, less than or equal to 100">
+</item>
+<item evaluation="1" index="6" value="larger than 100, less than or equal to 120">
+</item>
+<item evaluation="1" index="7" value="larger than 120, less than or equal to 140">
+</item>
+<item evaluation="1" index="8" value="larger than 140">
+</item>
+</issue>
+<issue vtype="discrete" name="Price Per Wind Turbine" index="2" etype="discrete" type="discrete">
+<item evaluation="1" index="1" value="very expensive">
+</item>
+<item evaluation="1" index="2" value="expensive">
+</item>
+<item evaluation="1" index="3" value="fair">
+</item>
+<item evaluation="0" index="4" value="cheap">
+</item>
+<item evaluation="0" index="5" value="very cheap">
+</item>
+</issue>
+<issue vtype="discrete" name="Sound" index="3" etype="discrete" type="discrete">
+<item evaluation="1" index="1" value="loud and noisy">
+</item>
+<item evaluation="2" index="2" value="low but noisy">
+</item>
+<item evaluation="5" index="3" value="nearly slient">
+</item>
+</issue>
+<issue vtype="discrete" name="Spacing" index="4" etype="discrete" type="discrete">
+<item evaluation="1" index="1" value="as close as possible">
+</item>
+<item evaluation="1" index="2" value="fairly close">
+</item>
+<item evaluation="1" index="3" value="far to each other">
+</item>
+</issue>
+<issue vtype="discrete" name="Size Of Wind Turbines" index="5" etype="discrete" type="discrete">
+<item evaluation="1" index="1" value="largest in the world">
+</item>
+<item evaluation="1" index="2" value="larger than most of wind turbines around the world">
+</item>
+<item evaluation="2" index="3" value="average size of wind turbines around the world">
+</item>
+<item evaluation="1" index="4" value="smaller than most of wind turbines around the world">
+</item>
+<item evaluation="1" index="5" value="smallest in the world">
+</item>
+</issue>
+<issue vtype="discrete" name="Onshore or Offshore" index="6" etype="discrete" type="discrete">
+<item evaluation="2" index="1" value="onshore">
+</item>
+<item evaluation="7" index="1" value="offshore">
+</item>
+</issue>
+<issue vtype="discrete" name="Material" index="7" etype="discrete" type="discrete">
+<item evaluation="3" index="1" value="glass fiber">
+</item>
+<item evaluation="5" index="2" value="carbon fiber">
+</item>
+</issue>
+<weight index="1" value="0.2">
+</weight>
+<weight index="2" value="0.1">
+</weight>
+<weight index="3" value="0.35">
+</weight>
+<weight index="4" value="0.1">
+</weight>
+<weight index="5" value="0.1">
+</weight>
+<weight index="6" value="0.1">
+</weight>
+<weight index="7" value="0.05">
+</weight>
+</objective>
+<discount_factor value="1.0">
+</discount_factor>
+<reservation value="0">
+</reservation>
+</utility_space>

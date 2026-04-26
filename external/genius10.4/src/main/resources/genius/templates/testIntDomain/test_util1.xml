@@ -1,0 +1,20 @@
+<utility_space> 
+<objective index="0" description="" name="test" type="objective" etype="objective"> 
+<issue index="1" name="een" lowerbound="1" upperbound="7" vtype="integer" type="integer" etype="integer"> 
+<evaluator slope="0.16666666666666666" offset="0.0" ftype="linear"> 
+</evaluator> 
+</issue> 
+<issue index="2" name="twee" lowerbound="1" upperbound="7" vtype="integer" type="integer" etype="integer"> 
+<evaluator slope="0.16666666666666666" offset="0.0" ftype="linear"> 
+</evaluator> 
+</issue> 
+<weight index="1" value="0.2563007855759903"> 
+</weight> 
+<weight index="2" value="0.7436992144240098"> 
+</weight> 
+</objective> 
+<discount_factor value="1.0"> 
+</discount_factor> 
+<reservation value="0.0"> 
+</reservation> 
+</utility_space> 

@@ -1,0 +1,17 @@
+<?xml version="1.0" encoding="UTF-8" standalone="yes"?>
+<repository fileName="agentrepository.xml">
+    <items>
+        <agentRepItems>
+            <agentRepItem description="Bayesian Agent" classPath="agents.BayesianAgent" agentName="BayesianAgent"/>
+            <agentRepItem description="Simple UI agent" classPath="agents.UIAgent" agentName="UIAgent"/>
+            <agentRepItem description="UI agent with advanced GUI (by Alina)" classPath="agents.UIAgentExtended" agentName="UIAgent Extended"/>
+            <agentRepItem description="The Random Walker" classPath="agents.SimpleAgent" agentName="SimpleAgt"/>
+            <agentRepItem description="Trade-Off agent designed by P. Faratin, C. Sierra and N. R. Jennings" classPath="agents.SimilarityAgent" agentName="Trade-Off agent"/>            
+            <agentRepItem description="ABMP agent designed by C. Jonker and J. Treur" classPath="agents.ABMPAgent2" agentName="ABMPAgent"/>
+            
+        </agentRepItems>
+        <domainRepItem/>
+        <protocolRepItem/>
+    </items>
+    <filename>agentrepository.xml</filename>
+</repository>

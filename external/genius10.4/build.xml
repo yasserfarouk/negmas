@@ -1,0 +1,63 @@
+<project name="Genius" default="zip" basedir=".">
+	<description>
+    ANT build script for Genius. Creates ZIP file for distribution.
+  </description>
+
+	
+    <property name="version" value="10.4"/>
+	
+	<!-- path contains all jars in the dep directory -->
+	<path id="class.path">
+		<fileset dir="dep">
+			<include name="**/*.jar" />
+		</fileset>
+	</path>
+
+
+	<!-- Compile Genius without the test stuff. -->
+	<target name="compile" description="compile the source">
+		<delete dir="classes/" />
+		<mkdir dir="classes/" />
+		<!-- We compile (ignore eclipse's build result) because we now have to exclude the junit test codes .
+		 includeantruntime disables a misfeature introduced in Ant 1.8.
+		 We fork so that we can set language options for the compiler.
+		 We need the options to set ISO character encoding to allow chinese characters. -->
+
+		<javac destdir="classes/" includeantruntime="false" fork="true">
+			<compilerarg line="-encoding ISO-8859-1" />
+			<src path="src/main/java/" />
+			<classpath refid="class.path" />
+		</javac>
+	</target>
+
+
+	<!-- Build the genius main application: fat jar file, set manifest and include all dependencies. -->
+	<target name="jar" depends="compile">
+		<jar destfile="genius-${version}.jar" basedir="classes/">
+			<!-- include the resources -->
+			<fileset dir="src/main/resources" includes="**" />
+			<fileset dir="src/main/java" includes="genius/core/**" />
+			<!-- include all  dependencies -->
+			<zipgroupfileset dir="dep" includes="**/*.jar" />
+			<manifest>
+				<attribute name="Main-Class" value="genius.Application" />
+				<attribute name="Implementation-Version" value="${version}" />
+			</manifest>
+		</jar>
+	</target>
+
+	<!-- Create zip file with the standard contents: genius.jar, doc, examples -->
+	<target name="zip" depends="jar" description="build genius zip">
+		<zip destfile="genius-${version}.zip">
+			<fileset dir="." includes="genius-${version}.jar" />
+			<fileset dir="doc" includes="userguide.pdf" />
+			<fileset dir="src/test/java" includes="multipartyexample/**" />
+			<fileset dir="src/test/java" includes="storageexample/**" />
+			<fileset dir="src/test/java" includes="bilateralexamples/**" />
+			<fileset dir="src/test/resources" includes="multilateraltournament.xml" />
+			<fileset dir="." includes="javadoc/**" />
+		</zip>
+	</target>
+
+
+</project>

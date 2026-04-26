@@ -1,0 +1,71 @@
+<?xml version="1.0" encoding="UTF-8" standalone="yes"?>
+<repository fileName="partyrepository.xml">
+    <items>
+        <agentRepItems/>
+        <partyRepItems>
+            <partyRepItem classPath="agents.anac.y2018.agent33.Agent33">
+                <properties/>
+            </partyRepItem>
+            <partyRepItem classPath="agents.anac.y2018.agentherb.AgentHerb">
+                <properties/>
+            </partyRepItem>
+            <partyRepItem classPath="agents.anac.y2018.agentnp1.AgentNP1">
+                <properties/>
+            </partyRepItem>
+            <partyRepItem classPath="agents.anac.y2018.agreeableagent2018.AgreeableAgent2018">
+                <properties/>
+            </partyRepItem>
+            <partyRepItem classPath="agents.anac.y2018.ateamagent.ATeamAgent">
+                <properties/>
+            </partyRepItem>
+            <partyRepItem classPath="agents.anac.y2018.beta_one.Group2">
+                <properties/>
+            </partyRepItem>
+            <partyRepItem classPath="agents.anac.y2018.condagent.ConDAgent">
+                <properties/>
+            </partyRepItem>
+            <partyRepItem classPath="agents.anac.y2018.exp_rubick.Exp_Rubick">
+                <properties/>
+            </partyRepItem>
+            <partyRepItem classPath="agents.anac.y2018.fullagent.FullAgent">
+                <properties/>
+            </partyRepItem>
+            <partyRepItem classPath="agents.anac.y2018.groupy.GroupY">
+                <properties/>
+            </partyRepItem>
+            <partyRepItem classPath="agents.anac.y2018.iqson.IQSun2018">
+                <properties/>
+            </partyRepItem>
+            <partyRepItem classPath="agents.anac.y2018.lancelot.Lancelot">
+                <properties/>
+            </partyRepItem>
+            <partyRepItem classPath="agents.anac.y2018.libra.Libra">
+                <properties/>
+            </partyRepItem>
+            <partyRepItem classPath="agents.anac.y2018.meng_wan.Agent36">
+                <properties/>
+            </partyRepItem>
+            <partyRepItem classPath="agents.anac.y2018.ponpokorampage.PonPokoRampage">
+                <properties/>
+            </partyRepItem>
+            <partyRepItem classPath="agents.anac.y2018.seto.Seto">
+                <properties/>
+            </partyRepItem>
+            <partyRepItem classPath="agents.anac.y2018.shiboy.Shiboy">
+                <properties/>
+            </partyRepItem>
+            <partyRepItem classPath="agents.anac.y2018.smac_agent.SMAC_Agent">
+                <properties/>
+            </partyRepItem>
+            <partyRepItem classPath="agents.anac.y2018.sontag.Sontag">
+                <properties/>
+            </partyRepItem>
+            <partyRepItem classPath="agents.anac.y2018.yeela.Yeela">
+                <properties/>
+            </partyRepItem>
+        </partyRepItems>
+        <domainRepItem/>
+        <protocolRepItem/>
+        <multiPartyProtocolRepItem/>
+    </items>
+</repository>

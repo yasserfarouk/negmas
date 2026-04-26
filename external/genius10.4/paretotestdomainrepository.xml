@@ -1,0 +1,50 @@
+<?xml version="1.0" encoding="UTF-8" standalone="yes"?>
+
+<!-- This domainrep is containing just a few test domains. Check the domains 
+	project for the real repo -->
+<repository fileName="domainrepository.xml">
+	<items>
+		<agentRepItems />
+		<partyRepItems />
+		<domainRepItem>
+			<domainRepItem url="file:etc/templates/pie/pie_domain.xml">
+				<profile url="file:etc/templates/pie/pie_A.xml" />
+				<profile url="file:etc/templates/pie/pie_B.xml" />
+			</domainRepItem>
+
+
+			<domainRepItem url="file:etc/templates/partydomain/party_domain.xml">
+				<profile url="file:etc/templates/partydomain/party1_utility.xml" />
+				<profile url="file:etc/templates/partydomain/party3_utility.xml" />
+			</domainRepItem>
+			<domainRepItem url="file:etc/templates/Domain8/Domain8.xml">
+				<profile url="file:etc/templates/Domain8/Domain8_util1.xml" />
+				<profile url="file:etc/templates/Domain8/Domain8_util2.xml" />
+			</domainRepItem>
+			<domainRepItem url="file:etc/templates/Domain16/Domain16.xml">
+				<profile url="file:etc/templates/Domain16/Domain16_util1.xml" />
+				<profile url="file:etc/templates/Domain16/Domain16_util2.xml" />
+			</domainRepItem>
+			<domainRepItem url="file:etc/templates/travel/travel_domain.xml">
+				<profile url="file:etc/templates/travel/travel_fanny.xml" />
+				<profile url="file:etc/templates/travel/travel_chox.xml" />
+			</domainRepItem>
+			<domainRepItem url="file:etc/templates/Energy/energy_domain.xml">
+				<profile url="file:etc/templates/Energy/energy_consumer.xml" />
+				<profile url="file:etc/templates/Energy/energy_distributor.xml" />
+			</domainRepItem>
+
+            <domainRepItem url="file:etc/templates/6issues/6issues.xml">
+                <profile url="file:etc/templates/6issues/6issues_util1.xml"/>
+                <profile url="file:etc/templates/6issues/6issues_util2.xml"/>
+            </domainRepItem>
+            <domainRepItem url="file:etc/templates/7issues/7issues.xml">
+                <profile url="file:etc/templates/7issues/7issues_util1.xml"/>
+                <profile url="file:etc/templates/7issues/7issues_util2.xml"/>
+            </domainRepItem>
+
+		</domainRepItem>
+		<protocolRepItem />
+		<multiPartyProtocolRepItem />
+	</items>
+</repository>

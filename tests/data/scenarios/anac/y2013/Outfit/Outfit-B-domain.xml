@@ -1,0 +1,42 @@
+<negotiation_template>
+<utility_space number_of_issues="4">
+<objective description="" etype="objective" index="0" name="root" type="objective">
+    <issue etype="discrete" index="1" name="shirts" type="discrete" vtype="discrete">
+        <item index="1" value="T-shirt" cost="0" description="T-shirt">
+        </item>
+        <item index="2" value="Blouse" cost="0" description="Blouse">
+        </item>
+        <item index="3" value="Polo shirt" cost="0" description="Polo shirt">
+        </item>
+        <item index="4" value="sweaters" cost="0" description="sweaters">
+        </item>
+    </issue>
+    <issue etype="discrete" index="2" name="pants" type="discrete" vtype="discrete">
+        <item index="1" value="Demin" cost="0" description="Demin">
+        </item>
+        <item index="2" value="leather pants" cost="0" description="leather pants">
+        </item>
+        <item index="3" value="classic pants" cost="0" description="classic pants">
+        </item>
+        <item index="4" value="bermuda shorts" cost="0" description="bermuda shorts">
+        </item>
+    </issue>
+    <issue etype="discrete" index="3" name="shoes" type="discrete" vtype="discrete">
+        <item index="1" value="sneakers" cost="0" description="sneakers">
+        </item>
+        <item index="2" value="boots" cost="0" description="boots">
+        </item>
+        <item index="3" value="slipers" cost="0" description="slipers">
+        </item>
+        <item index="4" value="sandals" cost="0" description="sandals">
+        </item>
+    </issue>
+    <issue etype="discrete" index="4" name="accessories" type="discrete" vtype="discrete">
+        <item index="1" value="hat" cost="0" description="hat">
+        </item>
+        <item index="2" value="sunglasses" cost="0" description="sunglasses">
+        </item>
+    </issue>
+</objective>
+</utility_space>
+</negotiation_template>

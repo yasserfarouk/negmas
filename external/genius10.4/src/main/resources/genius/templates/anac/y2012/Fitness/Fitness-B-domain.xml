@@ -1,0 +1,47 @@
+<?xml version="1.0"?>
+<negotiation_template number_of_sessions="1">
+  <agent utility_space="" name="" class="">     </agent>
+  <agent utility_space="" name="" class="">     </agent>
+  <utility_space number_of_issues="5">
+    <objective index="1" etype="objective" type="objective" description="" name="Fitness">
+      <issue index="2" vtype="discrete" etype="discrete" type="discrete" name="kind of fitness">
+        <item index="1" value="swimming"/>
+        <item index="2" value="yoga"/>
+        <item index="3" value="aerobics"/>
+        <item index="4" value="running"/>
+        <item index="5" value="tennis"/>
+      </issue>
+      <issue index="3" vtype="discrete" etype="discrete" type="discrete" name="time to do">
+        <item index="1" value="30minutes"/>
+        <item index="2" value="1hour"/>
+        <item index="3" value="3hour"/>
+        <item index="4" value="5hour"/>
+      </issue>
+      <issue index="4" vtype="discrete" etype="discrete" type="discrete" name="distance">
+        <item index="1" value="0km"/>
+        <item index="2" value="~1km"/>
+        <item index="3" value="~40km"/>
+        <item index="4" value="~80km"/>
+      </issue>
+      <issue index="5" vtype="discrete" etype="discrete" type="discrete" name="intensity">
+        <item index="1" value="light"/>
+        <item index="2" value="moderate"/>
+        <item index="3" value="as training">				</item>
+        <item index="4" value="as boot-camp">				</item>
+      </issue>
+      <issue index="6" vtype="discrete" etype="discrete" type="discrete" name="Price($)">
+        <item index="1" value="0"/>
+        <item index="2" value="1"/>
+        <item index="3" value="2"/>
+        <item index="4" value="3"/>
+        <item index="5" value="4"/>
+        <item index="6" value="5"/>
+        <item index="7" value="6"/>
+        <item index="8" value="7"/>
+        <item index="9" value="8"/>
+        <item index="10" value="9"/>
+        <item index="11" value="10"/>
+      </issue>
+    </objective>
+  </utility_space>
+</negotiation_template>

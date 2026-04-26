@@ -1,0 +1,1365 @@
+"""Module for linear functionality."""
+
+from __future__ import annotations
+
+import random
+from functools import partial
+from typing import Any, Callable, Iterable, Mapping, TYPE_CHECKING
+
+from negmas import warnings
+from negmas.helpers import get_full_type_name
+from negmas.helpers.numeric import make_range
+from negmas.helpers.prob import EPSILON
+from negmas.outcomes import Issue, Outcome
+from negmas.outcomes.base_issue import DiscreteIssue
+from negmas.outcomes.common import check_one_at_most, os_or_none
+from negmas.outcomes.outcome_space import CartesianOutcomeSpace
+from negmas.outcomes.protocols import IndependentIssuesOS, OutcomeSpace
+from negmas.preferences.protocols import SingleIssueFun
+from negmas.serialization import PYTHON_CLASS_IDENTIFIER, deserialize, serialize
+
+from ..crisp_ufun import UtilityFunction
+from ..value_fun import IdentityFun, LambdaFun, TableFun
+
+if TYPE_CHECKING:
+    from negmas.preferences.crisp.const import ConstUtilityFunction
+
+__all__ = [
+    "LinearUtilityAggregationFunction",
+    "LinearAdditiveUtilityFunction",
+    "LinearUtilityFunction",
+    "AffineUtilityFunction",
+]
+
+NLEVELS = 20
+
+
+def _rand_mapping(x, r):
+    return (r - 0.5) * x
+
+
+def _rand_mapping_normalized(x, mx, mn, r):
+    if mx == mn:
+        return mx
+    return r * (x - mn) / (mx - mn)
+
+
+def _random_mapping(issue: Issue, normalized=False):
+    r = random.random()
+    if issue.is_numeric():
+        return (
+            partial(
+                _rand_mapping_normalized, mx=issue.max_value, mn=issue.min_value, r=r
+            )
+            if normalized
+            else partial(_rand_mapping, r=r)
+        )
+    if isinstance(issue, DiscreteIssue):
+        return dict(
+            zip(
+                issue.all,
+                [
+                    random.random() - (0.5 if not normalized else 0.0)
+                    for _ in range(issue.cardinality)
+                ],
+            )
+        )
+    return (
+        partial(_rand_mapping_normalized, mx=issue.max_value, mn=issue.min_value)
+        if normalized
+        else partial(_rand_mapping, r=r)
+    )
+
+
+class AffineUtilityFunction(UtilityFunction):
+    r"""
+    An affine utility function for multi-issue negotiations.
+
+    Models a linear utility function using predefined weights.
+
+    Args:
+         weights: weights for combining `values`
+         bias: The offset added
+         name: name of the utility function. If None a random name will be generated.
+
+    Notes:
+
+        The utility value is calculated as:
+
+        .. math::
+
+            u = \alpha + \sum_{i=0}^{n_{outcomes}-1} {\alpha_i * \omega_i}
+
+
+        where $\alpha$ is the bias term and $\alpha_i$ is the weight of issue $i$,
+        and $\omega_i$ is the value of issue $i$ in the input outcome $\omega$.
+
+    Examples:
+
+        >>> from negmas.outcomes import make_issue
+        >>> issues = [make_issue((10.0, 20.0), "price"), make_issue(5, "quality")]
+        >>> print(list(map(str, issues)))
+        ['price: (10.0, 20.0)', 'quality: (0, 4)']
+        >>> f = AffineUtilityFunction({"price": 1.0, "quality": 4.0}, issues=issues)
+        >>> f((2, 14.0)) - (2 * 1.0 + 14.0 * 4)
+        0.0
+        >>> f = LinearUtilityFunction([1.0, 2.0])
+        >>> f((2, 14)) - (2 * 1.0 + 14 * 2.0)
+        0.0
+
+    Remarks:
+
+        - If an outcome contains combinations of strings and numeric values that have corresponding weights, an
+          exception will be raised when its utility is calculated
+        - If you pass weights as a dictionary (mapping issue names to wieght
+          values), you **must** pass the issues as well ( using `outcome_space`
+          or `issues` ) and issue names must match the keys of the weights
+          dict exactly (i.e. all issues are
+          represented and all keys in the dict are in the issues).
+        - If you pass the weights as a tuple, you need not pass the issues (but
+          you still should to help with things like scaling and shifting ufun
+          values)
+    """
+
+    def __init__(
+        self,
+        weights: dict[str, float] | list[float] | tuple[float, ...] | None = None,
+        bias: float = 0,
+        *args,
+        **kwargs,
+    ) -> None:
+        """Initialize the instance.
+
+        Args:
+            weights: Coefficients for combining issue values into utility (dict by issue name or list by position).
+            bias: Constant offset added to the weighted sum.
+            *args: Additional positional arguments.
+            **kwargs: Additional keyword arguments.
+        """
+        super().__init__(*args, **kwargs)
+        if self.outcome_space and not isinstance(
+            self.outcome_space, IndependentIssuesOS
+        ):
+            raise ValueError(
+                f"Cannot create {self.type} ufun with an outcomespace without indpendent issues"
+                f".\n Given OS: {self.outcome_space} of type {type(self.outcome_space)}\n"
+                f"Given args {kwargs}"
+            )
+        self.issues: list[Issue] | None = (
+            list(self.outcome_space.issues) if self.outcome_space else None  # type: ignore
+        )
+        if weights is None:
+            if not self.issues:
+                raise ValueError(
+                    "Cannot initializes with no weights if you are not specifying issues"
+                )
+            weights = [1.0 / len(self.issues)] * len(self.issues)
+
+        if isinstance(weights, dict):
+            if not self.issues:
+                raise ValueError(
+                    "Cannot initializes with dict of weights if you are not specifying issues"
+                )
+            weights = [
+                weights[_]
+                for _ in [i.name if isinstance(i, Issue) else i for i in self.issues]
+            ]
+
+        self._weights: list[float] = list(weights)
+        self._bias = bias
+        self._values = [IdentityFun() for _ in self.issues] if self.issues else []
+
+    @property
+    def bias(self) -> float:
+        """The constant offset term added to the weighted sum."""
+        return self._bias
+
+    @property
+    def weights(self) -> list[float]:
+        """The weights for each issue in the linear combination."""
+        return self._weights
+
+    @property
+    def values(self) -> list:
+        """The value functions for each issue (identity functions for affine/linear)."""
+        return self._values
+
+    def eval(self, offer: Outcome | None) -> float:
+        """Evaluate the utility of an outcome.
+
+        Computes u = bias + sum(weights[i] * offer[i]) for all issues i.
+
+        Args:
+            offer: The outcome to evaluate. If None, returns the reserved value.
+
+        Returns:
+            The utility value for the given outcome.
+        """
+        if offer is None:
+            return self.reserved_value
+        return self._bias + sum(w * v for w, v in zip(self._weights, offer))
+
+    def xml(self, issues: list[Issue] | None = None) -> str:
+        """Generates an XML string representing the utility function
+
+        Args:
+            issues:
+
+        Examples:
+
+            >>> from negmas.outcomes import make_issue
+            >>> issues = [
+            ...     make_issue(values=10, name="i1"),
+            ...     make_issue(values=4, name="i2"),
+            ... ]
+            >>> f = LinearUtilityFunction(weights=[1.0, 4.0], issues=issues)
+            >>> print(f.xml(issues))
+            <issue index="1" etype="discrete" type="discrete" vtype="integer" name="i1">
+                <item index="1" value="0" evaluation="0.0" />
+                <item index="2" value="1" evaluation="1.0" />
+                <item index="3" value="2" evaluation="2.0" />
+                <item index="4" value="3" evaluation="3.0" />
+                <item index="5" value="4" evaluation="4.0" />
+                <item index="6" value="5" evaluation="5.0" />
+                <item index="7" value="6" evaluation="6.0" />
+                <item index="8" value="7" evaluation="7.0" />
+                <item index="9" value="8" evaluation="8.0" />
+                <item index="10" value="9" evaluation="9.0" />
+            </issue>
+            <issue index="2" etype="discrete" type="discrete" vtype="integer" name="i2">
+                <item index="1" value="0" evaluation="0.0" />
+                <item index="2" value="1" evaluation="1.0" />
+                <item index="3" value="2" evaluation="2.0" />
+                <item index="4" value="3" evaluation="3.0" />
+            </issue>
+            <weight index="1" value="1.0">
+            </weight>
+            <weight index="2" value="4.0">
+            </weight>
+            <BLANKLINE>
+
+        """
+        # todo save for continuous issues using evaluator ftype linear offset slope (see from_xml_str)
+        output = ""
+        if not issues:
+            if not self.issues:
+                raise ValueError(
+                    "Cannot convert the ufn to xml as its outcome-space is unknown"
+                )
+            issues = list(self.issues)
+        for i, (issue, vfun, weight) in enumerate(
+            zip(issues, self._values, self._weights)
+        ):
+            if not issue.is_numeric():
+                raise ValueError(
+                    f"Issue {issue} is not numeric. Cannot  use a LinearUtilityFunction. Try a LinearAdditiveUtilityFunction"
+                )
+            bias = self._bias / weight if weight else 0.0
+            output += vfun.xml(i, issue, bias)
+
+        for i, w in enumerate(self._weights):
+            output += f'<weight index="{i + 1}" value="{w}">\n</weight>\n'
+        if abs(self._bias) > EPSILON:
+            output += f'<weight index="{len(self._weights) + 1}" value="{self._bias}">\n</weight>\n'
+        return output
+
+    @classmethod
+    def random(
+        cls,
+        issues: list[Issue] | tuple[Issue, ...],
+        reserved_value=(0.0, 1.0),
+        normalized=True,
+    ):
+        """Generate a random affine utility function.
+
+        Args:
+            issues: The issues to generate the utility function for. Must be numeric.
+            reserved_value: Range (min, max) for random reserved value selection.
+            normalized: If True, normalize weights to sum to 1 and scale by issue ranges.
+
+        Returns:
+            A random AffineUtilityFunction instance.
+
+        Raises:
+            ValueError: If any issue is not numeric.
+        """
+        for issue in issues:
+            if not issue.is_numeric():
+                raise ValueError(
+                    f"Issue {issue} is not numeric. Cannot  use a LinearUtilityFunction. Try a LinearAdditiveUtilityFunction"
+                )
+
+        reserved_value = make_range(reserved_value)
+        n_issues = len(issues)
+        reserved_value = (
+            reserved_value
+            if reserved_value is not None
+            else tuple([random.random()] * 2)
+        )
+        if normalized:
+            weights = [random.random() for _ in range(n_issues)]
+            m = sum(weights)
+            if m:
+                weights = [_ / m for _ in weights]
+            for i, issue in enumerate(issues):
+                weights[i] /= issue.max_value  # type: ignore (we know that all numeric issues has a maximum value)
+            bias = 0.0
+        else:
+            weights = [2 * (random.random() - 0.5) for _ in range(n_issues)]
+            bias = sum(2 * (random.random() - 0.5) * _ for _ in weights)
+        ufun = cls(
+            weights=weights,
+            bias=bias,
+            issues=issues,
+            reserved_value=random.random() * (reserved_value[1] - reserved_value[0])
+            + reserved_value[0],
+        )
+        return ufun
+
+    def to_dict(self, python_class_identifier=PYTHON_CLASS_IDENTIFIER):
+        """Convert to a dictionary for serialization.
+
+        Args:
+            python_class_identifier: Key used to store the class type identifier.
+
+        Returns:
+            Dictionary representation suitable for JSON serialization.
+        """
+        d = {python_class_identifier: get_full_type_name(type(self))}
+        d.update(super().to_dict(python_class_identifier=PYTHON_CLASS_IDENTIFIER))
+        return dict(**d, weights=self._weights, bias=self._bias)
+
+    @classmethod
+    def from_dict(cls, d: dict, python_class_identifier=PYTHON_CLASS_IDENTIFIER):
+        """Create an instance from a dictionary.
+
+        Args:
+            d: Dictionary containing the serialized utility function.
+            python_class_identifier: Key used to identify the class type.
+
+        Returns:
+            A new AffineUtilityFunction instance.
+        """
+        if isinstance(d, cls):
+            return d
+        d.pop(python_class_identifier, None)
+        # d["values"]=deserialize(d["values"]),  # type: ignore (deserialize can return anything but it should be OK)
+        d = deserialize(
+            d,
+            deep=True,
+            remove_type_field=True,
+            python_class_identifier=python_class_identifier,
+        )  # type: ignore
+        return cls(**d)  # type: ignore I konw that d will be a dict with string keys
+
+    def shift_by(
+        self, offset: float, shift_reserved: bool = True
+    ) -> AffineUtilityFunction:
+        """Create a new utility function shifted by a constant offset.
+
+        Computes u'(x) = u(x) + offset.
+
+        Args:
+            offset: The amount to add to all utility values.
+            shift_reserved: If True, also shift the reserved value.
+
+        Returns:
+            A new AffineUtilityFunction with the shifted utility values.
+        """
+        return AffineUtilityFunction(
+            self._weights,
+            self._bias + offset,
+            outcome_space=self.outcome_space,
+            name=self.name,
+            reserved_value=self.reserved_value
+            if not shift_reserved
+            else (self.reserved_value + offset),
+            constraints=self._constraints,
+        )
+
+    def scale_by(
+        self, scale: float, scale_reserved: bool = True
+    ) -> AffineUtilityFunction:
+        """Create a new utility function scaled by a constant factor.
+
+        Computes u'(x) = scale * u(x).
+
+        Args:
+            scale: The non-negative factor to multiply all utility values by.
+            scale_reserved: If True, also scale the reserved value.
+
+        Returns:
+            A new AffineUtilityFunction with the scaled utility values.
+
+        Raises:
+            ValueError: If scale is negative.
+        """
+        if scale < 0:
+            raise ValueError(f"Cannot have a negative scale: {scale}")
+        weights = [_ * scale for _ in self._weights]
+        return AffineUtilityFunction(
+            weights=weights,
+            bias=self._bias * scale,
+            outcome_space=self.outcome_space,
+            name=self.name,
+            reserved_value=self.reserved_value
+            if not scale_reserved
+            else (self.reserved_value * scale),
+            constraints=self._constraints,
+        )
+
+    def normalize_for(
+        self,
+        to: tuple[float, float] = (0.0, 1.0),
+        outcome_space: OutcomeSpace | None = None,
+        guarantee_max: bool = True,
+        guarantee_min: bool = True,
+        max_cardinality: int = 10_000_000_000,
+    ) -> ConstUtilityFunction | AffineUtilityFunction | LinearUtilityFunction:
+        """
+        Creates a new utility function that is normalized based on input conditions.
+
+        Args:
+            to: The minimum and maximum value to normalize to. If either is None, it is ignored.
+                 This means that passing `(None, 1.0)` will normalize the ufun so that the maximum
+                 is `1` but will not guarantee any limit for the minimum and so on.
+            outcome_space: the outcome space to normalize within
+            guarantee_max: If True, ensures maximum utility equals to[1]. Defaults to True.
+                **Ignored by:** AffineUtilityFunction/LinearUtilityFunction (always guaranteed).
+            guarantee_min: If True, ensures minimum utility equals to[0]. Defaults to True.
+                **Ignored by:** AffineUtilityFunction/LinearUtilityFunction (always guaranteed).
+            max_cardinality: Maximum number of outcomes to consider when normalizing.
+                Defaults to 10 billion.
+                **Ignored by:** AffineUtilityFunction/LinearUtilityFunction (minmax is exact).
+
+        Remarks:
+            - AffineUtilityFunction and LinearUtilityFunction always guarantee both min and max
+              values exactly match the target range, so guarantee_max and guarantee_min are ignored.
+            - These classes compute exact min/max analytically without sampling, so max_cardinality
+              is also ignored.
+        """
+        epsilon: float = 1e-8
+        if outcome_space is None:
+            outcome_space = self.outcome_space
+
+        mn, mx = self.minmax(outcome_space)
+
+        if sum(self._weights) < epsilon:
+            raise ValueError(
+                "Cannot normalize a ufun with zero weights to have a non-zero range"
+            )
+
+        if abs(mx - to[1]) < epsilon and abs(mn - to[0]) < epsilon:
+            return self
+
+        if abs(mx - mn) < epsilon:
+            if (to[1] - to[0]) < epsilon:
+                scale = 1.0
+            else:
+                from negmas.preferences.crisp.const import ConstUtilityFunction
+
+                return ConstUtilityFunction(
+                    to[0] if mx < self.reserved_value else to[1],
+                    outcome_space=outcome_space,
+                    name=self.name,
+                    reserved_value=to[1] if mx < self.reserved_value else to[0],
+                )
+        else:
+            scale = (to[1] - to[0]) / (mx - mn)
+        if scale < 0:
+            raise ValueError(
+                f"Cannot have a negative scale: max, min = ({mx}, {mn}) and rng  = {to}"
+            )
+        bias = to[1] - scale * mx + self._bias * scale
+        weights = [_ * scale for _ in self._weights]
+        if abs(bias) < epsilon:
+            return LinearUtilityFunction(
+                weights,
+                outcome_space=outcome_space,
+                name=self.name,
+                constraints=self._constraints,
+            )
+        return AffineUtilityFunction(
+            weights,
+            bias,
+            outcome_space=outcome_space,
+            name=self.name,
+            constraints=self._constraints,
+        )
+
+    def normalize(
+        self, to: tuple[float, float] = (0.0, 1.0), normalize_weights: bool = False
+    ) -> ConstUtilityFunction | AffineUtilityFunction | LinearUtilityFunction:
+        """Normalize utility values to a specified range using the current outcome space.
+
+        Args:
+            to: Target range (min, max) for the normalized utility values.
+            normalize_weights: Unused parameter (kept for API compatibility).
+
+        Returns:
+            A new utility function with values normalized to the target range.
+        """
+        return self.normalize_for(to, self.outcome_space)
+
+    def extreme_outcomes(
+        self,
+        outcome_space: OutcomeSpace | None = None,
+        issues: Iterable[Issue] | None = None,
+        outcomes: Iterable[Outcome] | None = None,
+        max_cardinality=1000,
+    ) -> tuple[Outcome, Outcome]:
+        """Find the outcomes with minimum and maximum utility values.
+
+        For affine utility functions, exploits the linear structure to
+        efficiently find extremes without enumerating all outcomes.
+
+        Args:
+            outcome_space: The outcome space to search within.
+                If provided (different from ufun's outcome space), caching is skipped.
+            issues: Alternative way to specify the search space via issues.
+            outcomes: Explicit set of outcomes to search (slower).
+            max_cardinality: Maximum samples per issue when enumerating values.
+
+        Returns:
+            Tuple of (worst_outcome, best_outcome).
+
+        Note:
+            Results are cached based on stability flags. Volatile ufuns skip caching.
+        """
+        check_one_at_most(outcome_space, issues, outcomes)
+        provided_space = os_or_none(outcome_space, issues, outcomes)
+
+        # Determine if we're using the ufun's own outcome space (for caching)
+        use_own_space = provided_space is None or provided_space == self.outcome_space
+
+        # Check base class cache first (only if using own outcome space and caching is allowed)
+        if (
+            use_own_space
+            and self._can_cache_extreme_outcomes()
+            and self._cached_extreme_outcomes is not None
+        ):
+            return self._cached_extreme_outcomes
+
+        # Compute the result using the optimized affine algorithm
+        original_os = outcome_space
+        outcome_space = provided_space
+        if outcome_space is None:
+            outcome_space = self.outcome_space
+
+        result = None
+        if outcome_space is not None:
+            # If there are constraints, fall back to parent implementation which enumerates and filters
+            if self._constraints:
+                result = super().extreme_outcomes(
+                    original_os, issues, outcomes, max_cardinality
+                )
+            elif not isinstance(outcome_space, IndependentIssuesOS):
+                result = super().extreme_outcomes(
+                    original_os, issues, outcomes, max_cardinality
+                )
+            elif outcomes is not None:
+                warnings.warn(
+                    "Passing outcomes and issues (or having known issues) to linear ufuns is redundant. The outcomes passed will be used which is much slower than if you do not pass them",
+                    warnings.NegmasSpeedWarning,
+                )
+                result = super().extreme_outcomes(
+                    original_os, issues, outcomes, max_cardinality
+                )
+            else:
+                # Optimized algorithm for affine ufuns
+                # Use the provided outcome_space's issues, not self.issues
+                uranges = []
+                search_issues = outcome_space.issues if outcome_space else self.issues
+                if not search_issues:
+                    raise ValueError(
+                        "Cannot find extreme outcomes of a ufun without knowing its outcome-space"
+                    )
+                for issue in search_issues:
+                    mx, mn = float("-inf"), float("inf")
+                    for v in issue.value_generator(n=max_cardinality):
+                        if v >= mx:
+                            mx = v
+                        if v < mn:
+                            mn = v
+                    uranges.append((mn, mx))
+
+                best_outcome, worst_outcome = [], []
+                for w, urng in zip(self._weights, uranges):
+                    if w > 0:
+                        best_outcome.append(urng[1])
+                        worst_outcome.append(urng[0])
+                    else:
+                        best_outcome.append(urng[0])
+                        worst_outcome.append(urng[1])
+
+                result = (tuple(worst_outcome), tuple(best_outcome))
+
+        if result is None:
+            result = super().extreme_outcomes(
+                original_os, issues, outcomes, max_cardinality
+            )
+
+        # Cache result if using own outcome space and caching is allowed
+        if use_own_space and self._can_cache_extreme_outcomes():
+            self._cached_extreme_outcomes = result
+
+        return result
+
+    def __str__(self):
+        """convert to a string"""
+        return f"w: {self._weights}, b: {self._bias}"
+
+
+class LinearUtilityFunction(AffineUtilityFunction):
+    r"""
+    A special case of the `AffineUtilityFunciton` for which the bias is zero.
+
+    Args:
+         weights: weights for combining `values`
+         bias: The offset added
+         name: name of the utility function. If None a random name will be generated.
+
+    Notes:
+
+        The utility value is calculated as:
+
+        .. math::
+
+            u = \sum_{i=0}^{n_{outcomes}-1} {\alpha_i * \omega_i}
+
+        where $\alpha_i$ is the weight of issue $i$, and $\omega_i$ is the value of issue $i$ in the input outcome $\omega$.
+    """
+
+    def __init__(
+        self,
+        weights: dict[str, float] | list[float] | tuple[float, ...] | None = None,
+        *args,
+        **kwargs,
+    ) -> None:
+        """Initialize the instance.
+
+        Args:
+            weights: Coefficients for combining issue values into utility (dict by issue name or list by position).
+            *args: Additional positional arguments.
+            **kwargs: Additional keyword arguments.
+        """
+        kwargs["bias"] = 0
+        super().__init__(weights, *args, **kwargs)
+
+
+class LinearAdditiveUtilityFunction(UtilityFunction):  # type: ignore
+    r"""A linear aggregation utility function for multi-issue negotiations.
+
+    Models a linear utility function using predefined weights:\.
+
+    Args:
+         values: utility functions for individual issues
+         weights: weights for combining `values`
+         name: name of the utility function. If None a random name will be generated.
+
+    Notes:
+
+        The utility value is calculated as:
+
+        .. math::
+
+            u = \sum_{i=0}^{n_{outcomes}-1} {w_i * u_i(\omega_i)}
+
+
+    Examples:
+
+        >>> from negmas.outcomes import dict2outcome, make_issue
+        >>> issues = [
+        ...     make_issue((10.0, 20.0), "price"),
+        ...     make_issue(["delivered", "not delivered"], "delivery"),
+        ...     make_issue(5, "quality"),
+        ... ]
+        >>> print(list(map(str, issues)))
+        ['price: (10.0, 20.0)', "delivery: ['delivered', 'not delivered']", 'quality: (0, 4)']
+        >>> f = LinearAdditiveUtilityFunction(
+        ...     {
+        ...         "price": lambda x: 2.0 * x,
+        ...         "delivery": {"delivered": 10, "not delivered": -10},
+        ...         "quality": lambda x: x - 3,
+        ...     },
+        ...     weights={"price": 1.0, "delivery": 2.0, "quality": 4.0},
+        ...     issues=issues,
+        ... )
+        >>> float(f((2, "delivered", 14.0)))
+        68.0
+
+        You can confirm this yourself by calculating the ufun manually:
+
+        >>> 68.0 == (1.0 * 2.0 * 2 + 2.0 * 10 + 4.0 * (14.0 - 3))
+        True
+
+        Yout can use a dictionary to represent the outcome for more readability:
+
+        >>> float(
+        ...     f(
+        ...         dict2outcome(
+        ...             dict(price=2, quality=14, delivery="delivered"), issues=issues
+        ...         )
+        ...     )
+        ... )
+        68.0
+
+        You can use lists instead of dictionaries for defining outcomes, weights
+        but that is less readable. The advantage here is that you do not need to pass the issues
+
+        >>> f = LinearAdditiveUtilityFunction(
+        ...     [
+        ...         lambda x: 2.0 * x,
+        ...         {"delivered": 10, "not delivered": -10},
+        ...         LambdaFun(lambda x: x - 3),
+        ...     ],
+        ...     weights=[1.0, 2.0, 4.0],
+        ...     issues=issues,
+        ... )
+        >>> float(f((14.0, "delivered", 2)))
+        44.0
+
+    Remarks:
+        The mapping need not use all the issues in the output as the last example show.
+
+    """
+
+    def __init__(
+        self,
+        values: dict[str, SingleIssueFun]
+        | tuple[SingleIssueFun, ...]
+        | list[SingleIssueFun],
+        weights: Mapping[Any, float] | list[float] | tuple[float, ...] | None = None,
+        bias: float = 0.0,
+        *args,
+        **kwargs,
+    ) -> None:
+        """Initialize the instance.
+
+        Args:
+            values: Utility functions for individual issues (dict by issue name or list by position).
+            weights: Coefficients for combining value function outputs (dict by issue name or list by position).
+            bias: Constant offset added to the weighted sum.
+            *args: Additional positional arguments.
+            **kwargs: Additional keyword arguments.
+        """
+        super().__init__(*args, **kwargs)
+        self._bias = bias
+        if self.outcome_space and not isinstance(
+            self.outcome_space, IndependentIssuesOS
+        ):
+            raise ValueError(
+                f"Cannot create {self.type} ufun with an outcomespace without indpendent "
+                f"issues.\n Given OS: {self.outcome_space} of type "
+                f"{type(self.outcome_space)}\nGiven args {kwargs}"
+            )
+        self.issues: list[Issue] | None = (
+            list(self.outcome_space.issues) if self.outcome_space else None  # type: ignore
+        )
+        if isinstance(values, dict):
+            if self.issues is None:
+                raise ValueError(
+                    "Must specify issues when passing `values` or `weights` is a dict"
+                )
+            values = [
+                values.get(_, IdentityFun())  # type: ignore
+                for _ in [i.name if isinstance(i, Issue) else i for i in self.issues]
+            ]
+        else:
+            values = list(values)
+        if weights is None:
+            weights = [1.0] * len(values)
+        if isinstance(weights, dict):
+            if self.issues is None:
+                raise ValueError(
+                    "Must specify issues when passing `values` or `weights` is a dict"
+                )
+            weights = [
+                weights.get(_, 1.0)
+                # weights[_]
+                for _ in [i.name if isinstance(i, Issue) else i for i in self.issues]
+            ]
+        self.values = []
+        for i, v in enumerate(values):
+            if isinstance(v, SingleIssueFun):
+                self.values.append(v)
+            elif isinstance(v, dict):
+                self.values.append(TableFun(v))
+            elif isinstance(v, Callable):
+                self.values.append(LambdaFun(v))
+            elif isinstance(v, Iterable):
+                if (
+                    not self.issues
+                    or len(self.issues) < i + 1
+                    or not self.issues[i].is_discrete()
+                ):
+                    raise TypeError(
+                        "When passing an iterable as the value function for an issue, "
+                        "the issue MUST be discrete"
+                    )
+                d = dict(zip(self.issues[i].enumerate(), v))  # type: ignore We know the issue is discrete
+                self.values.append(TableFun(d))
+            else:
+                raise TypeError(
+                    f"Mapping {v} is not supported: Itis of type ({type(v)}) but we only support SingleIssueFun, Dict or Lambda mappings"
+                )
+
+        self._weights = list(weights)  # type: ignore
+
+    @property
+    def weights(self):
+        """The weights for each issue in the linear combination."""
+        return self._weights
+
+    def eval(self, offer: Outcome | None) -> float:
+        """Evaluate the utility of an outcome.
+
+        Computes u = bias + sum(weights[i] * values[i](offer[i])) for all issues i.
+
+        Args:
+            offer: The outcome to evaluate. If None, returns the reserved value.
+
+        Returns:
+            The utility value for the given outcome, or NaN if evaluation fails.
+        """
+        if offer is None:
+            return self.reserved_value
+        u = self._bias
+        for v, w, iu in zip(offer, self.weights, self.values):
+            current_utility = iu(v)
+            if current_utility is None:
+                return float("nan")
+
+            try:
+                u += w * current_utility
+            except FloatingPointError:
+                continue
+        return u
+
+    def xml(self, issues: list[Issue] | None = None) -> str:
+        """Generates an XML string representing the utility function
+
+        Args:
+            issues:
+
+        Examples:
+
+            >>> from negmas.outcomes import make_issue
+            >>> issues = [
+            ...     make_issue(values=10, name="i1"),
+            ...     make_issue(values=["delivered", "not delivered"], name="i2"),
+            ...     make_issue(values=4, name="i3"),
+            ... ]
+            >>> f = LinearAdditiveUtilityFunction(
+            ...     [
+            ...         lambda x: 2.0 * x,
+            ...         {"delivered": 10, "not delivered": -10},
+            ...         LambdaFun(lambda x: x - 3),
+            ...     ],
+            ...     weights=[1.0, 2.0, 4.0],
+            ...     issues=issues,
+            ... )
+            >>> print(f.xml(issues))
+            <issue index="1" etype="discrete" type="discrete" vtype="integer" name="i1">
+                <item index="1" value="0" evaluation="0.0" />
+                <item index="2" value="1" evaluation="2.0" />
+                <item index="3" value="2" evaluation="4.0" />
+                <item index="4" value="3" evaluation="6.0" />
+                <item index="5" value="4" evaluation="8.0" />
+                <item index="6" value="5" evaluation="10.0" />
+                <item index="7" value="6" evaluation="12.0" />
+                <item index="8" value="7" evaluation="14.0" />
+                <item index="9" value="8" evaluation="16.0" />
+                <item index="10" value="9" evaluation="18.0" />
+            </issue>
+            <issue index="2" etype="discrete" type="discrete" vtype="discrete" name="i2">
+                <item index="1" value="delivered" evaluation="10.0" />
+                <item index="2" value="not delivered" evaluation="-10.0" />
+            </issue>
+            <issue index="3" etype="discrete" type="discrete" vtype="integer" name="i3">
+                <item index="1" value="0" evaluation="-3.0" />
+                <item index="2" value="1" evaluation="-2.0" />
+                <item index="3" value="2" evaluation="-1.0" />
+                <item index="4" value="3" evaluation="0.0" />
+            </issue>
+            <weight index="1" value="1.0">
+            </weight>
+            <weight index="2" value="2.0">
+            </weight>
+            <weight index="3" value="4.0">
+            </weight>
+            <BLANKLINE>
+
+        """
+        output = ""
+        if not issues:
+            issues = self.issues
+        if not issues:
+            raise ValueError(
+                "Cannot convert a ufun to xml() without konwing its outcome-space"
+            )
+
+        # <issue vtype="integer" lowerbound="1" upperbound="17" name="Charging Speed" index="3" etype="integer" type="integer">
+        # <evaluator ftype="linear" offset="0.4" slope="0.0375">
+        # </evaluator>
+        for i, (issue, vfun) in enumerate(zip(issues, self.values)):
+            output += vfun.xml(i, issue, 0.0)
+
+        for i, w in enumerate(self.weights):
+            output += f'<weight index="{i + 1}" value="{w}">\n</weight>\n'
+        # if we have a bias, just add one extra issue with a weight equal to the bias (this issue will implicitly be assumed to be numeric with a single value of 1)
+        if abs(self._bias) > EPSILON:
+            output += f'<weight index="{len(self.weights) + 1}" value="{self._bias}">\n</weight>\n'
+        return output
+
+    def to_dict(self, python_class_identifier=PYTHON_CLASS_IDENTIFIER):
+        """Convert to a dictionary for serialization.
+
+        Args:
+            python_class_identifier: Key used to store the class type identifier.
+
+        Returns:
+            Dictionary representation suitable for JSON serialization.
+        """
+        d = {python_class_identifier: get_full_type_name(type(self))}
+        d.update(super().to_dict(python_class_identifier=python_class_identifier))
+        return dict(
+            **d,
+            weights=self.weights,
+            values=serialize(
+                self.values, python_class_identifier=python_class_identifier
+            ),
+        )
+
+    @classmethod
+    def from_dict(cls, d: dict, python_class_identifier=PYTHON_CLASS_IDENTIFIER):
+        """Create an instance from a dictionary.
+
+        Args:
+            d: Dictionary containing the serialized utility function.
+            python_class_identifier: Key used to identify the class type.
+
+        Returns:
+            A new LinearAdditiveUtilityFunction instance.
+        """
+        if isinstance(d, cls):
+            return d
+        d.pop(python_class_identifier, None)
+        # d["values"]=deserialize(d["values"]),  # type: ignore (deserialize can return anything but it should be OK)
+        d = deserialize(
+            d,
+            deep=True,
+            remove_type_field=True,
+            python_class_identifier=python_class_identifier,
+        )  # type: ignore
+        return cls(**d)  # type: ignore I konw that d will be a dict with string keys
+
+    def extreme_outcomes(
+        self,
+        outcome_space: OutcomeSpace | None = None,
+        issues: Iterable[Issue] | None = None,
+        outcomes: Iterable[Outcome] | None = None,
+        max_cardinality=1000,
+    ) -> tuple[Outcome, Outcome]:
+        """Find the outcomes with minimum and maximum utility values.
+
+        For linear additive utility functions, exploits the additive structure
+        to efficiently find extremes by optimizing each issue independently.
+
+        Args:
+            outcome_space: The outcome space to search within.
+                If provided (different from ufun's outcome space), caching is skipped.
+            issues: Alternative way to specify the search space via issues.
+            outcomes: Explicit set of outcomes to search (slower).
+            max_cardinality: Maximum samples per issue when enumerating values.
+
+        Returns:
+            Tuple of (worst_outcome, best_outcome).
+
+        Note:
+            Results are cached based on stability flags. Volatile ufuns skip caching.
+        """
+        check_one_at_most(outcome_space, issues, outcomes)
+        provided_space = os_or_none(outcome_space, issues, outcomes)
+
+        # Determine if we're using the ufun's own outcome space (for caching)
+        use_own_space = provided_space is None or provided_space == self.outcome_space
+
+        # Check base class cache first (only if using own outcome space and caching is allowed)
+        if (
+            use_own_space
+            and self._can_cache_extreme_outcomes()
+            and self._cached_extreme_outcomes is not None
+        ):
+            return self._cached_extreme_outcomes
+
+        # Compute the result using the optimized linear additive algorithm
+        original_os = outcome_space
+        outcome_space = provided_space
+        if outcome_space is None:
+            outcome_space = self.outcome_space
+
+        result = None
+        # If there are constraints, fall back to parent implementation which enumerates and filters
+        if self._constraints:
+            result = super().extreme_outcomes(
+                original_os, issues, outcomes, max_cardinality
+            )
+        elif outcome_space is None or not isinstance(
+            outcome_space, CartesianOutcomeSpace
+        ):
+            result = super().extreme_outcomes(
+                original_os, issues, outcomes, max_cardinality
+            )
+        elif outcomes is not None:
+            warnings.warn(
+                "Passing outcomes and issues (or having known issues) to linear ufuns is redundant. The outcomes passed will be used which is much slower than if you do not pass them",
+                warnings.NegmasSpeedWarning,
+            )
+            result = super().extreme_outcomes(
+                original_os, issues, outcomes, max_cardinality
+            )
+        else:
+            # Optimized algorithm for linear additive ufuns
+            uranges, vranges = [], []
+            myissues: list[Issue] = outcome_space.issues  # type: ignore
+            for i, issue in enumerate(myissues):
+                fn = self.values[i]
+                mx, mn = float("-inf"), float("inf")
+                mxv, mnv = None, None
+                for v in issue.value_generator(n=max_cardinality):
+                    uval = fn(v)
+                    if uval >= mx:
+                        mx, mxv = uval, v
+                    if uval < mn:
+                        mn, mnv = uval, v
+                vranges.append((mnv, mxv))
+                uranges.append((mn, mx))
+
+            best_outcome, worst_outcome = [], []
+            for w, urng, vrng in zip(self.weights, uranges, vranges):
+                if w > 0:
+                    best_outcome.append(vrng[1])
+                    worst_outcome.append(vrng[0])
+                else:
+                    best_outcome.append(vrng[0])
+                    worst_outcome.append(vrng[1])
+
+            result = (tuple(worst_outcome), tuple(best_outcome))
+
+        # Cache result if using own outcome space and caching is allowed
+        if use_own_space and self._can_cache_extreme_outcomes():
+            self._cached_extreme_outcomes = result
+
+        return result
+
+    @classmethod
+    def random(
+        cls,
+        outcome_space: CartesianOutcomeSpace | None = None,
+        issues: list[Issue] | tuple[Issue, ...] | None = None,
+        reserved_value=(0.0, 1.0),
+        normalized=True,
+        **kwargs,
+    ):
+        """Generate a random linear additive utility function.
+
+        Args:
+            outcome_space: The outcome space to generate the utility function for.
+            issues: Alternative way to specify the issues (extracted from outcome_space if not provided).
+            reserved_value: Range (min, max) for random reserved value selection.
+            normalized: If True, normalize weights to sum to 1.
+            **kwargs: Additional arguments passed to the constructor.
+
+        Returns:
+            A random LinearAdditiveUtilityFunction instance.
+
+        Raises:
+            ValueError: If neither issues nor outcome_space is provided.
+        """
+        if not issues and outcome_space:
+            issues = outcome_space.issues
+        if not issues:
+            raise ValueError("Cannot generate a random ufun withot knowing the issues")
+
+        reserved_value = make_range(reserved_value)
+
+        n_issues = len(issues)
+        # r = reserved_value if reserved_value is not None else random.random()
+        rand_weights = [random.random() for _ in range(n_issues)]
+        if normalized:
+            m = sum(rand_weights)
+            if m:
+                rand_weights = [_ / m for _ in rand_weights]
+        weights = rand_weights
+        values = [_random_mapping(issue, normalized) for issue in issues]
+
+        ufun = cls(
+            weights=weights,
+            values=values,  # type: ignore
+            issues=issues,
+            reserved_value=random.random() * (reserved_value[1] - reserved_value[0])
+            + reserved_value[0],
+            **kwargs,
+        )
+        return ufun
+
+    def normalize_for(
+        self,
+        to: tuple[float, float] = (0.0, 1.0),
+        outcome_space: OutcomeSpace | None = None,
+        guarantee_max: bool = True,
+        guarantee_min: bool = True,
+        max_cardinality: int = 10_000_000_000,
+    ) -> LinearAdditiveUtilityFunction | ConstUtilityFunction:
+        """Normalize utility function with proper handling of compositional structure.
+
+        This method implements sophisticated normalization specifically for
+        LinearAdditiveUtilityFunction that:
+
+        1. Makes all weights positive
+        2. Makes all value functions non-negative
+        3. Normalizes each value function to [0, 1]
+        4. Normalizes weights to sum to 1
+        5. Properly adjusts the reserved value
+
+        Args:
+
+            to: Target range (min, max) for normalized utilities. Defaults to (0.0, 1.0).
+            outcome_space: The outcome space to normalize over. If None, uses the ufun's
+                outcome space.
+            guarantee_max: If True, ensures maximum utility equals to[1]. Defaults to True.
+                **Active for:** LinearAdditiveUtilityFunction (this implementation).
+                When True, may result in non-uniform weight scaling to hit exact max.
+            guarantee_min: If True, ensures minimum utility equals to[0]. Defaults to True.
+                **Active for:** LinearAdditiveUtilityFunction (this implementation).
+                When True, may result in non-uniform weight scaling to hit exact min.
+            max_cardinality: Maximum number of outcomes to consider when normalizing.
+                Defaults to 10 billion.
+                **Active for:** LinearAdditiveUtilityFunction (used when converting
+                non-Cartesian outcome spaces).
+
+        Returns:
+
+            A normalized LinearAdditiveUtilityFunction where:
+            - All weights are positive and sum to 1
+            - All value functions map to [0, 1]
+            - The overall utility range matches the target 'to' range
+
+        Example:
+
+            >>> from negmas import make_issue
+            >>> from negmas.preferences.value_fun import AffineFun
+            >>> issues = (make_issue(10), make_issue(10))
+            >>> values = [AffineFun(1.0, -5.0), AffineFun(2.0, -3.0)]
+            >>> weights = [5.0, 3.0]
+            >>> u = LinearAdditiveUtilityFunction(values, weights, issues=issues)
+            >>> normalized = u.normalize_for(to=(0.0, 1.0))
+            >>> # Now: all weights sum to 1, all value functions in [0,1]
+            >>> assert abs(sum(normalized.weights) - 1.0) < 1e-6
+
+        Remarks:
+            - The guarantee_max and guarantee_min parameters control strict bounds enforcement.
+            - When both are True, the normalization ensures the actual min/max exactly match
+              the target range, which may require adjusting weights non-uniformly.
+            - When False, a simpler uniform scaling is used that may not hit exact bounds.
+        """
+        from negmas.outcomes import DiscreteOrdinalIssue
+
+        epsilon = 1e-6
+        os_ = outcome_space if outcome_space is not None else self.outcome_space
+
+        if os_ is None:
+            raise ValueError("Cannot normalize without knowing the outcome-space")
+
+        # Convert to CartesianOutcomeSpace if needed
+        if not isinstance(os_, CartesianOutcomeSpace):
+            os_ = DiscreteCartesianOutcomeSpace(
+                issues=(
+                    DiscreteOrdinalIssue(
+                        list(os_.enumerate_or_sample(max_cardinality=max_cardinality))
+                    ),
+                )
+            )
+
+        issues = os_.issues
+
+        # Get current min/max
+        mn, mx = self.minmax(os_)
+
+        # Start with copies of weights and values
+        weights = list(self.weights)
+        values = list(self.values)
+        bias = self._bias
+        r = self.reserved_value
+
+        # Minimum and maximum of every value function
+        mnmxs = [v.minmax(issue) for issue, v in zip(issues, values)]
+
+        # Step 1: Make all weights positive
+        for i, (w, v) in enumerate(zip(weights, values)):
+            if w >= 0:
+                continue
+            # Flip the value function and negate the weight
+            values[i] = v.scale_by(-1.0)
+            weights[i] = -w
+            # Update min/max (they swap and negate)
+            mnmxs[i] = (-mnmxs[i][1], -mnmxs[i][0])
+
+        # Step 2: Make all individual value functions non-negative
+        for i, (v, w, (n, x)) in enumerate(zip(values, weights, mnmxs)):
+            if abs(x - n) < epsilon:
+                # Singleton value - set to 1
+                values[i] = v.shift_by(1.0 - n)
+                bias += w * (n - 1.0)
+                mnmxs[i] = (1.0, 1.0)
+                continue
+            # Shift so minimum is 0
+            values[i] = v.shift_by(-n)
+            bias += n * w
+            mnmxs[i] = (0.0, x - n)
+
+        # Step 3: Normalize individual utility functions to [0, 1]
+        for i, (v, (n, x)) in enumerate(zip(values, mnmxs)):
+            if abs(x) < epsilon * 1e-3:
+                continue
+            beta = 1.0 / x
+            if abs(beta - 1.0) < epsilon * 0.01:
+                continue
+            # Scale value function so max = 1
+            values[i] = v.scale_by(beta)
+            # Compensate in weight
+            weights[i] = weights[i] / beta
+            mnmxs[i] = (beta * n, beta * x)
+
+        # Step 4: Update reserved value to account for bias changes
+        r -= bias
+        bias = 0.0
+
+        # Step 5: Normalize weights to sum to 1
+        weights_sum = sum(weights)
+        if abs(weights_sum) > epsilon * 1e-3 and abs(weights_sum - 1.0) > epsilon * 0.1:
+            weights = [w / weights_sum for w in weights]
+            r = r / weights_sum
+
+        return LinearAdditiveUtilityFunction(
+            values=values,  # type: ignore
+            weights=weights,
+            bias=bias,
+            outcome_space=os_,
+            name=self.name,
+            reserved_value=r,
+            constraints=self._constraints,
+        )
+
+    def shift_by(
+        self, offset: float, shift_reserved: bool = True, change_bias_only: bool = False
+    ) -> LinearAdditiveUtilityFunction:
+        """Create a new utility function shifted by a constant offset.
+
+        Computes u'(x) = u(x) + offset.
+
+        Args:
+            offset: The amount to add to all utility values.
+            shift_reserved: If True, also shift the reserved value.
+            change_bias_only: If True, only modify the bias term; otherwise
+                shift each value function independently.
+
+        Returns:
+            A new LinearAdditiveUtilityFunction with shifted utility values.
+        """
+        if change_bias_only:
+            return LinearAdditiveUtilityFunction(
+                values=self.values,  # type: ignore
+                weights=self.weights,
+                name=self.name,
+                bias=self._bias + offset,
+                reserved_value=self.reserved_value
+                if not shift_reserved
+                else (self.reserved_value + offset),
+                outcome_space=self.outcome_space,
+                constraints=self._constraints,
+            )
+        values = [v.shift_by(offset) for v in self.values]
+
+        return LinearAdditiveUtilityFunction(
+            values=values,
+            weights=self.weights,
+            name=self.name,
+            bias=self._bias,
+            reserved_value=self.reserved_value
+            if not shift_reserved
+            else (self.reserved_value + offset),
+            outcome_space=self.outcome_space,
+            constraints=self._constraints,
+        )
+
+    def scale_by(
+        self,
+        scale: float,
+        scale_reserved: bool = True,
+        change_weights_only: bool = False,
+        normalize_weights: bool = True,
+    ) -> LinearAdditiveUtilityFunction:
+        """Create a new utility function scaled by a constant factor.
+
+        Computes u'(x) = scale * u(x).
+
+        Args:
+            scale: The non-negative factor to multiply all utility values by.
+            scale_reserved: If True, also scale the reserved value.
+            change_weights_only: If True, only modify weights; otherwise scale
+                individual value functions.
+            normalize_weights: If True, normalize weights to sum to 1 before scaling.
+
+        Returns:
+            A new LinearAdditiveUtilityFunction with scaled utility values.
+
+        Raises:
+            ValueError: If scale is negative or if both change_weights_only and
+                normalize_weights are True.
+        """
+        if scale < 0:
+            raise ValueError(f"Cannot have a negative scale: {scale}")
+        if change_weights_only and normalize_weights:
+            raise ValueError(
+                "Cannot normalize weights only and in the same time change weights only"
+            )
+
+        wscale = 1.0
+        if normalize_weights:
+            w = sum(self.weights)
+            if w > 1e-6:
+                wscale = 1.0 / w
+            else:
+                wscale = 1.0
+        if change_weights_only:
+            wscale *= scale
+            return LinearAdditiveUtilityFunction(
+                values=self.values,  # type: ignore
+                weights=[wscale * _ for _ in self.weights],
+                outcome_space=self.outcome_space,
+                reserved_value=self.reserved_value
+                if not scale_reserved
+                else (self.reserved_value * wscale),
+                name=self.name,
+                constraints=self._constraints,
+            )
+        return LinearAdditiveUtilityFunction(
+            values=[_.scale_by(scale / wscale) for _ in self.values],
+            weights=[wscale * _ for _ in self.weights],
+            outcome_space=self.outcome_space,
+            reserved_value=self.reserved_value
+            if not scale_reserved
+            else (self.reserved_value * wscale * scale),
+            name=self.name,
+            constraints=self._constraints,
+        )
+
+    def __str__(self):
+        """str  ."""
+        return f"u: {self.values}\n w: {self.weights}"
+
+
+LinearUtilityAggregationFunction = LinearAdditiveUtilityFunction
+"""An alias for `LinearAdditiveUtilityFunction`"""

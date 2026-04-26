@@ -1,0 +1,30 @@
+<utility_space type="UNCERTAIN"> 
+<objective name="root" index="0" description="" etype="objective" type="objective"> 
+<issue vtype="discrete" name="NiceOrDie" index="1" etype="discrete" type="discrete"> 
+<item evaluation="160.0" index="1" value="100_16"> 
+</item> 
+<item evaluation="1000.0" index="2" value="16_100"> 
+</item> 
+<item evaluation="299.0" index="3" value="29_29"> 
+</item> 
+</issue> 
+<weight index="1" value="1.0"> 
+</weight> 
+</objective> 
+<discount_factor value="1.0"> 
+</discount_factor> 
+<reservation value="0.836493"> 
+</reservation> 
+<comparisons> 
+3 
+</comparisons> 
+<errors> 
+0 
+</errors> 
+<fixed_seed> 
+true 
+</fixed_seed> 
+<experimental> 
+false 
+</experimental> 
+</utility_space> 

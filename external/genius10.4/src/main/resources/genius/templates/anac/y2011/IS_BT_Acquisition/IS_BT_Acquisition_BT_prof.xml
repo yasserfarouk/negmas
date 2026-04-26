@@ -1,0 +1,61 @@
+<utility_space> 
+    <reservation value="0" />
+<objective index="0" description="" name="Acquisition" type="objective" etype="objective"> 
+<issue index="1" name="Price" vtype="discrete" type="discrete" etype="discrete"> 
+<item index="1" value="1 million $" cost="0.0" evaluation="8"> 
+</item> 
+<item index="2" value="2.5 million $" cost="0.0" evaluation="8"> 
+</item> 
+<item index="3" value="5 million $" cost="0.0" evaluation="9"> 
+</item> 
+<item index="4" value="8 million $" cost="0.0" evaluation="10"> 
+</item> 
+</issue> 
+<issue index="2" name="IP" vtype="discrete" type="discrete" etype="discrete"> 
+<item index="1" value="IS receives all IP" cost="0.0" evaluation="6"> 
+</item> 
+<item index="2" value="IS receives the patents, industrial design rights and trade secrets" cost="0.0" evaluation="7"> 
+</item> 
+<item index="3" value="BI-Tech founders maintain all IP" cost="0.0" evaluation="10"> 
+</item> 
+</issue> 
+<issue index="3" name="Stocks" vtype="discrete" type="discrete" etype="discrete"> 
+<item index="1" value="BI-Tech founders get 2%" cost="0.0" evaluation="5"> 
+</item> 
+<item index="2" value="BI-Tech founders get 2% + jobs at IS" cost="0.0" evaluation="9"> 
+</item> 
+<item index="3" value="BI-Tech founders get 5%" cost="0.0" evaluation="6"> 
+</item> 
+<item index="4" value="BI-Tech founders get 5% + jobs " cost="0.0" evaluation="10"> 
+</item> 
+</issue> 
+<issue index="4" name="EmployeeAgreements" vtype="discrete" type="discrete" etype="discrete"> 
+<item index="1" value="salary raise of 15%" cost="0.0" evaluation="9"> 
+</item> 
+<item index="2" value="same conditions" cost="0.0" evaluation="7"> 
+</item> 
+<item index="3" value="private contracts" cost="0.0" evaluation="8"> 
+</item> 
+<item index="4" value="half fired and half private contracts" cost="0.0" evaluation="4"> 
+</item> 
+</issue> 
+<issue index="5" name="Legal Liability" vtype="discrete" type="discrete" etype="discrete"> 
+<item index="1" value="past activities remains with Bi-Tech" cost="0.0" evaluation="7"> 
+</item> 
+<item index="2" value="IS liable for all activities" cost="0.0" evaluation="10"> 
+</item> 
+</issue> 
+<weight index="1" value="0.5"> 
+</weight> 
+<weight index="2" value="0.04"> 
+</weight> 
+<weight index="3" value="0.2"> 
+</weight> 
+<weight index="4" value="0.06"> 
+</weight> 
+<weight index="5" value="0.2"> 
+</weight> 
+</objective> 
+<discount_factor value="0.68768896">
+</discount_factor>
+</utility_space> 

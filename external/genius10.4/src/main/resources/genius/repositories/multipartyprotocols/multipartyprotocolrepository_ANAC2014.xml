@@ -1,0 +1,15 @@
+<?xml version="1.0" encoding="UTF-8" standalone="yes"?>
+<repository fileName="multipartyprotocolrepository.xml">
+    <items>
+        <agentRepItems/>
+        <partyRepItems/>
+        <domainRepItem/>
+        <protocolRepItem/>
+        <multiPartyProtocolRepItem>
+            <multiPartyProtocolRepItem description="Simple Mediated Multiparty Protocol" classPath="negotiator.multipartyprotocol.SimpleMediatorBasedProtocol" protocolName="Simple Mediator Based Protocol" hasMediator="true" hasMediatorProfile="false"/>
+            <multiPartyProtocolRepItem description="Mediator Feedback Based Multiparty Protocol" classPath="negotiator.multipartyprotocol.MediatorFeedbackBasedProtocol" protocolName="Mediator Feedback Based Protocol" hasMediator="true" hasMediatorProfile="false"/>
+        </multiPartyProtocolRepItem>
+    </items>
+    <filename>multipartyprotocolrepository.xml</filename>
+</repository>
+ 

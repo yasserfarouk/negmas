@@ -1,0 +1,34 @@
+<utility_space>
+<objective index="0" etype="objective" type="objective" description="" name="PlanesDomain">
+<issue index="1" etype="discrete" type="discrete" vtype="discrete" name="Plane">
+<item index="1" value="Piper" cost="300" evaluation="1" description="Small plane">
+</item>
+<item index="2" value="Aircraft4" cost="1000" evaluation="3" description="Middle plane">
+</item>
+<item index="3" value="Boing747" cost="1900" evaluation="2" description="Big plane">
+</item>
+</issue>
+<issue index="2" etype="discrete" type="discrete" vtype="discrete" name="Engine">
+<item index="1" value="Rocket" cost="0" evaluation="2" description="The old engine">
+</item>
+<item index="2" value="Jet" cost="500" evaluation="3" description="Good engine">
+</item>
+<item index="3" value="Turbo" cost="1000" evaluation="1" description="Best engine">
+</item>
+</issue>
+<issue index="3" etype="discrete" type="discrete" vtype="discrete" name="Technology">
+<item index="1" value="Old radio" cost="200" evaluation="3" description="Old radio">
+</item>
+<item index="2" value="Regular computer" cost="400" evaluation="2" description="Stantard control system">
+</item>
+<item index="3" value="Super computer" cost="900" evaluation="1" description="Fast, reliable and strong control system">
+</item>
+</issue>
+<weight index="1" value="0.35"> 
+</weight>
+<weight index="2" value="0.2">
+</weight>
+<weight index="3" value="0.45">
+</weight>
+</objective>
+</utility_space>

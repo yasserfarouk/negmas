@@ -1,0 +1,3 @@
+sep=;
+Run time (s);Round;Exception;deadline;Agreement;Discounted;#agreeing;min.util.;max.util.;Dist. to Pareto;Dist. to Nash;Social Welfare;Agent 1;Agent 2;Utility 1;Utility 2;Disc. Util. 1;Disc. Util. 2;Perceived. Util. 1;Perceived. Util. 2;Profile 1;Profile 2
+0.807;31;;30rounds;No;No;1;0.00000;0.00000;1.03604;1.21592;0.00000;boa-negotiator.boaframework.offeringstrategy.anac2010.Nozomi_Offering-negotiator.boaframework.acceptanceconditions.anac2011.AC_BRAMAgent-negotiator.boaframework.opponentmodel.BayesianModel_m-negotiator.boaframework.omstrategy.TheFawkes_OMS@0;BayesianAgent@1;0.0;0.0;0.0;0.0;0.0;0.0;party1_utility.xml;party2_utility.xml

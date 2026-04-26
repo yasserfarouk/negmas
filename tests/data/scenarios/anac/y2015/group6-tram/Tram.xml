@@ -1,0 +1,58 @@
+<negotiation_template>
+<utility_space number_of_issues="7">
+<objective description="" etype="objective" index="0" name="root" type="objective">
+    <issue etype="discrete" index="1" name="Overhead line" type="discrete" vtype="discrete">
+        <item index="1" value="yes" cost="0" description="yes">
+        </item>
+        <item index="2" value="no" cost="0" description="no">
+        </item>
+    </issue>
+    <issue etype="discrete" index="2" name="Bridge height" type="discrete" vtype="discrete">
+        <item index="1" value="high" cost="0" description="high">
+        </item>
+        <item index="2" value="middle" cost="0" description="middle">
+        </item>
+        <item index="3" value="low" cost="0" description="low">
+        </item>
+    </issue>
+    <issue etype="discrete" index="3" name="Traffic frequency" type="discrete" vtype="discrete">
+        <item index="1" value="1 ph" cost="0" description="1 ph">
+        </item>
+        <item index="2" value="2 ph" cost="0" description="2 ph">
+        </item>
+        <item index="3" value="4 ph" cost="0" description="4 ph">
+        </item>
+    </issue>
+    <issue etype="discrete" index="4" name="Budget" type="discrete" vtype="discrete">
+        <item index="1" value="1 mln" cost="0" description="1 mln">
+        </item>
+        <item index="2" value="2 mln" cost="0" description="2 mln">
+        </item>
+        <item index="3" value="3 mln" cost="0" description="3 mln">
+        </item>
+    </issue>
+    <issue etype="discrete" index="5" name="Tram carriages" type="discrete" vtype="discrete">
+        <item index="1" value="new" cost="0" description="new">
+        </item>
+        <item index="2" value="used" cost="0" description="used">
+        </item>
+    </issue>
+    <issue etype="discrete" index="6" name="Destination" type="discrete" vtype="discrete">
+        <item index="1" value="TU Delft campus" cost="0" description="TU Delft campus">
+        </item>
+        <item index="2" value="Delft Zuid" cost="0" description="Delft Zuid">
+        </item>
+        <item index="3" value="Rotterdam" cost="0" description="Rotterdam">
+        </item>
+    </issue>
+    <issue etype="discrete" index="7" name="Year of delivery" type="discrete" vtype="discrete">
+        <item index="1" value="2016" cost="0" description="2016">
+        </item>
+        <item index="2" value="2017" cost="0" description="2017">
+        </item>
+        <item index="3" value="2018" cost="0" description="2018">
+        </item>
+    </issue>
+</objective>
+</utility_space>
+</negotiation_template>

@@ -1,0 +1,62 @@
+<negotiation_template>
+<utility_space number_of_issues="6">
+<objective description="" etype="objective" index="0" name="root" type="objective">
+    <issue etype="discrete" index="1" name="Location" type="discrete" vtype="discrete">
+        <item index="1" value="Tu Delft" cost="0" description="Tu Delft">
+        </item>
+        <item index="2" value="Erasumus" cost="0" description="Erasumus">
+        </item>
+        <item index="3" value="TU Eindhoven" cost="0" description="TU Eindhoven">
+        </item>
+        <item index="4" value="TU Twente" cost="0" description="TU Twente">
+        </item>
+    </issue>
+    <issue etype="discrete" index="2" name="Morning Slot" type="discrete" vtype="discrete">
+        <item index="1" value="Mr. Bidarra" cost="0" description="Mr. Bidarra">
+        </item>
+        <item index="2" value="Mr. Eisemann" cost="0" description="Mr. Eisemann">
+        </item>
+        <item index="3" value="Mr. Bossos" cost="0" description="Mr. Bossos">
+        </item>
+        <item index="4" value="Mr. Goedeovergeburen" cost="0" description="Mr. Goedeovergeburen">
+        </item>
+    </issue>
+    <issue etype="discrete" index="3" name="Afternoon Slot" type="discrete" vtype="discrete">
+        <item index="1" value="Mr. Talkolot" cost="0" description="Mr. Talkolot">
+        </item>
+        <item index="2" value="Mr. Ahuff" cost="0" description="Mr. Ahuff">
+        </item>
+        <item index="3" value="Miss. Getbizzy" cost="0" description="Miss. Getbizzy">
+        </item>
+    </issue>
+    <issue etype="discrete" index="4" name="Evening Slot" type="discrete" vtype="discrete">
+        <item index="1" value="Mr. Gates" cost="0" description="Mr. Gates">
+        </item>
+        <item index="2" value="Mr. Umbertotan" cost="0" description="Mr. Umbertotan">
+        </item>
+        <item index="3" value="Mr. Han" cost="0" description="Mr. Han">
+        </item>
+        <item index="4" value="Mr. LeeLoo" cost="0" description="Mr. LeeLoo">
+        </item>
+    </issue>
+    <issue etype="discrete" index="5" name="Drinks" type="discrete" vtype="discrete">
+        <item index="1" value="Coffee and Thee" cost="0" description="Coffee and Thee">
+        </item>
+        <item index="2" value="Alcoholic beverages" cost="0" description="Alcoholic beverages">
+        </item>
+        <item index="3" value="non-Alcoholic beverages" cost="0" description="non-Alcoholic beverages">
+        </item>
+    </issue>
+    <issue etype="discrete" index="6" name="Date" type="discrete" vtype="discrete">
+        <item index="1" value="September" cost="0" description="September">
+        </item>
+        <item index="2" value="October" cost="0" description="October">
+        </item>
+        <item index="3" value="November" cost="0" description="November">
+        </item>
+        <item index="4" value="December" cost="0" description="December">
+        </item>
+    </issue>
+</objective>
+</utility_space>
+</negotiation_template>

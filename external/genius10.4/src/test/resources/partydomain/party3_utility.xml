@@ -1,0 +1,75 @@
+<utility_space> 
+<objective index="0" description="" name="Party" type="objective" etype="objective"> 
+<issue index="1" name="Food" vtype="discrete" type="discrete" etype="discrete"> 
+<item index="1" description="Buy bags of chips and party nuts for all guests." value="Chips and Nuts" cost="100.0" evaluation="20"> 
+</item> 
+<item index="2" description="Diced cheese, sliced sausage, deep fried stuff. More tasty than chips and nuts, but more expensive." value="Finger-Food" cost="170.0" evaluation="15"> 
+</item> 
+<item index="3" description="Custom snacks, hours d’oeuvres etc. Less expansive than finger-food, but more work." value="Handmade Food" cost="120.0" evaluation="12"> 
+</item> 
+<item index="4" description="Outsource the food, if you will. The least work, the
+highest cost." value="Catering" cost="250.0" evaluation="10"> 
+</item> 
+</issue> 
+<issue index="2" name="Drinks" vtype="discrete" type="discrete" etype="discrete"> 
+<item index="1" description="Soda’s, ice water, etc." value="Non-Alcoholic" cost="75.0" evaluation="20"> 
+</item> 
+<item index="2" description="More than enough beers for everybody. It has alcohol, but is more expensive." value="Beer Only" cost="300.0" evaluation="4"> 
+</item> 
+<item index="3" description="Mix your own drinks. More work, but less expensive than a trainload of beer." value="Handmade Cocktails" cost="200.0" evaluation="15"> 
+</item> 
+<item index="4" description="Let some company do the drinks. Least work, highest cost." value="Catering" cost="450.0" evaluation="5"> 
+</item> 
+</issue> 
+<issue index="3" name="Location" vtype="discrete" type="discrete" etype="discrete"> 
+<item index="1" description="A tent on some field somewhere. Roomy, but outdoors." value="Party Tent" cost="200.0" evaluation="25"> 
+</item> 
+<item index="2" description="Give the party in your dormitory. It’s home, but there is less room." value="Your Dorm" cost="100.0" evaluation="20"> 
+</item> 
+<item index="3" description="Hire a standard party room. Enough room, no outdoor problems. It costs more, though." value="Party Room" cost="400.0" evaluation="10"> 
+</item> 
+<item index="4" description="The fanciest option. A beautifully decorated ballroom with everything you need." value="Ballroom" cost="600.0" evaluation="23"> 
+</item> 
+</issue> 
+<issue index="4" name="Invitations" vtype="discrete" type="discrete" etype="discrete"> 
+<item index="1" description="Write the address on pieces of paper and hand those out." value="Plain" cost="25.0" evaluation="15"> 
+</item> 
+<item index="2" description="Take a nice picture of something, or buy one in the store, and write on the back of that. More expensive, but prettier." value="Photo" cost="75.0" evaluation="10"> 
+</item> 
+<item index="3" description="Custom shape card. More work, a tad less expensive than the photo option." value="Custom, Handmade" cost="50.0" evaluation="8"> 
+</item> 
+<item index="4" description="Design the card, then let somebody else print it. You pay a lot, but do the least." value="Custom, Printed" cost="150.0" evaluation="12"> 
+</item> 
+</issue> 
+<issue index="5" name="Music" vtype="discrete" type="discrete" etype="discrete"> 
+<item index="1" description="Plug some boxes into your computer and run off your MP3 collection. More work, the wiring costs money." value="MP3" cost="100.0" evaluation="18"> 
+</item> 
+<item index="2" description="Hire a DJ to play off his MP3 collection. No work for you during the party, but more expensive." value="DJ" cost="250.0" evaluation="15"> 
+</item> 
+<item index="3" description="Hire a party band for live music. The most expensive, but it is live music." value="Band" cost="350.0" evaluation="20"> 
+</item> 
+</issue> 
+<issue index="6" name="Cleanup" vtype="discrete" type="discrete" etype="discrete"> 
+<item index="1" description="This will take a lot of scrubbing. It is cheap, but by far the most work." value="Water and Soap" cost="20.0" evaluation="5"> 
+</item> 
+<item index="2" description="Specialized materials will help cleaning a lot, but it is more expensive." value="Specialized Materials" cost="60.0" evaluation="10"> 
+</item> 
+<item index="3" description="Rent a CleanMaster 3000 and see those stains disappear in no time. Yet less work, yet more mone" value="Special Equiment" cost="150.0" evaluation="15"> 
+</item> 
+<item index="4" description="Hire somebody else to do your dirty work. No work,but pricey." value="Hired Help" cost="200.0" evaluation="20"> 
+</item> 
+</issue> 
+<weight index="1" value="0.26406799635023226"> 
+</weight> 
+<weight index="2" value="0.1897622085535712"> 
+</weight> 
+<weight index="3" value="0.22270065828817484"> 
+</weight> 
+<weight index="4" value="0.05801671655793907"> 
+</weight> 
+<weight index="5" value="0.16832340046936656"> 
+</weight> 
+<weight index="6" value="0.09712901978071596"> 
+</weight> 
+</objective> 
+</utility_space> 

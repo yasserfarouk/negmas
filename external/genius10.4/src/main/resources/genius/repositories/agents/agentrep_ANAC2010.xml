@@ -1,0 +1,29 @@
+<?xml version="1.0" encoding="UTF-8" standalone="yes"?>
+<repository fileName="agentrepository.xml">
+    <items>
+        <agentRepItems>
+            <agentRepItem description="IAMhaggler" classPath="agents.southampton.IAMhaggler" agentName="IAMhaggler"/>
+            <agentRepItem description="IAMcrazyHaggler" classPath="agents.southampton.IAMcrazyHaggler" agentName="IAMcrazyHaggler"/>
+            <agentRepItem description="Agent K" classPath="Agent_K" agentName="Agent K"/>
+            <agentRepItem description="Nozomi" classPath="agents.MyAgent" agentName="Nozomi"/>
+            <agentRepItem description="FSEGA" classPath="agents.AgentFSEGA_final2" agentName="FSEGA"/>
+            <agentRepItem description="AgentSmith" classPath="negotiation.group_smith.AgentSmith" agentName="AgentSmith"/>
+            <agentRepItem description="AnAgent" classPath="an.AnAgent" agentName="AnAgent"/>            
+            <agentRepItem description="Bayesian Agent" classPath="agents.BayesianAgent" agentName="BayesianAgent"/>
+            <agentRepItem description="Bayesian Agent for the two-phase multi-party auction" classPath="agents.BayesianAgentForAuction" agentName="BayesianAgentForAuction"/>
+            <agentRepItem description="Bayesian Agent for the two-phase multi-party auction" classPath="agents.BayesianAgentForAuctionMultiPhase" agentName="BayesianAgentForAuctionMultiPhase"/>
+            <agentRepItem description="Simple UI agent" classPath="agents.UIAgent" agentName="UIAgent"/>
+            <agentRepItem description="UI agent with advanced GUI (by Alina)" classPath="agents.UIAgentExtended" agentName="UIAgent Extended"/>
+            <agentRepItem description="The Random Walker" classPath="agents.SimpleAgent" agentName="SimpleAgt"/>
+            <agentRepItem description="Trade-Off agent designed by P. Faratin, C. Sierra and N. R. Jennings" classPath="agents.SimilarityAgent" agentName="Trade-Off agent"/>
+            <agentRepItem description="Fuzzy agent designed by Zaynab Raeesy and Ryszard Kowalczyk" classPath="agents.FuzzyAgent" agentName="FuzzyAgent"/>
+            <agentRepItem description="ABMP agent designed by C. Jonker and J. Treur" classPath="agents.ABMPAgent2" agentName="ABMPAgent"/>
+            <agentRepItem description="Tries to offer bid with higher util than best opponent bid" classPath="agents.RandomIncreasingUtilAgent" agentName="RandomIncreasingUtilAgent"/>
+            <agentRepItem description="Scalable version of the BayesianAgent" classPath="agents.BayesianAgentNS" agentName="BayesianScalable agent"/>
+
+        </agentRepItems>
+        <domainRepItem/>
+        <protocolRepItem/>
+    </items>
+    <filename>agentrepository.xml</filename>
+</repository>

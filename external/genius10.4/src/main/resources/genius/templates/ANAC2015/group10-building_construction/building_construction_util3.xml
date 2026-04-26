@@ -1,0 +1,68 @@
+<utility_space> 
+<objective index="0" description="" name="building_construction" type="objective" etype="objective"> 
+<issue index="1" name="yard_size" vtype="discrete" type="discrete" etype="discrete"> 
+<item index="1" value="large"> 
+</item> 
+<item index="2" value="medium"> 
+</item> 
+<item index="3" value="small"> 
+</item> 
+</issue> 
+<issue index="2" name="windows" vtype="discrete" type="discrete" etype="discrete"> 
+<item index="1" value="single glazing"> 
+</item> 
+<item index="2" value="double glazing"> 
+</item> 
+</issue> 
+<issue index="3" name="architecture_style" vtype="discrete" type="discrete" etype="discrete"> 
+<item index="1" value="modern"> 
+</item> 
+<item index="2" value="common"> 
+</item> 
+<item index="3" value="old_fashioned"> 
+</item> 
+</issue> 
+<issue index="4" name="mortgage_needed" vtype="discrete" type="discrete" etype="discrete"> 
+<item index="1" value="small"> 
+</item> 
+<item index="2" value="medium"> 
+</item> 
+<item index="3" value="large"> 
+</item> 
+</issue> 
+<issue index="5" name="construction_time" vtype="discrete" type="discrete" etype="discrete"> 
+<item index="1" value="short"> 
+</item> 
+<item index="2" value="medium"> 
+</item> 
+<item index="3" value="long"> 
+</item> 
+</issue> 
+<issue index="6" name="internet_connection" vtype="discrete" type="discrete" etype="discrete"> 
+<item index="1" value="satellite"> 
+</item> 
+<item index="2" value="phone_line"> 
+</item> 
+<item index="3" value="cable"> 
+</item> 
+<item index="4" value="fiberglass"> 
+</item> 
+</issue> 
+<weight index="1" value="0.0"> 
+</weight> 
+<weight index="2" value="0.0"> 
+</weight> 
+<weight index="3" value="0.0"> 
+</weight> 
+<weight index="4" value="0.0"> 
+</weight> 
+<weight index="5" value="0.0"> 
+</weight> 
+<weight index="6" value="0.0"> 
+</weight> 
+</objective> 
+<discount_factor value="1.0"> 
+</discount_factor> 
+<reservation value="0.0"> 
+</reservation> 
+</utility_space> 

@@ -1,0 +1,55 @@
+<?xml version="1.0"?>
+<utility_space number_of_issues="6">
+  <objective index="0" etype="objective" type="objective" description="" name="Energy-small">
+    <weight index="1" value="0.045759405795226"/>
+    <weight index="2" value="0.25266422192864"/>
+    <weight index="3" value="0.27252719524102"/>
+    <weight index="4" value="0.21499819553896"/>
+    <weight index="5" value="0.15540726999895"/>
+    <weight index="6" value="0.058643711497201"/>
+    <issue index="1" name="0000-0400" type="discrete" etype="discrete">
+      <item index="1" value="0 kW" evaluation="0" cost="0"/>
+      <item index="2" value="25 kW" evaluation="14" cost="0"/>
+      <item index="3" value="50 kW" evaluation="277" cost="0"/>
+      <item index="4" value="75 kW" evaluation="883" cost="0"/>
+      <item index="5" value="100 kW" evaluation="1000" cost="0"/>
+    </issue>
+    <issue index="2" name="0400-0800" type="discrete" etype="discrete">
+      <item index="1" value="0 kW" evaluation="0" cost="0"/>
+      <item index="2" value="25 kW" evaluation="19" cost="0"/>
+      <item index="3" value="50 kW" evaluation="344" cost="0"/>
+      <item index="4" value="75 kW" evaluation="895" cost="0"/>
+      <item index="5" value="100 kW" evaluation="1000" cost="0"/>
+    </issue>
+    <issue index="3" name="0800-1200" type="discrete" etype="discrete">
+      <item index="1" value="0 kW" evaluation="0" cost="0"/>
+      <item index="2" value="25 kW" evaluation="243" cost="0"/>
+      <item index="3" value="50 kW" evaluation="413" cost="0"/>
+      <item index="4" value="75 kW" evaluation="713" cost="0"/>
+      <item index="5" value="100 kW" evaluation="1000" cost="0"/>
+    </issue>
+    <issue index="4" name="1200-1600" type="discrete" etype="discrete">
+      <item index="1" value="0 kW" evaluation="0" cost="0"/>
+      <item index="2" value="25 kW" evaluation="354" cost="0"/>
+      <item index="3" value="50 kW" evaluation="510" cost="0"/>
+      <item index="4" value="75 kW" evaluation="555" cost="0"/>
+      <item index="5" value="100 kW" evaluation="1000" cost="0"/>
+    </issue>
+    <issue index="5" name="1600-2000" type="discrete" etype="discrete">
+      <item index="1" value="0 kW" evaluation="0" cost="0"/>
+      <item index="2" value="25 kW" evaluation="22" cost="0"/>
+      <item index="3" value="50 kW" evaluation="107" cost="0"/>
+      <item index="4" value="75 kW" evaluation="749" cost="0"/>
+      <item index="5" value="100 kW" evaluation="1000" cost="0"/>
+    </issue>
+    <issue index="6" name="2000-0000" type="discrete" etype="discrete">
+      <item index="1" value="0 kW" evaluation="0" cost="0"/>
+      <item index="2" value="25 kW" evaluation="671" cost="0"/>
+      <item index="3" value="50 kW" evaluation="741" cost="0"/>
+      <item index="4" value="75 kW" evaluation="807" cost="0"/>
+      <item index="5" value="100 kW" evaluation="1000" cost="0"/>
+    </issue>
+  </objective>
+  <discount_factor value="0.75" />
+<reservation value="0.50" />
+</utility_space>

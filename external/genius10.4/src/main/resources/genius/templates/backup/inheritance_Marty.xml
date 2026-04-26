@@ -1,0 +1,44 @@
+<utility_space number_of_issues="7">
+	<weight index="1" value="1"/>
+	<weight index="2" value="1"/>
+	<weight index="3" value="1"/>
+	<weight index="4" value="1"/>
+	<weight index="5" value="1"/>
+	<weight index="6" value="1"/>
+	<weight index="7" value="1"/>
+	<issue index="1" name="house">
+		<item index="1" value="Janet" evaluation="0"/>
+		<item index="2" value="Marty" evaluation="11"/>
+		<item index="3" value="unspecified" evaluation="0"/>
+	</issue>
+	<issue index="2" name="law_firm">
+		<item index="1" value="Janet" evaluation="0"/>
+		<item index="2" value="Marty" evaluation="26"/>
+		<item index="3" value="unspecified" evaluation="0"/>
+	</issue>
+	<issue index="3" name="car">
+		<item index="1" value="Janet" evaluation="0"/>
+		<item index="2" value="Marty" evaluation="9"/>
+		<item index="3" value="unspecified" evaluation="0"/>
+	</issue>
+	<issue index="4" name="sailboat">
+		<item index="1" value="Janet" evaluation="0"/>
+		<item index="2" value="Marty" evaluation="23"/>
+		<item index="3" value="unspecified" evaluation="0"/>
+	</issue>
+	<issue index="5" name="land">
+		<item index="1" value="Janet" evaluation="0"/>
+		<item index="2" value="Marty" evaluation="12"/>
+		<item index="3" value="unspecified" evaluation="0"/>
+	</issue>
+	<issue index="6" name="furniture">
+		<item index="1" value="Janet" evaluation="0"/>
+		<item index="2" value="Marty" evaluation="9"/>
+		<item index="3" value="unspecified" evaluation="0"/>
+	</issue>
+	<issue index="7" name="garage">
+		<item index="1" value="Janet" evaluation="0"/>
+		<item index="2" value="Marty" evaluation="10"/>
+		<item index="3" value="unspecified" evaluation="0"/>
+	</issue>
+</utility_space>

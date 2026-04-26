@@ -1,0 +1,92 @@
+<utility_space> 
+<objective index="0" description="" name="Kitchen" type="objective" etype="objective"> 
+<issue index="1" name="Stoves" vtype="discrete" type="discrete" etype="discrete"> 
+<item index="1" value="Ceramic" evaluation="80"> 
+</item> 
+<item index="2" value="Electrical" evaluation="70"> 
+</item> 
+<item index="3" value="Induction" evaluation="100"> 
+</item> 
+<item index="4" value="Gas" evaluation="95"> 
+</item> 
+<item index="5" value="Hybrid" evaluation="98"> 
+</item> 
+</issue> 
+<issue index="2" name="Refrigerator" vtype="discrete" type="discrete" etype="discrete"> 
+<item index="1" value="Traditional" evaluation="72"> 
+</item> 
+<item index="2" value="Side-by-side" evaluation="85"> 
+</item> 
+<item index="3" value="Top-refrigerator/bottom freezer" evaluation="100"> 
+</item> 
+<item index="4" value="French-door" evaluation="97"> 
+</item> 
+<item index="5" value="Four-door French-door" evaluation="93"> 
+</item> 
+</issue> 
+<issue index="3" name="Cabinets" vtype="discrete" type="discrete" etype="discrete"> 
+<item index="1" value="Pine" evaluation="69"> 
+</item> 
+<item index="2" value="Maple" evaluation="87"> 
+</item> 
+<item index="3" value="Oak" evaluation="92"> 
+</item> 
+<item index="4" value="Cherry" evaluation="95"> 
+</item> 
+<item index="5" value="Mahogany" evaluation="100"> 
+</item> 
+</issue> 
+<issue index="4" name="Countertops" vtype="discrete" type="discrete" etype="discrete"> 
+<item index="1" value="Granite" evaluation="99"> 
+</item> 
+<item index="2" value="Limestone" evaluation="96"> 
+</item> 
+<item index="3" value="Marble" evaluation="80"> 
+</item> 
+<item index="4" value="Inox" evaluation="100"> 
+</item> 
+<item index="5" value="Acrylic" evaluation="76"> 
+</item> 
+</issue> 
+<issue index="5" name="Lighting spots" vtype="discrete" type="discrete" etype="discrete"> 
+<item index="1" value="3" evaluation="82"> 
+</item> 
+<item index="2" value="5" evaluation="97"> 
+</item> 
+<item index="3" value="10" evaluation="100"> 
+</item> 
+<item index="4" value="15" evaluation="94"> 
+</item> 
+<item index="5" value="20" evaluation="75"> 
+</item> 
+</issue> 
+<issue index="6" name="Equipment" vtype="discrete" type="discrete" etype="discrete"> 
+<item index="1" value="Dishwasher" evaluation="100"> 
+</item> 
+<item index="2" value="Coffee machine" evaluation="73"> 
+</item> 
+<item index="3" value="Microwave" evaluation="98"> 
+</item> 
+<item index="4" value="Water Boiler" evaluation="79"> 
+</item> 
+<item index="5" value="Oven" evaluation="95"> 
+</item> 
+</issue> 
+<weight index="1" value="0.3039192644132069"> 
+</weight> 
+<weight index="2" value="0.1664056189905329"> 
+</weight> 
+<weight index="3" value="0.048141079480264026"> 
+</weight> 
+<weight index="4" value="0.1963058346703271"> 
+</weight> 
+<weight index="5" value="0.07009069067321806"> 
+</weight> 
+<weight index="6" value="0.2151375117724509"> 
+</weight> 
+</objective> 
+<discount_factor value="0.8"> 
+</discount_factor> 
+<reservation value="0.0"> 
+</reservation> 
+</utility_space> 

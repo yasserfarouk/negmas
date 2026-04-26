@@ -1,0 +1,24 @@
+<utility_space> 
+<objective name="movie" index="0" description="" etype="objective" type="objective"> 
+<issue vtype="discrete" name="location" index="1" etype="discrete" type="discrete"> 
+<item evaluation="2" index="1" value="pathe"> 
+</item> 
+<item evaluation="10" index="2" value="wolff"> 
+</item> 
+</issue> 
+<issue vtype="discrete" name="movie" index="2" etype="discrete" type="discrete"> 
+<item evaluation="5" index="1" value="finding nemo"> 
+</item> 
+<item evaluation="12" index="2" value="the good, the bad & the ugly"> 
+</item> 
+</issue> 
+<weight index="1" value="0.4"> 
+</weight> 
+<weight index="2" value="0.6"> 
+</weight> 
+</objective> 
+<discount_factor value="1.0"> 
+</discount_factor> 
+<reservation value="0.0"> 
+</reservation> 
+</utility_space> 

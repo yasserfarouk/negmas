@@ -1,0 +1,80 @@
+<utility_space type="UNCERTAIN"> 
+<objective name="Jobs" index="0" description="" etype="objective" type="objective"> 
+<issue vtype="discrete" name="salary" index="1" etype="discrete" type="discrete"> 
+<item evaluation="1.0" index="1" value="2000"> 
+</item> 
+<item evaluation="0.75" index="2" value="2500"> 
+</item> 
+<item evaluation="0.5" index="3" value="3000"> 
+</item> 
+<item evaluation="0.25" index="4" value="3500"> 
+</item> 
+<item evaluation="0.0" index="5" value="4000"> 
+</item> 
+</issue> 
+<issue vtype="discrete" name="fte" index="2" etype="discrete" type="discrete"> 
+<item evaluation="0.36363636363636365" index="1" value="0.6"> 
+</item> 
+<item evaluation="0.5" index="2" value="0.8"> 
+</item> 
+<item evaluation="0.6363636363636364" index="3" value="1.0"> 
+</item> 
+</issue> 
+<issue vtype="discrete" name="work from home" index="3" etype="discrete" type="discrete"> 
+<item evaluation="1.0" index="1" value="0"> 
+</item> 
+<item evaluation="0.5" index="2" value="1"> 
+</item> 
+<item evaluation="0.0" index="3" value="2"> 
+</item> 
+</issue> 
+<issue vtype="discrete" name="lease car" index="4" etype="discrete" type="discrete"> 
+<item evaluation="0.0" index="1" value="yes"> 
+</item> 
+<item evaluation="1.0" index="2" value="no"> 
+</item> 
+</issue> 
+<issue vtype="discrete" name="permanent contract" index="5" etype="discrete" type="discrete"> 
+<item evaluation="0.23809523809523808" index="1" value="yes"> 
+</item> 
+<item evaluation="0.761904761904762" index="2" value="no"> 
+</item> 
+</issue> 
+<issue vtype="discrete" name="career development opportunities" index="6" etype="discrete" type="discrete"> 
+<item evaluation="1.0" index="1" value="low"> 
+</item> 
+<item evaluation="0.5" index="2" value="medium"> 
+</item> 
+<item evaluation="0.0" index="3" value="high"> 
+</item> 
+</issue> 
+<weight index="1" value="0.1991675912452215"> 
+</weight> 
+<weight index="2" value="0.16533582521483592"> 
+</weight> 
+<weight index="3" value="0.24523350590859103"> 
+</weight> 
+<weight index="4" value="0.08008017315629874"> 
+</weight> 
+<weight index="5" value="0.21013576952252824"> 
+</weight> 
+<weight index="6" value="0.10004713495252457"> 
+</weight> 
+</objective> 
+<discount_factor value="1.0"> 
+</discount_factor> 
+<reservation value="0.126453"> 
+</reservation> 
+<comparisons> 
+10 
+</comparisons> 
+<errors> 
+0 
+</errors> 
+<fixed_seed> 
+true 
+</fixed_seed> 
+<experimental> 
+false 
+</experimental> 
+</utility_space> 

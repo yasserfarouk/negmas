@@ -1,0 +1,56 @@
+<negotiation_template>
+<utility_space number_of_issues="5">
+<objective description="" etype="objective" index="0" name="root" type="objective">
+    <issue etype="discrete" index="1" name="Destination" type="discrete" vtype="discrete">
+        <item index="1" value="London" cost="0" description="London">
+        </item>
+        <item index="2" value="Paris" cost="0" description="Paris">
+        </item>
+        <item index="3" value="Amsterdam" cost="0" description="Amsterdam">
+        </item>
+        <item index="4" value="Miami" cost="0" description="Miami">
+        </item>
+    </issue>
+    <issue etype="discrete" index="2" name="Duration" type="discrete" vtype="discrete">
+        <item index="1" value="3" cost="0" description="3">
+        </item>
+        <item index="2" value="7" cost="0" description="7">
+        </item>
+        <item index="3" value="10" cost="0" description="10">
+        </item>
+        <item index="4" value="14" cost="0" description="14">
+        </item>
+    </issue>
+    <issue etype="discrete" index="3" name="Budget" type="discrete" vtype="discrete">
+        <item index="1" value="400" cost="0" description="400">
+        </item>
+        <item index="2" value="700" cost="0" description="700">
+        </item>
+        <item index="3" value="1000" cost="0" description="1000">
+        </item>
+        <item index="4" value="1500" cost="0" description="1500">
+        </item>
+    </issue>
+    <issue etype="discrete" index="4" name="Activities" type="discrete" vtype="discrete">
+        <item index="1" value="Museum" cost="0" description="Museum">
+        </item>
+        <item index="2" value="Sport" cost="0" description="Sport">
+        </item>
+        <item index="3" value="Restaurant" cost="0" description="Restaurant">
+        </item>
+        <item index="4" value="Historical Places" cost="0" description="Historical Places">
+        </item>
+    </issue>
+    <issue etype="discrete" index="5" name="Transportation" type="discrete" vtype="discrete">
+        <item index="1" value="Car" cost="0" description="Car">
+        </item>
+        <item index="2" value="Bus" cost="0" description="Bus">
+        </item>
+        <item index="3" value="Train" cost="0" description="Train">
+        </item>
+        <item index="4" value="Air Plane" cost="0" description="Air Plane">
+        </item>
+    </issue>
+</objective>
+</utility_space>
+</negotiation_template>

@@ -1,0 +1,23 @@
+/* Custom CSS for NegMAS documentation */
+
+/* Ensure tables are responsive and don't overflow */
+.wy-table-responsive table td,
+.wy-table-responsive table th {
+    white-space: inherit;
+}
+
+/* Better code block styling */
+.highlight pre {
+    overflow-x: auto;
+}
+
+/* Improve admonition styling */
+.admonition {
+    margin: 1.5rem 0;
+}
+
+/* Make inline code more visible */
+code.literal {
+    padding: 0.1em 0.3em;
+    border-radius: 0.2em;
+}

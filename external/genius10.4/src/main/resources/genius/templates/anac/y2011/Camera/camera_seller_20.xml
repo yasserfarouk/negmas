@@ -1,0 +1,92 @@
+<utility_space type="UNCERTAIN"> 
+<objective name="root" index="0" description="" etype="objective" type="objective"> 
+<issue vtype="discrete" name="Maker" index="1" etype="discrete" type="discrete"> 
+<item evaluation="5.0" index="1" value="Canon"> 
+</item> 
+<item evaluation="70.0" index="2" value="Nikon"> 
+</item> 
+<item evaluation="500.0" index="3" value="Pentax"> 
+</item> 
+<item evaluation="300.0" index="4" value="Sony"> 
+</item> 
+<item evaluation="20.0" index="5" value="Panasonic"> 
+</item> 
+</issue> 
+<issue vtype="discrete" name="Body" index="2" etype="discrete" type="discrete"> 
+<item evaluation="30.0" index="1" value="Full size"> 
+</item> 
+<item evaluation="315.0" index="2" value="APS-C"> 
+</item> 
+<item evaluation="120.0" index="3" value="Micro Four Thirds"> 
+</item> 
+<item evaluation="10.0" index="4" value="compact"> 
+</item> 
+</issue> 
+<issue vtype="discrete" name="Lens" index="3" etype="discrete" type="discrete"> 
+<item evaluation="250.0" index="1" value="High end model"> 
+</item> 
+<item evaluation="125.0" index="2" value="Middle range model"> 
+</item> 
+<item evaluation="10.0" index="3" value="Entry model"> 
+</item> 
+</issue> 
+<issue vtype="discrete" name="Tripod" index="4" etype="discrete" type="discrete"> 
+<item evaluation="50.0" index="1" value="GITZO"> 
+</item> 
+<item evaluation="160.0" index="2" value="Manfrotto"> 
+</item> 
+<item evaluation="20.0" index="3" value="Induro"> 
+</item> 
+</issue> 
+<issue vtype="discrete" name="Bag" index="5" etype="discrete" type="discrete"> 
+<item evaluation="20.0" index="1" value="Domke"> 
+</item> 
+<item evaluation="100.0" index="2" value="Lowepro"> 
+</item> 
+<item evaluation="10.0" index="3" value="Tamrac"> 
+</item> 
+<item evaluation="30.0" index="4" value="National Geographic"> 
+</item> 
+<item evaluation="40.0" index="5" value="Artizan and Artist"> 
+</item> 
+</issue> 
+<issue vtype="discrete" name="Accessory" index="6" etype="discrete" type="discrete"> 
+<item evaluation="35.0" index="1" value="Electronic Flash"> 
+</item> 
+<item evaluation="15.0" index="2" value="Battery Grip"> 
+</item> 
+<item evaluation="20.0" index="3" value="Memory"> 
+</item> 
+<item evaluation="5.0" index="4" value="Strap"> 
+</item> 
+</issue> 
+<weight index="1" value="0.08"> 
+</weight> 
+<weight index="2" value="0.09"> 
+</weight> 
+<weight index="3" value="0.33"> 
+</weight> 
+<weight index="4" value="0.26"> 
+</weight> 
+<weight index="5" value="0.17"> 
+</weight> 
+<weight index="6" value="0.07"> 
+</weight> 
+</objective> 
+<discount_factor value="1.0"> 
+</discount_factor> 
+<reservation value="0.304352"> 
+</reservation> 
+<comparisons> 
+20 
+</comparisons> 
+<errors> 
+0 
+</errors> 
+<fixed_seed> 
+true 
+</fixed_seed> 
+<experimental> 
+false 
+</experimental> 
+</utility_space> 

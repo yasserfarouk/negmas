@@ -1,0 +1,52 @@
+<negotiation_template>
+<utility_space number_of_issues="4">
+<objective description="" etype="objective" index="0" name="root" type="objective">
+    <issue etype="discrete" index="1" name="Segmentation" type="discrete" vtype="discrete">
+        <item index="1" value="all to one(farmer)" cost="0" description="all to one(farmer)">
+        </item>
+        <item index="2" value="all to one(cons. comp.)" cost="0" description="all to one(cons. comp.)">
+        </item>
+        <item index="3" value="all to one(municipality)" cost="0" description="all to one(municipality)">
+        </item>
+        <item index="4" value="all to two(farmer and mun.)" cost="0" description="all to two(farmer and mun.)">
+        </item>
+        <item index="5" value="all to two(farmer and cons. comp.)" cost="0" description="all to two(farmer and cons. comp.)">
+        </item>
+        <item index="6" value="all to two(mun. and cons. comp.)" cost="0" description="all to two(mun. and cons. comp.)">
+        </item>
+        <item index="7" value="33%,33%,33%" cost="0" description="33%,33%,33%">
+        </item>
+    </issue>
+    <issue etype="discrete" index="2" name="Water Canal" type="discrete" vtype="discrete">
+        <item index="1" value="Big" cost="0" description="Big">
+        </item>
+        <item index="2" value="Medium" cost="0" description="Medium">
+        </item>
+        <item index="3" value="Small" cost="0" description="Small">
+        </item>
+        <item index="4" value="None" cost="0" description="None">
+        </item>
+    </issue>
+    <issue etype="discrete" index="3" name="Park" type="discrete" vtype="discrete">
+        <item index="1" value="Big" cost="0" description="Big">
+        </item>
+        <item index="2" value="Medium" cost="0" description="Medium">
+        </item>
+        <item index="3" value="Small" cost="0" description="Small">
+        </item>
+        <item index="4" value="None" cost="0" description="None">
+        </item>
+    </issue>
+    <issue etype="discrete" index="4" name="Functionality" type="discrete" vtype="discrete">
+        <item index="1" value="Farming" cost="0" description="Farming">
+        </item>
+        <item index="2" value="Commercial" cost="0" description="Commercial">
+        </item>
+        <item index="3" value="Housing" cost="0" description="Housing">
+        </item>
+        <item index="4" value="Industrial" cost="0" description="Industrial">
+        </item>
+    </issue>
+</objective>
+</utility_space>
+</negotiation_template>

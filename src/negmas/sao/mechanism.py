@@ -1,0 +1,1302 @@
+"""
+Implements a generalized Stacked Alternating Offers (SAO) mechanism.
+
+This module extends the classic Stacked Alternating Offers Protocol with several
+advanced features including dynamic negotiator entry/exit, per-negotiator time limits,
+text-based communication alongside offers, and flexible response types.
+"""
+
+from __future__ import annotations
+
+import functools
+import sys
+import time
+from collections import defaultdict
+from typing import TYPE_CHECKING, Any
+
+from rich import print
+
+from negmas import warnings
+from negmas.gb.negotiators import GBNegotiator
+from negmas.helpers.strings import humanize_time
+
+from ..common import TRACE_ELEMENT_MEMBERS, TraceElement
+from ..events import Event
+from ..helpers import TimeoutCaller, TimeoutError, exception2str
+from ..mechanisms import Mechanism, MechanismStepResult
+from ..outcomes.common import ExtendedOutcome, Outcome
+from ..outcomes.outcome_ops import cast_value_types, outcome_types_are_ok
+from .common import SAONMI, ResponseType, SAOResponse, SAOState
+from .negotiators import SAONegotiator
+
+if TYPE_CHECKING:
+    import pandas as pd
+
+    from negmas.preferences import Preferences
+
+
+__all__ = ["SAOMechanism", "SAOProtocol", "TraceElement"]
+
+DEFAULT_COLORMAP = "jet"
+
+
+def return_inf():
+    """A helper function that returns positive infinity."""
+    return float("inf")
+
+
+class SAOMechanism(
+    Mechanism[SAONMI, SAOState, SAOResponse, SAONegotiator | GBNegotiator]
+):
+    """
+    A generalized Stacked Alternating Offers Protocol mechanism.
+
+    This mechanism extends the classic SAO protocol with several advanced features:
+
+    - **Dynamic Entry/Exit**: Negotiators can join after the negotiation starts
+      (``dynamic_entry=True``) and can leave gracefully using ``ResponseType.LEAVE``
+      without forcing the negotiation to end (``allow_negotiators_to_leave=True``).
+
+    - **Per-Negotiator Limits**: Each negotiator can have individual time and step
+      limits, enabling asymmetric negotiation scenarios.
+
+    - **Text-Based Communication**: Negotiators can send messages or explanations
+      alongside offers using the ``data`` field and can even send messages that do
+      not contain any offers as long as they include some text or data
+      (``allow_none_with_data=True``).
+
+    - **Flexible Response Types**: Beyond ACCEPT/REJECT/END, negotiators can WAIT
+      (pause their turn) or LEAVE (exit gracefully).
+
+    - **Callbacks**: Negotiators receive notifications when others join
+      (``on_negotiator_entered``) or leave (``on_negotiator_left``) and on the most
+      important events including partner offers, rounds start and end, etc.
+
+    Args:
+
+        outcome_space: The negotiation agenda
+        issues: A list of issues defining the outcome-space of the negotiation
+        outcomes: A list of outcomes defining the outcome-space of the negotiation
+        n_steps: The maximum number of negotiation rounds (see `time_limit` )
+        time_limit: The maximum wall-time allowed for the negotiation (see `n_steps`)
+        step_time_limit: The maximum wall-time allowed for a single negotiation round.
+        max_n_agents: The maximum number of negotiators allowed to join the negotiation.
+        dynamic_entry: Whether it is allowed for negotiators to join the negotiation after it starts
+        cache_outcomes: If true, the mechanism will catch `outcomes` and a discrete version (`discrete_outcomes`) that
+                        can be accessed by any negotiator through their NMIs.
+        max_cardinality: Maximum number or outcomes to use when discretizing the outcome-space
+        annotation: A key-value mapping to keep around. Accessible through the NMI but not used by the mechanism.
+        end_on_no_response: End the negotiation if any negotiator returns NO_RESPONSE from `respond`/`counter` or returns
+                            REJECT_OFFER then refuses to give an offer (by returning `None` from `proposee/`counter`).
+        enable_callbacks: Enable callbacks like on_round_start, etc. Note that on_negotiation_end is always received
+                          by the negotiators no matter what is the setting for this parameter.
+        check_offers: If true, offers are checked to see if they are valid for the negotiation
+                      outcome-space and if not the offer is considered None which is the same as
+                      refusing to offer (NO_RESPONSE).
+        enforce_issue_types: If True, the type of each issue is enforced depending on the value of `cast_offers`
+        cast_offers: If true, each issue value is cast using the issue's type otherwise an incorrect type will be considered an invalid offer. See `check_offers`. Only
+                     used if `enforce_issue_types`
+        ignore_negotiator_exceptions: just silently ignore negotiator exceptions and consider them no-responses.
+        offering_is_accepting: Offering an outcome implies accepting it. If not, the agent who proposed an offer will
+                               be asked to respond to it after all other agents.
+        allow_none_with_data: If True (default), a negotiator can respond with REJECT_OFFER and outcome=None
+                              as long as there is associated data (e.g., text). This allows negotiators to
+                              send messages or explanations without making a concrete offer. The negotiation
+                              will continue rather than breaking.
+        allow_negotiators_to_leave: If True (default), a LEAVE response removes the negotiator but remaining
+                           negotiators continue if 2+ remain. If fewer than 2 remain after leaving, the
+                           negotiation ends unless ``dynamic_entry=True`` (allowing new negotiators to join).
+                           If False, LEAVE is treated exactly like END_NEGOTIATION (breaks the negotiation).
+        sync_calls: If given, calls to negotiators will be synchronized. This will not enforce timeouts on
+                    single calls which means that a negotiator in an infinite loop will hog the CPU. By default
+                    calls are done using a different thread that is killed when the timeout passes. This may, but
+                    is not guaranteed to, resolve this issue at the expense of slower negotiations and harder debugging
+        name: Name of the mechanisms
+        **kwargs: Extra parameters passed directly to the `Mechanism` constructor
+
+    Remarks:
+
+        - One and only one of `outcome_space`, `issues`, `outcomes` can be given
+        - If both `n_steps` and `time_limit` are passed, the negotiation ends when either of the limits is reached.
+        - Negotiations may take longer than `time_limit` because negotiators are not interrupted while they are
+          executing their `respond` or `propose` methods.
+
+    Events:
+
+        - negotiator_exception: Data=(negotiator, exception) raised whenever a negotiator raises an exception if
+          ignore_negotiator_exceptions is set to True.
+    """
+
+    def __init__(
+        self,
+        dynamic_entry=False,
+        extra_callbacks=True,
+        end_on_no_response=True,
+        avoid_ultimatum=False,
+        check_offers=False,
+        enforce_issue_types=False,
+        cast_offers=False,
+        offering_is_accepting=True,
+        allow_offering_just_rejected_outcome=True,
+        allow_none_with_data=True,
+        allow_negotiators_to_leave=True,
+        name: str | None = None,
+        max_wait: int = sys.maxsize,
+        sync_calls: bool = False,
+        initial_state: SAOState | None = None,
+        one_offer_per_step: bool = False,
+        **kwargs,
+    ):
+        """Initialize the SAO mechanism.
+
+        Args:
+
+            dynamic_entry: Whether negotiators can join after the negotiation starts.
+            extra_callbacks: Whether to enable additional callbacks (on_round_start, etc.).
+            end_on_no_response: Whether to end negotiation if a negotiator returns NO_RESPONSE.
+            avoid_ultimatum: [Deprecated] Whether to avoid ultimatum situations.
+            check_offers: Whether to validate offers against the outcome space.
+            enforce_issue_types: Whether to enforce correct types for issue values.
+            cast_offers: Whether to cast issue values to their correct types if enforcement is on.
+            offering_is_accepting: Whether proposing an offer counts as accepting it.
+            allow_offering_just_rejected_outcome: Whether a negotiator can re-offer a just-rejected outcome.
+            allow_none_with_data: Whether to allow None offers if they have associated data (e.g., text).
+                When True, a negotiator can respond with outcome=None but include text or other data,
+                and the negotiation will continue rather than breaking. Defaults to True.
+            allow_negotiators_to_leave: If True (default), LEAVE response removes the negotiator
+                from the negotiation but allows remaining negotiators to continue. The negotiation
+                ends when fewer than 2 negotiators remain (unless dynamic_entry is True).
+                If False, LEAVE is treated exactly like END_NEGOTIATION.
+            name: Optional name for the mechanism.
+            max_wait: Maximum number of consecutive WAIT responses before timing out.
+            sync_calls: Whether to call negotiators synchronously (disables per-call timeouts).
+            initial_state: Optional initial state for the mechanism.
+            one_offer_per_step: Whether each step processes only one negotiator's offer.
+            **kwargs: Additional keyword arguments passed to the parent Mechanism.
+        """
+        debug = kwargs.get("debug", False)
+        if debug:
+            sync_calls = True
+        if avoid_ultimatum:
+            warnings.warn(
+                "Support for Avoid-Ultimatum will be removed soon. We will force avoid_ultimatum to False",
+                warnings.NegmasWarning,
+            )
+            avoid_ultimatum = False
+        super().__init__(
+            dynamic_entry=dynamic_entry,
+            extra_callbacks=extra_callbacks,
+            initial_state=SAOState() if not initial_state else initial_state,
+            name=name,
+            nmi_factory=SAONMI,
+            **kwargs,
+        )
+        self._internal_nmi = SAONMI(
+            **{
+                # **asdict(self._internal_nmi, recurse=False),
+                **self._nmi_params,
+                **dict(
+                    end_on_no_response=end_on_no_response,
+                    one_offer_per_step=one_offer_per_step,
+                    offering_is_accepting=offering_is_accepting,
+                    allow_none_with_data=allow_none_with_data,
+                    allow_negotiators_to_leave=allow_negotiators_to_leave,
+                ),
+            }
+        )
+        self._shared_nmi = SAONMI(
+            **{
+                # **asdict(self._shared_nmi, recurse=False),
+                **self._nmi_params,
+                **dict(
+                    end_on_no_response=end_on_no_response,
+                    one_offer_per_step=one_offer_per_step,
+                    offering_is_accepting=offering_is_accepting,
+                    allow_none_with_data=allow_none_with_data,
+                    allow_negotiators_to_leave=allow_negotiators_to_leave,
+                ),
+            }
+        )
+        # Update _nmi_params so per-negotiator NMIs get the SAO-specific parameters
+        self._nmi_params = self._nmi_params | dict(
+            end_on_no_response=end_on_no_response,
+            one_offer_per_step=one_offer_per_step,
+            offering_is_accepting=offering_is_accepting,
+            allow_none_with_data=allow_none_with_data,
+            allow_negotiators_to_leave=allow_negotiators_to_leave,
+        )
+        self._one_offer_per_step = one_offer_per_step
+        assert self._internal_nmi.end_on_no_response == end_on_no_response
+        assert self._internal_nmi.atomic_steps == one_offer_per_step
+        self._current_state: SAOState
+
+        # self._history: list[SAOState] = []
+        n_steps, time_limit = self.n_steps, self.time_limit
+        if (n_steps is None or n_steps == float("inf")) and (
+            time_limit is None or time_limit == float("inf")
+        ):
+            warnings.warn(
+                "You are passing no time_limit and no n_steps to an SAOMechanism. The mechanism may never finish!!",
+                warnings.NegmasInfiniteNegotiationWarning,
+            )
+        self._sync_calls = sync_calls
+        self.params["one_offer_per_step"] = one_offer_per_step
+        self.params["end_on_no_response"] = end_on_no_response
+        self.params["enable_callbacks"] = extra_callbacks
+        self.params["sync_calls"] = sync_calls
+        self.params["check_offers"] = check_offers
+        self.params["offering_is_accepting"] = offering_is_accepting
+        self.params["enforce_issue_types"] = enforce_issue_types
+        self.params["cast_offers"] = cast_offers
+        self.params["allow_offering_just_rejected_outcome"] = (
+            allow_offering_just_rejected_outcome
+        )
+        self.params["allow_none_with_data"] = allow_none_with_data
+        self.params["allow_negotiators_to_leave"] = allow_negotiators_to_leave
+        self._n_max_waits = max_wait if max_wait is not None else float("inf")
+        self.params["max_wait"] = self._n_max_waits
+        self.allow_offering_just_rejected_outcome = allow_offering_just_rejected_outcome
+        self.allow_none_with_data = allow_none_with_data
+        self.allow_negotiators_to_leave = allow_negotiators_to_leave
+        self.end_negotiation_on_refusal_to_propose = end_on_no_response
+        self.check_offers = check_offers
+        self._enforce_issue_types = enforce_issue_types
+        self._cast_offers = cast_offers
+
+        self._last_checked_negotiator = -1
+        self._current_proposer = None
+        self._frozen_neg_list = None
+        self._no_responses = 0
+        self._n_waits = 0
+        self._waiting_time: dict[str, float] = defaultdict(float)
+        self._waiting_start: dict[str, float] = defaultdict(return_inf)
+        self._selected_first = 0
+
+    def make_config(self) -> dict[str, Any]:
+        return super().make_config() | dict(
+            dynamic_entry=self.dynamic_entry,
+            extra_callbacks=self._extra_callbacks,
+            end_on_no_response=self._internal_nmi.end_on_no_response,
+            check_offers=self.check_offers,
+            enforce_issue_types=self._enforce_issue_types,
+            cast_offers=self._cast_offers,
+            offering_is_accepting=self._internal_nmi.offering_is_accepting,
+            allow_offering_just_rejected_outcome=self.allow_offering_just_rejected_outcome,
+            allow_none_with_data=self.allow_none_with_data,
+            allow_negotiators_to_leave=self.allow_negotiators_to_leave,
+            name=self.name,
+            max_wait=self.params.get("max_wait", None),
+            sync_calls=self._sync_calls,
+            one_offer_per_step=self._internal_nmi.one_offer_per_step,
+        )
+
+    @property
+    def state(self) -> SAOState:
+        """Returns the current state.
+
+        Override `extra_state` if you want to keep extra state
+        """
+        return self._current_state
+
+    @property
+    def participating_negotiators(self) -> list[SAONegotiator | GBNegotiator]:
+        """Returns negotiators still participating (those who haven't left).
+
+        Unlike `negotiators`, this excludes any negotiator that has returned
+        a LEAVE response. The original negotiator list and indices remain
+        unchanged to avoid breaking any saved references.
+
+        Returns:
+            List of negotiator objects still active in the negotiation.
+        """
+        left = self._current_state.left_negotiators
+        return [n for n in self._negotiators if n.id not in left]
+
+    @property
+    def agreement_partners(self) -> list[SAONegotiator | GBNegotiator]:
+        """Returns negotiators who are part of the final agreement.
+
+        This is the same as `participating_negotiators` - it includes all
+        negotiators who haven't left the negotiation. If there's an agreement,
+        these are the parties to that agreement.
+
+        Returns:
+            List of negotiator objects who participated in the final outcome.
+        """
+        return self.participating_negotiators
+
+    @property
+    def n_participating(self) -> int:
+        """Number of negotiators still participating (not left).
+
+        Returns:
+            Count of active negotiators.
+        """
+        return len(self._negotiators) - len(self._current_state.left_negotiators)
+
+    def add(  #
+        self,
+        negotiator: SAONegotiator | GBNegotiator,
+        *,
+        preferences: Preferences | None = None,
+        role: str | None = None,
+        **kwargs,
+    ) -> bool | None:
+        """Add a negotiator to this mechanism.
+
+        Args:
+
+            negotiator: The negotiator instance to add.
+            preferences: Optional preferences to assign to the negotiator.
+            role: Optional role identifier for the negotiator.
+            **kwargs: Additional keyword arguments passed to the parent add method.
+
+        Returns:
+
+            True if successfully added, False if rejected, None if pending.
+        """
+        from ..genius.negotiator import GeniusNegotiator
+
+        added = super().add(negotiator, preferences=preferences, role=role, **kwargs)
+        if (
+            added
+            and isinstance(negotiator, GeniusNegotiator)
+            and self._nmis[negotiator.id].time_limit is not None
+            and self._nmis[negotiator.id].time_limit != float("inf")
+            and self._nmis[negotiator.id].n_steps is not None
+            and self._nmis[negotiator.id].n_steps != float("inf")
+        ):
+            warnings.warn(
+                f"{negotiator.id} of type {negotiator.__class__.__name__} is joining "
+                f"SAOMechanism which has a time_limit of {self._nmis[negotiator.id].time_limit} seconds "
+                f"and a n_steps of {self._nmis[negotiator.id].n_steps}. This agnet will only know about the "
+                f"time_limit and will not know about the n_steps!!!",
+                warnings.NegmasStepAndTimeLimitWarning,
+            )
+        return added
+
+    def _remove_negotiator_on_leave(
+        self, negotiator: SAONegotiator | GBNegotiator
+    ) -> bool:
+        """Mark a negotiator as having left and notify others.
+
+        Instead of removing the negotiator from the list (which would break
+        indices and references), we mark them as left in the state. The
+        negotiator remains in `negotiators` but is excluded from
+        `participating_negotiators` and `agreement_partners`.
+
+        Args:
+            negotiator: The negotiator leaving the mechanism.
+
+        Returns:
+            True if successfully marked as left, False if already left or not found.
+        """
+        neg_id = negotiator.id
+        # Check if negotiator exists and hasn't already left
+        if neg_id not in self._negotiator_map:
+            return False
+        if neg_id in self._current_state.left_negotiators:
+            return False  # Already left
+
+        # Mark as left in the state (don't remove from lists)
+        self._current_state.left_negotiators.add(neg_id)
+
+        # Call on_leave for the leaving negotiator
+        if self._extra_callbacks:
+            negotiator.on_leave(self.state)
+
+        # Notify remaining participating negotiators that this one left
+        if self._extra_callbacks:
+            for other in self.participating_negotiators:
+                if hasattr(other, "on_negotiator_left"):
+                    other.on_negotiator_left(neg_id, self.state)
+        return True
+        return True
+
+    def set_sync_call(self, v: bool):
+        """Enable or disable synchronous negotiator calls."""
+        self._sync_call = v
+
+    def _agent_info(self):
+        state = self._current_state
+        current_proposer_agent = (
+            self._current_proposer.owner if self._current_proposer else None
+        )
+        if current_proposer_agent:
+            current_proposer_agent = current_proposer_agent.id
+        new_offerer_agents = []
+        for neg_id, _ in state.new_offers:
+            neg = self._negotiator_map.get(neg_id, None)
+            agent = neg.owner if neg else None
+            if agent is not None:
+                new_offerer_agents.append(agent.id)
+            else:
+                new_offerer_agents.append(None)
+        return current_proposer_agent, new_offerer_agents
+
+    def next_negotitor_ids(self) -> list[str]:
+        """Returns a list of negotiator IDs in the order they are to be run in the next call to step()"""
+        n_negotiators = len(self.negotiators)
+        if self._frozen_neg_list is not None:
+            ordered_indices = self._frozen_neg_list
+        else:
+            ordered_indices = [
+                (_ + self._last_checked_negotiator + 1) % n_negotiators
+                for _ in range(n_negotiators)
+            ]
+
+        if ordered_indices and self._one_offer_per_step:
+            ordered_indices = ordered_indices[:1]
+        ids = self.negotiator_ids
+        return [ids[_] for _ in ordered_indices]
+
+    def following_negotiators(self) -> list[str]:
+        """Returns a list of ids for all negotiators  in the order they are to be run in the next calls to step()"""
+        n_negotiators = len(self.negotiators)
+        if self._frozen_neg_list is not None:
+            ordered_indices = self._frozen_neg_list
+        else:
+            ordered_indices = [
+                (_ + self._last_checked_negotiator + 1) % n_negotiators
+                for _ in range(n_negotiators)
+            ]
+
+        ids = self.negotiator_ids
+        return [ids[_] for _ in ordered_indices]
+
+    def _stop_waiting(self, negotiator_id):
+        self._waiting_time[negotiator_id] = 0.0
+        self._waiting_start[negotiator_id] = float("inf")
+        self._n_waits = 0
+        self._frozen_neg_list = None
+
+    @property
+    def atomic_steps(self) -> bool:
+        """Is every step corresponding to a single action by a single negotiator"""
+        return self._one_offer_per_step
+
+    def _safe_counter(
+        self,
+        negotiator: SAONegotiator | GBNegotiator,
+        state: SAOState,
+        times: dict[str, float],
+        action: dict[str, SAOResponse] | None,
+        exceptions: dict[str, list],
+        dest: str | None,
+        *,
+        args: tuple = tuple(),
+        kwargs: dict | None = None,
+    ) -> tuple[SAOResponse | None, bool]:
+        if kwargs is None:
+            kwargs = dict()
+        assert not state.waiting or negotiator.id == state.current_proposer, (
+            f"We are waiting with {state.current_proposer} as the last offerer but we are asking {negotiator.id} to offer\n{state}"
+        )
+        if self.verbosity > 2:
+            print(
+                f"{self.name}: {negotiator.name} called after {humanize_time((time.perf_counter_ns() - self._start_time) / 1_000_000_000, show_ms=True) if self._start_time else 0}",
+                flush=True,
+            )
+        rem = self.remaining_time
+        if rem is None:
+            rem = float("inf")
+        timeout = min(
+            self._internal_nmi.negotiator_time_limit - times[negotiator.id],
+            self._internal_nmi.step_time_limit,
+            rem,
+            self._hidden_time_limit - self.time,
+        )
+        given_response = action.pop(negotiator.id, None) if action else None
+        if timeout is None or timeout == float("inf") or self._sync_calls:
+            __strt = time.perf_counter()
+            try:
+                if (
+                    negotiator == self._current_proposer
+                ) and self._internal_nmi.offering_is_accepting:
+                    self._current_state.n_acceptances = 0
+                try:
+                    response = (
+                        given_response
+                        if given_response
+                        else negotiator(*args, **kwargs, dest=dest)
+                    )
+                except Exception:
+                    response = (
+                        given_response
+                        if given_response
+                        else negotiator(*args, **kwargs)
+                    )
+                # else:
+                #     try:
+                #         response = (
+                #             given_response
+                #             if given_response
+                #             else negotiator(*args, **kwargs, dest=dest)
+                #         )
+                #     except Exception:
+                #         response = (
+                #             given_response
+                #             if given_response
+                #             else negotiator(*args, **kwargs)
+                #         )
+            except TimeoutError:
+                response = None
+                try:
+                    negotiator.cancel()
+                except Exception:
+                    pass
+            except Exception as ex:
+                exceptions[negotiator.id].append(exception2str())
+                if self.ignore_negotiator_exceptions:
+                    self.announce(
+                        Event(
+                            "negotiator_exception",
+                            {"negotiator": negotiator, "exception": ex},
+                        )
+                    )
+                    times[negotiator.id] += time.perf_counter() - __strt
+                    return SAOResponse(ResponseType.END_NEGOTIATION, None), True
+                else:
+                    raise ex
+            times[negotiator.id] += time.perf_counter() - __strt
+        else:
+            fun = functools.partial(negotiator, *args, **kwargs, dest=dest)
+            __strt = time.perf_counter()
+            try:
+                if (
+                    negotiator == self._current_proposer
+                ) and self._internal_nmi.offering_is_accepting:
+                    state.n_acceptances = 0
+                    response = (
+                        given_response
+                        if given_response
+                        else TimeoutCaller.run(fun, timeout=timeout)
+                    )
+                else:
+                    response = (
+                        given_response
+                        if given_response
+                        else TimeoutCaller.run(fun, timeout=timeout)
+                    )
+            except TimeoutError:
+                response = None
+            except Exception:
+                fun = functools.partial(negotiator, *args, **kwargs)
+                __strt = time.perf_counter()
+                try:
+                    if (
+                        negotiator == self._current_proposer
+                    ) and self._internal_nmi.offering_is_accepting:
+                        state.n_acceptances = 0
+                        response = (
+                            given_response
+                            if given_response
+                            else TimeoutCaller.run(fun, timeout=timeout)
+                        )
+                    else:
+                        response = (
+                            given_response
+                            if given_response
+                            else TimeoutCaller.run(fun, timeout=timeout)
+                        )
+                except TimeoutError:
+                    response = None
+                except Exception as ex:
+                    exceptions[negotiator.id].append(exception2str())
+                    if self.ignore_negotiator_exceptions:
+                        self.announce(
+                            Event(
+                                "negotiator_exception",
+                                {"negotiator": negotiator, "exception": ex},
+                            )
+                        )
+                        times[negotiator.id] += time.perf_counter() - __strt
+                        return SAOResponse(ResponseType.END_NEGOTIATION, None), True
+                    else:
+                        raise ex
+            times[negotiator.id] += time.perf_counter() - __strt
+        if response and isinstance(response.outcome, ExtendedOutcome):
+            response = SAOResponse(
+                response.response, response.outcome.outcome, response.outcome.data
+            )
+        if self.check_offers and response is not None and response.outcome is not None:
+            if not self.outcome_space.is_valid(response.outcome):
+                return SAOResponse(response.response, None, response.data), False
+            # todo: do not use .issues here as they are not guaranteed to exist (if it is not a cartesial outcome space)
+            if self._enforce_issue_types and hasattr(self.outcome_space, "issues"):
+                if outcome_types_are_ok(
+                    response.outcome, getattr(self.outcome_space, "issues")
+                ):
+                    return response, False
+                elif self._cast_offers:
+                    return (
+                        SAOResponse(
+                            response.response,
+                            cast_value_types(
+                                response.outcome, getattr(self.outcome_space, "issues")
+                            ),
+                            response.data,
+                        ),
+                        False,
+                    )
+                return SAOResponse(response.response, None, response.data), False
+        return response, False
+
+    def __call__(self, state, action=None) -> MechanismStepResult:
+        """
+        implements a round or a single step of the Stacked Alternating Offers Protocol.
+
+        Args:
+
+            state: Current state of the mechanism
+            action: The action to use as a mapping from negotiator ID (key) to its response (value).
+                    If not given, the negotiator(s) is called to generate its response.
+        """
+        state = self._current_state
+        if self._frozen_neg_list is None:
+            state.new_offers = []
+            state.new_data = []
+        negotiators: list[SAONegotiator | GBNegotiator] = self.negotiators
+        n_negotiators = len(negotiators)
+        # times = dict(zip([_.id for _ in negotiators], itertools.repeat(0.0)))
+        times = defaultdict(float, self._waiting_time)
+        exceptions = dict(
+            zip([_.id for _ in negotiators], [list() for _ in negotiators])
+        )
+
+        proposers, proposer_indices = [], []
+        for i, neg in enumerate(negotiators):
+            if not neg.capabilities.get("propose", False):
+                continue
+            proposers.append(neg)
+            proposer_indices.append(i)
+        n_proposers = len(proposers)
+        if n_proposers < 1:
+            if not self.dynamic_entry:
+                state.broken = True
+                state.has_error = True
+                state.error_details = "No proposers and no dynamic entry"
+                return MechanismStepResult(state, times=times, exceptions=exceptions)
+            else:
+                return MechanismStepResult(state, times=times, exceptions=exceptions)
+        if self._frozen_neg_list is not None:
+            ordered_indices = self._frozen_neg_list
+        else:
+            ordered_indices = [
+                (_ + self._last_checked_negotiator + 1) % n_negotiators
+                for _ in range(n_negotiators)
+            ]
+
+        if ordered_indices and self._one_offer_per_step:
+            ordered_indices = ordered_indices[:1]
+
+        for _, neg_indx in enumerate(ordered_indices):
+            self._last_checked_negotiator = neg_indx
+            neg = self.negotiators[neg_indx]
+            # Skip negotiators who have left
+            if neg.id in state.left_negotiators:
+                continue
+            strt = time.perf_counter()
+            dest = self._negotiators[
+                ordered_indices[(neg_indx + 1) % len(ordered_indices)]
+            ].id
+            resp, has_exceptions = self._safe_counter(
+                neg,
+                state,
+                times,
+                action,
+                exceptions,
+                dest=dest,
+                kwargs=dict(state=self.state_for(neg)),
+            )
+            self._negotiator_times[neg.id] += time.perf_counter() - strt
+            if has_exceptions:
+                state.broken = True
+                state.has_error = True
+                state.error_details = str(exceptions[neg.id])
+                state.erred_negotiator = neg.id
+                state.erred_agent = "" if neg.owner is None else neg.owner.id
+                return MechanismStepResult(state, times=times, exceptions=exceptions)
+            if resp is None:
+                state.timedout = True
+                return MechanismStepResult(state, times=times, exceptions=exceptions)
+            if resp.response == ResponseType.WAIT:
+                self._waiting_start[neg.id] = min(self._waiting_start[neg.id], strt)
+                self._waiting_time[neg.id] += time.perf_counter() - strt
+                self._last_checked_negotiator = (neg_indx - 1) % n_negotiators
+                offered = {self._negotiator_index[_[0]] for _ in state.new_offers}
+                did_not_offer = sorted(
+                    list(set(range(n_negotiators)).difference(offered))
+                )
+                assert neg_indx in did_not_offer
+                indx = did_not_offer.index(neg_indx)
+                assert (
+                    self._frozen_neg_list is None
+                    or self._frozen_neg_list[0] == neg_indx
+                )
+                self._frozen_neg_list = did_not_offer[indx:] + did_not_offer[:indx]
+                self._n_waits += 1
+            else:
+                self._stop_waiting(neg.id)
+
+            if (
+                resp is None
+                or time.perf_counter() - strt > self._internal_nmi.step_time_limit
+            ):
+                state.timedout = True
+                return MechanismStepResult(state, times=times, exceptions=exceptions)
+            if self._extra_callbacks:
+                if state.current_offer is not None:
+                    for other in self.negotiators:
+                        if other is not neg:
+                            other.on_partner_response(
+                                state=self.state_for(other),
+                                partner_id=neg.id,
+                                outcome=state.current_offer,
+                                response=resp.response,
+                            )
+            if resp.response == ResponseType.NO_RESPONSE:
+                continue
+            if resp.response == ResponseType.WAIT:
+                if self._n_waits > self._n_max_waits:
+                    self._stop_waiting(neg.id)
+                    state.timedout = True
+                    state.waiting = False
+                    return MechanismStepResult(
+                        state, times=times, exceptions=exceptions
+                    )
+                state.waiting = True
+                return MechanismStepResult(state, times=times, exceptions=exceptions)
+            if resp.response == ResponseType.END_NEGOTIATION:
+                state.broken = True
+                return MechanismStepResult(state, times=times, exceptions=exceptions)
+            if resp.response == ResponseType.LEAVE:
+                if not self.allow_negotiators_to_leave:
+                    # Treat LEAVE exactly like END_NEGOTIATION
+                    state.broken = True
+                    return MechanismStepResult(
+                        state, times=times, exceptions=exceptions
+                    )
+                else:
+                    # Mark the negotiator as left (don't remove from list)
+                    self._remove_negotiator_on_leave(neg)
+                    n_participating = self.n_participating
+                    # If fewer than 2 participating and no dynamic entry, end the negotiation
+                    if n_participating < 2 and not self.dynamic_entry:
+                        # Mark as broken to signal end - the negotiation ended because
+                        # too few negotiators remain and no new ones can join
+                        state.broken = True
+                        return MechanismStepResult(
+                            state, times=times, exceptions=exceptions
+                        )
+                    # Continue to next negotiator - the left one is now marked
+                    # and will be skipped in future iterations
+                    continue
+            if resp.response == ResponseType.ACCEPT_OFFER:
+                # Cannot accept a None offer - treat as END_NEGOTIATION
+                if state.current_offer is None:
+                    state.broken = True
+                    return MechanismStepResult(
+                        state,
+                        timedout=False,
+                        agreement=None,
+                        times=times,
+                        exceptions=exceptions,
+                        broken=True,
+                    )
+                state.n_acceptances += 1
+                # Agreement requires all participating (non-left) negotiators to accept
+                if state.n_acceptances == self.n_participating:
+                    state.agreement = self._current_state.current_offer
+                    return MechanismStepResult(
+                        state,
+                        timedout=False,
+                        agreement=state.current_offer,
+                        times=times,
+                        exceptions=exceptions,
+                        broken=False,
+                    )
+            if resp.response == ResponseType.REJECT_OFFER:
+                proposal = resp.outcome
+                if (
+                    not self.allow_offering_just_rejected_outcome
+                    and proposal == state.current_offer
+                ):
+                    proposal = None
+                if proposal is None:
+                    # Check if we should allow None offers with associated data
+                    has_data = resp.data is not None and len(resp.data) > 0
+                    allow_this_none = self.allow_none_with_data and has_data
+                    if (
+                        neg.capabilities.get("propose", True)
+                        and self.end_negotiation_on_refusal_to_propose
+                        and not allow_this_none
+                    ):
+                        state.broken = True
+                        return MechanismStepResult(
+                            state, times=times, exceptions=exceptions
+                        )
+                    state.n_acceptances = 0
+                else:
+                    state.n_acceptances = (
+                        1 if self._internal_nmi.offering_is_accepting else 0
+                    )
+                    if self._extra_callbacks:
+                        for other in self.negotiators:
+                            if other is neg:
+                                continue
+                            other.on_partner_proposal(
+                                partner_id=neg.id, offer=proposal, state=self.state
+                            )
+                state.current_offer = proposal
+                state.current_data = resp.data
+                self._current_proposer = neg
+                state.current_proposer = neg.id
+                state.new_offers.append((neg.id, proposal))
+                state.new_data.append((neg.id, resp.data))
+                if self._last_checked_negotiator >= 0:
+                    state.last_negotiator = self.negotiators[
+                        self._last_checked_negotiator
+                    ].name
+                else:
+                    state.last_negotiator = ""
+                (self._current_proposer_agent, state.new_offerer_agents) = (
+                    self._agent_info()
+                )
+
+        # if action is not None:
+        #     assert (
+        #         not action
+        #     ), f"Not all negotiator actions were used in this step: {action}"
+        return MechanismStepResult(state, times=times, exceptions=exceptions)
+
+    @property
+    def full_trace_with_utils(self) -> list[tuple]:
+        """Returns the full trace and the utility of the negotiators at each step."""
+        trace = self.full_trace
+        ufuns = [_.ufun for _ in self.negotiators]
+        return [
+            tuple(list(_) + [u(_.offer) if u else float("nan") for u in ufuns])
+            for _ in trace
+        ]
+
+    def full_trace_with_utils_df(
+        self, ufun_names: str | list[str] = "id"
+    ) -> pd.DataFrame:
+        """Returns the full trace and the utility of the negotiators at each step.
+
+        Args:
+            ufun_names: How to name utility columns. "id" (default) uses negotiator IDs
+                       for consistency with the 'negotiator' field in trace entries.
+                       "name" uses negotiator names. Can also be a list of custom names.
+        """
+        if isinstance(ufun_names, str):
+            if ufun_names == "id":
+                names = list(self.negotiator_ids)
+            elif ufun_names == "name":
+                names = list(self.negotiator_names)
+            else:
+                names = [f"n{i:02}" for i in range(len(self.negotiators))]
+        else:
+            names = ufun_names
+
+        names = TRACE_ELEMENT_MEMBERS + names
+        import pandas as pd
+
+        return pd.DataFrame.from_records(self.full_trace_with_utils, columns=names)
+
+    @property
+    def full_trace(self) -> list[TraceElement]:
+        """Returns the negotiation history as a list of relative_time/step/negotiator/offer tuples"""
+
+        def response(state: SAOState):
+            """Determine the negotiation status string from state."""
+            if state.agreement:
+                return "agreement"
+            if state.timedout:
+                return "timedout"
+            if state.ended:
+                return "ended"
+            if state.has_error:
+                return "error"
+            return "continuing"
+
+        offers = []
+
+        def get_acceptances(state: SAOState):
+            """Get list of negotiator IDs that accepted the current offer."""
+            neg = state.current_proposer
+            n_acceptances = state.n_acceptances
+            if self._internal_nmi.offering_is_accepting:
+                n_acceptances -= 1
+            if neg is None:
+                indices = []
+            else:
+                indx = self.negotiator_index(neg)
+                n = self._internal_nmi.n_negotiators
+                if indx is None:
+                    indices = []
+                else:
+                    indices = [
+                        _ if _ < n else _ % n for _ in range(indx, n_acceptances + indx)
+                    ]
+            return [self.negotiator_ids[_] for _ in indices]
+
+        for state in self._history:
+            state: SAOState
+            acceptances = get_acceptances(state)
+            # Create a mapping from negotiator_id to data for this state
+            data_map = {nid: d for nid, d in state.new_data} if state.new_data else {}
+            offers += [
+                TraceElement(
+                    state.time,
+                    state.relative_time,
+                    state.step,
+                    n,
+                    o,
+                    {n: ResponseType.ACCEPT_OFFER for n in acceptances},
+                    response(state),
+                    data_map.get(n, {}).get("text", None)
+                    if data_map.get(n, None)
+                    else None,
+                    {k: v for k, v in data_map.get(n, {}).items()}
+                    if data_map.get(n, None)
+                    else None,
+                )
+                for n, o in state.new_offers
+            ]
+
+        def not_equal(a, b):
+            """Check if two outcomes differ in any value."""
+            return any(x != y for x, y in zip(a, b))
+
+        self._history: list[SAOState]
+        # if the agreement does not appear as the last offer in the trace, add it.
+        # this should not happen though!!
+        if (
+            self.agreement is not None
+            and offers
+            and not_equal(offers[-1].offer, self.agreement)
+        ):
+            acceptances = get_acceptances(self._history[-1])
+            offers.append(
+                TraceElement(
+                    self._history[-1].time,
+                    self._history[-1].relative_time,
+                    self._history[-1].step,
+                    self._history[-1].current_proposer,
+                    self.agreement,
+                    {n: ResponseType.ACCEPT_OFFER for n in acceptances},
+                    response(self._history[-1]),
+                    None,
+                    None,
+                )
+            )
+        if (
+            self.state.done
+            and self.agreement is not None
+            and offers
+            and not not_equal(offers[-1].offer, self.agreement)
+        ):
+            acceptances = get_acceptances(self._history[-1])
+            offers[-1] = TraceElement(
+                self._history[-1].time,
+                self._history[-1].relative_time,
+                self._history[-1].step,
+                self._history[-1].current_proposer,
+                self.agreement,
+                {n: ResponseType.ACCEPT_OFFER for n in acceptances},
+                response(self._history[-1]),
+                self._history[-1].current_data.get("text", None)
+                if self._history[-1].current_data
+                else None,
+                self._history[-1].current_data
+                if self._history[-1].current_data
+                else None,
+            )
+        if (
+            self.state.done
+            and self.agreement is None
+            and offers
+            and self.state.has_error
+        ):
+            acceptances = get_acceptances(self._history[-1])
+            offers[-1] = TraceElement(
+                self._history[-1].time,
+                self._history[-1].relative_time,
+                self._history[-1].step,
+                self._history[-1].current_proposer,
+                self.agreement,
+                {n: ResponseType.ACCEPT_OFFER for n in acceptances},
+                "error",
+                self._history[-1].current_data.get("text", None)
+                if self._history[-1].current_data
+                else None,
+                self._history[-1].current_data
+                if self._history[-1].current_data
+                else None,
+            )
+        elif (
+            self.state.done
+            and self.agreement is None
+            and offers
+            and self.state.timedout
+        ):
+            acceptances = get_acceptances(self._history[-1])
+            offers[-1] = TraceElement(
+                self._history[-1].time,
+                self._history[-1].relative_time,
+                self._history[-1].step,
+                self._history[-1].current_proposer,
+                self.agreement,
+                {n: ResponseType.ACCEPT_OFFER for n in acceptances},
+                "timedout",
+                self._history[-1].current_data.get("text", None)
+                if self._history[-1].current_data
+                else None,
+                self._history[-1].current_data
+                if self._history[-1].current_data
+                else None,
+            )
+        elif self.state.done and self.agreement is None and offers:
+            acceptances = get_acceptances(self._history[-1])
+            offers[-1] = TraceElement(
+                self._history[-1].time,
+                self._history[-1].relative_time,
+                self._history[-1].step,
+                self._history[-1].current_proposer,
+                self.agreement,
+                {n: ResponseType.ACCEPT_OFFER for n in acceptances},
+                "broken",
+                self._history[-1].current_data.get("text", None)
+                if self._history[-1].current_data
+                else None,
+                self._history[-1].current_data
+                if self._history[-1].current_data
+                else None,
+            )
+
+        return offers
+
+    @property
+    def extended_trace(self) -> list[tuple[int, str, Outcome]]:
+        """Returns the negotiation history as a list of step/negotiator/offer tuples"""
+        offers = []
+        for state in self._history:
+            state: SAOState
+            offers += [(state.step, n, o) for n, o in state.new_offers]
+
+        def not_equal(a, b):
+            """Check if two outcomes differ in any value."""
+            return any(x != y for x, y in zip(a, b))
+
+        self._history: list[SAOState]  #
+        # if the agreement does not appear as the last offer in the trace, add it.
+        # this should not happen though!!
+        if (
+            self.agreement is not None
+            and offers
+            and not_equal(offers[-1][-1], self.agreement)
+        ):
+            offers.append(
+                (
+                    self._history[-1].step,
+                    self._history[-1].current_proposer,
+                    self.agreement,
+                )
+            )
+
+        return offers
+
+    @property
+    def trace(self) -> list[tuple[str, Outcome]]:
+        """Returns the negotiation history as a list of negotiator/offer tuples"""
+        offers = []
+        for state in self._history:
+            offers += [(n, o) for n, o in state.new_offers]
+
+        def not_equal(a, b):
+            """Check if two outcomes differ, handling dict conversion."""
+            if isinstance(a, dict):
+                a = a.values()
+            if isinstance(b, dict):
+                b = b.values()
+            return any(x != y for x, y in zip(a, b))
+
+        if (
+            self.agreement is not None
+            and offers
+            and not_equal(offers[-1][-1], self.agreement)
+        ):
+            offers.append((self._history[-1].current_proposer, self.agreement))
+
+        return offers
+
+    def negotiator_offers(self, negotiator_id: str) -> list[Outcome]:
+        """Returns the offers given by a negotiator (in order)"""
+        return [o for n, o in self.trace if n == negotiator_id]
+
+    def negotiator_full_trace(
+        self, negotiator_id: str
+    ) -> list[
+        tuple[float, float, int, Outcome, str, str | None, dict[str, Any] | None]
+    ]:
+        """Returns the (time/relative-time/step/outcome/response/text/data) given by a negotiator (in order)"""
+        return [
+            (t, rt, s, o, a, text, data)
+            for t, rt, s, n, o, _, a, text, data in self.full_trace
+            if n == negotiator_id
+        ]
+
+    @property
+    def offers(self) -> list[Outcome]:
+        """Returns the negotiation history as a list of offers"""
+        return [o for _, o in self.trace]
+
+    @property
+    def _step(self):
+        """
+        A private property used by the checkpoint system
+        """
+        return self._current_state.step
+
+    def plot(
+        self,
+        plotting_negotiators: tuple[int, int] | tuple[str, str] = (0, 1),
+        save_fig: bool = False,
+        path: str | None = None,
+        fig_name: str | None = None,
+        ignore_none_offers: bool = True,
+        with_lines: bool = True,
+        show_agreement: bool = False,
+        show_pareto_distance: bool = True,
+        show_nash_distance: bool = True,
+        show_kalai_distance: bool = True,
+        show_ks_distance: bool = True,
+        show_max_welfare_distance: bool = True,
+        show_max_relative_welfare_distance: bool = False,
+        show_end_reason: bool = True,
+        show_last_negotiator: bool = True,
+        show_annotations: bool = False,
+        show_reserved: bool = True,
+        show_total_time=True,
+        show_relative_time=True,
+        show_n_steps=True,
+        colors: list | None = None,
+        markers: list[str] | None = None,
+        colormap: str = DEFAULT_COLORMAP,
+        ylimits: tuple[float, float] | None = None,
+        common_legend: bool = True,
+        xdim: str = "relative_time",
+        only2d: bool = False,
+        no2d: bool = False,
+        fast: bool = False,
+        simple_offers_view: bool = False,
+        mark_offers_view: bool = True,
+        mark_pareto_points: bool = True,
+        mark_all_outcomes: bool = True,
+        mark_nash_points: bool = True,
+        mark_kalai_points: bool = True,
+        mark_ks_points: bool = True,
+        mark_max_welfare_points: bool = True,
+        show: bool = True,
+        **kwargs,
+    ):
+        """Visualize the negotiation run showing offers and utilities in 2D space.
+
+        Args:
+
+            plotting_negotiators: Indices or IDs of two negotiators whose utilities form the axes.
+            save_fig: Whether to save the figure to disk.
+            path: Directory path for saving the figure.
+            fig_name: Filename for the saved figure.
+            ignore_none_offers: Whether to skip None offers in the plot.
+            with_lines: Whether to connect offers with lines showing progression.
+            show_agreement: Whether to highlight the final agreement point.
+            show_pareto_distance: Whether to display distance to Pareto frontier.
+            show_nash_distance: Whether to display distance to Nash solution.
+            show_kalai_distance: Whether to display distance to Kalai-Smorodinsky solution.
+            show_ks_distance: Whether to display distance to KS point.
+            show_max_welfare_distance: Whether to display distance to max welfare point.
+            show_max_relative_welfare_distance: Whether to display distance to max relative welfare.
+            show_end_reason: Whether to annotate why the negotiation ended.
+            show_last_negotiator: Whether to show the last negotiator who acted.
+            show_annotations: Whether to show offer annotations on the plot.
+            show_reserved: Whether to show reservation values.
+            show_total_time: Whether to display total negotiation time.
+            show_relative_time: Whether to display relative time progress.
+            show_n_steps: Whether to display the number of steps.
+            colors: Custom color list for negotiators.
+            markers: Custom marker list for negotiators.
+            colormap: Matplotlib colormap name for coloring offers.
+            ylimits: Y-axis limits as (min, max) tuple.
+            common_legend: Whether to use a shared legend for all subplots.
+            xdim: Dimension for x-axis ("relative_time", "step", etc.).
+            only2d: Whether to show only the 2D utility space plot.
+            no2d: Whether to skip the 2D utility space plot.
+            fast: Whether to use faster but less detailed rendering.
+            simple_offers_view: Whether to use simplified offer visualization.
+            mark_offers_view: Whether to mark offers in the utility space view.
+            mark_pareto_points: Whether to mark Pareto optimal points.
+            mark_all_outcomes: Whether to mark all possible outcomes.
+            mark_nash_points: Whether to mark Nash bargaining solution.
+            mark_kalai_points: Whether to mark Kalai-Smorodinsky solution.
+            mark_ks_points: Whether to mark KS points.
+            mark_max_welfare_points: Whether to mark maximum welfare points.
+            show: Whether to display the figure immediately.
+            **kwargs: Additional arguments passed to the plotting function.
+        """
+        from negmas.plots.util import plot_mechanism_run
+
+        extra_annotation = (
+            f"Last: {self._current_state.last_negotiator}"
+            if show_last_negotiator
+            else ""
+        )
+        return plot_mechanism_run(
+            mechanism=self,
+            negotiators=plotting_negotiators,
+            save_fig=save_fig,
+            path=path,
+            fig_name=fig_name,
+            ignore_none_offers=ignore_none_offers,
+            with_lines=with_lines,
+            only2d=only2d,
+            show_agreement=show_agreement,
+            show_pareto_distance=show_pareto_distance,
+            show_nash_distance=show_nash_distance,
+            show_kalai_distance=show_kalai_distance,
+            show_ks_distance=show_ks_distance,
+            show_max_welfare_distance=show_max_welfare_distance,
+            show_max_relative_welfare_distance=show_max_relative_welfare_distance,
+            show_end_reason=show_end_reason,
+            show_annotations=show_annotations,
+            show_reserved=show_reserved,
+            colors=colors,
+            markers=markers,
+            colormap=colormap,
+            ylimits=ylimits,
+            common_legend=common_legend,
+            extra_annotation=extra_annotation,
+            xdim=xdim,
+            colorizer=lambda _: 1.0,
+            show_total_time=show_total_time,
+            show_relative_time=show_relative_time,
+            show_n_steps=show_n_steps,
+            fast=fast,
+            no2d=no2d,
+            simple_offers_view=simple_offers_view,
+            mark_offers_view=mark_offers_view,
+            mark_pareto_points=mark_pareto_points,
+            mark_all_outcomes=mark_all_outcomes,
+            mark_nash_points=mark_nash_points,
+            mark_kalai_points=mark_kalai_points,
+            mark_ks_points=mark_ks_points,
+            mark_max_welfare_points=mark_max_welfare_points,
+            show=show,
+            **kwargs,
+        )
+
+
+SAOProtocol = SAOMechanism
+"""An alias for `SAOMechanism` object"""

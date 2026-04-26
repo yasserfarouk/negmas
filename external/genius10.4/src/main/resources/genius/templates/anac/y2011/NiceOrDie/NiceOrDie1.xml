@@ -1,0 +1,14 @@
+<utility_space> 
+<objective index="0" description="" name="root" type="objective" etype="objective"> 
+<issue index="1" name="NiceOrDie" vtype="discrete" type="discrete" etype="discrete"> 
+<item index="1" value="100_16" cost="0.0" evaluation="1000"> 
+</item> 
+<item index="2" value="16_100" cost="0.0" evaluation="160"> 
+</item> 
+<item index="3" value="29_29" cost="0.0" evaluation="299"> 
+</item> 
+</issue> 
+<weight index="1" value="1.0"> 
+</weight> 
+</objective> 
+</utility_space> 

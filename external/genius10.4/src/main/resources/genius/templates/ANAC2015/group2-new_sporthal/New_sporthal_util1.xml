@@ -1,0 +1,58 @@
+<utility_space> 
+<objective index="0" description="" name="New sporthal" type="objective" etype="objective"> 
+<issue index="1" name="grandstand" vtype="discrete" type="discrete" etype="discrete"> 
+<item index="1" value="no grandstand" evaluation="1"> 
+</item> 
+<item index="2" value="retractible grandstand" evaluation="4"> 
+</item> 
+<item index="3" value="normal grandstand" evaluation="7"> 
+</item> 
+</issue> 
+<issue index="2" name="Floor" vtype="discrete" type="discrete" etype="discrete"> 
+<item index="1" value="Wood" evaluation="3"> 
+</item> 
+<item index="2" value="Lineleum" evaluation="4"> 
+</item> 
+<item index="3" value="Soft mats" evaluation="0"> 
+</item> 
+</issue> 
+<issue index="3" name="Sports bar" vtype="discrete" type="discrete" etype="discrete"> 
+<item index="1" value="No bar" evaluation="1"> 
+</item> 
+<item index="2" value="Small bar" evaluation="4"> 
+</item> 
+<item index="3" value="Big bar" evaluation="7"> 
+</item> 
+</issue> 
+<issue index="4" name="Budget for aparatusses" vtype="discrete" type="discrete" etype="discrete"> 
+<item index="1" value="€10,000" evaluation="2"> 
+</item> 
+<item index="2" value="€20,000" evaluation="1"> 
+</item> 
+<item index="3" value="€40,000" evaluation="0"> 
+</item> 
+</issue> 
+<issue index="5" name="Amount of dressing rooms" vtype="discrete" type="discrete" etype="discrete"> 
+<item index="1" value="2" evaluation="1"> 
+</item> 
+<item index="2" value="4" evaluation="4"> 
+</item> 
+<item index="3" value="6" evaluation="6"> 
+</item> 
+</issue> 
+<weight index="1" value="0.2144108357871427"> 
+</weight> 
+<weight index="2" value="0.1410297762302379"> 
+</weight> 
+<weight index="3" value="0.28134266982869544"> 
+</weight> 
+<weight index="4" value="0.09311802768270869"> 
+</weight> 
+<weight index="5" value="0.27009869047121543"> 
+</weight> 
+</objective> 
+<discount_factor value="1.0"> 
+</discount_factor> 
+<reservation value="0.0"> 
+</reservation> 
+</utility_space> 

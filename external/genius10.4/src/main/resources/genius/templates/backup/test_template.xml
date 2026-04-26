@@ -1,0 +1,22 @@
+<negotiation_template number_of_sessions="5">
+	<agent name="AgentA" class="negotiator.agents.SimpleAgent" utility_space="agent_a_space.xml"/>
+	<agent name="AgentB" class="negotiator.agents.SimpleAgent" utility_space="agent_b_space.xml"/>
+	<utility_space number_of_issues="3">
+		<issue index="1" name="First Issue">
+			<item index="1" value="0"/>
+			<item index="2" value="100"/>
+			<item index="3" value="200"/>
+			<item index="4" value="unspecified"/>
+		</issue>
+		<issue index="2" name="Second Issue">
+			<item index="1" value="0-500"/>
+			<item index="2" value="501-600"/>
+			<item index="3" value="unspecified"/>
+		</issue>             
+		<issue index="3" name="Third Issue">
+			<item index="1" value="0 days"/>
+			<item index="2" value="2 days"/>
+			<item index="3" value="unspecified"/>
+		</issue>             
+	</utility_space>
+</negotiation_template>

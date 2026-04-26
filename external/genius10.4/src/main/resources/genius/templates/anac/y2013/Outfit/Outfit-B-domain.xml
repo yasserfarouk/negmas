@@ -1,0 +1,31 @@
+<?xml version="1.0"?>
+<negotiation_template number_of_sessions="1">
+  <agent utility_space="" name="" class=""> </agent>
+  <agent utility_space="" name="" class=""> </agent>
+  <utility_space number_of_issues="0">
+    <objective index="0" description="" name="outfit" type="objective" etype="objective">
+      <issue index="1" name="shirts" vtype="discrete" type="discrete" etype="discrete">
+        <item index="1" value="T-shirt" />
+        <item index="2" value="Blouse" />
+        <item index="3" value="Polo shirt" />
+        <item index="4" value="sweaters" />
+      </issue>
+      <issue index="2" name="pants" vtype="discrete" type="discrete" etype="discrete">
+        <item index="1" value="Demin" />
+        <item index="2" value="leather pants" />
+        <item index="3" value="classic pants" />
+        <item index="4" value="bermuda shorts" />
+      </issue>
+      <issue index="3" name="shoes" vtype="discrete" type="discrete" etype="discrete">
+        <item index="1" value="sneakers" />
+        <item index="2" value="boots" />
+        <item index="3" value="slipers" />
+        <item index="4" value="sandals" />
+      </issue>
+      <issue index="4" name="accessories" vtype="discrete" type="discrete" etype="discrete">
+        <item index="1" value="hat" />
+        <item index="2" value="sunglasses" />
+      </issue>
+    </objective>
+  </utility_space>
+</negotiation_template>

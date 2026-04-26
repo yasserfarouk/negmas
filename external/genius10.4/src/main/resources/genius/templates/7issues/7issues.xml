@@ -1,0 +1,20 @@
+<negotiation_template> 
+<utility_space number_of_issues="7"> 
+<objective name="6issues" index="0" description="" etype="objective" type="objective"> 
+<issue vtype="integer" lowerbound="0" upperbound="9" name="i1" index="1" etype="integer" type="integer"> 
+</issue> 
+<issue vtype="integer" lowerbound="0" upperbound="9" name="i2" index="2" etype="integer" type="integer"> 
+</issue> 
+<issue vtype="integer" lowerbound="0" upperbound="9" name="i3" index="3" etype="integer" type="integer"> 
+</issue> 
+<issue vtype="integer" lowerbound="0" upperbound="9" name="i4" index="4" etype="integer" type="integer"> 
+</issue> 
+<issue vtype="integer" lowerbound="0" upperbound="9" name="i5" index="5" etype="integer" type="integer"> 
+</issue> 
+<issue vtype="integer" lowerbound="0" upperbound="9" name="i6" index="6" etype="integer" type="integer"> 
+</issue> 
+<issue vtype="integer" lowerbound="0" upperbound="9" name="i7" index="7" etype="integer" type="integer"> 
+</issue> 
+</objective> 
+</utility_space> 
+</negotiation_template> 

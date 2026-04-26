@@ -1,0 +1,74 @@
+<negotiation_template number_of_sessions="1"> 
+<agent class="agents.BayesianAgent" name="Employer" utility_space="thompson_employer_utilityspace.xml"> 
+  
+</agent> 
+<agent class="agents.DecUtilAgent" name="Employee" utility_space="thompson_employee_utilityspace.xml"> 
+  
+</agent> 
+<utility_space number_of_issues="0"> 
+<objective index="0" etype="objective" type="objective" description="" name="Employment"> 
+<issue index="1" etype="discrete" vtype="discrete" name="Signing bonus"> 
+<item index="1" value="10%"> 
+</item> 
+<item index="2" value="8%"> 
+</item> 
+<item index="3" value="6%"> 
+</item> 
+<item index="4" value="4%"> 
+</item> 
+<item index="5" value="2%"> 
+</item> 
+</issue> 
+<issue index="2" etype="discrete" vtype="discrete" name="Job assignment"> 
+<item index="1" value="Division A"> 
+</item> 
+<item index="2" value="Division B"> 
+</item> 
+<item index="3" value="Division C"> 
+</item> 
+<item index="4" value="Division D"> 
+</item> 
+<item index="5" value="Division E"> 
+</item> 
+</issue> 
+<issue index="3" etype="discrete" vtype="discrete" name="Moving expense coverage"> 
+<item index="1" value="100%"> 
+</item> 
+<item index="2" value="90%"> 
+</item> 
+<item index="3" value="80%"> 
+</item> 
+<item index="4" value="70%"> 
+</item> 
+<item index="5" value="60%"> 
+</item> 
+</issue> 
+<issue index="4" etype="discrete" vtype="discrete" name="Insurance coverage"> 
+<item index="1" value="100%"> 
+</item> 
+<item index="2" value="80%"> 
+</item> 
+<item index="3" value="60%"> 
+</item> 
+<item index="4" value="20%"> 
+</item> 
+<item index="5" value="0%"> 
+</item> 
+</issue> 
+<issue index="5" etype="discrete" vtype="discrete" name="Salary"> 
+<item index="1" value="$40,000"> 
+</item> 
+<item index="2" value="$38,000"> 
+</item> 
+<item index="3" value="$36,000"> 
+</item> 
+<item index="4" value="$34,000"> 
+</item> 
+<item index="5" value="$32,000"> 
+</item> 
+</issue> 
+</objective> 
+</utility_space> 
+ 
+ 
+</negotiation_template> 

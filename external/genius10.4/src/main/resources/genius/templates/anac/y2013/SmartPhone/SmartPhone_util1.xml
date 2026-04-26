@@ -1,0 +1,90 @@
+<utility_space> 
+<objective index="0" description="" name="Smart Phone" type="objective" etype="objective"> 
+<issue index="1" name="Maker" vtype="discrete" type="discrete" etype="discrete"> 
+<item index="1" value="Apple" evaluation="500"> 
+</item> 
+<item index="2" value="Samson" evaluation="70"> 
+</item> 
+<item index="3" value="Sony" evaluation="300"> 
+</item> 
+<item index="4" value="Black Berry" evaluation="100"> 
+</item> 
+<item index="5" value="Nokia" evaluation="20"> 
+</item> 
+<item index="6" value="HTC" evaluation="0"> 
+</item> 
+</issue> 
+<issue index="2" name="Screen Size" vtype="discrete" type="discrete" etype="discrete"> 
+<item index="1" value="2.4" evaluation="30"> 
+</item> 
+<item index="2" value="2.8" evaluation="315"> 
+</item> 
+<item index="3" value="3.0" evaluation="120"> 
+</item> 
+<item index="4" value="3.2" evaluation="10"> 
+</item> 
+<item index="5" value="3.6" evaluation="60"> 
+</item> 
+</issue> 
+<issue index="3" name="Color" vtype="discrete" type="discrete" etype="discrete"> 
+<item index="1" value="Black" evaluation="250"> 
+</item> 
+<item index="2" value="White" evaluation="125"> 
+</item> 
+<item index="3" value="Red" evaluation="10"> 
+</item> 
+<item index="4" value="Blue" evaluation="200"> 
+</item> 
+<item index="5" value="Silver" evaluation="50"> 
+</item> 
+</issue> 
+<issue index="4" name="Carrier" vtype="discrete" type="discrete" etype="discrete"> 
+<item index="1" value="Verizon Wireless" evaluation="50"> 
+</item> 
+<item index="2" value="AT & T Mobility" evaluation="160"> 
+</item> 
+<item index="3" value="Sprint Nextel" evaluation="20"> 
+</item> 
+<item index="4" value="T-Mobile USA" evaluation="100"> 
+</item> 
+</issue> 
+<issue index="5" name="OS" vtype="discrete" type="discrete" etype="discrete"> 
+<item index="1" value="Android" evaluation="20"> 
+</item> 
+<item index="2" value="iOS" evaluation="100"> 
+</item> 
+<item index="3" value="Windows Mobile" evaluation="10"> 
+</item> 
+<item index="4" value="Black Berry" evaluation="30"> 
+</item> 
+</issue> 
+<issue index="6" name=" Accessory" vtype="discrete" type="discrete" etype="discrete"> 
+<item index="1" value="Camera" evaluation="35"> 
+</item> 
+<item index="2" value="Blue tooth" evaluation="15"> 
+</item> 
+<item index="3" value="Water Proof" evaluation="20"> 
+</item> 
+<item index="4" value="Infrared communication" evaluation="5"> 
+</item> 
+<item index="5" value="Good Battery" evaluation="25"> 
+</item> 
+</issue> 
+<weight index="1" value="0.05927842911713837"> 
+</weight> 
+<weight index="2" value="0.06702093524810457"> 
+</weight> 
+<weight index="3" value="0.29771280656992694"> 
+</weight> 
+<weight index="4" value="0.23152230066977317"> 
+</weight> 
+<weight index="5" value="0.1562961447425481"> 
+</weight> 
+<weight index="6" value="0.18816938365250893"> 
+</weight> 
+</objective> 
+<discount_factor value="0.87"> 
+</discount_factor> 
+<reservation value="0.6"> 
+</reservation> 
+</utility_space> 

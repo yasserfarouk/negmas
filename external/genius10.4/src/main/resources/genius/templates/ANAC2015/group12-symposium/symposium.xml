@@ -1,0 +1,62 @@
+<negotiation_template> 
+<utility_space number_of_issues="6"> 
+<objective name="symposium" index="0" description="" etype="objective" type="objective"> 
+<issue vtype="discrete" name="Location" index="1" etype="discrete" type="discrete"> 
+<item index="1" value="Tu Delft"> 
+</item> 
+<item index="2" value="Erasumus"> 
+</item> 
+<item index="3" value="TU Eindhoven"> 
+</item> 
+<item index="4" value="TU Twente"> 
+</item> 
+</issue> 
+<issue vtype="discrete" name="Morning Slot" index="2" etype="discrete" type="discrete"> 
+<item index="1" value="Mr. Bidarra"> 
+</item> 
+<item index="2" value="Mr. Eisemann"> 
+</item> 
+<item index="3" value="Mr. Bossos"> 
+</item> 
+<item index="4" value="Mr. Goedeovergeburen"> 
+</item> 
+</issue> 
+<issue vtype="discrete" name="Afternoon Slot" index="3" etype="discrete" type="discrete"> 
+<item index="1" value="Mr. Talkolot"> 
+</item> 
+<item index="2" value="Mr. Ahuff"> 
+</item> 
+<item index="3" value="Miss. Getbizzy"> 
+</item> 
+</issue> 
+<issue vtype="discrete" name="Evening Slot" index="4" etype="discrete" type="discrete"> 
+<item index="1" value="Mr. Gates"> 
+</item> 
+<item index="2" value="Mr. Umbertotan"> 
+</item> 
+<item index="3" value="Mr. Han"> 
+</item> 
+<item index="4" value="Mr. LeeLoo"> 
+</item> 
+</issue> 
+<issue vtype="discrete" name="Drinks" index="5" etype="discrete" type="discrete"> 
+<item index="1" value="Coffee & Thee"> 
+</item> 
+<item index="2" value="Alcoholic beverages"> 
+</item> 
+<item index="3" value="non-Alcoholic beverages"> 
+</item> 
+</issue> 
+<issue vtype="discrete" name="Date" index="6" etype="discrete" type="discrete"> 
+<item index="1" value="September"> 
+</item> 
+<item index="2" value="October"> 
+</item> 
+<item index="3" value="November"> 
+</item> 
+<item index="4" value="December"> 
+</item> 
+</issue> 
+</objective> 
+</utility_space> 
+</negotiation_template> 

@@ -1,0 +1,22 @@
+<negotiation_template>
+<utility_space number_of_issues="2">
+<objective description="" etype="objective" index="0" name="root" type="objective">
+    <issue etype="discrete" index="1" name="Issue1" type="discrete" vtype="discrete">
+        <item index="1" value="A" cost="0" description="A">
+        </item>
+        <item index="2" value="B" cost="0" description="B">
+        </item>
+        <item index="3" value="C" cost="0" description="C">
+        </item>
+    </issue>
+    <issue etype="discrete" index="2" name="Issue2" type="discrete" vtype="discrete">
+        <item index="1" value="X" cost="0" description="X">
+        </item>
+        <item index="2" value="Y" cost="0" description="Y">
+        </item>
+        <item index="3" value="Z" cost="0" description="Z">
+        </item>
+    </issue>
+</objective>
+</utility_space>
+</negotiation_template>

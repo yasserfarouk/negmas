@@ -1,0 +1,84 @@
+<utility_space type="UNCERTAIN"> 
+<objective name="GroceryDomain" index="0" description="" etype="objective" type="objective"> 
+<issue vtype="discrete" name="Bread type" index="1" etype="discrete" type="discrete"> 
+<item evaluation="10.0" index="1" value="Baguette"> 
+</item> 
+<item evaluation="5.0" index="2" value="Crackers"> 
+</item> 
+<item evaluation="2.0" index="3" value="Croissants"> 
+</item> 
+<item evaluation="1.0" index="4" value="Plain bread"> 
+</item> 
+</issue> 
+<issue vtype="discrete" name="Fruit" index="2" etype="discrete" type="discrete"> 
+<item evaluation="10.0" index="1" value="Apples"> 
+</item> 
+<item evaluation="3.0" index="2" value="Bananas"> 
+</item> 
+<item evaluation="1.0" index="3" value="Cherries"> 
+</item> 
+<item evaluation="2.0" index="4" value="Grapes"> 
+</item> 
+<item evaluation="5.0" index="5" value="Pears"> 
+</item> 
+</issue> 
+<issue vtype="discrete" name="Snacks" index="3" etype="discrete" type="discrete"> 
+<item evaluation="2.0" index="1" value="Chocolate bars"> 
+</item> 
+<item evaluation="10.0" index="2" value="Doughnuts"> 
+</item> 
+<item evaluation="1.0" index="3" value="Nachos"> 
+</item> 
+<item evaluation="5.0" index="4" value="Popcorn"> 
+</item> 
+</issue> 
+<issue vtype="discrete" name="Spreads" index="4" etype="discrete" type="discrete"> 
+<item evaluation="1.0" index="1" value="Cheese"> 
+</item> 
+<item evaluation="10.0" index="2" value="Jam"> 
+</item> 
+<item evaluation="2.0" index="3" value="Peanut butter"> 
+</item> 
+<item evaluation="5.0" index="4" value="Sandwichspread"> 
+</item> 
+</issue> 
+<issue vtype="discrete" name="Vegetables" index="5" etype="discrete" type="discrete"> 
+<item evaluation="1.0" index="1" value="Beans"> 
+</item> 
+<item evaluation="3.0" index="2" value="Broccoli"> 
+</item> 
+<item evaluation="5.0" index="3" value="Leek"> 
+</item> 
+<item evaluation="10.0" index="4" value="Potatoes"> 
+</item> 
+<item evaluation="2.0" index="5" value="Spinach"> 
+</item> 
+</issue> 
+<weight index="1" value="0.2"> 
+</weight> 
+<weight index="2" value="0.05"> 
+</weight> 
+<weight index="3" value="0.5"> 
+</weight> 
+<weight index="4" value="0.15"> 
+</weight> 
+<weight index="5" value="0.1"> 
+</weight> 
+</objective> 
+<discount_factor value="1"> 
+</discount_factor> 
+<reservation value="0.204701"> 
+</reservation> 
+<comparisons> 
+100 
+</comparisons> 
+<errors> 
+0 
+</errors> 
+<fixed_seed> 
+true 
+</fixed_seed> 
+<experimental> 
+false 
+</experimental> 
+</utility_space> 

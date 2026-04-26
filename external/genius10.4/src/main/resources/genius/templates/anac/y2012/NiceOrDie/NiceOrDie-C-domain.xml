@@ -1,0 +1,16 @@
+<?xml version="1.0"?>
+<negotiation_template number_of_sessions="1">
+	<agent utility_space="" name="" class=""> 
+</agent>
+	<agent utility_space="" name="" class=""> 
+</agent>
+	<utility_space number_of_issues="0">
+		<objective index="0" description="" name="root" type="objective" etype="objective">
+			<issue index="1" name="NiceOrDie" vtype="discrete" type="discrete" etype="discrete">
+				<item index="1" value="100_16" /> 
+				<item index="2" value="16_100" /> 
+				<item index="3" value="29_29" /> 
+			</issue>
+		</objective>
+	</utility_space>
+</negotiation_template>

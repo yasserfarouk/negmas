@@ -1,0 +1,70 @@
+<utility_space> 
+<objective index="0" description="" name="Animal" type="objective" etype="objective"> 
+<issue index="1" name="Mammal" vtype="discrete" type="discrete" etype="discrete"> 
+<item index="1" value="Lion" evaluation="10"> 
+</item> 
+<item index="2" value="Elephant" evaluation="4"> 
+</item> 
+<item index="3" value="Cow" evaluation="2"> 
+</item> 
+<item index="4" value="Mouse" evaluation="1"> 
+</item> 
+<item index="5" value="Kangaroo" evaluation="7"> 
+</item> 
+<item index="6" value="Dolphin" evaluation="8"> 
+</item> 
+</issue> 
+<issue index="2" name="Birds" vtype="discrete" type="discrete" etype="discrete"> 
+<item index="1" value="Eagle" evaluation="5"> 
+</item> 
+<item index="2" value="Swallow" evaluation="1"> 
+</item> 
+<item index="3" value="Pelican" evaluation="10"> 
+</item> 
+<item index="4" value="Penguin" evaluation="7"> 
+</item> 
+</issue> 
+<issue index="3" name="Reptiles" vtype="discrete" type="discrete" etype="discrete"> 
+<item index="1" value="Crocodile" evaluation="10"> 
+</item> 
+<item index="2" value="Lizard" evaluation="1"> 
+</item> 
+<item index="3" value="Tortoise" evaluation="3"> 
+</item> 
+<item index="4" value="Snake" evaluation="2"> 
+</item> 
+</issue> 
+<issue index="4" name="Amphibian" vtype="discrete" type="discrete" etype="discrete"> 
+<item index="1" value="Frog" evaluation="1"> 
+</item> 
+<item index="2" value="Salamander" evaluation="7"> 
+</item> 
+<item index="3" value="Newt" evaluation="10"> 
+</item> 
+</issue> 
+<issue index="5" name="Primates" vtype="discrete" type="discrete" etype="discrete"> 
+<item index="1" value="Human" evaluation="10"> 
+</item> 
+<item index="2" value="Chimpanzee" evaluation="1"> 
+</item> 
+<item index="3" value="Gorilla" evaluation="4"> 
+</item> 
+<item index="4" value="Orangutan" evaluation="8"> 
+</item> 
+</issue> 
+<weight index="1" value="0.30408373542368633"> 
+</weight> 
+<weight index="2" value="0.19556239552660173"> 
+</weight> 
+<weight index="3" value="0.09506315897656326"> 
+</weight> 
+<weight index="4" value="0.1010352859238036"> 
+</weight> 
+<weight index="5" value="0.3042554241493451"> 
+</weight> 
+</objective> 
+<discount_factor value="0.75"> 
+</discount_factor> 
+<reservation value="0.5"> 
+</reservation> 
+</utility_space> 

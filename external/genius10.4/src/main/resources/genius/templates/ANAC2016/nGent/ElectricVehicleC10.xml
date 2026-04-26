@@ -1,0 +1,44 @@
+<utility_space type="UNCERTAIN"> 
+<objective name="ElectricVehicle" index="0" description="" etype="objective" type="objective"> 
+<issue vtype="discrete" name="EnergyConsumption" index="1" etype="discrete" type="discrete"> 
+<item evaluation="4.0" index="1" value="Low"> 
+</item> 
+<item evaluation="1.0" index="2" value="High"> 
+</item> 
+</issue> 
+<issue vtype="discrete" name="EnginePower" index="2" etype="discrete" type="discrete"> 
+<item evaluation="3.0" index="1" value="Low"> 
+</item> 
+<item evaluation="2.0" index="2" value="High"> 
+</item> 
+</issue> 
+<issue vtype="discrete" name="Price" index="3" etype="discrete" type="discrete"> 
+<item evaluation="3.0" index="1" value="Low"> 
+</item> 
+<item evaluation="2.0" index="2" value="High"> 
+</item> 
+</issue> 
+<weight index="1" value="0.7007911943694313"> 
+</weight> 
+<weight index="2" value="0.1991811391383119"> 
+</weight> 
+<weight index="3" value="0.10002766649225678"> 
+</weight> 
+</objective> 
+<discount_factor value="1.0"> 
+</discount_factor> 
+<reservation value="0.0712199"> 
+</reservation> 
+<comparisons> 
+8 
+</comparisons> 
+<errors> 
+0 
+</errors> 
+<fixed_seed> 
+true 
+</fixed_seed> 
+<experimental> 
+false 
+</experimental> 
+</utility_space> 

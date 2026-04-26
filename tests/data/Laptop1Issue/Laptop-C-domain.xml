@@ -1,0 +1,16 @@
+<negotiation_template number_of_sessions="1">
+	<utility_space number_of_issues="0">
+		<objective index="0" etype="objective" type="objective"
+			description="" name="LaptopDomain">
+			<issue index="1" etype="discrete" type="discrete" vtype="discrete"
+				name="Laptop">
+				<item index="1" value="Dell" cost="0" description="cheap laptop">
+				</item>
+				<item index="2" value="Macintosh" cost="0" description="quality laptop">
+				</item>
+				<item index="3" value="HP" cost="0" description="gamer laptop">
+				</item>
+			</issue>
+		</objective>
+	</utility_space>
+</negotiation_template>

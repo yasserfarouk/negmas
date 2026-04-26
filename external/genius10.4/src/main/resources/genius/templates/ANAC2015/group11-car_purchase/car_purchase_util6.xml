@@ -1,0 +1,58 @@
+<utility_space> 
+<objective name="car_purchase_domain" index="0" description="" etype="objective" type="objective"> 
+<issue vtype="discrete" name="Horse Power" index="1" etype="discrete" type="discrete"> 
+<item evaluation="2" index="1" value="Below 200"> 
+</item> 
+<item evaluation="5" index="2" value="200 Or more"> 
+</item> 
+</issue> 
+<issue vtype="discrete" name="Seats" index="2" etype="discrete" type="discrete"> 
+<item evaluation="3" index="1" value="2"> 
+</item> 
+<item evaluation="3" index="2" value="5"> 
+</item> 
+<item evaluation="1" index="3" value="7"> 
+</item> 
+</issue> 
+<issue vtype="discrete" name="Mileage" index="3" etype="discrete" type="discrete"> 
+<item evaluation="6" index="1" value="Below 10.000km"> 
+</item> 
+<item evaluation="4" index="2" value="Between 10.000 and 20.000km"> 
+</item> 
+<item evaluation="1" index="3" value="Above 20.000km"> 
+</item> 
+</issue> 
+<issue vtype="discrete" name="Km per Liter Consumption" index="4" etype="discrete" type="discrete"> 
+<item evaluation="4" index="1" value="5"> 
+</item> 
+<item evaluation="3" index="2" value="10"> 
+</item> 
+<item evaluation="1" index="3" value="15"> 
+</item> 
+<item evaluation="2" index="4" value="20"> 
+</item> 
+</issue> 
+<issue vtype="discrete" name="Wheels" index="5" etype="discrete" type="discrete"> 
+<item evaluation="2" index="1" value="3"> 
+</item> 
+<item evaluation="3" index="2" value="4"> 
+</item> 
+<item evaluation="6" index="3" value="6"> 
+</item> 
+</issue> 
+<weight index="1" value="0.4"> 
+</weight> 
+<weight index="2" value="0.15"> 
+</weight> 
+<weight index="3" value="0.15"> 
+</weight> 
+<weight index="4" value="0.15"> 
+</weight> 
+<weight index="5" value="0.15"> 
+</weight> 
+</objective> 
+<discount_factor value="1.0"> 
+</discount_factor> 
+<reservation value="0.0"> 
+</reservation> 
+</utility_space> 

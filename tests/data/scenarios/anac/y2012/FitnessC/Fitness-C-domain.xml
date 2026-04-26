@@ -1,0 +1,47 @@
+
+<negotiation_template number_of_sessions="1">
+  <agent utility_space="" name="" class="">     </agent>
+  <agent utility_space="" name="" class="">     </agent>
+  <utility_space number_of_issues="5">
+    <objective index="1" etype="objective" type="objective" description="" name="Fitness">
+      <issue index="2" vtype="discrete" etype="discrete" type="discrete" name="kind of fitness">
+        <item index="1" value="swimming"></item>
+        <item index="2" value="yoga"></item>
+        <item index="3" value="aerobics"></item>
+        <item index="4" value="running"></item>
+        <item index="5" value="tennis"></item>
+      </issue>
+      <issue index="3" vtype="discrete" etype="discrete" type="discrete" name="time to do">
+        <item index="1" value="30minutes"></item>
+        <item index="2" value="1hour"></item>
+        <item index="3" value="3hour"></item>
+        <item index="4" value="5hour"></item>
+      </issue>
+      <issue index="4" vtype="discrete" etype="discrete" type="discrete" name="distance">
+        <item index="1" value="0km"></item>
+        <item index="2" value="~1km"></item>
+        <item index="3" value="~40km"></item>
+        <item index="4" value="~80km"></item>
+      </issue>
+      <issue index="5" vtype="discrete" etype="discrete" type="discrete" name="intensity">
+        <item index="1" value="light"></item>
+        <item index="2" value="moderate"></item>
+        <item index="3" value="as training">				</item>
+        <item index="4" value="as boot-camp">				</item>
+      </issue>
+      <issue index="6" vtype="discrete" etype="discrete" type="discrete" name="Price($)">
+        <item index="1" value="0"></item>
+        <item index="2" value="1"></item>
+        <item index="3" value="2"></item>
+        <item index="4" value="3"></item>
+        <item index="5" value="4"></item>
+        <item index="6" value="5"></item>
+        <item index="7" value="6"></item>
+        <item index="8" value="7"></item>
+        <item index="9" value="8"></item>
+        <item index="10" value="9"></item>
+        <item index="11" value="10"></item>
+      </issue>
+    </objective>
+  </utility_space>
+</negotiation_template>

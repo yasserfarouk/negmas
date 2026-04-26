@@ -1,0 +1,92 @@
+<negotiation_template number_of_sessions="5">
+	<agent name="AMPO" class="negotiator.agents.SimpleAgent" utility_space="ampo_vs_city_ampo_space.xml"/>
+	<agent name="City" class="negotiator.agents.SimpleAgent" utility_space="ampo_vs_city_city_space.xml"/>
+	<utility_space number_of_issues="10">
+		<issue index="1" name="Increase in starting salaries">
+			<item index="1" value="0"/>
+			<item index="2" value="100"/>
+			<item index="3" value="200"/>
+			<item index="4" value="300"/>
+			<item index="5" value="400"/>
+			<item index="6" value="500"/>
+			<item index="7" value="600"/>
+			<item index="8" value="700"/>
+			<item index="9" value="800"/>
+			<item index="10" value="900"/>
+			<item index="11" value="1000"/>
+			<item index="12" value="unspecified"/>
+		</issue>
+		<issue index="2" name="Increase in Max. Salary">
+			<item index="1" value="0-500"/>
+			<item index="2" value="501-600"/>
+			<item index="3" value="601-700"/>
+			<item index="4" value="701-800"/>
+			<item index="5" value="800+"/>
+			<item index="6" value="unspecified"/>
+		</issue>             
+		<issue index="3" name="Increase in Vacation Less Than Five Years">
+			<item index="1" value="0 days"/>
+			<item index="2" value="2 days"/>
+			<item index="3" value="3 days"/>
+			<item index="4" value="4 days"/>
+			<item index="5" value="5 days"/>
+			<item index="6" value="6+ days"/>
+			<item index="7" value="unspecified"/>
+		</issue>             
+		<issue index="4" name="Increase in Vacation More Than Five Years">
+			<item index="1" value="0 dyas"/>
+			<item index="2" value="1 day"/>
+			<item index="3" value="2 days"/>
+			<item index="4" value="3 day"/>
+			<item index="5" value="3+ day"/>
+			<item index="6" value="unspecified"/>
+		</issue>             
+		<issue index="5" name="Reinstatement">
+			<item index="1" value="No"/>
+			<item index="2" value="Yes, without back pay"/>
+			<item index="3" value="Yes, with back pay"/>
+			<item index="4" value="unspecified"/>
+		</issue>             
+		<issue index="6" name="Two-Man Patrols">
+			<item index="1" value="Status Quo"/>
+			<item index="2" value="Less than 20% increase"/>
+			<item index="3" value="21%-99%"/>
+			<item index="4" value="100%"/>
+			<item index="5" value="unspecified"/>
+		</issue>
+		<issue index="7" name="Rank of Corporal">
+			<item index="1" value="No"/>
+			<item index="2" value="1-19"/>
+			<item index="3" value="20"/>
+			<item index="4" value="unspecified"/>
+		</issue>             
+		<issue index="8" name="Increase Number of Sergeants">
+			<item index="1" value="0"/>
+			<item index="2" value="1"/>
+			<item index="3" value="2"/>
+			<item index="4" value="3"/>
+			<item index="5" value="4"/>
+			<item index="6" value="5"/>
+			<item index="7" value="6"/>
+			<item index="8" value="7"/>
+			<item index="9" value="8"/>
+			<item index="10" value="9"/>
+			<item index="11" value="10"/>
+			<item index="12" value="10+"/>
+			<item index="13" value="unspecified"/>
+		</issue>
+		<issue index="9" name="Commisioner Daniels">
+			<item index="1" value="Fire"/>
+			<item index="2" value="Keep"/>
+			<item index="3" value="unspecified"/>
+		</issue>             
+		<issue index="10" name="Police Civilian Review Board">
+			<item index="1" value="Disband"/>
+			<item index="2" value="Add police, no vote change"/>
+			<item index="3" value="Add police, change vote"/>
+			<item index="4" value="No police, no vote change"/>
+			<item index="5" value="No police, change vote"/>
+			<item index="6" value="unspecified"/>
+		</issue>
+	</utility_space>
+</negotiation_template>

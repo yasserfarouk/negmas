@@ -1,0 +1,47 @@
+<utility_space type="UNCERTAIN"> 
+<objective name="LaptopDomain" index="0" description="" etype="objective" type="objective"> 
+<issue vtype="discrete" name="Laptop" index="1" etype="discrete" type="discrete"> 
+<item evaluation="12.0" index="1" description="cheap laptop" value="Dell"> 
+</item> 
+<item evaluation="30.0" index="2" description="quality laptop" value="Macintosh"> 
+</item> 
+<item evaluation="20.0" index="3" description="gamer laptop" value="HP"> 
+</item> 
+</issue> 
+<issue vtype="discrete" name="Harddisk" index="2" etype="discrete" type="discrete"> 
+<item evaluation="20.0" index="1" description="the default internal HD" value="60 Gb"> 
+</item> 
+<item evaluation="30.0" index="2" description="some extra space" value="80 Gb"> 
+</item> 
+<item evaluation="9.0" index="3" description="enough for dual-boot or video editing" value="120 Gb"> 
+</item> 
+</issue> 
+<issue vtype="discrete" name="External Monitor" index="3" etype="discrete" type="discrete"> 
+<item evaluation="3.0" index="1" description="nothing special" value="19'' LCD"> 
+</item> 
+<item evaluation="2.0" index="2" description="fast switching, high contrast" value="20'' LCD"> 
+</item> 
+<item evaluation="1.0" index="3" description="nice to play movies, lots of space" value="23'' LCD"> 
+</item> 
+</issue> 
+<weight index="1" value="0.3785021180103064"> 
+</weight> 
+<weight index="2" value="0.17625909424505656"> 
+</weight> 
+<weight index="3" value="0.44523878774463704"> 
+</weight> 
+</objective> 
+<discount_factor value="0.42441038"> 
+</discount_factor> 
+<reservation value="0.0"> 
+</reservation> 
+<comparisons> 
+10 
+</comparisons> 
+<errors> 
+0 
+</errors> 
+<experimental> 
+false 
+</experimental> 
+</utility_space> 

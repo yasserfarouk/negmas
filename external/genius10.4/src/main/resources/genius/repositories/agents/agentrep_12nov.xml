@@ -1,0 +1,13 @@
+<?xml version="1.0" encoding="UTF-8" standalone="yes"?>
+<repository fileName="agentrepository.xml">
+    <items>
+        <agentRepItems>
+            <agentRepItem description="Simple UI agent" classPath="agents.UIAgent" agentName="UIAgent"/>
+            <agentRepItem description="UI agent with advanced GUI (by Alina)" classPath="agents.UIAgentExtended" agentName="UIAgent Extended"/>
+            <agentRepItem description="The Random Walker" classPath="agents.SimpleAgent" agentName="SimpleAgt"/>
+        </agentRepItems>
+        <domainRepItem/>
+        <protocolRepItem/>
+    </items>
+    <filename>agentrepository.xml</filename>
+</repository>

@@ -1,0 +1,661 @@
+"""Base negotiator class defining the core negotiation agent interface."""
+
+from __future__ import annotations
+
+from typing import TYPE_CHECKING, Any, TypeVar, Generic
+
+import negmas.warnings as warnings
+from negmas.common import (
+    MechanismState,
+    NegotiatorMechanismInterface,
+    PreferencesChange,
+    PreferencesChangeType,
+)
+from negmas.events import Notifiable, Notification
+from negmas.types import Rational
+
+if TYPE_CHECKING:
+    from negmas.outcomes import Outcome
+    from negmas.preferences import BaseUtilityFunction, Preferences
+    from negmas.situated import Agent
+
+    from .controller import Controller
+
+__all__ = ["Negotiator"]
+
+
+TNMI = TypeVar("TNMI", bound=NegotiatorMechanismInterface)
+TState = TypeVar("TState", bound=MechanismState)
+
+
+class Negotiator(Rational, Notifiable, Generic[TNMI, TState]):
+    """
+    Abstract negotiation agent. Base class for all negotiators.
+
+    Args:
+        name: Negotiator name. If not given it is assigned by the system (unique 16 characters).
+        preferences: The preferences of the agent (pass either this or ufun)
+        ufun: The ufun of the agent (overrides preferences if given)
+        parent: The `Controller` that controls this negotiator (if any)
+        owner: The `Agent` that owns this negotiator (if any)
+        id: The unique ID of the negotiator
+        private_info: Arbitrary information passed to the negotiator. As a special case
+            if a value for 'opponent_ufun' is given, it will be accessible as self.opponent_ufun
+
+    Callback Lifecycle:
+        When a negotiator participates in a negotiation, callbacks are invoked in this
+        **guaranteed order**:
+
+        1. **Joining Phase** (mechanism.add() or negotiator.join()):
+           - ``join(nmi, state, preferences, role)`` - can reject by returning False
+
+        2. **Negotiation Start** (first mechanism.step() or mechanism.run()):
+           - [owner set on preferences]
+           - ``on_preferences_changed([Initialization])`` - ALWAYS FIRST (if preferences exist)
+           - ``on_negotiation_start(state)`` - ALWAYS SECOND
+           - ``on_round_start(state)`` - first round begins
+
+        3. **Negotiation Rounds** (repeated):
+           - ``propose(state)`` - make an offer
+           - ``respond(state, offer, source)`` - evaluate an offer
+           - ``on_partner_proposal(...)`` / ``on_partner_response(...)``
+           - ``on_round_end(state)`` / ``on_round_start(state)``
+
+        4. **Negotiation End**:
+           - ``on_negotiation_end(state)``
+           - ``on_leave(state)`` - [owner cleared from preferences]
+
+        **Key Guarantees**:
+        - ``on_preferences_changed([Initialization])`` is ALWAYS called before ``on_negotiation_start()``
+        - Both are called exactly ONCE per negotiation
+        - This order is consistent regardless of when preferences were set (constructor or join)
+        - See :doc:`/negotiators` for the full callback flowchart
+
+    Remarks:
+        - `ufun` overrides `preferences`. You need to pass only one of them
+    """
+
+    def __init__(
+        self,
+        name: str | None = None,
+        preferences: Preferences | None = None,
+        ufun: BaseUtilityFunction | None = None,
+        parent: Controller | None = None,
+        owner: Agent | None = None,
+        id: str | None = None,
+        type_name: str | None = None,
+        private_info: dict[str, Any] | None = None,
+    ) -> None:
+        """Initialize the negotiator with optional preferences and parent controller.
+
+        Args:
+            name: Display name for the negotiator (auto-generated if not provided).
+            preferences: The negotiator's preferences over outcomes.
+            ufun: Utility function (overrides preferences if provided).
+            parent: Controller managing this negotiator.
+            owner: Agent that owns this negotiator in a simulation.
+            id: Unique identifier (auto-generated if not provided).
+            type_name: Type identifier for serialization purposes.
+            private_info: Arbitrary private data; 'opponent_ufun' key enables opponent_ufun property.
+        """
+        self._private_info = private_info if private_info else dict()
+        if ufun is not None:
+            preferences = ufun
+        self.__parent = parent
+        self._capabilities = {"enter": True, "leave": True, "ultimatum": True}
+        self._nmi: TNMI | None = None
+        self._initial_state = None
+        self._role = None
+        self.__owner = owner
+        super().__init__(
+            name=name, ufun=None, preferences=None, id=id, type_name=type_name
+        )
+        self._preferences = preferences
+        self.__saved_pref_os = None
+        self.__saved_prefs = None
+        # Track the id of preferences for which Initialization was called
+        # This prevents duplicate Initialization calls for the same preferences
+        self._initialized_pref_id: int | None = None
+
+    @property
+    def ami(self) -> TNMI:
+        """Agent-Mechanism Interface (deprecated, use nmi instead).
+
+        Returns:
+            TNMI: The negotiation mechanism interface for this negotiator
+        """
+        warnings.deprecated(
+            "`ami` is depricated and will not be a member of `Negotiator` in the future. Use `nmi` instead."
+        )
+        return self._nmi  # type: ignore
+
+    @property
+    def opponent_ufun(self) -> BaseUtilityFunction | None:
+        """Opponent's utility function if known from private information.
+
+        Returns:
+            BaseUtilityFunction | None: Opponent's utility function or None if unknown
+        """
+        return self.private_info.get("opponent_ufun", None)
+
+    @property
+    def nmi(self) -> TNMI:
+        """Negotiator-Mechanism Interface providing access to negotiation state and actions.
+
+        Returns:
+            TNMI: Interface for interacting with the negotiation mechanism
+        """
+        return self._nmi  # type: ignore
+
+    @property
+    def owner(self) -> Agent | None:
+        """Returns the owner agent of the negotiator"""
+        return self.__owner
+
+    @owner.setter
+    def owner(self, owner):
+        """Sets the owner"""
+        self.__owner = owner
+
+    def _set_pref_os(self):
+        if self.nmi and self._preferences:
+            self.__saved_pref_os = self._preferences.outcome_space
+            self.__saved_prefs = self._preferences
+            self._preferences.outcome_space = self.nmi.outcome_space
+
+    def set_preferences(
+        self, value: Preferences | None, force=False, ignore_exceptions: bool = False
+    ) -> Preferences | None:
+        """Set the negotiator's preferences, with deferred Initialization for deterministic ordering.
+
+        Args:
+            value: The new preferences to assign to this negotiator.
+            force: If True, call on_preferences_changed even if value equals current preferences.
+            ignore_exceptions: If True, suppress any exceptions during callback.
+
+        Returns:
+            Preferences | None: The preferences that were set.
+
+        Remarks:
+            - **Before joining a negotiation** (nmi is None): Preferences are stored
+              but `on_preferences_changed([Initialization])` is NOT called. The
+              Initialization callback is deferred to `_on_negotiation_start` to ensure
+              deterministic ordering (always after join, before on_negotiation_start).
+            - **After joining but before start**: Same as above - Initialization deferred.
+            - **After negotiation started**: If this is the first time setting preferences,
+              `on_preferences_changed([Initialization])` is called immediately (we missed
+              `_on_negotiation_start`). If replacing existing preferences, uses General.
+            - This ensures `on_preferences_changed([Initialization])` is called exactly
+              once per negotiation, regardless of when preferences were set.
+        """
+        old = self._preferences
+
+        if self._nmi is None:
+            # Not in negotiation yet - just store preferences, defer Initialization
+            # to _on_negotiation_start for deterministic ordering
+            if value == old:
+                if force:
+                    try:
+                        self.on_preferences_changed([PreferencesChange()])
+                    except Exception as e:
+                        if not ignore_exceptions:
+                            raise e
+                return self._preferences
+
+            self._preferences = value
+            # Do NOT call on_preferences_changed([Initialization]) here!
+            # It will be called in _on_negotiation_start
+            # But if we're replacing existing preferences, call General
+            if old is not None and id(value) != id(old):
+                try:
+                    self.on_preferences_changed(
+                        [PreferencesChange(PreferencesChangeType.General)]
+                    )
+                except Exception as e:
+                    if not ignore_exceptions:
+                        raise e
+            return self._preferences
+
+        # We are in a negotiation (nmi is set)
+        is_first_time = old is None and value is not None
+        negotiation_started = self._nmi.state.started
+
+        if negotiation_started and not is_first_time and value is not None:
+            warnings.deprecated(
+                "Changing the utility function by direct assignment after the negotiation is "
+                "started is deprecated."
+            )
+
+        if value == old:
+            if force:
+                try:
+                    self.on_preferences_changed([PreferencesChange()])
+                except Exception as e:
+                    if not ignore_exceptions:
+                        raise e
+            return self._preferences
+
+        self._set_pref_os()
+        self._preferences = value
+
+        if id(value) != id(old):
+            if is_first_time:
+                # First time setting preferences
+                if negotiation_started:
+                    # Negotiation already started - we missed _on_negotiation_start
+                    # so call Initialization now and track the pref id
+                    self._set_pref_owner()
+                    self._initialized_pref_id = id(value)
+                    try:
+                        self.on_preferences_changed(
+                            [PreferencesChange(PreferencesChangeType.Initialization)]
+                        )
+                    except Exception as e:
+                        if not ignore_exceptions:
+                            raise e
+                # else: Initialization will be called in _on_negotiation_start
+            else:
+                # Replacing existing preferences - use General
+                try:
+                    self.on_preferences_changed(
+                        [PreferencesChange(PreferencesChangeType.General)]
+                    )
+                except Exception as e:
+                    if not ignore_exceptions:
+                        raise e
+
+        return self._preferences
+
+    def _reset_pref_os(self):
+        if self.__saved_prefs is not None:
+            self.__saved_prefs.outcome_space = self.__saved_pref_os
+            self.__saved_prefs = None
+
+    @property
+    def annotation(self) -> dict[str, Any]:
+        """Returns the private information (annotation) not shared with other negotiators"""
+        return self._private_info
+
+    @property
+    def private_info(self) -> dict[str, Any]:
+        """Returns the private information (annotation) not shared with other negotiators"""
+        return self._private_info
+
+    @property
+    def parent(self) -> Controller | None:
+        """Returns the parent controller"""
+        return self.__parent
+
+    def before_death(self, cntxt: dict[str, Any]) -> bool:
+        """
+        Called whenever the parent is about to kill this negotiator.
+
+        It should return False if the negotiator
+        does not want to be killed but the controller can still force-kill it
+        """
+        return True
+
+    def _dissociate(self):
+        """Dissociate from the current negotiation, clearing owner and resetting state."""
+        self._nmi = None
+        self._reset_pref_os()
+        # Clear owner before resetting preferences (owner is only valid during negotiation)
+        self._clear_pref_owner()
+        self._preferences = self._init_preferences
+        self._role = None
+
+    def is_acceptable_as_agreement(self, outcome: Outcome) -> bool:
+        """
+        Whether the given outcome is acceptable as a final agreement of a negotiation.
+
+        The default behavior is to reject only if a reserved value is defined for the agent and is known to be higher
+        than the utility of the outcome.
+
+        """
+        if not self.preferences:
+            return False
+        if self.reserved_outcome is not None:
+            if not hasattr(self.preferences, "is_not_worse"):
+                return False
+            return self.preferences.is_not_worse(outcome, self.reserved_outcome)  # type: ignore
+        if not self.ufun:
+            return False
+        return self.ufun(outcome) >= self.reserved_value
+
+    def isin(self, negotiation_id: str | None) -> bool:
+        """
+        Is that agent participating in the given negotiation?
+        Tests if the agent is participating in the given negotiation.
+
+        Args:
+
+            negotiation_id (Optional[str]): The negotiation ID tested. If
+             None, it means ANY negotiation
+
+        Returns:
+            bool: True if participating in the given negotiation (or any
+                negotiation if it was None)
+
+        """
+        if not self.nmi:
+            return False
+        return self.nmi.id == negotiation_id
+
+    @property
+    def capabilities(self) -> dict[str, Any]:
+        """Agent capabilities"""
+        return self._capabilities
+
+    def remove_capability(self, name: str) -> None:
+        """Removes named capability from the negotiator
+
+        Args:
+            capabilities: The capabilities to be added as a dict
+
+        Returns:
+            None
+
+        Remarks:
+            It is the responsibility of the caller to be really capable of added capabilities.
+
+        """
+        if hasattr(self, "_capabilities"):
+            self._capabilities.pop(name, None)
+
+    def add_capabilities(self, capabilities: dict) -> None:
+        """Adds named capabilities to the negotiator.
+
+        Args:
+            capabilities: The capabilities to be added as a dict
+
+        Returns:
+            None
+
+        Remarks:
+            It is the responsibility of the caller to be really capable of added capabilities.
+
+        """
+        if hasattr(self, "_capabilities"):
+            self._capabilities.update(capabilities)
+        else:
+            self._capabilities = capabilities
+
+    def join(
+        self,
+        nmi: TNMI,
+        state: TState,
+        *,
+        preferences: Preferences | None = None,
+        ufun: BaseUtilityFunction | None = None,
+        role: str = "negotiator",
+    ) -> bool:
+        """
+        Called by the mechanism when the agent is about to enter a negotiation. It can prevent the agent from entering
+
+        Args:
+            nmi: The negotiation.
+            state: The current state of the negotiation
+            preferences: The preferences used by the negotiator (see `ufun` )
+            ufun: The ufun function to use (overrides `preferences` )
+            role: role of the negotiator.
+
+        Returns:
+            bool indicating whether or not the agent accepts to enter.
+            If False is returned it will not enter the negotiation
+
+        Remarks:
+
+            - Joining a neogiation will fail in the following conditions:
+
+              1. The negotiator already has preferences and is asked to join with new ones
+              2. The negotiator is already in a negotiation
+
+        """
+        if self.nmi is not None:
+            return False
+        if ufun:
+            preferences = ufun
+        if preferences is None:
+            preferences = self._preferences
+        # elif self.preferences and preferences != self.preferences:
+        #     warnings.warn(
+        #         f"Setting preferenes to {preferences} but the agent already has preferences {self.preferences}",
+        #         warnings.NegmasDoubleAssignmentWarning,
+        #     )
+        self._role = role
+        self._nmi = nmi
+        self._initial_state = state
+        if preferences is not None:
+            self._preferences = preferences
+        return True
+
+    def on_negotiation_start(self, state: TState) -> None:
+        """
+        A call back called at each negotiation start
+
+        Args:
+
+            state: `MechanismState` giving current state of the negotiation.
+
+        Remarks:
+
+            - You MUST call the super() version of this function either before or after your code when you are
+              overriding it.
+            - `on_negotiation_start` and `on_negotiation_end` will always be called once for every agent.
+
+        """
+
+    def _on_negotiation_start(self, state: TState) -> None:
+        """
+        Internally called by the mechanism when the negotiation is about to start.
+
+        Call order:
+        1. Set up preferences outcome space (_set_pref_os)
+        2. Set owner on preferences (_set_pref_owner)
+        3. on_preferences_changed(Initialization) - ALWAYS before on_negotiation_start
+        4. on_negotiation_start(state) - user callback
+
+        This ensures on_preferences_changed(Initialization) is called exactly once
+        per negotiation, before any user callbacks.
+        """
+        if self._preferences:
+            pref_id = id(self._preferences)
+            self._set_pref_os()
+            # Set owner when entering negotiation (before calling on_preferences_changed)
+            self._set_pref_owner()
+            # Notify that preferences are now active for this negotiation
+            # This MUST happen before on_negotiation_start
+            # Check if Initialization was already called for these exact preferences
+            if self._initialized_pref_id == pref_id:
+                # Same preferences already initialized - warn and skip
+                warnings.warn(
+                    "on_preferences_changed(Initialization) called twice for the same "
+                    "preferences. This is a performance issue - the second call is ignored."
+                )
+            else:
+                # First time or different preferences - call Initialization
+                self._initialized_pref_id = pref_id
+                self.on_preferences_changed(
+                    [PreferencesChange(PreferencesChangeType.Initialization)]
+                )
+        self.on_negotiation_start(state=state)
+
+    def on_round_start(self, state: TState) -> None:
+        """
+        A call back called at each negotiation round start
+
+        Args:
+            state: `MechanismState` giving current state of the negotiation.
+
+        Remarks:
+            - The default behavior is to do nothing.
+            - Override this to hook some action.
+
+        """
+
+    def on_mechanism_error(self, state: TState) -> None:
+        """
+        A call back called whenever an error happens in the mechanism. The error and its explanation are accessible in
+        `state`
+
+        Args:
+            state: `MechanismState` giving current state of the negotiation.
+
+        Remarks:
+            - The default behavior is to do nothing.
+            - Override this to hook some action
+
+        """
+
+    def on_round_end(self, state: TState) -> None:
+        """
+        A call back called at each negotiation round end
+
+        Args:
+            state: `MechanismState` giving current state of the negotiation.
+
+        Remarks:
+            - The default behavior is to do nothing.
+            - Override this to hook some action
+
+        """
+
+    def on_leave(self, state: TState) -> None:
+        """
+        A call back called after leaving a negotiation.
+
+        Args:
+            state: `MechanismState` giving current state of the negotiation.
+
+        Remarks:
+            - **MUST** call the baseclass `on_leave` using `super` () if you are going to override this.
+            - The default behavior is to do nothing.
+            - Override this to hook some action
+
+        """
+        self._dissociate()
+
+    def on_negotiator_left(self, negotiator_id: str, state: TState) -> None:
+        """
+        A callback called when another negotiator leaves the negotiation.
+
+        Args:
+            negotiator_id: The ID of the negotiator that left.
+            state: `MechanismState` giving current state of the negotiation.
+
+        Remarks:
+            - The default behavior is to do nothing.
+            - Override this to hook some action when a partner leaves.
+
+        """
+
+    def on_negotiator_entered(self, negotiator_id: str, state: TState) -> None:
+        """
+        A callback called when a new negotiator enters the negotiation.
+
+        Args:
+            negotiator_id: The ID of the negotiator that entered.
+            state: `MechanismState` giving current state of the negotiation.
+
+        Remarks:
+            - The default behavior is to do nothing.
+            - Override this to hook some action when a new partner joins.
+
+        """
+
+    def on_negotiator_didnot_enter(self, negotiator_id: str, state: TState) -> None:
+        """
+        A callback called when a negotiator tried but failed to enter the negotiation.
+
+        Args:
+            negotiator_id: The ID of the negotiator that failed to enter.
+            state: `MechanismState` giving current state of the negotiation.
+
+        Remarks:
+            - The default behavior is to do nothing.
+            - Override this to hook some action when a partner fails to join.
+
+        """
+
+    def on_negotiation_end(self, state: TState) -> None:
+        """
+        A call back called at each negotiation end
+
+        Args:
+            state: `MechanismState` or one of its descendants giving the state at which the negotiation ended.
+
+        Remarks:
+            - The default behavior is to do nothing.
+            - Override this to hook some action
+            - `on_negotiation_start` and `on_negotiation_end` will always be called once for every agent.
+
+        """
+
+    def _on_negotiation_end(self, state: TState) -> None:
+        """
+        A call back called at each negotiation end
+
+        Args:
+            state: `MechanismState` or one of its descendants giving the state at which the negotiation ended.
+
+        Remarks:
+            - The default behavior is to do nothing.
+            - Override this to hook some action
+            - `on_negotiation_start` and `on_negotiation_end` will always be called once for every agent.
+
+        """
+        self.on_negotiation_end(state=state)
+        self._reset_pref_os()
+        # Clear owner after negotiation ends (owner is only valid during active negotiation)
+        self._clear_pref_owner()
+        # Clear nmi so negotiator can join another negotiation
+        self._nmi = None
+        # Reset initialized pref id so negotiator can be reused in another negotiation
+        self._initialized_pref_id = None
+
+    def on_notification(self, notification: Notification, notifier: str):
+        """
+        Called whenever the agent receives a notification
+
+        Args:
+            notification: The notification object containing type and data payload.
+            notifier: The ID of the mechanism or entity that sent the notification.
+
+        Returns:
+            None
+
+        Remarks:
+
+            - You MUST call the super() version of this function either before or after your code when you are
+              overriding it.
+
+        """
+        # if not self.nmi or notifier != self.nmi.id:
+        #     raise ValueError(f"Notification is coming from unknown {notifier}")
+        if notification.type == "negotiation_start":
+            self.on_negotiation_start(state=notification.data)
+        elif notification.type == "round_start":
+            self.on_round_start(state=notification.data)
+        elif notification.type == "round_end":
+            self.on_round_end(state=notification.data)
+        elif notification.type == "negotiation_end":
+            self.on_negotiation_end(state=notification.data)
+        elif notification.type == "ufun_modified":
+            self.on_preferences_changed(
+                changes=notification.data
+                if notification.data
+                else [PreferencesChange()]
+            )
+
+    def cancel(self, reason=None) -> None:
+        """
+        A method that may be called by a mechanism to make the negotiator cancel whatever it is currently
+        processing.
+
+        Negotiators can just ignore this message (default behavior) but if there is a way to actually cancel
+        work, it should be implemented here to improve the responsiveness of the negotiator.
+        """
+
+    def __str__(self):
+        """Return the negotiator's name as its string representation."""
+        return f"{self.name}"

@@ -1,0 +1,74 @@
+<negotiation_template number_of_sessions="1">
+	<agent class="agents.ABMPAgent2" name="Dealer"
+		utility_space="ABMP_car_dealer_utilityspace.xml">
+	</agent>
+	<agent class="agents.ABMPAgent2" name="Buyer"
+		utility_space="ABMP_car_buyer_utilityspace.xml">
+	</agent>
+	<utility_space number_of_issues="6">
+		<objective index="0" etype="objective" type="objective"
+			description="" name="Car">
+			<issue index="1" vtype="discrete" name="CD player">
+				<item index="1" value="good"></item>
+				<item index="2" value="fairly good"></item>
+				<item index="3" value="standard"></item>
+				<item index="4" value="meager"></item>
+				<item index="5" value="none"></item>
+			</issue>
+			<issue index="2" vtype="discrete" name="Extra speakers">
+				<item index="1" value="good"></item>
+				<item index="2" value="fairly good"></item>
+				<item index="3" value="standard"></item>
+				<item index="4" value="meager"></item>
+				<item index="5" value="none">
+				</item>
+			</issue>
+			<issue index="3" vtype="discrete" name="Airconditioning">
+				<item index="1" value="good"></item>
+				<item index="2" value="fairly good"></item>
+				<item index="3" value="standard">
+				</item>
+				<item index="4" value="meager">
+				</item>
+				<item index="5" value="none">
+				</item>
+			</issue>
+			<issue index="4" vtype="discrete" name="Tow hedge">
+				<item index="1" value="good">
+				</item>
+				<item index="2" value="fairly good">
+				</item>
+				<item index="3" value="standard">
+				</item>
+				<item index="4" value="meager">
+				</item>
+				<item index="5" value="none">
+				</item>
+			</issue>
+			<issue index="5" vtype="discrete" name="Tow hedge2">
+				<item index="1" value="good">
+				</item>
+				<item index="2" value="fairly good">
+				</item>
+				<item index="3" value="standard">
+				</item>
+				<item index="4" value="meager">
+				</item>
+				<item index="5" value="none">
+				</item>
+			</issue>
+			<issue index="6" vtype="discrete" name="Tow hedge3">
+				<item index="1" value="good">
+				</item>
+				<item index="2" value="fairly good">
+				</item>
+				<item index="3" value="standard">
+				</item>
+				<item index="4" value="meager">
+				</item>
+				<item index="5" value="none">
+				</item>
+			</issue>
+		</objective>
+	</utility_space>
+</negotiation_template>

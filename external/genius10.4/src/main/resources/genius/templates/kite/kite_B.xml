@@ -1,0 +1,16 @@
+<utility_space> 
+<objective index="0" etype="objective" type="objective" description="" name="KiteDomain"> 
+<issue index="1" etype="discrete" type="discrete" vtype="discrete" name="Kite"> 
+<item index="1" value="a"  cost="0"  evaluation="100" description="a"> 
+</item> 
+<item index="2" value="b"  cost="0" evaluation="25" description="b"> 
+</item> 
+<item index="3" value="c"  cost="0" evaluation="75" description="c"> 
+</item> 
+<item index="4" value="d"  cost="0" evaluation="0" description="d"> 
+</item> 
+</issue> 
+<weight index="1" value="1"> 
+</weight> 
+</objective> 
+</utility_space> 

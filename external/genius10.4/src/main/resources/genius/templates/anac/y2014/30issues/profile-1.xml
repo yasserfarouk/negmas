@@ -1,0 +1,320 @@
+
+<!-- profile 1 -->
+<?xml version="1.0" encoding="utf-8" ?>
+<utility_space type="nonlinear">
+<objective description="" etype="objective" index="0" name="root" type="objective">
+   <issue etype="integer" index="1"  name="c1-i30" type="integer" vtype="integer" lowerbound="0" upperbound="9"/>
+   <issue etype="integer" index="2"  name="c1-i29" type="integer" vtype="integer" lowerbound="0" upperbound="9"/>
+   <issue etype="integer" index="3"  name="c1-i28" type="integer" vtype="integer" lowerbound="0" upperbound="9"/>
+   <issue etype="integer" index="4"  name="c1-i27" type="integer" vtype="integer" lowerbound="0" upperbound="9"/>
+   <issue etype="integer" index="5"  name="c1-i26" type="integer" vtype="integer" lowerbound="0" upperbound="9"/>
+   <issue etype="integer" index="6"  name="c1-i25" type="integer" vtype="integer" lowerbound="0" upperbound="9"/>
+   <issue etype="integer" index="7"  name="c1-i24" type="integer" vtype="integer" lowerbound="0" upperbound="9"/>
+   <issue etype="integer" index="8"  name="c1-i23" type="integer" vtype="integer" lowerbound="0" upperbound="9"/>
+   <issue etype="integer" index="9"  name="c1-i22" type="integer" vtype="integer" lowerbound="0" upperbound="9"/>
+   <issue etype="integer" index="10"  name="c1-i21" type="integer" vtype="integer" lowerbound="0" upperbound="9"/>
+   <issue etype="integer" index="11"  name="c1-i20" type="integer" vtype="integer" lowerbound="0" upperbound="9"/>
+   <issue etype="integer" index="12"  name="c1-i19" type="integer" vtype="integer" lowerbound="0" upperbound="9"/>
+   <issue etype="integer" index="13"  name="c1-i18" type="integer" vtype="integer" lowerbound="0" upperbound="9"/>
+   <issue etype="integer" index="14"  name="c1-i17" type="integer" vtype="integer" lowerbound="0" upperbound="9"/>
+   <issue etype="integer" index="15"  name="c1-i16" type="integer" vtype="integer" lowerbound="0" upperbound="9"/>
+   <issue etype="integer" index="16"  name="c1-i15" type="integer" vtype="integer" lowerbound="0" upperbound="9"/>
+   <issue etype="integer" index="17"  name="c1-i14" type="integer" vtype="integer" lowerbound="0" upperbound="9"/>
+   <issue etype="integer" index="18"  name="c1-i13" type="integer" vtype="integer" lowerbound="0" upperbound="9"/>
+   <issue etype="integer" index="19"  name="c1-i12" type="integer" vtype="integer" lowerbound="0" upperbound="9"/>
+   <issue etype="integer" index="20"  name="c1-i11" type="integer" vtype="integer" lowerbound="0" upperbound="9"/>
+   <issue etype="integer" index="21"  name="c1-i10" type="integer" vtype="integer" lowerbound="0" upperbound="9"/>
+   <issue etype="integer" index="22"  name="c1-i9" type="integer" vtype="integer" lowerbound="0" upperbound="9"/>
+   <issue etype="integer" index="23"  name="c1-i8" type="integer" vtype="integer" lowerbound="0" upperbound="9"/>
+   <issue etype="integer" index="24"  name="c1-i7" type="integer" vtype="integer" lowerbound="0" upperbound="9"/>
+   <issue etype="integer" index="25"  name="c1-i6" type="integer" vtype="integer" lowerbound="0" upperbound="9"/>
+   <issue etype="integer" index="26"  name="c1-i5" type="integer" vtype="integer" lowerbound="0" upperbound="9"/>
+   <issue etype="integer" index="27"  name="c1-i4" type="integer" vtype="integer" lowerbound="0" upperbound="9"/>
+   <issue etype="integer" index="28"  name="c1-i3" type="integer" vtype="integer" lowerbound="0" upperbound="9"/>
+   <issue etype="integer" index="29"  name="c1-i2" type="integer" vtype="integer" lowerbound="0" upperbound="9"/>
+   <issue etype="integer" index="30"  name="c1-i1" type="integer" vtype="integer" lowerbound="0" upperbound="9"/>
+
+   <utility maxutility="2353">
+      <ufun type="PlainUfun" weight="1" aggregation="sum">
+         <hyperRectangle utility="21">
+            <INCLUDES index="12" min="4" max="9"/>
+            <INCLUDES index="20" min="1" max="9"/>
+            <INCLUDES index="21" min="8" max="9"/>
+         </hyperRectangle>
+         <hyperRectangle utility="63">
+            <INCLUDES index="1" min="8" max="9"/>
+            <INCLUDES index="4" min="0" max="8"/>
+            <INCLUDES index="7" min="9" max="9"/>
+            <INCLUDES index="30" min="6" max="9"/>
+         </hyperRectangle>
+         <hyperRectangle utility="55">
+            <INCLUDES index="6" min="0" max="8"/>
+            <INCLUDES index="12" min="3" max="8"/>
+            <INCLUDES index="19" min="3" max="9"/>
+            <INCLUDES index="21" min="0" max="5"/>
+         </hyperRectangle>
+         <hyperRectangle utility="72">
+            <INCLUDES index="27" min="8" max="9"/>
+         </hyperRectangle>
+         <hyperRectangle utility="89">
+            <INCLUDES index="10" min="3" max="9"/>
+            <INCLUDES index="18" min="0" max="7"/>
+            <INCLUDES index="24" min="7" max="9"/>
+            <INCLUDES index="29" min="6" max="9"/>
+         </hyperRectangle>
+         <hyperRectangle utility="55">
+            <INCLUDES index="1" min="8" max="9"/>
+            <INCLUDES index="10" min="0" max="5"/>
+            <INCLUDES index="14" min="9" max="9"/>
+            <INCLUDES index="25" min="0" max="7"/>
+         </hyperRectangle>
+         <hyperRectangle utility="4">
+            <INCLUDES index="7" min="0" max="8"/>
+            <INCLUDES index="12" min="0" max="5"/>
+         </hyperRectangle>
+         <hyperRectangle utility="48">
+            <INCLUDES index="24" min="0" max="5"/>
+         </hyperRectangle>
+         <hyperRectangle utility="38">
+            <INCLUDES index="16" min="3" max="8"/>
+            <INCLUDES index="18" min="3" max="9"/>
+            <INCLUDES index="29" min="0" max="7"/>
+         </hyperRectangle>
+         <hyperRectangle utility="45">
+            <INCLUDES index="4" min="0" max="5"/>
+            <INCLUDES index="12" min="0" max="5"/>
+            <INCLUDES index="19" min="0" max="7"/>
+            <INCLUDES index="23" min="7" max="9"/>
+         </hyperRectangle>
+         <hyperRectangle utility="87">
+            <INCLUDES index="19" min="1" max="6"/>
+            <INCLUDES index="20" min="9" max="9"/>
+         </hyperRectangle>
+         <hyperRectangle utility="48">
+            <INCLUDES index="16" min="0" max="5"/>
+         </hyperRectangle>
+         <hyperRectangle utility="27">
+            <INCLUDES index="18" min="0" max="6"/>
+            <INCLUDES index="21" min="0" max="5"/>
+         </hyperRectangle>
+         <hyperRectangle utility="72">
+            <INCLUDES index="21" min="7" max="9"/>
+            <INCLUDES index="29" min="9" max="9"/>
+         </hyperRectangle>
+         <hyperRectangle utility="21">
+            <INCLUDES index="10" min="4" max="9"/>
+            <INCLUDES index="11" min="0" max="8"/>
+            <INCLUDES index="22" min="0" max="6"/>
+            <INCLUDES index="30" min="4" max="9"/>
+         </hyperRectangle>
+         <hyperRectangle utility="4">
+            <INCLUDES index="8" min="0" max="7"/>
+            <INCLUDES index="13" min="0" max="5"/>
+            <INCLUDES index="23" min="9" max="9"/>
+            <INCLUDES index="24" min="0" max="7"/>
+         </hyperRectangle>
+         <hyperRectangle utility="71">
+            <INCLUDES index="21" min="5" max="9"/>
+         </hyperRectangle>
+         <hyperRectangle utility="21">
+            <INCLUDES index="17" min="4" max="9"/>
+            <INCLUDES index="27" min="4" max="9"/>
+            <INCLUDES index="29" min="0" max="7"/>
+            <INCLUDES index="30" min="8" max="9"/>
+         </hyperRectangle>
+         <hyperRectangle utility="25">
+            <INCLUDES index="23" min="4" max="9"/>
+         </hyperRectangle>
+         <hyperRectangle utility="80">
+            <INCLUDES index="21" min="0" max="6"/>
+            <INCLUDES index="22" min="8" max="9"/>
+         </hyperRectangle>
+         <hyperRectangle utility="90">
+            <INCLUDES index="22" min="5" max="9"/>
+         </hyperRectangle>
+         <hyperRectangle utility="87">
+            <INCLUDES index="28" min="0" max="6"/>
+            <INCLUDES index="29" min="0" max="8"/>
+         </hyperRectangle>
+         <hyperRectangle utility="39">
+            <INCLUDES index="8" min="0" max="5"/>
+         </hyperRectangle>
+         <hyperRectangle utility="72">
+            <INCLUDES index="3" min="0" max="7"/>
+            <INCLUDES index="10" min="4" max="9"/>
+            <INCLUDES index="20" min="0" max="5"/>
+         </hyperRectangle>
+         <hyperRectangle utility="69">
+            <INCLUDES index="28" min="0" max="5"/>
+         </hyperRectangle>
+         <hyperRectangle utility="46">
+            <INCLUDES index="2" min="1" max="6"/>
+            <INCLUDES index="8" min="4" max="9"/>
+            <INCLUDES index="23" min="0" max="5"/>
+            <INCLUDES index="24" min="1" max="6"/>
+         </hyperRectangle>
+         <hyperRectangle utility="88">
+            <INCLUDES index="9" min="0" max="5"/>
+         </hyperRectangle>
+         <hyperRectangle utility="64">
+            <INCLUDES index="6" min="1" max="8"/>
+            <INCLUDES index="7" min="1" max="9"/>
+            <INCLUDES index="16" min="9" max="9"/>
+            <INCLUDES index="21" min="2" max="9"/>
+         </hyperRectangle>
+         <hyperRectangle utility="45">
+            <INCLUDES index="24" min="0" max="6"/>
+            <INCLUDES index="28" min="3" max="9"/>
+         </hyperRectangle>
+         <hyperRectangle utility="85">
+            <INCLUDES index="5" min="8" max="9"/>
+            <INCLUDES index="28" min="0" max="8"/>
+         </hyperRectangle>
+         <hyperRectangle utility="72">
+            <INCLUDES index="30" min="3" max="9"/>
+         </hyperRectangle>
+         <hyperRectangle utility="77">
+            <INCLUDES index="7" min="0" max="7"/>
+            <INCLUDES index="10" min="0" max="5"/>
+            <INCLUDES index="14" min="5" max="9"/>
+         </hyperRectangle>
+         <hyperRectangle utility="67">
+            <INCLUDES index="6" min="6" max="9"/>
+            <INCLUDES index="29" min="0" max="6"/>
+            <INCLUDES index="30" min="9" max="9"/>
+         </hyperRectangle>
+         <hyperRectangle utility="37">
+            <INCLUDES index="12" min="5" max="9"/>
+            <INCLUDES index="14" min="7" max="9"/>
+            <INCLUDES index="16" min="0" max="7"/>
+         </hyperRectangle>
+         <hyperRectangle utility="79">
+            <INCLUDES index="5" min="0" max="6"/>
+            <INCLUDES index="9" min="1" max="9"/>
+         </hyperRectangle>
+         <hyperRectangle utility="35">
+            <INCLUDES index="2" min="1" max="7"/>
+            <INCLUDES index="26" min="5" max="9"/>
+            <INCLUDES index="28" min="5" max="9"/>
+            <INCLUDES index="30" min="5" max="9"/>
+         </hyperRectangle>
+         <hyperRectangle utility="66">
+            <INCLUDES index="16" min="0" max="7"/>
+         </hyperRectangle>
+         <hyperRectangle utility="53">
+            <INCLUDES index="12" min="9" max="9"/>
+            <INCLUDES index="24" min="0" max="6"/>
+            <INCLUDES index="26" min="1" max="6"/>
+            <INCLUDES index="29" min="7" max="9"/>
+         </hyperRectangle>
+         <hyperRectangle utility="63">
+            <INCLUDES index="2" min="2" max="9"/>
+            <INCLUDES index="3" min="9" max="9"/>
+            <INCLUDES index="7" min="8" max="9"/>
+            <INCLUDES index="30" min="3" max="9"/>
+         </hyperRectangle>
+         <hyperRectangle utility="96">
+            <INCLUDES index="1" min="0" max="8"/>
+            <INCLUDES index="20" min="0" max="7"/>
+            <INCLUDES index="29" min="3" max="9"/>
+            <INCLUDES index="30" min="3" max="9"/>
+         </hyperRectangle>
+         <hyperRectangle utility="61">
+            <INCLUDES index="2" min="6" max="9"/>
+            <INCLUDES index="9" min="1" max="6"/>
+            <INCLUDES index="11" min="4" max="9"/>
+            <INCLUDES index="24" min="0" max="5"/>
+         </hyperRectangle>
+         <hyperRectangle utility="32">
+            <INCLUDES index="2" min="5" max="9"/>
+            <INCLUDES index="4" min="0" max="8"/>
+            <INCLUDES index="8" min="8" max="9"/>
+         </hyperRectangle>
+         <hyperRectangle utility="83">
+            <INCLUDES index="23" min="0" max="7"/>
+            <INCLUDES index="30" min="0" max="6"/>
+         </hyperRectangle>
+         <hyperRectangle utility="62">
+            <INCLUDES index="11" min="8" max="9"/>
+            <INCLUDES index="14" min="0" max="7"/>
+            <INCLUDES index="25" min="9" max="9"/>
+            <INCLUDES index="30" min="0" max="6"/>
+         </hyperRectangle>
+         <hyperRectangle utility="19">
+            <INCLUDES index="11" min="0" max="7"/>
+            <INCLUDES index="28" min="6" max="9"/>
+         </hyperRectangle>
+         <hyperRectangle utility="76">
+            <INCLUDES index="5" min="0" max="8"/>
+            <INCLUDES index="6" min="0" max="6"/>
+            <INCLUDES index="29" min="0" max="6"/>
+         </hyperRectangle>
+         <hyperRectangle utility="29">
+            <INCLUDES index="8" min="3" max="9"/>
+         </hyperRectangle>
+         <hyperRectangle utility="72">
+            <INCLUDES index="3" min="0" max="5"/>
+         </hyperRectangle>
+         <hyperRectangle utility="69">
+            <INCLUDES index="2" min="4" max="9"/>
+            <INCLUDES index="5" min="8" max="9"/>
+            <INCLUDES index="23" min="8" max="9"/>
+         </hyperRectangle>
+         <hyperRectangle utility="13">
+            <INCLUDES index="3" min="0" max="5"/>
+            <INCLUDES index="7" min="5" max="9"/>
+            <INCLUDES index="29" min="0" max="8"/>
+         </hyperRectangle>
+         <hyperRectangle utility="57">
+            <INCLUDES index="8" min="0" max="8"/>
+            <INCLUDES index="16" min="0" max="7"/>
+            <INCLUDES index="21" min="0" max="6"/>
+         </hyperRectangle>
+         <hyperRectangle utility="69">
+            <INCLUDES index="4" min="4" max="9"/>
+            <INCLUDES index="16" min="0" max="5"/>
+            <INCLUDES index="20" min="0" max="5"/>
+            <INCLUDES index="27" min="7" max="9"/>
+         </hyperRectangle>
+         <hyperRectangle utility="65">
+            <INCLUDES index="1" min="5" max="9"/>
+            <INCLUDES index="25" min="2" max="8"/>
+         </hyperRectangle>
+         <hyperRectangle utility="80">
+            <INCLUDES index="2" min="0" max="8"/>
+            <INCLUDES index="26" min="9" max="9"/>
+            <INCLUDES index="29" min="7" max="9"/>
+         </hyperRectangle>
+         <hyperRectangle utility="49">
+            <INCLUDES index="2" min="8" max="9"/>
+            <INCLUDES index="10" min="3" max="9"/>
+            <INCLUDES index="12" min="0" max="5"/>
+            <INCLUDES index="15" min="0" max="8"/>
+         </hyperRectangle>
+         <hyperRectangle utility="2">
+            <INCLUDES index="15" min="6" max="9"/>
+            <INCLUDES index="24" min="2" max="9"/>
+            <INCLUDES index="30" min="0" max="5"/>
+         </hyperRectangle>
+         <hyperRectangle utility="56">
+            <INCLUDES index="3" min="0" max="8"/>
+            <INCLUDES index="4" min="3" max="8"/>
+            <INCLUDES index="18" min="1" max="9"/>
+            <INCLUDES index="28" min="1" max="8"/>
+         </hyperRectangle>
+         <hyperRectangle utility="81">
+            <INCLUDES index="29" min="0" max="8"/>
+         </hyperRectangle>
+         <hyperRectangle utility="98">
+            <INCLUDES index="15" min="7" max="9"/>
+            <INCLUDES index="25" min="2" max="7"/>
+            <INCLUDES index="26" min="4" max="9"/>
+            <INCLUDES index="29" min="2" max="7"/>
+         </hyperRectangle>
+         <hyperRectangle utility="57">
+            <INCLUDES index="2" min="1" max="9"/>
+         </hyperRectangle>
+      </ufun>
+   </utility>
+</objective>
+</utility_space>

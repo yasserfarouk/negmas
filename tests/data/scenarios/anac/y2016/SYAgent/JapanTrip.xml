@@ -1,0 +1,46 @@
+<negotiation_template>
+<utility_space number_of_issues="4">
+<objective description="" etype="objective" index="0" name="root" type="objective">
+    <issue etype="discrete" index="1" name="Place" type="discrete" vtype="discrete">
+        <item index="1" value="Tokyo" cost="0" description="Tokyo">
+        </item>
+        <item index="2" value="Osaka" cost="0" description="Osaka">
+        </item>
+        <item index="3" value="Nagoya" cost="0" description="Nagoya">
+        </item>
+        <item index="4" value="Hokkaido" cost="0" description="Hokkaido">
+        </item>
+        <item index="5" value="Okinawa" cost="0" description="Okinawa">
+        </item>
+    </issue>
+    <issue etype="discrete" index="2" name="Budget" type="discrete" vtype="discrete">
+        <item index="1" value="900" cost="0" description="900">
+        </item>
+        <item index="2" value="1200" cost="0" description="1200">
+        </item>
+        <item index="3" value="1500" cost="0" description="1500">
+        </item>
+        <item index="4" value="1800" cost="0" description="1800">
+        </item>
+    </issue>
+    <issue etype="discrete" index="3" name="Days" type="discrete" vtype="discrete">
+        <item index="1" value="3" cost="0" description="3">
+        </item>
+        <item index="2" value="4" cost="0" description="4">
+        </item>
+        <item index="3" value="5" cost="0" description="5">
+        </item>
+        <item index="4" value="6" cost="0" description="6">
+        </item>
+    </issue>
+    <issue etype="discrete" index="4" name="Purpose" type="discrete" vtype="discrete">
+        <item index="1" value="Sightseeing" cost="0" description="Sightseeing">
+        </item>
+        <item index="2" value="Activity" cost="0" description="Activity">
+        </item>
+        <item index="3" value="Shopping" cost="0" description="Shopping">
+        </item>
+    </issue>
+</objective>
+</utility_space>
+</negotiation_template>

@@ -1,0 +1,1292 @@
+from __future__ import annotations
+
+from datetime import datetime
+from copy import deepcopy
+import pandas as pd
+import sys
+import random
+from typing import Any, Optional, Callable
+from pathlib import Path
+from time import perf_counter
+from negmas.inout import serialize
+from negmas.plots.util import DEFAULT_IMAGE_FORMAT
+
+import typer
+import functools
+from rich import print
+from stringcase import titlecase
+
+from negmas.genius.ginfo import get_java_class
+from negmas.genius.negotiator import GeniusNegotiator
+from negmas.genius.bridge import (
+    genius_bridge_is_running,
+    genius_bridge_is_installed,
+    init_genius_bridge,
+)
+from negmas.genius.common import DEFAULT_JAVA_PORT
+from negmas.helpers import get_class
+from negmas.helpers.inout import dump
+from negmas.helpers.strings import camel_case, humanize_time, shortest_unique_names
+from negmas.helpers.types import get_full_type_name
+from negmas.inout import Scenario
+from negmas.negotiators.negotiator import Negotiator
+from negmas.outcomes.outcome_space import CartesianOutcomeSpace
+from negmas.preferences.ops import (
+    calc_reserved_value,
+    kalai_points,
+    make_rank_ufun,
+    max_welfare_points,
+    nash_points,
+    pareto_frontier,
+)
+from negmas.preferences.generators import generate_multi_issue_ufuns
+from negmas.serialization import PYTHON_CLASS_IDENTIFIER
+from negmas.common import TRACE_ELEMENT_MEMBERS
+from negmas.scripts import negotiate_core
+from negmas.scripts.negotiate_core import (
+    resolve_negotiator_from_registry,
+    resolve_scenario_from_registry,
+    print_negotiator_info,
+    list_scenarios as list_scenarios_from_registry,
+    show_negotiator_info,
+    show_scenario_info,
+    get_protocol,
+    create_adapter,
+    make_genius_negotiator,
+    make_anl_negotiator,
+    make_llm_negotiator,
+    make_negolog_negotiator,
+    make_ga_negotiator,
+    make_boa_negotiator,
+    ensure_genius_bridge_running,
+)
+
+app = typer.Typer()
+
+GENIUSMARKER = "genius"
+ANLMARKER = "anl"
+BOAMARKER = "boa"
+MAPMARKER = "map"
+LLMMARKER = "llm"
+NEGOLOGMARKER = "negolog"
+GAMARKER = "ga"
+
+
+def get_screen_resolution() -> tuple[int, int]:
+    from tkinter import Tk
+
+    # creating tkinter window
+    root = Tk()
+    # getting screen's height in pixels
+    height = root.winfo_screenheight()
+    # getting screen's width in pixels
+    width = root.winfo_screenwidth()
+    return (width, height)
+
+
+def shutdown_genius_bridge_if_started() -> None:
+    """
+    Shuts down the Genius bridge if we started it.
+    """
+    if negotiate_core._genius_bridge_started_by_cli:
+        from negmas.genius.bridge import GeniusBridge
+
+        print("[yellow]Shutting down Genius bridge...[/yellow]")
+        GeniusBridge.stop(DEFAULT_JAVA_PORT)
+        negotiate_core._genius_bridge_started_by_cli = False
+
+
+def complete_negotiator(incomplete: str) -> list[str]:
+    """Provide tab completion for negotiator names.
+
+    This function provides completions for:
+    - Registry short names (e.g., AspirationNegotiator)
+    - Source@name format (e.g., negmas@AspirationNegotiator)
+    - Special prefixes (genius:, anl:, etc.)
+    """
+    completions = []
+
+    try:
+        from negmas import negotiator_registry
+    except ImportError:
+        return completions
+
+    # If typing source@ or source>, complete with source names and negotiator names
+    if "@" in incomplete or ">" in incomplete:
+        sep = "@" if "@" in incomplete else ">"
+        parts = incomplete.split(sep)
+        if len(parts) == 2:
+            source, partial_name = parts
+            # Get negotiators from that source
+            try:
+                results = negotiator_registry.query(source=source)
+                for info in results.values():
+                    full = f"{source}{sep}{info.short_name}"
+                    if full.startswith(incomplete):
+                        completions.append(full)
+            except Exception:
+                pass
+        else:
+            # Just started typing source, show source names
+            sources = set()
+            for info in negotiator_registry.values():
+                sources.add(info.source)
+            for source in sorted(sources):
+                completions.append(f"{source}{sep}")
+    else:
+        # Complete with short names and special prefixes
+        # Add special prefixes
+        for prefix in ["genius:", "anl:", "boa:", "map:", "llm:", "negolog:", "ga:"]:
+            if prefix.startswith(incomplete):
+                completions.append(prefix)
+
+        # Add registry short names
+        seen = set()
+        for info in negotiator_registry.values():
+            name = info.short_name
+            if name not in seen and name.startswith(incomplete):
+                completions.append(name)
+                seen.add(name)
+
+    return sorted(completions[:50])  # Limit to 50 completions
+
+
+def complete_scenario(incomplete: str) -> list[str]:
+    """Provide tab completion for scenario names.
+
+    This function provides completions for:
+    - Scenario names (e.g., CameraB)
+    - Source@name format (e.g., negmas@CameraB)
+    """
+    completions = []
+
+    try:
+        from negmas import scenario_registry
+    except ImportError:
+        return completions
+
+    # If typing source@ or source>, complete with source names and scenario names
+    if "@" in incomplete or ">" in incomplete:
+        sep = "@" if "@" in incomplete else ">"
+        parts = incomplete.split(sep)
+        if len(parts) == 2:
+            source, partial_name = parts
+            # Get scenarios from that source
+            try:
+                results = {
+                    k: v for k, v in scenario_registry.items() if v.source == source
+                }
+                for info in results.values():
+                    full = f"{source}{sep}{info.name}"
+                    if full.startswith(incomplete):
+                        completions.append(full)
+            except Exception:
+                pass
+        else:
+            # Just started typing source, show source names
+            sources = set()
+            for info in scenario_registry.values():
+                sources.add(info.source)
+            for source in sorted(sources):
+                completions.append(f"{source}{sep}")
+    else:
+        # Complete with scenario names
+        seen = set()
+        for info in scenario_registry.values():
+            name = info.name
+            if name not in seen and name.startswith(incomplete):
+                completions.append(name)
+                seen.add(name)
+
+    return sorted(completions[:50])  # Limit to 50 completions
+
+
+def get_negotiator(
+    class_name: str, on_multiple_matches: str = "warn"
+) -> type[Negotiator] | Callable[[str], Negotiator]:
+    # First, try to resolve from registry (if not using a special prefix)
+    if not any(
+        class_name.startswith(f"{marker}.") or class_name.startswith(f"{marker}:")
+        for marker in [
+            GENIUSMARKER,
+            ANLMARKER,
+            BOAMARKER,
+            MAPMARKER,
+            LLMMARKER,
+            NEGOLOGMARKER,
+            GAMARKER,
+        ]
+    ):
+        resolved = resolve_negotiator_from_registry(
+            class_name, verbose=False, on_multiple_matches=on_multiple_matches
+        )
+        if resolved:
+            class_name = resolved
+
+    if class_name.startswith(GENIUSMARKER):
+        # Ensure Genius bridge is running before creating Genius negotiators
+        if not ensure_genius_bridge_running():
+            raise RuntimeError(
+                "Cannot create Genius negotiator: Genius bridge is not running and could not be started. "
+                "See the instructions above to set up the Genius bridge."
+            )
+
+        for sp in (".", ":"):
+            x = sp.join(class_name.split(sp)[1:])
+            if x:
+                class_name = x
+                break
+        java_class = get_java_class(class_name)
+        if java_class is None:
+            raise ValueError(
+                f"Cannot find java class name for genius negotiator of type {class_name}"
+            )
+        return functools.partial(make_genius_negotiator, java_class_name=java_class)
+
+    if class_name.startswith(f"{ANLMARKER}."):
+        for sp in (".", ":"):
+            x = sp.join(class_name.split(sp)[1:])
+            if x:
+                class_name = x
+                break
+        if class_name.startswith(f"{ANLMARKER}."):
+            class_name = class_name[len(ANLMARKER) + 1 :]
+        return functools.partial(make_anl_negotiator, class_name=class_name)
+
+    # Handle BOA negotiators: boa:offering=...,acceptance=...
+    if class_name.startswith(f"{BOAMARKER}:") or class_name.startswith(f"{BOAMARKER}."):
+        spec = class_name[len(BOAMARKER) + 1 :]
+        return functools.partial(make_boa_negotiator, spec=spec, is_map=False)
+
+    # Handle MAP negotiators: map:offering=...,acceptance=...
+    if class_name.startswith(f"{MAPMARKER}:") or class_name.startswith(f"{MAPMARKER}."):
+        spec = class_name[len(MAPMARKER) + 1 :]
+        return functools.partial(make_boa_negotiator, spec=spec, is_map=True)
+
+    # Handle LLM negotiators: llm:ClassName
+    if class_name.startswith(f"{LLMMARKER}:") or class_name.startswith(f"{LLMMARKER}."):
+        for sp in (".", ":"):
+            x = sp.join(class_name.split(sp)[1:])
+            if x:
+                class_name = x
+                break
+        return functools.partial(make_llm_negotiator, class_name=class_name)
+
+    # Handle Negolog negotiators: negolog:ClassName
+    if class_name.startswith(f"{NEGOLOGMARKER}:") or class_name.startswith(
+        f"{NEGOLOGMARKER}."
+    ):
+        for sp in (".", ":"):
+            x = sp.join(class_name.split(sp)[1:])
+            if x:
+                class_name = x
+                break
+        return functools.partial(make_negolog_negotiator, class_name=class_name)
+
+    # Handle Genius Agents negotiators: ga:ClassName
+    if class_name.startswith(f"{GAMARKER}:") or class_name.startswith(f"{GAMARKER}."):
+        for sp in (".", ":"):
+            x = sp.join(class_name.split(sp)[1:])
+            if x:
+                class_name = x
+                break
+        return functools.partial(make_ga_negotiator, class_name=class_name)
+
+    if "/" in class_name:
+        adapter_name, _, negotiator_name = class_name.partition("/")
+        adapter_type = get_adapter(adapter_name)
+        negotiator_type = get_negotiator(negotiator_name, on_multiple_matches)
+        return functools.partial(create_adapter, adapter_type, negotiator_type)
+    if "." not in class_name:
+        if "_" in class_name:
+            class_name = titlecase(camel_case(class_name))
+        try:
+            return get_class(f"negmas.{class_name}")
+        except Exception:
+            pass
+        # Try negmas.genius for G-prefixed negotiators (Python-native Genius BOA)
+        try:
+            return get_class(f"negmas.genius.{class_name}")
+        except Exception:
+            pass
+        if not class_name.endswith("Negotiator"):
+            class_name = f"{class_name}Negotiator"
+        class_name = f"negmas.{class_name}"
+    return get_class(class_name)
+
+
+def get_adapter(
+    name: str, base_name="NegotiatorAdapter"
+) -> type[Negotiator] | Callable[[str], Negotiator]:
+    if "." not in name:
+        if "_" in name:
+            name = titlecase(camel_case(name))
+        if not name.endswith(base_name):
+            name = f"{name}{base_name}"
+        name = f"negmas.gb.adapters.tau.{name}"
+    return get_class(name)
+
+
+def shorten_protocol_name(name: str) -> str:
+    name = name.split(".")[-1]
+    return name.replace("Mechanism", "").replace("Protocol", "")
+
+
+def dist(x: tuple[float, ...], lst: list[tuple[float, ...]]):
+    if not lst:
+        return float("nan")
+    return min(sum((a - b) ** 2 for a, b in zip(x, p, strict=True)) for p in lst)
+
+
+def diff(x: tuple[float, ...], lst: list[tuple[float, ...]]):
+    if not lst:
+        return float("nan")
+    s = sum(x)
+    return min(abs(sum(_) - s) for _ in lst)
+
+
+@app.command()
+def run(
+    scenario: Optional[str] = typer.Option(
+        None,
+        "--scenario",
+        "-S",
+        show_default="Generate A new Scenario",
+        autocompletion=complete_scenario,
+        help="The scenario to negotiate about. Can specify as: scenario name (e.g. CameraB), source@name (e.g. negmas@CameraB), or a file path",
+    ),
+    protocol: str = typer.Option(
+        "SAO",
+        "--protocol",
+        "--mechanism",
+        "-m",
+        help="The protocol (Mechanism to use)",
+        rich_help_panel="Basic Options",
+    ),
+    negotiators: list[str] = typer.Option(
+        ["AspirationNegotiator", "NaiveTitForTatNegotiator"],
+        "--negotiator",
+        "--agent",
+        "--agents",
+        "-n",
+        "-a",
+        autocompletion=complete_negotiator,
+        help=(
+            "Negotiator (agent) type. Can specify as: "
+            "registry short name (e.g. AspirationNegotiator), "
+            "source@name (e.g. negmas@AspirationNegotiator), "
+            "registry key (e.g. AspirationNegotiator#a1b2c3d4), "
+            "full Python path (e.g. negmas.sao.AspirationNegotiator), or "
+            "with prefixes: "
+            "genius: (Genius negotiators via bridge), "
+            "anl: (ANL agents), "
+            "boa: (BOA negotiators), "
+            "map: (MAP negotiators), "
+            "llm: (LLM negotiators from negmas-llm), "
+            "negolog: (Negolog negotiators from negmas-negolog), "
+            "ga: (Genius Agents from negmas-genius-agents). "
+            "To use an adapter, put the adapter name first separated by a slash "
+            "(e.g. TAUAdapter/AspirationNegotiator). "
+            "Use --list-agents to see all available registry entries."
+        ),
+        rich_help_panel="Basic Options",
+    ),
+    extend_negotiators: bool = typer.Option(
+        False,
+        "--extend-negotiators",
+        "-E",
+        help="Extend the negotiator list to cover all ufuns",
+        rich_help_panel="Basic Options",
+    ),
+    truncate_ufuns: bool = typer.Option(
+        False,
+        "--truncate-ufuns",
+        "-T",
+        help="Use the first n. negotiator ufuns only",
+        rich_help_panel="Basic Options",
+    ),
+    extra_params: str = typer.Option(
+        "",
+        "--params",
+        help="Mechanism initialization parameters as comma-separated `key=value` pairs.",
+        rich_help_panel="Basic Options",
+    ),
+    share_ufuns: bool = typer.Option(
+        False,
+        help="Share partner ufuns using private-data.",
+        rich_help_panel="Basic Options",
+    ),
+    share_reserved_values: bool = typer.Option(
+        False,
+        help="Share partner reserved-values using private-data.",
+        rich_help_panel="Basic Options",
+    ),
+    # Deadline
+    steps: Optional[int] = typer.Option(  # type: ignore
+        None,
+        "--steps",
+        "-s",
+        help="Number of Steps allowed in the negotiation",
+        rich_help_panel="Deadline",
+    ),
+    timelimit: Optional[float] = typer.Option(
+        None,
+        "--time",
+        "--timelimit",
+        "-t",
+        help="Number of Seconds allowed in the negotiation",
+        rich_help_panel="Deadline",
+    ),
+    # Given Scenario
+    reserved: list[float] = typer.Option(
+        None,
+        "--reserved",
+        "-r",
+        help="Reserved values to override the ones in the scenario. Must be the same length as the ufuns.",
+        rich_help_panel="Scenario Overrides",
+    ),
+    fraction: list[float] = typer.Option(
+        None,
+        "--fraction",
+        "-f",
+        help="Rational factions to use for generating reserved values to override the ones in the scenario. Must be the same length as the ufuns.",
+        rich_help_panel="Scenario Overrides",
+    ),
+    discount: bool = typer.Option(
+        True,
+        "--discount/--no-discount",
+        "-d/-D",
+        help="Load Discount Factor",
+        rich_help_panel="Scenario Overrides",
+    ),
+    normalize: bool = typer.Option(
+        True,
+        "--normalize",
+        "/-N",
+        help="Normalize ufuns to the range (0-1)",
+        rich_help_panel="Scenario Overrides",
+    ),
+    # used in case no domain is given only
+    issues: Optional[int] = typer.Option(
+        None, "--issues", "-i", help="N. Issues", rich_help_panel="Generated Scenario"
+    ),
+    values_min: int = typer.Option(
+        2,
+        help="Minimum allowed n. values per issue",
+        rich_help_panel="Generated Scenario",
+    ),
+    values_max: int = typer.Option(
+        50,
+        help="Maximum allowed n. values per issue",
+        rich_help_panel="Generated Scenario",
+    ),
+    size: Optional[list[int]] = typer.Option(
+        None,
+        "--size",
+        "-z",
+        help="Sizes of issues in order (overrides values-min, values-max)",
+        rich_help_panel="Generated Scenario",
+    ),
+    reserved_values_min: float = typer.Option(
+        0.0, help="Min Allowed Reserved value", rich_help_panel="Generated Scenario"
+    ),
+    reserved_values_max: float = typer.Option(
+        1.0, help="Max allowed reserved value", rich_help_panel="Generated Scenario"
+    ),
+    rational: bool = typer.Option(
+        True,
+        "--rational/--irrational-ok",
+        "-R/-I",
+        help="Gurantee Some Rational Outcomes",
+        rich_help_panel="Generated Scenario",
+    ),
+    rational_fraction: Optional[list[float]] = typer.Option(
+        None,
+        "--rational-fraction",
+        "-F",
+        help="Reservation fractions",
+        rich_help_panel="Generated Scenario",
+    ),
+    reservation_selector: str = typer.Option(
+        "min",
+        help="Reservation value selector if both reserved-values and rational-fraction are given: min|max|first|last",
+        rich_help_panel="Generated Scenario",
+    ),
+    python_class_identifier: str = typer.Option(
+        PYTHON_CLASS_IDENTIFIER,
+        help="Python class identifier in the saved files",
+        rich_help_panel="Output control",
+    ),
+    issue_name: Optional[list[str]] = typer.Option(
+        None, help="Issue Names", rich_help_panel="Generated Scenario"
+    ),
+    os_name: Optional[str] = typer.Option(
+        None, help="Outcome Space Name", rich_help_panel="Generated Scenario"
+    ),
+    ufun_names: Optional[list[str]] = typer.Option(
+        None, help="Names of Ufuns", rich_help_panel="Generated Scenario"
+    ),
+    numeric: bool = typer.Option(
+        False, help="Numeric Issues", rich_help_panel="Generated Scenario"
+    ),
+    linear: bool = typer.Option(
+        True,
+        "--linear/--non-linear",
+        help="Linear Ufuns",
+        rich_help_panel="Generated Scenario",
+    ),
+    pareto_generator: Optional[list[str]] = typer.Option(
+        None,
+        help="One or more Pareto Generator methods. See negmas.preferences.generator for possible values",
+        rich_help_panel="Generated Scenario",
+    ),
+    # Output Control
+    verbose: bool = typer.Option(
+        False, "--verbose", "-v", help="Make verbose", rich_help_panel="Output Control"
+    ),
+    verbosity: int = typer.Option(
+        0,
+        help="Verbosity level (higher=more verbose)",
+        rich_help_panel="Output Control",
+    ),
+    progress: bool = typer.Option(
+        True, help="Show Progress Bar", rich_help_panel="Output Control"
+    ),
+    history: bool = typer.Option(
+        False, help="Print History", rich_help_panel="Output Control"
+    ),
+    stats: bool = typer.Option(
+        True, help="Generate Statistics", rich_help_panel="Output Control"
+    ),
+    rank_stats: Optional[bool] = typer.Option(
+        None, help="Generate Rank Statistics", rich_help_panel="Output Control"
+    ),
+    compact_stats: bool = typer.Option(
+        True,
+        "--compact-stats/--detailed-stats",
+        "-c/-C",
+        help="Show distances",
+        rich_help_panel="Output Control",
+    ),
+    # Plotting
+    plot: bool = typer.Option(True, help="Generate Plot", rich_help_panel="Plotting"),
+    only2d: bool = typer.Option(
+        False,
+        "--only2d/--with-offers",
+        "-2/-0",
+        help="Only 2D Plot",
+        rich_help_panel="Plotting",
+    ),
+    plot_backend: str = typer.Option(
+        "",
+        help="[Deprecated] Backend used for plotting. Now uses plotly.",
+        rich_help_panel="Plotting",
+    ),
+    plot_interactive: bool = typer.Option(
+        True,
+        help="[Deprecated] Plotly is always interactive.",
+        rich_help_panel="Plotting",
+    ),
+    plot_show: bool = typer.Option(
+        True, help="Show the plot", rich_help_panel="Plotting"
+    ),
+    simple_offers_view: Optional[bool] = typer.Option(
+        None, help="Simple Offers View", rich_help_panel="Plotting"
+    ),
+    annotations: bool = typer.Option(
+        False, help="Show Annotations", rich_help_panel="Plotting"
+    ),
+    agreement: bool = typer.Option(
+        False, help="Show Agreement", rich_help_panel="Plotting"
+    ),
+    pareto_dist: bool = typer.Option(
+        True, help="Show Pareto Distance", rich_help_panel="Plotting"
+    ),
+    nash_dist: bool = typer.Option(
+        True, help="Show Nash Distance", rich_help_panel="Plotting"
+    ),
+    kalai_dist: bool = typer.Option(
+        True, help="Show Kalai Distance", rich_help_panel="Plotting"
+    ),
+    max_welfare_dist: bool = typer.Option(
+        True, help="Show Max Welfare Distance", rich_help_panel="Plotting"
+    ),
+    max_rel_welfare_dist: bool = typer.Option(
+        False, help="Show Max Relative Welfare Distance", rich_help_panel="Plotting"
+    ),
+    end_reason: bool = typer.Option(
+        True, help="Show End Reason", rich_help_panel="Plotting"
+    ),
+    show_reserved: bool = typer.Option(
+        True, help="Show Reserved Value Lines", rich_help_panel="Plotting"
+    ),
+    total_time: bool = typer.Option(
+        True, help="Show Time Limit", rich_help_panel="Plotting"
+    ),
+    relative_time: bool = typer.Option(
+        True, help="Show Relative Time", rich_help_panel="Plotting"
+    ),
+    show_n_steps: bool = typer.Option(
+        True, help="Show N. Steps", rich_help_panel="Plotting"
+    ),
+    dark: bool = typer.Option(
+        False, "--dark", help="Use dark theme for plots", rich_help_panel="Plotting"
+    ),
+    color_blind: bool = typer.Option(
+        False,
+        "--color-blind",
+        help="Use color-blind friendly colors",
+        rich_help_panel="Plotting",
+    ),
+    # Saving to Disk
+    save_path: Optional[Path] = typer.Option(
+        None,
+        help="Path to save results to",
+        show_default="Do not Save",  # type: ignore
+        rich_help_panel="Saving to Disk",
+    ),
+    save_history: bool = typer.Option(
+        True, help="Save Negotiation Histroy", rich_help_panel="Saving to Disk"
+    ),
+    save_stats: bool = typer.Option(
+        True, help="Save Statistics", rich_help_panel="Saving to Disk"
+    ),
+    save_type: str = typer.Option(
+        "yml", help="Scenario Format:yml|xml", rich_help_panel="Saving to Disk"
+    ),
+    save_compact: bool = typer.Option(
+        True, help="Compact file", rich_help_panel="Saving to Disk"
+    ),
+    plot_path: Optional[Path] = typer.Option(
+        None, help="Path to save the plot to.", rich_help_panel="Plotting"
+    ),
+    # Advanced
+    fast: Optional[bool] = typer.Option(
+        None, help="Avoid slow operations", rich_help_panel="Advanced"
+    ),
+    path: list[Path] = typer.Option(
+        list(),
+        help="One or more extra paths to look for negotiator and mechanism classes.",
+        rich_help_panel="Advanced",
+    ),
+    raise_exceptions: bool = typer.Option(
+        False, help="Raise Exceptions on Failure", rich_help_panel="Advanced"
+    ),
+    # Registry Options
+    list_agents: bool = typer.Option(
+        False,
+        "--list-agents",
+        help="List available agents from the registry and exit (can filter by --agent-source)",
+        rich_help_panel="Registry Options",
+    ),
+    list_scenarios: bool = typer.Option(
+        False,
+        "--list-scenarios",
+        help="List available scenarios from the registry and exit (can filter by --scenario-source)",
+        rich_help_panel="Registry Options",
+    ),
+    info_agent: Optional[str] = typer.Option(
+        None,
+        "--info",
+        "--info-agent",
+        help="Display detailed information about a negotiator and exit (e.g., 'AspirationNegotiator' or 'negmas@AspirationNegotiator')",
+        rich_help_panel="Registry Options",
+    ),
+    info_scenario: Optional[str] = typer.Option(
+        None,
+        "--info-scenario",
+        help="Display detailed information about a scenario and exit (e.g., 'CameraB' or 'negmas@CameraB')",
+        rich_help_panel="Registry Options",
+    ),
+    agent_source: Optional[str] = typer.Option(
+        None,
+        "--agent-source",
+        "--source",
+        help="Filter agents by source (e.g., 'negmas', 'anl'). Used with --list-agents.",
+        rich_help_panel="Registry Options",
+    ),
+    scenario_source: Optional[str] = typer.Option(
+        None,
+        "--scenario-source",
+        help="Filter scenarios by source (e.g., 'negmas', 'genius'). Used with --list-scenarios.",
+        rich_help_panel="Registry Options",
+    ),
+    refresh_registry: bool = typer.Option(
+        False,
+        "--refresh-registry",
+        help="Reload the registry from disk before running",
+        rich_help_panel="Registry Options",
+    ),
+    on_multiple_matches: str = typer.Option(
+        "warn",
+        "--on-multiple-matches",
+        help="What to do when multiple registry entries match a short name: 'fail' (show table and exit), 'warn' (show table but continue), 'silent' (use first match silently)",
+        rich_help_panel="Registry Options",
+    ),
+    in_genius: bool = typer.Option(
+        False,
+        "--in-genius",
+        help="Run the negotiation natively in Genius (all agents must be Genius agents)",
+        rich_help_panel="Basic Options",
+    ),
+    genius_port: int = typer.Option(
+        DEFAULT_JAVA_PORT,
+        "--port",
+        "-p",
+        help=f"Port for Genius bridge (default: {DEFAULT_JAVA_PORT})",
+        rich_help_panel="Basic Options",
+    ),
+):
+    # Handle --refresh-registry
+    if refresh_registry:
+        from negmas.registry import load_registry
+
+        registry_path = Path.home() / ".negmas" / "registry"
+        if registry_path.exists():
+            try:
+                load_registry(
+                    registry_path,
+                    include_negotiators=True,
+                    include_mechanisms=False,
+                    include_components=False,
+                    include_scenarios=False,
+                )
+                print(f"[green]Registry reloaded from {registry_path}[/green]")
+            except Exception as e:
+                print(f"[yellow]Warning: Could not reload registry: {e}[/yellow]")
+
+    # Handle --list-agents
+    if list_agents:
+        from negmas import negotiator_registry
+        from tabulate import tabulate
+
+        print("\n[bold]Available Negotiators in Registry[/bold]\n")
+
+        # Query with source filter if provided
+        if agent_source:
+            results = negotiator_registry.query(source=agent_source)
+            print(f"Filtered by source: [cyan]{agent_source}[/cyan]")
+        else:
+            results = dict(negotiator_registry)
+
+        if not results:
+            print(
+                f"[yellow]No negotiators found{f' with source {agent_source}' if agent_source else ''}[/yellow]"
+            )
+            return
+
+        # Group by short_name
+        by_short_name = {}
+        for key, info in results.items():
+            short_name = info.short_name
+            if short_name not in by_short_name:
+                by_short_name[short_name] = []
+            by_short_name[short_name].append((key, info))
+
+        print(
+            f"Total: {len(results)} entries, {len(by_short_name)} unique negotiators\n"
+        )
+
+        # Display table
+        table_data = []
+        for short_name in sorted(by_short_name.keys()):
+            entries = by_short_name[short_name]
+            key, info = entries[0]
+            row = [
+                short_name,
+                info.source,
+                info.full_type_name.split(".")[-1]
+                if "." in info.full_type_name
+                else info.full_type_name,
+                f"{len(entries)} variant(s)" if len(entries) > 1 else "",
+            ]
+            table_data.append(row)
+
+        print(
+            tabulate(
+                table_data,
+                headers=["Short Name", "Source", "Class", "Notes"],
+                tablefmt="simple",
+            )
+        )
+
+        print("\n[dim]Usage examples:[/dim]")
+        print("  negotiate -n negmas@AspirationNegotiator -n RandomNegotiator -s 100")
+        print(
+            "  negotiate -n AspirationNegotiator -n NaiveTitForTatNegotiator -s 100 -i 3"
+        )
+        return
+
+    # Handle --list-scenarios
+    if list_scenarios:
+        list_scenarios_from_registry(scenario_source)
+        return
+
+    # Handle --info (negotiator info)
+    if info_agent:
+        show_negotiator_info(info_agent, on_multiple_matches)
+        return
+
+    # Handle --info-scenario
+    if info_scenario:
+        show_scenario_info(info_scenario, on_multiple_matches)
+        return
+
+    kwargs = dict()
+    if extra_params:
+        extra_params = "dict(" + extra_params + ")"
+        kwargs = eval(extra_params)
+
+    if verbose and verbosity < 1:
+        verbosity = 1
+    for p in path:
+        sys.path.append(str(p))
+    adapter_names = shortest_unique_names(
+        [_.split("/")[0] if "/" in _ else "" for _ in negotiators]
+    )
+    steps: int | float
+    # timelimit: int | float
+    if steps is None:
+        steps = float("inf")
+    if timelimit is None:
+        timelimit = float("inf")
+
+    # Try to resolve scenario from registry if needed
+    scenario_path: Path | None = None
+    if scenario is not None:
+        # Check if it's a registry spec (contains @ or >) or a name in the registry
+        if "@" in scenario or ">" in scenario or not Path(scenario).exists():
+            resolved_path = resolve_scenario_from_registry(
+                scenario, verbose=verbosity > 0, on_multiple_matches=on_multiple_matches
+            )
+            if resolved_path:
+                scenario_path = resolved_path
+                if verbosity > 0:
+                    print(
+                        f"[green]Resolved scenario '{scenario}' to {scenario_path}[/green]"
+                    )
+            elif not Path(scenario).exists():
+                print(
+                    f"[red]Scenario '{scenario}' not found in registry or as a file[/red]"
+                )
+                exit(1)
+            else:
+                scenario_path = Path(scenario)
+        else:
+            scenario_path = Path(scenario)
+
+    if scenario_path is None:
+        n_ufuns = len(negotiators)
+        if not n_ufuns:
+            print("[red]You must either specify a domain or negotiators[/red]")
+            exit(1)
+        if not issues:
+            issues = random.randint(1, 3)
+        gparams: dict[str, Any] = dict(
+            n_issues=issues,
+            n_values=(values_min, values_max) if not size else None,
+            sizes=size,
+            n_ufuns=n_ufuns,
+            reserved_values=(reserved_values_min, reserved_values_max),
+            rational_fractions=tuple(rational_fraction) if rational_fraction else None,
+            issue_names=tuple(issue_name) if issue_name else None,
+            os_name=os_name,
+            numeric=numeric,
+            linear=linear,
+            ufun_names=tuple(ufun_names) if ufun_names else None,
+            reservation_selector=dict(
+                min=min, max=max, first=lambda a, _: a, last=lambda _, b: b
+            )[reservation_selector],
+            guarantee_rational=rational,
+        )
+        if pareto_generator:
+            gparams["pareto_generators"] = pareto_generator
+        ufuns = generate_multi_issue_ufuns(**gparams)
+        os = ufuns[0].outcome_space
+        assert isinstance(os, CartesianOutcomeSpace)
+        if verbosity > 0:
+            print(
+                f"[purple]Generated a domain with {len(os.issues)} issues and {os.cardinality} outcomes[/purple]"
+            )
+        current_scenario = Scenario(os, ufuns, mechanism_type=get_protocol(protocol))
+    else:
+        current_scenario = Scenario.from_genius_folder(
+            scenario_path, ignore_reserved=False, ignore_discount=not discount
+        )
+    assert current_scenario is not None
+    saved_scenario: Scenario = deepcopy(current_scenario)
+    if not current_scenario:
+        print(f"Failed to load scenario from {scenario_path}")
+        return
+    if normalize:
+        current_scenario.normalize()
+
+    assert current_scenario is not None
+    current_scenario.mechanism_type = get_protocol(protocol)
+    if verbosity > 0:
+        print(f"Scenario: {scenario}")
+        print(
+            f"Mechanism: {shorten_protocol_name(get_full_type_name(current_scenario.mechanism_type))}"
+        )
+        print(f"steps: {steps}\ntimelimit: {timelimit}")
+    if (
+        truncate_ufuns
+        and len(current_scenario.ufuns) > len(negotiators)
+        and len(negotiators) > 1
+    ):
+        current_scenario.ufuns = current_scenario.ufuns[: len(negotiators)]
+
+    if (
+        extend_negotiators
+        and len(negotiators) > 0
+        and len(negotiators) != len(current_scenario.ufuns)
+    ):
+        if len(negotiators) < len(current_scenario.ufuns):
+            if verbosity > 0:
+                print(
+                    f"Found {len(current_scenario.ufuns)} ufuns and {len(negotiators)} negotiators. Will add negotiators of the last type to match the n. ufuns"
+                )
+            negotiators = negotiators + (
+                [negotiators[-1]] * (len(current_scenario.ufuns) - len(negotiators))
+            )
+
+        if len(negotiators) > len(current_scenario.ufuns):
+            if verbosity > 0:
+                print(
+                    f"Found {len(current_scenario.ufuns)} ufuns and {len(negotiators)} negotiators. Will ignore the last n. negotiators"
+                )
+            negotiators = negotiators[: len(current_scenario.ufuns)]
+
+    negotiator_names = shortest_unique_names(negotiators, guarantee_unique=True)
+    if share_ufuns:
+        assert len(current_scenario.ufuns) == 2 and len(negotiators) == 2, (
+            "Sharing ufuns in multilateral negotiations is not yet supported"
+        )
+        opp_ufuns = list(reversed(deepcopy(current_scenario.ufuns)))
+        if not share_reserved_values:
+            for u in opp_ufuns:
+                u.reserved_value = float("nan")
+    else:
+        opp_ufuns = [None] * len(negotiators)
+
+    # Check if we need Genius bridge and ensure it's running
+    if in_genius:
+        if not genius_bridge_is_running(genius_port):
+            if not genius_bridge_is_installed():
+                print("[red]Error: Genius bridge is not installed[/red]")
+                print(
+                    "\n[yellow]Please install the bridge first with:[/yellow] negmas genius-setup"
+                )
+                return
+
+            print("[yellow]Starting Genius bridge automatically...[/yellow]")
+            try:
+                init_genius_bridge(port=genius_port, verbose=verbosity > 0)
+                print(
+                    f"[green]Genius bridge started successfully on port {genius_port}[/green]"
+                )
+            except Exception as e:
+                print(f"[red]Error starting Genius bridge: {e}[/red]")
+                return
+
+    # Validate and warn about negotiator specifications
+    if verbosity > 0:
+        print("\n[dim]Resolving negotiators...[/dim]")
+        for i, neg_spec in enumerate(negotiators):
+            resolved = resolve_negotiator_from_registry(
+                neg_spec, verbose=True, on_multiple_matches=on_multiple_matches
+            )
+            if resolved:
+                print(f"  [{i + 1}] {neg_spec} -> {resolved}")
+            elif "@" in neg_spec or ">" in neg_spec:
+                print(
+                    f"  [yellow]Warning: Could not resolve '{neg_spec}' from registry[/yellow]"
+                )
+        print()
+
+    try:
+        agents = [
+            get_negotiator(_, on_multiple_matches)(name=name)  # type: ignore
+            if ou is None
+            else get_negotiator(_, on_multiple_matches)(
+                name=name, private_info=dict(opponent_ufun=ou)
+            )  # type: ignore
+            for _, name, ou in zip(
+                negotiators, negotiator_names, opp_ufuns, strict=True
+            )  # type: ignore
+        ]
+        if len(agents) < 2:
+            print(
+                f"At least 2 negotiators are needed: found {[_.__class__.__name__ for _ in agents]}"
+            )
+            return
+
+        # Always print the negotiators and their full paths
+        print_negotiator_info(agents, negotiators)
+
+        # Check if we have any GeniusNegotiator instances and ensure bridge is running
+        if not in_genius:  # Only check if not already handled above
+            has_genius = any(isinstance(agent, GeniusNegotiator) for agent in agents)
+
+            if has_genius and not genius_bridge_is_running(genius_port):
+                if not genius_bridge_is_installed():
+                    print("[red]Error: Genius bridge is not installed[/red]")
+                    print(
+                        "[yellow]One or more agents require the Genius bridge.[/yellow]"
+                    )
+                    print(
+                        "[yellow]Please install the bridge first with:[/yellow] negmas genius-setup"
+                    )
+                    return
+
+                print(
+                    "[yellow]Detected Genius negotiators. Starting Genius bridge automatically...[/yellow]"
+                )
+                try:
+                    init_genius_bridge(port=genius_port, verbose=verbosity > 0)
+                    print(
+                        f"[green]Genius bridge started successfully on port {genius_port}[/green]"
+                    )
+                except Exception as e:
+                    print(f"[red]Error starting Genius bridge: {e}[/red]")
+                    return
+
+        if reserved and not extend_negotiators:
+            assert len(reserved) == len(negotiators), f"{reserved=} but {negotiators=}"
+        if reserved:
+            for u, r in zip(current_scenario.ufuns, reserved):
+                u.reserved_value = r
+        if fraction:
+            if len(fraction) < len(negotiators):
+                fraction += [1.0] * (len(negotiators) - len(fraction))
+            for u, f in zip(current_scenario.ufuns, fraction):
+                u.reserved_value = calc_reserved_value(u, f)
+        if (
+            not extend_negotiators
+            and len(agents) > 0
+            and len(agents) != len(current_scenario.ufuns)
+        ):
+            print(
+                f"You passed {len(agents)} agents for a negotiation with {len(current_scenario.ufuns)} ufuns. pass --extend-negotiators to adjust the agent number"
+            )
+            exit(1)
+        if save_path:
+            current_scenario.dumpas(save_path, save_type, save_compact)
+
+        session = current_scenario.make_session(
+            agents,
+            n_steps=steps,
+            time_limit=timelimit,
+            verbosity=verbosity - 1,
+            share_ufuns=share_ufuns,
+            share_reserved_values=share_reserved_values,
+            **dict(ignore_negotiator_exceptions=not raise_exceptions),
+            **kwargs,
+        )
+        if len(session.negotiators) < 2:
+            print(
+                f"At least 2 negotiators are needed: Only the following could join {[_.__class__.__name__ for _ in session.negotiators]}"
+            )
+            return
+        if verbosity > 0:
+            print(f"Adapters: {', '.join(adapter_names)}")
+        if verbosity > 1:
+            print(f"Negotiators: {', '.join(negotiator_names)}")
+        results = dict()
+        runner = session.run_with_progress if progress else session.run
+        _start = perf_counter()
+        state = runner()
+        duration = perf_counter() - _start
+        current_scenario = saved_scenario
+        if verbosity > 1:
+            print(f"Time: {humanize_time(duration, show_ms=True, show_us=True)}")
+            print(f"Steps: {session.current_step}")
+            print(state)
+        print(f"Agreement: {state.agreement}")
+        advantages = [
+            u(state.agreement)
+            - (u.reserved_value if u.reserved_value is not None else float("inf"))
+            for u in current_scenario.ufuns
+        ]
+        utilities_final = [u(state.agreement) for u in current_scenario.ufuns]
+        print(f"Utilities: {utilities_final}")
+        print(f"Advantages: {advantages}")
+        fast = (
+            fast or fast is None and current_scenario.outcome_space.cardinality > 10_000
+        )
+        if fast:
+            if simple_offers_view is None:
+                simple_offers_view = True
+        stats = (
+            stats
+            or stats is None
+            and current_scenario.outcome_space.cardinality <= 10_000
+        )
+        rank_stats = (
+            rank_stats
+            or rank_stats is None
+            and current_scenario.outcome_space.cardinality <= 1000
+        )
+
+        if stats or rank_stats:
+            pareto, pareto_outcomes = session.pareto_frontier()
+        else:
+            pareto, pareto_outcomes = tuple(), list()
+        results["negotiators"] = [
+            get_full_type_name(type(x)) for x in session.negotiators
+        ]
+        results["agreement"] = state.agreement
+        results["utilities"] = utilities_final
+        results["advantages"] = advantages
+        results["negotiator_names"] = [x.name for x in session.negotiators]
+        results["negotiator_ids"] = [x.id for x in session.negotiators]
+        results["final_state"] = serialize(
+            session.state, python_class_identifier=python_class_identifier
+        )
+        results["step"] = session.current_step
+        results["relative_time"] = session.relative_time
+        results["n_steps"] = session.n_steps
+        results["time_limit"] = session.time_limit
+        results["negotiator_times"] = session.negotiator_times
+        results["time"] = str(datetime.now())
+        stats_dict = dict()
+        if not compact_stats:
+            stats_dict["pareto"] = pareto
+            stats_dict["pareto_outcomes"] = pareto_outcomes
+
+        if stats:
+            utils = tuple(u(state.agreement) for u in current_scenario.ufuns)
+
+            def find_stats(name, f, utils=utils):
+                pts = f(frontier=pareto, frontier_outcomes=pareto_outcomes)
+                val = dist(utils, list(a for a, _ in pts))
+                if not compact_stats:
+                    stats_dict[f"{name} Points"] = pts
+                stats_dict[f"{name} Distance"] = val
+                if verbosity > 0:
+                    print(f"{name} Points: {pts}")
+                print(f"{name} Distance: {val}")
+
+            for name, f in (
+                ("Nash", session.nash_points),
+                ("Kalai", session.kalai_points),
+                ("Modified Kalai", session.modified_kalai_points),
+                ("Max Welfare", session.max_welfare_points),
+                # ("Max Relative Welfare", session.max_relative_welfare_points),
+            ):
+                find_stats(name, f)
+        if rank_stats:
+            ranks_ufuns = tuple(make_rank_ufun(_) for _ in current_scenario.ufuns)
+            ranks = tuple(_(state.agreement) for _ in ranks_ufuns)
+            print(f"Agreement Relative Ranks: {ranks}")
+            pareto_save = pareto_outcomes
+            alloutcomes = session.discrete_outcomes()
+            pareto, pareto_indices = pareto_frontier(
+                ranks_ufuns, outcomes=alloutcomes, sort_by_welfare=True
+            )
+            pareto_outcomes = [alloutcomes[_] for _ in pareto_indices]
+            if len(pareto_save) != len(pareto_outcomes) or any(
+                a != b
+                for a, b in zip(
+                    sorted(pareto_save), sorted(pareto_outcomes), strict=True
+                )
+            ):
+                print(
+                    f"[bold red]Ordinal pareto outcomes do not match cardinal pareto outcomes[/bold red]\nOrdinal: {pareto_outcomes}\nCardinal: {pareto_save}"
+                )
+
+            def find_rank_stats(name, f, ranks=ranks, **kwargs):
+                utils_indices = f(
+                    frontier=pareto,
+                    ufuns=ranks_ufuns,
+                    outcome_space=current_scenario.outcome_space,
+                    **kwargs,
+                )
+                pts = tuple((a, pareto_outcomes[b]) for a, b in utils_indices)
+                nutils = list(a for a, _ in utils_indices)
+                val = dist(ranks, nutils)
+                if not compact_stats:
+                    stats_dict[f"{name} Points"] = pts
+                stats_dict[f"{name} Distance"] = val
+                if verbosity > 0:
+                    print(f"{name} Points: {pts}")
+                print(f"{name} Distance: {val}")
+
+            for name, f, kwargs in (
+                ("Ordinal Nash", nash_points, dict()),
+                ("Ordinal Kalai", kalai_points, dict(subtract_reserved_value=True)),
+                (
+                    "Ordinal Modified Kalai",
+                    kalai_points,
+                    dict(subtract_reserved_value=False),
+                ),
+                ("Ordinal Max Welfare", max_welfare_points, dict()),
+                # ("Ordinal Max Relative Welfare", max_relative_welfare_points),
+            ):
+                find_rank_stats(name, f, **kwargs)
+        if save_path:
+            save_path.mkdir(exist_ok=True, parents=True)
+            dump(results, save_path / "session.json")
+        if save_path and save_stats and (stats or rank_stats):
+            save_path.mkdir(exist_ok=True, parents=True)
+            dump(stats_dict, save_path / "stats.json")
+
+        if history:
+            if hasattr(session, "full_trace"):
+                hist = session.full_trace  # type: ignore full_trace is defined for SAO and GBM
+            else:
+                hist = session.history
+            print(hist)
+        if plot_path:
+            plot_path = Path(plot_path).absolute()
+            plot_path.parent.mkdir(parents=True, exist_ok=True)
+        elif save_path:
+            plot_path = save_path / f"session.{DEFAULT_IMAGE_FORMAT}"
+            plot_path.parent.mkdir(parents=True, exist_ok=True)
+        if plot:
+            # Note: plot_backend and plot_interactive are deprecated (matplotlib-specific)
+            # Plotly handles interactive display natively
+            session.plot(
+                save_fig=plot_path is not None,
+                path=plot_path.parent if plot_path else None,
+                fig_name=plot_path.name if plot_path else None,
+                only2d=only2d,
+                show_agreement=agreement,
+                show_pareto_distance=pareto_dist,
+                show_nash_distance=nash_dist,
+                show_kalai_distance=kalai_dist,
+                show_max_welfare_distance=max_welfare_dist,
+                show_max_relative_welfare_distance=max_rel_welfare_dist,
+                show_end_reason=end_reason,
+                show_annotations=annotations,
+                show_reserved=show_reserved,
+                show_total_time=total_time,
+                show_relative_time=relative_time,
+                show_n_steps=show_n_steps,
+                fast=fast,
+                simple_offers_view=simple_offers_view,
+                show=plot_show,
+                dark=dark,
+                color_blind=color_blind,
+            )
+        if save_path and save_history:
+            if hasattr(session, "full_trace"):
+                hist = pd.DataFrame(
+                    session.full_trace,  # type: ignore
+                    columns=TRACE_ELEMENT_MEMBERS,
+                )
+            else:
+                hist = pd.DataFrame.from_records(
+                    [
+                        serialize(_, python_class_identifier=python_class_identifier)
+                        for _ in session.history
+                    ]
+                )
+            dump(hist, save_path / "history.csv", compact=True, sort_keys=False)
+    finally:
+        # Shutdown the Genius bridge if we started it
+        shutdown_genius_bridge_if_started()
+
+
+if __name__ == "__main__":
+    app()

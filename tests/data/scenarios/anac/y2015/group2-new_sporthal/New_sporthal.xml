@@ -1,0 +1,46 @@
+<negotiation_template>
+<utility_space number_of_issues="5">
+<objective description="" etype="objective" index="0" name="root" type="objective">
+    <issue etype="discrete" index="1" name="grandstand" type="discrete" vtype="discrete">
+        <item index="1" value="no grandstand" cost="0" description="no grandstand">
+        </item>
+        <item index="2" value="retractible grandstand" cost="0" description="retractible grandstand">
+        </item>
+        <item index="3" value="normal grandstand" cost="0" description="normal grandstand">
+        </item>
+    </issue>
+    <issue etype="discrete" index="2" name="Floor" type="discrete" vtype="discrete">
+        <item index="1" value="Wood" cost="0" description="Wood">
+        </item>
+        <item index="2" value="Lineleum" cost="0" description="Lineleum">
+        </item>
+        <item index="3" value="Soft mats" cost="0" description="Soft mats">
+        </item>
+    </issue>
+    <issue etype="discrete" index="3" name="Sports bar" type="discrete" vtype="discrete">
+        <item index="1" value="No bar" cost="0" description="No bar">
+        </item>
+        <item index="2" value="Small bar" cost="0" description="Small bar">
+        </item>
+        <item index="3" value="Big bar" cost="0" description="Big bar">
+        </item>
+    </issue>
+    <issue etype="discrete" index="4" name="Budget for aparatusses" type="discrete" vtype="discrete">
+        <item index="1" value="10,000" cost="0" description="10,000">
+        </item>
+        <item index="2" value="20,000" cost="0" description="20,000">
+        </item>
+        <item index="3" value="40,000" cost="0" description="40,000">
+        </item>
+    </issue>
+    <issue etype="discrete" index="5" name="Amount of dressing rooms" type="discrete" vtype="discrete">
+        <item index="1" value="2" cost="0" description="2">
+        </item>
+        <item index="2" value="4" cost="0" description="4">
+        </item>
+        <item index="3" value="6" cost="0" description="6">
+        </item>
+    </issue>
+</objective>
+</utility_space>
+</negotiation_template>

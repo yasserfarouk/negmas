@@ -1,0 +1,4071 @@
+<negotiation_template number_of_sessions="1"> 
+<agent class="negotiator.agents.RandomWalkABMPAgent" name="Dealer" utility_space="ABMP_car_dealer_utilityspace.xml"> 
+</agent> 
+<agent class="negotiator.agents.RandomWalkABMPAgent" name="Buyer" utility_space="ABMP_car_buyer_utilityspace.xml"> 
+</agent> 
+<utility_space number_of_issues="5"> 
+<issue index="1" vtype="discrete" name="CD player"> 
+<item index="1" value="good"> 
+</item> 
+<item index="2" value="fairly good"> 
+</item> 
+<item index="3" value="standard"> 
+ 
+ 
+ 
+ 
+</item> 
+<item index="4" value="meager"> 
+ 
+ 
+ 
+ 
+</item> 
+<item index="5" value="none"> 
+ 
+ 
+ 
+ 
+</item> 
+<item index="6" value="unspecified"> 
+ 
+ 
+ 
+ 
+</item> 
+ 
+ 
+</issue> 
+<issue index="2" vtype="discrete" name="Extra speakers"> 
+<item index="1" value="good"> 
+ 
+ 
+ 
+ 
+</item> 
+<item index="2" value="fairly good"> 
+ 
+ 
+ 
+ 
+</item> 
+<item index="3" value="standard"> 
+ 
+ 
+ 
+ 
+</item> 
+<item index="4" value="meager"> 
+ 
+ 
+ 
+ 
+</item> 
+<item index="5" value="none"> 
+ 
+ 
+ 
+ 
+</item> 
+<item index="6" value="unspecified"> 
+ 
+ 
+ 
+ 
+</item> 
+ 
+ 
+</issue> 
+<issue index="3" vtype="discrete" name="Airconditioning"> 
+<item index="1" value="good"> 
+ 
+ 
+ 
+ 
+ 
+ 
+ 
+ 
+</item> 
+<item index="2" value="fairly good"> 
+ 
+ 
+ 
+ 
+ 
+ 
+ 
+ 
+</item> 
+<item index="3" value="standard"> 
+ 
+ 
+ 
+ 
+ 
+ 
+ 
+ 
+</item> 
+<item index="4" value="meager"> 
+ 
+ 
+ 
+ 
+ 
+ 
+ 
+ 
+</item> 
+<item index="5" value="none"> 
+ 
+ 
+ 
+ 
+ 
+ 
+ 
+ 
+</item> 
+<item index="6" value="unspecified"> 
+ 
+ 
+ 
+ 
+ 
+ 
+ 
+ 
+</item> 
+ 
+ 
+</issue> 
+<issue index="4" vtype="discrete" name="Tow hedge"> 
+<item index="1" value="good"> 
+ 
+ 
+ 
+ 
+ 
+ 
+ 
+ 
+</item> 
+<item index="2" value="fairly good"> 
+ 
+ 
+ 
+ 
+ 
+ 
+ 
+ 
+</item> 
+<item index="3" value="standard"> 
+ 
+ 
+ 
+ 
+ 
+ 
+ 
+ 
+</item> 
+<item index="4" value="meager"> 
+ 
+ 
+ 
+ 
+ 
+ 
+ 
+ 
+</item> 
+<item index="5" value="none"> 
+ 
+ 
+ 
+ 
+ 
+ 
+ 
+ 
+</item> 
+<item index="6" value="unspecified"> 
+ 
+ 
+ 
+ 
+ 
+ 
+ 
+ 
+</item> 
+ 
+ 
+</issue> 
+<issue index="5" vtype="real" name="Price"> 
+<range lowerbound="13000" upperbound="22666"> 
+ 
+ 
+ 
+ 
+</range> 
+ 
+ 
+</issue> 
+ 
+ 
+</utility_space> 
+<analysis> 
+<pareto> 
+<bid> 
+<issue index="1" type="discrete"> 
+<item value="good"> 
+</item> 
+</issue> 
+<issue index="2" type="discrete"> 
+<item value="good"> 
+</item> 
+</issue> 
+<issue index="3" type="discrete"> 
+<item value="meager"> 
+</item> 
+</issue> 
+<issue index="4" type="discrete"> 
+<item value="meager"> 
+</item> 
+</issue> 
+<issue index="5" type="real"> 
+<value> 
+13000.0 
+</value> 
+</issue> 
+</bid> 
+<bid> 
+<issue index="1" type="discrete"> 
+<item value="good"> 
+</item> 
+</issue> 
+<issue index="2" type="discrete"> 
+<item value="good"> 
+</item> 
+</issue> 
+<issue index="3" type="discrete"> 
+<item value="meager"> 
+</item> 
+</issue> 
+<issue index="4" type="discrete"> 
+<item value="meager"> 
+</item> 
+</issue> 
+<issue index="5" type="real"> 
+<value> 
+13096.66 
+</value> 
+</issue> 
+</bid> 
+<bid> 
+<issue index="1" type="discrete"> 
+<item value="good"> 
+</item> 
+</issue> 
+<issue index="2" type="discrete"> 
+<item value="good"> 
+</item> 
+</issue> 
+<issue index="3" type="discrete"> 
+<item value="meager"> 
+</item> 
+</issue> 
+<issue index="4" type="discrete"> 
+<item value="meager"> 
+</item> 
+</issue> 
+<issue index="5" type="real"> 
+<value> 
+13193.32 
+</value> 
+</issue> 
+</bid> 
+<bid> 
+<issue index="1" type="discrete"> 
+<item value="good"> 
+</item> 
+</issue> 
+<issue index="2" type="discrete"> 
+<item value="good"> 
+</item> 
+</issue> 
+<issue index="3" type="discrete"> 
+<item value="meager"> 
+</item> 
+</issue> 
+<issue index="4" type="discrete"> 
+<item value="meager"> 
+</item> 
+</issue> 
+<issue index="5" type="real"> 
+<value> 
+13289.98 
+</value> 
+</issue> 
+</bid> 
+<bid> 
+<issue index="1" type="discrete"> 
+<item value="good"> 
+</item> 
+</issue> 
+<issue index="2" type="discrete"> 
+<item value="good"> 
+</item> 
+</issue> 
+<issue index="3" type="discrete"> 
+<item value="meager"> 
+</item> 
+</issue> 
+<issue index="4" type="discrete"> 
+<item value="meager"> 
+</item> 
+</issue> 
+<issue index="5" type="real"> 
+<value> 
+13386.64 
+</value> 
+</issue> 
+</bid> 
+<bid> 
+<issue index="1" type="discrete"> 
+<item value="good"> 
+</item> 
+</issue> 
+<issue index="2" type="discrete"> 
+<item value="good"> 
+</item> 
+</issue> 
+<issue index="3" type="discrete"> 
+<item value="meager"> 
+</item> 
+</issue> 
+<issue index="4" type="discrete"> 
+<item value="meager"> 
+</item> 
+</issue> 
+<issue index="5" type="real"> 
+<value> 
+13483.3 
+</value> 
+</issue> 
+</bid> 
+<bid> 
+<issue index="1" type="discrete"> 
+<item value="good"> 
+</item> 
+</issue> 
+<issue index="2" type="discrete"> 
+<item value="good"> 
+</item> 
+</issue> 
+<issue index="3" type="discrete"> 
+<item value="meager"> 
+</item> 
+</issue> 
+<issue index="4" type="discrete"> 
+<item value="meager"> 
+</item> 
+</issue> 
+<issue index="5" type="real"> 
+<value> 
+13579.96 
+</value> 
+</issue> 
+</bid> 
+<bid> 
+<issue index="1" type="discrete"> 
+<item value="good"> 
+</item> 
+</issue> 
+<issue index="2" type="discrete"> 
+<item value="good"> 
+</item> 
+</issue> 
+<issue index="3" type="discrete"> 
+<item value="meager"> 
+</item> 
+</issue> 
+<issue index="4" type="discrete"> 
+<item value="meager"> 
+</item> 
+</issue> 
+<issue index="5" type="real"> 
+<value> 
+13676.62 
+</value> 
+</issue> 
+</bid> 
+<bid> 
+<issue index="1" type="discrete"> 
+<item value="good"> 
+</item> 
+</issue> 
+<issue index="2" type="discrete"> 
+<item value="good"> 
+</item> 
+</issue> 
+<issue index="3" type="discrete"> 
+<item value="meager"> 
+</item> 
+</issue> 
+<issue index="4" type="discrete"> 
+<item value="meager"> 
+</item> 
+</issue> 
+<issue index="5" type="real"> 
+<value> 
+13773.28 
+</value> 
+</issue> 
+</bid> 
+<bid> 
+<issue index="1" type="discrete"> 
+<item value="good"> 
+</item> 
+</issue> 
+<issue index="2" type="discrete"> 
+<item value="good"> 
+</item> 
+</issue> 
+<issue index="3" type="discrete"> 
+<item value="meager"> 
+</item> 
+</issue> 
+<issue index="4" type="discrete"> 
+<item value="meager"> 
+</item> 
+</issue> 
+<issue index="5" type="real"> 
+<value> 
+13869.94 
+</value> 
+</issue> 
+</bid> 
+<bid> 
+<issue index="1" type="discrete"> 
+<item value="good"> 
+</item> 
+</issue> 
+<issue index="2" type="discrete"> 
+<item value="good"> 
+</item> 
+</issue> 
+<issue index="3" type="discrete"> 
+<item value="meager"> 
+</item> 
+</issue> 
+<issue index="4" type="discrete"> 
+<item value="meager"> 
+</item> 
+</issue> 
+<issue index="5" type="real"> 
+<value> 
+13966.6 
+</value> 
+</issue> 
+</bid> 
+<bid> 
+<issue index="1" type="discrete"> 
+<item value="good"> 
+</item> 
+</issue> 
+<issue index="2" type="discrete"> 
+<item value="good"> 
+</item> 
+</issue> 
+<issue index="3" type="discrete"> 
+<item value="meager"> 
+</item> 
+</issue> 
+<issue index="4" type="discrete"> 
+<item value="meager"> 
+</item> 
+</issue> 
+<issue index="5" type="real"> 
+<value> 
+14063.26 
+</value> 
+</issue> 
+</bid> 
+<bid> 
+<issue index="1" type="discrete"> 
+<item value="good"> 
+</item> 
+</issue> 
+<issue index="2" type="discrete"> 
+<item value="good"> 
+</item> 
+</issue> 
+<issue index="3" type="discrete"> 
+<item value="meager"> 
+</item> 
+</issue> 
+<issue index="4" type="discrete"> 
+<item value="meager"> 
+</item> 
+</issue> 
+<issue index="5" type="real"> 
+<value> 
+14159.92 
+</value> 
+</issue> 
+</bid> 
+<bid> 
+<issue index="1" type="discrete"> 
+<item value="good"> 
+</item> 
+</issue> 
+<issue index="2" type="discrete"> 
+<item value="good"> 
+</item> 
+</issue> 
+<issue index="3" type="discrete"> 
+<item value="meager"> 
+</item> 
+</issue> 
+<issue index="4" type="discrete"> 
+<item value="meager"> 
+</item> 
+</issue> 
+<issue index="5" type="real"> 
+<value> 
+14256.58 
+</value> 
+</issue> 
+</bid> 
+<bid> 
+<issue index="1" type="discrete"> 
+<item value="good"> 
+</item> 
+</issue> 
+<issue index="2" type="discrete"> 
+<item value="good"> 
+</item> 
+</issue> 
+<issue index="3" type="discrete"> 
+<item value="meager"> 
+</item> 
+</issue> 
+<issue index="4" type="discrete"> 
+<item value="meager"> 
+</item> 
+</issue> 
+<issue index="5" type="real"> 
+<value> 
+14353.24 
+</value> 
+</issue> 
+</bid> 
+<bid> 
+<issue index="1" type="discrete"> 
+<item value="good"> 
+</item> 
+</issue> 
+<issue index="2" type="discrete"> 
+<item value="good"> 
+</item> 
+</issue> 
+<issue index="3" type="discrete"> 
+<item value="meager"> 
+</item> 
+</issue> 
+<issue index="4" type="discrete"> 
+<item value="meager"> 
+</item> 
+</issue> 
+<issue index="5" type="real"> 
+<value> 
+14449.9 
+</value> 
+</issue> 
+</bid> 
+<bid> 
+<issue index="1" type="discrete"> 
+<item value="good"> 
+</item> 
+</issue> 
+<issue index="2" type="discrete"> 
+<item value="good"> 
+</item> 
+</issue> 
+<issue index="3" type="discrete"> 
+<item value="meager"> 
+</item> 
+</issue> 
+<issue index="4" type="discrete"> 
+<item value="meager"> 
+</item> 
+</issue> 
+<issue index="5" type="real"> 
+<value> 
+14546.56 
+</value> 
+</issue> 
+</bid> 
+<bid> 
+<issue index="1" type="discrete"> 
+<item value="good"> 
+</item> 
+</issue> 
+<issue index="2" type="discrete"> 
+<item value="good"> 
+</item> 
+</issue> 
+<issue index="3" type="discrete"> 
+<item value="meager"> 
+</item> 
+</issue> 
+<issue index="4" type="discrete"> 
+<item value="meager"> 
+</item> 
+</issue> 
+<issue index="5" type="real"> 
+<value> 
+14643.22 
+</value> 
+</issue> 
+</bid> 
+<bid> 
+<issue index="1" type="discrete"> 
+<item value="good"> 
+</item> 
+</issue> 
+<issue index="2" type="discrete"> 
+<item value="good"> 
+</item> 
+</issue> 
+<issue index="3" type="discrete"> 
+<item value="meager"> 
+</item> 
+</issue> 
+<issue index="4" type="discrete"> 
+<item value="meager"> 
+</item> 
+</issue> 
+<issue index="5" type="real"> 
+<value> 
+14739.88 
+</value> 
+</issue> 
+</bid> 
+<bid> 
+<issue index="1" type="discrete"> 
+<item value="good"> 
+</item> 
+</issue> 
+<issue index="2" type="discrete"> 
+<item value="good"> 
+</item> 
+</issue> 
+<issue index="3" type="discrete"> 
+<item value="meager"> 
+</item> 
+</issue> 
+<issue index="4" type="discrete"> 
+<item value="meager"> 
+</item> 
+</issue> 
+<issue index="5" type="real"> 
+<value> 
+14836.54 
+</value> 
+</issue> 
+</bid> 
+<bid> 
+<issue index="1" type="discrete"> 
+<item value="good"> 
+</item> 
+</issue> 
+<issue index="2" type="discrete"> 
+<item value="good"> 
+</item> 
+</issue> 
+<issue index="3" type="discrete"> 
+<item value="meager"> 
+</item> 
+</issue> 
+<issue index="4" type="discrete"> 
+<item value="meager"> 
+</item> 
+</issue> 
+<issue index="5" type="real"> 
+<value> 
+14933.2 
+</value> 
+</issue> 
+</bid> 
+<bid> 
+<issue index="1" type="discrete"> 
+<item value="good"> 
+</item> 
+</issue> 
+<issue index="2" type="discrete"> 
+<item value="good"> 
+</item> 
+</issue> 
+<issue index="3" type="discrete"> 
+<item value="meager"> 
+</item> 
+</issue> 
+<issue index="4" type="discrete"> 
+<item value="meager"> 
+</item> 
+</issue> 
+<issue index="5" type="real"> 
+<value> 
+15029.86 
+</value> 
+</issue> 
+</bid> 
+<bid> 
+<issue index="1" type="discrete"> 
+<item value="good"> 
+</item> 
+</issue> 
+<issue index="2" type="discrete"> 
+<item value="good"> 
+</item> 
+</issue> 
+<issue index="3" type="discrete"> 
+<item value="meager"> 
+</item> 
+</issue> 
+<issue index="4" type="discrete"> 
+<item value="meager"> 
+</item> 
+</issue> 
+<issue index="5" type="real"> 
+<value> 
+15126.52 
+</value> 
+</issue> 
+</bid> 
+<bid> 
+<issue index="1" type="discrete"> 
+<item value="good"> 
+</item> 
+</issue> 
+<issue index="2" type="discrete"> 
+<item value="good"> 
+</item> 
+</issue> 
+<issue index="3" type="discrete"> 
+<item value="meager"> 
+</item> 
+</issue> 
+<issue index="4" type="discrete"> 
+<item value="meager"> 
+</item> 
+</issue> 
+<issue index="5" type="real"> 
+<value> 
+15223.18 
+</value> 
+</issue> 
+</bid> 
+<bid> 
+<issue index="1" type="discrete"> 
+<item value="good"> 
+</item> 
+</issue> 
+<issue index="2" type="discrete"> 
+<item value="good"> 
+</item> 
+</issue> 
+<issue index="3" type="discrete"> 
+<item value="meager"> 
+</item> 
+</issue> 
+<issue index="4" type="discrete"> 
+<item value="meager"> 
+</item> 
+</issue> 
+<issue index="5" type="real"> 
+<value> 
+15319.84 
+</value> 
+</issue> 
+</bid> 
+<bid> 
+<issue index="1" type="discrete"> 
+<item value="good"> 
+</item> 
+</issue> 
+<issue index="2" type="discrete"> 
+<item value="good"> 
+</item> 
+</issue> 
+<issue index="3" type="discrete"> 
+<item value="meager"> 
+</item> 
+</issue> 
+<issue index="4" type="discrete"> 
+<item value="meager"> 
+</item> 
+</issue> 
+<issue index="5" type="real"> 
+<value> 
+15416.5 
+</value> 
+</issue> 
+</bid> 
+<bid> 
+<issue index="1" type="discrete"> 
+<item value="good"> 
+</item> 
+</issue> 
+<issue index="2" type="discrete"> 
+<item value="good"> 
+</item> 
+</issue> 
+<issue index="3" type="discrete"> 
+<item value="meager"> 
+</item> 
+</issue> 
+<issue index="4" type="discrete"> 
+<item value="meager"> 
+</item> 
+</issue> 
+<issue index="5" type="real"> 
+<value> 
+15513.16 
+</value> 
+</issue> 
+</bid> 
+<bid> 
+<issue index="1" type="discrete"> 
+<item value="good"> 
+</item> 
+</issue> 
+<issue index="2" type="discrete"> 
+<item value="good"> 
+</item> 
+</issue> 
+<issue index="3" type="discrete"> 
+<item value="meager"> 
+</item> 
+</issue> 
+<issue index="4" type="discrete"> 
+<item value="meager"> 
+</item> 
+</issue> 
+<issue index="5" type="real"> 
+<value> 
+15609.82 
+</value> 
+</issue> 
+</bid> 
+<bid> 
+<issue index="1" type="discrete"> 
+<item value="good"> 
+</item> 
+</issue> 
+<issue index="2" type="discrete"> 
+<item value="good"> 
+</item> 
+</issue> 
+<issue index="3" type="discrete"> 
+<item value="meager"> 
+</item> 
+</issue> 
+<issue index="4" type="discrete"> 
+<item value="meager"> 
+</item> 
+</issue> 
+<issue index="5" type="real"> 
+<value> 
+15706.48 
+</value> 
+</issue> 
+</bid> 
+<bid> 
+<issue index="1" type="discrete"> 
+<item value="good"> 
+</item> 
+</issue> 
+<issue index="2" type="discrete"> 
+<item value="good"> 
+</item> 
+</issue> 
+<issue index="3" type="discrete"> 
+<item value="meager"> 
+</item> 
+</issue> 
+<issue index="4" type="discrete"> 
+<item value="meager"> 
+</item> 
+</issue> 
+<issue index="5" type="real"> 
+<value> 
+15803.14 
+</value> 
+</issue> 
+</bid> 
+<bid> 
+<issue index="1" type="discrete"> 
+<item value="good"> 
+</item> 
+</issue> 
+<issue index="2" type="discrete"> 
+<item value="good"> 
+</item> 
+</issue> 
+<issue index="3" type="discrete"> 
+<item value="meager"> 
+</item> 
+</issue> 
+<issue index="4" type="discrete"> 
+<item value="meager"> 
+</item> 
+</issue> 
+<issue index="5" type="real"> 
+<value> 
+15899.8 
+</value> 
+</issue> 
+</bid> 
+<bid> 
+<issue index="1" type="discrete"> 
+<item value="good"> 
+</item> 
+</issue> 
+<issue index="2" type="discrete"> 
+<item value="good"> 
+</item> 
+</issue> 
+<issue index="3" type="discrete"> 
+<item value="standard"> 
+</item> 
+</issue> 
+<issue index="4" type="discrete"> 
+<item value="meager"> 
+</item> 
+</issue> 
+<issue index="5" type="real"> 
+<value> 
+15996.46 
+</value> 
+</issue> 
+</bid> 
+<bid> 
+<issue index="1" type="discrete"> 
+<item value="good"> 
+</item> 
+</issue> 
+<issue index="2" type="discrete"> 
+<item value="good"> 
+</item> 
+</issue> 
+<issue index="3" type="discrete"> 
+<item value="meager"> 
+</item> 
+</issue> 
+<issue index="4" type="discrete"> 
+<item value="meager"> 
+</item> 
+</issue> 
+<issue index="5" type="real"> 
+<value> 
+15996.46 
+</value> 
+</issue> 
+</bid> 
+<bid> 
+<issue index="1" type="discrete"> 
+<item value="good"> 
+</item> 
+</issue> 
+<issue index="2" type="discrete"> 
+<item value="good"> 
+</item> 
+</issue> 
+<issue index="3" type="discrete"> 
+<item value="meager"> 
+</item> 
+</issue> 
+<issue index="4" type="discrete"> 
+<item value="standard"> 
+</item> 
+</issue> 
+<issue index="5" type="real"> 
+<value> 
+14546.56 
+</value> 
+</issue> 
+</bid> 
+<bid> 
+<issue index="1" type="discrete"> 
+<item value="good"> 
+</item> 
+</issue> 
+<issue index="2" type="discrete"> 
+<item value="good"> 
+</item> 
+</issue> 
+<issue index="3" type="discrete"> 
+<item value="meager"> 
+</item> 
+</issue> 
+<issue index="4" type="discrete"> 
+<item value="standard"> 
+</item> 
+</issue> 
+<issue index="5" type="real"> 
+<value> 
+14643.22 
+</value> 
+</issue> 
+</bid> 
+<bid> 
+<issue index="1" type="discrete"> 
+<item value="good"> 
+</item> 
+</issue> 
+<issue index="2" type="discrete"> 
+<item value="good"> 
+</item> 
+</issue> 
+<issue index="3" type="discrete"> 
+<item value="meager"> 
+</item> 
+</issue> 
+<issue index="4" type="discrete"> 
+<item value="standard"> 
+</item> 
+</issue> 
+<issue index="5" type="real"> 
+<value> 
+14739.88 
+</value> 
+</issue> 
+</bid> 
+<bid> 
+<issue index="1" type="discrete"> 
+<item value="good"> 
+</item> 
+</issue> 
+<issue index="2" type="discrete"> 
+<item value="good"> 
+</item> 
+</issue> 
+<issue index="3" type="discrete"> 
+<item value="meager"> 
+</item> 
+</issue> 
+<issue index="4" type="discrete"> 
+<item value="standard"> 
+</item> 
+</issue> 
+<issue index="5" type="real"> 
+<value> 
+14836.54 
+</value> 
+</issue> 
+</bid> 
+<bid> 
+<issue index="1" type="discrete"> 
+<item value="good"> 
+</item> 
+</issue> 
+<issue index="2" type="discrete"> 
+<item value="good"> 
+</item> 
+</issue> 
+<issue index="3" type="discrete"> 
+<item value="meager"> 
+</item> 
+</issue> 
+<issue index="4" type="discrete"> 
+<item value="standard"> 
+</item> 
+</issue> 
+<issue index="5" type="real"> 
+<value> 
+14933.2 
+</value> 
+</issue> 
+</bid> 
+<bid> 
+<issue index="1" type="discrete"> 
+<item value="good"> 
+</item> 
+</issue> 
+<issue index="2" type="discrete"> 
+<item value="good"> 
+</item> 
+</issue> 
+<issue index="3" type="discrete"> 
+<item value="meager"> 
+</item> 
+</issue> 
+<issue index="4" type="discrete"> 
+<item value="standard"> 
+</item> 
+</issue> 
+<issue index="5" type="real"> 
+<value> 
+15029.86 
+</value> 
+</issue> 
+</bid> 
+<bid> 
+<issue index="1" type="discrete"> 
+<item value="good"> 
+</item> 
+</issue> 
+<issue index="2" type="discrete"> 
+<item value="good"> 
+</item> 
+</issue> 
+<issue index="3" type="discrete"> 
+<item value="meager"> 
+</item> 
+</issue> 
+<issue index="4" type="discrete"> 
+<item value="standard"> 
+</item> 
+</issue> 
+<issue index="5" type="real"> 
+<value> 
+15126.52 
+</value> 
+</issue> 
+</bid> 
+<bid> 
+<issue index="1" type="discrete"> 
+<item value="good"> 
+</item> 
+</issue> 
+<issue index="2" type="discrete"> 
+<item value="good"> 
+</item> 
+</issue> 
+<issue index="3" type="discrete"> 
+<item value="meager"> 
+</item> 
+</issue> 
+<issue index="4" type="discrete"> 
+<item value="standard"> 
+</item> 
+</issue> 
+<issue index="5" type="real"> 
+<value> 
+15223.18 
+</value> 
+</issue> 
+</bid> 
+<bid> 
+<issue index="1" type="discrete"> 
+<item value="good"> 
+</item> 
+</issue> 
+<issue index="2" type="discrete"> 
+<item value="good"> 
+</item> 
+</issue> 
+<issue index="3" type="discrete"> 
+<item value="meager"> 
+</item> 
+</issue> 
+<issue index="4" type="discrete"> 
+<item value="standard"> 
+</item> 
+</issue> 
+<issue index="5" type="real"> 
+<value> 
+15319.84 
+</value> 
+</issue> 
+</bid> 
+<bid> 
+<issue index="1" type="discrete"> 
+<item value="good"> 
+</item> 
+</issue> 
+<issue index="2" type="discrete"> 
+<item value="good"> 
+</item> 
+</issue> 
+<issue index="3" type="discrete"> 
+<item value="meager"> 
+</item> 
+</issue> 
+<issue index="4" type="discrete"> 
+<item value="standard"> 
+</item> 
+</issue> 
+<issue index="5" type="real"> 
+<value> 
+15416.5 
+</value> 
+</issue> 
+</bid> 
+<bid> 
+<issue index="1" type="discrete"> 
+<item value="good"> 
+</item> 
+</issue> 
+<issue index="2" type="discrete"> 
+<item value="good"> 
+</item> 
+</issue> 
+<issue index="3" type="discrete"> 
+<item value="meager"> 
+</item> 
+</issue> 
+<issue index="4" type="discrete"> 
+<item value="standard"> 
+</item> 
+</issue> 
+<issue index="5" type="real"> 
+<value> 
+15513.16 
+</value> 
+</issue> 
+</bid> 
+<bid> 
+<issue index="1" type="discrete"> 
+<item value="good"> 
+</item> 
+</issue> 
+<issue index="2" type="discrete"> 
+<item value="good"> 
+</item> 
+</issue> 
+<issue index="3" type="discrete"> 
+<item value="meager"> 
+</item> 
+</issue> 
+<issue index="4" type="discrete"> 
+<item value="standard"> 
+</item> 
+</issue> 
+<issue index="5" type="real"> 
+<value> 
+15609.82 
+</value> 
+</issue> 
+</bid> 
+<bid> 
+<issue index="1" type="discrete"> 
+<item value="good"> 
+</item> 
+</issue> 
+<issue index="2" type="discrete"> 
+<item value="good"> 
+</item> 
+</issue> 
+<issue index="3" type="discrete"> 
+<item value="meager"> 
+</item> 
+</issue> 
+<issue index="4" type="discrete"> 
+<item value="standard"> 
+</item> 
+</issue> 
+<issue index="5" type="real"> 
+<value> 
+15706.48 
+</value> 
+</issue> 
+</bid> 
+<bid> 
+<issue index="1" type="discrete"> 
+<item value="good"> 
+</item> 
+</issue> 
+<issue index="2" type="discrete"> 
+<item value="good"> 
+</item> 
+</issue> 
+<issue index="3" type="discrete"> 
+<item value="meager"> 
+</item> 
+</issue> 
+<issue index="4" type="discrete"> 
+<item value="standard"> 
+</item> 
+</issue> 
+<issue index="5" type="real"> 
+<value> 
+15803.14 
+</value> 
+</issue> 
+</bid> 
+<bid> 
+<issue index="1" type="discrete"> 
+<item value="good"> 
+</item> 
+</issue> 
+<issue index="2" type="discrete"> 
+<item value="good"> 
+</item> 
+</issue> 
+<issue index="3" type="discrete"> 
+<item value="meager"> 
+</item> 
+</issue> 
+<issue index="4" type="discrete"> 
+<item value="standard"> 
+</item> 
+</issue> 
+<issue index="5" type="real"> 
+<value> 
+15899.8 
+</value> 
+</issue> 
+</bid> 
+<bid> 
+<issue index="1" type="discrete"> 
+<item value="good"> 
+</item> 
+</issue> 
+<issue index="2" type="discrete"> 
+<item value="good"> 
+</item> 
+</issue> 
+<issue index="3" type="discrete"> 
+<item value="standard"> 
+</item> 
+</issue> 
+<issue index="4" type="discrete"> 
+<item value="standard"> 
+</item> 
+</issue> 
+<issue index="5" type="real"> 
+<value> 
+15996.46 
+</value> 
+</issue> 
+</bid> 
+<bid> 
+<issue index="1" type="discrete"> 
+<item value="good"> 
+</item> 
+</issue> 
+<issue index="2" type="discrete"> 
+<item value="good"> 
+</item> 
+</issue> 
+<issue index="3" type="discrete"> 
+<item value="meager"> 
+</item> 
+</issue> 
+<issue index="4" type="discrete"> 
+<item value="standard"> 
+</item> 
+</issue> 
+<issue index="5" type="real"> 
+<value> 
+15996.46 
+</value> 
+</issue> 
+</bid> 
+<bid> 
+<issue index="1" type="discrete"> 
+<item value="good"> 
+</item> 
+</issue> 
+<issue index="2" type="discrete"> 
+<item value="good"> 
+</item> 
+</issue> 
+<issue index="3" type="discrete"> 
+<item value="fairly good"> 
+</item> 
+</issue> 
+<issue index="4" type="discrete"> 
+<item value="standard"> 
+</item> 
+</issue> 
+<issue index="5" type="real"> 
+<value> 
+15803.14 
+</value> 
+</issue> 
+</bid> 
+<bid> 
+<issue index="1" type="discrete"> 
+<item value="good"> 
+</item> 
+</issue> 
+<issue index="2" type="discrete"> 
+<item value="good"> 
+</item> 
+</issue> 
+<issue index="3" type="discrete"> 
+<item value="fairly good"> 
+</item> 
+</issue> 
+<issue index="4" type="discrete"> 
+<item value="standard"> 
+</item> 
+</issue> 
+<issue index="5" type="real"> 
+<value> 
+15899.8 
+</value> 
+</issue> 
+</bid> 
+<bid> 
+<issue index="1" type="discrete"> 
+<item value="good"> 
+</item> 
+</issue> 
+<issue index="2" type="discrete"> 
+<item value="good"> 
+</item> 
+</issue> 
+<issue index="3" type="discrete"> 
+<item value="fairly good"> 
+</item> 
+</issue> 
+<issue index="4" type="discrete"> 
+<item value="standard"> 
+</item> 
+</issue> 
+<issue index="5" type="real"> 
+<value> 
+15996.46 
+</value> 
+</issue> 
+</bid> 
+<bid> 
+<issue index="1" type="discrete"> 
+<item value="good"> 
+</item> 
+</issue> 
+<issue index="2" type="discrete"> 
+<item value="good"> 
+</item> 
+</issue> 
+<issue index="3" type="discrete"> 
+<item value="fairly good"> 
+</item> 
+</issue> 
+<issue index="4" type="discrete"> 
+<item value="standard"> 
+</item> 
+</issue> 
+<issue index="5" type="real"> 
+<value> 
+16093.119999999999 
+</value> 
+</issue> 
+</bid> 
+<bid> 
+<issue index="1" type="discrete"> 
+<item value="good"> 
+</item> 
+</issue> 
+<issue index="2" type="discrete"> 
+<item value="good"> 
+</item> 
+</issue> 
+<issue index="3" type="discrete"> 
+<item value="fairly good"> 
+</item> 
+</issue> 
+<issue index="4" type="discrete"> 
+<item value="standard"> 
+</item> 
+</issue> 
+<issue index="5" type="real"> 
+<value> 
+16189.779999999999 
+</value> 
+</issue> 
+</bid> 
+<bid> 
+<issue index="1" type="discrete"> 
+<item value="good"> 
+</item> 
+</issue> 
+<issue index="2" type="discrete"> 
+<item value="good"> 
+</item> 
+</issue> 
+<issue index="3" type="discrete"> 
+<item value="fairly good"> 
+</item> 
+</issue> 
+<issue index="4" type="discrete"> 
+<item value="standard"> 
+</item> 
+</issue> 
+<issue index="5" type="real"> 
+<value> 
+16286.44 
+</value> 
+</issue> 
+</bid> 
+<bid> 
+<issue index="1" type="discrete"> 
+<item value="good"> 
+</item> 
+</issue> 
+<issue index="2" type="discrete"> 
+<item value="good"> 
+</item> 
+</issue> 
+<issue index="3" type="discrete"> 
+<item value="fairly good"> 
+</item> 
+</issue> 
+<issue index="4" type="discrete"> 
+<item value="standard"> 
+</item> 
+</issue> 
+<issue index="5" type="real"> 
+<value> 
+16383.1 
+</value> 
+</issue> 
+</bid> 
+<bid> 
+<issue index="1" type="discrete"> 
+<item value="good"> 
+</item> 
+</issue> 
+<issue index="2" type="discrete"> 
+<item value="good"> 
+</item> 
+</issue> 
+<issue index="3" type="discrete"> 
+<item value="fairly good"> 
+</item> 
+</issue> 
+<issue index="4" type="discrete"> 
+<item value="standard"> 
+</item> 
+</issue> 
+<issue index="5" type="real"> 
+<value> 
+16479.76 
+</value> 
+</issue> 
+</bid> 
+<bid> 
+<issue index="1" type="discrete"> 
+<item value="good"> 
+</item> 
+</issue> 
+<issue index="2" type="discrete"> 
+<item value="fairly good"> 
+</item> 
+</issue> 
+<issue index="3" type="discrete"> 
+<item value="fairly good"> 
+</item> 
+</issue> 
+<issue index="4" type="discrete"> 
+<item value="standard"> 
+</item> 
+</issue> 
+<issue index="5" type="real"> 
+<value> 
+15803.14 
+</value> 
+</issue> 
+</bid> 
+<bid> 
+<issue index="1" type="discrete"> 
+<item value="good"> 
+</item> 
+</issue> 
+<issue index="2" type="discrete"> 
+<item value="fairly good"> 
+</item> 
+</issue> 
+<issue index="3" type="discrete"> 
+<item value="fairly good"> 
+</item> 
+</issue> 
+<issue index="4" type="discrete"> 
+<item value="standard"> 
+</item> 
+</issue> 
+<issue index="5" type="real"> 
+<value> 
+15899.8 
+</value> 
+</issue> 
+</bid> 
+<bid> 
+<issue index="1" type="discrete"> 
+<item value="good"> 
+</item> 
+</issue> 
+<issue index="2" type="discrete"> 
+<item value="fairly good"> 
+</item> 
+</issue> 
+<issue index="3" type="discrete"> 
+<item value="fairly good"> 
+</item> 
+</issue> 
+<issue index="4" type="discrete"> 
+<item value="standard"> 
+</item> 
+</issue> 
+<issue index="5" type="real"> 
+<value> 
+15996.46 
+</value> 
+</issue> 
+</bid> 
+<bid> 
+<issue index="1" type="discrete"> 
+<item value="good"> 
+</item> 
+</issue> 
+<issue index="2" type="discrete"> 
+<item value="fairly good"> 
+</item> 
+</issue> 
+<issue index="3" type="discrete"> 
+<item value="fairly good"> 
+</item> 
+</issue> 
+<issue index="4" type="discrete"> 
+<item value="standard"> 
+</item> 
+</issue> 
+<issue index="5" type="real"> 
+<value> 
+16093.119999999999 
+</value> 
+</issue> 
+</bid> 
+<bid> 
+<issue index="1" type="discrete"> 
+<item value="good"> 
+</item> 
+</issue> 
+<issue index="2" type="discrete"> 
+<item value="fairly good"> 
+</item> 
+</issue> 
+<issue index="3" type="discrete"> 
+<item value="fairly good"> 
+</item> 
+</issue> 
+<issue index="4" type="discrete"> 
+<item value="standard"> 
+</item> 
+</issue> 
+<issue index="5" type="real"> 
+<value> 
+16189.779999999999 
+</value> 
+</issue> 
+</bid> 
+<bid> 
+<issue index="1" type="discrete"> 
+<item value="good"> 
+</item> 
+</issue> 
+<issue index="2" type="discrete"> 
+<item value="fairly good"> 
+</item> 
+</issue> 
+<issue index="3" type="discrete"> 
+<item value="fairly good"> 
+</item> 
+</issue> 
+<issue index="4" type="discrete"> 
+<item value="standard"> 
+</item> 
+</issue> 
+<issue index="5" type="real"> 
+<value> 
+16286.44 
+</value> 
+</issue> 
+</bid> 
+<bid> 
+<issue index="1" type="discrete"> 
+<item value="good"> 
+</item> 
+</issue> 
+<issue index="2" type="discrete"> 
+<item value="fairly good"> 
+</item> 
+</issue> 
+<issue index="3" type="discrete"> 
+<item value="fairly good"> 
+</item> 
+</issue> 
+<issue index="4" type="discrete"> 
+<item value="standard"> 
+</item> 
+</issue> 
+<issue index="5" type="real"> 
+<value> 
+16383.1 
+</value> 
+</issue> 
+</bid> 
+<bid> 
+<issue index="1" type="discrete"> 
+<item value="good"> 
+</item> 
+</issue> 
+<issue index="2" type="discrete"> 
+<item value="fairly good"> 
+</item> 
+</issue> 
+<issue index="3" type="discrete"> 
+<item value="fairly good"> 
+</item> 
+</issue> 
+<issue index="4" type="discrete"> 
+<item value="standard"> 
+</item> 
+</issue> 
+<issue index="5" type="real"> 
+<value> 
+16479.76 
+</value> 
+</issue> 
+</bid> 
+<bid> 
+<issue index="1" type="discrete"> 
+<item value="good"> 
+</item> 
+</issue> 
+<issue index="2" type="discrete"> 
+<item value="fairly good"> 
+</item> 
+</issue> 
+<issue index="3" type="discrete"> 
+<item value="fairly good"> 
+</item> 
+</issue> 
+<issue index="4" type="discrete"> 
+<item value="standard"> 
+</item> 
+</issue> 
+<issue index="5" type="real"> 
+<value> 
+16576.42 
+</value> 
+</issue> 
+</bid> 
+<bid> 
+<issue index="1" type="discrete"> 
+<item value="good"> 
+</item> 
+</issue> 
+<issue index="2" type="discrete"> 
+<item value="fairly good"> 
+</item> 
+</issue> 
+<issue index="3" type="discrete"> 
+<item value="fairly good"> 
+</item> 
+</issue> 
+<issue index="4" type="discrete"> 
+<item value="standard"> 
+</item> 
+</issue> 
+<issue index="5" type="real"> 
+<value> 
+16673.08 
+</value> 
+</issue> 
+</bid> 
+<bid> 
+<issue index="1" type="discrete"> 
+<item value="good"> 
+</item> 
+</issue> 
+<issue index="2" type="discrete"> 
+<item value="fairly good"> 
+</item> 
+</issue> 
+<issue index="3" type="discrete"> 
+<item value="fairly good"> 
+</item> 
+</issue> 
+<issue index="4" type="discrete"> 
+<item value="standard"> 
+</item> 
+</issue> 
+<issue index="5" type="real"> 
+<value> 
+16769.739999999998 
+</value> 
+</issue> 
+</bid> 
+<bid> 
+<issue index="1" type="discrete"> 
+<item value="good"> 
+</item> 
+</issue> 
+<issue index="2" type="discrete"> 
+<item value="fairly good"> 
+</item> 
+</issue> 
+<issue index="3" type="discrete"> 
+<item value="fairly good"> 
+</item> 
+</issue> 
+<issue index="4" type="discrete"> 
+<item value="standard"> 
+</item> 
+</issue> 
+<issue index="5" type="real"> 
+<value> 
+16866.4 
+</value> 
+</issue> 
+</bid> 
+<bid> 
+<issue index="1" type="discrete"> 
+<item value="good"> 
+</item> 
+</issue> 
+<issue index="2" type="discrete"> 
+<item value="fairly good"> 
+</item> 
+</issue> 
+<issue index="3" type="discrete"> 
+<item value="fairly good"> 
+</item> 
+</issue> 
+<issue index="4" type="discrete"> 
+<item value="standard"> 
+</item> 
+</issue> 
+<issue index="5" type="real"> 
+<value> 
+16963.06 
+</value> 
+</issue> 
+</bid> 
+<bid> 
+<issue index="1" type="discrete"> 
+<item value="good"> 
+</item> 
+</issue> 
+<issue index="2" type="discrete"> 
+<item value="fairly good"> 
+</item> 
+</issue> 
+<issue index="3" type="discrete"> 
+<item value="fairly good"> 
+</item> 
+</issue> 
+<issue index="4" type="discrete"> 
+<item value="standard"> 
+</item> 
+</issue> 
+<issue index="5" type="real"> 
+<value> 
+17059.72 
+</value> 
+</issue> 
+</bid> 
+<bid> 
+<issue index="1" type="discrete"> 
+<item value="good"> 
+</item> 
+</issue> 
+<issue index="2" type="discrete"> 
+<item value="fairly good"> 
+</item> 
+</issue> 
+<issue index="3" type="discrete"> 
+<item value="fairly good"> 
+</item> 
+</issue> 
+<issue index="4" type="discrete"> 
+<item value="standard"> 
+</item> 
+</issue> 
+<issue index="5" type="real"> 
+<value> 
+17156.38 
+</value> 
+</issue> 
+</bid> 
+<bid> 
+<issue index="1" type="discrete"> 
+<item value="good"> 
+</item> 
+</issue> 
+<issue index="2" type="discrete"> 
+<item value="fairly good"> 
+</item> 
+</issue> 
+<issue index="3" type="discrete"> 
+<item value="fairly good"> 
+</item> 
+</issue> 
+<issue index="4" type="discrete"> 
+<item value="standard"> 
+</item> 
+</issue> 
+<issue index="5" type="real"> 
+<value> 
+17253.04 
+</value> 
+</issue> 
+</bid> 
+<bid> 
+<issue index="1" type="discrete"> 
+<item value="good"> 
+</item> 
+</issue> 
+<issue index="2" type="discrete"> 
+<item value="fairly good"> 
+</item> 
+</issue> 
+<issue index="3" type="discrete"> 
+<item value="fairly good"> 
+</item> 
+</issue> 
+<issue index="4" type="discrete"> 
+<item value="standard"> 
+</item> 
+</issue> 
+<issue index="5" type="real"> 
+<value> 
+17349.7 
+</value> 
+</issue> 
+</bid> 
+<bid> 
+<issue index="1" type="discrete"> 
+<item value="good"> 
+</item> 
+</issue> 
+<issue index="2" type="discrete"> 
+<item value="fairly good"> 
+</item> 
+</issue> 
+<issue index="3" type="discrete"> 
+<item value="fairly good"> 
+</item> 
+</issue> 
+<issue index="4" type="discrete"> 
+<item value="standard"> 
+</item> 
+</issue> 
+<issue index="5" type="real"> 
+<value> 
+17446.36 
+</value> 
+</issue> 
+</bid> 
+<bid> 
+<issue index="1" type="discrete"> 
+<item value="good"> 
+</item> 
+</issue> 
+<issue index="2" type="discrete"> 
+<item value="fairly good"> 
+</item> 
+</issue> 
+<issue index="3" type="discrete"> 
+<item value="fairly good"> 
+</item> 
+</issue> 
+<issue index="4" type="discrete"> 
+<item value="standard"> 
+</item> 
+</issue> 
+<issue index="5" type="real"> 
+<value> 
+17543.02 
+</value> 
+</issue> 
+</bid> 
+<bid> 
+<issue index="1" type="discrete"> 
+<item value="good"> 
+</item> 
+</issue> 
+<issue index="2" type="discrete"> 
+<item value="fairly good"> 
+</item> 
+</issue> 
+<issue index="3" type="discrete"> 
+<item value="fairly good"> 
+</item> 
+</issue> 
+<issue index="4" type="discrete"> 
+<item value="standard"> 
+</item> 
+</issue> 
+<issue index="5" type="real"> 
+<value> 
+17639.68 
+</value> 
+</issue> 
+</bid> 
+<bid> 
+<issue index="1" type="discrete"> 
+<item value="good"> 
+</item> 
+</issue> 
+<issue index="2" type="discrete"> 
+<item value="fairly good"> 
+</item> 
+</issue> 
+<issue index="3" type="discrete"> 
+<item value="fairly good"> 
+</item> 
+</issue> 
+<issue index="4" type="discrete"> 
+<item value="standard"> 
+</item> 
+</issue> 
+<issue index="5" type="real"> 
+<value> 
+17736.34 
+</value> 
+</issue> 
+</bid> 
+<bid> 
+<issue index="1" type="discrete"> 
+<item value="good"> 
+</item> 
+</issue> 
+<issue index="2" type="discrete"> 
+<item value="fairly good"> 
+</item> 
+</issue> 
+<issue index="3" type="discrete"> 
+<item value="fairly good"> 
+</item> 
+</issue> 
+<issue index="4" type="discrete"> 
+<item value="standard"> 
+</item> 
+</issue> 
+<issue index="5" type="real"> 
+<value> 
+17833.0 
+</value> 
+</issue> 
+</bid> 
+<bid> 
+<issue index="1" type="discrete"> 
+<item value="good"> 
+</item> 
+</issue> 
+<issue index="2" type="discrete"> 
+<item value="fairly good"> 
+</item> 
+</issue> 
+<issue index="3" type="discrete"> 
+<item value="fairly good"> 
+</item> 
+</issue> 
+<issue index="4" type="discrete"> 
+<item value="standard"> 
+</item> 
+</issue> 
+<issue index="5" type="real"> 
+<value> 
+17929.66 
+</value> 
+</issue> 
+</bid> 
+<bid> 
+<issue index="1" type="discrete"> 
+<item value="good"> 
+</item> 
+</issue> 
+<issue index="2" type="discrete"> 
+<item value="fairly good"> 
+</item> 
+</issue> 
+<issue index="3" type="discrete"> 
+<item value="fairly good"> 
+</item> 
+</issue> 
+<issue index="4" type="discrete"> 
+<item value="standard"> 
+</item> 
+</issue> 
+<issue index="5" type="real"> 
+<value> 
+18026.32 
+</value> 
+</issue> 
+</bid> 
+<bid> 
+<issue index="1" type="discrete"> 
+<item value="good"> 
+</item> 
+</issue> 
+<issue index="2" type="discrete"> 
+<item value="fairly good"> 
+</item> 
+</issue> 
+<issue index="3" type="discrete"> 
+<item value="fairly good"> 
+</item> 
+</issue> 
+<issue index="4" type="discrete"> 
+<item value="standard"> 
+</item> 
+</issue> 
+<issue index="5" type="real"> 
+<value> 
+18122.98 
+</value> 
+</issue> 
+</bid> 
+<bid> 
+<issue index="1" type="discrete"> 
+<item value="good"> 
+</item> 
+</issue> 
+<issue index="2" type="discrete"> 
+<item value="standard"> 
+</item> 
+</issue> 
+<issue index="3" type="discrete"> 
+<item value="fairly good"> 
+</item> 
+</issue> 
+<issue index="4" type="discrete"> 
+<item value="standard"> 
+</item> 
+</issue> 
+<issue index="5" type="real"> 
+<value> 
+17639.68 
+</value> 
+</issue> 
+</bid> 
+<bid> 
+<issue index="1" type="discrete"> 
+<item value="good"> 
+</item> 
+</issue> 
+<issue index="2" type="discrete"> 
+<item value="standard"> 
+</item> 
+</issue> 
+<issue index="3" type="discrete"> 
+<item value="fairly good"> 
+</item> 
+</issue> 
+<issue index="4" type="discrete"> 
+<item value="standard"> 
+</item> 
+</issue> 
+<issue index="5" type="real"> 
+<value> 
+17736.34 
+</value> 
+</issue> 
+</bid> 
+<bid> 
+<issue index="1" type="discrete"> 
+<item value="good"> 
+</item> 
+</issue> 
+<issue index="2" type="discrete"> 
+<item value="standard"> 
+</item> 
+</issue> 
+<issue index="3" type="discrete"> 
+<item value="fairly good"> 
+</item> 
+</issue> 
+<issue index="4" type="discrete"> 
+<item value="standard"> 
+</item> 
+</issue> 
+<issue index="5" type="real"> 
+<value> 
+17833.0 
+</value> 
+</issue> 
+</bid> 
+<bid> 
+<issue index="1" type="discrete"> 
+<item value="good"> 
+</item> 
+</issue> 
+<issue index="2" type="discrete"> 
+<item value="standard"> 
+</item> 
+</issue> 
+<issue index="3" type="discrete"> 
+<item value="fairly good"> 
+</item> 
+</issue> 
+<issue index="4" type="discrete"> 
+<item value="standard"> 
+</item> 
+</issue> 
+<issue index="5" type="real"> 
+<value> 
+17929.66 
+</value> 
+</issue> 
+</bid> 
+<bid> 
+<issue index="1" type="discrete"> 
+<item value="good"> 
+</item> 
+</issue> 
+<issue index="2" type="discrete"> 
+<item value="standard"> 
+</item> 
+</issue> 
+<issue index="3" type="discrete"> 
+<item value="fairly good"> 
+</item> 
+</issue> 
+<issue index="4" type="discrete"> 
+<item value="standard"> 
+</item> 
+</issue> 
+<issue index="5" type="real"> 
+<value> 
+18026.32 
+</value> 
+</issue> 
+</bid> 
+<bid> 
+<issue index="1" type="discrete"> 
+<item value="good"> 
+</item> 
+</issue> 
+<issue index="2" type="discrete"> 
+<item value="standard"> 
+</item> 
+</issue> 
+<issue index="3" type="discrete"> 
+<item value="fairly good"> 
+</item> 
+</issue> 
+<issue index="4" type="discrete"> 
+<item value="standard"> 
+</item> 
+</issue> 
+<issue index="5" type="real"> 
+<value> 
+18122.98 
+</value> 
+</issue> 
+</bid> 
+<bid> 
+<issue index="1" type="discrete"> 
+<item value="good"> 
+</item> 
+</issue> 
+<issue index="2" type="discrete"> 
+<item value="standard"> 
+</item> 
+</issue> 
+<issue index="3" type="discrete"> 
+<item value="fairly good"> 
+</item> 
+</issue> 
+<issue index="4" type="discrete"> 
+<item value="standard"> 
+</item> 
+</issue> 
+<issue index="5" type="real"> 
+<value> 
+18219.64 
+</value> 
+</issue> 
+</bid> 
+<bid> 
+<issue index="1" type="discrete"> 
+<item value="good"> 
+</item> 
+</issue> 
+<issue index="2" type="discrete"> 
+<item value="standard"> 
+</item> 
+</issue> 
+<issue index="3" type="discrete"> 
+<item value="fairly good"> 
+</item> 
+</issue> 
+<issue index="4" type="discrete"> 
+<item value="standard"> 
+</item> 
+</issue> 
+<issue index="5" type="real"> 
+<value> 
+18316.3 
+</value> 
+</issue> 
+</bid> 
+<bid> 
+<issue index="1" type="discrete"> 
+<item value="good"> 
+</item> 
+</issue> 
+<issue index="2" type="discrete"> 
+<item value="standard"> 
+</item> 
+</issue> 
+<issue index="3" type="discrete"> 
+<item value="fairly good"> 
+</item> 
+</issue> 
+<issue index="4" type="discrete"> 
+<item value="standard"> 
+</item> 
+</issue> 
+<issue index="5" type="real"> 
+<value> 
+18412.96 
+</value> 
+</issue> 
+</bid> 
+<bid> 
+<issue index="1" type="discrete"> 
+<item value="good"> 
+</item> 
+</issue> 
+<issue index="2" type="discrete"> 
+<item value="standard"> 
+</item> 
+</issue> 
+<issue index="3" type="discrete"> 
+<item value="fairly good"> 
+</item> 
+</issue> 
+<issue index="4" type="discrete"> 
+<item value="standard"> 
+</item> 
+</issue> 
+<issue index="5" type="real"> 
+<value> 
+18509.62 
+</value> 
+</issue> 
+</bid> 
+<bid> 
+<issue index="1" type="discrete"> 
+<item value="good"> 
+</item> 
+</issue> 
+<issue index="2" type="discrete"> 
+<item value="standard"> 
+</item> 
+</issue> 
+<issue index="3" type="discrete"> 
+<item value="fairly good"> 
+</item> 
+</issue> 
+<issue index="4" type="discrete"> 
+<item value="standard"> 
+</item> 
+</issue> 
+<issue index="5" type="real"> 
+<value> 
+18606.28 
+</value> 
+</issue> 
+</bid> 
+<bid> 
+<issue index="1" type="discrete"> 
+<item value="good"> 
+</item> 
+</issue> 
+<issue index="2" type="discrete"> 
+<item value="standard"> 
+</item> 
+</issue> 
+<issue index="3" type="discrete"> 
+<item value="fairly good"> 
+</item> 
+</issue> 
+<issue index="4" type="discrete"> 
+<item value="standard"> 
+</item> 
+</issue> 
+<issue index="5" type="real"> 
+<value> 
+18702.94 
+</value> 
+</issue> 
+</bid> 
+<bid> 
+<issue index="1" type="discrete"> 
+<item value="good"> 
+</item> 
+</issue> 
+<issue index="2" type="discrete"> 
+<item value="standard"> 
+</item> 
+</issue> 
+<issue index="3" type="discrete"> 
+<item value="fairly good"> 
+</item> 
+</issue> 
+<issue index="4" type="discrete"> 
+<item value="standard"> 
+</item> 
+</issue> 
+<issue index="5" type="real"> 
+<value> 
+18799.6 
+</value> 
+</issue> 
+</bid> 
+<bid> 
+<issue index="1" type="discrete"> 
+<item value="good"> 
+</item> 
+</issue> 
+<issue index="2" type="discrete"> 
+<item value="standard"> 
+</item> 
+</issue> 
+<issue index="3" type="discrete"> 
+<item value="fairly good"> 
+</item> 
+</issue> 
+<issue index="4" type="discrete"> 
+<item value="standard"> 
+</item> 
+</issue> 
+<issue index="5" type="real"> 
+<value> 
+18896.260000000002 
+</value> 
+</issue> 
+</bid> 
+<bid> 
+<issue index="1" type="discrete"> 
+<item value="good"> 
+</item> 
+</issue> 
+<issue index="2" type="discrete"> 
+<item value="standard"> 
+</item> 
+</issue> 
+<issue index="3" type="discrete"> 
+<item value="fairly good"> 
+</item> 
+</issue> 
+<issue index="4" type="discrete"> 
+<item value="standard"> 
+</item> 
+</issue> 
+<issue index="5" type="real"> 
+<value> 
+18992.92 
+</value> 
+</issue> 
+</bid> 
+<bid> 
+<issue index="1" type="discrete"> 
+<item value="standard"> 
+</item> 
+</issue> 
+<issue index="2" type="discrete"> 
+<item value="fairly good"> 
+</item> 
+</issue> 
+<issue index="3" type="discrete"> 
+<item value="fairly good"> 
+</item> 
+</issue> 
+<issue index="4" type="discrete"> 
+<item value="standard"> 
+</item> 
+</issue> 
+<issue index="5" type="real"> 
+<value> 
+16866.4 
+</value> 
+</issue> 
+</bid> 
+<bid> 
+<issue index="1" type="discrete"> 
+<item value="standard"> 
+</item> 
+</issue> 
+<issue index="2" type="discrete"> 
+<item value="fairly good"> 
+</item> 
+</issue> 
+<issue index="3" type="discrete"> 
+<item value="fairly good"> 
+</item> 
+</issue> 
+<issue index="4" type="discrete"> 
+<item value="standard"> 
+</item> 
+</issue> 
+<issue index="5" type="real"> 
+<value> 
+16963.06 
+</value> 
+</issue> 
+</bid> 
+<bid> 
+<issue index="1" type="discrete"> 
+<item value="standard"> 
+</item> 
+</issue> 
+<issue index="2" type="discrete"> 
+<item value="fairly good"> 
+</item> 
+</issue> 
+<issue index="3" type="discrete"> 
+<item value="fairly good"> 
+</item> 
+</issue> 
+<issue index="4" type="discrete"> 
+<item value="standard"> 
+</item> 
+</issue> 
+<issue index="5" type="real"> 
+<value> 
+17059.72 
+</value> 
+</issue> 
+</bid> 
+<bid> 
+<issue index="1" type="discrete"> 
+<item value="standard"> 
+</item> 
+</issue> 
+<issue index="2" type="discrete"> 
+<item value="fairly good"> 
+</item> 
+</issue> 
+<issue index="3" type="discrete"> 
+<item value="fairly good"> 
+</item> 
+</issue> 
+<issue index="4" type="discrete"> 
+<item value="standard"> 
+</item> 
+</issue> 
+<issue index="5" type="real"> 
+<value> 
+17156.38 
+</value> 
+</issue> 
+</bid> 
+<bid> 
+<issue index="1" type="discrete"> 
+<item value="standard"> 
+</item> 
+</issue> 
+<issue index="2" type="discrete"> 
+<item value="fairly good"> 
+</item> 
+</issue> 
+<issue index="3" type="discrete"> 
+<item value="fairly good"> 
+</item> 
+</issue> 
+<issue index="4" type="discrete"> 
+<item value="standard"> 
+</item> 
+</issue> 
+<issue index="5" type="real"> 
+<value> 
+17253.04 
+</value> 
+</issue> 
+</bid> 
+<bid> 
+<issue index="1" type="discrete"> 
+<item value="standard"> 
+</item> 
+</issue> 
+<issue index="2" type="discrete"> 
+<item value="fairly good"> 
+</item> 
+</issue> 
+<issue index="3" type="discrete"> 
+<item value="fairly good"> 
+</item> 
+</issue> 
+<issue index="4" type="discrete"> 
+<item value="standard"> 
+</item> 
+</issue> 
+<issue index="5" type="real"> 
+<value> 
+17349.7 
+</value> 
+</issue> 
+</bid> 
+<bid> 
+<issue index="1" type="discrete"> 
+<item value="standard"> 
+</item> 
+</issue> 
+<issue index="2" type="discrete"> 
+<item value="standard"> 
+</item> 
+</issue> 
+<issue index="3" type="discrete"> 
+<item value="fairly good"> 
+</item> 
+</issue> 
+<issue index="4" type="discrete"> 
+<item value="standard"> 
+</item> 
+</issue> 
+<issue index="5" type="real"> 
+<value> 
+16866.4 
+</value> 
+</issue> 
+</bid> 
+<bid> 
+<issue index="1" type="discrete"> 
+<item value="standard"> 
+</item> 
+</issue> 
+<issue index="2" type="discrete"> 
+<item value="standard"> 
+</item> 
+</issue> 
+<issue index="3" type="discrete"> 
+<item value="fairly good"> 
+</item> 
+</issue> 
+<issue index="4" type="discrete"> 
+<item value="standard"> 
+</item> 
+</issue> 
+<issue index="5" type="real"> 
+<value> 
+16963.06 
+</value> 
+</issue> 
+</bid> 
+<bid> 
+<issue index="1" type="discrete"> 
+<item value="standard"> 
+</item> 
+</issue> 
+<issue index="2" type="discrete"> 
+<item value="standard"> 
+</item> 
+</issue> 
+<issue index="3" type="discrete"> 
+<item value="fairly good"> 
+</item> 
+</issue> 
+<issue index="4" type="discrete"> 
+<item value="standard"> 
+</item> 
+</issue> 
+<issue index="5" type="real"> 
+<value> 
+17059.72 
+</value> 
+</issue> 
+</bid> 
+<bid> 
+<issue index="1" type="discrete"> 
+<item value="standard"> 
+</item> 
+</issue> 
+<issue index="2" type="discrete"> 
+<item value="standard"> 
+</item> 
+</issue> 
+<issue index="3" type="discrete"> 
+<item value="fairly good"> 
+</item> 
+</issue> 
+<issue index="4" type="discrete"> 
+<item value="standard"> 
+</item> 
+</issue> 
+<issue index="5" type="real"> 
+<value> 
+17156.38 
+</value> 
+</issue> 
+</bid> 
+<bid> 
+<issue index="1" type="discrete"> 
+<item value="standard"> 
+</item> 
+</issue> 
+<issue index="2" type="discrete"> 
+<item value="standard"> 
+</item> 
+</issue> 
+<issue index="3" type="discrete"> 
+<item value="fairly good"> 
+</item> 
+</issue> 
+<issue index="4" type="discrete"> 
+<item value="standard"> 
+</item> 
+</issue> 
+<issue index="5" type="real"> 
+<value> 
+17253.04 
+</value> 
+</issue> 
+</bid> 
+<bid> 
+<issue index="1" type="discrete"> 
+<item value="standard"> 
+</item> 
+</issue> 
+<issue index="2" type="discrete"> 
+<item value="standard"> 
+</item> 
+</issue> 
+<issue index="3" type="discrete"> 
+<item value="fairly good"> 
+</item> 
+</issue> 
+<issue index="4" type="discrete"> 
+<item value="standard"> 
+</item> 
+</issue> 
+<issue index="5" type="real"> 
+<value> 
+17349.7 
+</value> 
+</issue> 
+</bid> 
+<bid> 
+<issue index="1" type="discrete"> 
+<item value="standard"> 
+</item> 
+</issue> 
+<issue index="2" type="discrete"> 
+<item value="standard"> 
+</item> 
+</issue> 
+<issue index="3" type="discrete"> 
+<item value="fairly good"> 
+</item> 
+</issue> 
+<issue index="4" type="discrete"> 
+<item value="standard"> 
+</item> 
+</issue> 
+<issue index="5" type="real"> 
+<value> 
+17446.36 
+</value> 
+</issue> 
+</bid> 
+<bid> 
+<issue index="1" type="discrete"> 
+<item value="standard"> 
+</item> 
+</issue> 
+<issue index="2" type="discrete"> 
+<item value="standard"> 
+</item> 
+</issue> 
+<issue index="3" type="discrete"> 
+<item value="fairly good"> 
+</item> 
+</issue> 
+<issue index="4" type="discrete"> 
+<item value="standard"> 
+</item> 
+</issue> 
+<issue index="5" type="real"> 
+<value> 
+17543.02 
+</value> 
+</issue> 
+</bid> 
+<bid> 
+<issue index="1" type="discrete"> 
+<item value="standard"> 
+</item> 
+</issue> 
+<issue index="2" type="discrete"> 
+<item value="standard"> 
+</item> 
+</issue> 
+<issue index="3" type="discrete"> 
+<item value="fairly good"> 
+</item> 
+</issue> 
+<issue index="4" type="discrete"> 
+<item value="standard"> 
+</item> 
+</issue> 
+<issue index="5" type="real"> 
+<value> 
+17639.68 
+</value> 
+</issue> 
+</bid> 
+<bid> 
+<issue index="1" type="discrete"> 
+<item value="standard"> 
+</item> 
+</issue> 
+<issue index="2" type="discrete"> 
+<item value="standard"> 
+</item> 
+</issue> 
+<issue index="3" type="discrete"> 
+<item value="fairly good"> 
+</item> 
+</issue> 
+<issue index="4" type="discrete"> 
+<item value="standard"> 
+</item> 
+</issue> 
+<issue index="5" type="real"> 
+<value> 
+17736.34 
+</value> 
+</issue> 
+</bid> 
+<bid> 
+<issue index="1" type="discrete"> 
+<item value="standard"> 
+</item> 
+</issue> 
+<issue index="2" type="discrete"> 
+<item value="standard"> 
+</item> 
+</issue> 
+<issue index="3" type="discrete"> 
+<item value="fairly good"> 
+</item> 
+</issue> 
+<issue index="4" type="discrete"> 
+<item value="standard"> 
+</item> 
+</issue> 
+<issue index="5" type="real"> 
+<value> 
+17833.0 
+</value> 
+</issue> 
+</bid> 
+<bid> 
+<issue index="1" type="discrete"> 
+<item value="standard"> 
+</item> 
+</issue> 
+<issue index="2" type="discrete"> 
+<item value="standard"> 
+</item> 
+</issue> 
+<issue index="3" type="discrete"> 
+<item value="fairly good"> 
+</item> 
+</issue> 
+<issue index="4" type="discrete"> 
+<item value="standard"> 
+</item> 
+</issue> 
+<issue index="5" type="real"> 
+<value> 
+17929.66 
+</value> 
+</issue> 
+</bid> 
+<bid> 
+<issue index="1" type="discrete"> 
+<item value="standard"> 
+</item> 
+</issue> 
+<issue index="2" type="discrete"> 
+<item value="standard"> 
+</item> 
+</issue> 
+<issue index="3" type="discrete"> 
+<item value="fairly good"> 
+</item> 
+</issue> 
+<issue index="4" type="discrete"> 
+<item value="standard"> 
+</item> 
+</issue> 
+<issue index="5" type="real"> 
+<value> 
+18026.32 
+</value> 
+</issue> 
+</bid> 
+<bid> 
+<issue index="1" type="discrete"> 
+<item value="standard"> 
+</item> 
+</issue> 
+<issue index="2" type="discrete"> 
+<item value="standard"> 
+</item> 
+</issue> 
+<issue index="3" type="discrete"> 
+<item value="fairly good"> 
+</item> 
+</issue> 
+<issue index="4" type="discrete"> 
+<item value="standard"> 
+</item> 
+</issue> 
+<issue index="5" type="real"> 
+<value> 
+18122.98 
+</value> 
+</issue> 
+</bid> 
+<bid> 
+<issue index="1" type="discrete"> 
+<item value="standard"> 
+</item> 
+</issue> 
+<issue index="2" type="discrete"> 
+<item value="standard"> 
+</item> 
+</issue> 
+<issue index="3" type="discrete"> 
+<item value="fairly good"> 
+</item> 
+</issue> 
+<issue index="4" type="discrete"> 
+<item value="standard"> 
+</item> 
+</issue> 
+<issue index="5" type="real"> 
+<value> 
+18219.64 
+</value> 
+</issue> 
+</bid> 
+<bid> 
+<issue index="1" type="discrete"> 
+<item value="standard"> 
+</item> 
+</issue> 
+<issue index="2" type="discrete"> 
+<item value="standard"> 
+</item> 
+</issue> 
+<issue index="3" type="discrete"> 
+<item value="fairly good"> 
+</item> 
+</issue> 
+<issue index="4" type="discrete"> 
+<item value="standard"> 
+</item> 
+</issue> 
+<issue index="5" type="real"> 
+<value> 
+18316.3 
+</value> 
+</issue> 
+</bid> 
+<bid> 
+<issue index="1" type="discrete"> 
+<item value="standard"> 
+</item> 
+</issue> 
+<issue index="2" type="discrete"> 
+<item value="standard"> 
+</item> 
+</issue> 
+<issue index="3" type="discrete"> 
+<item value="fairly good"> 
+</item> 
+</issue> 
+<issue index="4" type="discrete"> 
+<item value="standard"> 
+</item> 
+</issue> 
+<issue index="5" type="real"> 
+<value> 
+18412.96 
+</value> 
+</issue> 
+</bid> 
+<bid> 
+<issue index="1" type="discrete"> 
+<item value="standard"> 
+</item> 
+</issue> 
+<issue index="2" type="discrete"> 
+<item value="standard"> 
+</item> 
+</issue> 
+<issue index="3" type="discrete"> 
+<item value="fairly good"> 
+</item> 
+</issue> 
+<issue index="4" type="discrete"> 
+<item value="standard"> 
+</item> 
+</issue> 
+<issue index="5" type="real"> 
+<value> 
+18509.62 
+</value> 
+</issue> 
+</bid> 
+<bid> 
+<issue index="1" type="discrete"> 
+<item value="standard"> 
+</item> 
+</issue> 
+<issue index="2" type="discrete"> 
+<item value="standard"> 
+</item> 
+</issue> 
+<issue index="3" type="discrete"> 
+<item value="fairly good"> 
+</item> 
+</issue> 
+<issue index="4" type="discrete"> 
+<item value="standard"> 
+</item> 
+</issue> 
+<issue index="5" type="real"> 
+<value> 
+18606.28 
+</value> 
+</issue> 
+</bid> 
+<bid> 
+<issue index="1" type="discrete"> 
+<item value="standard"> 
+</item> 
+</issue> 
+<issue index="2" type="discrete"> 
+<item value="standard"> 
+</item> 
+</issue> 
+<issue index="3" type="discrete"> 
+<item value="fairly good"> 
+</item> 
+</issue> 
+<issue index="4" type="discrete"> 
+<item value="standard"> 
+</item> 
+</issue> 
+<issue index="5" type="real"> 
+<value> 
+18702.94 
+</value> 
+</issue> 
+</bid> 
+<bid> 
+<issue index="1" type="discrete"> 
+<item value="standard"> 
+</item> 
+</issue> 
+<issue index="2" type="discrete"> 
+<item value="standard"> 
+</item> 
+</issue> 
+<issue index="3" type="discrete"> 
+<item value="fairly good"> 
+</item> 
+</issue> 
+<issue index="4" type="discrete"> 
+<item value="standard"> 
+</item> 
+</issue> 
+<issue index="5" type="real"> 
+<value> 
+18799.6 
+</value> 
+</issue> 
+</bid> 
+<bid> 
+<issue index="1" type="discrete"> 
+<item value="standard"> 
+</item> 
+</issue> 
+<issue index="2" type="discrete"> 
+<item value="standard"> 
+</item> 
+</issue> 
+<issue index="3" type="discrete"> 
+<item value="fairly good"> 
+</item> 
+</issue> 
+<issue index="4" type="discrete"> 
+<item value="standard"> 
+</item> 
+</issue> 
+<issue index="5" type="real"> 
+<value> 
+18896.260000000002 
+</value> 
+</issue> 
+</bid> 
+<bid> 
+<issue index="1" type="discrete"> 
+<item value="standard"> 
+</item> 
+</issue> 
+<issue index="2" type="discrete"> 
+<item value="standard"> 
+</item> 
+</issue> 
+<issue index="3" type="discrete"> 
+<item value="good"> 
+</item> 
+</issue> 
+<issue index="4" type="discrete"> 
+<item value="standard"> 
+</item> 
+</issue> 
+<issue index="5" type="real"> 
+<value> 
+18896.260000000002 
+</value> 
+</issue> 
+</bid> 
+<bid> 
+<issue index="1" type="discrete"> 
+<item value="standard"> 
+</item> 
+</issue> 
+<issue index="2" type="discrete"> 
+<item value="standard"> 
+</item> 
+</issue> 
+<issue index="3" type="discrete"> 
+<item value="good"> 
+</item> 
+</issue> 
+<issue index="4" type="discrete"> 
+<item value="standard"> 
+</item> 
+</issue> 
+<issue index="5" type="real"> 
+<value> 
+18992.92 
+</value> 
+</issue> 
+</bid> 
+<bid> 
+<issue index="1" type="discrete"> 
+<item value="standard"> 
+</item> 
+</issue> 
+<issue index="2" type="discrete"> 
+<item value="standard"> 
+</item> 
+</issue> 
+<issue index="3" type="discrete"> 
+<item value="good"> 
+</item> 
+</issue> 
+<issue index="4" type="discrete"> 
+<item value="standard"> 
+</item> 
+</issue> 
+<issue index="5" type="real"> 
+<value> 
+19089.58 
+</value> 
+</issue> 
+</bid> 
+<bid> 
+<issue index="1" type="discrete"> 
+<item value="standard"> 
+</item> 
+</issue> 
+<issue index="2" type="discrete"> 
+<item value="standard"> 
+</item> 
+</issue> 
+<issue index="3" type="discrete"> 
+<item value="good"> 
+</item> 
+</issue> 
+<issue index="4" type="discrete"> 
+<item value="standard"> 
+</item> 
+</issue> 
+<issue index="5" type="real"> 
+<value> 
+19186.239999999998 
+</value> 
+</issue> 
+</bid> 
+<bid> 
+<issue index="1" type="discrete"> 
+<item value="standard"> 
+</item> 
+</issue> 
+<issue index="2" type="discrete"> 
+<item value="standard"> 
+</item> 
+</issue> 
+<issue index="3" type="discrete"> 
+<item value="good"> 
+</item> 
+</issue> 
+<issue index="4" type="discrete"> 
+<item value="standard"> 
+</item> 
+</issue> 
+<issue index="5" type="real"> 
+<value> 
+19282.9 
+</value> 
+</issue> 
+</bid> 
+<bid> 
+<issue index="1" type="discrete"> 
+<item value="standard"> 
+</item> 
+</issue> 
+<issue index="2" type="discrete"> 
+<item value="standard"> 
+</item> 
+</issue> 
+<issue index="3" type="discrete"> 
+<item value="good"> 
+</item> 
+</issue> 
+<issue index="4" type="discrete"> 
+<item value="standard"> 
+</item> 
+</issue> 
+<issue index="5" type="real"> 
+<value> 
+19379.559999999998 
+</value> 
+</issue> 
+</bid> 
+<bid> 
+<issue index="1" type="discrete"> 
+<item value="standard"> 
+</item> 
+</issue> 
+<issue index="2" type="discrete"> 
+<item value="standard"> 
+</item> 
+</issue> 
+<issue index="3" type="discrete"> 
+<item value="good"> 
+</item> 
+</issue> 
+<issue index="4" type="discrete"> 
+<item value="standard"> 
+</item> 
+</issue> 
+<issue index="5" type="real"> 
+<value> 
+19476.22 
+</value> 
+</issue> 
+</bid> 
+<bid> 
+<issue index="1" type="discrete"> 
+<item value="standard"> 
+</item> 
+</issue> 
+<issue index="2" type="discrete"> 
+<item value="standard"> 
+</item> 
+</issue> 
+<issue index="3" type="discrete"> 
+<item value="good"> 
+</item> 
+</issue> 
+<issue index="4" type="discrete"> 
+<item value="standard"> 
+</item> 
+</issue> 
+<issue index="5" type="real"> 
+<value> 
+19572.88 
+</value> 
+</issue> 
+</bid> 
+<bid> 
+<issue index="1" type="discrete"> 
+<item value="standard"> 
+</item> 
+</issue> 
+<issue index="2" type="discrete"> 
+<item value="standard"> 
+</item> 
+</issue> 
+<issue index="3" type="discrete"> 
+<item value="good"> 
+</item> 
+</issue> 
+<issue index="4" type="discrete"> 
+<item value="standard"> 
+</item> 
+</issue> 
+<issue index="5" type="real"> 
+<value> 
+19669.54 
+</value> 
+</issue> 
+</bid> 
+<bid> 
+<issue index="1" type="discrete"> 
+<item value="standard"> 
+</item> 
+</issue> 
+<issue index="2" type="discrete"> 
+<item value="standard"> 
+</item> 
+</issue> 
+<issue index="3" type="discrete"> 
+<item value="good"> 
+</item> 
+</issue> 
+<issue index="4" type="discrete"> 
+<item value="standard"> 
+</item> 
+</issue> 
+<issue index="5" type="real"> 
+<value> 
+19766.2 
+</value> 
+</issue> 
+</bid> 
+<bid> 
+<issue index="1" type="discrete"> 
+<item value="standard"> 
+</item> 
+</issue> 
+<issue index="2" type="discrete"> 
+<item value="standard"> 
+</item> 
+</issue> 
+<issue index="3" type="discrete"> 
+<item value="good"> 
+</item> 
+</issue> 
+<issue index="4" type="discrete"> 
+<item value="standard"> 
+</item> 
+</issue> 
+<issue index="5" type="real"> 
+<value> 
+19862.86 
+</value> 
+</issue> 
+</bid> 
+<bid> 
+<issue index="1" type="discrete"> 
+<item value="standard"> 
+</item> 
+</issue> 
+<issue index="2" type="discrete"> 
+<item value="standard"> 
+</item> 
+</issue> 
+<issue index="3" type="discrete"> 
+<item value="good"> 
+</item> 
+</issue> 
+<issue index="4" type="discrete"> 
+<item value="standard"> 
+</item> 
+</issue> 
+<issue index="5" type="real"> 
+<value> 
+19959.52 
+</value> 
+</issue> 
+</bid> 
+<bid> 
+<issue index="1" type="discrete"> 
+<item value="standard"> 
+</item> 
+</issue> 
+<issue index="2" type="discrete"> 
+<item value="standard"> 
+</item> 
+</issue> 
+<issue index="3" type="discrete"> 
+<item value="good"> 
+</item> 
+</issue> 
+<issue index="4" type="discrete"> 
+<item value="standard"> 
+</item> 
+</issue> 
+<issue index="5" type="real"> 
+<value> 
+20056.18 
+</value> 
+</issue> 
+</bid> 
+<bid> 
+<issue index="1" type="discrete"> 
+<item value="standard"> 
+</item> 
+</issue> 
+<issue index="2" type="discrete"> 
+<item value="standard"> 
+</item> 
+</issue> 
+<issue index="3" type="discrete"> 
+<item value="good"> 
+</item> 
+</issue> 
+<issue index="4" type="discrete"> 
+<item value="standard"> 
+</item> 
+</issue> 
+<issue index="5" type="real"> 
+<value> 
+20152.84 
+</value> 
+</issue> 
+</bid> 
+<bid> 
+<issue index="1" type="discrete"> 
+<item value="standard"> 
+</item> 
+</issue> 
+<issue index="2" type="discrete"> 
+<item value="standard"> 
+</item> 
+</issue> 
+<issue index="3" type="discrete"> 
+<item value="good"> 
+</item> 
+</issue> 
+<issue index="4" type="discrete"> 
+<item value="standard"> 
+</item> 
+</issue> 
+<issue index="5" type="real"> 
+<value> 
+20249.5 
+</value> 
+</issue> 
+</bid> 
+<bid> 
+<issue index="1" type="discrete"> 
+<item value="standard"> 
+</item> 
+</issue> 
+<issue index="2" type="discrete"> 
+<item value="standard"> 
+</item> 
+</issue> 
+<issue index="3" type="discrete"> 
+<item value="good"> 
+</item> 
+</issue> 
+<issue index="4" type="discrete"> 
+<item value="standard"> 
+</item> 
+</issue> 
+<issue index="5" type="real"> 
+<value> 
+20346.16 
+</value> 
+</issue> 
+</bid> 
+<bid> 
+<issue index="1" type="discrete"> 
+<item value="standard"> 
+</item> 
+</issue> 
+<issue index="2" type="discrete"> 
+<item value="standard"> 
+</item> 
+</issue> 
+<issue index="3" type="discrete"> 
+<item value="good"> 
+</item> 
+</issue> 
+<issue index="4" type="discrete"> 
+<item value="standard"> 
+</item> 
+</issue> 
+<issue index="5" type="real"> 
+<value> 
+20442.82 
+</value> 
+</issue> 
+</bid> 
+<bid> 
+<issue index="1" type="discrete"> 
+<item value="standard"> 
+</item> 
+</issue> 
+<issue index="2" type="discrete"> 
+<item value="standard"> 
+</item> 
+</issue> 
+<issue index="3" type="discrete"> 
+<item value="good"> 
+</item> 
+</issue> 
+<issue index="4" type="discrete"> 
+<item value="standard"> 
+</item> 
+</issue> 
+<issue index="5" type="real"> 
+<value> 
+20539.48 
+</value> 
+</issue> 
+</bid> 
+<bid> 
+<issue index="1" type="discrete"> 
+<item value="standard"> 
+</item> 
+</issue> 
+<issue index="2" type="discrete"> 
+<item value="standard"> 
+</item> 
+</issue> 
+<issue index="3" type="discrete"> 
+<item value="good"> 
+</item> 
+</issue> 
+<issue index="4" type="discrete"> 
+<item value="standard"> 
+</item> 
+</issue> 
+<issue index="5" type="real"> 
+<value> 
+20636.14 
+</value> 
+</issue> 
+</bid> 
+<bid> 
+<issue index="1" type="discrete"> 
+<item value="standard"> 
+</item> 
+</issue> 
+<issue index="2" type="discrete"> 
+<item value="standard"> 
+</item> 
+</issue> 
+<issue index="3" type="discrete"> 
+<item value="good"> 
+</item> 
+</issue> 
+<issue index="4" type="discrete"> 
+<item value="standard"> 
+</item> 
+</issue> 
+<issue index="5" type="real"> 
+<value> 
+20732.8 
+</value> 
+</issue> 
+</bid> 
+<bid> 
+<issue index="1" type="discrete"> 
+<item value="standard"> 
+</item> 
+</issue> 
+<issue index="2" type="discrete"> 
+<item value="standard"> 
+</item> 
+</issue> 
+<issue index="3" type="discrete"> 
+<item value="good"> 
+</item> 
+</issue> 
+<issue index="4" type="discrete"> 
+<item value="standard"> 
+</item> 
+</issue> 
+<issue index="5" type="real"> 
+<value> 
+20829.46 
+</value> 
+</issue> 
+</bid> 
+<bid> 
+<issue index="1" type="discrete"> 
+<item value="standard"> 
+</item> 
+</issue> 
+<issue index="2" type="discrete"> 
+<item value="standard"> 
+</item> 
+</issue> 
+<issue index="3" type="discrete"> 
+<item value="good"> 
+</item> 
+</issue> 
+<issue index="4" type="discrete"> 
+<item value="standard"> 
+</item> 
+</issue> 
+<issue index="5" type="real"> 
+<value> 
+20926.12 
+</value> 
+</issue> 
+</bid> 
+<bid> 
+<issue index="1" type="discrete"> 
+<item value="standard"> 
+</item> 
+</issue> 
+<issue index="2" type="discrete"> 
+<item value="standard"> 
+</item> 
+</issue> 
+<issue index="3" type="discrete"> 
+<item value="good"> 
+</item> 
+</issue> 
+<issue index="4" type="discrete"> 
+<item value="standard"> 
+</item> 
+</issue> 
+<issue index="5" type="real"> 
+<value> 
+21022.78 
+</value> 
+</issue> 
+</bid> 
+<bid> 
+<issue index="1" type="discrete"> 
+<item value="standard"> 
+</item> 
+</issue> 
+<issue index="2" type="discrete"> 
+<item value="standard"> 
+</item> 
+</issue> 
+<issue index="3" type="discrete"> 
+<item value="good"> 
+</item> 
+</issue> 
+<issue index="4" type="discrete"> 
+<item value="standard"> 
+</item> 
+</issue> 
+<issue index="5" type="real"> 
+<value> 
+21119.44 
+</value> 
+</issue> 
+</bid> 
+<bid> 
+<issue index="1" type="discrete"> 
+<item value="standard"> 
+</item> 
+</issue> 
+<issue index="2" type="discrete"> 
+<item value="standard"> 
+</item> 
+</issue> 
+<issue index="3" type="discrete"> 
+<item value="good"> 
+</item> 
+</issue> 
+<issue index="4" type="discrete"> 
+<item value="standard"> 
+</item> 
+</issue> 
+<issue index="5" type="real"> 
+<value> 
+21216.1 
+</value> 
+</issue> 
+</bid> 
+<bid> 
+<issue index="1" type="discrete"> 
+<item value="standard"> 
+</item> 
+</issue> 
+<issue index="2" type="discrete"> 
+<item value="standard"> 
+</item> 
+</issue> 
+<issue index="3" type="discrete"> 
+<item value="good"> 
+</item> 
+</issue> 
+<issue index="4" type="discrete"> 
+<item value="standard"> 
+</item> 
+</issue> 
+<issue index="5" type="real"> 
+<value> 
+21312.760000000002 
+</value> 
+</issue> 
+</bid> 
+<bid> 
+<issue index="1" type="discrete"> 
+<item value="standard"> 
+</item> 
+</issue> 
+<issue index="2" type="discrete"> 
+<item value="standard"> 
+</item> 
+</issue> 
+<issue index="3" type="discrete"> 
+<item value="good"> 
+</item> 
+</issue> 
+<issue index="4" type="discrete"> 
+<item value="standard"> 
+</item> 
+</issue> 
+<issue index="5" type="real"> 
+<value> 
+21409.42 
+</value> 
+</issue> 
+</bid> 
+<bid> 
+<issue index="1" type="discrete"> 
+<item value="standard"> 
+</item> 
+</issue> 
+<issue index="2" type="discrete"> 
+<item value="standard"> 
+</item> 
+</issue> 
+<issue index="3" type="discrete"> 
+<item value="good"> 
+</item> 
+</issue> 
+<issue index="4" type="discrete"> 
+<item value="standard"> 
+</item> 
+</issue> 
+<issue index="5" type="real"> 
+<value> 
+21506.08 
+</value> 
+</issue> 
+</bid> 
+<bid> 
+<issue index="1" type="discrete"> 
+<item value="standard"> 
+</item> 
+</issue> 
+<issue index="2" type="discrete"> 
+<item value="standard"> 
+</item> 
+</issue> 
+<issue index="3" type="discrete"> 
+<item value="good"> 
+</item> 
+</issue> 
+<issue index="4" type="discrete"> 
+<item value="standard"> 
+</item> 
+</issue> 
+<issue index="5" type="real"> 
+<value> 
+21602.739999999998 
+</value> 
+</issue> 
+</bid> 
+<bid> 
+<issue index="1" type="discrete"> 
+<item value="standard"> 
+</item> 
+</issue> 
+<issue index="2" type="discrete"> 
+<item value="standard"> 
+</item> 
+</issue> 
+<issue index="3" type="discrete"> 
+<item value="good"> 
+</item> 
+</issue> 
+<issue index="4" type="discrete"> 
+<item value="standard"> 
+</item> 
+</issue> 
+<issue index="5" type="real"> 
+<value> 
+21699.4 
+</value> 
+</issue> 
+</bid> 
+<bid> 
+<issue index="1" type="discrete"> 
+<item value="standard"> 
+</item> 
+</issue> 
+<issue index="2" type="discrete"> 
+<item value="standard"> 
+</item> 
+</issue> 
+<issue index="3" type="discrete"> 
+<item value="good"> 
+</item> 
+</issue> 
+<issue index="4" type="discrete"> 
+<item value="standard"> 
+</item> 
+</issue> 
+<issue index="5" type="real"> 
+<value> 
+21796.059999999998 
+</value> 
+</issue> 
+</bid> 
+<bid> 
+<issue index="1" type="discrete"> 
+<item value="standard"> 
+</item> 
+</issue> 
+<issue index="2" type="discrete"> 
+<item value="standard"> 
+</item> 
+</issue> 
+<issue index="3" type="discrete"> 
+<item value="good"> 
+</item> 
+</issue> 
+<issue index="4" type="discrete"> 
+<item value="standard"> 
+</item> 
+</issue> 
+<issue index="5" type="real"> 
+<value> 
+21892.72 
+</value> 
+</issue> 
+</bid> 
+<bid> 
+<issue index="1" type="discrete"> 
+<item value="standard"> 
+</item> 
+</issue> 
+<issue index="2" type="discrete"> 
+<item value="standard"> 
+</item> 
+</issue> 
+<issue index="3" type="discrete"> 
+<item value="good"> 
+</item> 
+</issue> 
+<issue index="4" type="discrete"> 
+<item value="standard"> 
+</item> 
+</issue> 
+<issue index="5" type="real"> 
+<value> 
+21989.379999999997 
+</value> 
+</issue> 
+</bid> 
+<bid> 
+<issue index="1" type="discrete"> 
+<item value="standard"> 
+</item> 
+</issue> 
+<issue index="2" type="discrete"> 
+<item value="standard"> 
+</item> 
+</issue> 
+<issue index="3" type="discrete"> 
+<item value="good"> 
+</item> 
+</issue> 
+<issue index="4" type="discrete"> 
+<item value="standard"> 
+</item> 
+</issue> 
+<issue index="5" type="real"> 
+<value> 
+22086.04 
+</value> 
+</issue> 
+</bid> 
+<bid> 
+<issue index="1" type="discrete"> 
+<item value="standard"> 
+</item> 
+</issue> 
+<issue index="2" type="discrete"> 
+<item value="standard"> 
+</item> 
+</issue> 
+<issue index="3" type="discrete"> 
+<item value="good"> 
+</item> 
+</issue> 
+<issue index="4" type="discrete"> 
+<item value="standard"> 
+</item> 
+</issue> 
+<issue index="5" type="real"> 
+<value> 
+22182.699999999997 
+</value> 
+</issue> 
+</bid> 
+<bid> 
+<issue index="1" type="discrete"> 
+<item value="standard"> 
+</item> 
+</issue> 
+<issue index="2" type="discrete"> 
+<item value="standard"> 
+</item> 
+</issue> 
+<issue index="3" type="discrete"> 
+<item value="good"> 
+</item> 
+</issue> 
+<issue index="4" type="discrete"> 
+<item value="standard"> 
+</item> 
+</issue> 
+<issue index="5" type="real"> 
+<value> 
+22279.36 
+</value> 
+</issue> 
+</bid> 
+<bid> 
+<issue index="1" type="discrete"> 
+<item value="standard"> 
+</item> 
+</issue> 
+<issue index="2" type="discrete"> 
+<item value="standard"> 
+</item> 
+</issue> 
+<issue index="3" type="discrete"> 
+<item value="good"> 
+</item> 
+</issue> 
+<issue index="4" type="discrete"> 
+<item value="standard"> 
+</item> 
+</issue> 
+<issue index="5" type="real"> 
+<value> 
+22376.02 
+</value> 
+</issue> 
+</bid> 
+<bid> 
+<issue index="1" type="discrete"> 
+<item value="standard"> 
+</item> 
+</issue> 
+<issue index="2" type="discrete"> 
+<item value="standard"> 
+</item> 
+</issue> 
+<issue index="3" type="discrete"> 
+<item value="good"> 
+</item> 
+</issue> 
+<issue index="4" type="discrete"> 
+<item value="standard"> 
+</item> 
+</issue> 
+<issue index="5" type="real"> 
+<value> 
+22472.68 
+</value> 
+</issue> 
+</bid> 
+<bid> 
+<issue index="1" type="discrete"> 
+<item value="standard"> 
+</item> 
+</issue> 
+<issue index="2" type="discrete"> 
+<item value="standard"> 
+</item> 
+</issue> 
+<issue index="3" type="discrete"> 
+<item value="good"> 
+</item> 
+</issue> 
+<issue index="4" type="discrete"> 
+<item value="standard"> 
+</item> 
+</issue> 
+<issue index="5" type="real"> 
+<value> 
+22569.34 
+</value> 
+</issue> 
+</bid> 
+</pareto> 
+<kalai_smorodinsky> 
+<bid> 
+<issue index="1" type="discrete"> 
+<item value="good"> 
+</item> 
+</issue> 
+<issue index="2" type="discrete"> 
+<item value="standard"> 
+</item> 
+</issue> 
+<issue index="3" type="discrete"> 
+<item value="fairly good"> 
+</item> 
+</issue> 
+<issue index="4" type="discrete"> 
+<item value="standard"> 
+</item> 
+</issue> 
+<issue index="5" type="real"> 
+<value> 
+17639.68 
+</value> 
+</issue> 
+</bid> 
+</kalai_smorodinsky> 
+<nash> 
+<bid> 
+<issue index="1" type="discrete"> 
+<item value="good"> 
+</item> 
+</issue> 
+<issue index="2" type="discrete"> 
+<item value="fairly good"> 
+</item> 
+</issue> 
+<issue index="3" type="discrete"> 
+<item value="fairly good"> 
+</item> 
+</issue> 
+<issue index="4" type="discrete"> 
+<item value="standard"> 
+</item> 
+</issue> 
+<issue index="5" type="real"> 
+<value> 
+17639.68 
+</value> 
+</issue> 
+</bid> 
+</nash> 
+</analysis> 
+ 
+ 
+</negotiation_template> 

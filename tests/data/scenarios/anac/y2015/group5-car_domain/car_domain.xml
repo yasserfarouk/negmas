@@ -1,0 +1,46 @@
+<negotiation_template>
+<utility_space number_of_issues="4">
+<objective description="" etype="objective" index="0" name="root" type="objective">
+    <issue etype="discrete" index="1" name="Brand" type="discrete" vtype="discrete">
+        <item index="1" value="Ford" cost="0" description="Ford">
+        </item>
+        <item index="2" value="BMW" cost="0" description="BMW">
+        </item>
+        <item index="3" value="Toyota" cost="0" description="Toyota">
+        </item>
+        <item index="4" value="Kia" cost="0" description="Kia">
+        </item>
+    </issue>
+    <issue etype="discrete" index="2" name="Car Type" type="discrete" vtype="discrete">
+        <item index="1" value="SUV" cost="0" description="SUV">
+        </item>
+        <item index="2" value="Station Wagon" cost="0" description="Station Wagon">
+        </item>
+        <item index="3" value="Sedan" cost="0" description="Sedan">
+        </item>
+        <item index="4" value="Convertible" cost="0" description="Convertible">
+        </item>
+    </issue>
+    <issue etype="discrete" index="3" name="Colour" type="discrete" vtype="discrete">
+        <item index="1" value="Blue" cost="0" description="Blue">
+        </item>
+        <item index="2" value="Green" cost="0" description="Green">
+        </item>
+        <item index="3" value="Red" cost="0" description="Red">
+        </item>
+        <item index="4" value="Black" cost="0" description="Black">
+        </item>
+        <item index="5" value="Gray" cost="0" description="Gray">
+        </item>
+    </issue>
+    <issue etype="discrete" index="4" name="Additional Features" type="discrete" vtype="discrete">
+        <item index="1" value="Basic" cost="0" description="Basic">
+        </item>
+        <item index="2" value="Sports" cost="0" description="Sports">
+        </item>
+        <item index="3" value="Luxury" cost="0" description="Luxury">
+        </item>
+    </issue>
+</objective>
+</utility_space>
+</negotiation_template>

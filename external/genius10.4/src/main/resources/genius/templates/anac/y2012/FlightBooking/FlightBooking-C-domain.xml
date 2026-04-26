@@ -1,0 +1,24 @@
+<?xml version="1.0"?>
+<negotiation_template number_of_sessions="1">
+  <utility_space number_of_issues="3">
+    <objective index="0" etype="objective" type="objective" description="" name="FlightBooking">
+      <issue index="1" etype="discrete" type="discrete" name="price">
+        <item index="1" value="150000yen"/>
+        <item index="2" value="200000yen"/>
+        <item index="3" value="250000yen"/>
+        <item index="4" value="300000yen"/>
+      </issue>
+      <issue index="2" etype="discrete" type="discrete" name="DepartureAirPort">
+        <item index="1" value="CentrAir"/>
+        <item index="2" value="Narita"/>
+        <item index="3" value="Kansai"/>
+      </issue>
+      <issue index="3" etype="discrete" type="discrete" name="DepartureDate">
+        <item index="1" value="Sep2_2011"/>
+        <item index="2" value="Sep3_2011"/>
+        <item index="3" value="Sep4_2011"/>
+        <item index="3" value="Sep4_2011"/>
+      </issue>
+    </objective>
+  </utility_space>
+</negotiation_template>

@@ -1,0 +1,60 @@
+<negotiation_template>
+<utility_space number_of_issues="5">
+<objective description="" etype="objective" index="0" name="root" type="objective">
+    <issue etype="discrete" index="1" name="Meat" type="discrete" vtype="discrete">
+        <item index="1" value="Burgers and chicken" cost="0" description="Burgers and chicken">
+        </item>
+        <item index="2" value="Fish" cost="0" description="Fish">
+        </item>
+        <item index="3" value="Luxury meats" cost="0" description="Luxury meats">
+        </item>
+        <item index="4" value="Biological" cost="0" description="Biological">
+        </item>
+        <item index="5" value="Vegetarian" cost="0" description="Vegetarian">
+        </item>
+        <item index="6" value="None" cost="0" description="None">
+        </item>
+    </issue>
+    <issue etype="discrete" index="2" name="Drinks" type="discrete" vtype="discrete">
+        <item index="1" value="Non-Alcoholic" cost="0" description="Non-Alcoholic">
+        </item>
+        <item index="2" value="Beer plus" cost="0" description="Beer plus">
+        </item>
+        <item index="3" value="Bio-beer" cost="0" description="Bio-beer">
+        </item>
+        <item index="4" value="Luxury alcoholic" cost="0" description="Luxury alcoholic">
+        </item>
+    </issue>
+    <issue etype="discrete" index="3" name="Location" type="discrete" vtype="discrete">
+        <item index="1" value="Balcony" cost="0" description="Balcony">
+        </item>
+        <item index="2" value="Woods" cost="0" description="Woods">
+        </item>
+        <item index="3" value="Park" cost="0" description="Park">
+        </item>
+        <item index="4" value="Beach" cost="0" description="Beach">
+        </item>
+    </issue>
+    <issue etype="discrete" index="4" name="Vegetables" type="discrete" vtype="discrete">
+        <item index="1" value="None" cost="0" description="None">
+        </item>
+        <item index="2" value="Cheap veggies" cost="0" description="Cheap veggies">
+        </item>
+        <item index="3" value="Good veggies" cost="0" description="Good veggies">
+        </item>
+        <item index="4" value="Prepared veggies" cost="0" description="Prepared veggies">
+        </item>
+        <item index="5" value="Superveggies" cost="0" description="Superveggies">
+        </item>
+    </issue>
+    <issue etype="discrete" index="5" name="BBQ type" type="discrete" vtype="discrete">
+        <item index="1" value="Disposable" cost="0" description="Disposable">
+        </item>
+        <item index="2" value="Normal" cost="0" description="Normal">
+        </item>
+        <item index="3" value="Gas" cost="0" description="Gas">
+        </item>
+    </issue>
+</objective>
+</utility_space>
+</negotiation_template>
