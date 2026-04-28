@@ -63,7 +63,7 @@ __all__ = [
     "tournament",
 ]
 
-MAX_TASKS_PER_CHILD = 10
+MAX_TASKS_PER_CHILD = None
 TIMEOUT_EXTRA = 1.05
 
 
