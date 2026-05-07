@@ -138,6 +138,27 @@ Quick Start
     # Visualize
     session.plot()
 
+Agent Design Guidelines
+------------------------
+
+When designing negotiation agents for competitive environments like ANAC/ANL, consider the following principles for robustness and adaptability:
+
+**Adaptability to Unknown Environments**
+- Agents cannot access environment variables at runtime, and some parameters (e.g., opponent utility functions, domain details) may be revealed only at or after competition start.
+- Design agents that can adapt to varying conditions: linear vs. non-linear utilities, presence/absence of reservation values, time discounting, uncertainty, etc.
+
+**Robust Strategy Design**
+- Combine multiple approaches: rule-based tactics, learning mechanisms, and fallback strategies.
+- Avoid over-specialization to specific opponents or domains; aim for general-purpose negotiation capabilities.
+- Test agents across diverse scenarios to ensure consistent performance.
+
+**Key Considerations**
+- **Information Asymmetry**: Opponent information may be incomplete or probabilistic.
+- **Dynamic Environments**: Negotiation protocols, time constraints, and utility structures can vary.
+- **Performance Metrics**: Balance agreement rate, utility achieved, and robustness across conditions.
+
+For ANAC/ANL competitions, focus on creating agents that perform well across the spectrum of possible environment configurations rather than optimizing for known cases.
+
 Command Line Interface
 ----------------------
 
@@ -527,3 +548,224 @@ Acknowledgements
 
 NegMAS was developed at the NEC-AIST collaborative laboratory. It uses scenarios from
 ANAC 2010-2018 competitions obtained from the `Genius Platform <http://ii.tudelft.nl/genius>`_.
+
+.. _fujimoto-readme:
+
+FUJIMOTO README
+===============
+
+このプロジェクトの取説です。
+
+フォルダ構成
+------------
+
+- ``config/`` : 設定ファイル（例: anac2019scml.json）
+- ``docs/`` : ドキュメントファイル（Sphinx ドキュメント、チュートリアルなど）
+- ``etc/`` : その他の補助ファイル（HTML レイアウト、ノートブック実行スクリプトなど）
+- ``notebooks/`` : Jupyter ノートブック（チュートリアルやデモ）
+- ``src/`` : ソースコード（negmas パッケージ本体）
+- ``tests/`` : テストコード
+
+インポートについて
+------------------
+
+``from negmas import SAOMechanism, AspirationNegotiator, make_issue`` などのインポートは、``src/negmas/`` フォルダから取得しています。
+
+このプロジェクトは開発中なので、``src/`` が Python パスに含まれています。pip インストールされている場合も、``src/negmas/`` がモジュールとして認識されます。
+
+from negmas import でインポート可能な主なモジュール
+--------------------------------------------------
+
+メカニズム (Mechanisms)
+~~~~~~~~~~~~~~~~~~~~~~~
+- ``SAOMechanism`` : Stacked Alternating Offers メカニズム
+- ``Mechanism`` : 基本メカニズムクラス
+- ``MechanismStepResult`` : メカニズムステップ結果
+- ``Traceable`` : トレース可能なメカニズム
+
+交渉者 (Negotiators)
+~~~~~~~~~~~~~~~~~~~~
+- ``AspirationNegotiator`` : Aspiration ベースの交渉者
+- ``TimeBasedConcedingNegotiator`` : 時間ベースの譲歩交渉者
+- ``Negotiator`` : 基本交渉者クラス
+- ``NegotiatorInfo`` : 交渉者情報
+
+効用関数 (Preferences)
+~~~~~~~~~~~~~~~~~~~~~~
+- ``LinearAdditiveUtilityFunction`` : 線形加法効用関数
+- ``UtilityFunction`` : 基本効用関数クラス
+- ``AffineUtilityFunction`` : アフィン効用関数
+- ``ConstUtilityFunction`` : 定数効用関数
+
+結果空間 (Outcomes)
+~~~~~~~~~~~~~~~~~~~
+- ``make_issue`` : Issue 作成関数
+- ``Issue`` : 基本 Issue クラス
+- ``Outcome`` : 結果クラス
+- ``OutcomeSpace`` : 結果空間クラス
+
+その他
+~~~~~~
+- ``Scenario`` : シナリオクラス
+- ``GeniusBridge`` : Genius ブリッジ
+- ``Registry`` : レジストリクラス
+
+完全な一覧は ``src/negmas/__init__.py`` の ``__all__`` を参照してください。
+
+効用関数（UtilityFunction）の自動生成
+--------------------------------------
+
+手作業で効用関数を定義する代わりに、自動生成する方法があります：
+
+ランダム生成（最も簡単）
+~~~~~~~~~~~~~~~~~~~~~~~~
+
+.. code-block:: python
+
+    from negmas.preferences import LinearAdditiveUtilityFunction
+
+    # ランダムに効用関数を生成
+    buyer_ufun = LinearAdditiveUtilityFunction.random(
+        issues=issues,
+        reserved_value=0.0
+    )
+    seller_ufun = LinearAdditiveUtilityFunction.random(
+        issues=issues,
+        reserved_value=0.0
+    )
+
+複数の issue での生成
+~~~~~~~~~~~~~~~~~~~~~
+
+.. code-block:: python
+
+    from negmas.preferences import generate_multi_issue_ufuns
+
+    # 複数の効用関数を一度に生成
+    ufuns = generate_multi_issue_ufuns(
+        n_issues=3,
+        n_levels_per_issue=5,
+        linear=True  # LinearAdditiveUtilityFunction を生成
+    )
+
+デフォルト搭載の交渉エージェント（Negotiators）
+-----------------------------------------------
+
+NegMAS には多くの交渉戦略が実装されています。以下は主要なエージェントです：
+
+時間ベース戦略
+~~~~~~~~~~~~~~
+
+- ``TimeBasedConcedingNegotiator`` : 時間経過とともに譲歩する
+- ``BoulwareTBNegotiator`` : 最後まで強気を保つ（Boulware 戦略）
+- ``ConcederTBNegotiator`` : 早期に譲歩する（Conceder 戦略）
+- ``LinearTBNegotiator`` : 線形に譲歩する
+
+Aspiration ベース
+~~~~~~~~~~~~~~~~~
+
+- ``AspirationNegotiator`` : Aspiration レベルに基づいて交渉
+
+Tit-for-Tat 戦略
+~~~~~~~~~~~~~~~~
+
+- ``NaiveTitForTatNegotiator`` : 相手の最後の提案に合せる（単純版）
+- ``SimpleTitForTatNegotiator`` : 改良版 Tit-for-Tat
+- ``BestOfferOrientedSelector`` : 最良提案を選択
+
+モデルベース戦略
+~~~~~~~~~~~~~~~~
+
+- ``MiCRONegotiator`` : 相手をモデル化して交渉
+- ``HybridNegotiator`` : 複数戦略を組み合わせる
+
+その他
+~~~~~~
+
+- ``NiceNegotiator`` : 相手に優しい交渉者
+- ``ToughNegotiator`` : 相手に厳しい交渉者
+- ``RandomNegotiator`` : ランダムに提案
+
+複数エージェントで遊ぶ例
+------------------------
+
+.. code-block:: python
+
+    from negmas import (
+        SAOMechanism, make_issue,
+        AspirationNegotiator, BoulwareTBNegotiator,
+        ConcederTBNegotiator, NaiveTitForTatNegotiator
+    )
+    from negmas.preferences import LinearAdditiveUtilityFunction
+
+    # 3つの issue を作成
+    issues = [
+        make_issue(name="price", values=10),
+        make_issue(name="quantity", values=5),
+        make_issue(name="delivery", values=4),
+    ]
+
+    # ランダムに効用関数を生成
+    ufun1 = LinearAdditiveUtilityFunction.random(issues=issues, reserved_value=0.0)
+    ufun2 = LinearAdditiveUtilityFunction.random(issues=issues, reserved_value=0.0)
+
+    # 交渉メカニズムを設定（100ステップ）
+    session = SAOMechanism(issues=issues, n_steps=100)
+
+    # 異なるエージェント戦略を対戦させる
+    session.add(AspirationNegotiator(name="aspiration"), ufun=ufun1)
+    session.add(BoulwareTBNegotiator(name="boulware"), ufun=ufun2)
+
+    # 交渉を実行
+    result = session.run()
+    print(f"Agreement: {result.agreement}, Rounds: {result.step}")
+
+    # 結果を可視化
+    session.plot()
+
+エージェント戦略の比較
+----------------------
+
+同じドメイン（issues + ufuns）で複数のエージェント戦略を試してみましょう：
+
+.. code-block:: python
+
+    from negmas import SAOMechanism, make_issue
+    from negmas.preferences import LinearAdditiveUtilityFunction
+    from negmas.sao.negotiators import (
+        AspirationNegotiator, BoulwareTBNegotiator,
+        ConcederTBNegotiator, NaiveTitForTatNegotiator,
+        LinearTBNegotiator
+    )
+
+    # 共通の issue と ufun
+    issues = [
+        make_issue(name="price", values=10),
+        make_issue(name="quantity", values=5),
+        make_issue(name="delivery", values=4),
+    ]
+    buyer_ufun = LinearAdditiveUtilityFunction.random(issues=issues)
+    seller_ufun = LinearAdditiveUtilityFunction.random(issues=issues)
+
+    # テストするエージェントペア
+    agent_pairs = [
+        ("Aspiration", AspirationNegotiator),
+        ("Boulware", BoulwareTBNegotiator),
+        ("Conceder", ConcederTBNegotiator),
+        ("Linear", LinearTBNegotiator),
+        ("NaiveTitForTat", NaiveTitForTatNegotiator),
+    ]
+
+    # 各ペアで交渉を実行
+    for name, AgentClass in agent_pairs:
+        session = SAOMechanism(issues=issues, n_steps=100)
+        session.add(AgentClass(name="buyer"), ufun=buyer_ufun)
+        session.add(AgentClass(name="seller"), ufun=seller_ufun)
+        result = session.run()
+        print(f"{name}: Agreement={result.agreement}, Rounds={result.step}")
+
+以下の Markdown 版ファイルも併せて参照できます：
+
+- ``parameter-history.md``
+
+
