@@ -875,10 +875,18 @@ class SAOMechanism(
         """Returns the full trace and the utility of the negotiators at each step."""
         trace = self.full_trace
         ufuns = [_.ufun for _ in self.negotiators]
-        return [
-            tuple(list(_) + [u(_.offer) if u else float("nan") for u in ufuns])
-            for _ in trace
-        ]
+        results = []
+        for _ in trace:
+            extended = list(_)
+            for u in ufuns:
+                try:
+                    uval = u(_.offer) if u else float("nan")
+                except Exception:
+                    uval = float("nan")
+                extended.append(uval)
+            results.append(tuple(extended))
+
+        return results
 
     def full_trace_with_utils_df(
         self, ufun_names: str | list[str] = "id"
