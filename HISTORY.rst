@@ -1,6 +1,47 @@
 History
 =======
 
+Unreleased
+----------
+
+**Bug Fixes:**
+
+* [fix] Resolve indefinite hang in parallel tournaments on Python 3.11+:
+
+  - Setting ``MAX_TASKS_PER_CHILD = None`` in ``negmas.tournaments.tournaments``
+    and ``negmas.tournaments.neg.simple.cartesian`` disables ``ProcessPoolExecutor``
+    worker recycling, eliminating a deadlock where the executor's management
+    thread races with the main thread while it is blocked in ``as_completed``.
+  - Both ``tournament`` (PR #91) and ``cartesian_tournament`` are fixed.
+
+* [fix] Handle ``ufun`` calculation failures gracefully in
+  ``full_trace_with_utils``.
+
+* [fix] Make ``run_with_timeout.sh`` executable for CI.
+
+**Refactors:**
+
+* [refactor] Centralize parallel/serial execution helpers in
+  ``negmas.helpers.parallel``:
+
+  - New module exposes ``MAX_TASKS_PER_CHILD``, ``TERMINATION_WAIT_TIME``,
+    ``resolve_cpus``, ``parse_parallelism``, ``make_process_executor``,
+    ``kill_future_process``, ``run_parallel_tasks``, and ``run_serial_tasks``.
+  - ``negmas.tournaments.tournaments`` and
+    ``negmas.tournaments.neg.simple.cartesian`` now share the same
+    ``ProcessPoolExecutor`` configuration and ``as_completed`` driver.
+  - Behaviour (success path, timeout, broken-pool, generic-exception
+    handling, worker termination) is preserved; only worker-recycling
+    semantics change.
+
+**Chores:**
+
+* [chore] Sync ``uv.lock`` with version bump; drop ``ppc64le`` cryptography
+  wheels.
+
+* [docs] Add ``CLAUDE.md``/``AGENTS.md`` guidance for agent-assisted
+  development.
+
 Release 0.15.4
 --------------
 

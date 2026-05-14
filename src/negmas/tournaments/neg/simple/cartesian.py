@@ -10,15 +10,23 @@ import copy
 import datetime
 import os
 import shutil
-import signal
 import sys
 import time
 import traceback
-from concurrent.futures import ProcessPoolExecutor, TimeoutError, as_completed
-from concurrent.futures.process import BrokenProcessPool
+from negmas.helpers.parallel import (
+    MAX_TASKS_PER_CHILD as _PARALLEL_DEFAULT_MAX_TASKS_PER_CHILD,
+)
+from negmas.helpers.parallel import (
+    TERMINATION_WAIT_TIME as _PARALLEL_TERMINATION_WAIT_TIME,
+)
+from negmas.helpers.parallel import (
+    kill_future_process,
+    make_process_executor,
+    resolve_cpus,
+    run_parallel_tasks,
+)
 from itertools import product
 from math import exp, isinf, isnan, log
-from os import cpu_count
 from pathlib import Path
 from random import randint, random, shuffle
 from time import perf_counter
@@ -410,9 +418,9 @@ __all__ = [
     "OptimizationLevel",
     "StorageFormat",
 ]
-MAX_TASKS_PER_CHILD = None
+MAX_TASKS_PER_CHILD = _PARALLEL_DEFAULT_MAX_TASKS_PER_CHILD
 LOG_UNIFORM_LIMIT = 10
-TERMINATION_WAIT_TIME = 10.0
+TERMINATION_WAIT_TIME = _PARALLEL_TERMINATION_WAIT_TIME
 
 DEFAULT_IMAGE_FORMAT = "webp"
 SUPPORTED_IMAGE_FORMATS = {"webp", "png", "jpg", "jpeg", "svg", "pdf"}
@@ -4195,25 +4203,17 @@ def cartesian_tournament(
                 f"[magenta]Will use {timeout} as a timeout when receiving results[/magenta]"
             )
 
-        futures = dict()
-        n_cores = cpu_count()
-        if n_cores is None:
-            n_cores = 4
-        cpus = min(n_cores, njobs) if njobs else cpu_count()
-        kwargs_ = dict(max_workers=cpus)
-        version = sys.version_info
-        # Only use max_tasks_per_child if we have multiple workers to avoid
-        # worker restart deadlocks with single-worker pools on Python 3.14+
-        if (version.major > 3 or version.minor > 10) and cpus is not None and cpus > 1:
-            kwargs_.update(max_tasks_per_child=MAX_TASKS_PER_CHILD)
+        cpus = resolve_cpus(njobs)
 
-        with ProcessPoolExecutor(**kwargs_) as pool:  # type: ignore
+        def _build_tasks(pool):
             for info in runs:
                 # Remove run_id from info before unpacking to avoid duplicate argument error
                 info_copy = {k: v for k, v in info.items() if k != "run_id"}
-                futures[
-                    pool.submit(
-                        run_negotiation,
+                yield (
+                    info,
+                    run_negotiation,
+                    (),
+                    dict(
                         **info_copy,
                         before_start_callback=before_start_callback,
                         after_construction_callback=after_construction_callback,
@@ -4221,73 +4221,64 @@ def cartesian_tournament(
                         neg_start_callback=neg_start_callback,
                         neg_progress_callback=neg_progress_callback,
                         neg_end_callback=neg_end_callback,
-                        run_id=info["run_id"],  # Pass the pre-computed run_id
-                    )
-                ] = info
-            for i, f in enumerate(
-                track(
-                    as_completed(futures),
-                    total=len(futures),
-                    description=NEGOTIATIONS_DIR_NAME,
+                        run_id=info["run_id"],
+                    ),
                 )
-            ):
-                try:
-                    result = f.result(timeout=timeout)
-                    process_record(result)
-                except TimeoutError:
-                    info = futures.get(f, dict(partners=["Unknown", "Unknown"]))
-                    print(
-                        f"[red]Negotiation between {info['partners']} [bold]timedout[/bold] [red] after {timeout} seconds ...\n\tKilling the process",
-                        end="",
-                    )
-                    if len(info) > 1:
-                        result = failed_run_record(**info)
-                        if after_end_callback:
-                            try:
-                                _call_after_end_callback(
-                                    after_end_callback, result, config
-                                )
-                            except Exception as e:
-                                if verbosity > 0:
-                                    print(
-                                        f"After end callback failed on a failed run {get_run_id(info)}: {e}"
-                                    )
-                        process_record(result)
 
-                    f.cancel()
+        def _on_result(info, result, i, n):
+            process_record(result)
+
+        def _on_timeout(info, future, i, n, _pool):
+            info = info or dict(partners=["Unknown", "Unknown"])
+            print(
+                f"[red]Negotiation between {info['partners']} [bold]timedout[/bold] [red] after {timeout} seconds ...\n\tKilling the process",
+                end="",
+            )
+            if len(info) > 1:
+                result = failed_run_record(**info)
+                if after_end_callback:
                     try:
-                        if os.name == "nt":  # Check if running on Windows
-                            pool._processes[f._process_ident].terminate()
-                        else:
-                            os.kill(
-                                f._process_ident,  # type: ignore
-                                signal.SIGTERM,
-                            )  # Default to SIGTERM
-                            time.sleep(
-                                TERMINATION_WAIT_TIME
-                            )  # Allow brief time for termination
-                            if not pool._processes[f._process_ident].is_alive():  # type: ignore
-                                os.kill(
-                                    f._process_ident,  # type: ignore
-                                    signal.SIGKILL,
-                                )  # Forceful if needed
-                        print("[yellow]SUCCEEDED[/yellow]")
+                        _call_after_end_callback(after_end_callback, result, config)
                     except Exception as e:
-                        print(f"[red]FAILED[/red] with exception {e}")
+                        if verbosity > 0:
+                            print(
+                                f"After end callback failed on a failed run {get_run_id(info)}: {e}"
+                            )
+                process_record(result)
+            future.cancel()
+            if kill_future_process(future, _pool, wait_time=TERMINATION_WAIT_TIME):
+                print("[yellow]SUCCEEDED[/yellow]")
+            else:
+                print("[red]FAILED[/red]")
 
-                except BrokenProcessPool as e:
-                    if verbosity > 1:
-                        print("[red]Broken Pool[/red]")
-                        print(e)
-                    break
-                except Exception as e:
-                    if verbosity > 1:
-                        print("[red]Exception[/red]")
-                        if verbosity > 2:
-                            print(traceback.format_exc())
-                        print(e)
+        def _on_broken_pool(exc, i, n):
+            if verbosity > 1:
+                print("[red]Broken Pool[/red]")
+                print(exc)
+            return True
+
+        def _on_error(exc, info, i, n):
+            if verbosity > 1:
+                print("[red]Exception[/red]")
+                if verbosity > 2:
+                    print(traceback.format_exc())
+                print(exc)
+
+        with make_process_executor(
+            max_workers=cpus, max_tasks_per_child=MAX_TASKS_PER_CHILD
+        ) as pool:
+            run_parallel_tasks(
+                _build_tasks(pool),
+                executor=pool,
+                timeout=timeout,
+                on_result=_on_result,
+                on_timeout=lambda info, f, i, n: _on_timeout(info, f, i, n, pool),
+                on_broken_pool=_on_broken_pool,
+                on_error=_on_error,
+                track=track,
+                description=NEGOTIATIONS_DIR_NAME,
+            )
             pool.shutdown(wait=False)
-            # _stop_process_pool(pool)
 
     # Merge with existing results if continuing a tournament
     if existing_results:

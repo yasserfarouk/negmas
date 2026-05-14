@@ -45,6 +45,13 @@ from negmas.helpers import (
 )
 from negmas.helpers.inout import dump, load
 from negmas.helpers.numeric import truncated_mean
+from negmas.helpers.parallel import (
+    MAX_TASKS_PER_CHILD as _PARALLEL_DEFAULT_MAX_TASKS_PER_CHILD,
+)
+from negmas.helpers.parallel import (
+    make_process_executor,
+    parse_parallelism,
+)
 from negmas.serialization import PYTHON_CLASS_IDENTIFIER, serialize, to_flat_dict
 from negmas.situated import Agent, World, save_stats
 
@@ -63,7 +70,7 @@ __all__ = [
     "tournament",
 ]
 
-MAX_TASKS_PER_CHILD = None
+MAX_TASKS_PER_CHILD = _PARALLEL_DEFAULT_MAX_TASKS_PER_CHILD
 TIMEOUT_EXTRA = 1.05
 
 
@@ -1286,19 +1293,10 @@ def _get_executor(
             partial(distributed.as_completed, raise_errors=True, with_results=False),  # type: ignore
         )
 
-    fraction = None
-    parallelism = method.split(":")
-    if len(parallelism) != 1:
-        fraction = float(parallelism[-1])
-    parallelism = parallelism[0]
-    max_workers = fraction if fraction is None else max(1, int(fraction * cpu_count()))
-
-    kwargs_ = dict(max_workers=max_workers)
-    version = sys.version_info
-    if version.major > 3 or version.minor > 10:
-        kwargs_.update(max_tasks_per_child=MAX_TASKS_PER_CHILD)
-    executor = futures.ProcessPoolExecutor(**kwargs_)  # type: ignore
-
+    _, max_workers = parse_parallelism(method)
+    executor = make_process_executor(
+        max_workers=max_workers, max_tasks_per_child=MAX_TASKS_PER_CHILD
+    )
     return executor, futures.as_completed
 
 
