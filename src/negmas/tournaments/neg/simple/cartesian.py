@@ -410,7 +410,7 @@ __all__ = [
     "OptimizationLevel",
     "StorageFormat",
 ]
-MAX_TASKS_PER_CHILD = 10
+MAX_TASKS_PER_CHILD = None
 LOG_UNIFORM_LIMIT = 10
 TERMINATION_WAIT_TIME = 10.0
 
