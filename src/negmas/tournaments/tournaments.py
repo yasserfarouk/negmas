@@ -864,6 +864,15 @@ def _run_worlds(
                     world_progress_callback(world)
             if world.time >= world.time_limit:
                 break
+        # The per-step `world_progress_callback` above is throttled to
+        # every `save_progress_every` steps, and the final step (or an
+        # early break via `world.step()` returning False / time-limit
+        # exit) typically isn't a multiple — so the world ends without
+        # ever emitting a "completion" event. Fire one final progress
+        # callback after the loop so monitors can detect end-of-world
+        # state regardless of how the loop terminated.
+        if world_progress_callback:
+            world_progress_callback(world)
         # if save_world_stats:
         save_stats(world=world, log_dir=dir_name)
         if save_video:
