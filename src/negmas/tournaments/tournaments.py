@@ -6,7 +6,6 @@ from __future__ import annotations
 
 import concurrent.futures as futures
 import copy
-import gc
 from datetime import datetime
 import hashlib
 import itertools
@@ -601,71 +600,6 @@ def _run_id(config_set):
     return names[0] + _hash(names[1:])[:8] + _hash(config_set)[:6]
 
 
-_WORLD_HEAVY_ATTRS = (
-    "_stats",
-    "_saved_contracts",
-    "_saved_negotiations",
-    "_saved_breaches",
-    "_negotiations",
-    "_entities",
-    "_agent_loggers",
-    "_event_logger",
-    "simulation_exceptions",
-    "mechanism_exceptions",
-    "contract_exceptions",
-    "agent_exceptions",
-    "negotiator_exceptions",
-    "times",
-    "neg_requests_sent",
-    "neg_requests_received",
-    "negs_registered",
-    "negs_succeeded",
-    "negs_failed",
-    "negs_timedout",
-    "negs_initiated",
-    "contracts_concluded",
-    "contracts_signed",
-    "neg_requests_rejected",
-    "contracts_dropped",
-    "breaches_received",
-    "breaches_committed",
-    "contracts_erred",
-    "contracts_nullified",
-    "contracts_executed",
-    "contracts_breached",
-    "bulletin_board",
-    "agents",
-)
-
-
-def _release_world_memory(world) -> None:
-    """Drop heavy in-memory state from a finished world.
-
-    Called after the world's stats have been saved to disk and all
-    aggregations needed by the tournament runner have been extracted.
-    Each attribute is cleared best-effort so the world object itself
-    remains a valid (but empty) shell — callers may still hold references
-    via score results or callbacks.
-    """
-    for attr in _WORLD_HEAVY_ATTRS:
-        try:
-            obj = getattr(world, attr, None)
-        except Exception:
-            continue
-        if obj is None:
-            continue
-        try:
-            if hasattr(obj, "clear"):
-                obj.clear()
-            else:
-                setattr(world, attr, None)
-        except Exception:
-            try:
-                setattr(world, attr, None)
-            except Exception:
-                pass
-
-
 def _run_worlds(
     worlds_params: list[dict[str, Any]],
     world_generator: WorldGenerator,
@@ -1129,18 +1063,6 @@ def _run_worlds(
         #         os.remove(attempts_file)
         #     except FileNotFoundError:
         #         pass
-    # Release per-world memory now that stats are on disk and all
-    # aggregations needed by the tournament runner have been extracted.
-    # In serial mode this keeps peak RSS bounded to roughly one world at
-    # a time; in parallel mode it lets a worker reclaim memory between
-    # tasks even when the executor recycles workers infrequently.
-    for w in worlds:
-        try:
-            _release_world_memory(w)
-        except Exception:
-            pass
-    worlds.clear()
-    gc.collect()
     return run_id, dir_names, scores, world_stats, type_stats, agent_stats
 
 
@@ -1609,25 +1531,6 @@ def _run_parallel(
             if print_exceptions:
                 print(traceback.format_exc())
                 print(e)
-        finally:
-            # Release the future and any large results it carried so the
-            # parent process does not accumulate memory across completed
-            # worlds. Worker-process memory is reclaimed by worker recycling
-            # (or, when disabled, by the per-task cleanup in _run_worlds).
-            # as_completed yields futures out of submission order, so locate
-            # this one by identity to drop the list's reference too.
-            try:
-                idx = next(
-                    k for k, f in enumerate(future_results) if f is future
-                )
-                future_results[idx] = None  # type: ignore[index]
-            except StopIteration:
-                pass
-            try:
-                del future
-            except Exception:
-                pass
-            gc.collect()
     if parallelism.startswith("parallel"):
         executor.shutdown()
 
@@ -1939,11 +1842,6 @@ def run_tournament(
                 if print_exceptions:
                     print(traceback.format_exc())
                     print(e)
-            finally:
-                # Drop per-run references before the next world starts so
-                # peak memory stays at "one running simulation + book-keeping".
-                score_ = world_stats_ = type_stats_ = agent_stats_ = None  # noqa: F841
-                gc.collect()
     elif any(parallelism.startswith(_) for _ in multiprocessing_options) or (
         parallelism in dask_options
     ):

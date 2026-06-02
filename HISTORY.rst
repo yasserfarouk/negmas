@@ -1,40 +1,6 @@
 History
 =======
 
-Unreleased
-----------
-
-**Bug Fixes:**
-
-* [fix] Tournaments now fire a final ``world_progress_callback`` after every
-  world ends, regardless of how the per-step loop terminated (normal
-  completion, ``world.step()`` returning ``False``, or time-limit exit).
-  The in-loop callback is throttled to every ``save_progress_every`` steps,
-  so the final step previously did not emit a callback and monitors had to
-  rely on idle timeouts to detect completion. A clean end-of-world signal
-  is now always emitted.
-
-* [fix] Bound peak memory of situated tournaments to roughly one running
-  world plus book-keeping:
-
-  - ``negmas.tournaments.tournaments._run_worlds`` now releases each
-    finished world's heavy in-memory state (``_stats``,
-    ``_saved_contracts``, ``_saved_negotiations``, ``_saved_breaches``,
-    ``_negotiations``, ``_entities``, ``bulletin_board``, ``agents``,
-    per-agent counter dicts, and exception logs) once stats have been
-    written to disk and all aggregations needed by the runner have been
-    extracted.
-  - ``_run_parallel`` and the serial branch of ``_run_tournament`` now
-    drop per-iteration result references (``score_``/``world_stats_``/
-    ``type_stats_``/``agent_stats_`` in serial mode and the completed
-    ``Future`` slot in parallel mode) and call ``gc.collect()`` between
-    runs so the parent process does not accumulate memory across
-    completed worlds.
-  - Behaviour is preserved: stats files, score calculator outputs, and
-    aggregated ``WorldSetRunStats``/``AgentStats`` records are unchanged;
-    only post-aggregation in-memory state is released. ``cartesian_tournament``
-    is unaffected.
-
 Release 0.15.5
 --------------
 
