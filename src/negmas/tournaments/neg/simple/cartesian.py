@@ -10,8 +10,6 @@ import copy
 import datetime
 import os
 import shutil
-import sys
-import time
 import traceback
 from negmas.helpers.parallel import (
     MAX_TASKS_PER_CHILD as _PARALLEL_DEFAULT_MAX_TASKS_PER_CHILD,
@@ -277,9 +275,11 @@ def _convert_json_columns_from_parquet(
     for col in json_columns:
         if col in df.columns:
             df[col] = df[col].apply(
-                lambda x: json.loads(x)
-                if isinstance(x, str) and x.startswith(("[", "{"))
-                else x
+                lambda x: (
+                    json.loads(x)
+                    if isinstance(x, str) and x.startswith(("[", "{"))
+                    else x
+                )
             )
 
     return df
@@ -1062,8 +1062,17 @@ class SimpleTournamentResults:
                 else results
             )
             assert rd is not None
+            # make_scores returns one dict PER negotiator (a list); flatten
+            # across records. The run-loop uses `scores += make_scores(...)`
+            # for the same reason — without flattening here, from_records
+            # builds a frame of lists with no 'strategy' column and the
+            # type_scores groupby('strategy') raises KeyError.
             scores = pd.DataFrame.from_records(
-                [make_scores(_, scored_indices=_.get("scored_indices")) for _ in (rd)]
+                [
+                    s
+                    for _ in rd
+                    for s in make_scores(_, scored_indices=_.get("scored_indices"))
+                ]
             )
         if results is None:
             results = pd.DataFrame()
@@ -1312,10 +1321,14 @@ class SimpleTournamentResults:
                             f"Failed to calculate scores for {path} ... Will ignore it"
                         )
                     continue
+                # make_scores returns one dict per negotiator; flatten so the
+                # frame has the per-negotiator columns (incl. 'strategy')
+                # instead of a column of lists.
                 s = pd.DataFrame.from_records(
                     [
-                        make_scores(_, scored_indices=_.get("scored_indices"))
+                        sc
                         for _ in d.to_dict("records")
+                        for sc in make_scores(_, scored_indices=_.get("scored_indices"))
                     ]
                 )
             else:
@@ -2906,7 +2919,7 @@ def make_scores(
             partner_welfare=sum(_ for j, _ in enumerate(utils) if j != i) / (n_p - 1),
             welfare=sum(_ for _ in utils) / n_p,
             scenario=record["scenario"],
-            partners=(partners[_] for _ in range(len(partners)) if _ != i)
+            partners=tuple([partners[_] for _ in range(len(partners)) if _ != i])
             if not bilateral
             else partners[1 - i],
             time=t,
@@ -3261,11 +3274,14 @@ def cartesian_tournament(
                                       competitors=[...],
                                       scenarios=[...],
                                       raw_aggregated_metrics={
-                                          "combined": lambda d: d.get("advantage", 0)
-                                          * 0.5
-                                          + d.get("utility", 0) * 0.5,
-                                          "risk_adjusted": lambda d: d.get("utility", 0)
-                                          - 0.1 * d.get("partner_welfare", 0),
+                                          "combined": lambda d: (
+                                              d.get("advantage", 0) * 0.5
+                                              + d.get("utility", 0) * 0.5
+                                          ),
+                                          "risk_adjusted": lambda d: (
+                                              d.get("utility", 0)
+                                              - 0.1 * d.get("partner_welfare", 0)
+                                          ),
                                       },
                                   )
                                   # Use in final score
@@ -4154,7 +4170,9 @@ def cartesian_tournament(
             info: Info.
         """
         return hash_to_base64(
-            stable_hash(str(serialize(info, python_class_identifier=python_class_identifier)))
+            stable_hash(
+                str(serialize(info, python_class_identifier=python_class_identifier))
+            )
         )
 
     if njobs < 0:
