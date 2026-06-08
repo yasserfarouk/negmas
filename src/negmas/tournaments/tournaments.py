@@ -51,6 +51,8 @@ from negmas.helpers.parallel import (
 from negmas.helpers.parallel import (
     make_process_executor,
     parse_parallelism,
+    resolve_cpus,
+    run_isolated_tasks,
 )
 from negmas.serialization import PYTHON_CLASS_IDENTIFIER, serialize, to_flat_dict
 from negmas.situated import Agent, World, save_stats
@@ -1436,6 +1438,125 @@ def save_run_results(
                 print(f"Failed to remove an attempt file after completion: {e} ")
 
 
+def _world_timeout(assigned) -> float | None:
+    """Largest per-world ``time_limit`` across ``assigned`` (x TIMEOUT_EXTRA), or
+    ``None`` if no world declares one."""
+    timeout = float("-inf")
+    for worlds_params in assigned:
+        for w in worlds_params:
+            t = w.get("world_params", dict()).get("time_limit", None)
+            if t is None:
+                continue
+            timeout = max(timeout, t)
+    if np.isinf(timeout):
+        return None
+    return timeout * TIMEOUT_EXTRA
+
+
+def _run_parallel_isolated(
+    *,
+    parallelism,
+    verbose,
+    assigned,
+    world_generator,
+    tournament_progress_callback,
+    world_progress_callback,
+    name,
+    score_calculator,
+    run_ids,
+    print_exceptions,
+    override_ran_worlds,
+    attempts_path,
+    total_timeout,
+    max_attempts,
+) -> None:
+    """Run worlds in isolated worker processes via :func:`run_isolated_tasks`.
+
+    Provides a real per-world timeout (a hung/CPU-bound world is killed and the
+    tournament continues) and worker recycling to bound memory -- replacing the
+    ``as_completed`` + ``future.result(timeout)`` loop that could neither detect
+    nor survive a stuck world.
+    """
+    _, max_workers = parse_parallelism(parallelism)
+    workers = resolve_cpus(max_workers)
+    timeout = _world_timeout(assigned)
+
+    tasks = []
+    for worlds_params in assigned:
+        run_id = _hash(worlds_params)
+        if run_id in run_ids:
+            continue
+        tasks.append(
+            (
+                {"run_id": run_id},
+                _run_worlds,
+                (
+                    worlds_params,
+                    world_generator,
+                    score_calculator,
+                    world_progress_callback,
+                    False,  # dry_run
+                    True,  # save_world_stats
+                    override_ran_worlds,
+                    1,  # save_progress_every
+                    attempts_path,
+                    max_attempts,
+                    verbose,
+                ),
+                {},
+            )
+        )
+    n_world_configs = len(tasks)
+    if verbose:
+        print(
+            f"World timeout is {humanize_time(timeout, show_ms=True)} and "
+            f"total-timeout is {humanize_time(total_timeout, show_ms=True)}"
+        )
+    _strt = time.perf_counter()
+
+    def _on_result(info, result, i, n):
+        (run_id, world_paths, score_, world_stats_, type_stats_, agent_stats_) = result
+        save_run_results(
+            run_id,
+            score_,
+            world_stats_,
+            type_stats_,
+            agent_stats_,
+            tournament_progress_callback,
+            world_paths,
+            name,
+            verbose,
+            _strt,
+            attempts_path,
+            n,
+            i,
+        )
+
+    def _on_timeout(info, i, n):
+        if tournament_progress_callback is not None:
+            tournament_progress_callback(None, i, n)
+        print(f"[yellow]World timed-out in {humanize_time(timeout, show_ms=True)}[/yellow]")
+
+    def _on_error(exc, info, i, n):
+        if tournament_progress_callback is not None:
+            tournament_progress_callback(None, i, n)
+        if print_exceptions:
+            print(traceback.format_exc())
+            print(exc)
+
+    run_isolated_tasks(
+        tasks,
+        max_workers=workers,
+        timeout=timeout,
+        total_timeout=total_timeout,
+        on_result=_on_result,
+        on_timeout=_on_timeout,
+        on_error=_on_error,
+        track=track,
+        description="Simulating ...",
+    )
+
+
 def _run_parallel(
     parallelism,
     scheduler_ip,
@@ -1462,6 +1583,32 @@ def _run_parallel(
 ) -> None:
     """Runs the tournament in parallel"""
     strt = time.perf_counter()
+    dask_options = ("dist", "distributed", "dask", "d")
+    if parallelism not in dask_options:
+        # Process-isolated path (shared with the Cartesian tournament runner):
+        # a real per-world timeout that kills a hung/CPU-bound world and lets
+        # the tournament continue, with worker recycling to bound memory.
+        _run_parallel_isolated(
+            parallelism=parallelism,
+            verbose=verbose,
+            assigned=assigned,
+            world_generator=world_generator,
+            tournament_progress_callback=tournament_progress_callback,
+            world_progress_callback=world_progress_callback,
+            name=name,
+            score_calculator=score_calculator,
+            run_ids=run_ids,
+            print_exceptions=print_exceptions,
+            override_ran_worlds=override_ran_worlds,
+            attempts_path=attempts_path,
+            total_timeout=total_timeout,
+            max_attempts=max_attempts,
+        )
+        if verbose:
+            print(
+                f"Finished in {humanize_time(time.perf_counter() - strt, show_ms=True)}"
+            )
+        return
     executor, as_completed = _get_executor(
         parallelism,
         verbose,

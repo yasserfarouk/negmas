@@ -251,6 +251,7 @@ def run_isolated_tasks(
     *,
     max_workers: int,
     timeout: float | None = None,
+    total_timeout: float | None = None,
     max_tasks: int | None = DEFAULT_MAX_TASKS_PER_WORKER,
     window: int | None = None,
     on_result: Callable[[Any, Any, int, int], None] | None = None,
@@ -277,6 +278,9 @@ def run_isolated_tasks(
       (default :data:`DEFAULT_MAX_TASKS_PER_WORKER`), so per-negotiation state
       cannot accumulate without bound. Pass ``max_tasks=0`` to reuse workers
       forever (fastest, but unbounded memory).
+    - **Optional whole-run budget.** ``total_timeout`` caps the total wall-clock
+      time across all tasks; once exceeded the pool is stopped (running workers
+      terminated) and the remaining tasks are abandoned.
     - **Bounded scheduling window.** At most ``window`` payloads are serialized
       and in flight at once (default ``2 * max_workers``), so a tournament with
       very many negotiations does not serialize them all up front.
@@ -309,6 +313,8 @@ def run_isolated_tasks(
         window = max(2, max_workers * 2)
     if timeout is not None and (isinf(timeout) or timeout <= 0):
         timeout = None
+    if total_timeout is not None and (isinf(total_timeout) or total_timeout <= 0):
+        total_timeout = None
     if timeout is None:
         _warnings.warn(
             "run_isolated_tasks was given no finite per-task timeout. Worker "
@@ -363,9 +369,20 @@ def run_isolated_tasks(
                 if not submit_next():
                     break
 
+            start = time.perf_counter()
             while inflight:
+                if (
+                    total_timeout is not None
+                    and time.perf_counter() - start > total_timeout
+                ):
+                    # Whole-run budget exhausted: stop the pool (terminates any
+                    # running workers) and abandon the rest.
+                    pool.stop()
+                    break
                 done, _ = futures_wait(
-                    list(inflight.keys()), return_when=FIRST_COMPLETED
+                    list(inflight.keys()),
+                    timeout=1.0 if total_timeout is not None else None,
+                    return_when=FIRST_COMPLETED,
                 )
                 for future in done:
                     i, info = inflight.pop(future)
