@@ -1502,7 +1502,7 @@ class World(
             "failed": agreement is None,
             "agreement": str(agreement),
             "group": negotiation.group,
-            "caller": negotiation.caller,
+            "caller": negotiation.caller.id if negotiation.caller is not None else None,
         }
         if negotiation.annotation:
             record.update(to_flat_dict(negotiation.annotation))
@@ -1541,7 +1541,7 @@ class World(
             "requested_at": negotiation.requested_at,
             "ended_at": self.current_step,
             "group": negotiation.group,
-            "caller": negotiation.caller,
+            "caller": negotiation.caller.id if negotiation.caller is not None else None,
         }
         if negotiation.annotation:
             metadata["annotation"] = negotiation.annotation

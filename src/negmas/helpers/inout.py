@@ -788,19 +788,33 @@ def save_table(
 
         path = safe_write_file(write_gzip, path)
     elif storage_format == "parquet":
-        # Parquet can't handle arbitrary Python objects like tuples
-        # Convert object columns with non-serializable types to strings
+        # Parquet (pyarrow) can't store arbitrary Python objects -- not tuples/
+        # lists/dicts, and not domain objects like Agent/Negotiator/Mechanism/
+        # ufun/OutcomeSpace. Stringify any object-dtype column value that is not
+        # a parquet-native scalar, deciding per value (so a column whose first
+        # rows are scalars but later rows hold objects is still handled).
+        import numbers
+
+        def _is_parquet_scalar(v) -> bool:
+            return (
+                v is None
+                or isinstance(v, (str, bytes, bool))
+                or isinstance(v, (numbers.Integral, numbers.Real))
+            )
+
         df_parquet = df.copy()
         for col in df_parquet.columns:
             if df_parquet[col].dtype == "object":
-                # Check if any value is a tuple, list, or dict
-                sample = df_parquet[col].dropna().head(1)
-                if len(sample) > 0:
-                    val = sample.iloc[0]
-                    if isinstance(val, (tuple, list, dict)):
-                        df_parquet[col] = df_parquet[col].apply(
-                            lambda x: str(x) if x is not None else None
-                        )
+                col_vals = df_parquet[col].dropna()
+                # Scan the whole column (a late object must not be missed). If
+                # any value is non-scalar, stringify EVERY value so the column
+                # is a uniform string type (pyarrow rejects mixed int/str).
+                if len(col_vals) > 0 and any(
+                    not _is_parquet_scalar(v) for v in col_vals
+                ):
+                    df_parquet[col] = df_parquet[col].apply(
+                        lambda x: None if x is None else str(x)
+                    )
 
         def write_parquet(p: Path) -> None:
             df_parquet.to_parquet(p, index=index)

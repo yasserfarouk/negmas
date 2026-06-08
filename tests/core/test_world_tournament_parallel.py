@@ -13,6 +13,46 @@ is covered by tests/core/test_isolated_tasks.py.
 from __future__ import annotations
 
 import negmas.tournaments.tournaments as T
+from negmas.outcomes import make_issue
+from negmas.preferences import LinearAdditiveUtilityFunction as U
+from negmas.sao import AspirationNegotiator, NaiveTitForTatNegotiator
+from negmas.situated.neg import Condition
+from negmas.tournaments.neg import neg_tournament, scenarios_from_list
+
+
+def test_world_tournament_completes_and_saves(tmp_path):
+    """End-to-end: a small world tournament runs and persists results without a
+    pyarrow error. This exercises the real save path (negotiation/world stats ->
+    parquet), which previously failed because records stored Agent objects (e.g.
+    the ``caller`` column) -- now fixed by storing ids and by the hardened
+    parquet sanitizers.
+    """
+    issues = (make_issue(5, "quantity"), make_issue(5, "price"))
+    competitors = [AspirationNegotiator, NaiveTitForTatNegotiator]
+    ufuns = (
+        U.random(issues=issues, reserved_value=0.0, normalized=False),
+        U.random(issues=issues, reserved_value=0.0, normalized=False),
+    )
+    scenarios = [
+        Condition(
+            name="d0", issues=issues, ufuns=ufuns, partner_types=(partner,), index=index
+        )
+        for index in range(2)
+        for partner in competitors
+    ]
+    results = neg_tournament(
+        n_configs=len(scenarios),
+        scenarios=scenarios_from_list(scenarios),
+        competitors=competitors,
+        n_steps=1,
+        neg_n_steps=10,
+        neg_time_limit=None,
+        parallelism="serial",
+        tournament_path=tmp_path / "wt",
+        verbose=False,
+    )
+    assert results is not None
+    assert len(results.scores) > 0
 
 
 def test_run_parallel_isolated_wiring(monkeypatch):

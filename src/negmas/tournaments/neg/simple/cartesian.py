@@ -223,21 +223,51 @@ def _convert_complex_columns_to_json(
         Tuple of (converted DataFrame, list of column names that were converted)
     """
     import json
+    import numbers
 
     df = df.copy()
     converted_cols = []
 
+    def _is_parquet_scalar(v) -> bool:
+        # Values pyarrow can store natively; everything else must be stringified.
+        return (
+            v is None
+            or isinstance(v, (str, bytes, bool))
+            or isinstance(v, (numbers.Integral, numbers.Real))
+        )
+
+    def _to_storable(x):
+        # Called only for columns that contain a non-scalar somewhere, so we
+        # stringify EVERY value to keep the column a uniform string type (pyarrow
+        # rejects a column that mixes e.g. int and str).
+        if x is None:
+            return None
+        if isinstance(x, (list, dict, tuple)):
+            # default=str so objects nested inside (e.g. an agent in an
+            # annotation dict) are stringified instead of raising.
+            try:
+                return json.dumps(x, default=str)
+            except Exception:
+                return str(x)
+        # Any other value (Agent/ufun/OutcomeSpace object, or a bare scalar that
+        # shares a column with objects): store its string form.
+        return str(x)
+
     for col in df.columns:
         if df[col].dtype == object:
-            # Check if any non-null value is a list or dict
-            sample = df[col].dropna().head(10)
-            if len(sample) > 0 and any(
-                isinstance(v, (list, dict, tuple)) for v in sample
-            ):
-                df[col] = df[col].apply(
-                    lambda x: json.dumps(x) if isinstance(x, (list, dict, tuple)) else x
-                )
-                converted_cols.append(col)
+            col_vals = df[col].dropna()
+            if len(col_vals) == 0:
+                continue
+            # Scan the whole column so a late object (after the first rows) is
+            # not missed.
+            has_complex = any(isinstance(v, (list, dict, tuple)) for v in col_vals)
+            has_object = any(not _is_parquet_scalar(v) for v in col_vals)
+            if has_object:
+                df[col] = df[col].apply(_to_storable)
+                # Only mark JSON-decodable columns for round-trip on load; plain
+                # str() of objects is one-way and must not be re-parsed.
+                if has_complex:
+                    converted_cols.append(col)
 
     return df, converted_cols
 
