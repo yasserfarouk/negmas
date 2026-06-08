@@ -8,6 +8,7 @@ import ast
 import base64
 import copy
 import datetime
+import inspect
 import os
 import shutil
 import traceback
@@ -18,10 +19,9 @@ from negmas.helpers.parallel import (
     TERMINATION_WAIT_TIME as _PARALLEL_TERMINATION_WAIT_TIME,
 )
 from negmas.helpers.parallel import (
-    kill_future_process,
-    make_process_executor,
+    DEFAULT_MAX_TASKS_PER_WORKER,
     resolve_cpus,
-    run_parallel_tasks,
+    run_isolated_tasks,
 )
 from itertools import product
 from math import exp, isinf, isnan, log
@@ -3112,6 +3112,7 @@ def cartesian_tournament(
     negotiator_time_limit: float | tuple[float, float] | None = None,
     hidden_time_limit: float | tuple[float, float] | None = None,
     external_timeout: int | None = None,
+    max_tasks_per_worker: int | None = None,
     # full_names: bool = True,
     plot_fraction: float = 0.0,
     plot_params: dict[str, Any] | None = None,
@@ -4175,7 +4176,43 @@ def cartesian_tournament(
             )
         )
 
-    if njobs < 0:
+    # Derive the per-negotiation wall-clock timeout from external_timeout and
+    # the configured time limits (whichever is smaller). A finite timeout is
+    # what lets run_isolated_tasks guarantee that a hung negotiation is killed.
+    timeout = external_timeout if external_timeout else float("inf")
+
+    def _safe_max(x) -> float:
+        if x is None:
+            return float("inf")
+        if isinstance(x, tuple):
+            return x[-1]
+        return x
+
+    tparams = dict(
+        time_limit=mechanism_params.get("time_limit", float("inf")),
+        negotiator_time_limit=mechanism_params.get(
+            "negotiator_time_limit", float("inf")
+        ),
+        step_time_limit=mechanism_params.get("step_time_limit", float("inf")),
+        hidden_time_limit=mechanism_params.get("hidden_time_limit", float("inf")),
+    ) | dict(
+        time_limit=_safe_max(time_limit),
+        negotiator_time_limit=_safe_max(negotiator_time_limit),
+        step_time_limit=_safe_max(step_time_limit),
+        hidden_time_limit=_safe_max(hidden_time_limit),
+    )
+    touts = [_ * 1.05 for _ in tparams.values() if _ is not None and not isinf(_)]
+    timeout = min(max(touts) if touts else float("inf"), timeout)
+    if isinf(timeout):
+        timeout = None
+
+    # Serial in-process execution is kept ONLY when the user did not configure
+    # any timeout. It preserves breakpoints, full tracebacks and unpicklable
+    # local closures for debugging, but cannot stop a CPU-bound negotiator. As
+    # soon as a finite timeout exists we route every run -- serial (njobs < 0,
+    # one worker) or parallel -- through run_isolated_tasks so that an
+    # infinite-looping agent is killed and the tournament continues.
+    if njobs < 0 and timeout is None:
         for i, info in enumerate(
             track(runs, total=len(runs), description=NEGOTIATIONS_DIR_NAME)
         ):
@@ -4195,40 +4232,19 @@ def cartesian_tournament(
             )
 
     else:
-        timeout = external_timeout if external_timeout else float("inf")
-
-        def _safe_max(x) -> float:
-            if x is None:
-                return float("inf")
-            if isinstance(x, tuple):
-                return x[-1]
-            return x
-
-        tparams = dict(
-            time_limit=mechanism_params.get("time_limit", float("inf")),
-            negotiator_time_limit=mechanism_params.get(
-                "negotiator_time_limit", float("inf")
-            ),
-            step_time_limit=mechanism_params.get("step_time_limit", float("inf")),
-            hidden_time_limit=mechanism_params.get("hidden_time_limit", float("inf")),
-        ) | dict(
-            time_limit=_safe_max(time_limit),
-            negotiator_time_limit=_safe_max(negotiator_time_limit),
-            step_time_limit=_safe_max(step_time_limit),
-            hidden_time_limit=_safe_max(hidden_time_limit),
-        )
-        touts = [_ * 1.05 for _ in tparams.values() if _ is not None and not isinf(_)]
-        timeout = min(max(touts) if touts else float("inf"), timeout)
-        if isinf(timeout):
-            timeout = None
         if timeout is not None and verbosity > 0:
             print(
-                f"[magenta]Will use {timeout} as a timeout when receiving results[/magenta]"
+                f"[magenta]Will use {timeout} as a per-negotiation timeout[/magenta]"
             )
 
         cpus = resolve_cpus(njobs)
+        recycle_after = (
+            max_tasks_per_worker
+            if max_tasks_per_worker is not None
+            else DEFAULT_MAX_TASKS_PER_WORKER
+        )
 
-        def _build_tasks(pool):
+        def _build_tasks():
             for info in runs:
                 # Remove run_id from info before unpacking to avoid duplicate argument error
                 info_copy = {k: v for k, v in info.items() if k != "run_id"}
@@ -4248,37 +4264,45 @@ def cartesian_tournament(
                     ),
                 )
 
+        _frr_params = set(inspect.signature(failed_run_record).parameters)
+
+        def _record_failure(info, reason: str, error: str | None = None):
+            """Build, callback and store a failure record for a run that timed
+            out or crashed in its worker, so the tournament still has an entry."""
+            info = info or {}
+            kwargs = {k: v for k, v in info.items() if k in _frr_params}
+            kwargs.setdefault("run_id", get_run_id(info) if info else "unknown")
+            kwargs["timeout"] = timeout if timeout is not None else 0.0
+            if error is not None:
+                kwargs["error"] = error
+            try:
+                result = failed_run_record(**kwargs)
+            except Exception as e:
+                if verbosity > 0:
+                    print(f"[red]Failed to build {reason} record: {e}[/red]")
+                return
+            if after_end_callback:
+                try:
+                    _call_after_end_callback(after_end_callback, result, config)
+                except Exception as e:
+                    if verbosity > 0:
+                        print(
+                            f"After end callback failed on a {reason} run "
+                            f"{get_run_id(info) if info else 'unknown'}: {e}"
+                        )
+            process_record(result)
+
         def _on_result(info, result, i, n):
             process_record(result)
 
-        def _on_timeout(info, future, i, n, _pool):
-            info = info or dict(partners=["Unknown", "Unknown"])
-            print(
-                f"[red]Negotiation between {info['partners']} [bold]timedout[/bold] [red] after {timeout} seconds ...\n\tKilling the process",
-                end="",
-            )
-            if len(info) > 1:
-                result = failed_run_record(**info)
-                if after_end_callback:
-                    try:
-                        _call_after_end_callback(after_end_callback, result, config)
-                    except Exception as e:
-                        if verbosity > 0:
-                            print(
-                                f"After end callback failed on a failed run {get_run_id(info)}: {e}"
-                            )
-                process_record(result)
-            future.cancel()
-            if kill_future_process(future, _pool, wait_time=TERMINATION_WAIT_TIME):
-                print("[yellow]SUCCEEDED[/yellow]")
-            else:
-                print("[red]FAILED[/red]")
-
-        def _on_broken_pool(exc, i, n):
-            if verbosity > 1:
-                print("[red]Broken Pool[/red]")
-                print(exc)
-            return True
+        def _on_timeout(info, i, n):
+            if verbosity > 0:
+                partners = (info or {}).get("partners", ["Unknown", "Unknown"])
+                print(
+                    f"[red]Negotiation between {partners} [bold]timed out[/bold] "
+                    f"after {timeout} seconds; the worker was killed.[/red]"
+                )
+            _record_failure(info, "timeout", error=f"Timedout after {timeout}s")
 
         def _on_error(exc, info, i, n):
             if verbosity > 1:
@@ -4286,22 +4310,19 @@ def cartesian_tournament(
                 if verbosity > 2:
                     print(traceback.format_exc())
                 print(exc)
+            _record_failure(info, "errored", error=str(exc))
 
-        with make_process_executor(
-            max_workers=cpus, max_tasks_per_child=MAX_TASKS_PER_CHILD
-        ) as pool:
-            run_parallel_tasks(
-                _build_tasks(pool),
-                executor=pool,
-                timeout=timeout,
-                on_result=_on_result,
-                on_timeout=lambda info, f, i, n: _on_timeout(info, f, i, n, pool),
-                on_broken_pool=_on_broken_pool,
-                on_error=_on_error,
-                track=track,
-                description=NEGOTIATIONS_DIR_NAME,
-            )
-            pool.shutdown(wait=False)
+        run_isolated_tasks(
+            _build_tasks(),
+            max_workers=cpus,
+            timeout=timeout,
+            max_tasks=recycle_after,
+            on_result=_on_result,
+            on_timeout=_on_timeout,
+            on_error=_on_error,
+            track=track,
+            description=NEGOTIATIONS_DIR_NAME,
+        )
 
     # Merge with existing results if continuing a tournament
     if existing_results:
