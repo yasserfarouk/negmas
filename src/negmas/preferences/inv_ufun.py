@@ -622,6 +622,14 @@ class PresortingInverseUtilityFunction(InverseUFun):
         #     raise ValueError(
         #         f"worst_in failed to find an appropriate outcome: {rng=} with initial find at {indx_} but we found an outcome with utility {self.utils[indx] if indx is not None else self.utils}"
         #     )
+        if indx is None:
+            # _nearest_around found no outcome in the requested utility range;
+            # honour the documented "Returns None if no such outcome exists"
+            # contract instead of indexing with None (self.outcomes[None] ->
+            # TypeError). Triggered e.g. by TimeBasedOfferingPolicy when the
+            # aspiration band (asp-eps, mx) is empty for the (possibly
+            # high-reserved) ufun.
+            return None
         if mn < self._smallest_val:
             self._smallest_indx, self._smallest_val = indx, mn
         if cycle and indx:
@@ -657,6 +665,11 @@ class PresortingInverseUtilityFunction(InverseUFun):
         #     raise ValueError(
         #         f"best_in failed to find an appropriate outcome: {rng=} with initial find at {indx_} but we found an outcome with utility {self.utils[indx] if indx is not None else self.utils}"
         #     )
+        if indx is None:
+            # No outcome in the requested utility range; return None per the
+            # docstring rather than indexing with None (self.outcomes[None] ->
+            # TypeError).
+            return None
         if mx > self._largest_val:
             self._largest_indx, self._largest_val = indx, mx
         if cycle and indx:
