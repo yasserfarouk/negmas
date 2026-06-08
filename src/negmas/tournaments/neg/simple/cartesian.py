@@ -50,7 +50,12 @@ from negmas.helpers.inout import (
     has_needed_files,
     load,
 )
-from negmas.helpers.strings import encode_params, humanize_time, shortest_unique_names
+from negmas.helpers.strings import (
+    encode_params,
+    humanize_time,
+    shortest_unique_names,
+    stable_hash,
+)
 from negmas.helpers.types import get_class, get_full_type_name
 from negmas.inout import Scenario, scenario_size
 from negmas.mechanisms import Mechanism
@@ -1802,7 +1807,7 @@ def _make_mechanism(
             complete_names.append(name)
             negotiators.append(negotiator)
             if p:
-                name += hash_to_base64(hash(str(p)))
+                name += hash_to_base64(stable_hash(str(p)))
         except Exception as e:
             if ignore_exceptions:
                 failures = dict(
@@ -3051,7 +3056,7 @@ def _is_run_completed(
     # Generate the run_id if not present
     if "run_id" not in run_info:
         run_info["run_id"] = hash_to_base64(
-            hash(
+            stable_hash(
                 str(
                     serialize(run_info, python_class_identifier=python_class_identifier)
                 )
@@ -4037,7 +4042,7 @@ def cartesian_tournament(
                     )
                     # Add run_id for identifying completed runs
                     run_dict["run_id"] = hash_to_base64(
-                        hash(
+                        stable_hash(
                             str(
                                 serialize(
                                     run_dict,
@@ -4149,7 +4154,7 @@ def cartesian_tournament(
             info: Info.
         """
         return hash_to_base64(
-            hash(str(serialize(info, python_class_identifier=python_class_identifier)))
+            stable_hash(str(serialize(info, python_class_identifier=python_class_identifier)))
         )
 
     if njobs < 0:

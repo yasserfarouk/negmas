@@ -6,6 +6,7 @@ A set of utilities to handle strings
 from __future__ import annotations
 
 import datetime
+import hashlib
 import itertools
 import math
 import random
@@ -30,6 +31,7 @@ __all__ = [
     "encode_params",
     "write_lines",
     "read_lines",
+    "stable_hash",
 ]
 
 COMMON_NAME_PARTS = (
@@ -503,3 +505,19 @@ def read_lines(path: Path) -> list[str]:
     """Read a list of strings from a file, one per line."""
     with open(path) as f:
         return f.read().split("\n")
+
+
+def stable_hash(value) -> int:
+    """Return a process-stable 64-bit signed integer hash of ``value``.
+
+    Unlike the builtin :func:`hash`, which is salted per process
+    (``PYTHONHASHSEED``), this is deterministic across processes and
+    machines. Use it whenever a hash feeds a *persisted* identity — a
+    ``run_id``, a file name, a serialized key — so the value survives across
+    separate runs. Builtin ``hash`` there silently breaks resuming/continuing
+    work because the recomputed id no longer matches what was stored on disk.
+    """
+    digest = hashlib.blake2b(
+        str(value).encode("utf-8", "replace"), digest_size=8
+    ).digest()
+    return int.from_bytes(digest, byteorder="big", signed=True)

@@ -10,7 +10,7 @@ from dataclasses import dataclass
 from typing import Any, Callable, Collection, Iterable
 
 from negmas import MechanismState, NegotiatorMechanismInterface
-from negmas.helpers import get_class, get_full_type_name, instantiate
+from negmas.helpers import get_class, get_full_type_name, instantiate, stable_hash
 from negmas.negotiators import Negotiator
 from negmas.outcomes import Issue
 from negmas.preferences import Preferences
@@ -393,7 +393,7 @@ class NegWorld(NoContractExecutionMixin, World):
             types[i] = get_full_type_name(t)
 
         self.agent_unique_types = [
-            f"{t}:{hash(str(p)) if p else ''}" if len(p) > 0 else t
+            f"{t}:{stable_hash(str(p)) if p else ''}" if len(p) > 0 else t
             for t, p in zip(types, params)
         ]
 
