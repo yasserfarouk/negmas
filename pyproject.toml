@@ -45,6 +45,7 @@ dependencies = [
     "scipy>=1.14.1",
     "numpy",
     "pyarrow>=22.0.0",
+    "pebble>=5.2.0", # process pool with per-task timeout + worker kill for tournaments
 ]
 
 [build-system]

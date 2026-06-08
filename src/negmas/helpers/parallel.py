@@ -15,25 +15,34 @@ import signal
 import sys
 import time
 from concurrent import futures
-from concurrent.futures import ProcessPoolExecutor
+from concurrent.futures import FIRST_COMPLETED, ProcessPoolExecutor
 from concurrent.futures import TimeoutError as FuturesTimeoutError
+from concurrent.futures import wait as futures_wait
 from concurrent.futures.process import BrokenProcessPool
+from math import isinf
 from multiprocessing import cpu_count
 from typing import Any, Callable, Iterable
 
 __all__ = [
     "MAX_TASKS_PER_CHILD",
     "TERMINATION_WAIT_TIME",
+    "DEFAULT_MAX_TASKS_PER_WORKER",
     "resolve_cpus",
     "parse_parallelism",
     "make_process_executor",
     "kill_future_process",
     "run_parallel_tasks",
     "run_serial_tasks",
+    "run_isolated_tasks",
 ]
 
 MAX_TASKS_PER_CHILD: int | None = None
 TERMINATION_WAIT_TIME: float = 10.0
+# Recycle each worker process after this many negotiations by default. Bounds
+# memory growth (a worker that runs thousands of negotiations accumulates
+# state/leaks) while amortizing the process-spawn cost over many tasks: the
+# per-task overhead is roughly ``spawn_cost / DEFAULT_MAX_TASKS_PER_WORKER``.
+DEFAULT_MAX_TASKS_PER_WORKER: int = 50
 
 
 def _n_cores(default: int = 4) -> int:
@@ -221,4 +230,191 @@ def run_parallel_tasks(
             continue
         if on_result is not None:
             on_result(info, result, i, n)
+    return n
+
+
+def _cloud_runner(payload: bytes):
+    """Worker entry point: deserialize a cloudpickled ``(fn, args, kwargs)`` and run it.
+
+    Payloads are serialized with cloudpickle (not stdlib pickle) so locally
+    defined negotiators and closure/lambda ufuns survive the trip to the worker
+    process. Defined at module level so it is importable in spawned workers.
+    """
+    import cloudpickle
+
+    fn, args, kwargs = cloudpickle.loads(payload)
+    return fn(*args, **kwargs)
+
+
+def run_isolated_tasks(
+    tasks: Iterable[tuple[Any, Callable[..., Any], tuple, dict]],
+    *,
+    max_workers: int,
+    timeout: float | None = None,
+    max_tasks: int | None = DEFAULT_MAX_TASKS_PER_WORKER,
+    window: int | None = None,
+    on_result: Callable[[Any, Any, int, int], None] | None = None,
+    on_timeout: Callable[[Any, int, int], None] | None = None,
+    on_error: Callable[[BaseException, Any, int, int], None] | None = None,
+    track: Callable[..., Iterable] | None = None,
+    description: str = "Running",
+) -> int:
+    """Run ``tasks`` in isolated worker processes with a real per-task timeout.
+
+    Each task is ``(info, fn, args, kwargs)`` where ``info`` is opaque metadata
+    round-tripped to the callbacks. Unlike :func:`run_parallel_tasks` (which
+    drives a shared ``ProcessPoolExecutor`` via ``as_completed`` and can neither
+    detect a hung task nor survive killing one), this driver uses a
+    ``pebble.ProcessPool``:
+
+    - **Per-task timeout that actually fires.** ``timeout`` is enforced by pebble
+      from the moment a task starts executing (queued tasks are not penalized).
+      On timeout pebble kills the worker process running the task and replaces
+      it transparently, so a CPU-bound negotiator stuck in an infinite loop
+      (even inside a C extension) is terminated and the remaining tasks keep
+      running.
+    - **Bounded memory.** Each worker is recycled after ``max_tasks`` tasks
+      (default :data:`DEFAULT_MAX_TASKS_PER_WORKER`), so per-negotiation state
+      cannot accumulate without bound. Pass ``max_tasks=0`` to reuse workers
+      forever (fastest, but unbounded memory).
+    - **Bounded scheduling window.** At most ``window`` payloads are serialized
+      and in flight at once (default ``2 * max_workers``), so a tournament with
+      very many negotiations does not serialize them all up front.
+    - **Local ufuns/negotiators.** Payloads are serialized with cloudpickle, so
+      closures, lambdas and locally defined classes work.
+
+    Tasks whose payload cannot be serialized at all are run **in-process** as a
+    best-effort fallback (a warning is emitted per such task): their pure-Python
+    infinite loops can still be interrupted via the thread-injection path, but a
+    C-extension hang in an unpicklable task cannot be isolated and will block.
+
+    Callbacks:
+        - ``on_result(info, result, i, n)`` on success
+        - ``on_timeout(info, i, n)`` when the task exceeded ``timeout``
+        - ``on_error(exc, info, i, n)`` on any other failure
+
+    Returns the number of tasks submitted.
+    """
+    from pebble import ProcessExpired, ProcessPool
+
+    from negmas import warnings as _warnings
+
+    materialized = list(tasks)
+    n = len(materialized)
+    if n == 0:
+        return 0
+    if max_workers is None or max_workers < 1:
+        max_workers = 1
+    if window is None:
+        window = max(2, max_workers * 2)
+    if timeout is not None and (isinf(timeout) or timeout <= 0):
+        timeout = None
+    if timeout is None:
+        _warnings.warn(
+            "run_isolated_tasks was given no finite per-task timeout. Worker "
+            "processes still bound memory, but a negotiation that never returns "
+            "(e.g. an infinite loop) will block the run until it finishes. Pass "
+            "a finite timeout (e.g. external_timeout) to guarantee termination.",
+            _warnings.NegmasInfiniteNegotiationWarning,
+        )
+
+    # pebble uses 0 to mean "no recycling"
+    pebble_max_tasks = max_tasks if max_tasks and max_tasks > 0 else 0
+
+    def _drive():
+        import cloudpickle
+
+        task_iter = iter(enumerate(materialized))
+        inflight: dict[Any, tuple[int, Any]] = {}
+        inline: list[tuple[int, Any, Callable, tuple, dict]] = []
+
+        with ProcessPool(max_workers=max_workers, max_tasks=pebble_max_tasks) as pool:
+
+            def submit_next() -> bool:
+                """Schedule the next serializable task; queue unpicklable ones
+                for in-process fallback. Returns True if a pool task was
+                scheduled, False when the input is exhausted."""
+                while True:
+                    try:
+                        i, (info, fn, args, kwargs) = next(task_iter)
+                    except StopIteration:
+                        return False
+                    try:
+                        payload = cloudpickle.dumps((fn, args, kwargs))
+                    except Exception:
+                        names = info if isinstance(info, dict) else {}
+                        _warnings.warn(
+                            f"Cannot serialize a task for process isolation "
+                            f"({names.get('partners', i)}); running it in-process "
+                            "(hard kill of a C-extension hang is unavailable). "
+                            "Make the negotiators/ufuns picklable to enable "
+                            "process isolation.",
+                            _warnings.NegmasUnexpectedValueWarning,
+                        )
+                        inline.append((i, info, fn, args, kwargs))
+                        continue
+                    future = pool.schedule(
+                        _cloud_runner, args=(payload,), timeout=timeout
+                    )
+                    inflight[future] = (i, info)
+                    return True
+
+            for _ in range(window):
+                if not submit_next():
+                    break
+
+            while inflight:
+                done, _ = futures_wait(
+                    list(inflight.keys()), return_when=FIRST_COMPLETED
+                )
+                for future in done:
+                    i, info = inflight.pop(future)
+                    try:
+                        result = future.result()
+                    except FuturesTimeoutError:
+                        if on_timeout is not None:
+                            on_timeout(info, i, n)
+                    except ProcessExpired as e:
+                        if on_error is not None:
+                            on_error(e, info, i, n)
+                    except Exception as e:  # noqa: BLE001 - surface to callback
+                        if on_error is not None:
+                            on_error(e, info, i, n)
+                    else:
+                        if on_result is not None:
+                            on_result(info, result, i, n)
+                    yield
+                    submit_next()
+
+        # In-process fallback for tasks that could not be serialized. Best-effort
+        # timeout via the shared thread pool (pure-Python loops only).
+        if inline:
+            import functools
+
+            from negmas.helpers.timeout import TimeoutCaller, TimeoutError
+
+            for i, info, fn, args, kwargs in inline:
+                call = functools.partial(fn, *args, **kwargs)
+                try:
+                    if timeout is None:
+                        result = call()
+                    else:
+                        result = TimeoutCaller.run(call, timeout=timeout)
+                except TimeoutError:
+                    if on_timeout is not None:
+                        on_timeout(info, i, n)
+                except Exception as e:  # noqa: BLE001 - surface to callback
+                    if on_error is not None:
+                        on_error(e, info, i, n)
+                else:
+                    if on_result is not None:
+                        on_result(info, result, i, n)
+                yield
+
+    if track is not None:
+        for _ in track(_drive(), total=n, description=description):
+            pass
+    else:
+        for _ in _drive():
+            pass
     return n
