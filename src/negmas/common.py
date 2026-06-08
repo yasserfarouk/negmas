@@ -5,6 +5,7 @@ This module does not import anything from the library except during type checkin
 """
 
 from __future__ import annotations
+import copy as _copy
 from collections import namedtuple
 from enum import Enum, auto, unique
 from typing import (
@@ -200,6 +201,39 @@ class PreferencesChange:
     data: Any = None
 
 
+#: Field value types that ``MechanismState.__deepcopy__`` shares by reference
+#: instead of copying (immutable, so sharing is safe). ``tuple`` is handled
+#: separately so nested-but-immutable offers are not copied either.
+_IMMUTABLE_STATE_FIELD_TYPES = (type(None), bool, int, float, str, bytes)
+
+
+def _copy_state_field(v, memo):
+    """Returns an independent copy of a single state-field value, fast.
+
+    Used by :meth:`MechanismState.__deepcopy__`. Immutable values are shared by
+    reference; list/dict/set containers are rebuilt (recursing into their
+    elements so nested mutables stay independent); anything else falls back to
+    ``copy.deepcopy`` for safety.
+    """
+    t = type(v)
+    if t in _IMMUTABLE_STATE_FIELD_TYPES:
+        return v
+    if t is tuple:
+        # Tuples are immutable but may *contain* mutables (e.g. ``new_data``
+        # entries are ``(negotiator_id, data_dict)``). Share by reference only
+        # when every element is itself immutable; otherwise rebuild.
+        if all(type(x) in _IMMUTABLE_STATE_FIELD_TYPES for x in v):
+            return v
+        return tuple(_copy_state_field(x, memo) for x in v)
+    if t is list:
+        return [_copy_state_field(x, memo) for x in v]
+    if t is dict:
+        return {k: _copy_state_field(x, memo) for k, x in v.items()}
+    if t is set:
+        return set(v)
+    return _copy.deepcopy(v, memo)
+
+
 @define
 class MechanismState:
     """Encapsulates the mechanism state at any point"""
@@ -280,6 +314,33 @@ class MechanismState:
     def __getitem__(self, item):
         """Makes the outcome type behave like a dict"""
         return getattr(self, item)
+
+    def __deepcopy__(self, memo=None):
+        """Returns an independent snapshot of the state, much faster than a
+        generic ``deepcopy``.
+
+        ``Mechanism.state4history`` deep-copies the current state once per
+        negotiation round to store an immutable history entry, so this is a hot
+        path. A full ``copy.deepcopy`` is dominated by Python's per-node
+        recursion overhead even though the state itself is small. Almost every
+        field here is an immutable scalar/tuple that can be shared by reference;
+        only the mutable containers need fresh copies, and their leaves are
+        normally immutable (offers are tuples, ids are strings), so a shallow
+        rebuild is enough to make the snapshot independent. Genuinely-nested
+        objects (e.g. an ``OutcomeSpace`` in ``results`` or ``ThreadState`` in
+        ``GBState.threads``) fall back to ``deepcopy``, so correctness holds for
+        any subclass or future field.
+        """
+        if memo is None:
+            memo = {}
+        n = _copy.copy(self)
+        memo[id(self)] = n
+        for f in self.__attrs_attrs__:
+            v = getattr(self, f.name)
+            if type(v) in _IMMUTABLE_STATE_FIELD_TYPES:
+                continue
+            object.__setattr__(n, f.name, _copy_state_field(v, memo))
+        return n
 
 
 @define(frozen=True)

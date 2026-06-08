@@ -9,6 +9,29 @@ from .negotiator import Negotiator
 
 __all__ = ["ControlledNegotiator"]
 
+#: Attribute names that must resolve on the negotiator itself rather than being
+#: delegated to the parent controller. A frozenset gives O(1) membership for
+#: this very hot ``__getattribute__`` path (called on every attribute access).
+_NOT_DELEGATED = frozenset(
+    (
+        "id",
+        "name",
+        "on_preferences_changed",
+        "has_preferences",
+        "preferences",
+        "ufun",
+        "opponent_ufun",
+        "reserved_value",
+        "nmi",
+        "ami",
+        "owner",
+        "annotation",
+        "private_info",
+        "parent",
+        "capabilities",
+    )
+)
+
 
 class ControlledNegotiator(Negotiator):
     """
@@ -29,23 +52,7 @@ class ControlledNegotiator(Negotiator):
         Args:
             item: Item.
         """
-        if item in (
-            "id",
-            "name",
-            "on_preferences_changed",
-            "has_preferences",
-            "preferences",
-            "ufun",
-            "opponent_ufun",
-            "reserved_value",
-            "nmi",
-            "ami",
-            "owner",
-            "annotation",
-            "private_info",
-            "parent",
-            "capabilities",
-        ) or item.startswith("_"):
+        if item.startswith("_") or item in _NOT_DELEGATED:
             return super().__getattribute__(item)
         parent = super().__getattribute__("__dict__").get("_Negotiator__parent", None)
         if parent is None:
