@@ -535,9 +535,15 @@ def _parse_list_value(value: Any) -> Any:
     Returns:
         The parsed Python object, or the original value if parsing fails or isn't needed.
     """
-    if pd.isna(value):
-        return None
     if not isinstance(value, str):
+        # Already a parsed object: lists/tuples/numpy arrays pass through
+        # unchanged. Only scalar NaN/None normalize to None. pd.isna raises
+        # ("ambiguous truth value") on array-likes, so guard it.
+        try:
+            if pd.isna(value):
+                return None
+        except (TypeError, ValueError):
+            pass
         return value
     value = value.strip()
     if not value:
@@ -2911,12 +2917,19 @@ def make_scores(
         - Plus raw aggregated scores (if raw_aggregated_metrics was provided):
             - Custom combined metrics computed from other metrics
     """
-    utils, partners = record["utilities"], record["partners"]
-    reserved_values = record["reserved_values"]
-    negids = record["negotiator_ids"]
-    max_utils = record["max_utils"]
-    min_utils = record.get("min_utils", [float("nan")] * len(utils))
-    times = record.get("negotiator_times", [None] * len(utils))
+    # List-valued columns survive a parquet/csv round-trip as JSON/repr
+    # strings (e.g. "[0.7, 0.6]"). When make_scores is called on reloaded
+    # details (e.g. from combine_tournaments) those fields are strings, and
+    # zipping a string iterates characters -> isinf('[') TypeError. Parse
+    # them back to lists; _parse_list_value is a no-op for real lists, so
+    # this is free for the in-memory (live-run) path.
+    utils = _parse_list_value(record["utilities"])
+    partners = _parse_list_value(record["partners"])
+    reserved_values = _parse_list_value(record["reserved_values"])
+    negids = _parse_list_value(record["negotiator_ids"])
+    max_utils = _parse_list_value(record["max_utils"])
+    min_utils = _parse_list_value(record.get("min_utils", [float("nan")] * len(utils)))
+    times = _parse_list_value(record.get("negotiator_times", [None] * len(utils)))
     has_error = record["has_error"]
     erred_negotiator = record["erred_negotiator"]
     error_details = record["error_details"]
@@ -2968,9 +2981,17 @@ def make_scores(
                 basic[c] = record[c]
 
         # Extract per-negotiator opponent model scores from record
-        # These are stored as lists with one value per negotiator
+        # These are stored as lists with one value per negotiator. On a
+        # parquet/csv reload (e.g. via combine_tournaments) they come back as
+        # numpy arrays or JSON strings rather than lists, so accept those too.
         for key, value in record.items():
-            if key.startswith("opp_") and isinstance(value, (list, tuple)):
+            if not key.startswith("opp_"):
+                continue
+            if isinstance(value, str):
+                value = _parse_list_value(value)
+            # list/tuple, or any sequence-like (e.g. numpy array from a
+            # parquet reload) but not scalars/strings/dicts
+            if not isinstance(value, (str, bytes, dict)) and hasattr(value, "__len__"):
                 if i < len(value):
                     basic[key] = value[i]
 
