@@ -50,7 +50,9 @@ def _run_one(hidden_time_limit: float) -> SAOMechanism:
     for _ in range(2):
         m.add(
             _PureLoopNegotiator(
-                preferences=U.random(issues=issues, reserved_value=0.0, normalized=False)
+                preferences=U.random(
+                    issues=issues, reserved_value=0.0, normalized=False
+                )
             )
         )
     m.run()

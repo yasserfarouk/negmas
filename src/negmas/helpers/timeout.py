@@ -85,9 +85,7 @@ class TimeoutCaller:
             )
             if res > 1:
                 # Should never affect more than one thread; undo if it did.
-                ctypes.pythonapi.PyThreadState_SetAsyncExc(
-                    ctypes.c_long(ident), None
-                )
+                ctypes.pythonapi.PyThreadState_SetAsyncExc(ctypes.c_long(ident), None)
         except Exception:
             pass
 

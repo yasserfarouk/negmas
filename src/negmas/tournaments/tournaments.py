@@ -19,7 +19,7 @@ import traceback
 from collections import defaultdict
 from dataclasses import dataclass, field
 from functools import partial
-from multiprocessing import cpu_count, current_process
+from multiprocessing import current_process
 from pathlib import Path
 from socket import gethostname
 from typing import Any, Callable, Iterable, Sequence
@@ -1506,11 +1506,11 @@ def _run_parallel_isolated(
                 {},
             )
         )
-    n_world_configs = len(tasks)
     if verbose:
         print(
-            f"World timeout is {humanize_time(timeout, show_ms=True)} and "
-            f"total-timeout is {humanize_time(total_timeout, show_ms=True)}"
+            f"Running {len(tasks)} world-sets on {workers} workers. World timeout is "
+            f"{humanize_time(timeout, show_ms=True)} and total-timeout is "
+            f"{humanize_time(total_timeout, show_ms=True)}"
         )
     _strt = time.perf_counter()
 
@@ -1535,7 +1535,9 @@ def _run_parallel_isolated(
     def _on_timeout(info, i, n):
         if tournament_progress_callback is not None:
             tournament_progress_callback(None, i, n)
-        print(f"[yellow]World timed-out in {humanize_time(timeout, show_ms=True)}[/yellow]")
+        print(
+            f"[yellow]World timed-out in {humanize_time(timeout, show_ms=True)}[/yellow]"
+        )
 
     def _on_error(exc, info, i, n):
         if tournament_progress_callback is not None:

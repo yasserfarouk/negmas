@@ -3204,7 +3204,20 @@ def cartesian_tournament(
         step_time_limit: Maximum seconds per negotiation step. Can be float, (min, max) tuple, or None.
         negotiator_time_limit: Maximum total seconds for all actions by each negotiator.
         hidden_time_limit: Time limit not revealed to negotiators.
-        external_timeout: Timeout in seconds for receiving results from parallel negotiations.
+        external_timeout: Per-negotiation wall-clock timeout in seconds, enforced from
+              outside the negotiation in its worker process. A finite value (combined with
+              the configured time limits -- the effective timeout is their minimum) is what
+              lets a CPU-bound negotiator that enters an infinite loop be killed so the
+              tournament continues; the killed negotiation is recorded as timed-out. Setting
+              it also makes serial runs (njobs < 0) execute each negotiation in a single
+              killable worker process instead of in-process (so a serial tournament cannot
+              hang forever on a bad agent). When unset, serial runs stay fully in-process
+              (good for debugging) and a true infinite loop can still hang the run.
+        max_tasks_per_worker: Recycle each worker process after this many negotiations
+              (default 50) to bound memory growth across a long tournament. The per-task
+              spawn cost is amortized as roughly ``spawn_cost / max_tasks_per_worker``. Pass
+              0 to reuse workers forever (fastest, but memory can grow without bound). Only
+              affects process-isolated runs (parallel, or serial with external_timeout set).
         plot_fraction: Fraction of negotiations to plot (0.0 to 1.0). Only used if path is provided.
         plot_params: Parameters passed to plotting functions.
         verbosity: Logging level (0 for silent, higher for more verbose).
@@ -4233,9 +4246,7 @@ def cartesian_tournament(
 
     else:
         if timeout is not None and verbosity > 0:
-            print(
-                f"[magenta]Will use {timeout} as a per-negotiation timeout[/magenta]"
-            )
+            print(f"[magenta]Will use {timeout} as a per-negotiation timeout[/magenta]")
 
         cpus = resolve_cpus(njobs)
         recycle_after = (
