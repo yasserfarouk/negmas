@@ -444,7 +444,15 @@ class AffineUtilityFunction(UtilityFunction):
 
         mn, mx = self.minmax(outcome_space)
 
-        if sum(self._weights) < epsilon:
+        # Only a ufun whose linear part is *entirely* zero (every weight ~ 0)
+        # is genuinely unnormalizable to a non-zero range. Testing the raw
+        # sum of weights wrongly rejected ufuns with negative (or
+        # negative-leaning) weights, which still have a perfectly valid
+        # non-zero range; those normalize fine via the (mx - mn) scaling
+        # below (mirroring LinearAdditiveUtilityFunction, which handles
+        # negative weights by flipping the value function). The genuinely
+        # constant case (mx == mn) is handled by the range check below.
+        if sum(abs(w) for w in self._weights) < epsilon:
             raise ValueError(
                 "Cannot normalize a ufun with zero weights to have a non-zero range"
             )
