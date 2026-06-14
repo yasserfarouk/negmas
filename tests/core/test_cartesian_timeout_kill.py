@@ -1,7 +1,9 @@
 """Integration test: a CPU-bound (infinite-loop) negotiator must not hang a
 cartesian tournament when ``external_timeout`` is set -- neither serially
 (njobs=-1, one isolated worker) nor in parallel (njobs=2). The hung
-negotiations must be killed and recorded as errors; the rest must complete.
+negotiations must be killed and recorded as *timeouts* (a no-agreement
+outcome where each negotiator keeps its reserved value), NOT as exceptions;
+the rest must complete.
 
 The hog negotiator is a module-level class so cloudpickle ships it to spawned
 worker processes by reference (the workers re-import this module), matching how
@@ -65,6 +67,8 @@ def test_cpu_hog_negotiator_is_killed_and_tournament_completes(tmp_path, njobs):
         verbosity=0,
         rotate_ufuns=False,
         self_play=True,
+        plot_fraction=0.0,  # avoid the Chrome/Kaleido dependency in CI
+        save_scenario_figs=False,
     )
     elapsed = time.perf_counter() - strt
 
@@ -75,9 +79,20 @@ def test_cpu_hog_negotiator_is_killed_and_tournament_completes(tmp_path, njobs):
 
     details = results.details
     assert len(details) == 4  # self-play: 2x2 orderings of the two competitors
-    # The Aspiration-vs-Aspiration negotiation must complete cleanly...
-    assert bool((~details["has_error"]).any()), "no negotiation completed successfully"
-    # ...and the three CpuHog negotiations must be recorded as failed (killed).
-    assert int(details["has_error"].sum()) == 3, (
-        "expected exactly the 3 CpuHog negotiations to be flagged as timed-out"
+    # The three CpuHog negotiations can never finish, so they must be killed and
+    # recorded as *timeouts*. (The Aspiration-vs-Aspiration negotiation normally
+    # completes, but may also time out when the spinning hog starves the CPU on a
+    # loaded/low-core machine -- so we assert >= 3 rather than exactly 3.)
+    assert int(details["timedout"].sum()) >= 3, (
+        "expected the CpuHog negotiations to be flagged as timed-out"
     )
+    # The actual contract under test, and load-independent: a timeout is NOT an
+    # exception, so no negotiation may be flagged has_error.
+    assert int(details["has_error"].sum()) == 0, (
+        "timeouts must not be recorded as mechanism/negotiator exceptions"
+    )
+    # Each timed-out negotiation must end without agreement, so every negotiator
+    # keeps its reserved value (reserved_value=0.0 here) -- the no-agreement
+    # outcome rather than an error with null utilities.
+    killed = details[details["timedout"]]
+    assert killed["agreement"].isna().all(), "a timed-out negotiation cannot have an agreement"

@@ -2760,6 +2760,7 @@ def failed_run_record(
     scored_indices: list[int] | None = None,
     storage_optimization: OptimizationLevel = "space",
     storage_format: StorageFormat | None = None,
+    timed_out: bool = True,
 ):
     """Create a record for a negotiation that failed to complete (timeout or exception).
 
@@ -2767,9 +2768,22 @@ def failed_run_record(
     a record with error flags set and null/zero values for results. Used when run_negotiation
     times out or encounters an unrecoverable error.
 
+    Args:
+        timed_out: When ``True`` (the worker exceeded its wall-clock budget) the
+            run is recorded as a *non-agreement timeout*, not an exception:
+            ``timedout=True`` and ``has_error=False``. Each negotiator then keeps
+            its reserved value (``utilities == ufun(None)`` so ``advantage == 0``),
+            exactly as for any negotiation that ends without agreement. A timeout
+            is a normal outcome of a bounded negotiation, not a fault to be
+            counted/reported as a mechanism exception. When ``False`` the run
+            crashed in its worker and is recorded as a genuine error
+            (``has_error=True``).
+
     Returns:
-        Dictionary with same structure as successful negotiation records but with has_error=True
-        and null/zero values for agreement, utilities, etc.
+        Dictionary with same structure as successful negotiation records. For a
+        timeout ``has_error`` is ``False`` and ``timedout`` is ``True``; for a
+        crash ``has_error`` is ``True``. Agreement/utilities reflect the
+        no-agreement (reserved-value) outcome.
     """
     if partner_params is None:
         partner_params = tuple(dict() for _ in partners)  # type: ignore
@@ -2795,10 +2809,22 @@ def failed_run_record(
             ignore_exceptions=ignore_exceptions,
         )
         state = m.state
-        state.has_error = True
-        state.timedout = True
         state.started = True
-        state.error_details = f"Timedout after {timeout} with error {error}"
+        if timed_out:
+            # A wall-clock timeout is a no-agreement outcome, not a fault: the
+            # mechanism was built fine, so utilities fall back to reserved
+            # values. Do NOT flag has_error, or the run would be miscounted as
+            # a mechanism exception even though every negotiator got its
+            # reservation value.
+            state.has_error = False
+            state.timedout = True
+            state.broken = False
+            state.agreement = None
+            state.error_details = f"Timedout after {timeout}s"
+        else:
+            state.has_error = True
+            state.timedout = False
+            state.error_details = f"Errored after {timeout}s with error {error}"
 
         run_record = _make_record(
             m=m,
@@ -2815,11 +2841,15 @@ def failed_run_record(
         real_scenario_name = s.outcome_space.name
         m = SAOMechanism()
         state = SAOState()
+        # The mechanism could not even be rebuilt, so we cannot recover the
+        # reserved-value outcome. This is a genuine error regardless of whether
+        # the original failure was a timeout.
         state.has_error = True
-        state.timedout = True
+        state.timedout = timed_out
         state.started = True
         state.error_details = (
-            f"Timedout after {timeout} with exception {error} then Raised {e}"
+            f"{'Timedout' if timed_out else 'Errored'} after {timeout} "
+            f"with exception {error} then Raised {e}"
         )
         run_record = _make_failure_record(
             state=state,
@@ -4335,6 +4365,9 @@ def cartesian_tournament(
             kwargs = {k: v for k, v in info.items() if k in _frr_params}
             kwargs.setdefault("run_id", get_run_id(info) if info else "unknown")
             kwargs["timeout"] = timeout if timeout is not None else 0.0
+            # A "timeout" is a no-agreement outcome (reserved values), not an
+            # exception; only "errored" runs are recorded as has_error=True.
+            kwargs["timed_out"] = reason == "timeout"
             if error is not None:
                 kwargs["error"] = error
             try:
