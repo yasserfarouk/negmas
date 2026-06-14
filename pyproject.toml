@@ -28,7 +28,7 @@ dependencies = [
     "inflect>=4.1.0,<6.0", # needed when using data-model-generator
     "matplotlib>=3.7.0",
     "plotly>=5.18.0",
-    "kaleido>=0.2.1", # for saving plotly figures as static images
+    "kaleido>=0.2.1,<1.0", # for saving plotly figures as static images; 0.2.x bundles a headless Chromium so static export works everywhere. kaleido>=1.0 dropped the bundled browser and requires a separately-installed Chrome (fails with "Kaleido requires Google Chrome").
     "pillow>=12.1.0",
     "networkx>=3.4.2",
     "psutil>=6.1.0",
