@@ -706,7 +706,11 @@ def test_can_normalize_affine_and_linear_ufun(weights, bias, rng):
     u1 = [ufun(w) for w in outcomes]
 
     if (sum(weights) > 1e-6 and rng == (0.0, float("inf"))) or (
-        sum(weights) < 1e-6
+        # Only a ufun whose linear part is *entirely* zero (every weight ~ 0)
+        # is unnormalizable to a non-zero range; negative/negative-leaning
+        # weights still have a valid non-zero range and normalize fine.
+        # Mirrors AffineUtilityFunction.normalize_for's guard.
+        sum(abs(w) for w in weights) < 1e-6
         and rng[1] > rng[0] + 1e-6
         and rng[0] != float("-inf")
         and rng[1] != float("inf")
