@@ -2124,6 +2124,13 @@ def find_domain_and_utility_files_yaml(
     utility_file_names = []
     folder_name = str(folder_name)
     for f in files:
+        # Skip hidden / OS sidecar files, notably macOS AppleDouble
+        # resource forks (._Foo.yml) that ride along in archives created
+        # or transferred on a Mac. They end in .yml but are binary, so
+        # yaml.safe_load chokes on them with a UnicodeDecodeError before
+        # any real scenario is loaded.
+        if f.startswith("."):
+            continue
         if not f.endswith(".yml") and not f.endswith(".yaml"):
             continue
         full_name = folder_name + "/" + f
