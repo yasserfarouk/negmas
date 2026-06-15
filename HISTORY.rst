@@ -1,10 +1,20 @@
 History
 =======
 
-Release 0.15.5
+Release 0.15.6
 --------------
 
 **Changes:**
+
+* [feat] New process-isolated task runner ``negmas.helpers.run_isolated_tasks``
+  (backed by ``pebble.ProcessPool``) with a per-task timeout that actually
+  fires: a negotiation stuck in an infinite loop (even inside a C extension) is
+  killed and its worker replaced, while the rest of the run continues. Workers
+  are recycled after a bounded number of tasks, the scheduling window is
+  bounded, and task payloads are serialized with cloudpickle so locally defined
+  negotiators/ufuns (closures, lambdas) survive the trip. Both world
+  (``Tournament``-based) and ``cartesian_tournament`` parallel runs now route
+  through it.
 
 * [deps] Upgraded to ``kaleido>=1.0`` (and ``plotly>=6.1.1``) for plotly static
   image export, dropping the old ``kaleido<1.0`` pin. ``kaleido>=1.0`` drives a
@@ -14,6 +24,69 @@ Release 0.15.5
   to reuse an existing browser, run ``plotly_get_chrome`` to provision ahead of
   time, or set ``NEGMAS_AUTO_INSTALL_CHROME=0`` to disable the auto-download and
   get a clear actionable error instead.
+
+**Bug Fixes:**
+
+* [fix] ``cartesian_tournament`` now treats a negotiation timeout as a
+  no-agreement (reserved-value) outcome rather than an error: timed-out runs are
+  flagged ``timedout`` with ``has_error == 0`` and no agreement, so they no
+  longer pollute error statistics.
+
+* [fix] ``make_scores``/``combine_tournaments`` no longer crash on reloaded
+  tournament details: list-valued columns that come back as JSON strings or
+  numpy arrays (after a parquet/csv round-trip) are parsed robustly, and
+  ``_parse_list_value`` no longer raises on array-like inputs.
+
+* [fix] Saving tournament results to parquet no longer crashes on agent/object
+  columns.
+
+* [fix] Scenario loading skips hidden ``._*.yml`` sidecar files (macOS
+  AppleDouble resource forks) that are not valid YAML.
+
+* [fix] ``AffineUtilityFunction.normalize_for`` can now normalize ufuns with
+  negative (or negative-leaning) weights; it only refuses when the linear part
+  is entirely zero (sum of *absolute* weights ~ 0).
+
+* [fix] Inverse-ufun ``worst_in``/``best_in`` return ``None`` when no outcome
+  lies in the requested utility range, instead of raising.
+
+* [fix] Mechanisms are now picklable under stdlib ``pickle`` (spawn-based
+  multiprocessing): ``defaultdict(lambda: ...)`` factories were replaced with
+  named functions across ``Mechanism``, the chain mechanisms and the TAU
+  mechanism.
+
+* [fix] Tournament ``continue`` resumes instead of re-running: run identity
+  hashes are now process-stable.
+
+* [fix] Results-only ``from_records`` path flattens per-negotiator scores
+  correctly.
+
+* [fix] A final ``world_progress_callback`` now fires after every world ends.
+
+* [fix] ``TimeoutCaller`` reclaims timed-out worker threads.
+
+**Performance:**
+
+* [optim] Sped up hot paths in ``SAOMechanism``.
+
+**Tests / CI:**
+
+* [test] Plots are never displayed during tests: a root ``conftest.py`` forces a
+  non-interactive matplotlib backend and neutralizes ``plotly`` ``show`` for the
+  whole session. ``plot(show=True)`` in an assert-failure message used to open a
+  browser tab and block a headless CI runner for hours; failures now surface
+  immediately.
+
+* [test] ``test_can_normalize_affine_and_linear_ufun`` expects a ``ValueError``
+  only when all weights are ~ 0, matching the new normalization behavior.
+
+**Chores:**
+
+* [docs] Documented ``external_timeout``/``max_tasks_per_worker`` for
+  tournaments.
+
+Release 0.15.5
+--------------
 
 **Bug Fixes:**
 
