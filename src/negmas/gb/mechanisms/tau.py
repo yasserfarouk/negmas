@@ -13,6 +13,15 @@ from negmas.outcomes import Outcome
 __all__ = ["TAUMechanism"]
 
 
+def _defaultdict_of_set() -> defaultdict:
+    """A picklable ``defaultdict`` factory yielding ``defaultdict(set)``.
+
+    Used instead of ``lambda: defaultdict(set)`` so the mechanism stays
+    picklable (e.g. when round-tripped through multiprocessing workers in
+    tournaments)."""
+    return defaultdict(set)
+
+
 class TAUMechanism(BaseGBMechanism):
     """TAU (Threaded Acceptance with Unanimous agreement) mechanism.
 
@@ -44,7 +53,7 @@ class TAUMechanism(BaseGBMechanism):
         self._offers: dict[str, set[Outcome]] = defaultdict(set)
         self._acceptances: dict[Outcome, set[str]] = defaultdict(set)
         self._acceptances_per_negotiator: dict[Outcome, dict[str, set[str]]] = (
-            defaultdict(lambda: defaultdict(set))
+            defaultdict(_defaultdict_of_set)
         )
         self._proposals: dict[Outcome, set[str]] = defaultdict(set)
         self._last_offer: dict[str, Outcome] = dict()

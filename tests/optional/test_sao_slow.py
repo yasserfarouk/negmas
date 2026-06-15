@@ -127,6 +127,16 @@ def test_mechanism_runall_ordering_with_fun(
     assert not any(_ is not None and _.running for _ in states)
 
 
+def _defaultdict_of_list() -> defaultdict:
+    """Picklable ``defaultdict`` factory yielding ``defaultdict(list)``."""
+    return defaultdict(list)
+
+
+def _defaultdict_of_int() -> defaultdict:
+    """Picklable ``defaultdict`` factory yielding ``defaultdict(int)``."""
+    return defaultdict(int)
+
+
 class MyRaisingNegotiator(SAONegotiator):
     def propose(self, state: SAOState, dest: str | None = None) -> Outcome | None:
         _ = state
@@ -147,20 +157,18 @@ class MySyncController(SAOSyncController):
         self._sleep_seconds = sleep_seconds
         self.n_counter_all_calls = 0
         self.countered_offers: dict[int, dict[str, list[Outcome | None]]] = defaultdict(
-            lambda: defaultdict(list)
+            _defaultdict_of_list
         )
         self.received_offers: dict[str, dict[int, list[Outcome | None]]] = defaultdict(
-            lambda: defaultdict(list)
+            _defaultdict_of_list
         )
         self.sent_offers: dict[str, dict[int, list[Outcome | None]]] = defaultdict(
-            lambda: defaultdict(list)
+            _defaultdict_of_list
         )
         self.sent_responses: dict[str, dict[int, list[ResponseType]]] = defaultdict(
-            lambda: defaultdict(list)
+            _defaultdict_of_list
         )
-        self.wait_states: dict[str, dict[int, int]] = defaultdict(
-            lambda: defaultdict(int)
-        )
+        self.wait_states: dict[str, dict[int, int]] = defaultdict(_defaultdict_of_int)
         self.accept_after = accept_after
         self.end_after = end_after
         self.offer_none_after = offer_none_after
@@ -249,6 +257,11 @@ class InfiniteLoopNegotiator(RandomNegotiator):
         self.__stop = True
 
 
+def _return_none() -> None:
+    """A picklable ``defaultdict`` factory returning ``None`` (vs ``lambda: None``)."""
+    return None
+
+
 class TimeWaster(RandomNegotiator):
     """A negotiator that wastes time"""
 
@@ -265,9 +278,9 @@ class TimeWaster(RandomNegotiator):
         kwargs["p_rejection"] = kwargs.get("p_rejection", pr)
         super().__init__(*args, **kwargs)
         self._sleep_seconds = sleep_seconds
-        self.my_offers: dict[int, Outcome | None] = defaultdict(lambda: None)
-        self.received_offers: dict[int, Outcome | None] = defaultdict(lambda: None)
-        self.my_responses: dict[int, ResponseType | None] = defaultdict(lambda: None)
+        self.my_offers: dict[int, Outcome | None] = defaultdict(_return_none)
+        self.received_offers: dict[int, Outcome | None] = defaultdict(_return_none)
+        self.my_responses: dict[int, ResponseType | None] = defaultdict(_return_none)
         self.n_waits = n_waits
         if n_waits:
             self.n_waits = random.randint(0, n_waits)

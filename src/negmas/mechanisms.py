@@ -1171,6 +1171,11 @@ class CompletedRun(Generic[TState]):
         )
 
 
+def _return_inf() -> float:
+    """A picklable factory returning infinity (used as a ``defaultdict`` factory)."""
+    return float("inf")
+
+
 class Mechanism(
     NamedObject,
     EventSource,
@@ -1289,8 +1294,8 @@ class Mechanism(
         outcome_space = ensure_os(outcome_space, issues, outcomes)
         self.__verbosity = verbosity
         self._negotiator_logs: dict[str, list[dict[str, Any]]] = defaultdict(list)
-        self._negotiator_time_limits = defaultdict(lambda: float("inf"))
-        self._negotiator_n_steps = defaultdict(lambda: float("inf"))
+        self._negotiator_time_limits = defaultdict(_return_inf)
+        self._negotiator_n_steps = defaultdict(_return_inf)
         super().__init__(name=name, id=id, type_name=type_name)
 
         self.ignore_negotiator_exceptions = ignore_negotiator_exceptions
@@ -1348,7 +1353,7 @@ class Mechanism(
         self._nmi_factory = nmi_factory
         self._internal_nmi = nmi_factory(**self._nmi_params)  # type: ignore
         self._shared_nmi = nmi_factory(**self._nmi_params)  # type: ignore
-        self._nmis = defaultdict(lambda: self._shared_nmi)
+        self._nmis = defaultdict(self._get_shared_nmi)
 
         self._current_state = initial_state if initial_state else MechanismState()  # type: ignore This is a shortcut to allow users to create mechanisms without passing any initial_state
         self._current_state: TState
@@ -1384,6 +1389,14 @@ class Mechanism(
         self.params: dict[str, Any] = dict(
             dynamic_entry=dynamic_entry, genius_port=genius_port, annotation=annotation
         )
+
+    def _get_shared_nmi(self) -> TNMI:
+        """A picklable ``defaultdict`` factory returning the shared NMI.
+
+        Used instead of a local ``lambda`` so that mechanisms remain picklable
+        (e.g. when running tournaments with multiprocessing).
+        """
+        return self._shared_nmi
 
     @property
     def nmi(self) -> TNMI:
