@@ -38,6 +38,15 @@ Agreement = namedtuple("Agreement", ["outcome", "negotiators", "level"])
 """Defines an agreement for a multi-channel mechanism"""
 
 
+def _return_none() -> None:
+    """A picklable ``defaultdict`` factory returning ``None``.
+
+    Used instead of ``lambda: None`` so that mechanisms holding these
+    ``defaultdict``\\ s stay picklable (e.g. when round-tripped through
+    multiprocessing workers in tournaments)."""
+    return None
+
+
 class ChainNMI(NegotiatorMechanismInterface):
     """ChainNMI implementation."""
 
@@ -251,8 +260,8 @@ class ChainNegotiationsMechanism(
         self.__next_agent = 0
         self.__last_proposal: Offer | None = None
         self.__last_proposer_index: int = -1
-        self.__agreements: dict[int, Outcome | None] = defaultdict(lambda: None)
-        self.__temp_agreements: dict[int, Outcome | None] = defaultdict(lambda: None)
+        self.__agreements: dict[int, Outcome | None] = defaultdict(_return_none)
+        self.__temp_agreements: dict[int, Outcome | None] = defaultdict(_return_none)
         self.__neg_roles: dict[str, str] = dict()
 
     def _get_nmi(self, negotiator: ChainNegotiator) -> ChainNMI:
@@ -451,8 +460,8 @@ class MultiChainNegotiationsMechanism(
         self.__last_proposal: Offer | None = None
         self.__last_proposer_level: int = -1
         self.__last_proposer_number: int = -1
-        self.__agreements: dict[int, Agreement] = defaultdict(lambda: None)  # type: ignore
-        self.__temp_agreements: dict[int, Agreement] = defaultdict(lambda: None)  # type: ignore
+        self.__agreements: dict[int, Agreement] = defaultdict(_return_none)  # type: ignore
+        self.__temp_agreements: dict[int, Agreement] = defaultdict(_return_none)  # type: ignore
         self.__level: dict[str, int] = {}
         self.__number: dict[str, int] = {}
         self.__neg_roles: dict[str, str] = dict()

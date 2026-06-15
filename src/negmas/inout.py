@@ -354,7 +354,9 @@ class Scenario:
             if backend == "matplotlib":
                 fig.savefig(str(plot_path), bbox_inches="tight")  # type: ignore
             else:  # plotly
-                fig.write_image(str(plot_path))  # type: ignore
+                from negmas.plots._browser import write_image as _write_image
+
+                _write_image(fig, plot_path)
             saved_files.append(plot_path)
         else:
             # Multiple plots: create _plots/ subfolder
@@ -377,7 +379,9 @@ class Scenario:
                 if backend == "matplotlib":
                     fig.savefig(str(plot_path), bbox_inches="tight")  # type: ignore
                 else:  # plotly
-                    fig.write_image(str(plot_path))  # type: ignore
+                    from negmas.plots._browser import write_image as _write_image
+
+                    _write_image(fig, plot_path)
                 saved_files.append(plot_path)
 
         return saved_files

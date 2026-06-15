@@ -23,6 +23,8 @@ jobs:
         run: uv python install ${{ matrix.python-version }}
       - name: Install the project
         run: uv sync --extra testing --extra dev
+      - name: "Provision Chrome for plotly static export (kaleido>=1.0)"
+        run: uv run plotly_get_chrome -y
       - name: "Install Jupyter Kernel"
         run: uv run -m ipykernel install --user --name=negmas
       - name: "Install Genius Bridge"

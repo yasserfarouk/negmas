@@ -4,6 +4,17 @@ History
 Release 0.15.5
 --------------
 
+**Changes:**
+
+* [deps] Upgraded to ``kaleido>=1.0`` (and ``plotly>=6.1.1``) for plotly static
+  image export, dropping the old ``kaleido<1.0`` pin. ``kaleido>=1.0`` drives a
+  system Chrome instead of bundling one, so on a headless server/CI runner with
+  no browser ``negmas`` now provisions a private Chrome for Testing build on
+  demand (once, into the user cache) and retries the export. Set ``BROWSER_PATH``
+  to reuse an existing browser, run ``plotly_get_chrome`` to provision ahead of
+  time, or set ``NEGMAS_AUTO_INSTALL_CHROME=0`` to disable the auto-download and
+  get a clear actionable error instead.
+
 **Bug Fixes:**
 
 * [fix] Resolve indefinite hang in parallel tournaments on Python 3.11+:
