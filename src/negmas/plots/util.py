@@ -2138,7 +2138,9 @@ def plot_offline_run(
         else:
             path_ = pathlib.Path(path)
         path_.mkdir(parents=True, exist_ok=True)
-        fig.write_image(str(path_ / fig_name))
+        from negmas.plots._browser import write_image as _write_image
+
+        _write_image(fig, path_ / fig_name)
 
     if show:
         fig.show()

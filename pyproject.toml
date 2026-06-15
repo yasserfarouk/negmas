@@ -27,8 +27,8 @@ dependencies = [
     "gif>=23.3.0",
     "inflect>=4.1.0,<6.0", # needed when using data-model-generator
     "matplotlib>=3.7.0",
-    "plotly>=5.18.0",
-    "kaleido>=0.2.1,<1.0,!=0.2.1.post1", # for saving plotly figures as static images; 0.2.x bundles a headless Chromium so static export works everywhere. kaleido>=1.0 dropped the bundled browser and requires a separately-installed Chrome (fails with "Kaleido requires Google Chrome"). 0.2.1.post1 is a broken release that only ships an armv7l wheel, so exclude it.
+    "plotly>=6.1.1", # >=6.1.1 is required for the kaleido>=1.0 integration (plotly.io.get_chrome / plotly_get_chrome)
+    "kaleido>=1.0", # static image export for plotly figures. kaleido>=1.0 drives a system Chrome rather than bundling one; negmas.plots._browser provisions one on demand for headless servers (see that module / BROWSER_PATH / NEGMAS_AUTO_INSTALL_CHROME).
     "pillow>=12.1.0",
     "networkx>=3.4.2",
     "psutil>=6.1.0",
