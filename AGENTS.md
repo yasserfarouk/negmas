@@ -68,7 +68,7 @@ pre-commit run --all-files                # Run all pre-commit hooks
 
 ## Code Style
 - **Line length**: 88 chars, **indent**: 4 spaces, **quotes**: double
-- **Python target**: 3.10+ (use `|` for unions: `int | None`)
+- **Python target**: 3.11+ (use `|` for unions: `int | None`)
 - **Imports**: `from __future__ import annotations` first, then stdlib, third-party, local
 - **Naming**: PascalCase for classes, snake_case for functions/variables, `_prefix` for private
 - **Types**: Use type hints everywhere; use `TYPE_CHECKING` block for type-only imports

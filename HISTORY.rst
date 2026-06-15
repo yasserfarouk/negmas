@@ -6,6 +6,10 @@ Release 0.15.6
 
 **Changes:**
 
+* [breaking] Dropped support for Python 3.10; the minimum supported version is
+  now Python 3.11. ``requires-python`` and the CI matrix were updated
+  accordingly.
+
 * [feat] New process-isolated task runner ``negmas.helpers.run_isolated_tasks``
   (backed by ``pebble.ProcessPool``) with a per-task timeout that actually
   fires: a negotiation stuck in an infinite loop (even inside a C extension) is
