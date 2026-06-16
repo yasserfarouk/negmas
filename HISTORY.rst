@@ -1,6 +1,28 @@
 History
 =======
 
+Release 0.15.7
+--------------
+
+**Bug Fixes:**
+
+* [fix] Serialization no longer drops fields of shared, acyclic references.
+  ``serialize()`` used a single cumulative visited-set as its cycle guard, so a
+  value appearing more than once in the tree (e.g. one outcome space reused
+  across several negotiation threads) had its fields dropped on the second
+  occurrence, and ``from_dict()`` then failed to rebuild it (e.g.
+  ``DiscreteCartesianOutcomeSpace.__init__() missing 1 required positional
+  argument: 'issues'``). The guard is now scoped to the current ancestor path
+  (copy-on-add), so genuine cycles are still caught while shared acyclic
+  references round-trip in full.
+
+**Tests / CI:**
+
+* [test] Loosened the wall-clock ratio bounds in
+  ``test_relative_time_time_based_limits`` from ``[2.5, 3.5]`` to ``[2.0, 4.0]``;
+  the theoretical ratio is 3.0 but scheduling jitter on loaded CI runners pulled
+  it below 2.5, causing spurious failures.
+
 Release 0.15.6
 --------------
 
