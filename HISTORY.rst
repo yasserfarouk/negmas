@@ -4,6 +4,13 @@ History
 Release 0.15.7
 --------------
 
+**Changes:**
+
+* [build] Relaxed ``requires-python`` back to ``>=3.10`` so the package can be
+  *installed* on Python 3.10 again. Note that 3.10 is **not** officially
+  supported: it is not in the test matrix and not advertised in the trove
+  classifiers (3.11+ only). Use it at your own risk.
+
 **Bug Fixes:**
 
 * [fix] Serialization no longer drops fields of shared, acyclic references.
