@@ -1,6 +1,6 @@
 [project]
 name = "negmas"
-version = "0.15.6"
+version = "0.15.7"
 description = "NEGotiations Managed by Agent Simulations"
 readme = "README.rst"
 requires-python = ">=3.10"  # 3.10 is allowed to install but is NOT officially supported or tested (not in CI matrix or classifiers)
