@@ -88,12 +88,20 @@ def serialize(
         Args:
             x: X.
             objmem: Objmem.
+
+        Returns a NEW set containing ``id(x)`` rather than mutating ``objmem`` in
+        place. ``objmem`` is a cycle guard: ``good_field`` drops any field whose
+        value is already in it. Mutating one shared set makes it a cumulative
+        whole-tree "visited" set, so a value that merely appears more than once in
+        the tree (shared, acyclic references such as an outcome space reused by
+        several negotiation threads) has its field silently dropped on the second
+        occurrence -- and ``deserialize`` cannot rebuild it. Copy-on-add scopes
+        the guard to the current ancestor path, so only genuine cycles are caught
+        while shared references are serialized in full and round-trip correctly.
         """
         if not objmem:
-            objmem = {id(x)}
-        else:
-            objmem.add(id(x))
-        return objmem
+            return {id(x)}
+        return objmem | {id(x)}
 
     def good_field(k: str, v, objmem):
         """Good field.
