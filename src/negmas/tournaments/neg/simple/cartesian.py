@@ -3193,6 +3193,8 @@ def cartesian_tournament(
     negotiator_time_limit: float | tuple[float, float] | None = None,
     hidden_time_limit: float | tuple[float, float] | None = None,
     external_timeout: int | None = None,
+    process_isolation: bool | None = None,
+    allow_inline_fallback: bool = True,
     max_tasks_per_worker: int | None = None,
     # full_names: bool = True,
     plot_fraction: float = 0.0,
@@ -3294,6 +3296,22 @@ def cartesian_tournament(
               killable worker process instead of in-process (so a serial tournament cannot
               hang forever on a bad agent). When unset, serial runs stay fully in-process
               (good for debugging) and a true infinite loop can still hang the run.
+        process_isolation: Whether to run negotiations in isolated, killable worker
+              processes. ``None`` (default) chooses automatically: isolate when a finite
+              timeout must be enforced or parallelism was requested, otherwise (pure serial
+              with no timeout) run in-process. ``True`` always isolates. ``False`` never
+              isolates and runs in-process -- useful when isolation is not needed and no
+              ``external_timeout`` is given (avoids the per-task serialization/spawn cost);
+              note a finite timeout cannot be hard-enforced in-process (a warning is issued).
+        allow_inline_fallback: Controls what happens to a negotiation whose payload cannot
+              be serialized for process isolation (e.g. a negotiator/ufun holding an
+              unpicklable resource). When ``True`` (default) such a negotiation runs
+              in-process as a best-effort fallback, where ``external_timeout`` cannot kill a
+              CPU-bound/C-extension hang (the negotiation can run forever); a warning naming
+              the agents and the exact serialization error is always emitted. When ``False``
+              the negotiation is not run in-process: it fails to start and is recorded as a
+              failed run with every negotiator receiving its reserved value, guaranteeing no
+              negotiation ever runs without the per-negotiation timeout protection.
         max_tasks_per_worker: Recycle each worker process after this many negotiations
               (default 50) to bound memory growth across a long tournament. The per-task
               spawn cost is amortized as roughly ``spawn_cost / max_tasks_per_worker``. Pass
@@ -3753,6 +3771,8 @@ def cartesian_tournament(
         negotiator_time_limit=negotiator_time_limit,
         hidden_time_limit=hidden_time_limit,
         external_timeout=external_timeout,
+        process_isolation=process_isolation,
+        allow_inline_fallback=allow_inline_fallback,
         plot_fraction=plot_fraction,
         plot_params=serialize(
             plot_params, python_class_identifier=python_class_identifier
@@ -4300,13 +4320,36 @@ def cartesian_tournament(
     if isinf(timeout):
         timeout = None
 
-    # Serial in-process execution is kept ONLY when the user did not configure
-    # any timeout. It preserves breakpoints, full tracebacks and unpicklable
-    # local closures for debugging, but cannot stop a CPU-bound negotiator. As
-    # soon as a finite timeout exists we route every run -- serial (njobs < 0,
-    # one worker) or parallel -- through run_isolated_tasks so that an
-    # infinite-looping agent is killed and the tournament continues.
-    if njobs < 0 and timeout is None:
+    # Decide whether to run negotiations in isolated, killable worker processes.
+    #
+    # In-process execution preserves breakpoints, full tracebacks and unpicklable
+    # local closures for debugging, but cannot stop a CPU-bound negotiator.
+    # Process isolation (run_isolated_tasks) is what lets a finite timeout kill an
+    # infinite-looping agent so the tournament continues.
+    #
+    # ``process_isolation`` overrides the choice explicitly:
+    #   - None (default): auto -- isolate whenever a finite timeout must be
+    #     enforced or parallelism was requested; otherwise (pure serial, no
+    #     timeout) stay in-process.
+    #   - True: always isolate.
+    #   - False: never isolate; run in-process. If a finite timeout was also
+    #     configured it cannot be hard-enforced in-process, so we warn.
+    if process_isolation is None:
+        use_isolation = not (njobs < 0 and timeout is None)
+    else:
+        use_isolation = bool(process_isolation)
+    if not use_isolation and timeout is not None:
+        from negmas import warnings as _warnings
+
+        _warnings.warn(
+            f"process_isolation is disabled but a per-negotiation timeout "
+            f"({timeout}s) was configured; it cannot be hard-enforced for "
+            "in-process runs, so a CPU-bound/infinite-looping negotiation will "
+            "not be killed. Enable process isolation (or set external_timeout "
+            "with process_isolation=None) for a hard guarantee.",
+            _warnings.NegmasInfiniteNegotiationWarning,
+        )
+    if not use_isolation:
         for i, info in enumerate(
             track(runs, total=len(runs), description=NEGOTIATIONS_DIR_NAME)
         ):
@@ -4417,6 +4460,7 @@ def cartesian_tournament(
             on_error=_on_error,
             track=track,
             description=NEGOTIATIONS_DIR_NAME,
+            allow_inline_fallback=allow_inline_fallback,
         )
 
     # Merge with existing results if continuing a tournament
@@ -4701,6 +4745,8 @@ def continue_cartesian_tournament(
             negotiator_time_limit=config.get("negotiator_time_limit"),
             hidden_time_limit=config.get("hidden_time_limit"),
             external_timeout=config.get("external_timeout"),
+            process_isolation=config.get("process_isolation"),
+            allow_inline_fallback=config.get("allow_inline_fallback", True),
             plot_fraction=config["plot_fraction"],
             plot_params=config.get("plot_params"),
             verbosity=final_verbosity,

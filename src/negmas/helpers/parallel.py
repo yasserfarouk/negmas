@@ -246,6 +246,54 @@ def _cloud_runner(payload: bytes):
     return fn(*args, **kwargs)
 
 
+class UnserializableTaskError(Exception):
+    """A task could not be serialized for process isolation.
+
+    Raised/surfaced when a task's payload (negotiators, ufuns, scenario, ...)
+    cannot be ``cloudpickle``-serialized, so it cannot run in an isolated,
+    killable worker process. When the in-process fallback is disabled the task
+    is failed with this error instead of running unprotected in-process.
+    """
+
+
+def _task_label(info: Any, i: int) -> str:
+    """Best-effort human label for a task, preferring negotiator class names.
+
+    Used in the unserializable-task message so the offending agents are named
+    explicitly rather than shown as an opaque index."""
+    if isinstance(info, dict):
+        for key in ("partner_names", "partners"):
+            vals = info.get(key)
+            if vals:
+                names = [
+                    getattr(p, "__name__", None) or getattr(p, "name", None) or str(p)
+                    for p in vals
+                ]
+                return ", ".join(str(_) for _ in names)
+        run_id = info.get("run_id")
+        if run_id:
+            return f"run {run_id}"
+    return f"task {i}"
+
+
+def _warn_unserializable(message: str) -> None:
+    """Surface an unserializable-task event unconditionally.
+
+    Printed straight to ``stderr`` (flushed) *and* raised through negmas'
+    warning system, so it is always visible even when Python's warning filters
+    would otherwise dedupe or suppress ``warnings.warn``."""
+    from negmas import warnings as _warnings
+
+    try:
+        print(f"NEGMAS WARNING: {message}", file=sys.stderr, flush=True)
+    except Exception:
+        pass
+    try:
+        _warnings.warn(message, _warnings.NegmasUnexpectedValueWarning)
+    except Exception:
+        pass
+
+
 def run_isolated_tasks(
     tasks: Iterable[tuple[Any, Callable[..., Any], tuple, dict]],
     *,
@@ -259,6 +307,7 @@ def run_isolated_tasks(
     on_error: Callable[[BaseException, Any, int, int], None] | None = None,
     track: Callable[..., Iterable] | None = None,
     description: str = "Running",
+    allow_inline_fallback: bool = True,
 ) -> int:
     """Run ``tasks`` in isolated worker processes with a real per-task timeout.
 
@@ -287,15 +336,31 @@ def run_isolated_tasks(
     - **Local ufuns/negotiators.** Payloads are serialized with cloudpickle, so
       closures, lambdas and locally defined classes work.
 
-    Tasks whose payload cannot be serialized at all are run **in-process** as a
-    best-effort fallback (a warning is emitted per such task): their pure-Python
-    infinite loops can still be interrupted via the thread-injection path, but a
-    C-extension hang in an unpicklable task cannot be isolated and will block.
+    Tasks whose payload cannot be serialized at all cannot run in an isolated,
+    killable worker. Behaviour is controlled by ``allow_inline_fallback``:
+
+    - ``True`` (default): such a task is run **in-process** as a best-effort
+      fallback. A warning naming the offending negotiators and the exact
+      serialization error is always emitted. Pure-Python infinite loops can
+      still be interrupted via the thread-injection path, but a C-extension /
+      CPU-bound hang in an unpicklable task cannot be isolated and will block.
+    - ``False``: such a task is **not** run in-process. A warning is emitted
+      and the task is failed via ``on_error`` with an
+      :class:`UnserializableTaskError`, so the caller records it as a failed
+      run (e.g. a no-agreement / reserved-value outcome) instead of risking an
+      unkillable in-process hang.
 
     Callbacks:
         - ``on_result(info, result, i, n)`` on success
         - ``on_timeout(info, i, n)`` when the task exceeded ``timeout``
-        - ``on_error(exc, info, i, n)`` on any other failure
+        - ``on_error(exc, info, i, n)`` on any other failure (including an
+          unserializable task when ``allow_inline_fallback`` is ``False``)
+
+    Args:
+        allow_inline_fallback: When ``True`` (default), tasks that cannot be
+            serialized run in-process without a hard timeout guarantee. When
+            ``False``, they are failed via ``on_error`` instead so no negotiation
+            can run unprotected by the per-task timeout.
 
     Returns the number of tasks submitted.
     """
@@ -333,13 +398,19 @@ def run_isolated_tasks(
         task_iter = iter(enumerate(materialized))
         inflight: dict[Any, tuple[int, Any]] = {}
         inline: list[tuple[int, Any, Callable, tuple, dict]] = []
+        # Tasks that could not be serialized while inline fallback is disabled;
+        # failed via on_error after the pool drains so each becomes a recorded
+        # failed run (reserved-value outcome) rather than an unkillable hang.
+        unserializable: list[tuple[int, Any, BaseException]] = []
 
         with ProcessPool(max_workers=max_workers, max_tasks=pebble_max_tasks) as pool:
 
             def submit_next() -> bool:
-                """Schedule the next serializable task; queue unpicklable ones
-                for in-process fallback. Returns True if a pool task was
-                scheduled, False when the input is exhausted."""
+                """Schedule the next serializable task. Unpicklable tasks are
+                either queued for in-process fallback or recorded as failures
+                (depending on ``allow_inline_fallback``); either way we keep
+                consuming. Returns True if a pool task was scheduled, False when
+                the input is exhausted."""
                 while True:
                     try:
                         i, (info, fn, args, kwargs) = next(task_iter)
@@ -347,17 +418,36 @@ def run_isolated_tasks(
                         return False
                     try:
                         payload = cloudpickle.dumps((fn, args, kwargs))
-                    except Exception:
-                        names = info if isinstance(info, dict) else {}
-                        _warnings.warn(
-                            f"Cannot serialize a task for process isolation "
-                            f"({names.get('partners', i)}); running it in-process "
-                            "(hard kill of a C-extension hang is unavailable). "
-                            "Make the negotiators/ufuns picklable to enable "
-                            "process isolation.",
-                            _warnings.NegmasUnexpectedValueWarning,
-                        )
-                        inline.append((i, info, fn, args, kwargs))
+                    except Exception as exc:
+                        label = _task_label(info, i)
+                        cause = f"{type(exc).__name__}: {exc}"
+                        if allow_inline_fallback:
+                            _warn_unserializable(
+                                f"Cannot serialize negotiation task for process "
+                                f"isolation [{label}]: {cause}. Running it "
+                                "in-process: the per-task timeout cannot kill a "
+                                "C-extension/CPU-bound hang in it, so it may "
+                                "block. Make the negotiators/ufuns picklable to "
+                                "enable process isolation."
+                            )
+                            inline.append((i, info, fn, args, kwargs))
+                        else:
+                            _warn_unserializable(
+                                f"Cannot serialize negotiation task for process "
+                                f"isolation [{label}]: {cause}. Inline fallback "
+                                "is disabled; failing this negotiation so every "
+                                "negotiator receives its reserved value."
+                            )
+                            unserializable.append(
+                                (
+                                    i,
+                                    info,
+                                    UnserializableTaskError(
+                                        f"Task [{label}] could not be serialized "
+                                        f"for process isolation: {cause}"
+                                    ),
+                                )
+                            )
                         continue
                     future = pool.schedule(
                         _cloud_runner, args=(payload,), timeout=timeout
@@ -402,6 +492,13 @@ def run_isolated_tasks(
                             on_result(info, result, i, n)
                     yield
                     submit_next()
+
+        # Unserializable tasks with inline fallback disabled: surface each as a
+        # failure so the caller records a failed run (reserved-value outcome).
+        for i, info, exc in unserializable:
+            if on_error is not None:
+                on_error(exc, info, i, n)
+            yield
 
         # In-process fallback for tasks that could not be serialized. Best-effort
         # timeout via the shared thread pool (pure-Python loops only).
