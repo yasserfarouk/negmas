@@ -945,8 +945,14 @@ class SAOMechanism(
                 if indx is None:
                     indices = []
                 else:
+                    # The proposer is recorded separately in the
+                    # ``negotiator``/``offer`` columns. ``responses`` should list
+                    # the responders that accepted the offer, which are the
+                    # negotiators *after* the proposer in round-robin order, so
+                    # we start at ``indx + 1`` (not ``indx``).
                     indices = [
-                        _ if _ < n else _ % n for _ in range(indx, n_acceptances + indx)
+                        _ if _ < n else _ % n
+                        for _ in range(indx + 1, n_acceptances + indx + 1)
                     ]
             return [self.negotiator_ids[_] for _ in indices]
 

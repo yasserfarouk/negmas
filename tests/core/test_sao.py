@@ -2534,3 +2534,97 @@ def test_leave_broken_with_remaining_participant():
     assert stayer.id == participating[0].id, (
         "stayer should be the remaining participant"
     )
+
+
+def test_full_trace_responses_record_acceptor_not_proposer():
+    """Regression test: the ``responses`` dict in ``full_trace`` must list the
+    negotiator(s) that ACCEPTED an offer, not the proposer that made it.
+
+    Previously an off-by-one in ``get_acceptances`` started counting at the
+    proposer's index, so the accepted offer was attributed to the proposer
+    instead of the actual acceptor.
+    """
+    issues = [make_issue(10, "price")]
+    os = make_os(issues)
+    # Aligned (identical) preferences so the first offer is accepted immediately,
+    # deterministically reproducing the reported "offer accepted at once" case.
+    m = SAOMechanism(issues=issues, n_steps=50)
+    m.add(
+        AspirationNegotiator(name="Buyer"),
+        ufun=LUFun([IdentityFun()], outcome_space=os),
+    )
+    m.add(
+        AspirationNegotiator(name="Seller"),
+        ufun=LUFun([IdentityFun()], outcome_space=os),
+    )
+    m.run()
+
+    assert m.agreement is not None, "expected the negotiation to reach an agreement"
+
+    trace = m.full_trace
+    assert trace, "trace should not be empty"
+    last = trace[-1]
+    assert last.state == "agreement"
+
+    # The proposer of the agreed offer is recorded in the ``negotiator`` column.
+    proposer = last.negotiator
+    # ``responses`` must contain the acceptor (the *other* negotiator), keyed by
+    # its id with ACCEPT_OFFER, and must NOT contain the proposer itself.
+    assert last.responses, "responses should record the accepting negotiator"
+    assert proposer not in last.responses, (
+        "the proposer must not appear as an acceptor of its own offer"
+    )
+    for nid, resp in last.responses.items():
+        assert nid in m.negotiator_ids
+        assert nid != proposer
+        assert resp == ResponseType.ACCEPT_OFFER
+
+
+def test_full_trace_records_offerer_acceptance_only_when_offering_not_accepting():
+    """``responses`` should reflect the offerer's acceptance based on
+    ``offering_is_accepting``.
+
+    * With ``offering_is_accepting=True`` (default) the proposer's *implicit*
+      self-acceptance must NOT be recorded (it is shown in the ``negotiator``
+      column instead).
+    * With ``offering_is_accepting=False`` the proposer must *explicitly* accept
+      its own offer to reach an agreement, and that acceptance SHOULD be
+      recorded in ``responses``.
+    """
+
+    class _AlwaysAccept(SAONegotiator):
+        def propose(self, state, dest=None):
+            return (5,)
+
+        def respond(self, state, source=None):
+            return ResponseType.ACCEPT_OFFER
+
+    issues = [make_issue(10, "price")]
+
+    # offering_is_accepting=False -> the proposer's explicit accept is recorded.
+    m = SAOMechanism(issues=issues, n_steps=50, offering_is_accepting=False)
+    m.add(_AlwaysAccept(name="A"))
+    m.add(_AlwaysAccept(name="B"))
+    m.run()
+    assert m.agreement is not None
+    last = m.full_trace[-1]
+    assert last.state == "agreement"
+    assert last.negotiator in last.responses, (
+        "with offering_is_accepting=False the proposer explicitly accepts and "
+        "must be recorded"
+    )
+    assert set(last.responses) == set(m.negotiator_ids)
+    assert all(r == ResponseType.ACCEPT_OFFER for r in last.responses.values())
+
+    # offering_is_accepting=True -> the proposer is NOT recorded as an acceptor.
+    m2 = SAOMechanism(issues=issues, n_steps=50, offering_is_accepting=True)
+    m2.add(_AlwaysAccept(name="A"))
+    m2.add(_AlwaysAccept(name="B"))
+    m2.run()
+    assert m2.agreement is not None
+    last2 = m2.full_trace[-1]
+    assert last2.state == "agreement"
+    assert last2.negotiator not in last2.responses, (
+        "with offering_is_accepting=True the proposer's implicit acceptance "
+        "must not be recorded"
+    )

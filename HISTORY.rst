@@ -1,6 +1,20 @@
 History
 =======
 
+Release 0.15.8
+--------------
+
+**Bug Fixes:**
+
+* [fix] ``SAOMechanism.full_trace`` now records the negotiator(s) that
+  *accepted* an offer in the ``responses`` dict instead of the proposer. An
+  off-by-one in ``get_acceptances`` started counting acceptances at the
+  proposer's own index, so an accepted offer (e.g. an immediate agreement) was
+  mislabeled with the proposer's id rather than the acceptor's. The range now
+  starts one past the proposer, wrapping correctly for >2 negotiators. The
+  offerer's *implicit* acceptance is excluded when ``offering_is_accepting`` is
+  ``True``; when it is ``False`` the offerer's *explicit* acceptance is recorded.
+
 Release 0.15.7
 --------------
 
