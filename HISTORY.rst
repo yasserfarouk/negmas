@@ -4,6 +4,28 @@ History
 Release 0.15.8
 --------------
 
+**Changes:**
+
+* [cartesian] ``cartesian_tournament`` gained two parameters that give callers
+  control over process isolation and how unserializable tasks are handled
+  (both threaded through the saved config so continued tournaments keep the
+  setting):
+
+  * ``process_isolation``: ``None`` (auto, the previous behavior), ``True``
+    (always isolate each task in its own process), or ``False`` (run in-process,
+    skipping the per-task serialization/spawn cost; warns if a finite timeout is
+    set since it cannot be hard-enforced in-process).
+  * ``allow_inline_fallback``: when ``False``, a task whose payload cannot be
+    cloudpickled is failed via ``on_error`` with ``UnserializableTaskError``
+    (recorded as a failed run with the reserved value for every negotiator)
+    instead of silently running unprotected in-process and losing the
+    ``external_timeout`` hard-kill guarantee.
+
+  ``run_isolated_tasks`` now always surfaces an in-process fallback, printing the
+  offending negotiator class names and the exact serialization error to stderr
+  and via ``warnings`` (defeating Python's once-per-site dedup) rather than
+  swallowing the exception.
+
 **Bug Fixes:**
 
 * [fix] ``SAOMechanism.full_trace`` now records the negotiator(s) that
