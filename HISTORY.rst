@@ -1,6 +1,86 @@
 History
 =======
 
+Release 0.15.9 (dev)
+---------------------
+
+**Changes:**
+
+* [inv_ufun] Refactored ``inv_ufun.py`` into a package (``inv_ufun/``) with one
+  class per file.  All public names are re-exported from
+  ``negmas.preferences.inv_ufun`` as before; no import changes needed.
+
+* [inv_ufun] **New** ``BIDSInverseUtilityFunction``: implements the BIDS
+  (Bidding using Diversified Search) algorithm from Koça et al. (2024).
+  Builds a dynamic-programming table in ``init()`` (``O(|I|·|V|·10^p)``) that
+  allows ``one_in()`` queries in ``O(1)`` and ``some()`` in ``O(n_samples)``.
+  Scales to outcome spaces with 10^200+ outcomes.  **Only works with
+  ``LinearAdditiveUtilityFunction`` / ``LinearUtilityFunction``**; raises
+  ``TypeError`` for other ufun types.
+
+* [inv_ufun] **New** ``AdaptiveInverseUtilityFunction``: automatically selects
+  the best concrete inverter based on ufun type and outcome-space size.
+  Delegates to ``PresortingInverseUtilityFunction`` for spaces with
+  ≤ ``max_presorting_outcomes`` outcomes (default 10^6, exact), and to
+  ``BIDSInverseUtilityFunction`` for larger additive spaces (approximate but
+  scalable).  Recommended entry-point for code that should work across a wide
+  range of domain sizes.
+
+* [inv_ufun] Renamed ``PresortingInverseUtilityFunction`` (waypoint-based,
+  legacy) → ``PresortingLegacyInverseUtilityFunction`` and the previously
+  un-waypointed sibling ``PresortingInverseUtilityFunction2`` →
+  ``PresortingInverseUtilityFunction`` (new default).  Empirical benchmarks show
+  the waypoint coarse-search is ~2× *slower* than a direct numpy ``searchsorted``
+  at every tested scale (100 – 10^6 outcomes), so the simpler variant is now
+  canonical.  ``PresortingLegacyInverseUtilityFunction`` is kept for backward
+  compatibility.
+
+* [pareto_sampler] **New** ``pareto_sampler`` sub-package introducing the
+  ``ParetoSampler`` protocol for *trade-off queries* (finding Pareto-optimal
+  outcomes given an estimate of the opponent's utility function) and
+  ``IPSParetoSampler``, an implementation of the IPS (Iterative Pareto Search)
+  algorithm from Koça et al. (2024).  The opponent utility function is accessed
+  via ``Negotiator.opponent_ufun`` (``None`` when no estimate is available).
+
+* [inv_ufun] Added comprehensive performance benchmark
+  (``coding_agents/benchmark_all_inverters.py``) comparing all inverters across
+  outcome spaces from 25 to 10^200.  Results are documented in the
+  ``negmas.preferences.inv_ufun`` module docstring.
+
+**Bug Fixes:**
+
+* [inv_ufun] ``SamplingInverseUtilityFunction`` was non-instantiable
+  (``TypeError: Can't instantiate abstract class`` due to missing implementations
+  of ``best``, ``max``, ``min``, ``within_fractions``, ``within_indices``,
+  ``worst``).  Added all required methods, delegating to the wrapped ufun's own
+  ``minmax()``/``extreme_outcomes()``.
+
+* [inv_ufun] ``SamplingInverseUtilityFunction.best_in`` had a sign inversion
+  (compared ``util < best_util`` instead of ``>``), causing it to return the
+  *worst* outcome in a range rather than the best.
+
+* [inv_ufun] ``PresortingInverseUtilityFunction.one_in`` called
+  ``_indx_of_worst_in`` twice instead of pairing it with ``_indx_of_best_in``,
+  so it always returned the same non-random outcome rather than sampling
+  uniformly across the qualifying range.
+
+* [inv_ufun] ``PresortingInverseUtilityFunction.one_in`` early-returned ``None``
+  before the documented ``fallback_to_higher`` / ``fallback_to_best`` logic could
+  trigger, silently discarding valid fallback outcomes.
+
+* [inv_ufun] ``index_below_or_equal`` / ``_nearest_around`` could return outcomes
+  outside the requested utility range, causing ``best_in``/``worst_in`` to return
+  out-of-range results.  Replaced with textbook-correct bisection helpers in
+  ``_common.py``.
+
+* [inv_ufun] ``PresortingInverseUtilityFunctionBruteForce.reset()`` referenced
+  ``self._orddered_outcomes`` (typo) instead of ``self._ordered_outcomes``,
+  silently failing to clear state between ``init()`` calls.
+
+* [inv_ufun] ``PresortingInverseUtilityFunctionBruteForce.some()`` fallback used
+  a normalization-unaware comparison, producing incorrect results when the ufun
+  range exceeded [0, 1].
+
 Release 0.15.8
 --------------
 
