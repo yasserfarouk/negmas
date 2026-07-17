@@ -7,7 +7,7 @@ from negmas.outcomes import make_issue, make_os
 from negmas.preferences.crisp.mapping import MappingUtilityFunction
 from negmas.preferences.inv_ufun import (
     PresortingInverseUtilityFunction,
-    PresortingInverseUtilityFunctionBruteForce,
+    BruteForceInverseUtilityFunction,
 )
 
 # A utility-fraction strategy that avoids astronomically tiny non-zero values (e.g.
@@ -33,7 +33,7 @@ def make_ufun(nissues=1, nvalues=10, r=4):
 
 @pytest.mark.parametrize(
     "cls",
-    [PresortingInverseUtilityFunction, PresortingInverseUtilityFunctionBruteForce],
+    [PresortingInverseUtilityFunction, BruteForceInverseUtilityFunction],
 )
 def test_inv_simple_case_sort_all(cls):
     outcomes, ufun = make_ufun()
@@ -48,7 +48,7 @@ def test_inv_simple_case_sort_all(cls):
 
 @pytest.mark.parametrize(
     "cls",
-    [PresortingInverseUtilityFunction, PresortingInverseUtilityFunctionBruteForce],
+    [PresortingInverseUtilityFunction, BruteForceInverseUtilityFunction],
 )
 def test_inv_simple_case_sort_rational(cls):
     outcomes, ufun = make_ufun()
@@ -100,7 +100,7 @@ def test_inv_some(rational_only, normalized, nissues, nvalues, mn, mx, n, r):
 def test_inv_matches_bruteforce_outcome_at(rational_only, nissues, nvalues, r):
     outcomes, ufun = make_ufun(nissues, nvalues, r)
     fast = PresortingInverseUtilityFunction(ufun, rational_only=rational_only)
-    brute = PresortingInverseUtilityFunctionBruteForce(
+    brute = BruteForceInverseUtilityFunction(
         ufun, rational_only=rational_only
     )
     fast.init()
@@ -143,7 +143,7 @@ def test_inv_matches_bruteforce_within_indices(
 ):
     outcomes, ufun = make_ufun(nissues, nvalues, r)
     fast = PresortingInverseUtilityFunction(ufun, rational_only=rational_only)
-    brute = PresortingInverseUtilityFunctionBruteForce(
+    brute = BruteForceInverseUtilityFunction(
         ufun, rational_only=rational_only
     )
     fast.init()
@@ -176,7 +176,7 @@ def test_inv_matches_bruteforce_within_fractions(
 ):
     _, ufun = make_ufun(nissues, nvalues, r)
     fast = PresortingInverseUtilityFunction(ufun, rational_only=rational_only)
-    brute = PresortingInverseUtilityFunctionBruteForce(
+    brute = BruteForceInverseUtilityFunction(
         ufun, rational_only=rational_only
     )
     fast.init()
@@ -206,7 +206,7 @@ def test_inv_matches_bruteforce_best_worst(rational_only, nissues, nvalues, mn, 
     if ufun.outcome_space.cardinality < 2:
         return
     fast = PresortingInverseUtilityFunction(ufun, rational_only=rational_only)
-    brute = PresortingInverseUtilityFunctionBruteForce(
+    brute = BruteForceInverseUtilityFunction(
         ufun, rational_only=rational_only
     )
     fast.init()
@@ -215,23 +215,26 @@ def test_inv_matches_bruteforce_best_worst(rational_only, nissues, nvalues, mn, 
     rng = fast._un_normalize_range(rng, True, True)
     x = fast.best_in(rng, normalized=False, cycle=False)
     y = brute.best_in(rng, normalized=False)
-    # best_in()/worst_in() (unlike one_in()) have no fallback: None means "no rational
-    # outcome exists in range", so the fast and ground-truth (brute force) versions
-    # must agree on whether such an outcome exists at all.
-    assert (x is None) == (y is None), (
-        f"Best disagreement on existence for range {rng} ({x=}, {y=}): {ufun}"
-    )
-    if x is not None:
+    # `brute` is the strict ground truth: `y is None` means "no outcome exists in
+    # range". `fast` (presorting) instead *clamps* empty ranges to the nearest
+    # boundary outcome so negotiators never stall, so it may return an outcome even
+    # when `y is None`. When the range is non-empty (`y is not None`), both must
+    # agree an outcome exists and `fast` must be at least as good (best_in) as `y`
+    # and lie within the range.
+    if y is not None:
+        assert x is not None, (
+            f"Best disagreement: brute found {y=} but fast found None for {rng}: {ufun}"
+        )
         assert rng[0] <= ufun(x) <= rng[1], f"{x=}, {ufun(x)=} not in {rng}"
         assert ufun(x) >= ufun(y), (
             f"Best failed for range {rng} ({ufun(x)=}, {ufun(y)=}, {x=}, {y=}): {ufun}"
         )
     x = fast.worst_in(rng, normalized=False, cycle=False)
     y = brute.worst_in(rng, normalized=False)
-    assert (x is None) == (y is None), (
-        f"Worst disagreement on existence for range {rng} ({x=}, {y=}): {ufun}"
-    )
-    if x is not None:
+    if y is not None:
+        assert x is not None, (
+            f"Worst disagreement: brute found {y=} but fast found None for {rng}: {ufun}"
+        )
         assert rng[0] <= ufun(x) <= rng[1], f"{x=}, {ufun(x)=} not in {rng}"
         assert ufun(x) <= ufun(y), (
             f"Worst failed for range {rng} ({ufun(x)=}, {ufun(y)=}, {x=}, {y=}): {ufun}"
@@ -253,7 +256,7 @@ def test_inv_matches_bruteforce_best_worst(rational_only, nissues, nvalues, mn, 
 def test_inv_matches_bruteforce_all(rational_only, nissues, nvalues, mn, mx, r):
     _, ufun = make_ufun(nissues, nvalues, r)
     fast = PresortingInverseUtilityFunction(ufun, rational_only=rational_only)
-    brute = PresortingInverseUtilityFunctionBruteForce(
+    brute = BruteForceInverseUtilityFunction(
         ufun, rational_only=rational_only
     )
     fast.init()

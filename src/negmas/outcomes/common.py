@@ -154,11 +154,11 @@ def os_or_none(outcome_space, issues, outcomes) -> OutcomeSpace | None:
     """
     from negmas.outcomes.outcome_space import make_os
 
-    if outcome_space:
+    if outcome_space is not None:
         return outcome_space
-    if issues:
+    if issues is not None:
         return make_os(issues)
-    if not outcomes:
+    if outcomes is None or len(outcomes) == 0:
         return None
     return make_os(issues_from_outcomes(outcomes))
 
@@ -176,9 +176,9 @@ def ensure_os(outcome_space, issues, outcomes) -> OutcomeSpace:
     """
     from negmas.outcomes.outcome_space import make_os
 
-    if outcome_space:
+    if outcome_space is not None:
         return outcome_space
-    if issues:
+    if issues is not None:
         return make_os(issues)
     if not outcomes:
         raise ValueError(

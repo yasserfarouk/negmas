@@ -80,7 +80,7 @@ class DiscountedUtilityFunction(UtilityFunctionAdapter):
         super().__init__(ufun=ufun, **kwargs)
 
         # Ensure outcome space is synchronized
-        if self.outcome_space:
+        if self.outcome_space is not None:
             self._ufun.outcome_space = self.outcome_space
         else:
             self.outcome_space = self._ufun.outcome_space

@@ -15,11 +15,9 @@ from __future__ import annotations
 
 from typing import TYPE_CHECKING, Any
 
-import numpy as np
 
 from negmas.outcomes import Outcome
 
-from ._protocol import ParetoSampler
 
 if TYPE_CHECKING:
     from negmas.preferences.base_ufun import BaseUtilityFunction
@@ -168,7 +166,9 @@ class IPSParetoSampler:
 
         raw_min = self._to_raw_util(min_util) if normalized else min_util
 
-        result = [o for o in self._pareto_front if float(self._ufun(o)) >= raw_min - 1e-9]  # type: ignore[arg-type]
+        result = [
+            o for o in self._pareto_front if float(self._ufun(o)) >= raw_min - 1e-9
+        ]  # type: ignore[arg-type]
         if n is not None:
             result = result[:n]
         return result
@@ -198,7 +198,9 @@ class IPSParetoSampler:
         raw_min = self._to_raw_util(min_util) if normalized else min_util
 
         feasible = [
-            o for o in self._pareto_front if float(self._ufun(o)) >= raw_min - 1e-9  # type: ignore[arg-type]
+            o
+            for o in self._pareto_front
+            if float(self._ufun(o)) >= raw_min - 1e-9  # type: ignore[arg-type]
         ]
         if not feasible:
             return None
@@ -281,20 +283,14 @@ class IPSParetoSampler:
         # where partial utilities are ROUNDED via d().
         # ------------------------------------------------------------------
 
-        def per_issue_candidates(
-            i: int,
-        ) -> list[tuple[tuple[Any, ...], float, float]]:
+        def per_issue_candidates(i: int) -> list[tuple[tuple[Any, ...], float, float]]:
             vals = list(issues[i].all)
             own_vfun = own.values[i]
             opp_vfun = opp.values[i]
             own_w = own.weights[i]
             opp_w = opp.weights[i]
             return [
-                (
-                    (v,),
-                    d(own_w * float(own_vfun(v))),
-                    d(opp_w * float(opp_vfun(v))),
-                )
+                ((v,), d(own_w * float(own_vfun(v))), d(opp_w * float(opp_vfun(v))))
                 for v in vals
             ]
 
@@ -314,13 +310,7 @@ class IPSParetoSampler:
             for partial, u_own, u_opp in ps:
                 for singleton, u_own_i, u_opp_i in ri:
                     combined = partial + singleton
-                    product.append(
-                        (
-                            combined,
-                            d(u_own + u_own_i),
-                            d(u_opp + u_opp_i),
-                        )
-                    )
+                    product.append((combined, d(u_own + u_own_i), d(u_opp + u_opp_i)))
 
             ps = self._remove_approx_dominated(product)
 
@@ -328,8 +318,3 @@ class IPSParetoSampler:
         # The per-issue partial utilities exclude the bias; this is fine for
         # dominance computation.  Return the actual outcome tuples.
         return [partial for partial, _, _ in ps]
-
-
-# Confirm IPSParetoSampler structurally satisfies ParetoSampler at import time
-# (runtime_checkable Protocol check – fails gracefully if it doesn't)
-assert isinstance(IPSParetoSampler(None, None), ParetoSampler)  # type: ignore[arg-type]

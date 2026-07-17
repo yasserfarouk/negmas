@@ -31,6 +31,13 @@ from .base_ufun import *
 from .crisp_ufun import *
 from .prob_ufun import *
 from .inv_ufun import *
+from .pareto_sampler import (
+    BruteForceParetoSampler,
+    IPSParetoSampler,
+    MOBANOSParetoSampler,
+    NB3ParetoSampler,
+    ParetoSampler,
+)
 from .discounted import *
 from .crisp import *
 from .prob import *
@@ -49,6 +56,13 @@ __all__ = (
     + crisp_ufun.__all__
     + prob_ufun.__all__
     + inv_ufun.__all__
+    + [
+        "BruteForceParetoSampler",
+        "IPSParetoSampler",
+        "NB3ParetoSampler",
+        "MOBANOSParetoSampler",
+        "ParetoSampler",
+    ]
     + discounted.__all__
     + crisp.__all__
     + prob.__all__

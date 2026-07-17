@@ -17,8 +17,10 @@ from negmas.inout import Scenario
 from negmas.outcomes import enumerate_issues, issues_from_xml_str, make_issue
 from negmas.outcomes.outcome_space import CartesianOutcomeSpace, make_os
 from negmas.preferences import (
+    DefaultInverseUtilityFunction,
     AffineUtilityFunction,
     HyperRectangleUtilityFunction,
+    IPSParetoSampler,
     LinearAdditiveUtilityFunction,
     LinearUtilityFunction,
     MappingUtilityFunction,
@@ -648,6 +650,31 @@ def test_inverse_genius_domain():
     for i in range(100):
         v = u(inv.one_in((i / 100.0, i / 100.0), normalized=True))
         assert v - 1e-3 <= v <= v + 0.1
+
+
+def test_make_inverter_aliases_invert():
+    os = make_os([make_issue(5), make_issue(4)])
+    u = LinearAdditiveUtilityFunction.random(outcome_space=os)
+
+    inv_from_make = u.make_inverter()
+    inv_from_invert = u.invert()
+
+    assert inv_from_make is inv_from_invert
+    assert isinstance(inv_from_make, DefaultInverseUtilityFunction)
+
+
+def test_make_pareto_sampler_default_and_custom():
+    os = make_os([make_issue(5), make_issue(4)])
+    own = LinearAdditiveUtilityFunction.random(outcome_space=os)
+    opp = LinearAdditiveUtilityFunction.random(outcome_space=os)
+
+    sampler = own.make_pareto_sampler(opponent_ufun=opp)
+    assert isinstance(sampler, IPSParetoSampler)
+    assert sampler.initialized
+    assert sampler.best_for_opponent(min_util=0.1, normalized=True) is not None
+
+    sampler2 = own.make_pareto_sampler(opponent_ufun=opp)
+    assert sampler2 is sampler
 
 
 def test_random_linear_utils_are_normalized():

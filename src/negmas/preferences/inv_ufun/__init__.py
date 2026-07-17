@@ -14,7 +14,7 @@ Available implementations
     whose utility falls in the requested range.  Zero init cost, constant memory,
     but accuracy degrades severely for large or sparse spaces.
 
-- `presorting` → `PresortingInverseUtilityFunction` (**recommended default**):
+- `presorting` → `PresortingInverseUtilityFunction`:
     Enumerates (or, for continuous spaces, samples) the full outcome space once,
     sorts all outcomes by utility in ``init()``, then answers every query with a
     binary search in ``O(log n)``.  Exact for discrete spaces; limited to
@@ -27,10 +27,12 @@ Available implementations
     no faster (actually ~2× *slower*) than the default — see
     ``coding_agents/benchmark_presorting_waypoints.py``.
 
-- `presorting_bruteforce` → `PresortingInverseUtilityFunctionBruteForce`:
-    Like `PresortingInverseUtilityFunction` but uses simple linear scans instead
-    of binary search.  Intentionally slow and simple — used as an exact ground
-    truth for testing other inverters on tiny outcome spaces.
+- `bruteforce` → `BruteForceInverseUtilityFunction`:
+    The project's exact **ground truth**. Enumerates the outcome space, sorts once,
+    and answers every query with a simple linear scan (no bisection, no clamping).
+    Caches the outcome/utility arrays only for *stationary* ufuns (rebuilds each call
+    otherwise). Intentionally slow and simple — used to validate the faster inverters
+    on small domains.
 
 - `bids` → `BIDSInverseUtilityFunction`:
     Implements BIDS (Bidding using Diversified Search, Koça et al. 2024).
@@ -45,6 +47,18 @@ Available implementations
     Automatically selects the best inverter based on ufun type and outcome-space
     size.  Use this when you do not want to couple your code to a specific
     implementation.
+
+- `attribute_planning` → `AttributePlanningInverseUtilityFunction`:
+    Lightweight per-issue target matching (Jonker & Treur). Very fast and
+    scalable for additive ufuns, but less accurate and less diverse than BIDS.
+
+- `mcts` → `MCTSInverseUtilityFunction`:
+    Monte-Carlo Tree Search inverter. Works with non-additive ufuns and provides
+    diverse outcomes, but is slower than presorting/BIDS at equal accuracy.
+
+- `DefaultInverseUtilityFunction`:
+    Public default used by the library. Aliased to
+    `AdaptiveInverseUtilityFunction`.
 
 All classes implement the `InverseUFun` protocol from `negmas.preferences.protocols`.
 
@@ -151,20 +165,26 @@ Algorithms 17(5), 200.
 from __future__ import annotations
 
 from .adaptive import AdaptiveInverseUtilityFunction
+from .attribute_planning import AttributePlanningInverseUtilityFunction
 from .bids import BIDSInverseUtilityFunction
+from .bruteforce import BruteForceInverseUtilityFunction
+from .mcts import MCTSInverseUtilityFunction
 from .presorting import PresortingInverseUtilityFunction
-from .presorting_bruteforce import PresortingInverseUtilityFunctionBruteForce
 from .presorting_legacy import PresortingLegacyInverseUtilityFunction
 from .sampling import SamplingInverseUtilityFunction
 
-# NOTE: PresortingInverseUtilityFunctionBruteForce is intentionally not part of
-# __all__ (matching the pre-refactor public API) since it is meant as a testing
-# ground-truth reference rather than a class end users should build strategies
-# around. It remains fully importable directly from this package or its own
-# submodule (`negmas.preferences.inv_ufun.presorting_bruteforce`).
+# The default inverter used throughout the codebase.
+DefaultInverseUtilityFunction = AdaptiveInverseUtilityFunction
+FastInverseUtilityFunction = BIDSInverseUtilityFunction
+
 __all__ = [
     "AdaptiveInverseUtilityFunction",
+    "AttributePlanningInverseUtilityFunction",
     "BIDSInverseUtilityFunction",
+    "BruteForceInverseUtilityFunction",
+    "DefaultInverseUtilityFunction",
+    "FastInverseUtilityFunction",
+    "MCTSInverseUtilityFunction",
     "SamplingInverseUtilityFunction",
     "PresortingInverseUtilityFunction",
     "PresortingLegacyInverseUtilityFunction",

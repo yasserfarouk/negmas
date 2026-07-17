@@ -17,6 +17,37 @@ __all__: list[str] = []
 EPS = 1e-12
 
 
+def _nearest_around(
+    x: float, a: NDArray, i: int, mn: float, mx: float, n: int = 1, eps: float = EPS
+) -> int | None:
+    """Finds the nearest value in ``a`` to ``x`` around index ``i`` subject to being
+    between ``mn`` and ``mx``.
+
+    Remarks:
+        - This is the historical clamping behavior relied upon by the presorting
+          inverters: when no value strictly within ``[mn, mx]`` is found near ``i`` but
+          ``i`` is itself the best-effort clamped index (e.g. the requested utility
+          range lies entirely above/below all currently available -- possibly
+          discounted -- utilities), the clamped index ``i`` is returned instead of
+          ``None`` so callers get the nearest achievable outcome rather than failing.
+    """
+    n = len(a) - 1
+    best, best_diff = i, abs(a[i] - x)
+    for j in range(i - n, i + n + 1):
+        if j < 0 or j > n:
+            continue
+        if not (mn <= a[j] <= mx):
+            continue
+        d = abs(a[j] - x)
+        if d < best_diff:
+            best, best_diff = j, d
+    if best is None:
+        return i
+    if abs(a[best] - x) > eps and best != i:
+        return None
+    return best
+
+
 def index_above_or_equal(a: NDArray, x: Any, lo: int = 0, hi: int | None = None) -> int:
     """Locates the smallest index ``i`` in ``[lo, hi]`` with ``a[i] >= x``.
 

@@ -136,7 +136,7 @@ class GLAUtilityFunction(UtilityFunction):
         """
         super().__init__(*args, **kwargs)
 
-        if self.outcome_space and not isinstance(
+        if self.outcome_space is not None and not isinstance(
             self.outcome_space, IndependentIssuesOS
         ):
             raise ValueError(
@@ -146,7 +146,7 @@ class GLAUtilityFunction(UtilityFunction):
             )
 
         self.issues: list[Issue] | None = (
-            list(self.outcome_space.issues) if self.outcome_space else None  # type: ignore
+            list(self.outcome_space.issues) if self.outcome_space is not None else None  # type: ignore
         )
 
         # Build issue name to index mapping
@@ -486,13 +486,15 @@ class GLAUtilityFunction(UtilityFunction):
                     else:
                         # Use a simple lambda
                         func = LambdaMultiFun(
-                            f=lambda x: sum(
-                                float(v)
-                                if isinstance(v, (int, float))
-                                else hash(v) % 10
-                                for v in x
+                            f=lambda x: (
+                                sum(
+                                    float(v)
+                                    if isinstance(v, (int, float))
+                                    else hash(v) % 10
+                                    for v in x
+                                )
+                                / len(x)
                             )
-                            / len(x)
                         )
 
             factors.append((selected_indices, func))

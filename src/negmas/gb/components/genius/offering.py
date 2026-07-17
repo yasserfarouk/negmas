@@ -10,7 +10,8 @@ from typing import TYPE_CHECKING
 
 from attrs import define, field
 
-from negmas.preferences.inv_ufun import PresortingInverseUtilityFunction
+from negmas.preferences.inv_ufun import DefaultInverseUtilityFunction
+from negmas.preferences.protocols import InverseUFun
 
 from .base import GeniusOfferingPolicy
 
@@ -91,7 +92,7 @@ class GTimeDependentOffering(GeniusOfferingPolicy):
 
     e: float = 0.2  # Boulware by default
     k: float = 0.0
-    _sorter: PresortingInverseUtilityFunction | None = field(init=False, default=None)
+    _sorter: InverseUFun | None = field(init=False, default=None)
     _pmin: float = field(init=False, default=0.0)
     _pmax: float = field(init=False, default=1.0)
 
@@ -103,7 +104,7 @@ class GTimeDependentOffering(GeniusOfferingPolicy):
         """
         if not self.negotiator or not self.negotiator.ufun:
             return
-        self._sorter = PresortingInverseUtilityFunction(
+        self._sorter = DefaultInverseUtilityFunction(
             self.negotiator.ufun, rational_only=True, eps=-1, rel_eps=-1
         )
         self._sorter.init()
@@ -189,13 +190,13 @@ class GIAMCrazyHagglerOffering(GeniusOfferingPolicy):
     """
 
     breakoff: float = 0.9
-    _sorter: PresortingInverseUtilityFunction | None = field(init=False, default=None)
+    _sorter: InverseUFun | None = field(init=False, default=None)
 
     def on_preferences_changed(self, changes: list[PreferencesChange]) -> None:
         """Initialize the inverse utility function."""
         if not self.negotiator or not self.negotiator.ufun:
             return
-        self._sorter = PresortingInverseUtilityFunction(
+        self._sorter = DefaultInverseUtilityFunction(
             self.negotiator.ufun, rational_only=True, eps=-1, rel_eps=-1
         )
         self._sorter.init()
@@ -236,7 +237,7 @@ class GAgentKOffering(GeniusOfferingPolicy):
     Transcompiled from: negotiator.boaframework.offeringstrategy.anac2010.AgentK_Offering
     """
 
-    _sorter: PresortingInverseUtilityFunction | None = field(init=False, default=None)
+    _sorter: InverseUFun | None = field(init=False, default=None)
     _target: float = field(init=False, default=0.9)
     _bid_target: float = field(init=False, default=0.9)
     _pmax: float = field(init=False, default=1.0)
@@ -246,7 +247,7 @@ class GAgentKOffering(GeniusOfferingPolicy):
         """Initialize utility function and parameters."""
         if not self.negotiator or not self.negotiator.ufun:
             return
-        self._sorter = PresortingInverseUtilityFunction(
+        self._sorter = DefaultInverseUtilityFunction(
             self.negotiator.ufun, rational_only=True, eps=-1, rel_eps=-1
         )
         self._sorter.init()
@@ -298,14 +299,14 @@ class GAgentFSEGAOffering(GeniusOfferingPolicy):
 
     min_utility: float = 0.5
     sigma: float = 0.01
-    _sorter: PresortingInverseUtilityFunction | None = field(init=False, default=None)
+    _sorter: InverseUFun | None = field(init=False, default=None)
     _pmax: float = field(init=False, default=1.0)
 
     def on_preferences_changed(self, changes: list[PreferencesChange]) -> None:
         """Initialize utility function."""
         if not self.negotiator or not self.negotiator.ufun:
             return
-        self._sorter = PresortingInverseUtilityFunction(
+        self._sorter = DefaultInverseUtilityFunction(
             self.negotiator.ufun, rational_only=True, eps=-1, rel_eps=-1
         )
         self._sorter.init()
@@ -353,7 +354,7 @@ class GAgentSmithOffering(GeniusOfferingPolicy):
     Transcompiled from: negotiator.boaframework.offeringstrategy.anac2010.AgentSmith_Offering
     """
 
-    _sorter: PresortingInverseUtilityFunction | None = field(init=False, default=None)
+    _sorter: InverseUFun | None = field(init=False, default=None)
     _pmin: float = field(init=False, default=0.0)
     _pmax: float = field(init=False, default=1.0)
 
@@ -361,7 +362,7 @@ class GAgentSmithOffering(GeniusOfferingPolicy):
         """Initialize utility function."""
         if not self.negotiator or not self.negotiator.ufun:
             return
-        self._sorter = PresortingInverseUtilityFunction(
+        self._sorter = DefaultInverseUtilityFunction(
             self.negotiator.ufun, rational_only=True, eps=-1, rel_eps=-1
         )
         self._sorter.init()
@@ -403,7 +404,7 @@ class GNozomiOffering(GeniusOfferingPolicy):
     Transcompiled from: negotiator.boaframework.offeringstrategy.anac2010.Nozomi_Offering
     """
 
-    _sorter: PresortingInverseUtilityFunction | None = field(init=False, default=None)
+    _sorter: InverseUFun | None = field(init=False, default=None)
     _pmin: float = field(init=False, default=0.0)
     _pmax: float = field(init=False, default=1.0)
     _last_target: float = field(init=False, default=1.0)
@@ -412,7 +413,7 @@ class GNozomiOffering(GeniusOfferingPolicy):
         """Initialize utility function."""
         if not self.negotiator or not self.negotiator.ufun:
             return
-        self._sorter = PresortingInverseUtilityFunction(
+        self._sorter = DefaultInverseUtilityFunction(
             self.negotiator.ufun, rational_only=True, eps=-1, rel_eps=-1
         )
         self._sorter.init()
@@ -462,7 +463,7 @@ class GYushuOffering(GeniusOfferingPolicy):
     Transcompiled from: negotiator.boaframework.offeringstrategy.anac2010.Yushu_Offering
     """
 
-    _sorter: PresortingInverseUtilityFunction | None = field(init=False, default=None)
+    _sorter: InverseUFun | None = field(init=False, default=None)
     _pmin: float = field(init=False, default=0.0)
     _pmax: float = field(init=False, default=1.0)
 
@@ -470,7 +471,7 @@ class GYushuOffering(GeniusOfferingPolicy):
         """Initialize utility function."""
         if not self.negotiator or not self.negotiator.ufun:
             return
-        self._sorter = PresortingInverseUtilityFunction(
+        self._sorter = DefaultInverseUtilityFunction(
             self.negotiator.ufun, rational_only=True, eps=-1, rel_eps=-1
         )
         self._sorter.init()
@@ -515,7 +516,7 @@ class GIAMhaggler2010Offering(GeniusOfferingPolicy):
     Transcompiled from: negotiator.boaframework.offeringstrategy.anac2010.IAMhaggler2010_Offering
     """
 
-    _sorter: PresortingInverseUtilityFunction | None = field(init=False, default=None)
+    _sorter: InverseUFun | None = field(init=False, default=None)
     _pmin: float = field(init=False, default=0.0)
     _pmax: float = field(init=False, default=1.0)
 
@@ -523,7 +524,7 @@ class GIAMhaggler2010Offering(GeniusOfferingPolicy):
         """Initialize utility function."""
         if not self.negotiator or not self.negotiator.ufun:
             return
-        self._sorter = PresortingInverseUtilityFunction(
+        self._sorter = DefaultInverseUtilityFunction(
             self.negotiator.ufun, rational_only=True, eps=-1, rel_eps=-1
         )
         self._sorter.init()
@@ -586,7 +587,7 @@ class GHardHeadedOffering(GeniusOfferingPolicy):
     ka: float = 0.05
     e: float = 0.05
     min_utility: float = 0.585
-    _sorter: PresortingInverseUtilityFunction | None = field(init=False, default=None)
+    _sorter: InverseUFun | None = field(init=False, default=None)
     _pmin: float = field(init=False, default=0.0)
     _pmax: float = field(init=False, default=1.0)
     _discount: float = field(init=False, default=1.0)
@@ -596,7 +597,7 @@ class GHardHeadedOffering(GeniusOfferingPolicy):
         """Initialize utility function and parameters."""
         if not self.negotiator or not self.negotiator.ufun:
             return
-        self._sorter = PresortingInverseUtilityFunction(
+        self._sorter = DefaultInverseUtilityFunction(
             self.negotiator.ufun, rational_only=True, eps=-1, rel_eps=-1
         )
         self._sorter.init()
@@ -666,7 +667,7 @@ class GAgentK2Offering(GeniusOfferingPolicy):
     Transcompiled from: negotiator.boaframework.offeringstrategy.anac2011.AgentK2_Offering
     """
 
-    _sorter: PresortingInverseUtilityFunction | None = field(init=False, default=None)
+    _sorter: InverseUFun | None = field(init=False, default=None)
     _pmin: float = field(init=False, default=0.0)
     _pmax: float = field(init=False, default=1.0)
     _target: float = field(init=False, default=0.95)
@@ -675,7 +676,7 @@ class GAgentK2Offering(GeniusOfferingPolicy):
         """Initialize utility function."""
         if not self.negotiator or not self.negotiator.ufun:
             return
-        self._sorter = PresortingInverseUtilityFunction(
+        self._sorter = DefaultInverseUtilityFunction(
             self.negotiator.ufun, rational_only=True, eps=-1, rel_eps=-1
         )
         self._sorter.init()
@@ -718,7 +719,7 @@ class GBRAMAgentOffering(GeniusOfferingPolicy):
     Transcompiled from: negotiator.boaframework.offeringstrategy.anac2011.BRAMAgent_Offering
     """
 
-    _sorter: PresortingInverseUtilityFunction | None = field(init=False, default=None)
+    _sorter: InverseUFun | None = field(init=False, default=None)
     _pmin: float = field(init=False, default=0.0)
     _pmax: float = field(init=False, default=1.0)
     _threshold: float = field(init=False, default=0.9)
@@ -727,7 +728,7 @@ class GBRAMAgentOffering(GeniusOfferingPolicy):
         """Initialize utility function."""
         if not self.negotiator or not self.negotiator.ufun:
             return
-        self._sorter = PresortingInverseUtilityFunction(
+        self._sorter = DefaultInverseUtilityFunction(
             self.negotiator.ufun, rational_only=True, eps=-1, rel_eps=-1
         )
         self._sorter.init()
@@ -773,7 +774,7 @@ class GGahboninhoOffering(GeniusOfferingPolicy):
     Transcompiled from: negotiator.boaframework.offeringstrategy.anac2011.Gahboninho_Offering
     """
 
-    _sorter: PresortingInverseUtilityFunction | None = field(init=False, default=None)
+    _sorter: InverseUFun | None = field(init=False, default=None)
     _pmin: float = field(init=False, default=0.0)
     _pmax: float = field(init=False, default=1.0)
 
@@ -781,7 +782,7 @@ class GGahboninhoOffering(GeniusOfferingPolicy):
         """Initialize utility function."""
         if not self.negotiator or not self.negotiator.ufun:
             return
-        self._sorter = PresortingInverseUtilityFunction(
+        self._sorter = DefaultInverseUtilityFunction(
             self.negotiator.ufun, rational_only=True, eps=-1, rel_eps=-1
         )
         self._sorter.init()
@@ -823,7 +824,7 @@ class GNiceTitForTatOffering(GeniusOfferingPolicy):
     Transcompiled from: negotiator.boaframework.offeringstrategy.anac2011.NiceTitForTat_Offering
     """
 
-    _sorter: PresortingInverseUtilityFunction | None = field(init=False, default=None)
+    _sorter: InverseUFun | None = field(init=False, default=None)
     _pmin: float = field(init=False, default=0.0)
     _pmax: float = field(init=False, default=1.0)
     _last_opponent_util: float = field(init=False, default=0.0)
@@ -832,7 +833,7 @@ class GNiceTitForTatOffering(GeniusOfferingPolicy):
         """Initialize utility function."""
         if not self.negotiator or not self.negotiator.ufun:
             return
-        self._sorter = PresortingInverseUtilityFunction(
+        self._sorter = DefaultInverseUtilityFunction(
             self.negotiator.ufun, rational_only=True, eps=-1, rel_eps=-1
         )
         self._sorter.init()
@@ -875,7 +876,7 @@ class GTheNegotiatorOffering(GeniusOfferingPolicy):
     Transcompiled from: negotiator.boaframework.offeringstrategy.anac2011.TheNegotiator_Offering
     """
 
-    _sorter: PresortingInverseUtilityFunction | None = field(init=False, default=None)
+    _sorter: InverseUFun | None = field(init=False, default=None)
     _pmin: float = field(init=False, default=0.0)
     _pmax: float = field(init=False, default=1.0)
 
@@ -883,7 +884,7 @@ class GTheNegotiatorOffering(GeniusOfferingPolicy):
         """Initialize utility function."""
         if not self.negotiator or not self.negotiator.ufun:
             return
-        self._sorter = PresortingInverseUtilityFunction(
+        self._sorter = DefaultInverseUtilityFunction(
             self.negotiator.ufun, rational_only=True, eps=-1, rel_eps=-1
         )
         self._sorter.init()
@@ -934,7 +935,7 @@ class GValueModelAgentOffering(GeniusOfferingPolicy):
     Transcompiled from: negotiator.boaframework.offeringstrategy.anac2011.ValueModelAgent_Offering
     """
 
-    _sorter: PresortingInverseUtilityFunction | None = field(init=False, default=None)
+    _sorter: InverseUFun | None = field(init=False, default=None)
     _pmin: float = field(init=False, default=0.0)
     _pmax: float = field(init=False, default=1.0)
 
@@ -942,7 +943,7 @@ class GValueModelAgentOffering(GeniusOfferingPolicy):
         """Initialize utility function."""
         if not self.negotiator or not self.negotiator.ufun:
             return
-        self._sorter = PresortingInverseUtilityFunction(
+        self._sorter = DefaultInverseUtilityFunction(
             self.negotiator.ufun, rational_only=True, eps=-1, rel_eps=-1
         )
         self._sorter.init()
@@ -983,7 +984,7 @@ class GIAMhaggler2011Offering(GeniusOfferingPolicy):
     Transcompiled from: negotiator.boaframework.offeringstrategy.anac2011.IAMhaggler2011_Offering
     """
 
-    _sorter: PresortingInverseUtilityFunction | None = field(init=False, default=None)
+    _sorter: InverseUFun | None = field(init=False, default=None)
     _pmin: float = field(init=False, default=0.0)
     _pmax: float = field(init=False, default=1.0)
 
@@ -991,7 +992,7 @@ class GIAMhaggler2011Offering(GeniusOfferingPolicy):
         """Initialize utility function."""
         if not self.negotiator or not self.negotiator.ufun:
             return
-        self._sorter = PresortingInverseUtilityFunction(
+        self._sorter = DefaultInverseUtilityFunction(
             self.negotiator.ufun, rational_only=True, eps=-1, rel_eps=-1
         )
         self._sorter.init()
@@ -1044,7 +1045,7 @@ class GCUHKAgentOffering(GeniusOfferingPolicy):
     Transcompiled from: negotiator.boaframework.offeringstrategy.anac2012.CUHKAgent_Offering
     """
 
-    _sorter: PresortingInverseUtilityFunction | None = field(init=False, default=None)
+    _sorter: InverseUFun | None = field(init=False, default=None)
     _pmin: float = field(init=False, default=0.0)
     _pmax: float = field(init=False, default=1.0)
 
@@ -1052,7 +1053,7 @@ class GCUHKAgentOffering(GeniusOfferingPolicy):
         """Initialize utility function."""
         if not self.negotiator or not self.negotiator.ufun:
             return
-        self._sorter = PresortingInverseUtilityFunction(
+        self._sorter = DefaultInverseUtilityFunction(
             self.negotiator.ufun, rational_only=True, eps=-1, rel_eps=-1
         )
         self._sorter.init()
@@ -1109,7 +1110,7 @@ class GOMACagentOffering(GeniusOfferingPolicy):
 
     min_utility: float = 0.59
     eu: float = 0.95
-    _sorter: PresortingInverseUtilityFunction | None = field(init=False, default=None)
+    _sorter: InverseUFun | None = field(init=False, default=None)
     _pmin: float = field(init=False, default=0.0)
     _pmax: float = field(init=False, default=1.0)
     _discount: float = field(init=False, default=1.0)
@@ -1119,7 +1120,7 @@ class GOMACagentOffering(GeniusOfferingPolicy):
         """Initialize utility function."""
         if not self.negotiator or not self.negotiator.ufun:
             return
-        self._sorter = PresortingInverseUtilityFunction(
+        self._sorter = DefaultInverseUtilityFunction(
             self.negotiator.ufun, rational_only=True, eps=-1, rel_eps=-1
         )
         self._sorter.init()
@@ -1182,7 +1183,7 @@ class GAgentLGOffering(GeniusOfferingPolicy):
     Transcompiled from: negotiator.boaframework.offeringstrategy.anac2012.AgentLG_Offering
     """
 
-    _sorter: PresortingInverseUtilityFunction | None = field(init=False, default=None)
+    _sorter: InverseUFun | None = field(init=False, default=None)
     _pmin: float = field(init=False, default=0.0)
     _pmax: float = field(init=False, default=1.0)
 
@@ -1190,7 +1191,7 @@ class GAgentLGOffering(GeniusOfferingPolicy):
         """Initialize utility function."""
         if not self.negotiator or not self.negotiator.ufun:
             return
-        self._sorter = PresortingInverseUtilityFunction(
+        self._sorter = DefaultInverseUtilityFunction(
             self.negotiator.ufun, rational_only=True, eps=-1, rel_eps=-1
         )
         self._sorter.init()
@@ -1231,7 +1232,7 @@ class GAgentMROffering(GeniusOfferingPolicy):
     Transcompiled from: negotiator.boaframework.offeringstrategy.anac2012.AgentMR_Offering
     """
 
-    _sorter: PresortingInverseUtilityFunction | None = field(init=False, default=None)
+    _sorter: InverseUFun | None = field(init=False, default=None)
     _pmin: float = field(init=False, default=0.0)
     _pmax: float = field(init=False, default=1.0)
 
@@ -1239,7 +1240,7 @@ class GAgentMROffering(GeniusOfferingPolicy):
         """Initialize utility function."""
         if not self.negotiator or not self.negotiator.ufun:
             return
-        self._sorter = PresortingInverseUtilityFunction(
+        self._sorter = DefaultInverseUtilityFunction(
             self.negotiator.ufun, rational_only=True, eps=-1, rel_eps=-1
         )
         self._sorter.init()
@@ -1281,7 +1282,7 @@ class GBRAMAgent2Offering(GeniusOfferingPolicy):
     Transcompiled from: negotiator.boaframework.offeringstrategy.anac2012.BRAMAgent2_Offering
     """
 
-    _sorter: PresortingInverseUtilityFunction | None = field(init=False, default=None)
+    _sorter: InverseUFun | None = field(init=False, default=None)
     _pmin: float = field(init=False, default=0.0)
     _pmax: float = field(init=False, default=1.0)
     _threshold: float = field(init=False, default=0.9)
@@ -1290,7 +1291,7 @@ class GBRAMAgent2Offering(GeniusOfferingPolicy):
         """Initialize utility function."""
         if not self.negotiator or not self.negotiator.ufun:
             return
-        self._sorter = PresortingInverseUtilityFunction(
+        self._sorter = DefaultInverseUtilityFunction(
             self.negotiator.ufun, rational_only=True, eps=-1, rel_eps=-1
         )
         self._sorter.init()
@@ -1332,7 +1333,7 @@ class GIAMHaggler2012Offering(GeniusOfferingPolicy):
     Transcompiled from: negotiator.boaframework.offeringstrategy.anac2012.IAMHaggler2012_Offering
     """
 
-    _sorter: PresortingInverseUtilityFunction | None = field(init=False, default=None)
+    _sorter: InverseUFun | None = field(init=False, default=None)
     _pmin: float = field(init=False, default=0.0)
     _pmax: float = field(init=False, default=1.0)
 
@@ -1340,7 +1341,7 @@ class GIAMHaggler2012Offering(GeniusOfferingPolicy):
         """Initialize utility function."""
         if not self.negotiator or not self.negotiator.ufun:
             return
-        self._sorter = PresortingInverseUtilityFunction(
+        self._sorter = DefaultInverseUtilityFunction(
             self.negotiator.ufun, rational_only=True, eps=-1, rel_eps=-1
         )
         self._sorter.init()
@@ -1388,7 +1389,7 @@ class GTheNegotiatorReloadedOffering(GeniusOfferingPolicy):
     Transcompiled from: negotiator.boaframework.offeringstrategy.anac2012.TheNegotiatorReloaded_Offering
     """
 
-    _sorter: PresortingInverseUtilityFunction | None = field(init=False, default=None)
+    _sorter: InverseUFun | None = field(init=False, default=None)
     _pmin: float = field(init=False, default=0.0)
     _pmax: float = field(init=False, default=1.0)
 
@@ -1396,7 +1397,7 @@ class GTheNegotiatorReloadedOffering(GeniusOfferingPolicy):
         """Initialize utility function."""
         if not self.negotiator or not self.negotiator.ufun:
             return
-        self._sorter = PresortingInverseUtilityFunction(
+        self._sorter = DefaultInverseUtilityFunction(
             self.negotiator.ufun, rational_only=True, eps=-1, rel_eps=-1
         )
         self._sorter.init()
@@ -1452,7 +1453,7 @@ class GFawkesOffering(GeniusOfferingPolicy):
     Transcompiled from: negotiator.boaframework.offeringstrategy.anac2013.Fawkes_Offering
     """
 
-    _sorter: PresortingInverseUtilityFunction | None = field(init=False, default=None)
+    _sorter: InverseUFun | None = field(init=False, default=None)
     _pmin: float = field(init=False, default=0.0)
     _pmax: float = field(init=False, default=1.0)
 
@@ -1460,7 +1461,7 @@ class GFawkesOffering(GeniusOfferingPolicy):
         """Initialize utility function."""
         if not self.negotiator or not self.negotiator.ufun:
             return
-        self._sorter = PresortingInverseUtilityFunction(
+        self._sorter = DefaultInverseUtilityFunction(
             self.negotiator.ufun, rational_only=True, eps=-1, rel_eps=-1
         )
         self._sorter.init()
@@ -1508,7 +1509,7 @@ class GInoxAgentOffering(GeniusOfferingPolicy):
     Transcompiled from: negotiator.boaframework.offeringstrategy.anac2013.InoxAgent_Offering
     """
 
-    _sorter: PresortingInverseUtilityFunction | None = field(init=False, default=None)
+    _sorter: InverseUFun | None = field(init=False, default=None)
     _pmin: float = field(init=False, default=0.0)
     _pmax: float = field(init=False, default=1.0)
 
@@ -1516,7 +1517,7 @@ class GInoxAgentOffering(GeniusOfferingPolicy):
         """Initialize utility function."""
         if not self.negotiator or not self.negotiator.ufun:
             return
-        self._sorter = PresortingInverseUtilityFunction(
+        self._sorter = DefaultInverseUtilityFunction(
             self.negotiator.ufun, rational_only=True, eps=-1, rel_eps=-1
         )
         self._sorter.init()
@@ -1707,13 +1708,13 @@ class GHardlinerOffering(GeniusOfferingPolicy):
     Transcompiled from: negotiator.boaframework.offeringstrategy.other.TimeDependent_Offering with e = 0
     """
 
-    _sorter: PresortingInverseUtilityFunction | None = field(init=False, default=None)
+    _sorter: InverseUFun | None = field(init=False, default=None)
 
     def on_preferences_changed(self, changes: list[PreferencesChange]) -> None:
         """Initialize the inverse utility function."""
         if not self.negotiator or not self.negotiator.ufun:
             return
-        self._sorter = PresortingInverseUtilityFunction(
+        self._sorter = DefaultInverseUtilityFunction(
             self.negotiator.ufun, rational_only=True, eps=-1, rel_eps=-1
         )
         self._sorter.init()

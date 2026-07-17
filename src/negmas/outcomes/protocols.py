@@ -218,15 +218,9 @@ class DiscreteOutcomeSpace(OutcomeSpace, Collection, Protocol):
         return self
 
     def __iter__(self):
-        """iter  ."""
         return self.enumerate().__iter__()
 
     def __len__(self) -> int:
-        """len  .
-
-        Returns:
-            int: The result.
-        """
         return self.cardinality
 
 

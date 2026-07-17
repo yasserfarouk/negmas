@@ -12,8 +12,8 @@ from negmas.gb.components import GBComponent
 from negmas.outcomes.outcome_ops import generalized_minkowski_distance, min_dist
 from negmas.preferences import (
     BaseUtilityFunction,
+    DefaultInverseUtilityFunction,
     InverseUFun,
-    PresortingInverseUtilityFunction,
     RankOnlyUtilityFunction,
 )
 
@@ -125,7 +125,7 @@ def make_inverter(
         ufun = RankOnlyUtilityFunction(ufun, randomize_equal=False, name=ufun.name)
     if ufun_inverter:
         return ufun_inverter(ufun)
-    return PresortingInverseUtilityFunction(ufun, max_cache_size=max_cardinality)
+    return DefaultInverseUtilityFunction(ufun, max_cache_size=max_cardinality)
 
 
 class OfferFilterProtocol(Protocol):

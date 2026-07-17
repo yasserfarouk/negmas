@@ -9,8 +9,8 @@ from negmas.common import PreferencesChange
 from negmas.gb.components import GBComponent
 from negmas.preferences import (
     BaseUtilityFunction,
+    DefaultInverseUtilityFunction,
     InverseUFun,
-    PresortingInverseUtilityFunction,
     RankOnlyUtilityFunction,
 )
 
@@ -42,7 +42,7 @@ def make_inverter(
         ufun = RankOnlyUtilityFunction(ufun, randomize_equal=False, name=ufun.name)
     if ufun_inverter:
         return ufun_inverter(ufun)
-    return PresortingInverseUtilityFunction(ufun, rational_only=True)
+    return DefaultInverseUtilityFunction(ufun, rational_only=True)
     # return (
     #     SamplingInverseUtilityFunction(ufun)
     #     if ufun.outcome_space is None

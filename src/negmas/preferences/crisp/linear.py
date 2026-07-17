@@ -137,7 +137,7 @@ class AffineUtilityFunction(UtilityFunction):
             **kwargs: Additional keyword arguments.
         """
         super().__init__(*args, **kwargs)
-        if self.outcome_space and not isinstance(
+        if self.outcome_space is not None and not isinstance(
             self.outcome_space, IndependentIssuesOS
         ):
             raise ValueError(
@@ -146,7 +146,7 @@ class AffineUtilityFunction(UtilityFunction):
                 f"Given args {kwargs}"
             )
         self.issues: list[Issue] | None = (
-            list(self.outcome_space.issues) if self.outcome_space else None  # type: ignore
+            list(self.outcome_space.issues) if self.outcome_space is not None else None  # type: ignore
         )
         if weights is None:
             if not self.issues:
@@ -577,7 +577,9 @@ class AffineUtilityFunction(UtilityFunction):
                 # Optimized algorithm for affine ufuns
                 # Use the provided outcome_space's issues, not self.issues
                 uranges = []
-                search_issues = outcome_space.issues if outcome_space else self.issues
+                search_issues = (
+                    outcome_space.issues if outcome_space is not None else self.issues
+                )
                 if not search_issues:
                     raise ValueError(
                         "Cannot find extreme outcomes of a ufun without knowing its outcome-space"
@@ -753,7 +755,7 @@ class LinearAdditiveUtilityFunction(UtilityFunction):  # type: ignore
         """
         super().__init__(*args, **kwargs)
         self._bias = bias
-        if self.outcome_space and not isinstance(
+        if self.outcome_space is not None and not isinstance(
             self.outcome_space, IndependentIssuesOS
         ):
             raise ValueError(
@@ -762,7 +764,7 @@ class LinearAdditiveUtilityFunction(UtilityFunction):  # type: ignore
                 f"{type(self.outcome_space)}\nGiven args {kwargs}"
             )
         self.issues: list[Issue] | None = (
-            list(self.outcome_space.issues) if self.outcome_space else None  # type: ignore
+            list(self.outcome_space.issues) if self.outcome_space is not None else None  # type: ignore
         )
         if isinstance(values, dict):
             if self.issues is None:

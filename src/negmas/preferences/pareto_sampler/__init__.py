@@ -15,19 +15,38 @@ The opponent's utility function is accessed via ``Negotiator.opponent_ufun``,
 which returns ``None`` when no estimate is available (e.g. early in a negotiation).
 Implementations should handle ``None`` gracefully.
 
+The ``ParetoSampler`` protocol itself lives in ``negmas.preferences.protocols``
+alongside ``InverseUFun``.  It is re-exported here for convenience.
+
+By default, ``BaseUtilityFunction.make_pareto_sampler()`` uses
+``IPSParetoSampler`` unless another implementation is explicitly requested.
+
 Available implementations
 --------------------------
 - ``IPSParetoSampler``: IPS (Iterative Pareto Search), exploits the additive
   structure of both ufuns to iteratively build an approximate Pareto frontier.
   Requires both ufuns to be ``LinearAdditiveUtilityFunction`` instances.
+- ``NB3ParetoSampler``: Branch-and-Bound Pareto sampler (De Jonge & Sierra 2017).
+  Anytime algorithm with per-agent upper-bound pruning.
+- ``MOBANOSParetoSampler``: Exact iterative Pareto construction (De Jonge et al.
+  2018/2019).  No rounding — more accurate than IPS but exponential in worst case.
+- ``BruteForceParetoSampler``: Exact Pareto frontier via full enumeration and
+  ``negmas.preferences.ops.pareto_frontier``. Ground truth on tiny spaces only.
 """
 
 from __future__ import annotations
 
-from ._protocol import ParetoSampler
+from negmas.preferences.protocols import ParetoSampler
+
+from .bruteforce import BruteForceParetoSampler
 from .ips import IPSParetoSampler
+from .mobanos import MOBANOSParetoSampler
+from .nb3 import NB3ParetoSampler
 
 __all__ = [
     "ParetoSampler",
+    "BruteForceParetoSampler",
     "IPSParetoSampler",
+    "NB3ParetoSampler",
+    "MOBANOSParetoSampler",
 ]

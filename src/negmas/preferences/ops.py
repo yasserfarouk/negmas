@@ -1243,7 +1243,7 @@ def ks_points(
     if not ranges:
         ranges = [
             _.minmax(outcome_space, above_reserve=False)
-            if outcome_space
+            if outcome_space is not None
             else _.minmax(issues=issues, above_reserve=False)
             if issues
             else _.minmax(outcomes=outcomes, above_reserve=False)
@@ -1333,7 +1333,7 @@ def kalai_points(
     if not ranges:
         ranges = [
             _.minmax(outcome_space, above_reserve=False)
-            if outcome_space
+            if outcome_space is not None
             else _.minmax(issues=issues, above_reserve=False)
             if issues
             else _.minmax(outcomes=outcomes, above_reserve=False)
@@ -1415,7 +1415,7 @@ def nash_points(
         assert ufuns is not None
         ranges = [
             _.minmax(outcome_space, above_reserve=False)
-            if outcome_space
+            if outcome_space is not None
             else _.minmax(issues=issues, above_reserve=False)
             if issues
             else _.minmax(outcomes=outcomes, above_reserve=False)
@@ -1496,7 +1496,7 @@ def max_welfare_points(
     if not ranges:
         ranges = [
             _.minmax(outcome_space, above_reserve=False)
-            if outcome_space
+            if outcome_space is not None
             else _.minmax(issues=issues, above_reserve=False)
             if issues
             else _.minmax(outcomes=outcomes, above_reserve=False)
@@ -1976,7 +1976,7 @@ def max_relative_welfare_points(
     if not ranges:
         ranges = [
             _.minmax(outcome_space, above_reserve=False)
-            if outcome_space
+            if outcome_space is not None
             else _.minmax(issues=issues, above_reserve=False)
             if issues
             else _.minmax(outcomes=outcomes, above_reserve=False)

@@ -16,7 +16,8 @@ from negmas.common import PreferencesChangeType, Value
 from negmas.negotiators.helpers import PolyAspiration
 from negmas.outcomes.common import ExtendedOutcome
 from negmas.outcomes.protocols import DiscreteOutcomeSpace
-from negmas.preferences.inv_ufun import PresortingInverseUtilityFunction
+from negmas.preferences.inv_ufun import DefaultInverseUtilityFunction
+from negmas.preferences.protocols import InverseUFun
 
 from .base import FilterResult, OfferingPolicy
 from .concession import ConcessionRecommender
@@ -273,7 +274,7 @@ class TimeBasedOfferingPolicy(OfferingPolicy):
 
     curve: PolyAspiration = field(factory=lambda: PolyAspiration(1.0, "boulware"))
     stochastic: bool = False
-    sorter: PresortingInverseUtilityFunction | None = field(repr=False, default=None)
+    sorter: InverseUFun | None = field(repr=False, default=None)
 
     def on_preferences_changed(self, changes: list[PreferencesChange]):
         """Initializes the outcome sorter when preferences are set or changed.
@@ -302,7 +303,7 @@ class TimeBasedOfferingPolicy(OfferingPolicy):
             warnings.warn(
                 "Sorter is already initialized. May be on_preferences_changed is called twice!!"
             )
-        self.sorter = PresortingInverseUtilityFunction(
+        self.sorter = DefaultInverseUtilityFunction(
             self.negotiator.ufun, rational_only=True, eps=-1, rel_eps=-1
         )
         self.sorter.init()
@@ -333,7 +334,7 @@ class MiCROOfferingPolicy(OfferingPolicy):
     """MiCROOffering policy implementation."""
 
     next_indx: int = 0
-    sorter: PresortingInverseUtilityFunction | None = field(repr=False, default=None)
+    sorter: InverseUFun | None = field(repr=False, default=None)
     _received: set[Outcome] = field(factory=set)
     _sent: set[Outcome] = field(factory=set)
 
@@ -350,7 +351,7 @@ class MiCROOfferingPolicy(OfferingPolicy):
             )
             for _ in changes
         ):
-            self.sorter = PresortingInverseUtilityFunction(
+            self.sorter = DefaultInverseUtilityFunction(
                 self.negotiator.ufun, rational_only=True, eps=-1, rel_eps=-1
             )
             self.sorter.init()
@@ -368,7 +369,7 @@ class MiCROOfferingPolicy(OfferingPolicy):
         """Initializes the outcome sorter if not already initialized and returns it."""
         if not self.sorter:
             assert self.negotiator.ufun
-            self.sorter = PresortingInverseUtilityFunction(
+            self.sorter = DefaultInverseUtilityFunction(
                 self.negotiator.ufun, rational_only=True, eps=-1, rel_eps=-1
             )
             self.sorter.init()
@@ -494,7 +495,7 @@ class CABOfferingPolicy(OfferingPolicy):
     """CABOffering policy implementation."""
 
     next_indx: int = 0
-    sorter: PresortingInverseUtilityFunction | None = field(repr=False, default=None)
+    sorter: InverseUFun | None = field(repr=False, default=None)
     _last_offer: Outcome | None = field(init=False, default=None)
     _repeating: bool = field(init=False, default=False)
 
@@ -515,7 +516,7 @@ class CABOfferingPolicy(OfferingPolicy):
                 warnings.warn(
                     "Sorter is already initialized. May be on_preferences_changed is called twice!!"
                 )
-            self.sorter = PresortingInverseUtilityFunction(
+            self.sorter = DefaultInverseUtilityFunction(
                 self.negotiator.ufun, rational_only=True, eps=-1, rel_eps=-1
             )
             self.sorter.init()
@@ -547,7 +548,7 @@ class CABOfferingPolicy(OfferingPolicy):
             warnings.warn(
                 "Sorter is not initialized. May be on_preferences_changed is never called before propose!!"
             )
-            self.sorter = PresortingInverseUtilityFunction(
+            self.sorter = DefaultInverseUtilityFunction(
                 self.negotiator.ufun, rational_only=True, eps=-1, rel_eps=-1
             )
             self.sorter.init()
@@ -571,7 +572,7 @@ class WAROfferingPolicy(OfferingPolicy):
     """WAROffering policy implementation."""
 
     next_indx: int = 0
-    sorter: PresortingInverseUtilityFunction | None = field(repr=False, default=None)
+    sorter: InverseUFun | None = field(repr=False, default=None)
     _last_offer: Outcome | None = field(init=False, default=None)
     _repeating: bool = field(init=False, default=False)
     _irrational: bool = field(init=False, default=True)
@@ -596,7 +597,7 @@ class WAROfferingPolicy(OfferingPolicy):
                 warnings.warn(
                     "Sorter is already initialized. May be on_preferences_changed is called twice!!"
                 )
-            self.sorter = PresortingInverseUtilityFunction(
+            self.sorter = DefaultInverseUtilityFunction(
                 self.negotiator.ufun, rational_only=True, eps=-1, rel_eps=-1
             )
             self.sorter.init()
@@ -632,7 +633,7 @@ class WAROfferingPolicy(OfferingPolicy):
             warnings.warn(
                 "Sorter is not initialized. May be on_preferences_changed is never called before propose!!"
             )
-            self.sorter = PresortingInverseUtilityFunction(
+            self.sorter = DefaultInverseUtilityFunction(
                 self.negotiator.ufun, rational_only=True, eps=-1, rel_eps=-1
             )
             self.sorter.init()

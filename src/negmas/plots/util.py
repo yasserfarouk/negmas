@@ -1001,11 +1001,11 @@ def _plot_2dutils_matplotlib(
     map_ = make_callable(name_map)
     if not outcomes:
         outcome_space = os_or_none(outcome_space, issues, outcomes)
-        if outcome_space:
+        if outcome_space is not None:
             outcomes = list(outcome_space.enumerate_or_sample(10, 1000))
     if not outcomes:
         outcomes = list({_.offer for _ in trace})
-    if not outcome_space:
+    if outcome_space is None:
         outcome_space = make_os(issues=issues, outcomes=outcomes)
     if not offering_negotiators:
         offering_negotiators = list({_.negotiator for _ in trace})
@@ -1463,11 +1463,11 @@ def _plot_2dutils_plotly(
     map_ = make_callable(name_map)
     if not outcomes:
         outcome_space = os_or_none(outcome_space, issues, outcomes)
-        if outcome_space:
+        if outcome_space is not None:
             outcomes = list(outcome_space.enumerate_or_sample(10, 1000))
     if not outcomes:
         outcomes = list({_.offer for _ in trace})
-    if not outcome_space:
+    if outcome_space is None:
         outcome_space = make_os(issues=issues, outcomes=outcomes)
     if not offering_negotiators:
         offering_negotiators = list({_.negotiator for _ in trace})

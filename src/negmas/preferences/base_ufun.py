@@ -23,7 +23,7 @@ from negmas.serialization import PYTHON_CLASS_IDENTIFIER, deserialize
 from negmas.warnings import warn_if_slow
 
 from .preferences import Preferences
-from .protocols import InverseUFun
+from .protocols import InverseUFun, ParetoSampler
 from .stability import Stability
 from .value_fun import make_fun_from_xml
 
@@ -80,6 +80,9 @@ class BaseUtilityFunction(Preferences, ABC):
         self._reserved_value: Value = reserved_value
         self._cached_inverse: InverseUFun | None = None
         self._cached_inverse_type: type[InverseUFun] | None = None
+        self._cached_pareto_sampler: ParetoSampler | None = None
+        self._cached_pareto_sampler_type: type[ParetoSampler] | None = None
+        self._cached_pareto_sampler_opponent: BaseUtilityFunction | None = None
         self._invalid_value = invalid_value
         # Caches for min/max/extreme outcomes (only used when stability allows)
         self._cached_minmax: tuple[float, float] | None = None
@@ -445,22 +448,72 @@ class BaseUtilityFunction(Preferences, ABC):
         """
         Inverts the ufun, initializes it and caches the result.
         """
-        from .inv_ufun import PresortingInverseUtilityFunction
+        from .inv_ufun import DefaultInverseUtilityFunction
 
         if self._cached_inverse and (
             inverter is None or self._cached_inverse_type == inverter
         ):
             return self._cached_inverse
         if inverter is None:
-            inverter = PresortingInverseUtilityFunction
+            inverter = DefaultInverseUtilityFunction
         self._cached_inverse_type = inverter
         self._cached_inverse = inverter(self, **kwargs)
         self._cached_inverse.init()
         return self._cached_inverse
 
+    def make_inverter(
+        self, inverter: type[InverseUFun] | None = None, **kwargs
+    ) -> InverseUFun:
+        """Creates (or reuses) an initialized inverter.
+
+        This is a convenience alias for :meth:`invert`.
+        """
+        return self.invert(inverter=inverter, **kwargs)
+
+    def make_pareto_sampler(
+        self,
+        opponent_ufun: BaseUtilityFunction | None = None,
+        pareto_sampler: type[ParetoSampler] | None = None,
+        **kwargs,
+    ) -> ParetoSampler:
+        """Creates (or reuses) an initialized Pareto sampler.
+
+        Args:
+            opponent_ufun: Estimated opponent utility function. Can be ``None``.
+            pareto_sampler: Sampler class to use. Defaults to ``IPSParetoSampler``.
+            **kwargs: Forwarded to the sampler constructor.
+
+        Returns:
+            An initialized Pareto sampler.
+        """
+        from .pareto_sampler import IPSParetoSampler
+
+        if (
+            self._cached_pareto_sampler
+            and (
+                pareto_sampler is None
+                or self._cached_pareto_sampler_type == pareto_sampler
+            )
+            and self._cached_pareto_sampler_opponent is opponent_ufun
+        ):
+            return self._cached_pareto_sampler
+        if pareto_sampler is None:
+            pareto_sampler = IPSParetoSampler
+        self._cached_pareto_sampler_type = pareto_sampler
+        self._cached_pareto_sampler_opponent = opponent_ufun
+        self._cached_pareto_sampler = pareto_sampler(self, opponent_ufun, **kwargs)
+        self._cached_pareto_sampler.init()
+        return self._cached_pareto_sampler
+
     def forget_inverter(self):
         """Deletes the cached inverter."""
         self._cached_inverse = None
+
+    def forget_pareto_sampler(self):
+        """Deletes the cached Pareto sampler."""
+        self._cached_pareto_sampler = None
+        self._cached_pareto_sampler_type = None
+        self._cached_pareto_sampler_opponent = None
 
     def scale_by(
         self: T, scale: float, scale_reserved=True
@@ -624,9 +677,9 @@ class BaseUtilityFunction(Preferences, ABC):
             if was_corrected:
                 self.reserved_value = corrected_rv
 
-        if not outcome_space:
+        if outcome_space is None:
             outcome_space = self.outcome_space
-        if not outcome_space:
+        if outcome_space is None:
             raise ValueError(
                 "Cannot find the outcome-space to normalize for. "
                 "You must pass outcome_space, issues or outcomes or have the ufun being constructed with one of them"
@@ -691,7 +744,7 @@ class BaseUtilityFunction(Preferences, ABC):
 
         from negmas.preferences import ConstUtilityFunction
 
-        if not self.outcome_space:
+        if self.outcome_space is None:
             raise ValueError("Cannot normalize a ufun without an outcome-space")
         mn, mx = self.minmax(self.outcome_space, max_cardinality=MAX_CARDINALITY)
 
@@ -1120,9 +1173,9 @@ class BaseUtilityFunction(Preferences, ABC):
         if rng[1] is None:
             rng = (rng[0], float("inf"))
         outcome_space = os_or_none(outcome_space, issues, outcomes)
-        if not outcome_space:
+        if outcome_space is None:
             outcome_space = self.outcome_space
-        if not outcome_space:
+        if outcome_space is None:
             raise ValueError("No outcome-space is given or defined for the ufun")
         if outcome_space.cardinality < n_trials:
             n_trials = outcome_space.cardinality  # type: ignore I know that it is an int (see the if)

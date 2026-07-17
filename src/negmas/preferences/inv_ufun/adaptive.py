@@ -196,17 +196,63 @@ class AdaptiveInverseUtilityFunction(InverseUFun):
     def max(self) -> float:
         return self._d().max()
 
-    def worst(self) -> Outcome:
+    def worst(self) -> Outcome | None:
         return self._d().worst()
 
-    def best(self) -> Outcome:
+    def best(self) -> Outcome | None:
         return self._d().best()
 
     def minmax(self) -> tuple[float, float]:
         return self._d().minmax()
 
-    def extreme_outcomes(self) -> tuple[Outcome, Outcome]:
+    def extreme_outcomes(self) -> tuple[Outcome | None, Outcome | None]:
         return self._d().extreme_outcomes()
+
+    def next_worse(self) -> Outcome | None:
+        delegate = self._d()
+        if hasattr(delegate, "next_worse"):
+            return delegate.next_worse()
+        return None
+
+    def next_better(self) -> Outcome | None:
+        delegate = self._d()
+        if hasattr(delegate, "next_better"):
+            return delegate.next_better()
+        return None
+
+    def outcome_at(self, indx: int) -> Outcome | None:
+        """Returns the outcome at rank *indx* (0 = best) when supported.
+
+        If the selected delegate does not provide an ``outcome_at`` method
+        (e.g. BIDS), this falls back to ``within_indices((indx, indx))``.
+        """
+        if indx < 0:
+            return None
+        delegate = self._d()
+        if hasattr(delegate, "outcome_at"):
+            return delegate.outcome_at(indx)  # type: ignore[no-any-return]
+        outcomes = delegate.within_indices((indx, indx))
+        if outcomes:
+            return outcomes[0]
+        if indx == 0:
+            return delegate.best()
+        return None
+
+    def utility_at(self, indx: int) -> float | None:
+        """Returns utility at rank *indx* when supported."""
+        delegate = self._d()
+        if hasattr(delegate, "utility_at"):
+            return delegate.utility_at(indx)  # type: ignore[no-any-return]
+        outcome = self.outcome_at(indx)
+        return float(self._ufun(outcome)) if outcome is not None else None
+
+    @property
+    def outcomes(self) -> list[Outcome]:
+        """Returns delegate outcomes when available, otherwise an empty list."""
+        delegate = self._d()
+        if hasattr(delegate, "outcomes"):
+            return delegate.outcomes  # type: ignore[no-any-return]
+        return []
 
     def __call__(
         self, rng: float | tuple[float, float], normalized: bool

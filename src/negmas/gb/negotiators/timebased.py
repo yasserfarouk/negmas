@@ -18,7 +18,7 @@ from negmas.gb.components.selectors import (
     OfferSelector,
 )
 from negmas.negotiators.helpers import Aspiration, PolyAspiration, TimeCurve
-from negmas.preferences import InverseUFun, PresortingInverseUtilityFunction
+from negmas.preferences import DefaultInverseUtilityFunction, InverseUFun
 
 from ...outcomes import DistanceFun, Outcome, generalized_minkowski_distance
 from .utilbased import UtilBasedNegotiator
@@ -248,10 +248,20 @@ class AspirationNegotiator(TimeBasedConcedingNegotiator):
         stochastic=False,
         presort: bool = True,
         tolerance: float = 0.001,
+        ufun_inverter: type[InverseUFun] | None = None,
         **kwargs,
     ):
-        """Initializes the aspiration-based negotiator with concession parameters."""
-        ufun_inverter = None if not presort else PresortingInverseUtilityFunction
+        """Initializes the aspiration-based negotiator with concession parameters.
+
+        Args:
+            ufun_inverter: An optional `InverseUFun` **type** to use for inverting the
+                utility function. If given, it overrides the ``presort`` default (and
+                forces presorting-style offering). If `None`, a
+                `DefaultInverseUtilityFunction` is used when ``presort`` is `True` and no
+                inverter is used otherwise.
+        """
+        if ufun_inverter is None:
+            ufun_inverter = None if not presort else DefaultInverseUtilityFunction
         super().__init__(
             *args,
             offering_curve=aspiration_type,

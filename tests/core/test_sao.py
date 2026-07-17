@@ -1587,7 +1587,7 @@ class NoneWithTextNegotiator(SAONegotiator):
             # Return None offer with text data
             return ExtendedOutcome(outcome=None, data={"text": self._text})
         # Return a valid offer
-        if self.ufun and self.ufun.outcome_space:
+        if self.ufun and self.ufun.outcome_space is not None:
             outcomes = list(
                 self.ufun.outcome_space.enumerate_or_sample(max_cardinality=10)
             )
@@ -1603,7 +1603,7 @@ class AlwaysRejectNegotiator(SAONegotiator):
     """A negotiator that always rejects and offers the first outcome."""
 
     def propose(self, state):
-        if self.ufun and self.ufun.outcome_space:
+        if self.ufun and self.ufun.outcome_space is not None:
             outcomes = list(
                 self.ufun.outcome_space.enumerate_or_sample(max_cardinality=10)
             )
@@ -1625,7 +1625,7 @@ class NoneWithoutDataNegotiator(SAONegotiator):
     def propose(self, state):
         if state.step >= self._none_at_step:
             return None
-        if self.ufun and self.ufun.outcome_space:
+        if self.ufun and self.ufun.outcome_space is not None:
             outcomes = list(
                 self.ufun.outcome_space.enumerate_or_sample(max_cardinality=10)
             )
@@ -1649,7 +1649,7 @@ class NoneWithEmptyDataNegotiator(SAONegotiator):
 
         if state.step >= self._none_at_step:
             return ExtendedOutcome(outcome=None, data={})
-        if self.ufun and self.ufun.outcome_space:
+        if self.ufun and self.ufun.outcome_space is not None:
             outcomes = list(
                 self.ufun.outcome_space.enumerate_or_sample(max_cardinality=10)
             )
@@ -1847,7 +1847,7 @@ class AlwaysAcceptNegotiator(SAONegotiator):
     """A negotiator that always accepts whatever is on the table."""
 
     def propose(self, state):
-        if self.ufun and self.ufun.outcome_space:
+        if self.ufun and self.ufun.outcome_space is not None:
             outcomes = list(
                 self.ufun.outcome_space.enumerate_or_sample(max_cardinality=10)
             )
@@ -1867,7 +1867,7 @@ class AcceptAfterStepNegotiator(SAONegotiator):
         self._accept_at_step = accept_at_step
 
     def propose(self, state):
-        if self.ufun and self.ufun.outcome_space:
+        if self.ufun and self.ufun.outcome_space is not None:
             outcomes = list(
                 self.ufun.outcome_space.enumerate_or_sample(max_cardinality=10)
             )
@@ -1957,7 +1957,7 @@ class LeaveAfterStepNegotiator(SAONegotiator):
         self.left_partners = []  # Track which partners left
 
     def propose(self, state):
-        if self.ufun and self.ufun.outcome_space:
+        if self.ufun and self.ufun.outcome_space is not None:
             outcomes = list(
                 self.ufun.outcome_space.enumerate_or_sample(max_cardinality=10)
             )
@@ -1984,7 +1984,7 @@ class TrackingNegotiator(SAONegotiator):
         self.didnot_enter_partners = []
 
     def propose(self, state):
-        if self.ufun and self.ufun.outcome_space:
+        if self.ufun and self.ufun.outcome_space is not None:
             outcomes = list(
                 self.ufun.outcome_space.enumerate_or_sample(max_cardinality=10)
             )

@@ -13,6 +13,7 @@ from negmas.protocols import HasMinMax, XmlSerializable
 
 if TYPE_CHECKING:
     from negmas.outcomes.base_issue import Issue
+    from .base_ufun import BaseUtilityFunction
 
 __all__ = [
     "BasePref",
@@ -39,6 +40,7 @@ __all__ = [
     "XmlSerializableUFun",
     "SingleIssueFun",
     "MultiIssueFun",
+    "ParetoSampler",
 ]
 
 X = TypeVar("X", bound="XmlSerializable")
@@ -505,8 +507,15 @@ class CardinalRanking(Protocol):
 class InverseUFun(Protocol):
     """Can be used to get one or more outcomes at a given range"""
 
-    ufun: UFun
-    initialized: bool
+    @property
+    def ufun(self) -> UFun:
+        """The utility function being inverted."""
+        ...
+
+    @property
+    def initialized(self) -> bool:
+        """Whether ``init()`` has been called."""
+        ...
 
     def __init__(self, ufun: UFun) -> None:
         """Initializes the instance."""
@@ -610,15 +619,16 @@ class InverseUFun(Protocol):
         """
 
     @abstractmethod
-    def worst(self) -> Outcome:
+    def worst(self) -> Outcome | None:
         """
-        Finds the worst  outcome
+        Finds the worst outcome, or ``None`` if no outcomes are available
+        (e.g. when the outcome space is empty or no rational outcome exists).
         """
 
     @abstractmethod
-    def best(self) -> Outcome:
+    def best(self) -> Outcome | None:
         """
-        Finds the best  outcome
+        Finds the best outcome, or ``None`` if no outcomes are available.
         """
 
     @abstractmethod
@@ -631,9 +641,10 @@ class InverseUFun(Protocol):
         """
 
     @abstractmethod
-    def extreme_outcomes(self) -> tuple[Outcome, Outcome]:
+    def extreme_outcomes(self) -> tuple[Outcome | None, Outcome | None]:
         """
-        Finds the worst and best outcomes that can be returned.
+        Finds the worst and best outcomes that can be returned, each of which
+        may be ``None`` if no outcomes are available.
 
         Remarks:
             These may be different from the results of `ufun.extreme_outcomes()` as they can be approximate.
@@ -648,16 +659,120 @@ class InverseUFun(Protocol):
         """
 
     def next_worse(self) -> Outcome | None:
-        """Returns the rational outcome with utility just below the last one returned from this function"""
-        raise NotImplementedError(
-            f"next_below is not implemented for {self.__class__.__name__}"
-        )
+        """Returns the rational outcome with the next lower utility relative to the
+        last outcome returned by this method (stateful cursor).  Returns ``None``
+        when the cursor reaches the worst outcome or when the implementation does
+        not maintain a sorted cursor (e.g. sampling-based inverters).
+        """
+        return None
 
     def next_better(self) -> Outcome | None:
-        """Returns the rational outcome with utility just below the last one returned from this function"""
-        raise NotImplementedError(
-            f"next_above is not implemented for {self.__class__.__name__}"
-        )
+        """Returns the rational outcome with the next higher utility relative to the
+        last outcome returned by this method (stateful cursor).  Returns ``None``
+        when the cursor reaches the best outcome or when the implementation does
+        not maintain a sorted cursor (e.g. sampling-based inverters).
+        """
+        return None
+
+
+@runtime_checkable
+class ParetoSampler(Protocol):
+    """Protocol for components that sample from the approximate Pareto frontier.
+
+    A ``ParetoSampler`` wraps the agent's own utility function and, optionally,
+    an estimate of the opponent's utility function to answer *trade-off queries*:
+    finding outcomes that are approximately Pareto-optimal with respect to both
+    the agent's own utility and the opponent's utility.
+
+    Access to the opponent's utility estimate is expected via
+    ``Negotiator.opponent_ufun`` (which returns ``None`` when no estimate is
+    available, e.g. at the start of a negotiation).
+    """
+
+    @property
+    def ufun(self) -> BaseUtilityFunction:
+        """The agent's own utility function."""
+        ...
+
+    @property
+    def initialized(self) -> bool:
+        """Whether ``init()`` has been called."""
+        ...
+
+    def __init__(
+        self,
+        ufun: BaseUtilityFunction,
+        opponent_ufun: BaseUtilityFunction | None = None,
+        **kwargs: Any,
+    ) -> None:
+        """Initializes the instance."""
+        ...
+
+    def init(self) -> None:
+        """One-time (offline) initialisation.
+
+        Any computationally expensive setup (e.g. building a DP table or
+        computing the Pareto frontier) should be done here rather than in
+        ``__init__``.
+        """
+        ...
+
+    def pareto_outcomes(
+        self,
+        n: int | None = None,
+        *,
+        min_util: float = 0.0,
+        normalized: bool = False,
+        opponent_ufun: BaseUtilityFunction | None = None,
+    ) -> list[Outcome]:
+        """Return a list of approximately Pareto-optimal outcomes.
+
+        Args:
+            n: Maximum number of outcomes to return (``None`` = return all
+               found on the approximate frontier).
+            min_util: Only return outcomes with own utility ≥ this value.
+            normalized: if ``True``, *min_util* is in normalised [0,1] space
+               (0 = worst, 1 = best for own ufun).
+            opponent_ufun: Opponent utility function to use for this call. If
+               ``None``, the instance's stored opponent ufun is used.
+
+        Returns:
+            A list of outcomes on (or close to) the Pareto frontier,
+            filtered by *min_util*.  May be empty if no opponent ufun is
+            available or if no rational outcome exists.
+        """
+        ...
+
+    def best_for_opponent(
+        self,
+        *,
+        min_util: float,
+        normalized: bool = False,
+        opponent_ufun: BaseUtilityFunction | None = None,
+    ) -> Outcome | None:
+        """Return the outcome that maximises the opponent's utility subject to
+        own utility ≥ *min_util*.
+
+        This corresponds to the *trade-off query* from the BIDS paper
+        (Koça et al., 2024):
+
+        .. code-block:: none
+
+            argmax  u'(ω)
+             ω ∈ Ω
+            subject to  u(ω) ≥ min_util
+
+        Args:
+            min_util: Minimum required own utility.
+            normalized: if ``True``, *min_util* is in normalised [0,1] space.
+            opponent_ufun: Opponent utility function.  Defaults to the stored
+               opponent ufun.
+
+        Returns:
+            The best trade-off outcome, or ``None`` if no opponent ufun is
+            available or no outcome satisfies the constraint.
+        """
+        ...
 
 
 @runtime_checkable

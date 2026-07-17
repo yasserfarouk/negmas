@@ -147,7 +147,7 @@ class PAUtilityFunction(UtilityFunction):
         """
         super().__init__(*args, **kwargs)
 
-        if self.outcome_space and not isinstance(
+        if self.outcome_space is not None and not isinstance(
             self.outcome_space, IndependentIssuesOS
         ):
             raise ValueError(
@@ -157,7 +157,7 @@ class PAUtilityFunction(UtilityFunction):
             )
 
         self.issues: list[Issue] | None = (
-            list(self.outcome_space.issues) if self.outcome_space else None  # type: ignore
+            list(self.outcome_space.issues) if self.outcome_space is not None else None  # type: ignore
         )
 
         # Process values (same as LinearAdditiveUtilityFunction)

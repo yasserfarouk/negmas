@@ -9,7 +9,6 @@ from __future__ import annotations
 
 import math
 import random
-import warnings
 from typing import Any, Iterable
 
 import numpy as np
@@ -17,11 +16,11 @@ from numpy import floating
 from numpy.typing import NDArray
 
 from negmas.outcomes import Outcome
-from negmas.warnings import NegmasUnexpectedValueWarning, warn_if_slow
+from negmas.warnings import warn_if_slow
 
 from ..base_ufun import BaseUtilityFunction
 from ..protocols import InverseUFun
-from ._common import EPS, index_above_or_equal, index_below_or_equal
+from ._common import EPS, _nearest_around, index_above_or_equal, index_below_or_equal
 
 __all__ = ["PresortingInverseUtilityFunction"]
 
@@ -36,37 +35,37 @@ class PresortingInverseUtilityFunction(InverseUFun):
     binary-search this cached, sorted array using `numpy.searchsorted`, giving
     `O(log n)` lookups after an `O(n log n)` one-time construction cost.
 
-    This is the **recommended/default** presorting-based inverter, and should be
-    preferred over `PresortingLegacyInverseUtilityFunction` (which is functionally
-    equivalent but adds coarse waypoint-based search-window narrowing before the final
-    bisection). Empirically (see `coding_agents/benchmark_presorting_waypoints.py`),
-    that extra waypoint-narrowing step does **not** speed up
-    `worst_in`/`best_in`/`some` -- it actually makes them roughly 2x *slower* at every
-    scale tested (100 to 1,000,000 outcomes), since both approaches are already
-    `O(log n)` and the extra Python-level coarse-search stage adds pure overhead over
-    `numpy`'s highly optimized C implementation of binary search. Waypoint narrowing was
-    also historically the source of subtle correctness bugs. Use
-    `PresortingLegacyInverseUtilityFunction` only if you specifically need the
-    pre-existing/legacy waypoint-narrowing behavior for backwards compatibility.
+    This is the **recommended/default** presorting-based inverter.
+    `PresortingLegacyInverseUtilityFunction` is a functionally-equivalent (but slower,
+    legacy) sibling that adds coarse waypoint-based search-window narrowing before the
+    final bisection; use it only if you specifically need that legacy behavior for
+    backwards compatibility.
 
     Args:
         ufun: The utility function to be inverted
         levels: discretization levels per issue
         max_cache_size: maximum allowed number of outcomes in the resulting inverse
         rational_only: If true, rational outcomes will be sorted but irrational outcomes will not be sorted (should be faster if the reserved value is high)
-        n_waypints: kept only for API-compatibility with `PresortingLegacyInverseUtilityFunction`.
-            It has **no effect** in this class (no waypoints are ever computed or used).
         eps: Absolute difference between utility values to consider them equal (zero or negative to disable).
         rel_eps: Relative difference between utility values to consider them equal (zero or negative to disable).
+        clamp_tolerance: Maximum distance (in utility units) that `worst_in`/`best_in`/`one_in`
+            are allowed to *clamp* outside the requested range when the range contains no
+            outcome. When the requested range is empty, these methods return the nearest
+            achievable outcome on the appropriate side (`worst_in` clamps up, `best_in`
+            clamps down) so negotiators never stall. If that nearest outcome lies further
+            than `clamp_tolerance` outside the range, `None` is returned instead (and
+            `one_in` falls back per its `fallback_to_*` flags). Defaults to
+            ``float("inf")`` which disables the cap entirely (unbounded clamping — the
+            historical behavior).
 
     Remarks:
         - The actual limit used to judge ufun equality is max(eps, rel_eps * range) where range is the difference between max and min utilities for rational outcomes.
           Set both eps, rel_eps to zero or a negative number to disable cycling through outcomes with equal utilities (or set cycle=False when calling the appropriate function).
-        - `worst_in`/`best_in`/`some`/`one_in` always binary-search directly over the full
-          sorted range of rational outcomes (`[0, last_rational]`). The only search-window
-          narrowing that remains is a safe, provably-correct one that has nothing to do with
-          waypoints: once the smallest value ever searched down to (or largest searched up
-          to) is known to be beyond the requested range, the window is narrowed accordingly.
+        - `worst_in`/`best_in`/`some`/`one_in` binary-search directly over the full
+          sorted range of rational outcomes (`[0, last_rational]`).
+        - Clamping is always to the single nearest achievable outcome (it never skips a
+          closer one), but its distance is only bounded by the gap in the utility
+          distribution; use `clamp_tolerance` to cap it.
     """
 
     def __init__(
@@ -75,9 +74,9 @@ class PresortingInverseUtilityFunction(InverseUFun):
         levels: int = 10,
         max_cache_size: int = 10_000_000_000,
         rational_only: bool = False,
-        n_waypints: int = 10,
         eps: float = 1e-12,
         rel_eps: float = 1e-6,
+        clamp_tolerance: float = float("inf"),
     ):
         self._ufun = ufun
         self.max_cache_size = max_cache_size
@@ -87,11 +86,10 @@ class PresortingInverseUtilityFunction(InverseUFun):
         self._last_rational: int = -1
         self.utils: NDArray[floating[Any]] = []  # type: ignore
         self.rational_only = rational_only
-        self._smallest_indx, self._smallest_val = 0, float("inf")
-        self._largest_indx, self._largest_val = -1, float("-inf")
         self._last_returned_from_next: int = -1
         self._eps = eps
         self._rel_eps = rel_eps
+        self._clamp_tolerance = clamp_tolerance
         self._near_range: dict[int, tuple[int, int]] = dict()
 
     @property
@@ -108,8 +106,6 @@ class PresortingInverseUtilityFunction(InverseUFun):
         """Clears cached outcomes and resets the inverter to uninitialized state."""
         self._initialized = False
         self.outcomes, self.utils = [], []  # type: ignore
-        self._smallest_indx, self._smallest_val = 0, float("inf")
-        self._largest_indx, self._largest_val = -1, float("-inf")
         self._last_returned_from_next = -1
         self._near_range = dict()
 
@@ -192,8 +188,6 @@ class PresortingInverseUtilityFunction(InverseUFun):
         self._last_rational = len(rational) - 1
         self.outcomes = [rational[_] for _ in indices] + irrational
         self.utils = np.hstack((ur_sorted, uir))
-        self._smallest_indx, self._smallest_val = 0, self.utils[0]
-        self._largest_indx, self._largest_val = len(self.utils) - 1, self.utils[-1]
 
     def _un_normalize_range(
         self, rng: float | tuple[float, float], normalized: bool, for_best: bool
@@ -207,28 +201,6 @@ class PresortingInverseUtilityFunction(InverseUFun):
         if d < EPS:
             return tuple(0.0 if not for_best else 1.0 for _ in rng)  # type: ignore
         return tuple(_ * d + mn for _ in rng)  # type: ignore
-
-    def _get_limiting_waypoints(self, mn: float, mx: float) -> tuple[int, int]:
-        """Returns a `(lo, hi)` window within `[0, last_rational]` that is
-        **guaranteed** to contain the correct bisection index for any utility
-        value within `[mn, mx]`.
-
-        Unlike `PresortingLegacyInverseUtilityFunction`, no pre-computed waypoints are
-        used at all here. The only narrowing applied is based on previously established,
-        monotonically improving watermarks (`_smallest_val`/`_largest_val`): if we
-        already know that every outcome below index `_smallest_indx` has utility
-        strictly less than `_smallest_val <= mn`, then those outcomes cannot be part of
-        the answer and `lo` can be safely advanced to `_smallest_indx` (symmetrically
-        for `hi`).
-        """
-        lo, hi = 0, self._last_rational
-        if hi < lo:
-            return lo, hi
-        if self._smallest_val <= mn and self._smallest_indx > lo:
-            lo = min(self._smallest_indx, hi)
-        if self._largest_val >= mx and self._largest_indx < hi:
-            hi = max(self._largest_indx, lo)
-        return lo, hi
 
     def next_worse(self) -> Outcome | None:
         """Returns the rational outcome with utility just below the last one returned from this function"""
@@ -273,7 +245,7 @@ class PresortingInverseUtilityFunction(InverseUFun):
             return []
         rng = self._un_normalize_range(rng, normalized, False)
         mn, mx = rng
-        lo, hi = self._get_limiting_waypoints(mn, mx)
+        lo, hi = 0, self._last_rational
         if lo > hi:
             return []
         results = []
@@ -320,8 +292,7 @@ class PresortingInverseUtilityFunction(InverseUFun):
         mn, mx = rng
         if self._last_rational < 0:
             return 0, mn, mx
-        lo, hi = self._get_limiting_waypoints(mn, mx)
-        return index_above_or_equal(self.utils, mn, lo, hi), mn, mx
+        return index_above_or_equal(self.utils, mn, 0, self._last_rational), mn, mx
 
     def _indx_of_best_in(self, rng: tuple[float, float] | float, normalized: bool):
         """Returns the index of the outcome with the highest utility that is still
@@ -333,8 +304,7 @@ class PresortingInverseUtilityFunction(InverseUFun):
         mn, mx = rng
         if self._last_rational < 0:
             return -1, mn, mx
-        lo, hi = self._get_limiting_waypoints(mn, mx)
-        return index_below_or_equal(self.utils, mx, lo, hi), mn, mx
+        return index_below_or_equal(self.utils, mx, 0, self._last_rational), mn, mx
 
     def worst_in(
         self,
@@ -355,17 +325,32 @@ class PresortingInverseUtilityFunction(InverseUFun):
             - Returns None if no such outcome exists, or the worst outcome in the given range is irrational
             - This is an O(log(n)) operation (where n is the number of outcomes)
         """
-        indx, mn, mx = self._indx_of_worst_in(rng, normalized)
-        if self._last_rational < 0 or indx > self._last_rational or indx < 0:
+
+        # print(f"{self.__class__.__name__}.worst_in({rng}, normalized={normalized})")
+        indx_, mn, mx = self._indx_of_worst_in(rng, normalized)
+        if self._last_rational < 0 or indx_ > self._last_rational:
+            # fail if this worst is irrational or there are no rational outcomes
             return None
-        u = self.utils[indx]
-        if u < mn - eps or u > mx + eps:
-            # no rational outcome exists within the requested range
+        # Clamp to the nearest achievable outcome around indx_. When the requested
+        # range lies entirely outside the currently available (possibly discounted)
+        # utilities, this returns the nearest boundary outcome instead of None so that
+        # negotiators relying on worst_in never stall.
+        indx = _nearest_around(
+            mn, self.utils, indx_, mn - eps, mx + 2 * eps, eps=2 * eps
+        )
+        if indx is None:
+            # print("indx ix None")
             return None
-        if mn < self._smallest_val:
-            self._smallest_indx, self._smallest_val = indx, mn
+        if not (
+            mn - self._clamp_tolerance <= self.utils[indx] <= mx + self._clamp_tolerance
+        ):
+            # The nearest achievable outcome is further than the allowed clamp
+            # tolerance outside the requested range: refuse to clamp.
+            print("no tolerance")
+            return None
         if cycle and indx:
             self._cycle_around(indx)
+        # print(f"{indx=}, {self.outcomes[indx]}")
         return self.outcomes[indx]
 
     def best_in(
@@ -387,15 +372,23 @@ class PresortingInverseUtilityFunction(InverseUFun):
             - Returns None if no such outcome exists
             - This is an O(log(n)) operation (where n is the number of outcomes)
         """
-        indx, mn, mx = self._indx_of_best_in(rng, normalized)
-        if self._last_rational < 0 or indx > self._last_rational or indx < 0:
+        indx_, mn, mx = self._indx_of_best_in(rng, normalized)
+        if self._last_rational < 0:
             return None
-        u = self.utils[indx]
-        if u < mn - eps or u > mx + eps:
-            # no rational outcome exists within the requested range
+        if indx_ < 0:
+            indx_ = 0
+        # Clamp to the nearest achievable outcome around indx_ (see worst_in).
+        indx = _nearest_around(
+            mx, self.utils, indx_, mn - eps, mx + 2 * eps, eps=2 * eps
+        )
+        if indx is None:
             return None
-        if mx > self._largest_val:
-            self._largest_indx, self._largest_val = indx, mx
+        if not (
+            mn - self._clamp_tolerance <= self.utils[indx] <= mx + self._clamp_tolerance
+        ):
+            # The nearest achievable outcome is further than the allowed clamp
+            # tolerance outside the requested range: refuse to clamp.
+            return None
         if cycle and indx:
             self._cycle_around(indx)
         return self.outcomes[indx]
@@ -405,7 +398,7 @@ class PresortingInverseUtilityFunction(InverseUFun):
 
     def one_in(
         self,
-        rng: tuple[float, float],
+        rng: float | tuple[float, float],
         normalized: bool,
         fallback_to_higher: bool = True,
         fallback_to_best: bool = True,
@@ -417,6 +410,9 @@ class PresortingInverseUtilityFunction(InverseUFun):
             - This is an O(log(n)) operation (where n is the number of outcomes)
             - We only search rational outcomes
         """
+        # print(
+        # f"{self.__class__.__name__}.one_in({rng}, normalized={normalized}, fallback_to_higher={fallback_to_higher}, fallback_to_best={fallback_to_best})"
+        # )
 
         def recover_from_failure():
             """Attempts fallback strategies when no outcome is found in range."""
@@ -425,7 +421,10 @@ class PresortingInverseUtilityFunction(InverseUFun):
                 return self.one_in(
                     (rng[0] if isinstance(rng, Iterable) else rng, 1)
                     if normalized
-                    else (rng[0] if isinstance(rng, Iterable) else rng, float(self._max)),
+                    else (
+                        rng[0] if isinstance(rng, Iterable) else rng,
+                        float(self._max),
+                    ),
                     normalized,
                     fallback_to_higher=False,
                     fallback_to_best=fallback_to_best,
@@ -440,22 +439,26 @@ class PresortingInverseUtilityFunction(InverseUFun):
         mn_indx, rmn, rmx = self._indx_of_worst_in(rng, normalized)
         mx_indx, _, _ = self._indx_of_best_in(rng, normalized)
 
-        if (
-            mn_indx > self._last_rational
-            or mn_indx < 0
-            or mx_indx > self._last_rational
-            or mx_indx < 0
-            or mn_indx > mx_indx
-            or not self._in(self.utils[mn_indx], (rmn, rmx))
-            or not self._in(self.utils[mx_indx], (rmn, rmx))
-        ):
-            warnings.warn(
-                f"Utility Inverter: could not find any rational outcome with utility in {rng} (normalized={normalized})",
-                NegmasUnexpectedValueWarning,
-            )
-            return recover_from_failure()
+        # Clamp both bounds into the valid rational range. When the requested range
+        # lies entirely outside the currently available (possibly discounted)
+        # utilities, both bounds collapse onto the nearest achievable boundary outcome
+        # so we return the closest achievable outcome instead of failing/falling back
+        # to the best (which previously made negotiators always offer their top
+        # outcome under discounting).
+        mn_indx = max(0, min(mn_indx, self._last_rational))
+        mx_indx = max(0, min(mx_indx, self._last_rational))
+        if mn_indx > mx_indx:
+            mn_indx, mx_indx = mx_indx, mn_indx
 
         indx = random.randint(mn_indx, mx_indx)
+        if not (
+            rmn - self._clamp_tolerance
+            <= self.utils[indx]
+            <= rmx + self._clamp_tolerance
+        ):
+            # The nearest achievable outcome is further than the allowed clamp
+            # tolerance outside the requested range: fall back instead of clamping.
+            return recover_from_failure()
         return self.outcomes[indx]
 
     def _cycle_around(self, indx: int) -> None:

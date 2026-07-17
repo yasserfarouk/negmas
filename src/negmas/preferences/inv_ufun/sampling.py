@@ -22,6 +22,17 @@ class SamplingInverseUtilityFunction(InverseUFun):
     Nevertheless, each time the system is asked to find an outcome within some range, it uses
     random sampling which is very inefficient and suffers from the curse of dimensionality.
 
+
+    Args:
+        ufun: The utility function to invert
+        max_samples_per_call: The maximum number of samples to draw per call
+        rel_max_samples_per_call: The maximum number of samples to draw per call relative to the size of the outcome space (default: 1.5)
+        eps: The absolute tolerance for utility matching (default: 0.001)
+        rel_eps: The relative tolerance for utility matching (default: 0.05)
+        multiplier: The number of samples to draw per call relative to the requested number of outcomes (default: 3)
+        strict_limit: The fraction of the sampling loop during which we search with zero tolerance  (default: 0.1)
+
+
     Remarks:
         - `min`, `max`, `worst`, `best` and `minmax` are **not** computed through sampling.
           They simply delegate to the wrapped ufun's own `minmax`/`extreme_outcomes` (which
@@ -30,13 +41,29 @@ class SamplingInverseUtilityFunction(InverseUFun):
         - `within_fractions` and `within_indices` are approximate: because this inverter never
           maintains a full ranking of outcomes, a fresh sample is ranked every time these are
           called. Use `PresortingInverseUtilityFunction` if you need exact results.
+
     """
 
-    def __init__(self, ufun: BaseUtilityFunction, max_samples_per_call: int = 10_000):
+    def __init__(
+        self,
+        ufun: BaseUtilityFunction,
+        max_samples_per_call: int = 10_000,
+        rel_max_samples_per_call: float = 1.5,
+        eps: float = 0.001,
+        rel_eps: float = 0.05,
+        multiplier: int = 3,
+        strict_limit: float = 0.1,
+    ):
         """Initializes the instance."""
         self._ufun = ufun
         self.max_samples_per_call = max_samples_per_call
+        self.rel_max_samples_per_call = rel_max_samples_per_call
         self._initialized = True
+        self.eps = eps
+        self.rel_eps = rel_eps
+        self.multiplier = multiplier
+        self.strict_limit = strict_limit
+        self._max_samples: int = self.max_samples_per_call
 
     @property
     def initialized(self):
@@ -50,7 +77,19 @@ class SamplingInverseUtilityFunction(InverseUFun):
 
     def init(self):
         """Initialize the inverter (no-op for sampling-based inverter)."""
-        pass
+        if self.ufun and self.ufun.outcome_space is not None:
+            rl = self.ufun.outcome_space.cardinality * self.rel_max_samples_per_call
+            try:
+                rl = int(rl)
+                self._max_samples = min(rl, self._max_samples)
+            except OverflowError:
+                pass
+
+    def _tolerance(self, x: float | tuple[float, float]) -> float:
+        """Returns the tolerance for utility matching."""
+        if isinstance(x, Iterable):
+            x = min(x)
+        return min(self.eps, self.rel_eps * x)
 
     def all(self, rng: float | tuple[float, float]) -> list[Outcome]:
         """
@@ -85,16 +124,34 @@ class SamplingInverseUtilityFunction(InverseUFun):
         """
         if not isinstance(rng, Iterable):
             rng = (rng - EPS, rng + EPS)
+        tol_down = self._tolerance(rng[0])
+        tol_up = self._tolerance(rng[1])
+
         if not n:
-            n = self.max_samples_per_call
+            n = n_samples = self._max_samples
         else:
-            n *= 3
-        if not self._ufun.outcome_space:
+            n_samples = n * self.multiplier
+        if self._ufun.outcome_space is None:
             return []
         outcomes = list(self._ufun.outcome_space.sample(n, False, False))
         mn, mx = rng
         u = self.ufun.eval_normalized if normalized else self.ufun.eval
-        return [_ for _ in outcomes if mn <= u(_) <= mx]
+
+        samples = [_ for _ in outcomes if mn - tol_down <= u(_) <= mx + tol_up]
+        samples = []
+        extra_samples = []
+        for _ in outcomes:
+            util = u(_)
+            if mn <= util <= mx:
+                samples.append(_)
+            elif mn - tol_down <= util <= mx + tol_up:
+                samples.append(_)
+        n_samples = len(samples)
+        if n_samples >= n:
+            return samples[:n]
+        if len(extra_samples) >= n - n_samples:
+            extra_samples = extra_samples[: n - n_samples]
+        return samples + extra_samples
 
     def worst_in(
         self, rng: float | tuple[float, float], normalized: bool
@@ -161,15 +218,20 @@ class SamplingInverseUtilityFunction(InverseUFun):
         Returns:
             An outcome within the range, or None if not found and fallbacks disabled.
         """
-        if not self._ufun.outcome_space:
+        if self._ufun.outcome_space is None:
             return None
         if not isinstance(rng, Iterable):
             rng = (rng - EPS, rng + EPS)
         u = self.ufun.eval_normalized if normalized else self.ufun.eval
-        for _ in range(self.max_samples_per_call):
+        tol_down = self._tolerance(rng[0])
+        tol_up = self._tolerance(rng[1])
+        for _ in range(self._max_samples):
             o = list(self._ufun.outcome_space.sample(1))[0]
             if rng[0] <= u(o) <= rng[1]:
                 return o
+            if _ > self._max_samples * self.strict_limit:
+                if rng[0] - tol_down <= u(o) <= rng[1] + tol_up:
+                    return o
         if fallback_to_higher and rng[1] < 1 - EPS:
             return self.one_in(
                 (rng[0], 1),
@@ -228,7 +290,7 @@ class SamplingInverseUtilityFunction(InverseUFun):
               falls within `rng` are returned. Use `PresortingInverseUtilityFunction` for
               exact results.
         """
-        if not self._ufun.outcome_space:
+        if self._ufun.outcome_space is None:
             return []
         outcomes = list(
             self._ufun.outcome_space.sample(self.max_samples_per_call, False, False)
@@ -253,7 +315,7 @@ class SamplingInverseUtilityFunction(InverseUFun):
               maintains a full ranking of outcomes. Use `PresortingInverseUtilityFunction`
               for exact index-based access.
         """
-        if not self._ufun.outcome_space:
+        if self._ufun.outcome_space is None:
             return []
         lo, hi = max(0, min(rng)), max(rng)
         n_samples = max(self.max_samples_per_call, hi + 1)

@@ -1,9 +1,14 @@
-"""Utility function inversion through pre-sorting all (or a sample of) outcomes,
-using a coarse waypoint-based search-window narrowing before the final bisection.
+"""Legacy pre-sorting utility-function inverter.
 
-This is a legacy, slower sibling of `PresortingInverseUtilityFunction` (the default,
-see `presorting.py`), kept for backwards compatibility and for benchmarking/comparison
-purposes (see `coding_agents/benchmark_presorting_waypoints.py`).
+``PresortingLegacyInverseUtilityFunction`` is an **exact**, verbatim copy of the
+``PresortingInverseUtilityFunction`` implementation as it existed before the
+``inv_ufun`` package restructuring (git commit ``9b9c3c95``). It is preserved
+byte-for-byte -- including its coarse waypoint-based and monotone watermark-based
+search-window narrowing, and its own module-local array-search helpers -- so that its
+behavior is identical to that historical, well-tested implementation.
+
+Prefer :class:`PresortingInverseUtilityFunction` for new code; this class exists only
+for backwards-compatibility and reference.
 """
 
 from __future__ import annotations
@@ -22,58 +27,73 @@ from negmas.warnings import NegmasUnexpectedValueWarning, warn_if_slow
 
 from ..base_ufun import BaseUtilityFunction
 from ..protocols import InverseUFun
-from ._common import EPS, index_above_or_equal, index_below_or_equal
 
 __all__ = ["PresortingLegacyInverseUtilityFunction"]
 
+EPS = 1e-12
+
+
+def _nearest_around(
+    x: float, a: NDArray, i: int, mn: float, mx: float, n: int = 1, eps: float = EPS
+) -> int | None:
+    """Finds the nearest value in a to x around i subject to being between mn and mx and no more than eps from x within n items from i."""
+    n = len(a) - 1
+    best, best_diff = i, abs(a[i] - x)
+    for j in range(i - n, i + n + 1):
+        if j < 0 or j > n:
+            continue
+        if not (mn <= a[j] <= mx):
+            continue
+        d = abs(a[j] - x)
+        if d < best_diff:
+            best, best_diff = j, d
+    if best is None:
+        return i
+    if abs(a[best] - x) > eps and best != i:
+        return None
+    return best
+
+
+def index_above_or_equal(a: NDArray, x: Any, lo: int = 0, hi: int | None = None) -> int:
+    "Locate the smallest value greater than or equal to x"
+    if hi is None:
+        hi = len(a) - 1
+    i = np.searchsorted(a[lo : hi + 1], x, side="left") + lo
+    return max(0, min(len(a) - 1, i))
+
+
+def index_below_or_equal(a: NDArray, x: Any, lo: int = 0, hi: int | None = None) -> int:
+    "Locate the greatest value less than or equal to x"
+    if hi is None:
+        hi = len(a) - 1
+    i = np.searchsorted(a[lo : hi + 1], x, side="right") + lo
+    i = max(0, min(len(a) - 1, i))
+    j = max(0, i - 1)
+    if abs(a[i] - x) <= abs(a[j] - x):
+        return i
+    return j
 
 class PresortingLegacyInverseUtilityFunction(InverseUFun):
     """
-    A legacy utility function inverter that uses pre-sorting.
+    A utility function inverter that uses pre-sorting.
 
-    This is functionally equivalent to `PresortingInverseUtilityFunction` (the default
-    -- same constructor arguments, same public behavior, same accuracy guarantees; see
-    its docstring for the full description of how pre-sorting-based inversion works)
-    except that it additionally narrows the binary-search window using a small number
-    of pre-computed "waypoints" before performing the final bisection (see Remarks).
+    The outcome-space is sampled if it is continuous and enumerated if it is discrete
+    during the call to `init()` and an ordered list of outcomes with their utility
+    values is then cached.
 
-    Empirically (see `coding_agents/benchmark_presorting_waypoints.py`), this extra
-    waypoint-narrowing step does **not** speed up `worst_in`/`best_in`/`some` -- it
-    actually makes them roughly 2x *slower* at every scale tested (100 to 1,000,000
-    outcomes), since both approaches are already `O(log n)` and the extra Python-level
-    coarse-search stage adds pure overhead over `numpy`'s highly optimized C
-    implementation of binary search. Waypoint narrowing was also historically the
-    source of subtle correctness bugs. **Prefer `PresortingInverseUtilityFunction`
-    (the default) for new code** -- use this class only if you specifically need the
-    pre-existing/legacy waypoint-narrowing behavior for backwards compatibility.
 
     Args:
         ufun: The utility function to be inverted
         levels: discretization levels per issue
         max_cache_size: maximum allowed number of outcomes in the resulting inverse
         rational_only: If true, rational outcomes will be sorted but irrational outcomes will not be sorted (should be faster if the reserved value is high)
-        n_waypints: number of coarse "waypoints" (evenly spaced indices into the sorted
-            rational-outcome array) pre-computed during `init()` and used to narrow the
-            binary-search window before the final fine-grained bisection over the full
-            sorted array (see Remarks). Set to 0 (or 1) to disable waypoint narrowing
-            entirely (equivalent to `PresortingInverseUtilityFunction`).
+        n_waypoints: Used to speedup sampling outcomes at given utilities. The larger, the slower init() will be but the faster worst_in() and best_in()
         eps: Absolute difference between utility values to consider them equal (zero or negative to disable).
         rel_eps: Relative difference between utility values to consider them equal (zero or negative to disable).
 
     Remarks:
         - The actual limit used to judge ufun equality is max(eps, rel_eps * range) where range is the difference between max and min utilities for rational outcomes.
           Set both eps, rel_eps to zero or a negative number to disable cycling through outcomes with equal utilities (or set cycle=False when calling the appropriate function).
-        - `worst_in`/`best_in`/`some`/`one_in` first narrow the search window using a
-          coarse bisection over the small `_waypoints`/`_waypoint_values` arrays, then
-          perform the final bisection using `numpy.searchsorted` restricted to that
-          window. Because the waypoints only sample a subset of indices, `_get_limiting_waypoints`
-          conservatively steps one extra waypoint further out on each side of the coarse
-          bracket to guard against ties/duplicate values -- this keeps the narrowed
-          window a safe (if not perfectly tight) superset of the true bisection answer,
-          fixing a correctness bug present in earlier versions of this class where the
-          narrowed window could incorrectly exclude the true answer. In addition,
-          previously-established monotonic watermarks (`_smallest_val`/`_largest_val`)
-          are used to further narrow the window when safe to do so.
     """
 
     def __init__(
@@ -119,10 +139,6 @@ class PresortingLegacyInverseUtilityFunction(InverseUFun):
         self._initialized = False
         self.outcomes, self.utils = [], []  # type: ignore
         self._waypoints, self._waypoint_values = [], []  # type: ignore
-        self._smallest_indx, self._smallest_val = 0, float("inf")
-        self._largest_indx, self._largest_val = -1, float("-inf")
-        self._last_returned_from_next = -1
-        self._near_range = dict()
 
     def init(self):
         """Initializes the inverter by enumerating and sorting outcomes by utility."""
@@ -147,6 +163,7 @@ class PresortingLegacyInverseUtilityFunction(InverseUFun):
         os = outcome_space.to_discrete(levels=L, max_cardinality=self.max_cache_size)
         outcomes = list(os.enumerate_or_sample(max_cardinality=self.max_cache_size))
         utils = [float(self._ufun.eval(_)) for _ in outcomes]
+        # x = len(utils)
         warn_if_slow(
             len(utils),
             "Inverting a large utility function",
@@ -194,17 +211,35 @@ class PresortingLegacyInverseUtilityFunction(InverseUFun):
                     extended = np.nonzero(lengths > 1)[0]
                     starts, ends = starts[extended], ends[extended]
                     for mn, mx in zip(starts, ends):
+                        # assert scaled[mn] == scaled[mx], f"{scaled[mn]=}, {scaled[mx]=}"
                         for indx in range(mn, mx + 1):
+                            # assert scaled[indx] == scaled[mx], f"{scaled[indx]=}, {scaled[mx]=}"
                             self._near_range[indx] = (mn, mx)
             except Exception:
                 pass
+            # for indx, current in enumerate(scaled):
+            #     mn_indx = indx
+            #     for i in range(indx - 1, -1, -1):
+            #         u = scaled[i]
+            #         if current != scaled[i]:
+            #             mn_indx = i + 1
+            #             break
+            #     mx_indx = indx
+            #     for i in range(indx + 1, n):
+            #         u = scaled[i]
+            #         if current != scaled[i]:
+            #             mx_indx = i - 1
+            #             break
+            #     if mn_indx < mx_indx:
+            #         self._near_range[indx] = (mn_indx, mx_indx)
 
+        # ordered_outcomes = sorted(zip(ur, rational, strict=True))
+        # if irrational:
+        #     ordered_outcomes += list(zip(uir, irrational, strict=True))
         self._initialized = True
         self._last_rational = len(rational) - 1
         # save waypoints within the sorted outcomes list with known utilities.
-        # These are informational only (exposed for introspection/debugging) and are
-        # no longer used to narrow the binary-search window used by worst_in/best_in/some
-        # (see the class Remarks).
+        # Used to limit the lo, hi limits when doing bisection later
         self.__nwaypoints = min(self.__nwaypoints, self._last_rational + 1)
         waypoints: NDArray[integer[Any]] = (
             np.asarray(
@@ -246,51 +281,42 @@ class PresortingLegacyInverseUtilityFunction(InverseUFun):
         return tuple(_ * d + mn for _ in rng)  # type: ignore
 
     def _get_limiting_waypoints(self, mn: float, mx: float) -> tuple[int, int]:
-        """Returns a `(lo, hi)` window within `[0, last_rational]` that is
-        **guaranteed** to contain the correct bisection index for any utility
-        value within `[mn, mx]`.
-
-        Two independent narrowing mechanisms are combined:
-
-        1. A coarse bisection over the small, pre-computed `_waypoints`/`_waypoint_values`
-           arrays (see `init()`) to find a window that brackets `[mn, mx]`. Since the
-           waypoints only sample a subset of indices, we conservatively step one waypoint
-           further out on each side (`_index_to_the_left`/`_index_to_the_right`) to
-           guard against ties or values falling strictly between two waypoints -- this
-           keeps the result a safe (if not perfectly tight) superset of the true answer.
-        2. Previously established, monotonically improving watermarks (`_smallest_val`/
-           `_largest_val`): if we already know that every outcome below index
-           `_smallest_indx` has utility `<= _smallest_val <= mn`, then those outcomes
-           cannot be part of the answer and `lo` can be safely advanced to
-           `_smallest_indx` (symmetrically for `hi`).
-        """
-        lo, hi = 0, self._last_rational
-        if hi < lo:
-            return lo, hi
+        """Returns indices of largest utility <= mn and the smallest utility >= mx in self._utils"""
         nw = len(self._waypoints)
-        if nw > 1:
-            wp, wv = self._waypoints, self._waypoint_values
-            # largest waypoint index j with wv[j] <= mn (a safe, if not minimal, lower
-            # bound: everything strictly before wp[j] has a value <= wv[j] <= mn, so it
-            # cannot be the smallest index with value >= mn *unless* there is a tie at
-            # exactly mn spanning back before wp[j]; stepping back one further waypoint
-            # guards against that).
-            j_lo = index_below_or_equal(wv, mn, 0, nw - 1)
-            j_lo = max(0, j_lo - 1)
-            lo = max(lo, int(wp[j_lo]))
-            # smallest waypoint index j with wv[j] >= mx (symmetric reasoning for hi).
-            j_hi = index_above_or_equal(wv, mx, 0, nw - 1)
-            j_hi = min(nw - 1, j_hi + 1)
-            hi = min(hi, int(wp[j_hi]))
-            if lo > hi:
-                # Defensive fallback: should not happen given the safety margins above,
-                # but never allow the waypoint narrowing to produce an empty/invalid
-                # window -- fall back to the full range instead.
-                lo, hi = 0, self._last_rational
+        n = len(self.utils)
+        if nw <= 0:
+            return (-1, -1)
+        lo, hi = self._waypoints[0], self._waypoints[-1]
+        # lo_val, hi_val = self._waypoint_values[0], self._waypoint_values[-1]
+        for j in range(nw):
+            i, u = self._waypoints[j], self._waypoint_values[j]
+            if u == mn:
+                lo = i
+                break
+            if u > mn:
+                lo = self._waypoints[max(0, j - 1)]
+                break
+        else:
+            assert mn >= self._waypoint_values[-1]
+            lo = n - 1
+        for j in range(nw - 1, -1, -1):
+            i, u = self._waypoints[j], self._waypoint_values[j]
+            if u == mx:
+                hi = i
+                break
+            if u < mx:
+                hi = self._waypoints[min(nw - 1, j + 1)]
+                break
+        else:
+            assert mx < self._waypoint_values[0]
+            hi = 0
+
+        # adjust limits to known largest and smallest. This will be specially useful for
+        # strategies that call worst_in or best_in repeatedly with descending/ascending values
         if self._smallest_val <= mn and self._smallest_indx > lo:
-            lo = min(self._smallest_indx, hi)
+            lo = self._smallest_indx
         if self._largest_val >= mx and self._largest_indx < hi:
-            hi = max(self._largest_indx, lo)
+            hi = self._largest_indx
         return lo, hi
 
     def next_worse(self) -> Outcome | None:
@@ -332,7 +358,7 @@ class PresortingLegacyInverseUtilityFunction(InverseUFun):
         if not self._ufun.is_stationary():
             self.init()
 
-        if self._last_rational < 0:
+        if len(self._waypoints) <= 0:
             return []
         rng = self._un_normalize_range(rng, normalized, False)
         mn, mx = rng
@@ -373,29 +399,18 @@ class PresortingLegacyInverseUtilityFunction(InverseUFun):
         )
 
     def _indx_of_worst_in(self, rng: tuple[float, float] | float, normalized: bool):
-        """Returns the index of the outcome with the lowest utility that is still
-        `>= mn` (i.e. the worst rational outcome within `[mn, mx]`, if any). Callers
-        must check `self.utils[indx]` is actually `<= mx` (and `indx <= last_rational`)
-        before using the result."""
         if not self._ufun.is_stationary():
             self.init()
         rng = self._un_normalize_range(rng, normalized, False)
         mn, mx = rng
-        if self._last_rational < 0:
-            return 0, mn, mx
         lo, hi = self._get_limiting_waypoints(mn, mx)
         return index_above_or_equal(self.utils, mn, lo, hi), mn, mx
 
     def _indx_of_best_in(self, rng: tuple[float, float] | float, normalized: bool):
-        """Returns the index of the outcome with the highest utility that is still
-        `<= mx` (i.e. the best rational outcome within `[mn, mx]`, if any). Callers
-        must check `self.utils[indx]` is actually `>= mn` before using the result."""
         if not self._ufun.is_stationary():
             self.init()
         rng = self._un_normalize_range(rng, normalized, True)
         mn, mx = rng
-        if self._last_rational < 0:
-            return -1, mn, mx
         lo, hi = self._get_limiting_waypoints(mn, mx)
         return index_below_or_equal(self.utils, mx, lo, hi), mn, mx
 
@@ -418,12 +433,25 @@ class PresortingLegacyInverseUtilityFunction(InverseUFun):
             - Returns None if no such outcome exists, or the worst outcome in the given range is irrational
             - This is an O(log(n)) operation (where n is the number of outcomes)
         """
-        indx, mn, mx = self._indx_of_worst_in(rng, normalized)
-        if self._last_rational < 0 or indx > self._last_rational or indx < 0:
+        indx_, mn, mx = self._indx_of_worst_in(rng, normalized)
+        if indx_ > self._last_rational:
+            # fail if this worst is irrational
             return None
-        u = self.utils[indx]
-        if u < mn - eps or u > mx + eps:
-            # no rational outcome exists within the requested range
+        indx = _nearest_around(
+            mn, self.utils, indx_, mn - eps, mx + 2 * eps, eps=2 * eps
+        )
+        # if indx is None or (mx > mn + EPS and self.utils[indx] > mx + 2 * eps):
+        #     # fail if the found outcome is actually worse than the maximum allowed. Should never happen
+        #     raise ValueError(
+        #         f"worst_in failed to find an appropriate outcome: {rng=} with initial find at {indx_} but we found an outcome with utility {self.utils[indx] if indx is not None else self.utils}"
+        #     )
+        if indx is None:
+            # _nearest_around found no outcome in the requested utility range;
+            # honour the documented "Returns None if no such outcome exists"
+            # contract instead of indexing with None (self.outcomes[None] ->
+            # TypeError). Triggered e.g. by TimeBasedOfferingPolicy when the
+            # aspiration band (asp-eps, mx) is empty for the (possibly
+            # high-reserved) ufun.
             return None
         if mn < self._smallest_val:
             self._smallest_indx, self._smallest_val = indx, mn
@@ -450,12 +478,20 @@ class PresortingLegacyInverseUtilityFunction(InverseUFun):
             - Returns None if no such outcome exists
             - This is an O(log(n)) operation (where n is the number of outcomes)
         """
-        indx, mn, mx = self._indx_of_best_in(rng, normalized)
-        if self._last_rational < 0 or indx > self._last_rational or indx < 0:
-            return None
-        u = self.utils[indx]
-        if u < mn - eps or u > mx + eps:
-            # no rational outcome exists within the requested range
+        indx_, mn, mx = self._indx_of_best_in(rng, normalized)
+        if indx_ < 0:
+            indx_ = 0
+        indx = _nearest_around(
+            mx, self.utils, indx_, mn - eps, mx + 2 * eps, eps=2 * eps
+        )
+        # if indx is None or (mn < mx - eps and self.utils[indx] < mn - 2 * eps):
+        #     raise ValueError(
+        #         f"best_in failed to find an appropriate outcome: {rng=} with initial find at {indx_} but we found an outcome with utility {self.utils[indx] if indx is not None else self.utils}"
+        #     )
+        if indx is None:
+            # No outcome in the requested utility range; return None per the
+            # docstring rather than indexing with None (self.outcomes[None] ->
+            # TypeError).
             return None
         if mx > self._largest_val:
             self._largest_indx, self._largest_val = indx, mx
@@ -480,45 +516,44 @@ class PresortingLegacyInverseUtilityFunction(InverseUFun):
             - This is an O(log(n)) operation (where n is the number of outcomes)
             - We only search rational outcomes
         """
+        mx, rmn, rmx = self._indx_of_worst_in(rng, normalized)
+        if mx > self._last_rational or not self._in(self.utils[mx], (rmn, rmx)):
+            return None
+        mn, rmn, rmx = self._indx_of_worst_in(rng, normalized)
+        if mn < 0 or not self._in(self.utils[mn], (rmn, rmx)):
+            return None
+        if mn < 0:
+            mn = 0
+        if mx > self._last_rational:
+            mx = self._last_rational
 
         def recover_from_failure():
             """Attempts fallback strategies when no outcome is found in range."""
-            rmx = rng[1] if isinstance(rng, Iterable) else rng
-            if fallback_to_higher and (not normalized or rmx < 1 - EPS):
+            if fallback_to_higher and rng[1] < 1 - EPS:
                 return self.one_in(
-                    (rng[0] if isinstance(rng, Iterable) else rng, 1)
-                    if normalized
-                    else (rng[0] if isinstance(rng, Iterable) else rng, float(self._max)),
+                    (rng[0], 1 if normalized else float(self._ufun.max())),
                     normalized,
                     fallback_to_higher=False,
                     fallback_to_best=fallback_to_best,
                 )
             if fallback_to_best:
-                return self.best()
+                return self._best
             return None
 
-        if self._last_rational < 0:
-            return recover_from_failure()
-
-        mn_indx, rmn, rmx = self._indx_of_worst_in(rng, normalized)
-        mx_indx, _, _ = self._indx_of_best_in(rng, normalized)
-
-        if (
-            mn_indx > self._last_rational
-            or mn_indx < 0
-            or mx_indx > self._last_rational
-            or mx_indx < 0
-            or mn_indx > mx_indx
-            or not self._in(self.utils[mn_indx], (rmn, rmx))
-            or not self._in(self.utils[mx_indx], (rmn, rmx))
-        ):
+        if mx < mn:
+            # TODO: Something is wrong here. When using stochastic aspiration mn > mx a lot and this leads to strange behavior.
             warnings.warn(
-                f"Utility Inverter: could not find any rational outcome with utility in {rng} (normalized={normalized})",
+                f"Utility Inverter: {mx=}, {mn=} but we expect mn < mx. Could not find any outcomes in the range given",
                 NegmasUnexpectedValueWarning,
             )
             return recover_from_failure()
+            # return self.outcomes[min(mx, mn)]
+            # mx, mn = mn, mx
 
-        indx = random.randint(mn_indx, mx_indx)
+        if mn == mx:
+            mn = int(mn)
+            return self.outcomes[mn]
+        indx = random.randint(mn, mx)
         return self.outcomes[indx]
 
     def _cycle_around(self, indx: int) -> None:
@@ -654,3 +689,4 @@ class PresortingLegacyInverseUtilityFunction(InverseUFun):
         if indx <= self._last_rational:
             return self.utils[self._last_rational - indx]
         return self.utils[indx]
+
