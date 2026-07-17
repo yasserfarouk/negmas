@@ -171,6 +171,7 @@ from .bruteforce import BruteForceInverseUtilityFunction
 from .mcts import MCTSInverseUtilityFunction
 from .presorting import PresortingInverseUtilityFunction
 from .presorting_legacy import PresortingLegacyInverseUtilityFunction
+from .presorting_legacy import PresortingInverseUtilityFunctionBruteForce
 from .sampling import SamplingInverseUtilityFunction
 
 # The default inverter used throughout the codebase.
@@ -188,4 +189,5 @@ __all__ = [
     "SamplingInverseUtilityFunction",
     "PresortingInverseUtilityFunction",
     "PresortingLegacyInverseUtilityFunction",
+    "PresortingInverseUtilityFunctionBruteForce"
 ]
