@@ -9,7 +9,7 @@ from negmas.outcomes import Outcome
 
 from ..base_ufun import BaseUtilityFunction
 from ..protocols import InverseUFun
-from ._common import EPS
+from ._common import EPS, _normalize_rng
 
 __all__ = ["SamplingInverseUtilityFunction"]
 
@@ -130,8 +130,10 @@ class SamplingInverseUtilityFunction(InverseUFun):
             - If the outcome-space is discrete, this method will return all outcomes in the given range
 
         """
-        if not isinstance(rng, Iterable):
-            rng = (rng - EPS, rng + EPS)
+        lo, hi, ok = _normalize_rng(rng)
+        if not ok:
+            return []
+        rng = (lo, hi)
         tol_down = self._tolerance(rng[0])
         tol_up = self._tolerance(rng[1])
 
@@ -193,9 +195,11 @@ class SamplingInverseUtilityFunction(InverseUFun):
         Returns:
             The outcome with lowest utility in the range, or a fallback, or None.
         """
+        lo, hi, ok = _normalize_rng(rng)
+        if not ok:
+            return None
+        rng = (lo, hi)
         some = self.some(rng, normalized)
-        if not isinstance(rng, Iterable):
-            rng = (rng, rng)
         worst_util, worst = float("inf"), None
         for o in some:
             util = self._ufun(o)
@@ -254,9 +258,11 @@ class SamplingInverseUtilityFunction(InverseUFun):
         Returns:
             The outcome with highest utility in the range, or a fallback, or None.
         """
+        lo, hi, ok = _normalize_rng(rng)
+        if not ok:
+            return None
+        rng = (lo, hi)
         some = self.some(rng, normalized)
-        if not isinstance(rng, Iterable):
-            rng = (rng, rng)
         best_util, best = float("-inf"), None
         for o in some:
             util = self._ufun(o)
@@ -299,8 +305,10 @@ class SamplingInverseUtilityFunction(InverseUFun):
         """
         if self._ufun.outcome_space is None:
             return None
-        if not isinstance(rng, Iterable):
-            rng = (rng - EPS, rng + EPS)
+        lo, hi, ok = _normalize_rng(rng)
+        if not ok:
+            return None
+        rng = (lo, hi)
         u = self.ufun.eval_normalized if normalized else self.ufun.eval
         tol_down = self._tolerance(rng[0])
         tol_up = self._tolerance(rng[1])

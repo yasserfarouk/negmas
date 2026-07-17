@@ -18,13 +18,12 @@ from negmas.warnings import NegmasUnexpectedValueWarning, warn_if_slow
 
 from ..base_ufun import BaseUtilityFunction
 from ..protocols import InverseUFun
+from ._common import EPS, _un_normalize_range
 
 __all__ = [
     "PresortingLegacyInverseUtilityFunction",
     "PresortingInverseUtilityFunctionBruteForce",
 ]
-
-EPS = 1e-12
 
 
 def _nearest_around(
@@ -269,16 +268,8 @@ class PresortingLegacyInverseUtilityFunction(InverseUFun):
 
     def _un_normalize_range(
         self, rng: float | tuple[float, float], normalized: bool, for_best: bool
-    ) -> tuple[float, float]:
-        if not isinstance(rng, Iterable):
-            rng = (rng - EPS, rng + EPS)
-        if not normalized:
-            return rng
-        mn, mx = self._min, self._max
-        d = mx - mn
-        if d < EPS:
-            return tuple(0.0 if not for_best else 1.0 for _ in rng)  # type: ignore
-        return tuple(_ * d + mn for _ in rng)  # type: ignore
+    ) -> tuple[float, float] | None:
+        return _un_normalize_range(rng, normalized, self._min, self._max, for_best)
 
     def _get_limiting_waypoints(self, mn: float, mx: float) -> tuple[int, int]:
         """Returns indices of largest utility <= mn and the smallest utility >= mx in self._utils"""
@@ -361,6 +352,8 @@ class PresortingLegacyInverseUtilityFunction(InverseUFun):
         if len(self._waypoints) <= 0:
             return []
         rng = self._un_normalize_range(rng, normalized, False)
+        if rng is None:
+            return []
         mn, mx = rng
         lo, hi = self._get_limiting_waypoints(mn, mx)
         if lo > hi:
@@ -402,6 +395,8 @@ class PresortingLegacyInverseUtilityFunction(InverseUFun):
         if not self._ufun.is_stationary():
             self.init()
         rng = self._un_normalize_range(rng, normalized, False)
+        if rng is None:
+            return 0, float("inf"), float("-inf")
         mn, mx = rng
         lo, hi = self._get_limiting_waypoints(mn, mx)
         return index_above_or_equal(self.utils, mn, lo, hi), mn, mx
@@ -410,6 +405,8 @@ class PresortingLegacyInverseUtilityFunction(InverseUFun):
         if not self._ufun.is_stationary():
             self.init()
         rng = self._un_normalize_range(rng, normalized, True)
+        if rng is None:
+            return -1, float("inf"), float("-inf")
         mn, mx = rng
         lo, hi = self._get_limiting_waypoints(mn, mx)
         return index_below_or_equal(self.utils, mx, lo, hi), mn, mx
@@ -796,29 +793,23 @@ class PresortingInverseUtilityFunctionBruteForce(InverseUFun):
 
     def _un_normalize_range(
         self, rng: float | tuple[float, float], normalized: bool, for_best: bool
-    ) -> tuple[float, float]:
-        if not isinstance(rng, Iterable):
-            rng = (rng - EPS, rng + EPS)
-        if not normalized:
-            return rng
-        mn, mx = self._min, self._max
-        d = mx - mn
-        if d < EPS:
-            return tuple(0.0 if not for_best else 1.0 for _ in rng)
-        return tuple(_ * d + mn for _ in rng)
+    ) -> tuple[float, float] | None:
+        return _un_normalize_range(rng, normalized, self._min, self._max, for_best)
 
     def _normalize_range(
         self, rng: float | tuple[float, float], normalized: bool, for_best: bool
-    ) -> tuple[float, float]:
+    ) -> tuple[float, float] | None:
+        # Inverse of _un_normalize_range: maps raw to [0,1]. No inverted-range
+        # validation (called only with already-valid raw ranges internally).
         if not isinstance(rng, Iterable):
             rng = (rng - EPS, rng + EPS)
         if not normalized:
-            return rng
+            return rng  # type: ignore
         mn, mx = self._min, self._max
         d = mx - mn
         if d < EPS:
-            return tuple(1.0 if for_best else 0.0 for _ in rng)
-        return tuple(_ * d + mn for _ in rng)
+            return tuple(1.0 if for_best else 0.0 for _ in rng)  # type: ignore
+        return tuple(_ * d + mn for _ in rng)  # type: ignore
 
     def next_worse(self) -> Outcome | None:
         """Returns the rational outcome with utility just below the last one returned from this function"""
@@ -935,6 +926,8 @@ class PresortingInverseUtilityFunctionBruteForce(InverseUFun):
         if not self._ufun.is_stationary():
             self.init()
         rng = self._un_normalize_range(rng, normalized, False)
+        if rng is None:
+            return None
         mn, mx = rng
         if not self._ordered_outcomes:
             return None
@@ -963,6 +956,8 @@ class PresortingInverseUtilityFunctionBruteForce(InverseUFun):
         if not self._ufun.is_stationary():
             self.init()
         rng = self._un_normalize_range(rng, normalized, True)
+        if rng is None:
+            return None
         mn, mx = rng
         for util, w in self._ordered_outcomes[: self._last_rational + 1]:
             if util > mx + EPS:

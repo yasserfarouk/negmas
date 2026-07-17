@@ -27,7 +27,7 @@ import numpy as np
 from negmas.outcomes import Outcome
 
 from ..protocols import InverseUFun
-from ._common import EPS
+from ._common import EPS, _norm_to_raw, _raw_to_norm, _resolve_rng
 
 if TYPE_CHECKING:
     from ..base_ufun import BaseUtilityFunction
@@ -163,24 +163,15 @@ class AttributePlanningInverseUtilityFunction(InverseUFun):
             )
 
     def _norm_to_raw(self, t: float) -> float:
-        return self._u_min + t * (self._u_max - self._u_min)
+        return _norm_to_raw(t, self._u_min, self._u_max)
 
     def _raw_to_norm(self, u: float) -> float:
-        r = self._u_max - self._u_min
-        if r < _MIN_RANGE:
-            return 0.0
-        return (u - self._u_min) / r
+        return _raw_to_norm(u, self._u_min, self._u_max)
 
     def _resolve_rng(
         self, rng: float | tuple[float, float], normalized: bool
-    ) -> tuple[float, float]:
-        if isinstance(rng, (int, float)):
-            mn_n = mx_n = float(rng)
-        else:
-            mn_n, mx_n = float(rng[0]), float(rng[1])
-        if normalized:
-            return self._norm_to_raw(mn_n), self._norm_to_raw(mx_n)
-        return mn_n, mx_n
+    ) -> tuple[float, float] | None:
+        return _resolve_rng(rng, normalized, self._u_min, self._u_max)
 
     def _query(self, target_raw: float) -> Outcome:
         """Attribute-Planning query: split the global target into a per-issue target
@@ -213,7 +204,10 @@ class AttributePlanningInverseUtilityFunction(InverseUFun):
     ) -> list[Outcome]:
         self._check_initialized()
         k = n if n is not None else self._n_samples
-        mn_raw, mx_raw = self._resolve_rng(rng, normalized)
+        resolved = self._resolve_rng(rng, normalized)
+        if resolved is None:
+            return []
+        mn_raw, mx_raw = resolved
         if mn_raw > mx_raw:
             mn_raw, mx_raw = mx_raw, mn_raw
         targets = [random.uniform(mn_raw, mx_raw) for _ in range(k)]
@@ -234,7 +228,10 @@ class AttributePlanningInverseUtilityFunction(InverseUFun):
         fallback_to_best: bool = True,
     ) -> Outcome | None:
         self._check_initialized()
-        mn_raw, mx_raw = self._resolve_rng(rng, normalized)
+        resolved = self._resolve_rng(rng, normalized)
+        if resolved is None:
+            return None
+        mn_raw, mx_raw = resolved
         if mn_raw > mx_raw:
             mn_raw, mx_raw = mx_raw, mn_raw
         # Random target for diversity
@@ -281,7 +278,10 @@ class AttributePlanningInverseUtilityFunction(InverseUFun):
         * Otherwise ``None`` is returned.
         """
         self._check_initialized()
-        mn_raw, mx_raw = self._resolve_rng(rng, normalized)
+        resolved = self._resolve_rng(rng, normalized)
+        if resolved is None:
+            return None
+        mn_raw, mx_raw = resolved
         if mn_raw > mx_raw:
             mn_raw, mx_raw = mx_raw, mn_raw
         best_o: Outcome | None = None
@@ -327,7 +327,10 @@ class AttributePlanningInverseUtilityFunction(InverseUFun):
         * Otherwise ``None`` is returned.
         """
         self._check_initialized()
-        mn_raw, mx_raw = self._resolve_rng(rng, normalized)
+        resolved = self._resolve_rng(rng, normalized)
+        if resolved is None:
+            return None
+        mn_raw, mx_raw = resolved
         if mn_raw > mx_raw:
             mn_raw, mx_raw = mx_raw, mn_raw
         worst_o: Outcome | None = None

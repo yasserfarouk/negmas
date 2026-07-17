@@ -20,7 +20,13 @@ from negmas.warnings import warn_if_slow
 
 from ..base_ufun import BaseUtilityFunction
 from ..protocols import InverseUFun
-from ._common import EPS, _nearest_around, index_above_or_equal, index_below_or_equal
+from ._common import (
+    EPS,
+    _nearest_around,
+    _un_normalize_range,
+    index_above_or_equal,
+    index_below_or_equal,
+)
 
 __all__ = ["PresortingInverseUtilityFunction"]
 
@@ -191,16 +197,8 @@ class PresortingInverseUtilityFunction(InverseUFun):
 
     def _un_normalize_range(
         self, rng: float | tuple[float, float], normalized: bool, for_best: bool
-    ) -> tuple[float, float]:
-        if not isinstance(rng, Iterable):
-            rng = (rng - EPS, rng + EPS)
-        if not normalized:
-            return rng
-        mn, mx = self._min, self._max
-        d = mx - mn
-        if d < EPS:
-            return tuple(0.0 if not for_best else 1.0 for _ in rng)  # type: ignore
-        return tuple(_ * d + mn for _ in rng)  # type: ignore
+    ) -> tuple[float, float] | None:
+        return _un_normalize_range(rng, normalized, self._min, self._max, for_best)  # type: ignore
 
     def next_worse(self) -> Outcome | None:
         """Returns the rational outcome with utility just below the last one returned from this function"""
@@ -244,6 +242,8 @@ class PresortingInverseUtilityFunction(InverseUFun):
         if self._last_rational < 0:
             return []
         rng = self._un_normalize_range(rng, normalized, False)
+        if rng is None:
+            return []
         mn, mx = rng
         lo, hi = 0, self._last_rational
         if lo > hi:
@@ -289,6 +289,8 @@ class PresortingInverseUtilityFunction(InverseUFun):
         if not self._ufun.is_stationary():
             self.init()
         rng = self._un_normalize_range(rng, normalized, False)
+        if rng is None:
+            return 0, float("inf"), float("-inf")
         mn, mx = rng
         if self._last_rational < 0:
             return 0, mn, mx
@@ -301,6 +303,8 @@ class PresortingInverseUtilityFunction(InverseUFun):
         if not self._ufun.is_stationary():
             self.init()
         rng = self._un_normalize_range(rng, normalized, True)
+        if rng is None:
+            return -1, float("inf"), float("-inf")
         mn, mx = rng
         if self._last_rational < 0:
             return -1, mn, mx

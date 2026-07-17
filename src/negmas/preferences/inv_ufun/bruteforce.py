@@ -28,7 +28,7 @@ from negmas.warnings import warn_if_slow
 
 from ..base_ufun import BaseUtilityFunction
 from ..protocols import InverseUFun
-from ._common import EPS
+from ._common import EPS, _un_normalize_range
 
 __all__ = ["BruteForceInverseUtilityFunction"]
 
@@ -164,22 +164,15 @@ class BruteForceInverseUtilityFunction(InverseUFun):
 
     def _un_normalize_range(
         self, rng: float | tuple[float, float], normalized: bool, for_best: bool
-    ) -> tuple[float, float]:
-        if not isinstance(rng, tuple):
-            rng = (float(rng) - EPS, float(rng) + EPS)
-        lo, hi = float(rng[0]), float(rng[1])
-        if not normalized:
-            return (lo, hi)
-        mn, mx = self._min, self._max
-        d = mx - mn
-        if d < EPS:
-            v = 0.0 if not for_best else 1.0
-            return (v, v)
-        return (lo * d + mn, hi * d + mn)
+    ) -> tuple[float, float] | None:
+        return _un_normalize_range(rng, normalized, self._min, self._max, for_best)
 
     def _normalize_range(
         self, rng: float | tuple[float, float], normalized: bool, for_best: bool
-    ) -> tuple[float, float]:
+    ) -> tuple[float, float] | None:
+        # _normalize_range is the inverse of _un_normalize_range: it maps raw
+        # utilities to [0, 1]. It does not perform inverted-range validation
+        # because it is only called with already-valid raw ranges internally.
         if not isinstance(rng, tuple):
             rng = (float(rng) - EPS, float(rng) + EPS)
         lo, hi = float(rng[0]), float(rng[1])
@@ -219,10 +212,7 @@ class BruteForceInverseUtilityFunction(InverseUFun):
         return None
 
     def some(
-        self,
-        rng: float | tuple[float, float],
-        normalized: bool,
-        n: int | None = None,
+        self, rng: float | tuple[float, float], normalized: bool, n: int | None = None
     ) -> list[Outcome]:
         """
         Finds some outcomes within the given utility range (if discrete, all of them).
@@ -241,6 +231,8 @@ class BruteForceInverseUtilityFunction(InverseUFun):
         if self._last_rational < 0:
             return []
         rng = self._un_normalize_range(rng, normalized, False)
+        if rng is None:
+            return []
         mn, mx = rng
         results = []
         # `_ordered_outcomes` is sorted by utility descending (index 0 == best).
@@ -277,10 +269,7 @@ class BruteForceInverseUtilityFunction(InverseUFun):
         )
 
     def worst_in(
-        self,
-        rng: float | tuple[float, float],
-        normalized: bool,
-        eps: float = EPS,
+        self, rng: float | tuple[float, float], normalized: bool, eps: float = EPS
     ) -> Outcome | None:
         """
         Finds an outcome with the lowest utility within the given range.
@@ -295,6 +284,8 @@ class BruteForceInverseUtilityFunction(InverseUFun):
         """
         self._ensure()
         rng = self._un_normalize_range(rng, normalized, False)
+        if rng is None:
+            return None
         mn, mx = rng
         if self._last_rational < 0:
             return None
@@ -309,10 +300,7 @@ class BruteForceInverseUtilityFunction(InverseUFun):
         return wbefore
 
     def best_in(
-        self,
-        rng: float | tuple[float, float],
-        normalized: bool,
-        eps: float = EPS,
+        self, rng: float | tuple[float, float], normalized: bool, eps: float = EPS
     ) -> Outcome | None:
         """
         Finds an outcome with the highest utility within the given range.
@@ -327,6 +315,8 @@ class BruteForceInverseUtilityFunction(InverseUFun):
         """
         self._ensure()
         rng = self._un_normalize_range(rng, normalized, True)
+        if rng is None:
+            return None
         mn, mx = rng
         if self._last_rational < 0:
             return None

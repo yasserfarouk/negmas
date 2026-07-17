@@ -23,11 +23,10 @@ from negmas.outcomes import Outcome
 from negmas.warnings import warn_if_slow
 
 from ..protocols import InverseUFun
-from ._common import EPS
+from ._common import EPS, _norm_to_raw, _raw_to_norm, _resolve_rng
 
 if TYPE_CHECKING:
     from ..base_ufun import BaseUtilityFunction
-    from ..crisp.linear import LinearAdditiveUtilityFunction
 
 __all__ = ["BIDSInverseUtilityFunction"]
 
@@ -84,10 +83,7 @@ class BIDSInverseUtilityFunction(InverseUFun):
     """
 
     def __init__(
-        self,
-        ufun: BaseUtilityFunction,
-        precision: int = 3,
-        n_samples: int = 50,
+        self, ufun: BaseUtilityFunction, precision: int = 3, n_samples: int = 50
     ) -> None:
         self._ufun = ufun
         self._precision = precision
@@ -252,26 +248,21 @@ class BIDSInverseUtilityFunction(InverseUFun):
 
     def _norm_to_raw(self, t: float) -> float:
         """Convert a normalised utility (0=worst, 1=best) to a raw utility."""
-        return self._u_min + t * (self._u_max - self._u_min)
+        return _norm_to_raw(t, self._u_min, self._u_max)
 
     def _raw_to_norm(self, u: float) -> float:
         """Convert a raw utility to normalised [0,1]."""
-        r = self._u_max - self._u_min
-        if r < _MIN_RANGE:
-            return 0.0
-        return (u - self._u_min) / r
+        return _raw_to_norm(u, self._u_min, self._u_max)
 
     def _resolve_rng(
         self, rng: float | tuple[float, float], normalized: bool
-    ) -> tuple[float, float]:
-        """Return (mn_raw, mx_raw) from *rng* in either normalised or raw form."""
-        if isinstance(rng, (int, float)):
-            mn_n = mx_n = float(rng)
-        else:
-            mn_n, mx_n = float(rng[0]), float(rng[1])
-        if normalized:
-            return self._norm_to_raw(mn_n), self._norm_to_raw(mx_n)
-        return mn_n, mx_n
+    ) -> tuple[float, float] | None:
+        """Return ``(mn_raw, mx_raw)`` from *rng* in either normalised or raw form.
+
+        Returns ``None`` if the range is inverted beyond
+        :data:`INVERTED_RANGE_TOLERANCE` (see :func:`negmas.preferences.inv_ufun._common._resolve_rng`).
+        """
+        return _resolve_rng(rng, normalized, self._u_min, self._u_max)
 
     def _target_to_idx(self, target_raw: float) -> int:
         """Convert a raw utility target to a grid index."""
@@ -305,11 +296,7 @@ class BIDSInverseUtilityFunction(InverseUFun):
         return self._lookup(self._target_to_idx(target_raw))
 
     def _sampling_bids(
-        self,
-        mn_raw: float,
-        mx_raw: float,
-        n: int,
-        rng_seed: int | None = None,
+        self, mn_raw: float, mx_raw: float, n: int, rng_seed: int | None = None
     ) -> list[Outcome]:
         """Sampling-BIDS: sample *n* utility targets from [mn_raw, mx_raw]
         uniformly and apply BIDS to each."""
@@ -330,10 +317,7 @@ class BIDSInverseUtilityFunction(InverseUFun):
     # ------------------------------------------------------------------
 
     def some(
-        self,
-        rng: float | tuple[float, float],
-        normalized: bool,
-        n: int | None = None,
+        self, rng: float | tuple[float, float], normalized: bool, n: int | None = None
     ) -> list[Outcome]:
         """Return a diverse list of outcomes with utilities near the given range.
 
@@ -347,7 +331,10 @@ class BIDSInverseUtilityFunction(InverseUFun):
         """
         self._check_initialized()
         k = n if n is not None else self._n_samples
-        mn_raw, mx_raw = self._resolve_rng(rng, normalized)
+        resolved = self._resolve_rng(rng, normalized)
+        if resolved is None:
+            return []
+        mn_raw, mx_raw = resolved
         outcomes = self._sampling_bids(mn_raw, mx_raw, k)
         # deduplicate while preserving order
         seen: set[Outcome] = set()
@@ -380,7 +367,10 @@ class BIDSInverseUtilityFunction(InverseUFun):
                 outcome with the best overall utility.
         """
         self._check_initialized()
-        mn_raw, mx_raw = self._resolve_rng(rng, normalized)
+        resolved = self._resolve_rng(rng, normalized)
+        if resolved is None:
+            return None
+        mn_raw, mx_raw = resolved
         # Try midpoint as target
         target = (mn_raw + mx_raw) / 2.0
         outcome = self._bids(target)
@@ -428,7 +418,10 @@ class BIDSInverseUtilityFunction(InverseUFun):
         * Otherwise ``None`` is returned.
         """
         self._check_initialized()
-        mn_raw, mx_raw = self._resolve_rng(rng, normalized)
+        resolved = self._resolve_rng(rng, normalized)
+        if resolved is None:
+            return None
+        mn_raw, mx_raw = resolved
         candidates = self._sampling_bids(mn_raw, mx_raw, self._n_samples)
         best_o: Outcome | None = None
         best_u = float("-inf")
@@ -475,7 +468,10 @@ class BIDSInverseUtilityFunction(InverseUFun):
         * Otherwise ``None`` is returned.
         """
         self._check_initialized()
-        mn_raw, mx_raw = self._resolve_rng(rng, normalized)
+        resolved = self._resolve_rng(rng, normalized)
+        if resolved is None:
+            return None
+        mn_raw, mx_raw = resolved
         candidates = self._sampling_bids(mn_raw, mx_raw, self._n_samples)
         worst_o: Outcome | None = None
         worst_u = float("inf")

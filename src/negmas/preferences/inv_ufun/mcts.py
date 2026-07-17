@@ -23,12 +23,11 @@ import math
 import random
 from typing import TYPE_CHECKING, Any
 
-import numpy as np
 
 from negmas.outcomes import Outcome
 
 from ..protocols import InverseUFun
-from ._common import EPS
+from ._common import EPS, _norm_to_raw, _raw_to_norm, _resolve_rng
 
 if TYPE_CHECKING:
     from ..base_ufun import BaseUtilityFunction
@@ -44,14 +43,7 @@ class _MCTSNode:
     outcome).
     """
 
-    __slots__ = (
-        "partial",
-        "depth",
-        "visits",
-        "total_reward",
-        "children",
-        "untried",
-    )
+    __slots__ = ("partial", "depth", "visits", "total_reward", "children", "untried")
 
     def __init__(self, partial: tuple, depth: int, untried: list[Any]) -> None:
         self.partial: tuple = partial
@@ -164,29 +156,18 @@ class MCTSInverseUtilityFunction(InverseUFun):
 
     def _check_initialized(self) -> None:
         if not self._initialized:
-            raise RuntimeError(
-                "MCTSInverseUtilityFunction.init() has not been called."
-            )
+            raise RuntimeError("MCTSInverseUtilityFunction.init() has not been called.")
 
     def _norm_to_raw(self, t: float) -> float:
-        return self._u_min + t * (self._u_max - self._u_min)
+        return _norm_to_raw(t, self._u_min, self._u_max)
 
     def _raw_to_norm(self, u: float) -> float:
-        r = self._u_max - self._u_min
-        if r < 1e-12:
-            return 0.0
-        return (u - self._u_min) / r
+        return _raw_to_norm(u, self._u_min, self._u_max)
 
     def _resolve_rng(
         self, rng: float | tuple[float, float], normalized: bool
-    ) -> tuple[float, float]:
-        if isinstance(rng, (int, float)):
-            mn_n = mx_n = float(rng)
-        else:
-            mn_n, mx_n = float(rng[0]), float(rng[1])
-        if normalized:
-            return self._norm_to_raw(mn_n), self._norm_to_raw(mx_n)
-        return mn_n, mx_n
+    ) -> tuple[float, float] | None:
+        return _resolve_rng(rng, normalized, self._u_min, self._u_max)
 
     def _new_root(self) -> _MCTSNode:
         return _MCTSNode((), 0, list(range(len(self._val_list[0]))))
@@ -280,13 +261,13 @@ class MCTSInverseUtilityFunction(InverseUFun):
     # ------------------------------------------------------------------
 
     def some(
-        self,
-        rng: float | tuple[float, float],
-        normalized: bool,
-        n: int | None = None,
+        self, rng: float | tuple[float, float], normalized: bool, n: int | None = None
     ) -> list[Outcome]:
         self._check_initialized()
-        mn_raw, mx_raw = self._resolve_rng(rng, normalized)
+        resolved = self._resolve_rng(rng, normalized)
+        if resolved is None:
+            return []
+        mn_raw, mx_raw = resolved
         if mn_raw > mx_raw:
             mn_raw, mx_raw = mx_raw, mn_raw
         k = n if n is not None else 10
@@ -312,7 +293,10 @@ class MCTSInverseUtilityFunction(InverseUFun):
         fallback_to_best: bool = True,
     ) -> Outcome | None:
         self._check_initialized()
-        mn_raw, mx_raw = self._resolve_rng(rng, normalized)
+        resolved = self._resolve_rng(rng, normalized)
+        if resolved is None:
+            return None
+        mn_raw, mx_raw = resolved
         if mn_raw > mx_raw:
             mn_raw, mx_raw = mx_raw, mn_raw
 
@@ -327,9 +311,7 @@ class MCTSInverseUtilityFunction(InverseUFun):
         if fallback_to_higher:
             # Try a random outcome and check if it's above mn_raw
             for _ in range(20):
-                candidate = tuple(
-                    random.choice(vals) for vals in self._val_list
-                )
+                candidate = tuple(random.choice(vals) for vals in self._val_list)
                 u = float(self._ufun(candidate))  # type: ignore[arg-type]
                 if u >= mn_raw - EPS:
                     return candidate
@@ -358,7 +340,10 @@ class MCTSInverseUtilityFunction(InverseUFun):
         * Otherwise ``None`` is returned.
         """
         self._check_initialized()
-        mn_raw, mx_raw = self._resolve_rng(rng, normalized)
+        resolved = self._resolve_rng(rng, normalized)
+        if resolved is None:
+            return None
+        mn_raw, mx_raw = resolved
         if mn_raw > mx_raw:
             mn_raw, mx_raw = mx_raw, mn_raw
 
@@ -404,7 +389,10 @@ class MCTSInverseUtilityFunction(InverseUFun):
         * Otherwise ``None`` is returned.
         """
         self._check_initialized()
-        mn_raw, mx_raw = self._resolve_rng(rng, normalized)
+        resolved = self._resolve_rng(rng, normalized)
+        if resolved is None:
+            return None
+        mn_raw, mx_raw = resolved
         if mn_raw > mx_raw:
             mn_raw, mx_raw = mx_raw, mn_raw
 
