@@ -22,6 +22,14 @@ class SamplingInverseUtilityFunction(InverseUFun):
     Nevertheless, each time the system is asked to find an outcome within some range, it uses
     random sampling which is very inefficient and suffers from the curse of dimensionality.
 
+    This is a **clamping** inverter (see module docs). When ``worst_in``/``best_in``
+    fail to find an in-range outcome (common when the range is narrow and contains
+    only a single outcome that the random sample missed), they expand the range
+    upward and, if still nothing is found, fall back to the nearest boundary
+    outcome (best if the range is in the upper half of the utility range, worst if
+    in the lower half). ``one_in`` always had these fallbacks; ``worst_in``/
+    ``best_in`` gained them to avoid returning ``None`` and breaking the SAO
+    mechanism.
 
     Args:
         ufun: The utility function to invert
@@ -137,7 +145,6 @@ class SamplingInverseUtilityFunction(InverseUFun):
         mn, mx = rng
         u = self.ufun.eval_normalized if normalized else self.ufun.eval
 
-        samples = [_ for _ in outcomes if mn - tol_down <= u(_) <= mx + tol_up]
         samples = []
         extra_samples = []
         for _ in outcomes:
@@ -145,7 +152,7 @@ class SamplingInverseUtilityFunction(InverseUFun):
             if mn <= util <= mx:
                 samples.append(_)
             elif mn - tol_down <= util <= mx + tol_up:
-                samples.append(_)
+                extra_samples.append(_)
         n_samples = len(samples)
         if n_samples >= n:
             return samples[:n]
@@ -154,17 +161,37 @@ class SamplingInverseUtilityFunction(InverseUFun):
         return samples + extra_samples
 
     def worst_in(
-        self, rng: float | tuple[float, float], normalized: bool
+        self,
+        rng: float | tuple[float, float],
+        normalized: bool,
+        fallback_to_higher: bool = True,
+        fallback_to_worst: bool = True,
     ) -> Outcome | None:
         """
         Finds an outcome with the lowest utility within the given range using sampling.
 
+        Fallback behavior (clamping inverter — see module docs):
+
+        * If no in-range outcome is found, and ``fallback_to_higher`` is ``True``,
+          the range is expanded upward to ``[rng[0], 1]`` (normalized) or
+          ``[rng[0], self.max]`` (raw) and the search is retried without
+          ``fallback_to_higher``.
+        * If still nothing is found and ``fallback_to_worst`` is ``True``, the
+          **nearest boundary** outcome is returned: the best outcome if the
+          range lies above the maximum utility, the worst outcome if it lies
+          below the minimum. This keeps the fallback close to the requested
+          range (important for negotiators that ask for high-utility outcomes).
+        * Otherwise ``None`` is returned.
+
         Args:
             rng: The utility range (single value or (min, max) tuple).
             normalized: Whether the range is normalized to [0, 1].
+            fallback_to_higher: If True, expand the range upward when no match found.
+            fallback_to_worst: If True, return the nearest boundary outcome as a
+                last resort.
 
         Returns:
-            The outcome with lowest utility in the range, or None if not found.
+            The outcome with lowest utility in the range, or a fallback, or None.
         """
         some = self.some(rng, normalized)
         if not isinstance(rng, Iterable):
@@ -174,20 +201,58 @@ class SamplingInverseUtilityFunction(InverseUFun):
             util = self._ufun(o)
             if util < worst_util:
                 worst_util, worst = util, o
-        return worst
+        if worst is not None:
+            return worst
+        # No in-range outcome found: apply fallbacks.
+        rmx = rng[1] if isinstance(rng, Iterable) else rng
+        if fallback_to_higher and (not normalized or rmx < 1 - EPS):
+            new_rng = (rng[0], 1) if normalized else (rng[0], float(self.max()))
+            return self.worst_in(
+                new_rng,
+                normalized,
+                fallback_to_higher=False,
+                fallback_to_worst=fallback_to_worst,
+            )
+        if fallback_to_worst:
+            # Return the nearest boundary outcome. If the requested range is
+            # in the upper half of the utility range, the best outcome is
+            # closer; otherwise the worst is closer.
+            u_min, u_max = self.minmax()
+            mid = (u_min + u_max) / 2.0
+            r_lo = rng[0] if isinstance(rng, Iterable) else rng
+            if r_lo >= mid:
+                return self._ufun.extreme_outcomes()[1]
+            return self._ufun.extreme_outcomes()[0]
+        return None
 
     def best_in(
-        self, rng: float | tuple[float, float], normalized: bool
+        self,
+        rng: float | tuple[float, float],
+        normalized: bool,
+        fallback_to_higher: bool = True,
+        fallback_to_best: bool = True,
     ) -> Outcome | None:
         """
         Finds an outcome with the highest utility within the given range using sampling.
 
+        Fallback behavior (clamping inverter — see module docs):
+
+        * If no in-range outcome is found, and ``fallback_to_higher`` is ``True``,
+          the range is expanded upward to ``[rng[0], 1]`` (normalized) or
+          ``[rng[0], self.max]`` (raw) and the search is retried without
+          ``fallback_to_higher``.
+        * If still nothing is found and ``fallback_to_best`` is ``True``, the
+          best outcome overall is returned.
+        * Otherwise ``None`` is returned.
+
         Args:
             rng: The utility range (single value or (min, max) tuple).
             normalized: Whether the range is normalized to [0, 1].
+            fallback_to_higher: If True, expand the range upward when no match found.
+            fallback_to_best: If True, return the best outcome as a last resort.
 
         Returns:
-            The outcome with highest utility in the range, or None if not found.
+            The outcome with highest utility in the range, or a fallback, or None.
         """
         some = self.some(rng, normalized)
         if not isinstance(rng, Iterable):
@@ -197,7 +262,21 @@ class SamplingInverseUtilityFunction(InverseUFun):
             util = self._ufun(o)
             if util > best_util:
                 best_util, best = util, o
-        return best
+        if best is not None:
+            return best
+        # No in-range outcome found: apply fallbacks.
+        rmx = rng[1] if isinstance(rng, Iterable) else rng
+        if fallback_to_higher and (not normalized or rmx < 1 - EPS):
+            new_rng = (rng[0], 1) if normalized else (rng[0], float(self.max()))
+            return self.best_in(
+                new_rng,
+                normalized,
+                fallback_to_higher=False,
+                fallback_to_best=fallback_to_best,
+            )
+        if fallback_to_best:
+            return self._ufun.extreme_outcomes()[1]
+        return None
 
     def one_in(
         self,
