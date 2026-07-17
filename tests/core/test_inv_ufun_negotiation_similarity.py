@@ -3,7 +3,6 @@ from __future__ import annotations
 import random
 from statistics import median
 
-import pytest
 
 from negmas.common import PreferencesChangeType
 from negmas.negotiators.helpers import PolyAspiration
@@ -38,7 +37,14 @@ class _AspirationInverterNegotiator(SAONegotiator):
     def _offer_near_target(self, target: float):
         span = max(float(self._max - self._min), 1e-12)
         for frac in (0.002, 0.005, 0.01, 0.02, 0.05, 0.1, 0.2, 0.5, 1.0):
-            offer = self._inv.one_in((target, span * frac), False)
+            half_width = span * frac / 2.0
+            offer = self._inv.one_in(
+                (
+                    max(self._min, target - half_width),
+                    min(self._max, target + half_width),
+                ),
+                False,
+            )
             if offer is not None:
                 return offer
         return self._best

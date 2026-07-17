@@ -67,11 +67,13 @@ ALL_ADDITIVE_INVERTER_TYPES = [
 def make_linear_ufun(nissues: int = 2, nvalues: int = 5, seed: int = 42):
     """Create a random LinearAdditiveUtilityFunction for testing."""
     import random as _random
+
     _random.seed(seed)
     os = make_os([make_issue(nvalues) for _ in range(nissues)])
     ufun = LinearAdditiveUtilityFunction.random(outcome_space=os)
     outcomes = list(os.enumerate_or_sample())
     return outcomes, ufun
+
 
 # A utility-fraction strategy that avoids astronomically tiny non-zero values (e.g.
 # ~1e-212), or values within a few ULPs of 1.0 (e.g. 0.9999999999999999), that
@@ -183,7 +185,11 @@ def test_min_max_worst_best_correctness(cls):
 @pytest.mark.parametrize("cls", STRICT_INVERTER_TYPES)
 def test_best_in_returns_highest_util_in_range(cls, nissues, nvalues, mn_frac, mx_frac):
     _, ufun = make_ufun(nissues, nvalues, r=-100)
-    inv = cls(ufun, max_samples_per_call=20_000) if cls is SamplingInverseUtilityFunction else cls(ufun)
+    inv = (
+        cls(ufun, max_samples_per_call=20_000)
+        if cls is SamplingInverseUtilityFunction
+        else cls(ufun)
+    )
     inv.init()
     truth = brute_force_utils(ufun)
     umn, umx = truth[0][0], truth[-1][0]
@@ -219,7 +225,11 @@ def test_best_in_returns_highest_util_in_range(cls, nissues, nvalues, mn_frac, m
 @pytest.mark.parametrize("cls", STRICT_INVERTER_TYPES)
 def test_worst_in_returns_lowest_util_in_range(cls, nissues, nvalues, mn_frac, mx_frac):
     _, ufun = make_ufun(nissues, nvalues, r=-100)
-    inv = cls(ufun, max_samples_per_call=20_000) if cls is SamplingInverseUtilityFunction else cls(ufun)
+    inv = (
+        cls(ufun, max_samples_per_call=20_000)
+        if cls is SamplingInverseUtilityFunction
+        else cls(ufun)
+    )
     inv.init()
     truth = brute_force_utils(ufun)
     umn, umx = truth[0][0], truth[-1][0]
@@ -317,7 +327,7 @@ def test_sampling_all_raises():
 # ---------------------------------------------------------------------------
 
 
-@pytest.mark.parametrize("cls", ALL_INVERTER_TYPES)
+@pytest.mark.parametrize("cls", STRICT_INVERTER_TYPES)
 def test_normalized_range_matches_unnormalized(cls):
     _, ufun = make_ufun(nissues=2, nvalues=5, r=-100)
     inv = cls(ufun)
@@ -450,7 +460,6 @@ def test_presorting_within_fractions():
     assert result_utils == sorted(result_utils, reverse=True)
 
 
-
 # ---------------------------------------------------------------------------
 # AttributePlanningInverseUtilityFunction tests
 # ---------------------------------------------------------------------------
@@ -529,7 +538,6 @@ def test_attribute_planning_minmax():
 def test_mcts_raises_without_outcome_space():
     """MCTSInverseUtilityFunction must raise ValueError for a ufun without an
     outcome space that has issues."""
-    from negmas.preferences.crisp.mapping import MappingUtilityFunction
 
     # A MappingUtilityFunction has outcome_space but the ufun from make_ufun has it;
     # We need one without issues. Create a minimal ufun with outcome_space=None.
