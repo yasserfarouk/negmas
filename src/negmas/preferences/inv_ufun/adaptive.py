@@ -160,10 +160,7 @@ class AdaptiveInverseUtilityFunction(InverseUFun):
     # ------------------------------------------------------------------
 
     def some(
-        self,
-        rng: float | tuple[float, float],
-        normalized: bool,
-        n: int | None = None,
+        self, rng: float | tuple[float, float], normalized: bool, n: int | None = None
     ) -> list[Outcome]:
         return self._d().some(rng, normalized, n)
 
