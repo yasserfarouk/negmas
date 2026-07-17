@@ -121,6 +121,13 @@ class UtilBasedNegotiator(GBNegotiator):
     def propose(self, state, dest: str | None = None):
         """Propose.
 
+        Recovers from a ``None`` proposal (which would otherwise break the SAO
+        mechanism — see ``negmas.sao.mechanism``) by falling back to the best
+        outcome. This is important when the inverter is **strict** (e.g.
+        `BruteForceInverseUtilityFunction`) and the requested aspiration range
+        contains no outcome: the negotiator would rather offer its best
+        outcome than break the negotiation.
+
         Args:
             state: Current state.
             dest: Dest.
@@ -131,7 +138,19 @@ class UtilBasedNegotiator(GBNegotiator):
                 f"TimeBased negotiators need a ufun but I am asked to offer without one ({self.name} [id:{self.id}]. Will just offer `None` waiting for next round if any"
             )
             return None
-        return self._inverter(self.utility_range_to_propose(state), state)
+        outcome = self._inverter(self.utility_range_to_propose(state), state)
+        if outcome is None:
+            # The inverter found no outcome in the requested aspiration range
+            # (this happens for strict inverters like BruteForce, or when a
+            # clamping inverter's fallbacks are exhausted). Fall back to the
+            # best outcome rather than returning None, which would break the
+            # SAO mechanism (see negmas.sao.mechanism: a None proposal after a
+            # rejection sets state.broken = True).
+            best = self._inverter.recommender.best
+            if best is None and self.ufun is not None:
+                best = self.ufun.extreme_outcomes()[1]
+            return best
+        return outcome
 
     def on_preferences_changed(self, changes: list[PreferencesChange]):
         """On preferences changed.
