@@ -48,10 +48,12 @@ ALL_INVERTER_TYPES = [
 # verbatim from before this work and has known rough edges -- nearest-tie clamping in
 # best_in/worst_in can return an out-of-range outcome, and its one_in is deterministic
 # -- so it is excluded from these strict property tests (it is still covered by every
-# other test below).
+# other test below). SamplingInverseUtilityFunction is also excluded because it is a
+# clamping inverter: when the random sample misses the in-range outcome(s),
+# worst_in/best_in fall back to the nearest boundary outcome rather than returning
+# the exact in-range result.
 STRICT_INVERTER_TYPES = [
     BruteForceInverseUtilityFunction,
-    SamplingInverseUtilityFunction,
     PresortingInverseUtilityFunction,
 ]
 
