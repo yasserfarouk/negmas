@@ -42,6 +42,13 @@ class BruteForceInverseUtilityFunction(InverseUFun):
     values is then cached (for stationary ufuns only). Every query is answered by a
     plain linear scan over that list.
 
+    This is a **strict** inverter (see module docs). ``worst_in``/``best_in``
+    return ``None`` when no outcome's utility falls inside the requested range —
+    they never clamp, expand the range, or fall back to an out-of-range outcome.
+    ``one_in`` is the exception: it always had ``fallback_to_higher`` and
+    ``fallback_to_best`` parameters (both default ``True``), so it never returns
+    ``None`` for a non-empty outcome space.
+
     Args:
         ufun: The utility function to be inverted
         levels: discretization levels per issue
@@ -53,9 +60,11 @@ class BruteForceInverseUtilityFunction(InverseUFun):
           sorted outcome list rather than bisection so that it can serve as a trusted,
           easy-to-verify ground truth for testing other (faster, more complex) inverters
           such as `PresortingInverseUtilityFunction`.
-        - Unlike `PresortingInverseUtilityFunction`, `best_in`/`worst_in`/`one_in` here are
+        - Unlike the clamping inverters, `best_in`/`worst_in` here are
           **strict**: they return ``None`` when no outcome exists in the requested range
-          (no clamping to the nearest boundary outcome).
+          (no clamping to the nearest boundary outcome). Callers that need a
+          non-None result (e.g. `AspirationNegotiator`) must handle ``None`` by
+          falling back to the best outcome themselves.
     """
 
     def __init__(

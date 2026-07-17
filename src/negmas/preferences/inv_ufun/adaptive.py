@@ -54,6 +54,8 @@ class AdaptiveInverseUtilityFunction(InverseUFun):
       sampling (``max_cache_size`` limits the cached outcomes).
 
     All ``InverseUFun`` method calls are forwarded to the selected delegate.
+    The fallback/tolerance behavior is inherited from the delegate (which is
+    always a clamping inverter — see module docs).
 
     Args:
         ufun: The utility function to invert.

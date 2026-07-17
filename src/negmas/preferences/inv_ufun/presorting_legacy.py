@@ -76,6 +76,11 @@ class PresortingLegacyInverseUtilityFunction(InverseUFun):
     during the call to `init()` and an ordered list of outcomes with their utility
     values is then cached.
 
+    This is a **clamping** inverter (see module docs). ``worst_in``/``best_in``
+    use ``_nearest_around`` to clamp to the nearest achievable outcome when the
+    requested range is empty, and ``one_in`` falls back per its
+    ``fallback_to_*`` flags. The clamping distance is not capped (unlike
+    `PresortingInverseUtilityFunction`'s ``clamp_tolerance``).
 
     Args:
         ufun: The utility function to be inverted
@@ -694,6 +699,11 @@ class PresortingInverseUtilityFunctionBruteForce(InverseUFun):
     during the call to `init()` and an ordered list of outcomes with their utility
     values is then cached.
 
+    This is a **strict** inverter (see module docs). ``worst_in``/``best_in``
+    return ``None`` when no outcome's utility falls inside the requested range —
+    they never clamp, expand the range, or fall back to an out-of-range outcome.
+    ``one_in`` has the usual ``fallback_to_higher``/``fallback_to_best``
+    fallbacks (both default ``True``).
 
     Args:
         ufun: The utility function to be inverted

@@ -346,7 +346,6 @@ class PresortingInverseUtilityFunction(InverseUFun):
         ):
             # The nearest achievable outcome is further than the allowed clamp
             # tolerance outside the requested range: refuse to clamp.
-            print("no tolerance")
             return None
         if cycle and indx:
             self._cycle_around(indx)

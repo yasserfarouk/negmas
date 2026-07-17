@@ -51,6 +51,11 @@ class AttributePlanningInverseUtilityFunction(InverseUFun):
     subclass ``LinearUtilityFunction``).  ``init()`` raises ``TypeError`` for any
     other ufun type.
 
+    This is a **clamping** inverter (see module docs). ``worst_in``/``best_in``
+    expand the range upward and fall back to the nearest boundary outcome
+    (best if the range is in the upper half of the utility range, worst if in
+    the lower half) rather than returning ``None``.
+
     Args:
         ufun: The utility function to invert.
         n_samples: Number of random targets sampled for ``some()``,
@@ -258,8 +263,23 @@ class AttributePlanningInverseUtilityFunction(InverseUFun):
         return None
 
     def best_in(
-        self, rng: float | tuple[float, float], normalized: bool
+        self,
+        rng: float | tuple[float, float],
+        normalized: bool,
+        fallback_to_higher: bool = True,
+        fallback_to_best: bool = True,
     ) -> Outcome | None:
+        """Return the outcome with the **highest** utility in *rng*.
+
+        Fallback behavior (clamping inverter — see module docs):
+
+        * If no in-range outcome is found and ``fallback_to_higher`` is ``True``,
+          the range is expanded upward to ``[rng[0], max]`` and the search is
+          retried.
+        * If still nothing is found and ``fallback_to_best`` is ``True``, the
+          best outcome overall is returned.
+        * Otherwise ``None`` is returned.
+        """
         self._check_initialized()
         mn_raw, mx_raw = self._resolve_rng(rng, normalized)
         if mn_raw > mx_raw:
@@ -272,11 +292,40 @@ class AttributePlanningInverseUtilityFunction(InverseUFun):
             if mn_raw - EPS <= u <= mx_raw + EPS and u > best_u:
                 best_u = u
                 best_o = o
-        return best_o
+        if best_o is not None:
+            return best_o
+        if fallback_to_higher and (not normalized or mx_raw < 1 - EPS):
+            new_rng = (mn_raw, float(self.max()))
+            return self.best_in(
+                new_rng,
+                normalized,
+                fallback_to_higher=False,
+                fallback_to_best=fallback_to_best,
+            )
+        if fallback_to_best:
+            return self.best()
+        return None
 
     def worst_in(
-        self, rng: float | tuple[float, float], normalized: bool
+        self,
+        rng: float | tuple[float, float],
+        normalized: bool,
+        fallback_to_higher: bool = True,
+        fallback_to_worst: bool = True,
     ) -> Outcome | None:
+        """Return the outcome with the **lowest** utility in *rng*.
+
+        Fallback behavior (clamping inverter — see module docs):
+
+        * If no in-range outcome is found and ``fallback_to_higher`` is ``True``,
+          the range is expanded upward to ``[rng[0], max]`` and the search is
+          retried.
+        * If still nothing is found and ``fallback_to_worst`` is ``True``, the
+          **nearest boundary** outcome is returned: the best outcome if the
+          range lies above the maximum utility, the worst outcome if it lies
+          below the minimum.
+        * Otherwise ``None`` is returned.
+        """
         self._check_initialized()
         mn_raw, mx_raw = self._resolve_rng(rng, normalized)
         if mn_raw > mx_raw:
@@ -289,7 +338,26 @@ class AttributePlanningInverseUtilityFunction(InverseUFun):
             if mn_raw - EPS <= u <= mx_raw + EPS and u < worst_u:
                 worst_u = u
                 worst_o = o
-        return worst_o
+        if worst_o is not None:
+            return worst_o
+        if fallback_to_higher and (not normalized or mx_raw < 1 - EPS):
+            new_rng = (mn_raw, float(self.max()))
+            return self.worst_in(
+                new_rng,
+                normalized,
+                fallback_to_higher=False,
+                fallback_to_worst=fallback_to_worst,
+            )
+        if fallback_to_worst:
+            # Return the nearest boundary outcome. If the requested range is
+            # in the upper half of the utility range, the best outcome is
+            # closer; otherwise the worst is closer.
+            u_min, u_max = self.minmax()
+            mid = (u_min + u_max) / 2.0
+            if mn_raw >= mid:
+                return self.best()
+            return self.worst()
+        return None
 
     def within_fractions(self, rng: tuple[float, float]) -> list[Outcome]:
         self._check_initialized()
