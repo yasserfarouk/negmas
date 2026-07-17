@@ -1855,7 +1855,7 @@ class Mechanism(
             )
         if (
             preferences
-            and preferences.outcome_space
+            and preferences.outcome_space is not None
             and self.outcome_space not in preferences.outcome_space
         ):
             return None

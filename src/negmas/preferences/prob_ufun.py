@@ -263,7 +263,7 @@ class ProbUtilityFunction(_ExtremelyDynamic, BaseUtilityFunction):
             return self.reserved_distribution
         if (
             self._invalid_value is not None
-            and self.outcome_space
+            and self.outcome_space is not None
             and offer not in self.outcome_space
         ):
             return Real(self._invalid_value)

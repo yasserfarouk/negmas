@@ -1087,7 +1087,7 @@ class LinearAdditiveUtilityFunction(UtilityFunction):  # type: ignore
         Raises:
             ValueError: If neither issues nor outcome_space is provided.
         """
-        if not issues and outcome_space:
+        if not issues and outcome_space is not None:
             issues = outcome_space.issues
         if not issues:
             raise ValueError("Cannot generate a random ufun withot knowing the issues")

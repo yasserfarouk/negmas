@@ -414,7 +414,7 @@ class GLAUtilityFunction(UtilityFunction):
 
         from negmas.helpers.numeric import make_range
 
-        if not issues and outcome_space:
+        if not issues and outcome_space is not None:
             issues = outcome_space.issues
         if not issues:
             raise ValueError("Cannot generate a random ufun without knowing the issues")

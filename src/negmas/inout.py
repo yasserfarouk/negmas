@@ -640,7 +640,7 @@ class Scenario:
             Each utility function is scaled independently. This is different from
             normalize() which can perform common-scale normalization across all ufuns.
         """
-        os = outcome_space or self.outcome_space
+        os = outcome_space if outcome_space is not None else self.outcome_space
         self.ufuns = tuple(_.scale_min_for(to, outcome_space=os) for _ in self.ufuns)
         if self.stats:
             if recalculate_stats:

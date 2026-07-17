@@ -964,6 +964,17 @@ class DiscreteCartesianOutcomeSpace(CartesianOutcomeSpace):
         """Returns the number of outcomes in this space."""
         return self.cardinality
 
+    def __bool__(self) -> bool:
+        """Truthiness based on cardinality, avoiding ``__len__`` overflow.
+
+        ``__len__`` returns ``self.cardinality`` (a product of issue
+        cardinalities) which can exceed ``Py_ssize_t`` for large spaces, making
+        plain ``if outcome_space`` / ``not outcome_space`` raise
+        ``OverflowError``. Defining ``__bool__`` lets Python use this instead
+        of ``__len__`` for truthiness, so truthiness tests are always safe.
+        """
+        return self.cardinality > 0
+
 
 @define(frozen=True)
 class SingletonOutcomeSpace(DiscreteCartesianOutcomeSpace):

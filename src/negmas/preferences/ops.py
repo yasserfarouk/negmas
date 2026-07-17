@@ -2715,7 +2715,11 @@ def compare_ufuns(
             )  # type: ignore
     else:
         # Try to get outcome space from utility functions
-        outcome_space = ufun1.outcome_space or ufun2.outcome_space
+        outcome_space = (
+            ufun1.outcome_space
+            if ufun1.outcome_space is not None
+            else ufun2.outcome_space
+        )
         if outcome_space is None:
             raise ValueError(
                 "Cannot determine outcome space. Please provide outcome_space, issues, or outcomes."

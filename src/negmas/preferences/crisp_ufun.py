@@ -330,7 +330,7 @@ class UtilityFunction(_ExtremelyDynamic, BaseUtilityFunction):
             return self.reserved_value
         if (
             self._invalid_value is not None
-            and self.outcome_space
+            and self.outcome_space is not None
             and offer not in self.outcome_space
         ):
             return self._invalid_value

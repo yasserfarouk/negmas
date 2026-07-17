@@ -334,7 +334,7 @@ class PAUtilityFunction(UtilityFunction):
         Returns:
             A random PAUtilityFunction.
         """
-        if not issues and outcome_space:
+        if not issues and outcome_space is not None:
             issues = outcome_space.issues
         if not issues:
             raise ValueError("Cannot generate a random ufun without knowing the issues")

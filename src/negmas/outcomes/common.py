@@ -123,22 +123,22 @@ def check_one_at_most(outcome_space, issues, outcomes) -> None:
     """Ensures that at most one of the three inputs is given (i.e. not None)"""
     if outcomes and issues:
         raise ValueError("You cannot pass `issues` and `outcomes`")
-    if outcomes and outcome_space:
+    if outcomes and outcome_space is not None:
         raise ValueError("You cannot pass `outcome_space` and `outcomes`")
-    if issues and outcome_space:
+    if issues and outcome_space is not None:
         raise ValueError("You cannot pass `issues` and `outcome_space`")
 
 
 def check_one_and_only(outcome_space, issues, outcomes) -> None:
     """Ensures that one and only one of the three inputs is given (i.e. not None)"""
-    if not outcomes and not issues and not outcome_space:
-        raise ValueError("You must pass `outcome_spae`, `issues` or `outcomes`")
+    if not outcomes and not issues and outcome_space is None:
+        raise ValueError("You must pass `outcome_space`, `issues` or `outcomes`")
     if outcomes and issues:
         raise ValueError("You cannot pass `issues` and `outcomes`")
-    if outcomes and outcome_space:
+    if outcomes and outcome_space is not None:
         raise ValueError("You cannot pass `outcome_space` and `outcomes`")
-    if issues and outcome_space:
-        raise ValueError("You cannot pass `issues` and `outcomes`")
+    if issues and outcome_space is not None:
+        raise ValueError("You cannot pass `issues` and `outcome_space`")
 
 
 def os_or_none(outcome_space, issues, outcomes) -> OutcomeSpace | None:
@@ -158,7 +158,7 @@ def os_or_none(outcome_space, issues, outcomes) -> OutcomeSpace | None:
         return outcome_space
     if issues is not None:
         return make_os(issues)
-    if outcomes is None or len(outcomes) == 0:
+    if not outcomes:
         return None
     return make_os(issues_from_outcomes(outcomes))
 

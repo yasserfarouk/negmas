@@ -868,7 +868,8 @@ class BaseUtilityFunction(Preferences, ABC):
         minmaxs = []
         for u in ufuns:
             current_mn, current_mx = u.minmax(
-                outcome_space or u.outcome_space, max_cardinality=max_cardinality
+                outcome_space if outcome_space is not None else u.outcome_space,
+                max_cardinality=max_cardinality,
             )
             minmaxs.append((current_mn, current_mx))
             mn = min(current_mn, mn)

@@ -246,7 +246,7 @@ class IPUtilityFunction(ProbUtilityFunction):
                 variability=variability,
                 reserved_value=u.reserved_value,
             )
-        if not u.outcome_space:
+        if u.outcome_space is None:
             raise ValueError("Unknown outcome space")
         if not u.outcome_space.is_discrete():
             raise ValueError(

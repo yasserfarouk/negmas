@@ -2064,7 +2064,7 @@ def plot_offline_run(
 
         # Use provided outcome_space or fall back to ufuns[0].outcome_space
         if outcome_space is None:
-            assert len(ufuns) and ufuns[0].outcome_space
+            assert len(ufuns) and ufuns[0].outcome_space is not None
             outcome_space = ufuns[0].outcome_space
         # Use provided outcomes or derive from outcome_space
         if outcomes is None:

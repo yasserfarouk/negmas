@@ -47,6 +47,14 @@ Release 0.15.9 (dev)
   outcome spaces from 25 to 10^200.  Results are documented in the
   ``negmas.preferences.inv_ufun`` module docstring.
 
+* [inv_ufun] Documented a strict-vs-clamping taxonomy across all inverters in
+  their class docstrings, and reclassified ``SamplingInverseUtilityFunction``
+  from strict to **clamping** (its ``worst_in``/``best_in`` now fall back to a
+  boundary outcome when the requested utility range is too narrow to sample,
+  rather than returning ``None``). Strict inverters (``BruteForce``,
+  ``PresortingInverseUtilityFunctionBruteForce``) return ``None`` for
+  out-of-range queries; all others clamp to the nearest in-range outcome.
+
 **Bug Fixes:**
 
 * [inv_ufun] ``SamplingInverseUtilityFunction`` was non-instantiable
@@ -80,6 +88,22 @@ Release 0.15.9 (dev)
 * [inv_ufun] ``PresortingInverseUtilityFunctionBruteForce.some()`` fallback used
   a normalization-unaware comparison, producing incorrect results when the ufun
   range exceeded [0, 1].
+
+* [gb] ``UtilBasedNegotiator`` now recovers from a ``None`` proposal (when the
+  inverter finds no outcome in the requested aspiration range — e.g. a strict
+  inverter queried out of range, or a clamping inverter whose fallbacks are
+  exhausted) by falling back to the best outcome. Previously it returned
+  ``None``, which the SAO mechanism treats as a refusal to propose, setting
+  ``state.broken = True`` and ending the negotiation with no agreement.
+
+* [inv_ufun] All clamping inverters (``BIDS``, ``MCTS``,
+  ``AttributePlanning``, and ``SamplingInverseUtilityFunction``\ 's
+  ``worst_in``/``best_in``) now apply the same fallback pattern as ``one_in``
+  (expand the utility range upward, then return the nearest boundary outcome)
+  so they never return ``None`` on a non-empty outcome space. Previously a
+  too-narrow aspiration range (e.g. boulware asking for
+  ``[0.99999997, 1.0]``) could make them return ``None`` and break the
+  negotiation.
 
 Release 0.15.8
 --------------
