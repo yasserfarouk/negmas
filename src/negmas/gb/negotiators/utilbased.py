@@ -19,14 +19,42 @@ class UtilBasedNegotiator(GBNegotiator):
     """
     A negotiator that bases its decisions on the utility value of outcomes only.
 
+    It uses an `InverseUFun` (via the `UtilityInverter` component) to find
+    outcomes with utilities in a desired range, and an optional `OfferSelector`
+    to pick among multiple candidate outcomes.
+
     Args:
-        inverter (UtilityInverter): A component used to keep track of the ufun inverse
-        stochastic (bool): If `False` the worst outcome in the current utility range will be used
-        rank_only (bool): If `True` then the ranks of outcomes not their actual utilities will be used for decision making
-        max_cardinality (int): The number of outcomes at which the default inverter
-                               may switch away from exact presorting to a scalable
-                               approximation. Used only if `ufun_inverter` is `None`.
-        eps (float): A tolearnace around the utility range used when sampling outocmes
+        stochastic (bool): If ``False`` (default), the inverter's ``worst_in``
+            is used so the negotiator proposes the outcome with the *lowest*
+            utility still within its aspiration band (i.e. just above the
+            aspiration level). If ``True``, ``one_in`` is used so a random
+            in-range outcome is proposed.
+        rank_only (bool): If ``True``, only the relative ranks of outcomes (not
+            their actual utilities) are used for inversion. This maps all
+            equal-utility outcomes to the same rank, which can be useful for
+            non-stationary or noisy ufuns.
+        ufun_inverter (Callable[[BaseUtilityFunction], InverseUFun] | None):
+            A factory that constructs an `InverseUFun` from the negotiator's
+            utility function. If ``None``, a `DefaultInverseUtilityFunction`
+            (i.e. `AdaptiveInverseUtilityFunction`) is used.
+        offer_selector (OfferSelector | None): A callable that selects one
+            outcome from a sequence of candidates given the current state. If
+            ``None`` and ``stochastic`` is ``True``, a random candidate is
+            chosen. If ``None`` and ``stochastic`` is ``False``, ``worst_in``
+            is used directly (no selection needed).
+        max_cardinality (int): The number of outcomes at which the default
+            inverter may switch away from exact presorting to a scalable
+            approximation. Used only if ``ufun_inverter`` is ``None``.
+        eps (float): A tolerance around the utility range used when sampling
+            outcomes (passed to the inverter).
+
+    Remarks:
+        - ``propose`` recovers from a ``None`` inverter result (which would
+          otherwise break the SAO mechanism) by falling back to the best
+          outcome. This matters for **strict** inverters (e.g.
+          `BruteForceInverseUtilityFunction`) whose aspiration range contains
+          no outcome, and as a safety net when a clamping inverter's fallbacks
+          are exhausted.
     """
 
     def __init__(

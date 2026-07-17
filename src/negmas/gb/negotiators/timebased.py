@@ -85,13 +85,35 @@ def make_offer_selector(
 
 class TimeBasedNegotiator(UtilBasedNegotiator):
     """
-    Represents a time-based negotiation strategy that is independent of the offers received during the negotiation.
+    A time-based negotiation strategy that concedes independently of the offers
+    received during the negotiation.
+
+    The negotiator maintains two concession curves: an *offering* curve that
+    controls the utility range of its own proposals, and an *accepting* curve
+    that controls the utility range of offers it will accept. Both are
+    `TimeCurve` objects mapping relative time ``t ∈ [0, 1]`` to a utility
+    range. At each step, the negotiator asks the inverter for an outcome within
+    the offering curve's range (for ``propose``) or checks whether the
+    opponent's offer falls within the accepting curve's range (for
+    ``respond``).
 
     Args:
-        offering_curve (TimeCurve): A `TimeCurve` that is to be used to sample outcomes when offering
-        accepting_curve (TimeCurve): A `TimeCurve` that is to be used to decide utility range to accept
-        inverter (UtilityInverter): A component used to keep track of the ufun inverse
-        offer_selector (OfferSelector): The way to select an offer from the set of valid offers at every time-step
+        offering_curve (TimeCurve | str | float): A `TimeCurve` (or a string
+            ``"boulware"`` / ``"linear"`` / ``"conceder"`` or a float exponent)
+            used to sample outcomes when offering. Defaults to ``"boulware"``.
+        accepting_curve (TimeCurve | str | float | None): A `TimeCurve` (or
+            string/float as above) used to decide the utility range to accept.
+            If ``None``, the offering curve is reused (same range for offering
+            and accepting).
+        offer_selector (OfferSelector | None): See `UtilBasedNegotiator`.
+        **kwargs: Forwarded to `UtilBasedNegotiator` (e.g. ``stochastic``,
+            ``ufun_inverter``, ``eps``, ``rank_only``, ``max_cardinality``).
+
+    Remarks:
+        - This negotiator is *time-only*: it never reacts to the opponent's
+          offers (except accepting/rejecting them). For opponent-aware
+          behavior, use `NaiveTitForTatNegotiator` or the
+          ``OfferOrientedTBNegotiator`` family.
     """
 
     def __init__(
@@ -132,12 +154,35 @@ class TimeBasedNegotiator(UtilBasedNegotiator):
 
 class TimeBasedConcedingNegotiator(TimeBasedNegotiator):
     """
-    Represents a time-based negotiation strategy that is independent of the offers received during the negotiation.
+    A time-based conceding negotiator using an `Aspiration` curve.
+
+    This is the main entry point for aspiration-based time-only negotiators.
+    It accepts an `Aspiration` curve (or a string/float shorthand) for both
+    offering and accepting, plus a ``starting_utility`` that controls the
+    first offer's utility level.
 
     Args:
-        offering_curve (TimeCurve): A `TimeCurve` that is to be used to sample outcomes when offering
-        accepting_curve (TimeCurve): A `TimeCurve` that is to be used to decide utility range to accept
-        starting_utility (float): The relative utility (range 1.0 to 0.0) at which to give the first offer. Only used if `offering_curve` was not given
+        offering_curve (Aspiration | str | float): An `Aspiration` curve (or
+            ``"boulware"`` / ``"linear"`` / ``"conceder"`` or a float exponent)
+            controlling how fast the negotiator concedes when offering.
+            Defaults to ``"boulware"`` (slow concession).
+        accepting_curve (Aspiration | str | float | None): An `Aspiration`
+            curve (or string/float) controlling the acceptance threshold. If
+            ``None`` or falsy, the offering curve is reused.
+        starting_utility (float): The relative utility (in ``[0, 1]``) at which
+            the first offer is made. Only used when ``offering_curve`` is a
+            string/float (not a pre-built `Aspiration` object). Defaults to
+            ``1.0`` (start at the best outcome).
+        **kwargs: Forwarded to `TimeBasedNegotiator` (e.g. ``stochastic``,
+            ``ufun_inverter``, ``eps``, ``offer_selector``).
+
+    Remarks:
+        - ``BoulwareTBNegotiator``, ``LinearTBNegotiator``, and
+          ``ConcederTBNegotiator`` are convenience subclasses that fix
+          ``offering_curve`` to ``"boulware"``, ``"linear"``, and
+          ``"conceder"`` respectively (with ``stochastic=False``).
+        - `AspirationNegotiator` is a simplified interface to this class with
+          ``presort`` and ``tolerance`` parameters.
     """
 
     def __init__(
@@ -171,7 +216,10 @@ class TimeBasedConcedingNegotiator(TimeBasedNegotiator):
 
 class BoulwareTBNegotiator(TimeBasedConcedingNegotiator):
     """
-    A Boulware time-based negotiator that conceeds sub-linearly
+    A time-based negotiator that concedes sub-linearly (boulware).
+
+    Uses a `PolyAspiration` curve with exponent 4 (``"boulware"``) and
+    ``stochastic=False`` (proposes the worst outcome within the aspiration band).
     """
 
     def __init__(self, *args, **kwargs):
@@ -183,7 +231,10 @@ class BoulwareTBNegotiator(TimeBasedConcedingNegotiator):
 
 class LinearTBNegotiator(TimeBasedConcedingNegotiator):
     """
-    A Boulware time-based negotiator that conceeds linearly
+    A time-based negotiator that concedes linearly.
+
+    Uses a `PolyAspiration` curve with exponent 1 (``"linear"``) and
+    ``stochastic=False``.
     """
 
     def __init__(self, *args, **kwargs):
@@ -195,7 +246,10 @@ class LinearTBNegotiator(TimeBasedConcedingNegotiator):
 
 class ConcederTBNegotiator(TimeBasedConcedingNegotiator):
     """
-    A Boulware time-based negotiator that conceeds super-linearly
+    A time-based negotiator that concedes super-linearly (conceder).
+
+    Uses a `PolyAspiration` curve with exponent 0.25 (``"conceder"``) and
+    ``stochastic=False``.
     """
 
     def __init__(self, *args, **kwargs):
@@ -207,34 +261,51 @@ class ConcederTBNegotiator(TimeBasedConcedingNegotiator):
 
 class AspirationNegotiator(TimeBasedConcedingNegotiator):
     """
-    Represents a time-based negotiation strategy that is independent of the offers received during the negotiation.
+    A time-based conceding negotiator with a simplified interface.
+
+    This is the most commonly used negotiator in the library. It concedes over
+    time according to a polynomial aspiration curve (boulware / linear /
+    conceder, or a custom exponent) and uses an `InverseUFun` to find outcomes
+    within the current aspiration band.
 
     Args:
-        name: The agent name
-        preferences:  The utility function to attache with the agent
-        max_aspiration: The aspiration level to use for the first offer (or first acceptance decision).
-        aspiration_type: The polynomial aspiration curve type. Here you can pass the exponent as a real value or
-                         pass a string giving one of the predefined types: linear, conceder, boulware.
-        stochastic: If True, the agent will propose outcomes with utility >= the current aspiration level not
-                         outcomes just above it.
-        can_propose: If True, the agent is allowed to propose
-        ranking: If True, the aspiration level will not be based on the utility value but the ranking of the outcome
-                 within the presorted list. It is only effective when presort is set to True
-        presort: If True, the negotiator will catch a list of outcomes, presort them and only use them for offers
-                 and responses. This is much faster then other option for general continuous utility functions
-                 but with the obvious problem of only exploring a discrete subset of the issue space (Decided by
-                 the `discrete_outcomes` property of the `NegotiatorMechanismInterface` . If the number of outcomes is
-                 very large (i.e. > 10000) and discrete, presort will be forced to be True. You can check if
-                 presorting is active in realtime by checking the "presorted" attribute.
-        tolerance: A tolerance used for sampling of outcomes when `presort` is set to False
-        owner: The `Agent` that owns the negotiator.
-        parent: The parent which should be an `GBController`
+        max_aspiration (float): The aspiration level (relative utility in
+            ``[0, 1]``) to use for the first offer (and first acceptance
+            decision). Defaults to ``1.0`` (start at the best outcome).
+        aspiration_type (str | float): The polynomial aspiration curve type.
+            Pass a string (``"boulware"`` for slow concession, ``"linear"``
+            for constant-rate concession, ``"conceder"`` for fast concession)
+            or a real-valued exponent. Defaults to ``"boulware"``.
+        stochastic (bool): If ``False`` (default), the negotiator proposes the
+            outcome with the *lowest* utility still within its aspiration band
+            (i.e. just above the aspiration level) via ``worst_in``. If
+            ``True``, it proposes a random in-range outcome via ``one_in``.
+        presort (bool): If ``True`` (default), a `DefaultInverseUtilityFunction`
+            (i.e. `AdaptiveInverseUtilityFunction`) is used, which presorts
+            outcomes for exact ``O(log n)`` lookups on small/medium spaces and
+            falls back to BIDS for large additive spaces. If ``False``, no
+            inverter is used and the negotiator cannot propose (it will always
+            fall back to the best outcome).
+        tolerance (float): A tolerance used for sampling outcomes near the
+            aspiration level (passed as ``eps`` to the inverter). Defaults to
+            ``0.001``.
+        ufun_inverter (type[InverseUFun] | None): An optional `InverseUFun`
+            **type** to use for inverting the utility function. If given, it
+            overrides the ``presort`` default. See `negmas.preferences.inv_ufun`
+            for the full list of available inverters and their trade-offs.
+        **kwargs: Forwarded to `TimeBasedConcedingNegotiator` (e.g.
+            ``name``, ``ufun``, ``parent``, ``owner``).
 
     Remarks:
-
-        - This class provides a different interface to the `TimeBasedConcedingNegotiator` with less control. It is recommonded to use
-          `TimeBasedConcedingNegotiator` or other `TimeBasedNegotiator` negotiators isntead
-
+        - This class provides a simpler interface to
+          `TimeBasedConcedingNegotiator` with less control over the accepting
+          curve and offer selector. For more control, use
+          `TimeBasedConcedingNegotiator` or `TimeBasedNegotiator` directly.
+        - ``propose`` never returns ``None`` mid-negotiation: if the inverter
+          finds no outcome in the aspiration range (e.g. for strict inverters
+          like `BruteForceInverseUtilityFunction`, or when the aspiration band
+          is empty), it falls back to the best outcome rather than breaking the
+          SAO mechanism.
     """
 
     def __init__(
