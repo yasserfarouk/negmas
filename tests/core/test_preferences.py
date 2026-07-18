@@ -20,7 +20,6 @@ from negmas.preferences import (
     DefaultInverseUtilityFunction,
     AffineUtilityFunction,
     HyperRectangleUtilityFunction,
-    IPSParetoSampler,
     LinearAdditiveUtilityFunction,
     LinearUtilityFunction,
     MappingUtilityFunction,
@@ -668,8 +667,11 @@ def test_make_pareto_sampler_default_and_custom():
     own = LinearAdditiveUtilityFunction.random(outcome_space=os)
     opp = LinearAdditiveUtilityFunction.random(outcome_space=os)
 
+    from negmas.preferences.pareto_sampler import AdaptiveParetoSampler
+
     sampler = own.make_pareto_sampler(opponent_ufun=opp)
-    assert isinstance(sampler, IPSParetoSampler)
+    # the default is now the AdaptiveParetoSampler (DefaultParetoSampler)
+    assert isinstance(sampler, AdaptiveParetoSampler)
     assert sampler.initialized
     assert sampler.best_for_opponent(min_util=0.1, normalized=True) is not None
 

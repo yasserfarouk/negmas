@@ -19,7 +19,9 @@ The ``ParetoSampler`` protocol itself lives in ``negmas.preferences.protocols``
 alongside ``InverseUFun``.  It is re-exported here for convenience.
 
 By default, ``BaseUtilityFunction.make_pareto_sampler()`` uses
-``IPSParetoSampler`` unless another implementation is explicitly requested.
+``DefaultParetoSampler`` (``AdaptiveParetoSampler``) — an exact brute-force
+backend for small outcome spaces and a scalable backend for large ones —
+unless another implementation is explicitly requested.
 
 Available implementations
 --------------------------
@@ -32,19 +34,31 @@ Available implementations
   2018/2019).  No rounding — more accurate than IPS but exponential in worst case.
 - ``BruteForceParetoSampler``: Exact Pareto frontier via full enumeration and
   ``negmas.preferences.ops.pareto_frontier``. Ground truth on tiny spaces only.
+- ``AdaptiveParetoSampler`` (``DefaultParetoSampler``): dispatches to
+  ``BruteForceParetoSampler`` for small outcome spaces and to a scalable backend
+  (``MOBANOSParetoSampler`` by default) for large ones. The default sampler used
+  by ``BaseUtilityFunction.make_pareto_sampler``.
 """
 
 from __future__ import annotations
 
 from negmas.preferences.protocols import ParetoSampler
 
+from .adaptive import AdaptiveParetoSampler
 from .bruteforce import BruteForceParetoSampler
 from .ips import IPSParetoSampler
 from .mobanos import MOBANOSParetoSampler
 from .nb3 import NB3ParetoSampler
 
+#: The default ``ParetoSampler`` used across the library (via
+#: ``BaseUtilityFunction.make_pareto_sampler``): picks an exact brute-force
+#: backend for small outcome spaces and a scalable backend for large ones.
+DefaultParetoSampler = AdaptiveParetoSampler
+
 __all__ = [
     "ParetoSampler",
+    "AdaptiveParetoSampler",
+    "DefaultParetoSampler",
     "BruteForceParetoSampler",
     "IPSParetoSampler",
     "NB3ParetoSampler",

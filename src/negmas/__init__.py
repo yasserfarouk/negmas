@@ -49,11 +49,13 @@ _EXPORT_TO_MODULE = {
     "Rational": "types",
     "Runnable": "types",
     "WithPath": "types",
-    # common (6 exports - Value, NegotiatorInfo, NegotiatorMechanismInterface, TraceElement overridden later)
+    # common (Value, NegotiatorMechanismInterface, TraceElement overridden later;
+    # NegotiatorDescriptor is the name/id/type descriptor from Mechanism.participants)
     "AgentMechanismInterface": "common",
     "DEFAULT_JAVA_PORT": "common",
     "MechanismAction": "common",
     "MechanismState": "common",
+    "NegotiatorDescriptor": "common",
     "PreferencesChange": "common",
     "PreferencesChangeType": "common",
     # inout (9 exports)
@@ -70,7 +72,7 @@ _EXPORT_TO_MODULE = {
     "Mechanism": "mechanisms",
     "MechanismStepResult": "mechanisms",
     "Traceable": "mechanisms",
-    # negotiators (17 exports - NegotiatorInfo overridden later)
+    # negotiators (NegotiatorEntry is the (negotiator, context) pairing used by Controller)
     "Aspiration": "negotiators",
     "BinaryComparatorNegotiator": "negotiators",
     "Component": "negotiators",
@@ -81,7 +83,7 @@ _EXPORT_TO_MODULE = {
     "ModularNegotiator": "negotiators",
     "NLevelsComparatorNegotiator": "negotiators",
     "Negotiator": "negotiators",
-    "NegotiatorInfo": "negotiators",
+    "NegotiatorEntry": "negotiators",
     "PolyAspiration": "negotiators",
     "RankerNegotiator": "negotiators",
     "RankerWithWeightsNegotiator": "negotiators",
@@ -583,6 +585,7 @@ __all__ = [
     "DEFAULT_JAVA_PORT",
     "MechanismAction",
     "MechanismState",
+    "NegotiatorDescriptor",
     "PreferencesChange",
     "PreferencesChangeType",
     # inout
@@ -610,7 +613,7 @@ __all__ = [
     "ModularNegotiator",
     "NLevelsComparatorNegotiator",
     "Negotiator",
-    "NegotiatorInfo",
+    "NegotiatorEntry",
     "PolyAspiration",
     "RankerNegotiator",
     "RankerWithWeightsNegotiator",

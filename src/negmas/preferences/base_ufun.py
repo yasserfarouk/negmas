@@ -485,7 +485,8 @@ class BaseUtilityFunction(Preferences, ABC):
 
         Args:
             opponent_ufun: Estimated opponent utility function. Can be ``None``.
-            pareto_sampler: Sampler class to use. Defaults to ``IPSParetoSampler``.
+            pareto_sampler: Sampler class to use. Defaults to
+                ``DefaultParetoSampler`` (``AdaptiveParetoSampler``).
             **kwargs: Forwarded to the sampler constructor (configuration only,
                 e.g. ``precision`` / ``max_cardinality``). Ignored when an
                 existing sampler of the same type is reused.
@@ -493,10 +494,10 @@ class BaseUtilityFunction(Preferences, ABC):
         Returns:
             An initialized Pareto sampler.
         """
-        from .pareto_sampler import IPSParetoSampler
+        from .pareto_sampler import DefaultParetoSampler
 
         if pareto_sampler is None:
-            pareto_sampler = IPSParetoSampler
+            pareto_sampler = DefaultParetoSampler
         cached = self._cached_pareto_sampler
         if cached is not None and self._cached_pareto_sampler_type == pareto_sampler:
             # Reuse the cached instance (config is fixed at construction); only

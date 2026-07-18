@@ -64,6 +64,48 @@ Release 0.15.9 (dev)
   ``BruteForceParetoSampler`` (exact, works with any ufun) uses the vectorised
   ``pareto_frontier_numpy`` (~200× faster than the O(n²) ``pareto_frontier_bf``).
 
+* [pareto_sampler] **New** ``AdaptiveParetoSampler`` (exported also as
+  ``DefaultParetoSampler``) and it is now the default used by
+  ``BaseUtilityFunction.make_pareto_sampler`` (and by the Nice Tit for Tat
+  offering policy). It dispatches on the outcome-space size — determined in
+  ``init`` from the supplied ufun — using the exact ``BruteForceParetoSampler``
+  for small spaces (``cardinality <= max_bruteforce_outcomes``, default 10_000)
+  and a scalable backend (``MOBANOSParetoSampler`` by default, or
+  ``IPSParetoSampler`` for very large additive domains) otherwise, falling back
+  to brute force when the large backend cannot handle the ufuns.
+
+* [inv_ufun] **New** ``closest(target, normalized=False)`` query on the
+  ``InverseUFun`` protocol and all inverters: returns the single outcome whose
+  utility is closest to a target (``argmin_ω |u(ω) - target|`` — the
+  utility-lookup query of Koça et al. 2024, distinct from the range-based
+  ``one_in``). Exact for the enumerating/sorted inverters (BruteForce,
+  Presorting, PresortingLegacy) and BIDS; approximate (by design) for the
+  sampling / MCTS / attribute-planning inverters.
+
+* [models] **New** opponent-attribute model types filling the two families from
+  Baarslag et al. (2016) Table 2 that were missing from ``negmas.models``: a
+  deadline family (``DeadlineModel`` / ``ConcessionExtrapolatingDeadlineModel``,
+  §5.2) and an offering-strategy family (``OpponentOfferingModel`` /
+  ``TimeSeriesOfferingModel``, §5.4). All four attribute families are now
+  exported from ``negmas.models``.
+
+* [gb/registry] The new ``NiceTitForTatNegotiator`` and its components
+  (``NiceTitForTatOfferingPolicy``, ``ACCombi``, ``PeekingOpponentModel``) are
+  registered in the built-in registry, and a set of previously-unregistered
+  built-in negotiators/policies were added too (time-based following /
+  offer-oriented negotiators, the comparator/ranker/sorter elicitation
+  negotiators, and the ``CAB``/``WAR``/``MiCRO``/``FastMiCRO``/``Hybrid``/``TFT``
+  offering and ``TFT``/``MiCRO``/``AcceptFinalOffer``/``ACLastFractionReceived``
+  acceptance policies).
+
+* [common] Renamed the two ambiguous ``NegotiatorInfo`` classes so the name is
+  unambiguous: ``negmas.common.NegotiatorInfo`` (the ``name``/``id``/``type``
+  descriptor returned by ``Mechanism.participants``) → ``NegotiatorDescriptor``,
+  and ``negmas.negotiators.common.NegotiatorInfo`` (the
+  ``(negotiator, context)`` pairing used by ``Controller``) → ``NegotiatorEntry``
+  (now a typed ``NamedTuple``). ``NegotiatorInfo`` at the top level now
+  unambiguously refers to the registry's ``NegotiatorInfo``.
+
 * [preferences] ``pareto_frontier``: ``n_discretization`` now applies only to
   continuous issues (fully-finite outcome spaces are always enumerated exactly),
   and outcomes whose utility is non-finite for any ufun are skipped so

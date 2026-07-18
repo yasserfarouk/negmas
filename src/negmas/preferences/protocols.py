@@ -562,6 +562,21 @@ class InverseUFun(Protocol):
         """
 
     @abstractmethod
+    def closest(self, target: float, normalized: bool = False) -> Outcome | None:
+        """Finds the single outcome whose utility is closest to ``target``.
+
+        This is the *utility-lookup* query ``argmin_{ω} |u(ω) - target|`` (Koça
+        et al. 2024). Unlike `one_in`, it is not a range query: it always returns
+        the nearest outcome and only returns ``None`` for an empty outcome space
+        (or when the inverter has no rational outcomes).
+
+        Args:
+            target: The target utility value.
+            normalized: if ``True``, ``target`` is in normalized ``[0, 1]`` space
+                (0 = min, 1 = max) independent of the ufun's actual range.
+        """
+
+    @abstractmethod
     def best_in(
         self, rng: float | tuple[float, float], normalized: bool
     ) -> Outcome | None:

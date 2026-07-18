@@ -2,9 +2,16 @@
 
 from __future__ import annotations
 
-from collections import namedtuple
+from typing import Any, NamedTuple
 
-__all__ = ["NegotiatorInfo"]
+__all__ = ["NegotiatorEntry"]
 
-NegotiatorInfo = namedtuple("NegotiatorInfo", ["negotiator", "context"])
-"""The return type of `negotiators` member of `Controller`."""
+
+class NegotiatorEntry(NamedTuple):
+    """Pairs an active negotiator with its negotiation context.
+
+    The return type of the ``negotiators`` member of `Controller`.
+    """
+
+    negotiator: Any
+    context: Any

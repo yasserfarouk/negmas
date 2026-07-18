@@ -199,6 +199,17 @@ class AttributePlanningInverseUtilityFunction(InverseUFun):
     # InverseUFun protocol
     # ------------------------------------------------------------------
 
+    def closest(self, target: float, normalized: bool = False) -> Outcome | None:
+        """Return the outcome built by Attribute Planning targeting ``target``.
+
+        Args:
+            target: The target utility value.
+            normalized: if ``True``, ``target`` is in normalised [0,1] space.
+        """
+        self._check_initialized()
+        target_raw = self._norm_to_raw(target) if normalized else float(target)
+        return self._query(target_raw)
+
     def some(
         self, rng: float | tuple[float, float], normalized: bool, n: int | None = None
     ) -> list[Outcome]:

@@ -28,7 +28,7 @@ from negmas.warnings import warn_if_slow
 
 from ..base_ufun import BaseUtilityFunction
 from ..protocols import InverseUFun
-from ._common import EPS, _un_normalize_range
+from ._common import EPS, _norm_to_raw, _un_normalize_range
 
 __all__ = ["BruteForceInverseUtilityFunction"]
 
@@ -328,6 +328,35 @@ class BruteForceInverseUtilityFunction(InverseUFun):
                 return None
             return w
         return None
+
+    def closest(self, target: float, normalized: bool = False) -> Outcome | None:
+        """
+        Finds the single (rational) outcome whose utility is closest to ``target``.
+
+        This is the ground-truth *utility-lookup* query (``argmin_ω |u(ω) - target|``):
+        a plain linear scan over the sorted rational outcomes, guaranteed to return
+        the true argmin.
+
+        Args:
+            target: The target utility value.
+            normalized: if ``True``, ``target`` is in normalized ``[0, 1]`` space.
+
+        Returns:
+            The closest outcome, or ``None`` if there are no rational outcomes.
+        """
+        self._ensure()
+        if self._last_rational < 0:
+            return None
+        target_raw = (
+            _norm_to_raw(target, self._min, self._max) if normalized else float(target)
+        )
+        best_w: Outcome | None = None
+        best_diff = float("inf")
+        for util, w in self._ordered_outcomes[: self._last_rational + 1]:
+            d = abs(util - target_raw)
+            if d < best_diff:
+                best_diff, best_w = d, w
+        return best_w
 
     def one_in(
         self,

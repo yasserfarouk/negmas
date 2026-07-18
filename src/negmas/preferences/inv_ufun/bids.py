@@ -316,6 +316,18 @@ class BIDSInverseUtilityFunction(InverseUFun):
     # InverseUFun protocol
     # ------------------------------------------------------------------
 
+    def closest(self, target: float, normalized: bool = False) -> Outcome | None:
+        """Return the outcome with utility closest to ``target`` via a single
+        O(1) BIDS table lookup.
+
+        Args:
+            target: The target utility value.
+            normalized: if ``True``, ``target`` is in normalised [0,1] space.
+        """
+        self._check_initialized()
+        target_raw = self._norm_to_raw(target) if normalized else float(target)
+        return self._bids(target_raw)
+
     def some(
         self, rng: float | tuple[float, float], normalized: bool, n: int | None = None
     ) -> list[Outcome]:

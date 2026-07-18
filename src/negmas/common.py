@@ -33,7 +33,7 @@ if TYPE_CHECKING:
 
 
 __all__ = [
-    "NegotiatorInfo",
+    "NegotiatorDescriptor",
     "NegotiatorMechanismInterface",
     "MechanismState",
     "Value",
@@ -344,7 +344,7 @@ class MechanismState:
 
 
 @define(frozen=True)
-class NegotiatorInfo:
+class NegotiatorDescriptor:
     """
     Keeps information about a negotiator. Mostly for use with controllers.
     """
@@ -572,11 +572,11 @@ class NegotiatorMechanismInterface:
         )
 
     @property
-    def participants(self) -> list[NegotiatorInfo]:
+    def participants(self) -> list[NegotiatorDescriptor]:
         """Information about all negotiators participating in this negotiation.
 
         Returns:
-            list[NegotiatorInfo]: List of participant information including IDs and preferences
+            list[NegotiatorDescriptor]: List of participant information including IDs and preferences
         """
         return self._mechanism.participants
 

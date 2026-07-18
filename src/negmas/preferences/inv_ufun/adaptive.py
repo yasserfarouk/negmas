@@ -173,6 +173,9 @@ class AdaptiveInverseUtilityFunction(InverseUFun):
     ) -> Outcome | None:
         return self._d().one_in(rng, normalized, fallback_to_higher, fallback_to_best)
 
+    def closest(self, target: float, normalized: bool = False) -> Outcome | None:
+        return self._d().closest(target, normalized)
+
     def best_in(
         self, rng: float | tuple[float, float], normalized: bool
     ) -> Outcome | None:

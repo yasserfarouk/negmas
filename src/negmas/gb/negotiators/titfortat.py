@@ -145,8 +145,9 @@ class NiceTitForTatNegotiator(MAPNegotiator):
         pareto_sampler_type: The `ParetoSampler` implementation used by the
             offering policy for the opponent-attractive trade-off query.
             ``None`` (default) uses the offering policy's own default
-            (`BruteForceParetoSampler`, exact). Pass `IPSParetoSampler` (or
-            another additive sampler) for very large additive domains.
+            (`DefaultParetoSampler` / `AdaptiveParetoSampler` — exact
+            brute-force on small spaces, a scalable backend on large ones). Pass
+            a specific type (e.g. `IPSParetoSampler`) to override.
         a, b, t: ACcombi parameters (forwarded to `ACCombi`).
 
     Remarks:

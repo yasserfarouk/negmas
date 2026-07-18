@@ -23,6 +23,7 @@ from ..protocols import InverseUFun
 from ._common import (
     EPS,
     _nearest_around,
+    _norm_to_raw,
     _un_normalize_range,
     index_above_or_equal,
     index_below_or_equal,
@@ -395,6 +396,36 @@ class PresortingInverseUtilityFunction(InverseUFun):
         if cycle and indx:
             self._cycle_around(indx)
         return self.outcomes[indx]
+
+    def closest(self, target: float, normalized: bool = False) -> Outcome | None:
+        """
+        Finds the single (rational) outcome whose utility is closest to ``target``.
+
+        Uses bisection over the sorted array of rational-outcome utilities to
+        locate the insertion point, then compares the neighbor immediately below
+        and above it, returning the true argmin.
+
+        Args:
+            target: The target utility value.
+            normalized: if ``True``, ``target`` is in normalized ``[0, 1]`` space.
+
+        Returns:
+            The closest outcome, or ``None`` if there are no rational outcomes.
+        """
+        if not self._ufun.is_stationary():
+            self.init()
+        if self._last_rational < 0:
+            return None
+        target_raw = (
+            _norm_to_raw(target, self._min, self._max) if normalized else float(target)
+        )
+        idx_above = index_above_or_equal(self.utils, target_raw, 0, self._last_rational)
+        idx_below = index_below_or_equal(self.utils, target_raw, 0, self._last_rational)
+        best_idx, best_diff = idx_above, abs(self.utils[idx_above] - target_raw)
+        d_below = abs(self.utils[idx_below] - target_raw)
+        if d_below < best_diff:
+            best_idx, best_diff = idx_below, d_below
+        return self.outcomes[best_idx]
 
     def _in(self, x, rng):
         return rng[0] - EPS <= x <= rng[1] + EPS

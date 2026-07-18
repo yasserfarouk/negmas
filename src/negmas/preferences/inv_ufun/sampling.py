@@ -162,6 +162,50 @@ class SamplingInverseUtilityFunction(InverseUFun):
             extra_samples = extra_samples[: n - n_samples]
         return samples + extra_samples
 
+    def closest(self, target: float, normalized: bool = False) -> Outcome | None:
+        """
+        Approximates the outcome whose utility is closest to ``target`` by
+        drawing the usual number of random samples and returning the sampled
+        outcome minimizing ``|u(o) - target|``.
+
+        Args:
+            target: The target utility value.
+            normalized: if ``True``, ``target`` is in normalized ``[0, 1]`` space.
+
+        Returns:
+            The (approximately) closest outcome, or ``None`` if the outcome
+            space is unknown/empty.
+        """
+        if self._ufun.outcome_space is None:
+            return None
+        # Resolve `target` to a raw utility using the ufun's actual min/max
+        # (not `eval_normalized`, which normalizes relative to the reserved
+        # value) so that `closest` uses the same [0, 1] convention as the
+        # other inverters.
+        if normalized:
+            u_min, u_max = self.minmax()
+            target_raw = u_min + float(target) * (u_max - u_min)
+        else:
+            target_raw = float(target)
+        # Use `enumerate_or_sample` (rather than `.sample()`) so that small,
+        # fully-enumerable outcome spaces are covered exactly rather than
+        # relying on `_max_samples` (which is deliberately shrunk for small
+        # spaces elsewhere and would otherwise miss extreme outcomes).
+        outcomes = list(
+            self._ufun.outcome_space.enumerate_or_sample(
+                max_cardinality=self.max_samples_per_call
+            )
+        )
+        if not outcomes:
+            return None
+        best_o: Outcome | None = None
+        best_diff = float("inf")
+        for o in outcomes:
+            d = abs(float(self._ufun(o)) - target_raw)  # type: ignore[arg-type]
+            if d < best_diff:
+                best_diff, best_o = d, o
+        return best_o
+
     def worst_in(
         self,
         rng: float | tuple[float, float],

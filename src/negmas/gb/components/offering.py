@@ -17,7 +17,7 @@ from negmas.negotiators.helpers import PolyAspiration
 from negmas.outcomes.common import ExtendedOutcome
 from negmas.outcomes.protocols import DiscreteOutcomeSpace
 from negmas.preferences.inv_ufun import DefaultInverseUtilityFunction
-from negmas.preferences.pareto_sampler import BruteForceParetoSampler
+from negmas.preferences.pareto_sampler import DefaultParetoSampler
 from negmas.preferences.protocols import InverseUFun, ParetoSampler
 
 from .base import FilterResult, OfferingPolicy
@@ -807,14 +807,14 @@ class NiceTitForTatOfferingPolicy(OfferingPolicy):
             inflated.
         pareto_sampler_type: The `ParetoSampler` implementation used for step iv
             (the opponent-attractive trade-off query). Defaults to
-            `BruteForceParetoSampler` (exact, via full enumeration + the
-            `pareto_frontier` machinery) which is correct on any ufun and fast on
-            small/finite spaces. Use `IPSParetoSampler` (or another additive
-            sampler) for very large additive domains where exact enumeration is
-            too costly — but do not pay its DP-table cost on small finite spaces.
-            The sampler is queried each round via ``best_for_opponent`` with the
-            opponent model as the opponent ufun; if it cannot answer the query
-            the policy falls back to the inverter path.
+            `DefaultParetoSampler` (``AdaptiveParetoSampler``), which uses the
+            exact `BruteForceParetoSampler` on small outcome spaces and a
+            scalable backend on large ones. Pass a specific sampler type (e.g.
+            `BruteForceParetoSampler`, or `IPSParetoSampler` for very large
+            additive domains) to override. The sampler is queried each round via
+            ``best_for_opponent`` with the opponent model as the opponent ufun;
+            if it cannot answer the query the policy falls back to the inverter
+            path.
 
     Remarks:
         - Requires the negotiator to expose ``opponent_model`` (a `UFunModel`
@@ -829,7 +829,7 @@ class NiceTitForTatOfferingPolicy(OfferingPolicy):
     target: str = "nash"
     levels: int = 20
     nash_min: float = 0.5
-    pareto_sampler_type: type[ParetoSampler] = BruteForceParetoSampler
+    pareto_sampler_type: type[ParetoSampler] = DefaultParetoSampler
     _partner_offer: Outcome | None = field(init=False, default=None)
     _prev_partner_offer: Outcome | None = field(init=False, default=None)
     _target_util: float | None = field(init=False, default=None)

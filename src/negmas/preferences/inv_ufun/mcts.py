@@ -19,6 +19,7 @@ Algorithms 17(5), 200.  Table 2.
 
 from __future__ import annotations
 
+import bisect
 import math
 import random
 from typing import TYPE_CHECKING, Any
@@ -259,6 +260,40 @@ class MCTSInverseUtilityFunction(InverseUFun):
     # ------------------------------------------------------------------
     # InverseUFun protocol
     # ------------------------------------------------------------------
+
+    def closest(self, target: float, normalized: bool = False) -> Outcome | None:
+        """Return the outcome whose utility is (approximately) closest to ``target``.
+
+        When a full best-first ranking was built at ``init()`` time (small
+        outcome spaces), this does an exact bisection lookup. Otherwise it runs
+        MCTS with a reward function that rewards outcomes closer to the target.
+
+        Args:
+            target: The target utility value.
+            normalized: if ``True``, ``target`` is in normalised [0,1] space.
+        """
+        self._check_initialized()
+        target_raw = self._norm_to_raw(target) if normalized else float(target)
+
+        if self._ordered_outcomes:
+            utils = [u for u, _ in self._ordered_outcomes]
+            idx = bisect.bisect_left(utils, target_raw)
+            candidates = []
+            if idx < len(utils):
+                candidates.append(idx)
+            if idx > 0:
+                candidates.append(idx - 1)
+            best_idx = min(candidates, key=lambda i: abs(utils[i] - target_raw))
+            return self._ordered_outcomes[best_idx][1]
+
+        def reward_fn(o: Outcome) -> float:
+            u = float(self._ufun(o))  # type: ignore[arg-type]
+            return -abs(u - target_raw)
+
+        o, _ = self._run_mcts(reward_fn, self._n_simulations)
+        if o is not None:
+            return o
+        return self.best()
 
     def some(
         self, rng: float | tuple[float, float], normalized: bool, n: int | None = None

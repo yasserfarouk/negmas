@@ -25,11 +25,13 @@ from negmas.outcomes import make_issue, make_os
 from negmas.preferences.crisp.linear import LinearAdditiveUtilityFunction
 from negmas.preferences.crisp.mapping import MappingUtilityFunction
 from negmas.preferences.inv_ufun import (
+    AdaptiveInverseUtilityFunction,
     AttributePlanningInverseUtilityFunction,
     BIDSInverseUtilityFunction,
     BruteForceInverseUtilityFunction,
     MCTSInverseUtilityFunction,
     PresortingInverseUtilityFunction,
+    PresortingInverseUtilityFunctionBruteForce,
     PresortingLegacyInverseUtilityFunction,
     SamplingInverseUtilityFunction,
 )
@@ -601,3 +603,78 @@ def test_mcts_minmax():
     assert inv.max() == pytest.approx(float(ufun.minmax()[1]), abs=1e-6)
     assert float(ufun(inv.best())) == pytest.approx(inv.max(), abs=1e-6)
     assert float(ufun(inv.worst())) == pytest.approx(inv.min(), abs=1e-6)
+
+
+# ---------------------------------------------------------------------------
+# closest() -- utility-lookup query (Koça et al. 2024, Eq. 1)
+# ---------------------------------------------------------------------------
+
+# Exact inverters: closest() must return the true argmin.
+EXACT_INVERTER_TYPES = [
+    BruteForceInverseUtilityFunction,
+    PresortingInverseUtilityFunction,
+    PresortingLegacyInverseUtilityFunction,
+    PresortingInverseUtilityFunctionBruteForce,
+]
+
+
+@pytest.mark.parametrize("cls", EXACT_INVERTER_TYPES)
+def test_closest_returns_argmin_exact(cls):
+    """For exact inverters, closest() must return the true argmin of
+    |u(o) - target| over all outcomes, for several normalized targets."""
+    outcomes, ufun = make_linear_ufun(nissues=2, nvalues=5, seed=7)
+    inv = cls(ufun)
+    inv.init()
+    umn, umx = inv.minmax()
+    d = umx - umn
+    truth = sorted(((float(ufun(o)), o) for o in outcomes), key=lambda x: x[0])
+
+    for frac in (0.0, 0.25, 0.5, 0.75, 1.0):
+        target_raw = umn + frac * d
+        expected_min_diff = min(abs(u - target_raw) for u, _ in truth)
+        got = inv.closest(frac, normalized=True)
+        assert got is not None
+        got_u = float(ufun(got))
+        got_diff = abs(got_u - target_raw)
+        assert got_diff == pytest.approx(expected_min_diff, abs=1e-6), (
+            f"closest({frac}, normalized=True) returned utility {got_u} "
+            f"(diff={got_diff}) but the true argmin has diff={expected_min_diff}"
+        )
+
+
+# All inverters (including approximate ones) must return a non-None, reasonably
+# close outcome for a non-empty additive-ufun outcome space.
+ALL_CLOSEST_INVERTER_TYPES = EXACT_INVERTER_TYPES + [
+    SamplingInverseUtilityFunction,
+    BIDSInverseUtilityFunction,
+    AttributePlanningInverseUtilityFunction,
+    MCTSInverseUtilityFunction,
+    AdaptiveInverseUtilityFunction,
+]
+
+
+@pytest.mark.parametrize("cls", ALL_CLOSEST_INVERTER_TYPES)
+def test_closest_non_none_and_reasonable(cls):
+    """Every inverter's closest() must return a non-None outcome for a
+    non-empty outcome space, with utility within a loose tolerance of the
+    brute-force minimum |u - target|."""
+    outcomes, ufun = make_linear_ufun(nissues=2, nvalues=5, seed=11)
+    inv = cls(ufun)
+    inv.init()
+    umn, umx = float(ufun.minmax()[0]), float(ufun.minmax()[1])
+    d = umx - umn
+    truth = [(float(ufun(o)), o) for o in outcomes]
+
+    for frac in (0.0, 0.25, 0.5, 0.75, 1.0):
+        target_raw = umn + frac * d
+        expected_min_diff = min(abs(u - target_raw) for u, _ in truth)
+        got = inv.closest(frac, normalized=True)
+        assert got is not None, f"{cls.__name__}.closest({frac}) returned None"
+        got_u = float(ufun(got))
+        got_diff = abs(got_u - target_raw)
+        # Loose tolerance (normalized) for approximate inverters.
+        assert got_diff <= expected_min_diff + 0.2 * (d if d > 0 else 1.0), (
+            f"{cls.__name__}.closest({frac}, normalized=True) returned utility "
+            f"{got_u} (diff={got_diff}) but the true minimum diff is "
+            f"{expected_min_diff}"
+        )

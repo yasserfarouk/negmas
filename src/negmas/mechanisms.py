@@ -32,7 +32,7 @@ from negmas.common import (
     DEFAULT_JAVA_PORT,
     MechanismAction,
     MechanismState,
-    NegotiatorInfo,
+    NegotiatorDescriptor,
     NegotiatorMechanismInterface,
     TRACE_ELEMENT_MEMBERS,
     TraceElement,
@@ -1491,10 +1491,12 @@ class Mechanism(
         return self._negotiators
 
     @property
-    def participants(self) -> list[NegotiatorInfo]:
+    def participants(self) -> list[NegotiatorDescriptor]:
         """Returns a list of all participant names."""
         return [
-            NegotiatorInfo(name=_.name, id=_.id, type=snake_case(_.__class__.__name__))
+            NegotiatorDescriptor(
+                name=_.name, id=_.id, type=snake_case(_.__class__.__name__)
+            )
             for _ in self.negotiators
         ]
 

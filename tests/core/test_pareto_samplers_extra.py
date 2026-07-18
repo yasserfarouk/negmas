@@ -25,7 +25,9 @@ from negmas.preferences.crisp.linear import LinearAdditiveUtilityFunction
 from negmas.preferences.crisp.mapping import MappingUtilityFunction
 from negmas.preferences.value_fun import AffineFun, ConstFun, IdentityFun
 from negmas.preferences.pareto_sampler import (
+    AdaptiveParetoSampler,
     BruteForceParetoSampler,
+    DefaultParetoSampler,
     IPSParetoSampler,
     MOBANOSParetoSampler,
     NB3ParetoSampler,
@@ -37,6 +39,7 @@ ALL_TYPES = [
     IPSParetoSampler,
     NB3ParetoSampler,
     MOBANOSParetoSampler,
+    AdaptiveParetoSampler,
 ]
 ADDITIVE_ONLY = [IPSParetoSampler, NB3ParetoSampler, MOBANOSParetoSampler]
 
@@ -292,11 +295,38 @@ def test_make_pareto_sampler_and_caching(cls):
     own.forget_pareto_sampler()
 
 
-def test_make_pareto_sampler_default_is_ips():
+def test_make_pareto_sampler_default_is_adaptive():
     own, opp = two_additive(seed=42)
     s = own.make_pareto_sampler(opponent_ufun=opp)
-    assert isinstance(s, IPSParetoSampler)
+    assert isinstance(s, AdaptiveParetoSampler)
+    assert DefaultParetoSampler is AdaptiveParetoSampler
     own.forget_pareto_sampler()
+
+
+def test_adaptive_uses_bruteforce_on_small_space():
+    # small finite space -> exact brute-force backend, works with any ufun
+    own, opp = two_additive(nissues=2, nvalues=5, seed=7)
+    s = AdaptiveParetoSampler(max_bruteforce_outcomes=10_000)
+    s.init(own, opp)
+    assert s.initialized
+    assert isinstance(s.impl, BruteForceParetoSampler)
+    # matches the exact brute-force frontier
+    bf = BruteForceParetoSampler()
+    bf.init(own, opp)
+    assert {tuple(o) for o in s.pareto_outcomes()} == {
+        tuple(o) for o in bf.pareto_outcomes()
+    }
+
+
+def test_adaptive_uses_large_backend_above_threshold():
+    # force the "large" branch with a tiny threshold: additive ufuns -> the
+    # large sampler (default MOBANOS) is used instead of brute force.
+    own, opp = two_additive(nissues=2, nvalues=6, seed=8)
+    s = AdaptiveParetoSampler(max_bruteforce_outcomes=1)
+    s.init(own, opp)
+    assert s.initialized
+    assert isinstance(s.impl, MOBANOSParetoSampler)
+    assert len(s.pareto_outcomes()) >= 1
 
 
 # ---------------------------------------------------------------------------

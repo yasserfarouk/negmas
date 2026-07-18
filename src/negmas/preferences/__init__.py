@@ -32,7 +32,9 @@ from .crisp_ufun import *
 from .prob_ufun import *
 from .inv_ufun import *
 from .pareto_sampler import (
+    AdaptiveParetoSampler,
     BruteForceParetoSampler,
+    DefaultParetoSampler,
     IPSParetoSampler,
     MOBANOSParetoSampler,
     NB3ParetoSampler,
@@ -57,6 +59,8 @@ __all__ = (
     + prob_ufun.__all__
     + inv_ufun.__all__
     + [
+        "AdaptiveParetoSampler",
+        "DefaultParetoSampler",
         "BruteForceParetoSampler",
         "IPSParetoSampler",
         "NB3ParetoSampler",

@@ -2,7 +2,6 @@
 
 from __future__ import annotations
 
-from collections import namedtuple
 from typing import TYPE_CHECKING, Any, TypeVar, Generic
 
 from negmas.common import MechanismState, NegotiatorMechanismInterface
@@ -11,6 +10,7 @@ from negmas.helpers import get_class
 from negmas.preferences import Preferences
 from negmas.types import Rational
 
+from .common import NegotiatorEntry
 from .negotiator import Negotiator
 
 if TYPE_CHECKING:
@@ -21,11 +21,6 @@ if TYPE_CHECKING:
 
 
 __all__ = ["Controller"]
-
-NegotiatorInfo = namedtuple("NegotiatorInfo", ["negotiator", "context"])
-"""
-The return type of `negotiators` member of `Controller`.
-"""
 
 TControlledNegotiator = TypeVar("TControlledNegotiator", bound=Negotiator)
 TNMI = TypeVar("TNMI", bound=NegotiatorMechanismInterface)
@@ -81,7 +76,7 @@ class Controller(Rational, Generic[TNMI, TState, TControlledNegotiator]):
             **kwargs: Additional keyword arguments.
         """
         super().__init__(**kwargs)
-        self._negotiators: dict[str, NegotiatorInfo] = {}
+        self._negotiators: dict[str, NegotiatorEntry] = {}
         if default_negotiator_params is None:
             default_negotiator_params = {}
         if isinstance(default_negotiator_type, str):
@@ -109,7 +104,7 @@ class Controller(Rational, Generic[TNMI, TState, TControlledNegotiator]):
             self.kill_negotiator(neg, True)
 
     @property
-    def negotiators(self) -> dict[str, NegotiatorInfo]:
+    def negotiators(self) -> dict[str, NegotiatorEntry]:
         """
         Returns a dictionary mapping negotiator ID to the a tuple containing
         the negotiator and its context.
@@ -117,7 +112,7 @@ class Controller(Rational, Generic[TNMI, TState, TControlledNegotiator]):
         return self._negotiators
 
     @property
-    def unfinished_negotiators(self) -> dict[str, NegotiatorInfo]:
+    def unfinished_negotiators(self) -> dict[str, NegotiatorEntry]:
         """
         Returns the negotiators whose negotiations started and did not complete yet
 
@@ -133,7 +128,7 @@ class Controller(Rational, Generic[TNMI, TState, TControlledNegotiator]):
         }
 
     @property
-    def finished_negotiators(self) -> dict[str, NegotiatorInfo]:
+    def finished_negotiators(self) -> dict[str, NegotiatorEntry]:
         """
         Returns the negotiators whose negotiations started and completed
 
@@ -149,7 +144,7 @@ class Controller(Rational, Generic[TNMI, TState, TControlledNegotiator]):
         }
 
     @property
-    def to_start_negotiators(self) -> dict[str, NegotiatorInfo]:
+    def to_start_negotiators(self) -> dict[str, NegotiatorEntry]:
         """
         Returns the negotiators whose negotiations did not start yet
 
@@ -163,7 +158,7 @@ class Controller(Rational, Generic[TNMI, TState, TControlledNegotiator]):
         }
 
     @property
-    def started_negotiators(self) -> dict[str, NegotiatorInfo]:
+    def started_negotiators(self) -> dict[str, NegotiatorEntry]:
         """
         Returns the negotiators whose negotiations started
 
@@ -177,7 +172,7 @@ class Controller(Rational, Generic[TNMI, TState, TControlledNegotiator]):
         }
 
     @property
-    def active_negotiators(self) -> dict[str, NegotiatorInfo]:
+    def active_negotiators(self) -> dict[str, NegotiatorEntry]:
         """
         Returns the negotiators whose negotiations running or did not start yet.
 
@@ -303,7 +298,7 @@ class Controller(Rational, Generic[TNMI, TState, TControlledNegotiator]):
 
         """
         if negotiator is not None:
-            self._negotiators[negotiator.id] = NegotiatorInfo(negotiator, cntxt)
+            self._negotiators[negotiator.id] = NegotiatorEntry(negotiator, cntxt)
 
     def create_negotiator(
         self,

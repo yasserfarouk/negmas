@@ -123,6 +123,7 @@ def _register_sao_negotiators() -> None:
         LimitedOutcomesAcceptor,
         NaiveTitForTatNegotiator,
         SimpleTitForTatNegotiator,
+        NiceTitForTatNegotiator,
         TimeBasedNegotiator,
         TimeBasedConcedingNegotiator,
         BoulwareTBNegotiator,
@@ -137,6 +138,25 @@ def _register_sao_negotiators() -> None:
         WARNegotiator,
         MiCRONegotiator,
         FastMiCRONegotiator,
+        AdditiveFirstFollowingTBNegotiator,
+        AdditiveLastOfferFollowingTBNegotiator,
+        AdditiveParetoFollowingTBNegotiator,
+        MultiplicativeFirstFollowingTBNegotiator,
+        MultiplicativeLastOfferFollowingTBNegotiator,
+        MultiplicativeParetoFollowingTBNegotiator,
+        BestOfferOrientedTBNegotiator,
+        FirstOfferOrientedTBNegotiator,
+        LastOfferOrientedTBNegotiator,
+        HybridNegotiator,
+        TopFractionNegotiator,
+    )
+    from negmas.negotiators.simple import (
+        BinaryComparatorNegotiator,
+        NLevelsComparatorNegotiator,
+        RealComparatorNegotiator,
+        RankerNegotiator,
+        RankerWithWeightsNegotiator,
+        SorterNegotiator,
     )
 
     # Base tags for all builtin SAO negotiators
@@ -202,6 +222,12 @@ def _register_sao_negotiators() -> None:
         short_name="SimpleTitForTatNegotiator",
         source=NEGMAS_SOURCE,
         tags=base_tags | {"tit-for-tat"},
+    )
+    negotiator_registry.register(
+        NiceTitForTatNegotiator,
+        short_name="NiceTitForTatNegotiator",
+        source=NEGMAS_SOURCE,
+        tags=base_tags | {"tit-for-tat", "nash", "opponent-modeling"},
     )
 
     # Time-based negotiators
@@ -298,6 +324,114 @@ def _register_sao_negotiators() -> None:
         tags=base_tags | {"micro", "learning"},
     )
 
+    # Time-based following negotiators (follow specific outcome trajectories)
+    negotiator_registry.register(
+        AdditiveFirstFollowingTBNegotiator,
+        short_name="AdditiveFirstFollowingTBNegotiator",
+        source=NEGMAS_SOURCE,
+        tags=base_tags | {"time-based", "following"},
+    )
+    negotiator_registry.register(
+        AdditiveLastOfferFollowingTBNegotiator,
+        short_name="AdditiveLastOfferFollowingTBNegotiator",
+        source=NEGMAS_SOURCE,
+        tags=base_tags | {"time-based", "following"},
+    )
+    negotiator_registry.register(
+        AdditiveParetoFollowingTBNegotiator,
+        short_name="AdditiveParetoFollowingTBNegotiator",
+        source=NEGMAS_SOURCE,
+        tags=base_tags | {"time-based", "following"},
+    )
+    negotiator_registry.register(
+        MultiplicativeFirstFollowingTBNegotiator,
+        short_name="MultiplicativeFirstFollowingTBNegotiator",
+        source=NEGMAS_SOURCE,
+        tags=base_tags | {"time-based", "following"},
+    )
+    negotiator_registry.register(
+        MultiplicativeLastOfferFollowingTBNegotiator,
+        short_name="MultiplicativeLastOfferFollowingTBNegotiator",
+        source=NEGMAS_SOURCE,
+        tags=base_tags | {"time-based", "following"},
+    )
+    negotiator_registry.register(
+        MultiplicativeParetoFollowingTBNegotiator,
+        short_name="MultiplicativeParetoFollowingTBNegotiator",
+        source=NEGMAS_SOURCE,
+        tags=base_tags | {"time-based", "following"},
+    )
+    negotiator_registry.register(
+        BestOfferOrientedTBNegotiator,
+        short_name="BestOfferOrientedTBNegotiator",
+        source=NEGMAS_SOURCE,
+        tags=base_tags | {"time-based", "offer-oriented"},
+    )
+    negotiator_registry.register(
+        FirstOfferOrientedTBNegotiator,
+        short_name="FirstOfferOrientedTBNegotiator",
+        source=NEGMAS_SOURCE,
+        tags=base_tags | {"time-based", "offer-oriented"},
+    )
+    negotiator_registry.register(
+        LastOfferOrientedTBNegotiator,
+        short_name="LastOfferOrientedTBNegotiator",
+        source=NEGMAS_SOURCE,
+        tags=base_tags | {"time-based", "offer-oriented"},
+    )
+
+    # Hybrid and utility-based negotiators
+    negotiator_registry.register(
+        HybridNegotiator,
+        short_name="HybridNegotiator",
+        source=NEGMAS_SOURCE,
+        tags=base_tags | {"hybrid"},
+    )
+    negotiator_registry.register(
+        TopFractionNegotiator,
+        short_name="TopFractionNegotiator",
+        source=NEGMAS_SOURCE,
+        tags=base_tags | {"utility-based"},
+    )
+
+    # Elicitation/query helper negotiators
+    negotiator_registry.register(
+        BinaryComparatorNegotiator,
+        short_name="BinaryComparatorNegotiator",
+        source=NEGMAS_SOURCE,
+        tags=base_tags | {"elicitation"},
+    )
+    negotiator_registry.register(
+        NLevelsComparatorNegotiator,
+        short_name="NLevelsComparatorNegotiator",
+        source=NEGMAS_SOURCE,
+        tags=base_tags | {"elicitation"},
+    )
+    negotiator_registry.register(
+        RealComparatorNegotiator,
+        short_name="RealComparatorNegotiator",
+        source=NEGMAS_SOURCE,
+        tags=base_tags | {"elicitation"},
+    )
+    negotiator_registry.register(
+        RankerNegotiator,
+        short_name="RankerNegotiator",
+        source=NEGMAS_SOURCE,
+        tags=base_tags | {"elicitation"},
+    )
+    negotiator_registry.register(
+        RankerWithWeightsNegotiator,
+        short_name="RankerWithWeightsNegotiator",
+        source=NEGMAS_SOURCE,
+        tags=base_tags | {"elicitation"},
+    )
+    negotiator_registry.register(
+        SorterNegotiator,
+        short_name="SorterNegotiator",
+        source=NEGMAS_SOURCE,
+        tags=base_tags | {"elicitation"},
+    )
+
     # Meta negotiators (ensemble strategies)
     from negmas.sao.negotiators import (
         RangeMetaNegotiator,
@@ -361,11 +495,20 @@ def _register_sao_components() -> None:
         ACTime,
         ACLastKReceived,
         ACLastFractionReceived,
+        ACCombi,
+        TFTAcceptancePolicy,
     )
+
+    # AcceptFinalOffer and MiCROAcceptancePolicy are defined in
+    # negmas.gb.components.acceptance but are not exported in that module's
+    # __all__, so negmas.sao.components.acceptance (which re-exports via
+    # `from ... import *`) does not expose them. Import them directly.
+    from negmas.gb.components.acceptance import AcceptFinalOffer, MiCROAcceptancePolicy
 
     # Acceptance policies with appropriate tags
     acceptance_base = {"builtin", "sao"}
     acceptance_policies = [
+        (ACCombi, {"adaptive", "tit-for-tat", "combined"}),
         (AcceptImmediately, {"simple"}),
         (RejectAlways, {"simple"}),
         (AcceptAnyRational, {"rational"}),
@@ -385,6 +528,9 @@ def _register_sao_components() -> None:
         (ACTime, {"time-based"}),
         (ACLastKReceived, {"adaptive"}),
         (ACLastFractionReceived, {"adaptive"}),
+        (AcceptFinalOffer, {"time-based"}),
+        (MiCROAcceptancePolicy, {"micro"}),
+        (TFTAcceptancePolicy, {"tit-for-tat"}),
     ]
     for cls, extra_tags in acceptance_policies:
         component_registry.register(
@@ -402,7 +548,19 @@ def _register_sao_components() -> None:
         OfferBest,
         OfferTop,
         TimeBasedOfferingPolicy,
+        NiceTitForTatOfferingPolicy,
+        CABOfferingPolicy,
+        WAROfferingPolicy,
+        MiCROOfferingPolicy,
+        HybridOfferingPolicy,
+        TFTOfferingPolicy,
     )
+
+    # FastMiCROOfferingPolicy is defined in negmas.gb.components.offering but
+    # is not exported in that module's __all__, so
+    # negmas.sao.components.offering (which re-exports via `from ... import *`)
+    # does not expose it. Import it directly.
+    from negmas.gb.components.offering import FastMiCROOfferingPolicy
 
     offering_base = {"builtin", "sao"}
     offering_policies = [
@@ -411,6 +569,13 @@ def _register_sao_components() -> None:
         (OfferBest, {"optimal"}),
         (OfferTop, {"optimal"}),
         (TimeBasedOfferingPolicy, {"time-based"}),
+        (NiceTitForTatOfferingPolicy, {"tit-for-tat", "nash", "opponent-modeling"}),
+        (CABOfferingPolicy, {"rational"}),
+        (WAROfferingPolicy, {"rational"}),
+        (MiCROOfferingPolicy, {"micro"}),
+        (FastMiCROOfferingPolicy, {"micro"}),
+        (HybridOfferingPolicy, {"hybrid"}),
+        (TFTOfferingPolicy, {"tit-for-tat"}),
     ]
     for cls, extra_tags in offering_policies:
         component_registry.register(
@@ -428,11 +593,15 @@ def _register_sao_components() -> None:
         FrequencyLinearUFunModel,
     )
 
+    # PeekingOpponentModel (oracle model) lives only in the gb components.
+    from negmas.gb.components.models.ufun import PeekingOpponentModel
+
     model_base = {"builtin", "sao"}
     models = [
         (ZeroSumModel, {"zero-sum"}),
         (FrequencyUFunModel, {"frequency", "learning"}),
         (FrequencyLinearUFunModel, {"frequency", "learning", "linear"}),
+        (PeekingOpponentModel, {"oracle", "testing"}),
     ]
     for cls, extra_tags in models:
         component_registry.register(
