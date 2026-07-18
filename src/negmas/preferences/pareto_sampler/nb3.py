@@ -43,20 +43,18 @@ class NB3ParetoSampler:
     ``LinearAdditiveUtilityFunction`` instances.  ``init()`` raises ``TypeError``
     if this is not satisfied.
 
+    The utility functions are supplied to `init` (``init(ufun, opponent_ufun)``),
+    not the constructor: the constructor takes configuration only.
+
     Args:
-        ufun: The agent's own utility function.
-        opponent_ufun: Estimate of the opponent's utility function.
         max_nodes: Maximum number of nodes to expand.  Default: 10000.
+
+    *AI supported (config-only constructor; operands supplied to ``init``).*
     """
 
-    def __init__(
-        self,
-        ufun: BaseUtilityFunction,
-        opponent_ufun: BaseUtilityFunction | None = None,
-        max_nodes: int = 10000,
-    ) -> None:
-        self._ufun = ufun
-        self._opponent_ufun = opponent_ufun
+    def __init__(self, max_nodes: int = 10000) -> None:
+        self._ufun: BaseUtilityFunction | None = None
+        self._opponent_ufun: BaseUtilityFunction | None = None
         self._max_nodes = max_nodes
         self._initialized = False
         # list of (own_util, opp_util, outcome)
@@ -67,7 +65,7 @@ class NB3ParetoSampler:
     # ------------------------------------------------------------------
 
     @property
-    def ufun(self) -> BaseUtilityFunction:
+    def ufun(self) -> BaseUtilityFunction | None:
         return self._ufun
 
     @property
@@ -83,8 +81,18 @@ class NB3ParetoSampler:
     # init
     # ------------------------------------------------------------------
 
-    def init(self, opponent_ufun: BaseUtilityFunction | None = None) -> None:
+    def init(
+        self,
+        ufun: BaseUtilityFunction | None = None,
+        opponent_ufun: BaseUtilityFunction | None = None,
+    ) -> None:
         """Run the NB3 branch-and-bound algorithm to build the Pareto frontier.
+
+        Args:
+            ufun: The agent's own utility function (supplied here, not in the
+                constructor). Omit to keep the current one.
+            opponent_ufun: Estimate of the opponent's utility function. Omit to
+                keep the current estimate.
 
         Raises:
             TypeError: if own or opponent ufun is not a
@@ -92,6 +100,8 @@ class NB3ParetoSampler:
         """
         from negmas.preferences.crisp.linear import LinearAdditiveUtilityFunction
 
+        if ufun is not None:
+            self._ufun = ufun
         if opponent_ufun is not None:
             self._opponent_ufun = opponent_ufun
 
@@ -99,6 +109,9 @@ class NB3ParetoSampler:
             self._pareto_front = []
             self._initialized = False
             return
+
+        if self._ufun is None:
+            raise ValueError("NB3ParetoSampler.init requires a ufun (pass ufun=...).")
 
         own_base = self._unwrap(self._ufun)
         opp_base = self._unwrap(self._opponent_ufun)
@@ -115,8 +128,8 @@ class NB3ParetoSampler:
             raise ValueError("NB3ParetoSampler requires a ufun with an outcome space.")
 
         self._pareto_front = self._run_nb3(
-            own_base,
-            opp_base,
+            own_base,  # type: ignore[arg-type]
+            opp_base,  # type: ignore[arg-type]
             issues,  # type: ignore[arg-type]
         )
         self._initialized = True
@@ -134,7 +147,7 @@ class NB3ParetoSampler:
         opponent_ufun: BaseUtilityFunction | None = None,
     ) -> list[Outcome]:
         if opponent_ufun is not None:
-            self.init(opponent_ufun)
+            self.init(opponent_ufun=opponent_ufun)
         elif not self._initialized:
             self.init()
         if not self._initialized:
@@ -154,7 +167,7 @@ class NB3ParetoSampler:
         opponent_ufun: BaseUtilityFunction | None = None,
     ) -> Outcome | None:
         if opponent_ufun is not None:
-            self.init(opponent_ufun)
+            self.init(opponent_ufun=opponent_ufun)
         elif not self._initialized:
             self.init()
         if not self._initialized or self._opponent_ufun is None:
@@ -186,7 +199,9 @@ class NB3ParetoSampler:
         return base
 
     def _to_raw_util(self, norm: float) -> float:
-        mn, mx = self._ufun.minmax()
+        ufun = self._ufun
+        assert ufun is not None  # guaranteed once initialized
+        mn, mx = ufun.minmax()
         return float(mn) + norm * float(mx - mn)
 
     def _run_nb3(

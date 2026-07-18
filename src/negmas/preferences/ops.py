@@ -1,4 +1,42 @@
-"""Operations on utility functions including Pareto frontier, Nash points, and normalization."""
+"""Operations on utility functions including Pareto frontier, Nash points, and normalization.
+
+Choosing a Pareto-frontier function
+------------------------------------
+Several Pareto-frontier extractors live in this module. They fall into two
+groups: the **high-level** `pareto_frontier` (takes ufuns + issues/outcomes,
+enumerates/discretizes internally) and the **low-level** extractors that take a
+pre-evaluated array of utility points. Benchmarks below are indicative wall-clock
+times on ~500 two-objective points (see ``coding_agents/bench_pareto_frontier.py``);
+your mileage varies with point count and dimensionality.
+
+Low-level extractors (input = array of utility tuples):
+
+* `pareto_frontier_numpy` — **recommended**. Vectorized, exact. ~0.0003 s / 500
+  pts. Returns indices of non-dominated points. Use this whenever you already
+  have the utility points.
+* `pareto_frontier_bf` — exact, but O(n²) pairwise comparison. ~0.06 s / 500 pts
+  (~200x slower than ``numpy``); only competitive for a few dozen points. Gives
+  the identical frontier to ``numpy``.
+* `pareto_frontier_numpy_faster` — **BROKEN**: raises ``IndexError`` on real
+  inputs. Do not use until fixed.
+* `pareto_frontier_convex_hull` — **BROKEN / not general**: only finds the convex
+  hull of the frontier (misses non-convex frontier points) and raises
+  ``scipy.spatial.qhull.QhullError`` (a ``RuntimeError`` subclass, *not* a
+  ``ValueError``) whenever the points are (near-)collinear or lower-dimensional,
+  which is common. Do not use.
+* `pareto_frontier_of` — **effectively unusable**: hangs (no result in practical
+  time) on more than ~100 points. Avoid.
+
+High-level:
+
+* `pareto_frontier` — takes the ufuns and issues/outcomes, discretizes continuous
+  issues internally (``n_discretization`` per continuous issue; finite spaces are
+  enumerated exactly) and extracts the frontier with the vectorized path. It is
+  faster end-to-end than manually enumerating and calling
+  `pareto_frontier_numpy`: ~1.5–2x on discrete spaces and ~100x on continuous
+  spaces (it avoids materializing every sampled outcome twice). Prefer it when you
+  start from ufuns rather than pre-evaluated points.
+"""
 
 from __future__ import annotations
 
@@ -782,6 +820,12 @@ def pareto_frontier_bf(
 
     Returns:
         Indices of Pareto-optimal points.
+
+    Remarks:
+        - Exact, but O(n²) pairwise comparison: ~0.06 s on ~500 points (~200x
+          slower than `pareto_frontier_numpy`, which returns the identical
+          frontier). Only competitive for a few dozen points; prefer
+          `pareto_frontier_numpy` otherwise.
     """
     points = np.asarray(points, dtype=np.float32)
     if len(points) < 1:
@@ -864,6 +908,15 @@ def pareto_frontier_convex_hull(
 
     Returns:
         indices of Pareto optimal outcomes
+
+    Warning:
+        - **Broken / not general — do not use.** This uses a convex-hull
+          heuristic, so it only recovers the *convex* part of the Pareto
+          frontier and silently misses non-convex frontier points. Worse, it
+          raises ``scipy.spatial.QhullError`` (a ``RuntimeError`` subclass — not
+          a ``ValueError``) whenever the input points are (near-)collinear or
+          otherwise lower-dimensional, which happens routinely (e.g. a two-issue
+          zero-sum scenario). Use `pareto_frontier_numpy` instead.
     """
     from scipy import spatial
 
@@ -965,6 +1018,12 @@ def pareto_frontier_numpy(
 
     Returns:
         indices of Pareto optimal outcomes
+
+    Remarks:
+        - **Recommended** exact frontier extractor. Vectorized: ~0.0003 s on ~500
+          two-objective points (~200x faster than `pareto_frontier_bf`, which
+          gives the identical result). Prefer this whenever you already have the
+          utility points.
     """
     points = np.asarray(points)
     n_points = points.shape[0]
@@ -1022,6 +1081,11 @@ def pareto_frontier_numpy_faster(
 
     Returns:
         indices of Pareto optimal outcomes
+
+    Warning:
+        - **Broken — do not use.** Despite the name, this raises ``IndexError``
+          on real inputs (the internal index bookkeeping is buggy). Use
+          `pareto_frontier_numpy`, which is already fast and correct.
     """
     points = np.asarray(points)
     n_points = points.shape[0]
@@ -1069,6 +1133,12 @@ def pareto_frontier_of(
         sort_by_welfare: If True, the results are sorted descindingly by total welfare
 
     Returns:
+        indices of Pareto optimal outcomes
+
+    Warning:
+        - **Effectively unusable — do not use.** Despite the "fast algorithm"
+          claim, this does not complete in practical time on more than ~100
+          points (it hangs). Use `pareto_frontier_numpy` instead.
     """
     utils = np.asarray(points)
     n = len(utils)
@@ -2058,6 +2128,17 @@ def pareto_frontier(
 
     Returns:
         Two lists of the same length. First list gives the utilities at Pareto frontier points and second list gives their indices
+
+    Remarks:
+        - ``n_discretization`` is applied **per continuous issue only**; a
+          fully-finite outcome space is enumerated exactly and is never affected
+          by it.
+        - Outcomes whose utility is non-finite (or raises) for any ufun are
+          skipped, so opponent-model stand-ins can be passed safely.
+        - This end-to-end path (ufuns + issues → frontier) is faster than
+          manually enumerating the outcomes and calling `pareto_frontier_numpy`
+          yourself: ~1.5–2x on discrete spaces and ~100x on continuous spaces.
+          Prefer it when you start from ufuns rather than pre-evaluated points.
     """
 
     ufuns = tuple(ufuns)
@@ -2073,17 +2154,60 @@ def pareto_frontier(
                 issues = ufuns[0].outcome_space.issues  # type: ignore
             except Exception:
                 return ((), ())
-        outcomes = discretize_and_enumerate_issues(
-            issues,  # type: ignore
-            n_discretization=n_discretization,
-            max_cardinality=max_cardinality,  # type: ignore
-        )
+        # ``n_discretization`` is *per issue* and applies ONLY to continuous
+        # (infinite-cardinality) issues — a fully-finite outcome space is
+        # enumerated exactly and is NEVER affected by ``n_discretization``. We
+        # reuse the existing discretization helpers
+        # (`discretize_and_enumerate_issues`, which itself uses `Issue.to_discrete`)
+        # and, when the caller does not pass ``n_discretization``, let that
+        # helper use its own default rather than hard-coding one here (passing
+        # ``None`` would otherwise crash on continuous issues).
+        if all(getattr(_, "is_finite", lambda: True)() for _ in issues):
+            outcomes = discretize_and_enumerate_issues(
+                issues,  # type: ignore
+                max_cardinality=max_cardinality,  # type: ignore
+            )
+        else:
+            kw = (
+                {}
+                if n_discretization is None
+                else {"n_discretization": n_discretization}
+            )
+            outcomes = discretize_and_enumerate_issues(
+                issues,  # type: ignore
+                max_cardinality=max_cardinality,  # type: ignore
+                **kw,
+            )
         # outcomes = itertools.product(
         #     *[issue.value_generator(n=n_discretization) for issue in issues]
         # )
-    points = np.asarray(
-        [[ufun(outcome) for ufun in ufuns] for outcome in outcomes], dtype=float
-    )
+    # Evaluate every ufun at every outcome; skip outcomes whose utility is
+    # non-finite (NaN/±inf) or raises for any ufun — e.g. outcomes an opponent
+    # model cannot evaluate — rather than letting them poison the Pareto
+    # computation (numpy would turn them into NaNs and the rational/Pareto
+    # filters would silently drop or mis-rank them).
+    raw: list[list[float]] = []
+    kept_outcomes: list[Outcome] = []
+    for outcome in outcomes:
+        row: list[float] = []
+        ok = True
+        for ufun in ufuns:
+            try:
+                v = float(ufun(outcome))
+            except Exception:
+                ok = False
+                break
+            if not math.isfinite(v):
+                ok = False
+                break
+            row.append(v)
+        if ok:
+            raw.append(row)
+            kept_outcomes.append(outcome)
+    if not raw:
+        return ((), ())
+    points = np.asarray(raw, dtype=float)
+    outcomes = kept_outcomes
     warn_if_slow(len(points), "Too many outcomes in the OS (Pareto Calculation)")
     reservs = np.asarray(
         [_.reserved_value if _ is not None else float("-inf") for _ in ufuns],

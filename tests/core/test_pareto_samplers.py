@@ -37,8 +37,7 @@ def make_two_additive_ufuns(
 
 
 def brute_force_pareto(
-    own: LinearAdditiveUtilityFunction,
-    opp: LinearAdditiveUtilityFunction,
+    own: LinearAdditiveUtilityFunction, opp: LinearAdditiveUtilityFunction
 ) -> list[tuple[float, float]]:
     """Compute the exact Pareto front by brute force.
 
@@ -72,9 +71,9 @@ def brute_force_pareto(
 def test_pareto_sampler_instantiation(cls):
     """All ParetoSampler classes must satisfy the ParetoSampler protocol."""
     own, opp = make_two_additive_ufuns()
-    sampler = cls(own, opp)
+    sampler = cls()
     assert isinstance(sampler, ParetoSampler)
-    sampler.init()
+    sampler.init(own, opp)
     assert sampler.initialized
 
 
@@ -87,8 +86,8 @@ def test_pareto_sampler_instantiation(cls):
 def test_pareto_outcomes_non_empty(cls):
     """pareto_outcomes() must return at least one outcome for a reasonable ufun pair."""
     own, opp = make_two_additive_ufuns(nissues=2, nvalues=5, seed=1)
-    sampler = cls(own, opp)
-    sampler.init()
+    sampler = cls()
+    sampler.init(own, opp)
     outcomes = sampler.pareto_outcomes()
     assert len(outcomes) >= 1
 
@@ -102,8 +101,8 @@ def test_pareto_outcomes_non_empty(cls):
 def test_pareto_outcomes_are_non_dominated(cls):
     """No outcome returned by pareto_outcomes() should dominate another."""
     own, opp = make_two_additive_ufuns(nissues=2, nvalues=3, seed=2)
-    sampler = cls(own, opp)
-    sampler.init()
+    sampler = cls()
+    sampler.init(own, opp)
     outcomes = sampler.pareto_outcomes()
     if len(outcomes) < 2:
         return
@@ -129,8 +128,8 @@ def test_pareto_min_util_filter(cls):
     """pareto_outcomes(min_util=0.5, normalized=True) returns only outcomes
     with own utility >= 0.5 (normalized)."""
     own, opp = make_two_additive_ufuns(nissues=2, nvalues=5, seed=3)
-    sampler = cls(own, opp)
-    sampler.init()
+    sampler = cls()
+    sampler.init(own, opp)
     min_util_norm = 0.5
     outcomes = sampler.pareto_outcomes(min_util=min_util_norm, normalized=True)
     mn, mx = own.minmax()
@@ -152,8 +151,8 @@ def test_best_for_opponent_satisfies_own_constraint(cls):
     with own utility >= 0.3 (normalized) and should maximise opponent utility
     among all Pareto outcomes meeting the constraint."""
     own, opp = make_two_additive_ufuns(nissues=2, nvalues=5, seed=4)
-    sampler = cls(own, opp)
-    sampler.init()
+    sampler = cls()
+    sampler.init(own, opp)
     min_util_norm = 0.3
     result = sampler.best_for_opponent(min_util=min_util_norm, normalized=True)
     if result is None:
@@ -188,18 +187,17 @@ def test_raises_for_non_additive_ufun(cls):
     os = make_os([make_issue(5), make_issue(5)])
     outcomes = list(os.enumerate_or_sample())
     mapping_ufun = MappingUtilityFunction(
-        mapping=dict(zip(outcomes, range(len(outcomes)), strict=True)),
-        outcome_space=os,
+        mapping=dict(zip(outcomes, range(len(outcomes)), strict=True)), outcome_space=os
     )
     own, opp = make_two_additive_ufuns()
     # Non-additive own ufun
-    sampler = cls(mapping_ufun, opp)
+    sampler = cls()
     with pytest.raises(TypeError):
-        sampler.init()
+        sampler.init(mapping_ufun, opp)
     # Non-additive opp ufun
-    sampler2 = cls(own, mapping_ufun)
+    sampler2 = cls()
     with pytest.raises(TypeError):
-        sampler2.init()
+        sampler2.init(own, mapping_ufun)
 
 
 # ---------------------------------------------------------------------------
@@ -212,23 +210,20 @@ def test_nb3_and_mobanos_agree_with_ips():
     should find the same Pareto-optimal utility pairs."""
     own, opp = make_two_additive_ufuns(nissues=2, nvalues=3, seed=10)
 
-    ips = IPSParetoSampler(own, opp)
-    nb3 = NB3ParetoSampler(own, opp)
-    mob = MOBANOSParetoSampler(own, opp)
+    ips = IPSParetoSampler()
+    nb3 = NB3ParetoSampler()
+    mob = MOBANOSParetoSampler()
 
-    ips.init()
-    nb3.init()
-    mob.init()
+    ips.init(own, opp)
+    nb3.init(own, opp)
+    mob.init(own, opp)
 
     # Compute true brute-force Pareto front
     bf = brute_force_pareto(own, opp)
     bf_set = {(round(u, 5), round(v, 5)) for u, v in bf}
 
     def outcome_utils_set(outcomes):
-        return {
-            (round(float(own(o)), 5), round(float(opp(o)), 5))
-            for o in outcomes
-        }
+        return {(round(float(own(o)), 5), round(float(opp(o)), 5)) for o in outcomes}
 
     ips_set = outcome_utils_set(ips.pareto_outcomes())
     nb3_set = outcome_utils_set(nb3.pareto_outcomes())
@@ -236,15 +231,15 @@ def test_nb3_and_mobanos_agree_with_ips():
 
     # All algorithms should contain all true Pareto-optimal outcomes
     for u, v in bf_set:
-        assert any(
-            abs(uu - u) < 1e-4 and abs(vv - v) < 1e-4 for uu, vv in ips_set
-        ), f"IPS missing Pareto point ({u}, {v})"
-        assert any(
-            abs(uu - u) < 1e-4 and abs(vv - v) < 1e-4 for uu, vv in nb3_set
-        ), f"NB3 missing Pareto point ({u}, {v})"
-        assert any(
-            abs(uu - u) < 1e-4 and abs(vv - v) < 1e-4 for uu, vv in mob_set
-        ), f"MOBANOS missing Pareto point ({u}, {v})"
+        assert any(abs(uu - u) < 1e-4 and abs(vv - v) < 1e-4 for uu, vv in ips_set), (
+            f"IPS missing Pareto point ({u}, {v})"
+        )
+        assert any(abs(uu - u) < 1e-4 and abs(vv - v) < 1e-4 for uu, vv in nb3_set), (
+            f"NB3 missing Pareto point ({u}, {v})"
+        )
+        assert any(abs(uu - u) < 1e-4 and abs(vv - v) < 1e-4 for uu, vv in mob_set), (
+            f"MOBANOS missing Pareto point ({u}, {v})"
+        )
 
 
 # ---------------------------------------------------------------------------
@@ -257,8 +252,8 @@ def test_pareto_sampler_none_opponent_ufun(cls):
     """When opponent_ufun=None, init() should not raise, pareto_outcomes() should
     return empty list, and best_for_opponent() should return None."""
     own, _ = make_two_additive_ufuns()
-    sampler = cls(own, None)
-    sampler.init()  # Should not raise
+    sampler = cls()
+    sampler.init(own, None)  # Should not raise
     assert sampler.pareto_outcomes() == []
     assert sampler.best_for_opponent(min_util=0.5) is None
 
@@ -273,8 +268,8 @@ def test_brute_force_pareto_contained_in_results(cls):
     """For a small outcome space (2 issues × 3 values), all truly Pareto-optimal
     outcomes should appear in the algorithm's output."""
     own, opp = make_two_additive_ufuns(nissues=2, nvalues=3, seed=99)
-    sampler = cls(own, opp)
-    sampler.init()
+    sampler = cls()
+    sampler.init(own, opp)
     bf = brute_force_pareto(own, opp)
     outcomes = sampler.pareto_outcomes()
     algo_utils = [(round(float(own(o)), 5), round(float(opp(o)), 5)) for o in outcomes]
@@ -282,8 +277,7 @@ def test_brute_force_pareto_contained_in_results(cls):
     for u, v in bf:
         u_r, v_r = round(u, 5), round(v, 5)
         assert any(
-            abs(uu - u_r) < 1e-4 and abs(vv - v_r) < 1e-4
-            for uu, vv in algo_utils
+            abs(uu - u_r) < 1e-4 and abs(vv - v_r) < 1e-4 for uu, vv in algo_utils
         ), (
             f"{cls.__name__} missing brute-force Pareto point ({u_r}, {v_r}). "
             f"Got: {algo_utils}"

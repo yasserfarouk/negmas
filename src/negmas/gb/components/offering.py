@@ -17,7 +17,8 @@ from negmas.negotiators.helpers import PolyAspiration
 from negmas.outcomes.common import ExtendedOutcome
 from negmas.outcomes.protocols import DiscreteOutcomeSpace
 from negmas.preferences.inv_ufun import DefaultInverseUtilityFunction
-from negmas.preferences.protocols import InverseUFun
+from negmas.preferences.pareto_sampler import BruteForceParetoSampler
+from negmas.preferences.protocols import InverseUFun, ParetoSampler
 
 from .base import FilterResult, OfferingPolicy
 from .concession import ConcessionRecommender
@@ -28,6 +29,7 @@ if TYPE_CHECKING:
     from negmas.gb import GBState
     from negmas.gb.negotiators.base import GBNegotiator
     from negmas.outcomes import Outcome
+    from negmas.preferences.base_ufun import BaseUtilityFunction
 
 
 __all__ = [
@@ -46,6 +48,7 @@ __all__ = [
     "OfferTop",
     "OfferBest",
     "TFTOfferingPolicy",
+    "NiceTitForTatOfferingPolicy",
     "MiCROOfferingPolicy",
     "TimeBasedOfferingPolicy",
     "HybridOfferingPolicy",
@@ -717,6 +720,545 @@ class TFTOfferingPolicy(OfferingPolicy):
         return self.negotiator.ufun.invert().worst_in(
             (target_utility, 1.0), normalized=True
         )
+
+
+@define
+class NiceTitForTatOfferingPolicy(OfferingPolicy):
+    """
+    The bidding (offering) strategy of the Nice Tit for Tat agent
+    (Baarslag, Hindriks & Jonker, 2013, "A Tit for Tat Negotiation Strategy
+    for Real-Time Bilateral Negotiations").
+
+    The strategy reciprocates in the agent's *own* utility (the opponent's
+    utility is unknown and any model of it is unreliable, so we measure the
+    opponent's concession as the change in *our* utility of the opponent's
+    successive offers) and aims for a bargaining solution point of the
+    scenario rather than naively mirroring the opponent's raw concession
+    (naive mirroring settles for ~0.5 utility and misses win-win deals).
+    By default the target is the Nash bargaining point (as in the paper);
+    other solution concepts can be selected with ``target`` (see below):
+
+    This follows the algorithm of the reference Genius implementation
+    (Baarslag's ``NiceTitForTat``), working entirely in the agent's *normalized*
+    ``[0, 1]`` utility:
+
+    1. **Cooperate first.** Initially the agent offers its best outcome
+       (it never defects first).
+    2. **Estimate ``my_nash``.** Using the opponent model
+       (``negotiator.opponent_model``) and the calculators in
+       `negmas.preferences.ops`, estimate the chosen bargaining solution and take
+       the agent's own utility ``p_me`` at it. Scale it by a multiplier that
+       depends on how far the opponent started from the agent
+       (``1.4 - 0.6 * initial_gap``) and floor it: for the Nash target at
+       ``nash_min`` (``0.5`` by default, as in the reference); for other targets
+       only at the reserved value.
+    3. **Reciprocate the opponent's observed concession.** Measure the
+       opponent's concession *in the agent's own utility* as
+       ``max_offered_to_me - first_offered_to_me`` (how far the best bid it has
+       offered us has moved from its starting bid — directly observed, not
+       model-estimated) and express it as a fraction of the way to ``my_nash``.
+       The agent concedes the same fraction of its own gap from ``1`` down to
+       ``my_nash``: ``target = 1 - factor * (1 - my_nash)``. Then a **concession
+       bonus** (a small constant baseline from the discount factor plus a ramp
+       near the deadline) pulls the target the rest of the way toward ``my_nash``
+       — this is what lets a mirror match concede and agree instead of
+       deadlocking at maximum utility.
+    4. **Make the offer attractive to the opponent.** Among the outcomes in the
+       agent's acceptable utility band ``[target, 1]``, pick the one the
+       opponent model rates highest — the trade-off query
+       ``argmax_{u_me >= target} u_opp``, answered by a `ParetoSampler`
+       (``pareto_sampler_type``) built on the normalized agent ufun with the
+       opponent model as the opponent ufun (via ``ufun.make_pareto_sampler``,
+       cached and re-initialized as the same model instance learns). If the
+       sampler cannot answer (no result, or its additivity requirements are not
+       met), the policy falls back to inverting the normalized ufun over the
+       band. Finally, if the best bid the opponent has already offered us is
+       worth at least as much to us as our planned bid, we offer *that* bid
+       instead (the reference's ``makeAppropriate``), so consensus forms as soon
+       as the opponent's standing offer beats our plan.
+
+    The opponent model is accessed through ``self.negotiator.opponent_model``
+    (a `UFunModel`), which may be provided to the negotiator or left to a
+    default (see `NiceTitForTatNegotiator`).
+
+    *AI Generated (implementation of the Baarslag 2013 Nice Tit for Tat bidding
+    strategy for negmas).*
+
+    Args:
+        sample_size: Maximum number of outcomes to sample from the utility band
+            when selecting the opponent-attractive offer.
+        max_cardinality: Maximum number of outcomes to enumerate/sample when
+            estimating the bargaining point.
+        nash_refresh: Re-estimate the bargaining point every this many rounds
+            (1 = every round, reflecting an opponent model that keeps
+            learning).
+        stochastic: If ``True`` and no opponent model is available, pick a
+            random in-band outcome instead of the worst-in-band one.
+        target: The bargaining solution to aim for. One of ``"nash"`` (default,
+            Nash bargaining), ``"kalai"`` (Kalai egalitarian),
+            ``"kalai_smorodinsky"`` / ``"ks"`` (Kalai-Smorodinsky),
+            ``"max_welfare"`` (utilitarian / max sum of utilities), or
+            ``"max_relative_welfare"`` (max sum of relative gains). Selected via
+            the corresponding calculator in `negmas.preferences.ops`.
+        nash_min: Lower clamp on the estimated ``my_nash`` target utility, applied
+            **only** for the ``"nash"`` target (the reference agent never asks for
+            less than ``0.5``). For other solution concepts the target is floored
+            at the reserved value instead, so a legitimately lower ``p_me`` is not
+            inflated.
+        pareto_sampler_type: The `ParetoSampler` implementation used for step iv
+            (the opponent-attractive trade-off query). Defaults to
+            `BruteForceParetoSampler` (exact, via full enumeration + the
+            `pareto_frontier` machinery) which is correct on any ufun and fast on
+            small/finite spaces. Use `IPSParetoSampler` (or another additive
+            sampler) for very large additive domains where exact enumeration is
+            too costly — but do not pay its DP-table cost on small finite spaces.
+            The sampler is queried each round via ``best_for_opponent`` with the
+            opponent model as the opponent ufun; if it cannot answer the query
+            the policy falls back to the inverter path.
+
+    Remarks:
+        - Requires the negotiator to expose ``opponent_model`` (a `UFunModel`
+          or ``None``). When it is ``None`` the policy degrades to naive
+          tit-for-tat.
+    """
+
+    sample_size: int = 100
+    max_cardinality: int = 10000
+    nash_refresh: int = 1
+    stochastic: bool = False
+    target: str = "nash"
+    levels: int = 20
+    nash_min: float = 0.5
+    pareto_sampler_type: type[ParetoSampler] = BruteForceParetoSampler
+    _partner_offer: Outcome | None = field(init=False, default=None)
+    _prev_partner_offer: Outcome | None = field(init=False, default=None)
+    _target_util: float | None = field(init=False, default=None)
+    _point_cache: tuple | None = field(init=False, default=None)
+    _point_cache_step: int = field(init=False, default=-1)
+    _norm_ufun: BaseUtilityFunction | None = field(init=False, default=None)
+    _norm_inverter: InverseUFun | None = field(init=False, default=None)
+    _sampler_failed: bool = field(init=False, default=False)
+    # opponent-offer history, measured in the agent's own normalized utility
+    # (mirrors the Java reference: reciprocation is driven by the utility the
+    # opponent's *observed* offers give us, not by the opponent model).
+    _opp_first_util: float | None = field(init=False, default=None)
+    _opp_max_util: float | None = field(init=False, default=None)
+    _opp_best_bid: Outcome | None = field(init=False, default=None)
+
+    def before_responding(
+        self, state: GBState, offer: Outcome | None, source: str | None = None
+    ):
+        """Remember the opponent's offers and update the offer-history stats.
+
+        Tracks, in the agent's own normalized utility, the utility of the
+        opponent's *first* bid (the reference point for its concession) and the
+        running maximum utility it has offered us (a ratchet), plus the bid that
+        achieved it (used to avoid overshooting — see ``makeAppropriate`` in the
+        reference).
+        """
+        self._prev_partner_offer = self._partner_offer
+        self._partner_offer = offer
+        if offer is None or not self.negotiator or not self.negotiator.ufun:
+            return
+        na = self._normalized_ufun(self.negotiator.ufun)
+        base = na if na is not None else self.negotiator.ufun
+        try:
+            u = float(base.eval_normalized(offer))
+        except Exception:  # pragma: no cover - defensive
+            return
+        if not math.isfinite(u):
+            return
+        if self._opp_first_util is None:
+            self._opp_first_util = u
+        if self._opp_max_util is None or u > self._opp_max_util:
+            self._opp_max_util = u
+            self._opp_best_bid = offer
+
+    def _normalized_ufun(self, ufun) -> BaseUtilityFunction | None:
+        """A cached, normalized (``[0, 1]``) copy of the agent's ufun.
+
+        The opponent model already returns values in ``[0, 1]``; normalizing the
+        agent's ufun puts both on the same footing for `pareto_frontier` and the
+        bargaining-solution calculators, and (via its inverter) for the utility
+        band in step iv. ``normalize_reserved_values`` keeps the reserved value
+        finite so the calculators can use it.
+        """
+        if self._norm_ufun is None:
+            try:
+                self._norm_ufun = ufun.normalize(normalize_reserved_values=True)
+            except Exception:  # pragma: no cover - defensive
+                return None
+        return self._norm_ufun
+
+    def _sampler(self, na, opponent_model):
+        """The cached `ParetoSampler` (own = ``na``, opponent = model), or ``None``.
+
+        Built once (and cached on ``na``) via ``na.make_pareto_sampler``. The
+        *same* instance is shared by `_target_point` (which reads its frontier to
+        find the bargaining point) and step iv (which answers the trade-off
+        query), so the Pareto frontier is built once per ``nash_refresh`` cycle
+        instead of twice per round.
+
+        ``max_cardinality`` is forwarded only to samplers whose constructor
+        accepts it (e.g. `BruteForceParetoSampler`), so the frontier honours the
+        same enumeration cap `pareto_frontier` uses. Any construction error
+        (e.g. an additive-only sampler on a non-additive ufun) disables the
+        sampler path for the rest of the negotiation.
+        """
+        if self._sampler_failed or opponent_model is None or na is None:
+            return None
+        extra: dict = {}
+        try:
+            import inspect
+
+            if (
+                "max_cardinality"
+                in inspect.signature(self.pareto_sampler_type).parameters
+            ):
+                extra["max_cardinality"] = self.max_cardinality
+        except (TypeError, ValueError):  # pragma: no cover - defensive
+            pass
+        try:
+            return na.make_pareto_sampler(
+                opponent_ufun=opponent_model,
+                pareto_sampler=self.pareto_sampler_type,
+                **extra,
+            )
+        except Exception:
+            self._sampler_failed = True
+            return None
+
+    def _target_point(self, ufun, opponent_model) -> tuple | None:
+        """Estimate ``(P_me, P_opp, best_opp)`` for the chosen bargaining solution.
+
+        Sources the Pareto frontier from the shared `ParetoSampler` (see
+        `_sampler`) — re-initialized here with the current (learning) opponent
+        model — and runs the bargaining-solution calculators (``nash_points``,
+        ``kalai_points``, ``ks_points``, ``max_welfare_points``,
+        ``max_relative_welfare_points``) from `negmas.preferences.ops` over it.
+        The calculators stay in `ops` (single source of truth); the sampler only
+        supplies the frontier. Step iv reuses the *same* initialized sampler, so
+        the frontier is computed once per round rather than twice.
+
+        The sampler's frontier is reserve-filtered (rational for *both* ufuns)
+        before the calculators see it. This matches
+        `pareto_frontier`'s rational frontier exactly — a rational Pareto point
+        can only be dominated by another rational point — so the target point is
+        identical to the pre-sampler behaviour on finite spaces. The *real*
+        ufuns (the normalized agent ufun and the opponent model) are passed to
+        the calculator so each ufun's ``reserved_value`` is used.
+
+        If the chosen sampler cannot handle these ufuns (e.g. `IPSParetoSampler`
+        on a non-additive learned model), this falls back to
+        `pareto_frontier` (exact enumeration) so the target point is still found.
+
+        Returns ``None`` if no estimate can be made (no outcome space, no
+        opponent model, normalization failure, or the model is
+        degenerate/uninformative).
+        """
+        if opponent_model is None:
+            return None
+        os_ = ufun.outcome_space
+        if os_ is None:
+            return None
+        issues = getattr(os_, "issues", None)
+        if issues is None:
+            return None
+        na = self._normalized_ufun(ufun)
+        if na is None:
+            return None
+
+        def _reserve(u) -> float:
+            try:
+                r = float(u.reserved_value)
+            except Exception:  # pragma: no cover - defensive
+                return float("-inf")
+            return r if math.isfinite(r) else float("-inf")
+
+        frontier: list[tuple[float, float]] | None = None
+        sampler = self._sampler(na, opponent_model)
+        if sampler is not None:
+            try:
+                sampler.init(
+                    opponent_ufun=opponent_model
+                )  # refresh as the model learns
+                outcomes = sampler.pareto_outcomes()
+            except Exception:  # pragma: no cover - defensive
+                self._sampler_failed = True
+                outcomes = []
+            if outcomes:
+                r_me, r_opp = _reserve(na), _reserve(opponent_model)
+                pts: list[tuple[float, float]] = []
+                for o in outcomes:
+                    um = float(na(o))
+                    uo = float(opponent_model(o))
+                    if (
+                        math.isfinite(um)
+                        and math.isfinite(uo)
+                        and um >= r_me
+                        and uo >= r_opp
+                    ):
+                        pts.append((um, uo))
+                frontier = pts
+
+        if not frontier:
+            # Fallback: exact enumeration always works, so the target point is
+            # still found even when the chosen sampler cannot handle these ufuns.
+            try:
+                from negmas.preferences.ops import pareto_frontier
+
+                fr, _idx = pareto_frontier(
+                    [na, opponent_model],
+                    issues=issues,
+                    n_discretization=self.levels,
+                    max_cardinality=self.max_cardinality,
+                )
+                frontier = [(float(a), float(b)) for a, b in fr]
+            except Exception:  # pragma: no cover - defensive
+                return None
+        if not frontier:
+            return None
+        best_opp = max(uo for _, uo in frontier)
+        ums = [p[0] for p in frontier]
+        uos = [p[1] for p in frontier]
+        ranges = [(min(ums), max(ums)), (min(uos), max(uos))]
+        calculators = {
+            "nash": "nash_points",
+            "kalai": "kalai_points",
+            "kalai_smorodinsky": "ks_points",
+            "ks": "ks_points",
+            "max_welfare": "max_welfare_points",
+            "max_relative_welfare": "max_relative_welfare_points",
+        }
+        name = calculators.get(self.target, "nash_points")
+        try:
+            from negmas.preferences import ops as _ops
+
+            fn = getattr(_ops, name)
+            # Pass the REAL ufuns (no proxies): the calculator reads
+            # ``reserved_value`` from each, so the opponent model's estimate of
+            # the opponent's disagreement utility is used (and the agent's
+            # normalized reserve), instead of assuming 0 for the opponent.
+            results = fn(
+                ufuns=[na, opponent_model],
+                frontier=frontier,
+                ranges=ranges,
+                outcome_space=os_,
+            )
+        except Exception:  # pragma: no cover - defensive
+            return None
+        if not results:
+            return None
+        util_tuple, _idx = results[0]
+        p_me, p_opp = float(util_tuple[0]), float(util_tuple[1])
+        return p_me, p_opp, best_opp
+
+    def _best_via_sampler(
+        self, na: BaseUtilityFunction, opponent_model, target: float
+    ) -> Outcome | None:
+        """``argmax_{u_me >= target} u_opp`` via the shared `ParetoSampler`.
+
+        Reuses the *same* sampler instance `_target_point` already initialized
+        this round (see `_sampler`) and answers the trade-off query with
+        ``best_for_opponent(min_util=target, normalized=True)``. Crucially it
+        does **not** pass ``opponent_ufun`` here — doing so would re-run
+        ``init`` and rebuild the frontier a second time; instead it reuses the
+        frontier built for the target-point search, so the frontier is computed
+        once per round. ``normalized=True`` matches the ``[0, 1]`` scale
+        ``target`` lives on (``na.minmax() == (0, 1)``).
+
+        Returns the opponent-attractive in-band outcome, or ``None`` if the
+        sampler is unavailable or cannot answer (no feasible outcome), in which
+        case the caller falls back to the inverter path.
+        """
+        sampler = self._sampler(na, opponent_model)
+        if sampler is None:
+            return None
+        try:
+            return sampler.best_for_opponent(min_util=target, normalized=True)
+        except Exception:
+            self._sampler_failed = True
+            return None
+
+    @staticmethod
+    def _nash_multiplier(gap: float) -> float:
+        """Reference multiplier applied to the Nash utility estimate.
+
+        A large ``gap`` (opponent started far from us) shrinks the multiplier
+        (ask for a bit less); a small gap grows it (ask for a bit more). Matches
+        the Baarslag reference ``1.4 - 0.6 * gap`` (floored at 0).
+        """
+        return max(0.0, 1.4 - 0.6 * gap)
+
+    def _bonus(self, relative_time: float) -> float:
+        """Concession *bonus* toward the Nash utility (Baarslag reference).
+
+        Returns a value in ``[0, 1]`` multiplying the remaining gap to Nash:
+
+        * a constant **discount baseline** ``0.5 - 0.4 * discount_factor`` (``0.1``
+          with no discounting) — a small immediate concession that produces the
+          initial cooperative gesture, and
+        * a **time ramp** near the deadline (from ``t = 0.91``, or ``0.85`` on
+          big domains, rising ``0 -> 1`` by ``t ~ 0.96``).
+
+        The bonus is what lets a mirror match concede toward Nash and agree
+        rather than deadlocking at maximum utility.
+        """
+        ufun = self.negotiator.ufun if self.negotiator else None
+        discount = 1.0
+        raw = getattr(ufun, "discount", None)
+        try:
+            if raw is not None:
+                discount = float(raw)
+        except (TypeError, ValueError):  # pragma: no cover - defensive
+            discount = 1.0
+        if not (0.0 < discount <= 1.0):
+            discount = 1.0
+        discount_bonus = 0.5 - 0.4 * discount
+        big = False
+        try:
+            os_ = ufun.outcome_space if ufun is not None else None
+            big = os_ is not None and float(os_.cardinality) > 3000
+        except Exception:  # pragma: no cover - defensive
+            big = False
+        min_time = 0.85 if big else 0.91
+        time_bonus = 0.0
+        if relative_time > min_time:
+            time_bonus = min(1.0, 20.0 * (relative_time - min_time))
+        return min(1.0, max(0.0, max(discount_bonus, time_bonus)))
+
+    def __call__(self, state: GBState, dest: str | None = None):
+        """Generate the next Nice Tit for Tat offer.
+
+        Args:
+            state: The current negotiation state.
+            dest: Optional destination partner identifier.
+
+        Returns:
+            An outcome in the agent's acceptable utility band, chosen to be as
+            attractive as possible to the opponent.
+        """
+        if not self.negotiator or not self.negotiator.ufun:
+            return None
+        ufun = self.negotiator.ufun
+        opponent_model = getattr(self.negotiator, "opponent_model", None)
+        na = self._normalized_ufun(ufun)
+        if na is None:
+            return None
+
+        # Refresh the bargaining point (``p_me`` = the agent's normalized utility
+        # at the chosen solution) on the ``nash_refresh`` cadence.
+        if (
+            state.step - self._point_cache_step >= self.nash_refresh
+            or self._point_cache is None
+        ):
+            self._point_cache = self._target_point(ufun, opponent_model)
+            self._point_cache_step = state.step
+        point = self._point_cache
+
+        # ``my_nash`` = the agent's target utility at the solution, scaled by the
+        # reference nash-multiplier (depends on how far the opponent started from
+        # us) and floored. For the Nash target we reproduce the reference's
+        # ``[nash_min, 1]`` clamp; for other solution concepts we only floor at
+        # the (normalized) reserved value, so a legitimately lower ``p_me`` (e.g.
+        # ``max_welfare``) is not inflated to 0.5.
+        reserved = 0.0
+        try:
+            r = float(na.reserved_value)
+            reserved = r if math.isfinite(r) else 0.0
+        except Exception:  # pragma: no cover - defensive
+            reserved = 0.0
+        first = self._opp_first_util if self._opp_first_util is not None else 1.0
+        max_off = self._opp_max_util if self._opp_max_util is not None else first
+        initial_gap = 1.0 - first
+        base_nash = point[0] if point is not None else 0.7
+        my_nash = base_nash * self._nash_multiplier(initial_gap)
+        low = self.nash_min if self.target == "nash" else reserved
+        my_nash = min(1.0, max(low, reserved, my_nash))
+
+        # Reciprocate the opponent's *observed* concession (in our own utility):
+        # how far the best bid it has offered us has moved from its starting bid,
+        # as a fraction of the way to ``my_nash``. We concede the same fraction
+        # of our own gap from the maximum (1.0) down to ``my_nash``.
+        denom = my_nash - first
+        if denom > 1e-9:
+            factor = min(1.0, max(0.0, (max_off - first) / denom))
+        else:
+            factor = 0.0
+        my_concession = factor * (1.0 - my_nash)
+        target = 1.0 - my_concession
+
+        # Concession bonus toward Nash (small constant baseline + late-time ramp):
+        # this breaks the mutual-maximum deadlock and drives agreement.
+        gap_to_nash = max(0.0, target - my_nash)
+        target -= self._bonus(state.relative_time) * gap_to_nash
+
+        # keep within [reserved, 1].
+        target = min(max(target, reserved), 1.0)
+        self._target_util = target
+
+        # step iv: opponent-attractive offer within the utility band [target, 1]:
+        # the trade-off query ``argmax_{u_me >= target} u_opp``.
+
+        # Preferred path: a `ParetoSampler` built on the normalized agent ufun
+        # with the opponent model as the opponent ufun answers the trade-off
+        # query directly. ``make_pareto_sampler`` caches the sampler on ``na``
+        # and initializes it once; the opponent model is the same instance, so
+        # passing it as ``opponent_ufun`` refreshes the frontier as the model
+        # learns while reusing the cached sampler object. ``normalized=True``
+        # makes ``min_util=target`` match the normalized [0, 1] scale ``target``
+        # was computed on (``na.minmax() == (0, 1)``).
+        bid: Outcome | None = None
+        if opponent_model is not None and not self._sampler_failed:
+            bid = self._best_via_sampler(na, opponent_model, target)
+
+        # fallback: invert the normalized ufun over the band (same [0, 1] scale
+        # as the frontier) and pick the opponent-best in band. Reached when there
+        # is no opponent model, the sampler returned nothing, or the sampler
+        # cannot handle these ufuns (e.g. an additive-only sampler such as
+        # `IPSParetoSampler` on a non-additive learned model).
+        if bid is None:
+            if self._norm_inverter is None:
+                try:
+                    self._norm_inverter = na.invert()
+                except Exception:  # pragma: no cover - defensive
+                    self._norm_inverter = None
+            inv = (
+                self._norm_inverter
+                if self._norm_inverter is not None
+                else ufun.invert()
+            )
+            band = (target, 1.0)
+            candidates = inv.some(band, normalized=True, n=self.sample_size)
+            if candidates:
+                if opponent_model is not None:
+                    bid = max(
+                        candidates,
+                        key=lambda o: float(opponent_model.eval_normalized(o)),
+                    )
+                elif self.stochastic:
+                    bid = inv.one_in(band, normalized=True)
+                else:
+                    # no model: standard TFT concession (worst-in-band for us)
+                    bid = min(candidates, key=lambda o: float(ufun.eval_normalized(o)))
+            else:
+                # clamping inverter worst_in never returns None on a non-empty
+                # space; if it does, refuse to propose.
+                bid = inv.worst_in(band, normalized=True)
+
+        # ``makeAppropriate`` (reference): never offer a bid worth less to us than
+        # the best bid the opponent has already offered — offer that bid instead.
+        # This prevents overshooting and lets consensus form as soon as the
+        # opponent's standing offer beats our planned one.
+        if bid is not None and self._opp_best_bid is not None:
+            try:
+                u_bid = float(na.eval_normalized(bid))
+                u_best = float(na.eval_normalized(self._opp_best_bid))
+                if math.isfinite(u_best) and math.isfinite(u_bid) and u_best >= u_bid:
+                    return self._opp_best_bid
+            except Exception:  # pragma: no cover - defensive
+                pass
+        return bid
 
 
 @define

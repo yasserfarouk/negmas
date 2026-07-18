@@ -41,33 +41,30 @@ class IPSParetoSampler:
     with the same set of issues and the same issue ordering.  ``init()`` (or
     any query method) will raise ``TypeError`` if this is not satisfied.
 
+    The utility functions are supplied to `init` (``init(ufun, opponent_ufun)``),
+    not the constructor: the constructor takes configuration only, and the
+    expensive frontier build happens in `init`.
+
     Args:
-        ufun: The agent's own utility function.
-        opponent_ufun: Estimate of the opponent's utility function.  May be
-            ``None`` initially; pass at query time via *opponent_ufun* argument
-            or call ``set_opponent_ufun`` followed by ``init()``.
         precision: Grid precision *p*.  Utilities are rounded to *p* decimal
             places when computing dominance.  Default: 3.
 
     Remarks:
         - The algorithm has worst-case space complexity *O(|I|·|V|·10^p)* and
           time complexity *O(|I|·|V|·10^p)*.
-        - ``init()`` must be called (or will be called lazily) before any
-          query method is used.  If *opponent_ufun* changes, call ``init()``
-          again to rebuild the frontier.
+        - ``init(ufun, opponent_ufun)`` must be called before any query method
+          is used.  If *opponent_ufun* changes, call ``init`` again to rebuild
+          the frontier (the same instance is reused).
         - IPS requires both ufuns to be additive (``LinearAdditiveUtilityFunction``
           or its subclass ``LinearUtilityFunction``).  For non-additive ufuns,
           use a sampling-based approach instead.
+
+    *AI supported (config-only constructor; operands supplied to ``init``).*
     """
 
-    def __init__(
-        self,
-        ufun: BaseUtilityFunction,
-        opponent_ufun: BaseUtilityFunction | None = None,
-        precision: int = 3,
-    ) -> None:
-        self._ufun = ufun
-        self._opponent_ufun = opponent_ufun
+    def __init__(self, precision: int = 3) -> None:
+        self._ufun: BaseUtilityFunction | None = None
+        self._opponent_ufun: BaseUtilityFunction | None = None
         self._precision = precision
         self._initialized = False
         self._pareto_front: list[Outcome] = []
@@ -77,7 +74,7 @@ class IPSParetoSampler:
     # ------------------------------------------------------------------
 
     @property
-    def ufun(self) -> BaseUtilityFunction:
+    def ufun(self) -> BaseUtilityFunction | None:
         return self._ufun
 
     @property
@@ -94,20 +91,29 @@ class IPSParetoSampler:
     # init
     # ------------------------------------------------------------------
 
-    def init(self, opponent_ufun: BaseUtilityFunction | None = None) -> None:
+    def init(
+        self,
+        ufun: BaseUtilityFunction | None = None,
+        opponent_ufun: BaseUtilityFunction | None = None,
+    ) -> None:
         """Build the approximate Pareto frontier using IPS.
 
         Args:
-            opponent_ufun: If provided, overrides the opponent ufun stored at
-                construction time for this ``init()`` call.
+            ufun: The agent's own utility function. If provided, replaces the
+                one from a previous ``init`` (the expensive build happens here,
+                not in the constructor). Omit to keep the current ufun.
+            opponent_ufun: Estimate of the opponent's utility function. Omit to
+                keep the current estimate (e.g. to rebuild after the own ufun
+                changed).
 
         Raises:
             TypeError: if own or opponent ufun is not a
                 ``LinearAdditiveUtilityFunction``/``LinearUtilityFunction``.
-            ValueError: if ``opponent_ufun`` is ``None`` (no estimate available).
         """
         from negmas.preferences.crisp.linear import LinearAdditiveUtilityFunction
 
+        if ufun is not None:
+            self._ufun = ufun
         if opponent_ufun is not None:
             self._opponent_ufun = opponent_ufun
 
@@ -117,6 +123,9 @@ class IPSParetoSampler:
             self._pareto_front = []
             self._initialized = False
             return
+
+        if self._ufun is None:
+            raise ValueError("IPSParetoSampler.init requires a ufun (pass ufun=...).")
 
         own_base = self._unwrap(self._ufun)
         opp_base = self._unwrap(self._opponent_ufun)
@@ -158,17 +167,17 @@ class IPSParetoSampler:
                 before answering the query.
         """
         if opponent_ufun is not None:
-            self.init(opponent_ufun)
+            self.init(opponent_ufun=opponent_ufun)
         elif not self._initialized:
             self.init()
         if not self._initialized:
             return []
 
+        ufun = self._ufun
+        assert ufun is not None  # guaranteed once initialized
         raw_min = self._to_raw_util(min_util) if normalized else min_util
 
-        result = [
-            o for o in self._pareto_front if float(self._ufun(o)) >= raw_min - 1e-9
-        ]  # type: ignore[arg-type]
+        result = [o for o in self._pareto_front if float(ufun(o)) >= raw_min - 1e-9]
         if n is not None:
             result = result[:n]
         return result
@@ -189,22 +198,21 @@ class IPSParetoSampler:
             opponent_ufun: If provided, reinitialises IPS with this opponent ufun.
         """
         if opponent_ufun is not None:
-            self.init(opponent_ufun)
+            self.init(opponent_ufun=opponent_ufun)
         elif not self._initialized:
             self.init()
         if not self._initialized or self._opponent_ufun is None:
             return None
 
+        opp = self._opponent_ufun
+        ufun = self._ufun
+        assert ufun is not None  # guaranteed once initialized
         raw_min = self._to_raw_util(min_util) if normalized else min_util
 
-        feasible = [
-            o
-            for o in self._pareto_front
-            if float(self._ufun(o)) >= raw_min - 1e-9  # type: ignore[arg-type]
-        ]
+        feasible = [o for o in self._pareto_front if float(ufun(o)) >= raw_min - 1e-9]
         if not feasible:
             return None
-        return max(feasible, key=lambda o: float(self._opponent_ufun(o)))  # type: ignore[arg-type]
+        return max(feasible, key=lambda o: float(opp(o)))
 
     # ------------------------------------------------------------------
     # IPS algorithm internals
@@ -223,7 +231,9 @@ class IPSParetoSampler:
         return base
 
     def _to_raw_util(self, norm: float) -> float:
-        mn, mx = self._ufun.minmax()
+        ufun = self._ufun
+        assert ufun is not None  # guaranteed once initialized
+        mn, mx = ufun.minmax()
         return float(mn) + norm * float(mx - mn)
 
     def _round(self, x: float) -> float:

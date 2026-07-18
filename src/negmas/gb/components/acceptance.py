@@ -41,6 +41,7 @@ __all__ = [
     "AcceptBest",
     "TFTAcceptancePolicy",
     "ACNext",
+    "ACCombi",
     "ACLast",
     "ACLastKReceived",
     "ACLastFractionReceived",
@@ -408,6 +409,106 @@ class ACNext(AcceptancePolicy):
         nxt = float(self.negotiator.ufun(self.offering_strategy(state)))
         u = float(self.negotiator.ufun(offer))
         if self.alpha * u + self.beta >= nxt:
+            return ResponseType.ACCEPT_OFFER
+        return ResponseType.REJECT_OFFER
+
+
+@define
+class ACCombi(AcceptancePolicy):
+    """
+    The ACcombi acceptance condition of Baarslag et al. (2012/2013), used by the
+    Nice Tit for Tat agent.
+
+    ACcombi combines ACnext with a time-based fallback:
+
+    * **ACnext**: accept the opponent's offer if it is at least as good as the
+      offer the bidding strategy was planning to propose next, i.e.
+      ``a * u(opp_offer) + b >= u(my_next_offer)``. The rationale is that if the
+      opponent's offer beats our own next planned offer, we have effectively
+      reached a consensus and should accept.
+    * **ACtime**: when time is running out (``relative_time >= t``), accept the
+      offer rather than risk a breakdown — there is no expected improvement in
+      the little time left.
+
+    Accepts if **either** condition holds.
+
+    Args:
+        offering_strategy: The offering policy used to determine our next
+            planned offer (its result is cached per step, so calling it here
+            does not duplicate the work done when we later propose).
+        a: Scaling factor on the opponent-offer utility (default ``1.0``).
+        b: Offset added to the scaled opponent-offer utility (default ``0.0``).
+        t: Relative-time threshold for the ACtime fallback (default ``0.99``).
+
+    Remarks:
+        - If the offering strategy cannot produce a next offer, any rational
+          offer (at or above the reserved value) is accepted.
+
+    *AI Generated (ACcombi acceptance condition for the Nice Tit for Tat agent).*
+    """
+
+    offering_strategy: OfferingPolicy
+    a: float = 1.0
+    b: float = 0.0
+    t: float = 0.98
+
+    def _is_rational(self, offer) -> bool:
+        """Whether accepting ``offer`` beats walking away (the reserved value).
+
+        Compares *raw* utilities: ``u(offer) >= reserved_value``. Both are on
+        the ufun's own scale (unlike the normalized ACnext comparison), which
+        matters when the reserved value is not ``0``. A non-finite reserve
+        (e.g. ``-inf``) means every offer is rational.
+        """
+        ufun = self.negotiator.ufun if self.negotiator else None
+        if ufun is None:
+            return False
+        try:
+            reserved = float(ufun.reserved_value)
+        except (TypeError, ValueError):
+            return True
+        if not math.isfinite(reserved):
+            return True
+        return float(ufun(offer)) >= reserved
+
+    def __call__(self, state, offer, source):
+        """Accept under ACnext or ACtime."""
+        if not self.negotiator or not self.negotiator.ufun:
+            return ResponseType.REJECT_OFFER
+        if offer is None:
+            return ResponseType.REJECT_OFFER
+        # ACtime: near the deadline, accept rather than risk breakdown — but
+        # never accept an offer worse than walking away (below the reserved
+        # value), which would be strictly worse than a disagreement.
+        if state.relative_time >= self.t:
+            return (
+                ResponseType.ACCEPT_OFFER
+                if self._is_rational(offer)
+                else ResponseType.REJECT_OFFER
+            )
+        u_offer = float(self.negotiator.ufun.eval_normalized(offer))
+        # ACnext: compare against the offer we were planning to propose. The
+        # offering policy caches per (step, thread), so this is the same offer
+        # that would be proposed if we reject.
+        nxt = self.offering_strategy.propose(state)
+        if nxt is None:
+            # No planned offer: accept iff the offer is rational (beats the
+            # reserved value on the raw utility scale).
+            return (
+                ResponseType.ACCEPT_OFFER
+                if self._is_rational(offer)
+                else ResponseType.REJECT_OFFER
+            )
+        from negmas.outcomes.common import ExtendedOutcome
+
+        if isinstance(nxt, ExtendedOutcome):
+            nxt = (
+                nxt.best_for(self.negotiator.ufun)
+                if self.negotiator.ufun
+                else nxt.outcome
+            )
+        u_next = float(self.negotiator.ufun.eval_normalized(nxt))  # type: ignore[arg-type]
+        if self.a * u_offer + self.b >= u_next:
             return ResponseType.ACCEPT_OFFER
         return ResponseType.REJECT_OFFER
 

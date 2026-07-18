@@ -43,21 +43,17 @@ class MOBANOSParetoSampler:
     **Requirements**: both ufuns must be ``LinearAdditiveUtilityFunction``
     instances.  ``init()`` raises ``TypeError`` otherwise.
 
+    The utility functions are supplied to `init` (``init(ufun, opponent_ufun)``),
+    not the constructor: the constructor takes configuration only.
+
     Args:
-        ufun: The agent's own utility function.
-        opponent_ufun: Estimate of the opponent's utility function.
         max_pareto_size: Maximum number of candidates retained at any point
             during the iterative construction.  Default: 100000.
     """
 
-    def __init__(
-        self,
-        ufun: BaseUtilityFunction,
-        opponent_ufun: BaseUtilityFunction | None = None,
-        max_pareto_size: int = 100000,
-    ) -> None:
-        self._ufun = ufun
-        self._opponent_ufun = opponent_ufun
+    def __init__(self, max_pareto_size: int = 100000) -> None:
+        self._ufun: BaseUtilityFunction | None = None
+        self._opponent_ufun: BaseUtilityFunction | None = None
         self._max_pareto_size = max_pareto_size
         self._initialized = False
         self._pareto_front: list[Outcome] = []
@@ -67,7 +63,7 @@ class MOBANOSParetoSampler:
     # ------------------------------------------------------------------
 
     @property
-    def ufun(self) -> BaseUtilityFunction:
+    def ufun(self) -> BaseUtilityFunction | None:
         return self._ufun
 
     @property
@@ -83,8 +79,18 @@ class MOBANOSParetoSampler:
     # init
     # ------------------------------------------------------------------
 
-    def init(self, opponent_ufun: BaseUtilityFunction | None = None) -> None:
+    def init(
+        self,
+        ufun: BaseUtilityFunction | None = None,
+        opponent_ufun: BaseUtilityFunction | None = None,
+    ) -> None:
         """Build the exact Pareto frontier using MOBANOS.
+
+        Args:
+            ufun: The agent's own utility function (supplied here, not in the
+                constructor). Omit to keep the current one.
+            opponent_ufun: Estimate of the opponent's utility function. Omit to
+                keep the current estimate.
 
         Raises:
             TypeError: if own or opponent ufun is not a
@@ -92,6 +98,8 @@ class MOBANOSParetoSampler:
         """
         from negmas.preferences.crisp.linear import LinearAdditiveUtilityFunction
 
+        if ufun is not None:
+            self._ufun = ufun
         if opponent_ufun is not None:
             self._opponent_ufun = opponent_ufun
 
@@ -99,6 +107,11 @@ class MOBANOSParetoSampler:
             self._pareto_front = []
             self._initialized = False
             return
+
+        if self._ufun is None:
+            raise ValueError(
+                "MOBANOSParetoSampler.init requires a ufun (pass ufun=...)."
+            )
 
         own_base = self._unwrap(self._ufun)
         opp_base = self._unwrap(self._opponent_ufun)
@@ -117,8 +130,8 @@ class MOBANOSParetoSampler:
             )
 
         self._pareto_front = self._run_mobanos(
-            own_base,
-            opp_base,
+            own_base,  # type: ignore[arg-type]
+            opp_base,  # type: ignore[arg-type]
             issues,  # type: ignore[arg-type]
         )
         self._initialized = True
@@ -136,18 +149,16 @@ class MOBANOSParetoSampler:
         opponent_ufun: BaseUtilityFunction | None = None,
     ) -> list[Outcome]:
         if opponent_ufun is not None:
-            self.init(opponent_ufun)
+            self.init(opponent_ufun=opponent_ufun)
         elif not self._initialized:
             self.init()
         if not self._initialized:
             return []
 
+        ufun = self._ufun
+        assert ufun is not None  # guaranteed once initialized
         raw_min = self._to_raw_util(min_util) if normalized else min_util
-        result = [
-            o
-            for o in self._pareto_front
-            if float(self._ufun(o)) >= raw_min - 1e-9  # type: ignore[arg-type]
-        ]
+        result = [o for o in self._pareto_front if float(ufun(o)) >= raw_min - 1e-9]
         if n is not None:
             result = result[:n]
         return result
@@ -160,21 +171,20 @@ class MOBANOSParetoSampler:
         opponent_ufun: BaseUtilityFunction | None = None,
     ) -> Outcome | None:
         if opponent_ufun is not None:
-            self.init(opponent_ufun)
+            self.init(opponent_ufun=opponent_ufun)
         elif not self._initialized:
             self.init()
         if not self._initialized or self._opponent_ufun is None:
             return None
 
+        opp = self._opponent_ufun
+        ufun = self._ufun
+        assert ufun is not None  # guaranteed once initialized
         raw_min = self._to_raw_util(min_util) if normalized else min_util
-        feasible = [
-            o
-            for o in self._pareto_front
-            if float(self._ufun(o)) >= raw_min - 1e-9  # type: ignore[arg-type]
-        ]
+        feasible = [o for o in self._pareto_front if float(ufun(o)) >= raw_min - 1e-9]
         if not feasible:
             return None
-        return max(feasible, key=lambda o: float(self._opponent_ufun(o)))  # type: ignore[arg-type]
+        return max(feasible, key=lambda o: float(opp(o)))
 
     # ------------------------------------------------------------------
     # MOBANOS algorithm internals
@@ -192,7 +202,9 @@ class MOBANOSParetoSampler:
         return base
 
     def _to_raw_util(self, norm: float) -> float:
-        mn, mx = self._ufun.minmax()
+        ufun = self._ufun
+        assert ufun is not None  # guaranteed once initialized
+        mn, mx = ufun.minmax()
         return float(mn) + norm * float(mx - mn)
 
     @staticmethod

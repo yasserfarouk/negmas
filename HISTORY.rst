@@ -42,6 +42,38 @@ Release 0.15.9 (dev)
   algorithm from Koça et al. (2024).  The opponent utility function is accessed
   via ``Negotiator.opponent_ufun`` (``None`` when no estimate is available).
 
+* [gb] **New** ``NiceTitForTatNegotiator`` (with its components
+  ``NiceTitForTatOfferingPolicy``, the ``ACCombi`` acceptance condition, and the
+  opponent models ``FrequencyLinearUFunModel`` / ``FrequencyUFunModel`` /
+  ``PeekingOpponentModel``): a negmas port of Baarslag, Hindriks & Jonker's
+  Nice Tit for Tat agent that reproduces the Genius reference behaviour —
+  reciprocal concession measured in the agent's own utility, a Nash-aiming
+  target with a discount/time concession bonus, an opponent-attractive ("nice")
+  bid selected via a ``ParetoSampler``, and the reference ``makeAppropriate``
+  guard.  ``target`` selects the bargaining solution to aim for
+  (``nash``/``kalai``/``kalai_smorodinsky``/``max_welfare``/``max_relative_welfare``).
+  Re-exported from ``negmas.sao.negotiators``.
+
+* [pareto_sampler] **API change**: ``ParetoSampler`` implementations now take
+  configuration only in their constructors; the operands (own and opponent
+  ufuns) are supplied to ``init(ufun=..., opponent_ufun=...)`` — where the
+  expensive frontier build happens.  A single instance can therefore be
+  re-``init``-ed with new operands instead of recreated, and
+  ``BaseUtilityFunction.make_pareto_sampler`` now reuses one cached instance,
+  re-initialising it when the opponent estimate changes.  **New**
+  ``BruteForceParetoSampler`` (exact, works with any ufun) uses the vectorised
+  ``pareto_frontier_numpy`` (~200× faster than the O(n²) ``pareto_frontier_bf``).
+
+* [preferences] ``pareto_frontier``: ``n_discretization`` now applies only to
+  continuous issues (fully-finite outcome spaces are always enumerated exactly),
+  and outcomes whose utility is non-finite for any ufun are skipped so
+  opponent-model stand-ins can be passed safely.  Documented the relative speed
+  of the individual ``pareto_frontier_*`` extractors — and flagged the broken
+  ``pareto_frontier_numpy_faster`` (raises ``IndexError``),
+  ``pareto_frontier_convex_hull`` (raises ``QhullError``; convex-hull only) and
+  the effectively-hanging ``pareto_frontier_of`` — in the module and method
+  docstrings.
+
 * [inv_ufun] Added comprehensive performance benchmark
   (``coding_agents/benchmark_all_inverters.py``) comparing all inverters across
   outcome spaces from 25 to 10^200.  Results are documented in the
@@ -56,6 +88,13 @@ Release 0.15.9 (dev)
   out-of-range queries; all others clamp to the nearest in-range outcome.
 
 **Bug Fixes:**
+
+* [preferences] ``BaseUtilityFunction.__call__`` no longer raises
+  ``AttributeError`` for ufun-like objects (e.g. ``@define`` opponent models)
+  that skip ``BaseUtilityFunction.__init__`` and therefore lack
+  ``_invalid_value`` / ``_constraints``; such objects can now be used anywhere a
+  ufun is accepted (``pareto_frontier``, the bargaining-solution calculators, a
+  ``ParetoSampler``).
 
 * [inv_ufun] ``SamplingInverseUtilityFunction`` was non-instantiable
   (``TypeError: Can't instantiate abstract class`` due to missing implementations

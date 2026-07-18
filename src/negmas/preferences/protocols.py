@@ -690,8 +690,8 @@ class ParetoSampler(Protocol):
     """
 
     @property
-    def ufun(self) -> BaseUtilityFunction:
-        """The agent's own utility function."""
+    def ufun(self) -> BaseUtilityFunction | None:
+        """The agent's own utility function (``None`` until `init` sets it)."""
         ...
 
     @property
@@ -699,21 +699,33 @@ class ParetoSampler(Protocol):
         """Whether ``init()`` has been called."""
         ...
 
-    def __init__(
+    # NOTE: intentionally no ``__init__`` in this protocol. The constructor only
+    # takes configuration (e.g. ``precision`` / ``max_cardinality``); the
+    # operands (the own and opponent ufuns) are supplied to ``init`` — see
+    # below and ``BaseUtilityFunction.make_pareto_sampler``. Declaring
+    # ``__init__`` here with ``**kwargs`` would also make every concrete sampler
+    # fail a ``type[ParetoSampler]`` structural check, and runtime
+    # ``isinstance(..., ParetoSampler)`` does not depend on ``__init__``.
+
+    def init(
         self,
-        ufun: BaseUtilityFunction,
+        ufun: BaseUtilityFunction | None = None,
         opponent_ufun: BaseUtilityFunction | None = None,
-        **kwargs: Any,
     ) -> None:
-        """Initializes the instance."""
-        ...
+        """One-time (offline) initialisation — receives the operands.
 
-    def init(self) -> None:
-        """One-time (offline) initialisation.
+        The agent's own ufun and the opponent estimate are supplied here rather
+        than to the constructor, because this is where the expensive setup
+        (building a DP table / computing the Pareto frontier) happens. A single
+        instance can therefore be re-``init``-ed with new operands instead of
+        being recreated.
 
-        Any computationally expensive setup (e.g. building a DP table or
-        computing the Pareto frontier) should be done here rather than in
-        ``__init__``.
+        Args:
+            ufun: The agent's own utility function. Omit to keep the value from a
+                previous ``init`` (e.g. when only the opponent estimate changed).
+            opponent_ufun: Estimate of the opponent's utility function. Omit to
+                keep the previous estimate. While it is ``None`` the sampler
+                stays uninitialised (queries return empty / ``None``).
         """
         ...
 

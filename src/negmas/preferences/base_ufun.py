@@ -478,32 +478,39 @@ class BaseUtilityFunction(Preferences, ABC):
     ) -> ParetoSampler:
         """Creates (or reuses) an initialized Pareto sampler.
 
+        The sampler takes its operands (this ufun as *own*, and
+        ``opponent_ufun``) in :meth:`ParetoSampler.init`, not the constructor —
+        so a cached sampler of the same type is *reused* and merely re-``init``-ed
+        when the opponent estimate changes, instead of being reconstructed.
+
         Args:
             opponent_ufun: Estimated opponent utility function. Can be ``None``.
             pareto_sampler: Sampler class to use. Defaults to ``IPSParetoSampler``.
-            **kwargs: Forwarded to the sampler constructor.
+            **kwargs: Forwarded to the sampler constructor (configuration only,
+                e.g. ``precision`` / ``max_cardinality``). Ignored when an
+                existing sampler of the same type is reused.
 
         Returns:
             An initialized Pareto sampler.
         """
         from .pareto_sampler import IPSParetoSampler
 
-        if (
-            self._cached_pareto_sampler
-            and (
-                pareto_sampler is None
-                or self._cached_pareto_sampler_type == pareto_sampler
-            )
-            and self._cached_pareto_sampler_opponent is opponent_ufun
-        ):
-            return self._cached_pareto_sampler
         if pareto_sampler is None:
             pareto_sampler = IPSParetoSampler
+        cached = self._cached_pareto_sampler
+        if cached is not None and self._cached_pareto_sampler_type == pareto_sampler:
+            # Reuse the cached instance (config is fixed at construction); only
+            # rebuild the frontier when the opponent estimate changed.
+            if self._cached_pareto_sampler_opponent is not opponent_ufun:
+                cached.init(ufun=self, opponent_ufun=opponent_ufun)
+                self._cached_pareto_sampler_opponent = opponent_ufun
+            return cached
         self._cached_pareto_sampler_type = pareto_sampler
         self._cached_pareto_sampler_opponent = opponent_ufun
-        self._cached_pareto_sampler = pareto_sampler(self, opponent_ufun, **kwargs)
-        self._cached_pareto_sampler.init()
-        return self._cached_pareto_sampler
+        sampler = pareto_sampler(**kwargs)
+        sampler.init(ufun=self, opponent_ufun=opponent_ufun)
+        self._cached_pareto_sampler = sampler
+        return sampler
 
     def forget_inverter(self):
         """Deletes the cached inverter."""
@@ -1824,14 +1831,20 @@ class BaseUtilityFunction(Preferences, ABC):
         """
         if offer is None:
             return self.reserved_value  # type: ignore I know that concrete subclasses will be returning the correct type
-        if (
-            self._invalid_value is not None
-            and self.outcome_space
-            and offer not in self.outcome_space
-        ):
-            return self._invalid_value
+        # ``_invalid_value``/``_constraints`` are set by `BaseUtilityFunction.__init__`,
+        # but some ufun-like objects (e.g. `UFunModel` opponent models built with
+        # ``@define``) do not call that initializer. Use ``getattr`` so such models
+        # — which implement ``eval`` — still work as callables (e.g. when passed to
+        # `pareto_frontier` or a `ParetoSampler`) instead of raising
+        # ``AttributeError``. Behavior for normal ufuns is unchanged.
+        invalid_value = getattr(self, "_invalid_value", None)
+        if invalid_value is not None:
+            os_ = getattr(self, "outcome_space", None)
+            if os_ is not None and offer not in os_:
+                return invalid_value
         # Check constraints - if any constraint fails, return -inf
-        if self._constraints and not self.satisfies_constraints(offer):
+        constraints = getattr(self, "_constraints", None)
+        if constraints and not self.satisfies_constraints(offer):
             return float("-inf")
         return self.eval(offer)
 
