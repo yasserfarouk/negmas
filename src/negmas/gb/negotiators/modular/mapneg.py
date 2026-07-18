@@ -57,7 +57,14 @@ class MAPNegotiator(GBModularNegotiator):
         """
         from negmas.gb.components.models.ufun import UFunModel
 
-        self._private_info = kwargs.get("private_info", dict())
+        # private_info must be the SAME dict the base class ends up storing:
+        # `Negotiator.__init__` re-initialises `_private_info` from the kwarg,
+        # so anything registered into a local dict before `super().__init__`
+        # (e.g. "opponent_ufun" below) would be silently lost. Route the
+        # (possibly caller-supplied) dict through kwargs instead.
+        private_info = kwargs.get("private_info") or dict()
+        kwargs["private_info"] = private_info
+        self._private_info = private_info
 
         components, names = [], []
         ufun_models = []

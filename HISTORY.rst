@@ -6,6 +6,15 @@ Release 0.16.0 (dev)
 
 **Changes:**
 
+* [gb] Fixed ``MAPNegotiator`` silently dropping its
+  ``private_info["opponent_ufun"]`` registration.  The first ``UFunModel`` among
+  the negotiator's ``models`` is registered under the ``opponent_ufun`` discovery
+  key (backing the ``Negotiator.opponent_ufun`` property), but it was written to a
+  local dict *before* ``super().__init__`` re-initialised ``_private_info`` from
+  the ``private_info`` kwarg, wiping the registration whenever no explicit
+  ``private_info`` was passed.  The dict is now routed through kwargs so the base
+  class and the registration share the same object.
+
 * [models] Recovered additional opponent models from Baarslag et al. (2016),
   *Learning about the opponent in automated bilateral negotiation* (JAAMAS
   30:849-898), filling gaps in the survey's Table-2 taxonomy.  New preference
