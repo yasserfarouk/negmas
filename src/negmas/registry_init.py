@@ -591,17 +591,33 @@ def _register_sao_components() -> None:
         ZeroSumModel,
         FrequencyUFunModel,
         FrequencyLinearUFunModel,
+        ConcessionRatioUFunModel,
+        ValueDifferenceUFunModel,
+        KDEWeightUFunModel,
+        LuceProfileClassifierModel,
+        CandidateEliminationModel,
     )
 
     # PeekingOpponentModel (oracle model) lives only in the gb components.
     from negmas.gb.components.models.ufun import PeekingOpponentModel
 
     model_base = {"builtin", "sao"}
+    # Preference-profile opponent models (survey §5.3): they estimate the
+    # opponent's utility function and are usable anywhere a ufun is expected.
     models = [
         (ZeroSumModel, {"zero-sum"}),
         (FrequencyUFunModel, {"frequency", "learning"}),
         (FrequencyLinearUFunModel, {"frequency", "learning", "linear"}),
         (PeekingOpponentModel, {"oracle", "testing"}),
+        # Baarslag et al. (2016) §5.3 models recovered from the survey.
+        (ConcessionRatioUFunModel, {"learning", "linear", "issue-weights", "survey"}),
+        (ValueDifferenceUFunModel, {"learning", "linear", "issue-weights", "survey"}),
+        (KDEWeightUFunModel, {"learning", "linear", "issue-weights", "kde", "survey"}),
+        (
+            LuceProfileClassifierModel,
+            {"learning", "bayesian", "classification", "survey"},
+        ),
+        (CandidateEliminationModel, {"learning", "heuristic", "ordinal", "survey"}),
     ]
     for cls, extra_tags in models:
         component_registry.register(
@@ -610,6 +626,64 @@ def _register_sao_components() -> None:
             source=NEGMAS_SOURCE,
             component_type="model",
             tags=model_base | extra_tags,
+        )
+
+
+def _register_opponent_attribute_models() -> None:
+    """Register the framework-agnostic opponent-attribute models of ``negmas.models``.
+
+    These are the non-preference-profile opponent models from the Baarslag et al.
+    (2016) survey taxonomy — reservation-value (§5.1.1), deadline (§5.2) and
+    offering/bidding-strategy (§5.4) estimators. Unlike the preference-profile
+    ``UFunModel`` family (registered under ``component_type="model"``), they do not
+    model a utility function, so each attribute gets its own component type:
+
+    - ``"reservation-model"`` — estimates the opponent's reservation value.
+    - ``"deadline-model"`` — estimates the opponent's deadline.
+    - ``"offering-model"`` — forecasts the opponent's offering strategy.
+
+    Only concrete classes are registered (abstract bases are skipped).
+    """
+    from negmas.models.deadline import ConcessionExtrapolatingDeadlineModel
+    from negmas.models.reservation import (
+        BayesianReservationValueModel,
+        ConcessionExtrapolatingReservationModel,
+    )
+    from negmas.models.strategy import (
+        DerivativeOfferingModel,
+        MarkovChainOfferingModel,
+        PolynomialOfferingModel,
+        TimeSeriesOfferingModel,
+    )
+
+    base = {"builtin", "survey"}
+    registrations = [
+        # §5.1.1 reservation value
+        (
+            ConcessionExtrapolatingReservationModel,
+            "reservation-model",
+            {"regression", "concession"},
+        ),
+        (BayesianReservationValueModel, "reservation-model", {"bayesian"}),
+        # §5.2 deadline
+        (
+            ConcessionExtrapolatingDeadlineModel,
+            "deadline-model",
+            {"regression", "concession"},
+        ),
+        # §5.4 offering / bidding strategy
+        (TimeSeriesOfferingModel, "offering-model", {"gaussian-process", "regression"}),
+        (PolynomialOfferingModel, "offering-model", {"regression", "polynomial"}),
+        (DerivativeOfferingModel, "offering-model", {"time-series", "derivatives"}),
+        (MarkovChainOfferingModel, "offering-model", {"time-series", "markov-chain"}),
+    ]
+    for cls, ctype, extra_tags in registrations:
+        component_registry.register(
+            cls,
+            short_name=cls.__name__,
+            source=NEGMAS_SOURCE,
+            component_type=ctype,
+            tags=base | {ctype} | extra_tags,
         )
 
 
@@ -1579,6 +1653,7 @@ def _register_all() -> None:
     _register_mechanisms()
     _register_sao_negotiators()
     _register_sao_components()
+    _register_opponent_attribute_models()
     _register_genius_boa_components()
     _register_genius_negotiators()
     _register_scenarios()

@@ -7,7 +7,9 @@ bilateral negotiation, following the taxonomy of Baarslag, Hendrikx, Hindriks & 
 opponent modeling techniques*, JAAMAS 30:849–898 (2016), Table 2:
 
 - **§5.1 Acceptance strategy** — :mod:`negmas.models.acceptance`
-  (:class:`~negmas.models.acceptance.DiscreteAcceptanceModel` and friends).
+  (:class:`~negmas.models.acceptance.DiscreteAcceptanceModel` and friends) and,
+  for the reservation-value sub-family (§5.1.1), :mod:`negmas.models.reservation`
+  (:class:`~negmas.models.reservation.ReservationValueModel`).
 - **§5.2 Deadline** — :mod:`negmas.models.deadline`
   (:class:`~negmas.models.deadline.DeadlineModel`).
 - **§5.3 Preference profile** — :mod:`negmas.models.preferences`
@@ -19,6 +21,7 @@ opponent modeling techniques*, JAAMAS 30:849–898 (2016), Table 2:
 
 from .acceptance import *  # noqa: F401,F403
 from .deadline import *  # noqa: F401,F403
+from .reservation import *  # noqa: F401,F403
 from .preferences import *  # noqa: F401,F403
 from .strategy import *  # noqa: F401,F403
 from .future import *  # noqa: F401,F403

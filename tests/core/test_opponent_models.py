@@ -334,5 +334,36 @@ class TestOpponentModelAccess:
         assert neg1.checked, "Should have checked for opponent_ufun"
 
 
+class TestGPerfectModelOracle:
+    """GPerfectModel is a working oracle (de-duplicated with PeekingOpponentModel)."""
+
+    def test_is_peeking_opponent_model(self):
+        """GPerfectModel shares PeekingOpponentModel's oracle code path."""
+        from negmas.gb.components.models.ufun import PeekingOpponentModel
+
+        assert issubclass(GPerfectModel, PeekingOpponentModel)
+
+    def test_ufun_ctor_arg(self, simple_scenario):
+        """The oracle accepts the opponent's true ufun at construction."""
+        _, _, opp_ufun = simple_scenario
+        model = GPerfectModel(ufun=opp_ufun)
+        assert model.ufun is opp_ufun
+
+    def test_delegates_to_true_ufun(self, simple_scenario):
+        """eval / eval_normalized return the opponent's actual (normalized) utility."""
+        outcome_space, _, opp_ufun = simple_scenario
+        model = GPerfectModel(ufun=opp_ufun)
+        for outcome in outcome_space.enumerate():
+            assert float(model.eval_normalized(outcome)) == pytest.approx(
+                float(opp_ufun.eval_normalized(outcome))
+            )
+
+    def test_uniform_fallback_without_ufun(self, simple_scenario):
+        """Without a wrapped ufun the oracle falls back to 0.5 (uniform)."""
+        outcome_space, _, _ = simple_scenario
+        model = GPerfectModel()
+        assert model.eval_normalized(outcome_space.random_outcome()) == 0.5
+
+
 if __name__ == "__main__":
     pytest.main([__file__, "-v", "-s"])

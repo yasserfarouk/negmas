@@ -1,10 +1,39 @@
 History
 =======
 
-Release 0.15.9 (dev)
+Release 0.16.0 (dev)
 ---------------------
 
 **Changes:**
+
+* [models] Recovered additional opponent models from Baarslag et al. (2016),
+  *Learning about the opponent in automated bilateral negotiation* (JAAMAS
+  30:849-898), filling gaps in the survey's Table-2 taxonomy.  New preference
+  profile (``UFunModel``) estimators in ``negmas.gb.components.models`` (mirrored
+  in ``negmas.sao.components.models``): ``ConcessionRatioUFunModel`` (Niemann &
+  Lang) and ``ValueDifferenceUFunModel`` (Carbonneau & Vahidov) and
+  ``KDEWeightUFunModel`` (Coehoorn & Jennings) for issue-weight learning
+  (§5.3.1); ``LuceProfileClassifierModel`` (Lin et al.) for Bayesian
+  profile classification (§5.3.2); and ``CandidateEliminationModel`` for the
+  ordinal acceptable-offer heuristic (§5.3.4).
+
+* [models] New framework-agnostic opponent-attribute models in ``negmas.models``:
+  ``ReservationValueModel`` family (``ConcessionExtrapolatingReservationModel``,
+  ``BayesianReservationValueModel`` after Zeng & Sycara) for reservation-value
+  estimation (§5.1.1); and offering-strategy forecasters
+  ``PolynomialOfferingModel`` (Papaioannou et al.), ``DerivativeOfferingModel``
+  (Brzostowski et al.) and ``MarkovChainOfferingModel`` (Narayanan & Jennings)
+  added to ``negmas.models.strategy`` (§5.4).
+
+* [registry] Registered the new preference-profile models under the existing
+  ``model`` component type and added three new component types —
+  ``reservation-model``, ``deadline-model`` and ``offering-model`` — covering the
+  non-ufun opponent-attribute models.
+
+* [genius] Refactored the transcompiled Genius BOA components from single modules
+  (``genius/models.py``, ``genius/acceptance.py``, ``genius/offering.py``) into
+  packages with one concern per file.  All public names are re-exported as
+  before; no import changes needed.
 
 * [inv_ufun] Refactored ``inv_ufun.py`` into a package (``inv_ufun/``) with one
   class per file.  All public names are re-exported from
@@ -53,6 +82,16 @@ Release 0.15.9 (dev)
   guard.  ``target`` selects the bargaining solution to aim for
   (``nash``/``kalai``/``kalai_smorodinsky``/``max_welfare``/``max_relative_welfare``).
   Re-exported from ``negmas.sao.negotiators``.
+
+* [gb] **Fix** ``GPerfectModel`` (the Genius ``PerfectModel`` oracle) was a
+  non-functional placeholder — its ``update()`` was a stub, the opponent ufun
+  was never stored and ``eval``/``eval_normalized`` always returned ``0.5``.
+  It is now a working oracle: it accepts the opponent's true ufun via
+  ``ufun=`` and delegates ``eval``/``eval_normalized`` to it, sharing the
+  single code path of ``PeekingOpponentModel`` (de-duplicated). Any Genius
+  opponent model — e.g. ``GScalableBayesianModel`` (the port of Nice Tit for
+  Tat's own ``BayesianOpponentModelScalable``) — can also be passed to
+  ``NiceTitForTatNegotiator`` via ``opponent_model_type=``.
 
 * [pareto_sampler] **API change**: ``ParetoSampler`` implementations now take
   configuration only in their constructors; the operands (own and opponent

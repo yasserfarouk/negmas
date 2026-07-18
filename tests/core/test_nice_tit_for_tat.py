@@ -84,6 +84,32 @@ def test_can_pass_opponent_model_type():
     assert isinstance(ntft.opponent_model, FrequencyUFunModel)
 
 
+def test_genius_bayesian_model_is_a_viable_opponent_model():
+    """A Genius opponent model (`GScalableBayesianModel`, the port of the Genius
+    Nice TFT's own ``BayesianOpponentModelScalable``) is a valid
+    ``opponent_model_type``: it drives a rational agreement *without* the
+    opponent-aware Pareto-sampler path silently collapsing to naive tit-for-tat
+    (``_sampler_failed`` stays ``False``). Measured to reach the same agreement
+    as the default `FrequencyLinearUFunModel`, so it is offered as an option
+    rather than made the default."""
+    from negmas.gb.components.genius.models import GScalableBayesianModel
+
+    os_, _, u1, u2 = _conflict_scenario()
+    ntft = NiceTitForTatNegotiator(
+        name="ntft", opponent_model_type=GScalableBayesianModel
+    )
+    assert isinstance(ntft.opponent_model, GScalableBayesianModel)
+    m = SAOMechanism(outcome_space=os_, n_steps=60)
+    m.add(ntft, ufun=u1)
+    m.add(BoulwareTBNegotiator(name="opp"), ufun=u2)
+    m.run()
+    assert m.agreement is not None
+    assert float(u1(m.agreement)) >= u1.reserved_value - 1e-6
+    # the opponent-aware sampler survived (did not degrade to naive tit-for-tat)
+    assert ntft._offering is not None
+    assert not getattr(ntft._offering, "_sampler_failed", False)
+
+
 def test_can_pass_opponent_model_instance():
     """A ready opponent-model instance can be passed and is exposed verbatim."""
     issues = [make_issue(6, "a"), make_issue(6, "b")]
