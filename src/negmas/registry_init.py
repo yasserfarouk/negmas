@@ -972,6 +972,130 @@ def _register_genius_boa_components() -> None:
         )
 
 
+def _register_genius_boa_negotiators() -> None:
+    """Register the Python-native Genius BOA negotiators of ``negmas.genius.gboa_negotiators``.
+
+    These are ``BOANegotiator`` compositions of transcompiled Genius offering,
+    acceptance and opponent-model components. Unlike the ``negmas.genius.gnegotiators``
+    classes, they run natively in Python and do NOT require the Java Genius bridge,
+    so (unlike ``_register_genius_negotiators``) they are registered unconditionally.
+
+    Negotiator tags:
+    - "genius": Reimplements a Genius/ANAC agent
+    - "boa": Composed from Genius BOA (offering/acceptance/model) components
+    - "gb": Works with the GB (General Bargaining) protocol family
+    - "anac-YYYY": Competition year of the original agent, when applicable
+    """
+    from negmas.genius.gboa_negotiators import (
+        GBoulware,
+        GConceder,
+        GLinear,
+        GHardliner,
+        GHardHeaded,
+        GAgentK,
+        GAgentSmith,
+        GNozomi,
+        GFSEGA,
+        GCUHKAgent,
+        GAgentLG,
+        GAgentX,
+        GRandom,
+    )
+
+    base_tags = {"genius", "boa", "gb", "propose", "respond"}
+    registrations = [
+        (
+            GBoulware,
+            "Boulware-style time-dependent negotiator (e=0.2) that concedes "
+            "slowly and only makes significant concessions near the deadline.",
+            {"time-based", "boulware"},
+        ),
+        (
+            GConceder,
+            "Conceder-style time-dependent negotiator (e=2.0) that concedes "
+            "quickly early in the negotiation.",
+            {"time-based", "conceder"},
+        ),
+        (
+            GLinear,
+            "Time-dependent negotiator (e=1.0) that concedes at a constant "
+            "rate throughout the negotiation.",
+            {"time-based", "linear"},
+        ),
+        (
+            GHardliner,
+            "Time-dependent negotiator (e=0) that never concedes and always "
+            "offers its best outcome.",
+            {"time-based", "hardliner"},
+        ),
+        (
+            GHardHeaded,
+            "ANAC 2011 winner: Boulware-style time-dependent offering "
+            "combined with frequency-based opponent modeling of unchanged "
+            "issues to infer opponent preferences.",
+            {"anac", "anac-2011", "time-based", "opponent-modeling"},
+        ),
+        (
+            GAgentK,
+            "ANAC 2010 agent: time-dependent offering with combined-condition "
+            "(AC_Combi) acceptance and a basic opponent model.",
+            {"anac", "anac-2010", "time-based", "opponent-modeling"},
+        ),
+        (
+            GAgentSmith,
+            "ANAC 2010 agent: time-dependent offering with a fixed acceptance "
+            "threshold and Smith-style frequency-based opponent modeling.",
+            {"anac", "anac-2010", "time-based", "opponent-modeling"},
+        ),
+        (
+            GNozomi,
+            "ANAC 2010 agent: Boulware-style time-dependent offering with "
+            "AC_Previous acceptance (accepts if better than the opponent's "
+            "previous offer).",
+            {"anac", "anac-2010", "time-based", "opponent-modeling"},
+        ),
+        (
+            GFSEGA,
+            "ANAC 2010 agent (FSEGA): conceding time-dependent offering "
+            "strategy with a fixed acceptance threshold.",
+            {"anac", "anac-2010", "time-based", "conceder", "opponent-modeling"},
+        ),
+        (
+            GCUHKAgent,
+            "ANAC 2012 winner: conservative time-dependent offering with "
+            "combined acceptance conditions and frequency-based opponent "
+            "modeling, tuned for discounted domains.",
+            {"anac", "anac-2012", "time-based", "opponent-modeling"},
+        ),
+        (
+            GAgentLG,
+            "ANAC 2012 agent: time-dependent offering with AC_CombiMax "
+            "acceptance and frequency-based opponent modeling.",
+            {"anac", "anac-2012", "time-based", "opponent-modeling"},
+        ),
+        (
+            GAgentX,
+            "ANAC 2015 agent: adaptive time-dependent offering with "
+            "window-based acceptance and exponential-smoothing opponent "
+            "modeling.",
+            {"anac", "anac-2015", "time-based", "opponent-modeling"},
+        ),
+        (
+            GRandom,
+            "Baseline negotiator that makes random offers and accepts any offer.",
+            {"random"},
+        ),
+    ]
+    for cls, description, extra_tags in registrations:
+        negotiator_registry.register(
+            cls,
+            short_name=cls.__name__,
+            source=NEGMAS_SOURCE,
+            description=description,
+            tags=base_tags | extra_tags,
+        )
+
+
 def _register_genius_negotiators() -> None:
     """Register Genius negotiators.
 
@@ -1655,6 +1779,7 @@ def _register_all() -> None:
     _register_sao_components()
     _register_opponent_attribute_models()
     _register_genius_boa_components()
+    _register_genius_boa_negotiators()
     _register_genius_negotiators()
     _register_scenarios()
 
