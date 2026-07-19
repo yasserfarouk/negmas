@@ -1054,6 +1054,38 @@ class TestBuiltInRegistrations:
         assert "ZeroSumModel" in short_names  # SAO model
         assert "GBayesianModel" in short_names  # Genius model
 
+    def test_genius_boa_negotiators_registered(self):
+        """Test that the Python-native Genius BOA negotiators are registered
+        with a non-empty description and can be instantiated via the
+        registry."""
+        import negmas.registry_init  # noqa: F401
+
+        genius_boa_negotiators = [
+            "GBoulware",
+            "GConceder",
+            "GLinear",
+            "GHardliner",
+            "GHardHeaded",
+            "GAgentK",
+            "GAgentSmith",
+            "GNozomi",
+            "GFSEGA",
+            "GCUHKAgent",
+            "GAgentLG",
+            "GAgentX",
+            "GRandom",
+        ]
+        for name in genius_boa_negotiators:
+            infos = negotiator_registry.get_by_short_name(name)
+            assert len(infos) > 0, f"{name} not registered"
+            info = infos[0]
+            assert info.description.strip(), f"{name} has an empty description"
+            assert info.has_tag("genius"), f"{name} missing 'genius' tag"
+            assert info.has_tag("boa"), f"{name} missing 'boa' tag"
+
+            negotiator = negotiator_registry.create(name)
+            assert type(negotiator).__name__ == name
+
 
 class TestTagging:
     """Tests for the tagging functionality."""
