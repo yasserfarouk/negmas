@@ -41,12 +41,14 @@ from .range_issue import RangeIssue
 from .singleton_issue import SingletonIssue
 
 if TYPE_CHECKING:
+    from negmas.outcomes.discretizers import Discretizer
     from negmas.preferences.protocols import HasReservedOutcome, HasReservedValue
 
 __all__ = [
     "CartesianOutcomeSpace",
     "EnumeratingOutcomeSpace",
     "DiscreteCartesianOutcomeSpace",
+    "SubsetCartesianOutcomeSpace",
     "SingletonOutcomeSpace",
     "make_os",
     "DistanceFun",
@@ -98,6 +100,96 @@ def make_os(
             issues_, name=name if name else "", path=path
         )
     return CartesianOutcomeSpace(issues_, name=name if name else "", path=path)
+
+
+def _grid_indices(n: int, k: int) -> list[int]:
+    """Returns up to ``k`` evenly-spaced indices in ``[0, n-1]`` (endpoints included)."""
+    if k >= n:
+        return list(range(n))
+    if k <= 1:
+        return [n // 2]
+    return sorted({round(i * (n - 1) / (k - 1)) for i in range(k)})
+
+
+def _subsample_issue(issue: Issue, k: int) -> Issue:
+    """Reduces a discrete ``issue`` to at most ``k`` evenly-spaced values.
+
+    Works for every discrete issue type (including categorical issues, whose
+    ``to_discrete`` is a no-op) by explicitly picking a grid of values and
+    rebuilding a :class:`CategoricalIssue`.
+    """
+    values = list(issue.all)  # type: ignore[attr-defined]
+    if k >= len(values):
+        return issue
+    picked = [values[i] for i in _grid_indices(len(values), k)]
+    return CategoricalIssue(picked, name=issue.name)
+
+
+def _balanced_levels(caps: list[int], max_cardinality: int) -> list[int]:
+    """Chooses per-issue level counts ``<= caps`` whose product is ``<= max_cardinality``.
+
+    The result is a *balanced* grid: levels are grown as evenly as possible so no
+    single issue is gutted while another keeps all of its values. Unused budget
+    from small issues (whose ``cap`` is reached) flows to larger issues.
+    """
+    n = len(caps)
+    if n == 0:
+        return []
+    # Geometric seed, processing the smallest cap first so a low-cap issue that
+    # cannot use its share releases budget to the remaining (larger) issues.
+    order = sorted(range(n), key=lambda i: caps[i])
+    levels = [1] * n
+    remaining = max(1, max_cardinality)
+    for pos, idx in enumerate(order):
+        n_left = n - pos
+        target = int(remaining ** (1.0 / n_left)) if remaining > 0 else 1
+        levels[idx] = max(1, min(caps[idx], target))
+        remaining = max(1, remaining // levels[idx])
+    # Greedy top-up: grow the smallest level that has head-room while it still
+    # fits under the cap (keeps the grid balanced and uses spare budget).
+    current = reduce(mul, levels, 1)
+    improved = True
+    while improved:
+        improved = False
+        for idx in sorted(range(n), key=lambda i: levels[i]):
+            if levels[idx] >= caps[idx]:
+                continue
+            grown = current // levels[idx] * (levels[idx] + 1)
+            if grown <= max_cardinality:
+                levels[idx] += 1
+                current = grown
+                improved = True
+    return levels
+
+
+def _dispatch_discretizer(
+    space, method, levels, max_cardinality, kwargs
+) -> DiscreteCartesianOutcomeSpace:
+    """Resolves a ``to_discrete`` ``method`` and applies it to ``space``.
+
+    ``method`` may be:
+
+    - a registered name (str) — see ``negmas.outcomes.discretizers.DISCRETIZERS``;
+      constructed with ``min_levels=levels`` / ``max_outcomes=max_cardinality`` plus
+      any ``kwargs`` (e.g. ``ufun``/``n_bins`` for balanced discretizers);
+    - a ``Discretizer`` class — constructed the same way;
+    - an already-constructed ``Discretizer`` instance — called directly (``levels`` /
+      ``max_cardinality`` / ``kwargs`` are ignored, as it carries its own config).
+    """
+    if isinstance(method, str):
+        from negmas.outcomes.discretizers import get_discretizer
+
+        cls = get_discretizer(method)
+    elif isinstance(method, type):
+        cls = method
+    else:
+        return method(space)  # type: ignore[return-value]
+    disc = cls(
+        max_outcomes=None if max_cardinality == float("inf") else int(max_cardinality),
+        min_levels=None if levels == float("inf") else int(levels),
+        **kwargs,
+    )
+    return disc(space)  # type: ignore[return-value]
 
 
 @define
@@ -237,7 +329,7 @@ class EnumeratingOutcomeSpace(DiscreteOutcomeSpace, OSWithValidity):
         self, levels: int | float = 5, max_cardinality: int | float = float("inf")
     ) -> DiscreteOutcomeSpace:
         """
-        Returns a **stable** finite outcome space. If the outcome-space is already finite. It shoud return itself.
+        Returns a **stable** finite outcome space. If the outcome-space is already finite. It should return itself.
 
         Args:
             levels: The levels of discretization of any continuous dimension (or subdimension)
@@ -529,13 +621,50 @@ class CartesianOutcomeSpace(XmlSerializable):
         return all(_.is_float() for _ in self.issues)
 
     def to_discrete(
-        self, levels: int | float = 10, max_cardinality: int | float = float("inf")
+        self,
+        levels: int | float = 10,
+        max_cardinality: int | float = float("inf"),
+        method: str | type | Discretizer = "grid",
+        **kwargs,
     ) -> DiscreteCartesianOutcomeSpace:
         """
         Discretizes the outcome space by sampling `levels` values for each continuous issue.
 
-        The result of the discretization is stable in the sense that repeated calls will return the same output.
+        Discrete issues are kept unchanged. Unlike :meth:`to_largest_discrete`, the
+        number of levels is **not** stepped down: if the resulting grid would exceed
+        ``max_cardinality`` a :class:`ValueError` is raised.
+
+        Args:
+            levels: Number of grid values sampled from each *continuous* issue.
+            max_cardinality: If finite, raise when the resulting grid would exceed it.
+            method: The discretization strategy. ``"grid"`` (default) uses the
+                built-in even-grid behaviour described above. Any other value
+                delegates to a :class:`~negmas.outcomes.discretizers.Discretizer`:
+                a registered name (see
+                ``negmas.outcomes.discretizers.DISCRETIZERS`` — e.g. ``"grid_based"``,
+                ``"balanced_ufun_variance"``), a ``Discretizer`` class, or an
+                already-constructed ``Discretizer`` instance.
+            **kwargs: Extra arguments forwarded to the discretizer's constructor
+                when ``method`` is a name or class (e.g. ``ufun``/``n_bins`` for the
+                balanced discretizers). ``levels``/``max_cardinality`` map to
+                ``min_levels``/``max_outcomes``.
+
+        Numeric examples (two continuous issues ``a, b``):
+
+            - ``levels=10``                     → ``10 x 10 = 100``
+            - ``levels=5``                      → ``5 x 5 = 25``
+            - ``levels=10, max_cardinality=40`` → ``ValueError`` (100 > 40; use
+              ``to_largest_discrete`` or ``method="grid_based"`` to step levels down)
+
+        Stability:
+            The result is **stable** — repeated calls with the same arguments
+            return the same discrete outcome space. This holds for every built-in
+            ``method`` (including the utility-aware balanced discretizers): the
+            candidate pool is reduced deterministically (never by random sampling),
+            so no ``random`` seeding is required.
         """
+        if method != "grid":
+            return _dispatch_discretizer(self, method, levels, max_cardinality, kwargs)
         if max_cardinality != float("inf"):
             c = reduce(
                 mul,
@@ -635,15 +764,35 @@ class CartesianOutcomeSpace(XmlSerializable):
     def to_largest_discrete(
         self, levels: int, max_cardinality: int | float = float("inf"), **kwargs
     ) -> DiscreteCartesianOutcomeSpace:
-        """Discretizes to the largest possible space within the given cardinality constraint."""
+        """Discretizes to the largest grid within both the level and cardinality limits.
+
+        Continuous issues are sampled on an even grid of at most ``levels`` values;
+        the number of levels is stepped down until the total number of outcomes is
+        ``<= max_cardinality``. Discrete issues are kept unchanged (use
+        :meth:`limit_cardinality` to shrink an already-discrete space).
+
+        Numeric examples (two continuous issues, ``levels=10``):
+
+        - ``max_cardinality=1000`` → ``10 x 10 = 100`` (the full grid fits).
+        - ``max_cardinality=40``   → ``6 x 6 = 36`` (stepped down; ``7 x 7 = 49 > 40``).
+        - one continuous issue + a discrete issue of size ``100``, ``max_cardinality=50``
+          → raises ``ValueError`` (even one level for the continuous issue leaves
+          ``1 x 100 = 100 > 50``).
+
+        Raises:
+            ValueError: If even a single level per continuous issue exceeds
+                ``max_cardinality``.
+        """
         for level in range(levels, 0, -1):
-            if self.cardinality_if_discretized(levels) < max_cardinality:
-                break
-        else:
-            raise ValueError(
-                f"Cannot discretize with levels <= {levels} keeping the cardinality under {max_cardinality} Outocme space cardinality is {self.cardinality}\nOutcome space: {self}"
-            )
-        return self.to_discrete(level, max_cardinality, **kwargs)
+            # ``cardinality_if_discretized`` defaults ``max_cardinality`` to inf,
+            # so this returns the raw grid size for exactly ``level`` levels.
+            if self.cardinality_if_discretized(level) <= max_cardinality:
+                return self.to_discrete(level, max_cardinality, **kwargs)
+        raise ValueError(
+            f"Cannot discretize with levels <= {levels} keeping the cardinality under "
+            f"{max_cardinality}. Outcome space cardinality is {self.cardinality}\n"
+            f"Outcome space: {self}"
+        )
 
     def enumerate_or_sample_rational(
         self,
@@ -797,7 +946,12 @@ class DiscreteCartesianOutcomeSpace(CartesianOutcomeSpace):
     def to_largest_discrete(
         self, levels: int, max_cardinality: int | float = float("inf"), **kwargs
     ) -> DiscreteCartesianOutcomeSpace:
-        """Returns self since this space is already discrete."""
+        """Returns ``self`` unchanged: an already-discrete space is not re-gridded.
+
+        ``levels`` and ``max_cardinality`` are ignored here (discretization only
+        applies to continuous issues). To *shrink* an already-discrete space to fit
+        a level/cardinality budget, use :meth:`limit_cardinality` instead.
+        """
         return self
 
     def __attrs_post_init__(self):
@@ -835,57 +989,50 @@ class DiscreteCartesianOutcomeSpace(CartesianOutcomeSpace):
         levels: int | float = float("inf"),
     ) -> DiscreteCartesianOutcomeSpace:
         """
-        Limits the cardinality of the outcome space to the given maximum (or the number of levels for each issue to `levels`)
+        Limits the cardinality of the outcome space to the given maximum (and the number of levels for each issue to `levels`).
 
         Args:
             max_cardinality: The maximum number of outcomes in the resulting space
             levels: The maximum number of levels for each issue/subissue
+
+        Remarks:
+            - Each issue keeps at most ``levels`` (evenly-spaced) values and the
+              product of the kept level counts is at most ``max_cardinality``.
+            - When the total must be reduced, levels are trimmed as evenly as
+              possible across issues (a balanced grid) rather than gutting a
+              single issue.
+            - A discrete issue is never *grown*; over-sized issues are subsampled.
+            - Returns ``self`` unchanged only when both limits are already met.
+
+        Numeric examples (issue cardinalities shown as a product):
+
+            - ``5 x 5 = 25``, ``max_cardinality=10``            → ``3 x 3 = 9``
+            - ``5 x 5 = 25``, ``max_cardinality=10, levels=3``  → ``3 x 3 = 9``
+            - ``10 x 3 = 30``, ``max_cardinality=12``           → ``4 x 3 = 12``
+            - ``1000 x 980``, ``max_cardinality=10_000``        → ``100 x 100``
+            - ``5 x 5``, ``levels=3`` (no cardinality cap)      → ``3 x 3 = 9``
+            - ``3 x 4 = 12``, ``max_cardinality=100``           → ``self`` (fits)
         """
-        if self.cardinality <= max_cardinality or all(
-            _.cardinality < levels for _ in self.issues
-        ):
+        cards = [int(_.cardinality) for _ in self.issues]
+        # A resulting space is acceptable only if BOTH limits already hold.
+        if self.cardinality <= max_cardinality and all(c <= levels for c in cards):
             return self
-        new_levels = [_.cardinality for _ in self.issues]  # type: ignore will be corrected the next line
-        new_levels = [int(_) if _ < levels else int(levels) for _ in new_levels]
-        new_cardinality = reduce(mul, new_levels, 1)
 
-        def _reduce_total_cardinality(new_levels, max_cardinality, new_cardinality):
-            sort = reversed(sorted((_, i) for i, _ in enumerate(new_levels)))
-            sorted_levels = [_[0] for _ in sort]
-            indices = [_[1] for _ in sort]
-            needed = new_cardinality - max_cardinality
-            current = 0
-            n = len(sorted_levels)
-            while needed > 0 and current < n:
-                nxt = n - 1
-                v = sorted_levels[current]
-                if v == 1:
-                    continue
-                for i in range(current + 1, n - 1):
-                    if v == sorted_levels[i]:
-                        continue
-                    nxt = i
-                    break
-                diff = v - sorted_levels[nxt]
-                if not diff:
-                    diff = 1
-                new_levels[indices[current]] -= 1
-                max_cardinality = (max_cardinality // v) * (v - 1)
-                sort = reversed(sorted((_, i) for i, _ in enumerate(new_levels)))
-                sorted_levels = [_[0] for _ in sort]
-                current = 0
-                needed = new_cardinality - max_cardinality
-            return new_levels
+        # Per-issue ceiling from the `levels` cap (never below 1).
+        caps = [c if levels == float("inf") else min(c, int(levels)) for c in cards]
+        caps = [max(1, c) for c in caps]
 
-        if new_cardinality > max_cardinality:
-            new_levels: list[int] = _reduce_total_cardinality(
-                new_levels, max_cardinality, new_cardinality
-            )
-        issues: list[Issue] = []
-        for j, i, issue in zip(
-            new_levels, (_.cardinality for _ in self.issues), self.issues
+        new_levels = list(caps)
+        if (
+            max_cardinality != float("inf")
+            and reduce(mul, new_levels, 1) > max_cardinality
         ):
-            issues.append(issue if j >= i else issue.to_discrete(j, compact=True))
+            new_levels = _balanced_levels(caps, int(max_cardinality))
+
+        issues: list[Issue] = [
+            issue if lvl >= card else _subsample_issue(issue, lvl)
+            for lvl, card, issue in zip(new_levels, cards, self.issues)
+        ]
         return DiscreteCartesianOutcomeSpace(
             tuple(issues), name=f"{self.name}-{max_cardinality}"
         )
@@ -895,9 +1042,21 @@ class DiscreteCartesianOutcomeSpace(CartesianOutcomeSpace):
         return True
 
     def to_discrete(
-        self, levels: int | float = 10, max_cardinality: int | float = float("inf")
+        self,
+        levels: int | float = 10,
+        max_cardinality: int | float = float("inf"),
+        method: str | type | Discretizer = "grid",
+        **kwargs,
     ) -> DiscreteCartesianOutcomeSpace:
-        """Returns self since this space is already discrete."""
+        """Returns ``self`` (already discrete) unless a non-grid ``method`` is given.
+
+        With the default ``method="grid"`` an already-discrete space is returned
+        unchanged. Any other ``method`` delegates to the corresponding
+        :class:`~negmas.outcomes.discretizers.Discretizer` (e.g. a balanced
+        discretizer to *re-select* a balanced subset/grid of this space).
+        """
+        if method != "grid":
+            return _dispatch_discretizer(self, method, levels, max_cardinality, kwargs)
         return self
 
     def to_single_issue(
@@ -1059,6 +1218,175 @@ class SingletonOutcomeSpace(DiscreteCartesianOutcomeSpace):
     def __str__(self):
         """Returns a human-readable string."""
         return f"SingletonOS({self.outcome})"
+
+
+@define(frozen=True)
+class SubsetCartesianOutcomeSpace(DiscreteCartesianOutcomeSpace):
+    """A discrete Cartesian outcome-space restricted to an explicit set of outcomes.
+
+    This behaves like a :class:`DiscreteCartesianOutcomeSpace` — it keeps the full
+    ``issues`` structure, so ``.issues``, ``.issue_names`` and issue-based code keep
+    working — but only the outcomes in ``outcomes`` are considered *valid* and are
+    returned by :meth:`enumerate`, :meth:`sample`, iteration, ``len()`` and
+    membership tests. Cartesian combinations of issue values that are **not** in
+    ``outcomes`` are excluded.
+
+    This is the natural result type for utility-aware discretizers that *select* a
+    subset of outcomes (e.g. balanced-count discretizers) while still needing the
+    issue structure of the original space.
+
+    Because algorithms across negmas enumerate an outcome space through its
+    :meth:`enumerate` / :meth:`enumerate_or_sample` methods (rather than rebuilding
+    the grid from ``.issues``), they automatically see only the selected subset.
+
+    Args:
+        issues: The issues defining the (discrete) structure of the space.
+        outcomes: The subset of valid outcomes (keyword-only). Each must be a valid
+            combination of issue values; duplicates are removed while preserving
+            order.
+        name: Optional name for the outcome space.
+
+    Examples:
+        >>> from negmas.outcomes import make_issue, SubsetCartesianOutcomeSpace
+        >>> issues = (make_issue(["a", "b"], "x"), make_issue([0, 1], "y"))
+        >>> os = SubsetCartesianOutcomeSpace(issues, outcomes=[("a", 0), ("b", 1)])
+        >>> os.cardinality
+        2
+        >>> sorted(os.enumerate())
+        [('a', 0), ('b', 1)]
+        >>> ("a", 1) in os  # a valid grid combination, but not selected
+        False
+        >>> os.issue_names
+        ['x', 'y']
+    """
+
+    outcomes: tuple[Outcome, ...] = field(  # type: ignore[assignment]
+        converter=tuple, kw_only=True, default=()
+    )
+    _outcome_set: frozenset[Outcome] = field(
+        init=False, eq=False, repr=False, factory=frozenset
+    )
+
+    def __attrs_post_init__(self):
+        """Validates the issues are discrete and caches the outcome set."""
+        super().__attrs_post_init__()
+        # Deduplicate while preserving order, then cache a set for O(1) membership.
+        seen: dict[Outcome, None] = {}
+        for o in self.outcomes:
+            seen.setdefault(tuple(o), None)
+        object.__setattr__(self, "outcomes", tuple(seen.keys()))
+        object.__setattr__(self, "_outcome_set", frozenset(seen.keys()))
+
+    @classmethod
+    def from_outcome_set(
+        cls,
+        outcomes: Sequence[Outcome],
+        issues: tuple[Issue, ...] | None = None,
+        name: str | None = None,
+    ) -> SubsetCartesianOutcomeSpace:
+        """Builds a subset space from outcomes, inferring issues if not given.
+
+        Args:
+            outcomes: The valid outcomes.
+            issues: The issue structure. If ``None``, it is inferred from
+                ``outcomes`` via :func:`issues_from_outcomes`.
+            name: Optional name for the outcome space.
+        """
+        if issues is None:
+            issues = tuple(issues_from_outcomes(list(outcomes)))
+        return cls(issues, outcomes=tuple(outcomes), name=name)
+
+    @property
+    def cardinality(self) -> int:
+        """The number of valid (selected) outcomes."""
+        if not self._constraints:
+            return len(self._outcome_set)
+        return sum(1 for _ in self.enumerate())
+
+    def cardinality_if_discretized(
+        self, levels: int, max_cardinality: int | float = float("inf")
+    ) -> int:
+        """Returns the (already-fixed) cardinality of the selected subset."""
+        return self.cardinality
+
+    def enumerate(self) -> Iterable[Outcome]:
+        """Iterates over the selected outcomes (respecting any constraints)."""
+        if not self._constraints:
+            return self.outcomes
+        return tuple(o for o in self.outcomes if self.satisfies_constraints(o))
+
+    def is_valid(self, outcome: Outcome) -> bool:
+        """An outcome is valid iff it was selected and satisfies all constraints."""
+        return tuple(outcome) in self._outcome_set and self.satisfies_constraints(
+            outcome
+        )
+
+    def sample(
+        self, n_outcomes: int, with_replacement: bool = True, fail_if_not_enough=True
+    ) -> Iterable[Outcome]:
+        """Samples ``n_outcomes`` from the selected outcomes."""
+        outcomes = list(self.enumerate())
+        if not outcomes:
+            if fail_if_not_enough and n_outcomes > 0:
+                raise ValueError("Cannot sample from an empty outcome space")
+            return []
+        if with_replacement:
+            return random.choices(outcomes, k=n_outcomes)
+        if n_outcomes > len(outcomes):
+            if fail_if_not_enough:
+                raise ValueError(
+                    f"Cannot sample {n_outcomes} outcomes without replacement from a "
+                    f"space of {len(outcomes)} outcomes"
+                )
+            n_outcomes = len(outcomes)
+        return random.sample(outcomes, k=n_outcomes)
+
+    def random_outcome(self) -> Outcome:
+        """Returns a uniformly-random selected outcome."""
+        return random.choice(list(self.enumerate()))
+
+    def to_discrete(
+        self,
+        levels: int | float = 10,
+        max_cardinality: int | float = float("inf"),
+        method: str | type | Discretizer = "grid",
+        **kwargs,
+    ) -> DiscreteCartesianOutcomeSpace:
+        """Returns ``self`` (a fixed subset) unless a non-grid ``method`` is given."""
+        if method != "grid":
+            return _dispatch_discretizer(self, method, levels, max_cardinality, kwargs)
+        return self
+
+    def to_largest_discrete(
+        self, levels: int, max_cardinality: int | float = float("inf"), **kwargs
+    ) -> DiscreteCartesianOutcomeSpace:
+        """Returns self since this space is already a fixed discrete subset."""
+        return self
+
+    def limit_cardinality(
+        self,
+        max_cardinality: int | float = float("inf"),
+        levels: int | float = float("inf"),
+    ) -> SubsetCartesianOutcomeSpace:
+        """Limits the number of selected outcomes to ``max_cardinality``.
+
+        Keeps the first ``max_cardinality`` selected outcomes (``levels`` is
+        ignored, as there is no per-issue grid to thin for an explicit subset).
+        """
+        outcomes = list(self.enumerate())
+        if max_cardinality == float("inf") or len(outcomes) <= max_cardinality:
+            return self
+        return SubsetCartesianOutcomeSpace(
+            self.issues,
+            outcomes=tuple(outcomes[: int(max_cardinality)]),
+            name=self.name,
+        )
+
+    def __repr__(self):
+        return (
+            f"SubsetCartesianOutcomeSpace(issues={self.issues!r}, "
+            f"n_outcomes={len(self._outcome_set)})"
+        )
 
 
 # =============================================================================

@@ -45,6 +45,7 @@ from .infinite import *
 from .issue_ops import *
 from .outcome_ops import *
 from .outcome_space import *
+from .discretizers import *
 
 __all__ = (
     common.__all__
@@ -62,4 +63,5 @@ __all__ = (
     + issue_ops.__all__
     + outcome_ops.__all__
     + outcome_space.__all__
+    + discretizers.__all__
 )
