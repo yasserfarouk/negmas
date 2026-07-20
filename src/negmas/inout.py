@@ -684,6 +684,89 @@ class Scenario:
                 self.stats = None
         return self
 
+    def remove_dummy_issues(self, name: str = "DUMMY_ISSUE") -> Scenario:
+        """Drops placeholder single-value issues named ``name`` (default
+        ``DUMMY_ISSUE``) from the outcome space and every ufun.
+
+        The lenient Genius reader (``safe_parsing=False``) inserts a single-value
+        ``DUMMY_ISSUE`` when a domain leaves an issue index empty (e.g. it numbers
+        its ``<objective>`` as 1 and its issues from 2). Such an issue carries no
+        negotiation choice; its only effect on a linear/affine ufun is a constant
+        offset ``weight * value_function(single_value)``. This method removes it
+        while folding that constant into the ufun's bias, so **all utilities are
+        preserved exactly**. Only linear-additive/affine ufuns (optionally wrapped
+        in discounting) are supported; scenarios without such issues are unchanged.
+
+        Returns:
+            Self for method chaining.
+        """
+        from negmas.preferences.crisp.linear import (
+            AffineUtilityFunction,
+            LinearAdditiveUtilityFunction,
+        )
+        from negmas.preferences.discounted import DiscountedUtilityFunction
+
+        issues = list(self.outcome_space.issues)
+        drop = [
+            i
+            for i, iss in enumerate(issues)
+            if getattr(iss, "name", None) == name
+            and not iss.is_continuous()
+            and iss.cardinality == 1
+        ]
+        if not drop:
+            return self
+        keep = [i for i in range(len(issues)) if i not in drop]
+        singles = {i: next(iter(issues[i].all)) for i in drop}
+        new_os = make_os([issues[i] for i in keep], name=self.outcome_space.name)
+
+        def reduce(u):
+            wrappers = []
+            while isinstance(u, DiscountedUtilityFunction):
+                wrappers.append(u)
+                u = u.ufun
+            if not isinstance(
+                u, (AffineUtilityFunction, LinearAdditiveUtilityFunction)
+            ):
+                raise TypeError(
+                    f"Cannot remove dummy issues from a {type(u).__name__}; "
+                    "only linear-additive/affine ufuns are supported"
+                )
+            values = list(u.values)
+            weights = list(u.weights)
+            bias = getattr(u, "_bias", 0.0) or 0.0
+            offset = sum(weights[i] * float(values[i](singles[i])) for i in drop)
+            new_weights = [weights[i] for i in keep]
+            if isinstance(u, LinearAdditiveUtilityFunction):
+                reduced = LinearAdditiveUtilityFunction(
+                    values=[values[i] for i in keep],
+                    weights=new_weights,
+                    bias=bias + offset,
+                    outcome_space=new_os,
+                    name=u.name,
+                    reserved_value=u.reserved_value,
+                )
+            else:  # AffineUtilityFunction (implicit identity value functions)
+                reduced = AffineUtilityFunction(
+                    weights=new_weights,
+                    bias=bias + offset,
+                    outcome_space=new_os,
+                    name=u.name,
+                    reserved_value=u.reserved_value,
+                )
+            for w in reversed(wrappers):
+                w.ufun = reduced
+                w.outcome_space = new_os
+                reduced = w
+            return reduced
+
+        self.ufuns = tuple(reduce(u) for u in self.ufuns)
+        self.outcome_space = new_os
+        # The outcome space changed, so any cached statistics are stale.
+        if self.stats:
+            self.stats = None
+        return self
+
     def normalize(
         self,
         to: tuple[float, float] = (0.0, 1.0),

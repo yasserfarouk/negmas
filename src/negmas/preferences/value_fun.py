@@ -597,11 +597,10 @@ class ConstFun(BaseFun):
 
     def minmax(self, input: Issue) -> tuple[float, float]:
         """Return (bias, bias) since the function is constant."""
-        _ = input
-        return self._minmax(input)
-
-    @lru_cache
-    def _minmax(self, input: Issue) -> tuple[float, float]:
+        # A constant maps every value to ``bias``; there is nothing to cache and
+        # ``@lru_cache`` on a method of this (unhashable) attrs class raised
+        # ``unhashable type: 'ConstFun'`` whenever a ConstFun was used as a value
+        # function (e.g. for a zero-contribution issue produced by from_xml_str).
         _ = input
         return (self.bias, self.bias)
 

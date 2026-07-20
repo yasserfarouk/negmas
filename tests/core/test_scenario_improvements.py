@@ -316,5 +316,53 @@ class TestIsNormalizedPositive:
         assert scenario.is_normalized((None, None), positive=True, independent=False)
 
 
+class TestRemoveDummyIssues:
+    """Tests for Scenario.remove_dummy_issues()."""
+
+    def test_drops_dummy_and_preserves_utilities(self):
+        from negmas.preferences import AffineUtilityFunction
+        from negmas.preferences.value_fun import AffineFun
+
+        issues = [
+            make_issue([0], "DUMMY_ISSUE"),  # single-value placeholder
+            make_issue(11, "price"),
+            make_issue(6, "qty"),
+        ]
+        os = make_os(issues)
+        u1 = AffineUtilityFunction(
+            weights=[3.0, 1.0, -2.0], bias=5.0, outcome_space=os, reserved_value=0.3
+        )
+        u2 = LinearAdditiveUtilityFunction(
+            values=[AffineFun(1.0, 0.0), AffineFun(1.0, 0.0), AffineFun(1.0, 0.0)],
+            weights=[2.0, -1.0, 1.0],
+            outcome_space=os,
+            reserved_value=0.1,
+        )
+        sc = Scenario(outcome_space=os, ufuns=(u1, u2))
+        before = {o: (u1(o), u2(o)) for o in os.enumerate_or_sample()}
+
+        sc2 = sc.remove_dummy_issues()
+
+        # The DUMMY_ISSUE is gone; real issues (and their product) remain
+        assert [i.name for i in sc2.outcome_space.issues] == ["price", "qty"]
+        assert sc2.outcome_space.cardinality == 66
+        # Reserved values are preserved
+        assert abs(sc2.ufuns[0].reserved_value - 0.3) < 1e-9
+        assert abs(sc2.ufuns[1].reserved_value - 0.1) < 1e-9
+        # Utilities are preserved exactly (DUMMY value 0 folded into bias)
+        for (_, p, q), (b1, b2) in before.items():
+            assert abs(sc2.ufuns[0]((p, q)) - b1) < 1e-9
+            assert abs(sc2.ufuns[1]((p, q)) - b2) < 1e-9
+
+    def test_no_dummy_is_noop(self):
+        issues = (make_issue(5), make_issue(4))
+        os = make_os(issues)
+        u = LinearUtilityFunction(weights=[1.0, 1.0], outcome_space=os)
+        sc = Scenario(outcome_space=os, ufuns=(u, u))
+        sc2 = sc.remove_dummy_issues()
+        assert sc2.outcome_space.cardinality == os.cardinality
+        assert [i.name for i in sc2.outcome_space.issues] == list(os.issue_names)
+
+
 if __name__ == "__main__":
     pytest.main([__file__, "-v"])

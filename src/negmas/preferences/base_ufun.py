@@ -25,7 +25,7 @@ from negmas.warnings import warn_if_slow
 from .preferences import Preferences
 from .protocols import InverseUFun, ParetoSampler
 from .stability import Stability
-from .value_fun import make_fun_from_xml
+from .value_fun import ConstFun, make_fun_from_xml
 
 if TYPE_CHECKING:
     from negmas.preferences import (
@@ -1270,10 +1270,7 @@ class BaseUtilityFunction(Preferences, ABC):
 
         """
         from negmas.preferences.complex import WeightedUtilityFunction
-        from negmas.preferences.crisp.linear import (
-            AffineUtilityFunction,
-            LinearAdditiveUtilityFunction,
-        )
+        from negmas.preferences.crisp.linear import LinearAdditiveUtilityFunction
         from negmas.preferences.crisp.nonlinear import HyperRectangleUtilityFunction
 
         root = ET.fromstring(xml_str)
@@ -1472,25 +1469,37 @@ class BaseUtilityFunction(Preferences, ABC):
         u = None
         if len(found_issues) > 0:
             if all_numeric:
-                slopes, biases, ws = [], [], []
+                # Keep the per-issue value functions instead of folding their
+                # slope/bias into the weights. Folding turned every numeric ufun
+                # into an ``AffineUtilityFunction`` with identity value functions;
+                # for a *normalized* continuous ufun that destroyed the canonical
+                # form on reload (a decreasing value function has a negative
+                # normalized slope, so ``weight *= slope`` produced negative
+                # weights that no longer summed to 1). Preserving the value
+                # function of a ``LinearAdditiveUtilityFunction`` reproduces the
+                # exact same utilities while keeping the weights/value functions in
+                # canonical form, so continuous linear ufuns round-trip through
+                # genius XML (and, via conversion, YAML).
+                values, ws = [], []
                 for key in (_.name for _ in issues):
                     if key in found_issues:
-                        slopes.append(found_issues[key].slope)
-                        biases.append(found_issues[key].bias)
+                        values.append(found_issues[key])
+                        ws.append(weights.get(key, 1.0))
                     else:
-                        slopes.append(0.0)
-                        biases.append(0.0)
-                    ws.append(weights.get(key, 1.0))
-                bias = 0.0
-                for b, w in zip(biases, ws):
-                    bias += b * w
-                for i, s in enumerate(slopes):
-                    ws[i] *= s
+                        # An issue not mentioned in the ufun contributes nothing.
+                        # The legacy fold gave it ``slope = 0`` so its effective
+                        # weight was 0; keep that (weight 0 + constant value)
+                        # rather than the default weight 1, so a placeholder issue
+                        # (e.g. the lenient-parsing DUMMY_ISSUE) neither shifts the
+                        # utility nor claims a share of the normalized weight sum.
+                        values.append(ConstFun(0.0))
+                        ws.append(0.0)
 
-                u = AffineUtilityFunction(
+                u = LinearAdditiveUtilityFunction(
+                    values=values,
                     weights=ws,
                     outcome_space=make_os(ordered_issues),
-                    bias=bias + global_bias,
+                    bias=global_bias,
                 )
             else:
                 u = LinearAdditiveUtilityFunction(
