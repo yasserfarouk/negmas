@@ -305,11 +305,10 @@ class TestAffineReservedValueHandling:
         # Normalize to [0, 1]
         normalized = u.normalize_for(to=(0.0, 1.0))
 
-        # TODO: AffineUtilityFunction.normalize_for doesn't transform reserved values yet
-        # Reserved value 15 should map to (15-10)/(19-10) = 5/9
-        # expected_reserved = (15.0 - 10.0) / (19.0 - 10.0)
-        # For now, it's not transformed (remains default -inf)
-        assert normalized.reserved_value == float("-inf")
+        # The reserved value undergoes the same affine map as the utilities
+        # (r' = a*r + c). Reserved value 15 maps to (15-10)/(19-10) = 5/9.
+        expected_reserved = (15.0 - 10.0) / (19.0 - 10.0)
+        assert abs(normalized.reserved_value - expected_reserved) < 1e-6
 
     def test_reserved_value_below_range(self):
         """Test reserved value below utility range."""
@@ -321,11 +320,9 @@ class TestAffineReservedValueHandling:
         )
         normalized = u.normalize_for(to=(0.0, 1.0))
 
-        # TODO: AffineUtilityFunction.normalize_for doesn't transform reserved values yet
-        # Reserved value 0 should map to (0-10)/(19-10) = -10/9
-        # expected_reserved = (0.0 - 10.0) / (19.0 - 10.0)
-        # For now, it's not transformed (remains default -inf)
-        assert normalized.reserved_value == float("-inf")
+        # Reserved value 0 (below the range) maps to (0-10)/(19-10) = -10/9.
+        expected_reserved = (0.0 - 10.0) / (19.0 - 10.0)
+        assert abs(normalized.reserved_value - expected_reserved) < 1e-6
 
     def test_reserved_value_above_range(self):
         """Test reserved value above utility range."""
@@ -335,11 +332,9 @@ class TestAffineReservedValueHandling:
         u = LinearUtilityFunction(weights=[1.0], issues=issues, reserved_value=20.0)
         normalized = u.normalize_for(to=(0.0, 1.0))
 
-        # TODO: LinearUtilityFunction.normalize_for doesn't transform reserved values yet
-        # Reserved value 20 should map to (20-0)/(9-0) = 20/9
-        # expected_reserved = 20.0 / 9.0
-        # For now, it's not transformed (remains default -inf)
-        assert normalized.reserved_value == float("-inf")
+        # Reserved value 20 (above the range) maps to (20-0)/(9-0) = 20/9.
+        expected_reserved = 20.0 / 9.0
+        assert abs(normalized.reserved_value - expected_reserved) < 1e-6
 
 
 class TestConstantFunctionEdgeCases:
@@ -479,3 +474,41 @@ class TestScenarioNormalization:
 
 if __name__ == "__main__":
     pytest.main([__file__, "-v"])
+
+
+class TestAffineNormalizeToUnitUsesMethod3:
+    """Affine.normalize_for((0,1)) delegates to LinearAdditive Method 3."""
+
+    def test_unit_range_returns_linear_additive_method3(self):
+        from negmas.preferences import (
+            AffineUtilityFunction,
+            LinearAdditiveUtilityFunction,
+        )
+
+        issues = (make_issue(10),)
+        u = AffineUtilityFunction(
+            weights=[1.0], bias=10.0, issues=issues, reserved_value=15.0
+        )
+        before = [u(o) for o in u.outcome_space.enumerate_or_sample()]
+        n = u.normalize_for(to=(0.0, 1.0))
+
+        # canonical Method-3 form: LinearAdditive, weights sum to 1, no bias
+        assert isinstance(n, LinearAdditiveUtilityFunction)
+        assert abs(sum(n.weights) - 1.0) < 1e-6
+        # values and reserved are the same affine image as before
+        after = [n(o) for o in n.outcome_space.enumerate_or_sample()]
+        assert abs(min(after)) < 1e-6 and abs(max(after) - 1.0) < 1e-6
+        assert abs(n.reserved_value - 5.0 / 9.0) < 1e-6
+        # order preserved
+        assert [i for i, _ in sorted(enumerate(before), key=lambda t: t[1])] == [
+            i for i, _ in sorted(enumerate(after), key=lambda t: t[1])
+        ]
+
+    def test_non_unit_range_keeps_affine_representation(self):
+        from negmas.preferences import AffineUtilityFunction, LinearUtilityFunction
+
+        issues = (make_issue(10),)
+        u = AffineUtilityFunction(weights=[1.0], bias=10.0, issues=issues)
+        n = u.normalize_for(to=(0.0, 10.0))
+        # a non-[0,1] target keeps the direct affine map (not Method 3)
+        assert isinstance(n, (AffineUtilityFunction, LinearUtilityFunction))

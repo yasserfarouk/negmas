@@ -713,9 +713,16 @@ class IdentityFun(BaseFun):
         """Return the issue's min and max values directly."""
         return (input.min_value, input.max_value)
 
-    def shift_by(self, offset: float) -> ConstFun:
-        """Return a ConstFun with the given offset as bias."""
-        return ConstFun(bias=offset)
+    def shift_by(self, offset: float) -> AffineFun:
+        """Return f(x) = x + offset as an AffineFun (slope 1).
+
+        Note:
+            Returning ``ConstFun(bias=offset)`` here would collapse the identity
+            map to a constant, dropping the issue's contribution during
+            normalization (the overall maximum would fall below 1). The shift of
+            ``f(x) = x`` by ``offset`` is ``f(x) = x + offset``, i.e. slope 1.
+        """
+        return AffineFun(slope=1.0, bias=offset)
 
     def scale_by(self, scale: float) -> LinearFun:
         """Return a LinearFun with the given scale as slope."""

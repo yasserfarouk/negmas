@@ -92,11 +92,16 @@ class TestIdentityFun:
         assert mx == 10.0
 
     def test_shift_by(self):
-        """Shifting returns a ConstFun."""
+        """Shifting f(x)=x by c returns f(x)=x+c (AffineFun, slope 1)."""
         f = IdentityFun()
         f2 = f.shift_by(3.0)
-        assert isinstance(f2, ConstFun)
+        assert isinstance(f2, AffineFun)
+        assert f2.slope == 1.0
         assert f2.bias == 3.0
+        # The map must stay dependent on x (not collapse to a constant).
+        assert f2(0.0) == 3.0
+        assert f2(5.0) == 8.0
+        assert f2(-2.0) == 1.0
 
     def test_scale_by(self):
         """Scaling returns a LinearFun."""

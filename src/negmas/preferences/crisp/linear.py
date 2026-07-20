@@ -18,6 +18,7 @@ from negmas.outcomes.protocols import IndependentIssuesOS, OutcomeSpace
 from negmas.preferences.protocols import SingleIssueFun
 from negmas.serialization import PYTHON_CLASS_IDENTIFIER, deserialize, serialize
 
+from ..base_ufun import NORMALIZE_EPS
 from ..crisp_ufun import UtilityFunction
 from ..value_fun import IdentityFun, LambdaFun, TableFun
 
@@ -415,7 +416,12 @@ class AffineUtilityFunction(UtilityFunction):
         guarantee_max: bool = True,
         guarantee_min: bool = True,
         max_cardinality: int = 10_000_000_000,
-    ) -> ConstUtilityFunction | AffineUtilityFunction | LinearUtilityFunction:
+    ) -> (
+        ConstUtilityFunction
+        | AffineUtilityFunction
+        | LinearUtilityFunction
+        | LinearAdditiveUtilityFunction
+    ):
         """
         Creates a new utility function that is normalized based on input conditions.
 
@@ -438,7 +444,7 @@ class AffineUtilityFunction(UtilityFunction):
             - These classes compute exact min/max analytically without sampling, so max_cardinality
               is also ignored.
         """
-        epsilon: float = 1e-8
+        epsilon: float = NORMALIZE_EPS
         if outcome_space is None:
             outcome_space = self.outcome_space
 
@@ -455,6 +461,40 @@ class AffineUtilityFunction(UtilityFunction):
         if sum(abs(w) for w in self._weights) < epsilon:
             raise ValueError(
                 "Cannot normalize a ufun with zero weights to have a non-zero range"
+            )
+
+        # Normalizing to [0, 1] is done via the LinearAdditive Method 3 canonical
+        # form (weights summing to 1, zero bias, per-issue value functions in
+        # [0, 1]). An affine ufun has implicit identity value functions, so it is
+        # a LinearAdditive in disguise; Method 3's canonical form round-trips
+        # faithfully to Genius XML (which has no bias field), while the plain
+        # affine map below can leave a non-zero bias that shifts the range on
+        # reload. Other target ranges keep the simple affine map (Method 3 only
+        # targets [0, 1]). Degenerate (constant) ufuns are excluded here so they
+        # fall through to the endpoint-by-reserved constant handling below (Q1),
+        # consistent with the shared funnel. See docs/normalization.rst.
+        if (
+            to[0] is not None
+            and to[1] is not None
+            and abs(to[0]) < epsilon
+            and abs(to[1] - 1.0) < epsilon
+            and abs(mx - mn) >= epsilon
+        ):
+            equivalent = LinearAdditiveUtilityFunction(
+                values=[v for v in self._values],
+                weights=list(self._weights),
+                bias=self._bias,
+                outcome_space=outcome_space,
+                name=self.name,
+                reserved_value=self.reserved_value,
+                constraints=self._constraints,
+            )
+            return equivalent.normalize_for(
+                to,
+                outcome_space=outcome_space,
+                guarantee_max=guarantee_max,
+                guarantee_min=guarantee_min,
+                max_cardinality=max_cardinality,
             )
 
         if abs(mx - to[1]) < epsilon and abs(mn - to[0]) < epsilon:
@@ -480,11 +520,17 @@ class AffineUtilityFunction(UtilityFunction):
             )
         bias = to[1] - scale * mx + self._bias * scale
         weights = [_ * scale for _ in self._weights]
+        # The normalized ufun is the affine image u' = scale * u + c with
+        # c = to[1] - scale * mx. The reserved value must undergo the same map
+        # (guarantee #2 in docs/normalization.rst: r' = a * r + c) so the
+        # relative position of the reservation w.r.t. outcomes is preserved.
+        reserved = self.reserved_value * scale + (to[1] - scale * mx)
         if abs(bias) < epsilon:
             return LinearUtilityFunction(
                 weights,
                 outcome_space=outcome_space,
                 name=self.name,
+                reserved_value=reserved,
                 constraints=self._constraints,
             )
         return AffineUtilityFunction(
@@ -492,12 +538,18 @@ class AffineUtilityFunction(UtilityFunction):
             bias,
             outcome_space=outcome_space,
             name=self.name,
+            reserved_value=reserved,
             constraints=self._constraints,
         )
 
     def normalize(
         self, to: tuple[float, float] = (0.0, 1.0), normalize_weights: bool = False
-    ) -> ConstUtilityFunction | AffineUtilityFunction | LinearUtilityFunction:
+    ) -> (
+        ConstUtilityFunction
+        | AffineUtilityFunction
+        | LinearUtilityFunction
+        | LinearAdditiveUtilityFunction
+    ):
         """Normalize utility values to a specified range using the current outcome space.
 
         Args:
@@ -1113,6 +1165,41 @@ class LinearAdditiveUtilityFunction(UtilityFunction):  # type: ignore
             **kwargs,
         )
         return ufun
+
+    def normalize(
+        self,
+        to: tuple[float, float] = (0.0, 1.0),
+        normalize_weights: bool = False,
+        normalize_reserved_values: bool = False,
+        reserved_value_penalty: float | None = None,
+        guarantee_max: bool = True,
+        guarantee_min: bool = True,
+        max_cardinality: int = 10_000_000_000,
+    ) -> LinearAdditiveUtilityFunction | ConstUtilityFunction:
+        """Normalize over the ufun's own outcome space.
+
+        Delegates to :meth:`normalize_for` so that ``normalize`` and
+        ``normalize_for`` share the same analytic (weights-summing-to-one)
+        canonicalization (Method 3, see docs/normalization.rst) instead of
+        falling back to the generic sampling-based scaling inherited from the
+        base class.
+        """
+        _ = normalize_weights
+        if normalize_reserved_values:
+            from negmas.preferences.ops import correct_reserved_value
+
+            corrected_rv, was_corrected = correct_reserved_value(
+                self.reserved_value, self, eps=reserved_value_penalty, warn=True
+            )
+            if was_corrected:
+                self.reserved_value = corrected_rv
+        return self.normalize_for(
+            to,
+            outcome_space=self.outcome_space,
+            guarantee_max=guarantee_max,
+            guarantee_min=guarantee_min,
+            max_cardinality=max_cardinality,
+        )
 
     def normalize_for(
         self,

@@ -39,6 +39,17 @@ __all__ = ["BaseUtilityFunction"]
 
 
 MAX_CARDINALITY = 10_000_000_000
+
+#: Range below which a ufun is treated as constant (degenerate) during
+#: normalization. Chosen safely above floating-point noise in sampled min/max
+#: yet below any meaningful utility range. Shared by the normalization funnel
+#: and the analytic linear overrides (see docs/normalization.rst).
+NORMALIZE_EPS = 1e-10
+
+#: Tolerance for deciding a ufun is *already* normalized to the target range
+#: (the early-skip in the funnel). Looser than NORMALIZE_EPS on purpose.
+NORMALIZED_TOLERANCE = 1e-6
+
 T = TypeVar("T", bound="BaseUtilityFunction")
 
 
@@ -661,17 +672,20 @@ class BaseUtilityFunction(Preferences, ABC):
 
         Returns:
             A new normalized utility function. Returns a ConstUtilityFunction if the
-            original range is too small (< 1e-7).
+            original range is degenerate (< NORMALIZE_EPS).
 
         Raises:
             ValueError: If no outcome space is provided or defined for the ufun.
 
         Remarks:
-            - This base implementation always guarantees both min and max, so the
-              guarantee_max and guarantee_min parameters are ignored.
-            - Subclasses like LinearAdditiveUtilityFunction use these parameters to
-              control whether strict guarantees are enforced at the cost of potentially
-              non-uniform weight scaling.
+            - This is a thin wrapper around :meth:`normalize_all_for` (the single
+              normalization funnel shared by every ufun type). With the default
+              ``guarantee_min=True`` and ``guarantee_max=True`` the result is
+              stretched to exactly ``[to[0], to[1]]``; passing
+              ``guarantee_min=False`` only guarantees the maximum and leaves the
+              minimum anywhere ``>= to[0]``.
+            - Subclasses like LinearAdditiveUtilityFunction and AffineUtilityFunction
+              override this with an analytic (closed-form) implementation.
             - If normalize_reserved_values is True, any non-finite reserved value will be
               corrected to ufun.min() - penalty before normalization.
         """
@@ -692,23 +706,18 @@ class BaseUtilityFunction(Preferences, ABC):
                 "Cannot find the outcome-space to normalize for. "
                 "You must pass outcome_space, issues or outcomes or have the ufun being constructed with one of them"
             )
-        mn, mx = self.minmax(outcome_space, max_cardinality=max_cardinality)
-
-        d = float(mx - mn)
-        if d < 1e-7:
-            from negmas.preferences.crisp.const import ConstUtilityFunction
-
-            return ConstUtilityFunction(
-                to[0] if mx < self.reserved_value else to[1],
-                outcome_space=self.outcome_space,
-                name=self.name,
-                reserved_value=to[1] if mn < self.reserved_value else to[0],
-            )
-
-        scale = float(to[1] - to[0]) / d
-
-        u = self.scale_by(scale, scale_reserved=True)
-        return u.shift_by(to[0] - scale * mn, shift_reserved=True)
+        # Single funnel: delegate to normalize_all_for so that every ufun type
+        # shares one normalization implementation (degenerate handling, epsilon
+        # policy, scale/shift). Linear ufuns override this method with a faster
+        # analytic path instead. See docs/normalization.rst.
+        return type(self).normalize_all_for(
+            (self,),
+            to=to,
+            outcome_space=outcome_space,
+            guarantee_max=guarantee_max,
+            guarantee_min=guarantee_min,
+            max_cardinality=max_cardinality,
+        )[0]
 
     def normalize(
         self: T,
@@ -716,6 +725,9 @@ class BaseUtilityFunction(Preferences, ABC):
         normalize_weights: bool = False,
         normalize_reserved_values: bool = False,
         reserved_value_penalty: float | None = None,
+        guarantee_max: bool = True,
+        guarantee_min: bool = True,
+        max_cardinality: int = MAX_CARDINALITY,
     ) -> T | ConstUtilityFunction:
         """Normalize utilities to the target range over the ufun's outcome space.
 
@@ -726,15 +738,23 @@ class BaseUtilityFunction(Preferences, ABC):
                 Defaults to False.
             reserved_value_penalty: Penalty to subtract from ufun.min() when correcting reserved values.
                 If None, uses DEFAULT_RESERVED_VALUE_PENALTY from negmas.common.
+            guarantee_max: If True (default), ensures the maximum utility equals to[1].
+            guarantee_min: If True (default), ensures the minimum utility equals to[0].
+                With both defaults the result is stretched to exactly [to[0], to[1]]
+                (backward-compatible behavior). Passing guarantee_min=False only
+                guarantees the maximum and leaves the minimum anywhere >= to[0].
+            max_cardinality: Maximum number of outcomes to consider when normalizing.
 
         Returns:
             A new normalized utility function. Returns a ConstUtilityFunction if the
-            original range is too small (< 1e-8).
+            original range is degenerate (< NORMALIZE_EPS).
 
         Raises:
             ValueError: If the ufun has no outcome space defined.
 
         Remarks:
+            - This is a thin wrapper around :meth:`normalize_all_for` (the single
+              normalization funnel shared by every ufun type).
             - If normalize_reserved_values is True, any non-finite reserved value will be
               corrected to ufun.min() - penalty before normalization.
         """
@@ -750,25 +770,17 @@ class BaseUtilityFunction(Preferences, ABC):
             if was_corrected:
                 self.reserved_value = corrected_rv
 
-        from negmas.preferences import ConstUtilityFunction
-
         if self.outcome_space is None:
             raise ValueError("Cannot normalize a ufun without an outcome-space")
-        mn, mx = self.minmax(self.outcome_space, max_cardinality=MAX_CARDINALITY)
-
-        d = float(mx - mn)
-        if d < 1e-8:
-            return ConstUtilityFunction(
-                to[0] if mx < self.reserved_value else to[1],
-                name=self.name,
-                reserved_value=to[1] if mn < self.reserved_value else to[0],
-            )
-
-        scale = float(to[1] - to[0]) / d
-
-        # u = self.shift_by(-mn, shift_reserved=True)
-        u = self.scale_by(scale, scale_reserved=True)
-        return u.shift_by(to[0] - scale * mn, shift_reserved=True)
+        # Single funnel: delegate to normalize_all_for over the ufun's own space.
+        return type(self).normalize_all_for(
+            (self,),
+            to=to,
+            outcome_space=self.outcome_space,
+            guarantee_max=guarantee_max,
+            guarantee_min=guarantee_min,
+            max_cardinality=max_cardinality,
+        )[0]
 
     @classmethod
     def normalize_all_for(
@@ -829,7 +841,10 @@ class BaseUtilityFunction(Preferences, ABC):
         from negmas.preferences.crisp.const import ConstUtilityFunction
         from negmas.preferences.discounted import DiscountedUtilityFunction
 
-        epsilon = 1e-8
+        # Degenerate-range cutoff (constant ufun) vs the looser "already
+        # normalized" tolerance used for the early-skip / within-limits checks.
+        degenerate_eps = NORMALIZE_EPS
+        epsilon = NORMALIZED_TOLERANCE
 
         # Handle discounted utility functions recursively
         roots, parents, children = [], [], []
@@ -893,7 +908,7 @@ class BaseUtilityFunction(Preferences, ABC):
 
         # Find common scale
         d = float(mx - mn)
-        if d < epsilon:
+        if d < degenerate_eps:
             # All ufuns are constant - map to to[0] or to[1] based on reserved value
             return tuple(
                 ConstUtilityFunction(
@@ -932,11 +947,11 @@ class BaseUtilityFunction(Preferences, ABC):
                 results.append(u)
                 continue
 
-            # If the minimum is negative, shift everything up to make the minimum zero
-            if mymn < 0:
-                u, mymn = u.shift_by(-mymn, shift_reserved=True), 0.0
-
-            # Scale everything to have a range of myto[1] - myto[0]
+            # Scale everything by the shared factor so utilities stay
+            # comparable across ufuns, then shift to align with the target
+            # range. (We must NOT pre-shift by -mymn here: that would change the
+            # maximum while the final shift below still uses the original mymx,
+            # pushing the result outside `to`.)
             scale = float(myto[1] - myto[0]) / d
             u = u.scale_by(scale, scale_reserved=True)
 
