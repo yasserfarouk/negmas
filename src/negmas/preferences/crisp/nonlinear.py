@@ -2,6 +2,7 @@
 
 from __future__ import annotations
 
+import math
 from typing import Callable, Iterable
 
 from negmas.generics import GenericMapping, gmap, ikeys
@@ -191,6 +192,29 @@ class NonLinearAggregationUtilityFunction(UtilityFunction):
         return self.f(u)
 
 
+def _coerce_ranges(outcome_range):
+    """Restore ``(min, max)`` range *tuples* inside an outcome-range dict.
+
+    Serialization formats such as YAML/JSON turn tuples into lists, which
+    ``outcome_in_range`` would misread as a *discrete value set* rather than a
+    numeric range (``[4.0, 9.0]`` -> "value must be 4 or 9" instead of
+    "4 <= value <= 9"). This converts any two-element numeric list back to a
+    tuple (recursing into lists of sub-ranges), leaving genuine value sets and
+    scalars untouched.
+    """
+    if outcome_range is None:
+        return None
+
+    def as_range(v):
+        if isinstance(v, (list, tuple)):
+            if len(v) == 2 and all(isinstance(x, (int, float)) for x in v):
+                return (v[0], v[1])
+            return [as_range(x) for x in v]
+        return v
+
+    return {k: as_range(outcome_range[k]) for k in outcome_range}
+
+
 class HyperRectangleUtilityFunction(UtilityFunction):
     r"""A utility function defined as a set of hyper-volumes.
 
@@ -334,7 +358,7 @@ class HyperRectangleUtilityFunction(UtilityFunction):
             **kwargs: Additional keyword arguments passed to parent class.
         """
         super().__init__(*args, **kwargs)
-        self.outcome_ranges = list(outcome_ranges)
+        self.outcome_ranges = [_coerce_ranges(r) for r in outcome_ranges]
         self.mappings = list(utilities)
         self.weights = list(weights) if weights else ([1.0] * len(self.outcome_ranges))
         self.ignore_issues_not_in_input = ignore_issues_not_in_input
@@ -481,6 +505,7 @@ class HyperRectangleUtilityFunction(UtilityFunction):
                 self.mappings, python_class_identifier=python_class_identifier
             ),
             weights=self.weights,
+            bias=self.bias,
             ignore_issues_not_in_input=self.ignore_issues_not_in_input,
             ignore_failing_range_utilities=self.ignore_failing_range_utilities,
         )
@@ -497,10 +522,11 @@ class HyperRectangleUtilityFunction(UtilityFunction):
             A new HyperRectangleUtilityFunction instance.
         """
         d.pop(python_class_identifier, None)
-        for k in ("oucome_ranges", "utilities"):
-            d[k] = deserialize(
-                d.get(k, None), python_class_identifier=python_class_identifier
-            )
+        for k in ("outcome_ranges", "utilities"):
+            if k in d:
+                d[k] = deserialize(
+                    d.get(k, None), python_class_identifier=python_class_identifier
+                )
         return cls(**d)
 
     def eval(self, offer: Outcome | None) -> float:
@@ -546,6 +572,176 @@ class HyperRectangleUtilityFunction(UtilityFunction):
                         return float("nan")
 
         return u
+
+    # -- range normalization without enumerating the outcome space ------------
+    def _box_bounds(self) -> list[dict]:
+        """Each rectangle as ``{issue_index: (lo, hi)}`` (scalars -> (v, v))."""
+        boxes = []
+        for rect in self.outcome_ranges:
+            b = {}
+            if rect:
+                for k in ikeys(rect):
+                    v = rect[k]
+                    if isinstance(v, (tuple, list)) and len(v) == 2:
+                        b[k] = (min(v), max(v))
+                    else:
+                        b[k] = (v, v)
+            boxes.append(b)
+        return boxes
+
+    def _range_extremes(self) -> tuple[float, float]:
+        """Exact ``(min, max)`` utility over the whole outcome space.
+
+        The utility an outcome receives depends only on which axis-aligned
+        rectangles contain it. By Helly's theorem for boxes, a set of rectangles
+        has a common outcome iff they pairwise overlap, so the achievable utility
+        offsets are exactly the total weights of *cliques* in the rectangle-overlap
+        graph. The maximum is therefore ``bias + max-weight clique`` (over
+        positive-contribution rectangles) and the minimum ``bias + max-weight
+        clique`` over negative ones -- found without enumerating outcomes.
+
+        Requires constant per-rectangle utilities; raises ``ValueError`` otherwise.
+        """
+        import networkx as nx
+
+        contribs = []
+        for w, m in zip(self.weights, self.mappings):
+            if not isinstance(m, (int, float)):
+                raise ValueError(
+                    "Range-normalization requires constant per-rectangle utilities"
+                )
+            contribs.append(float(w) * float(m))
+        boxes = self._box_bounds()
+        n = len(boxes)
+
+        def compatible(i: int, j: int) -> bool:
+            a, b = boxes[i], boxes[j]
+            for k in a.keys() & b.keys():
+                if max(a[k][0], b[k][0]) > min(a[k][1], b[k][1]):
+                    return False
+            return True
+
+        scale = 10**6
+
+        def best_offset(sign: int) -> float:
+            nodes = [i for i in range(n) if sign * contribs[i] > 0]
+            if not nodes:
+                return 0.0
+            g = nx.Graph()
+            for i in nodes:
+                g.add_node(i, weight=max(1, round(sign * contribs[i] * scale)))
+            for a_ in range(len(nodes)):
+                for b_ in range(a_ + 1, len(nodes)):
+                    if compatible(nodes[a_], nodes[b_]):
+                        g.add_edge(nodes[a_], nodes[b_])
+            clique, _ = nx.max_weight_clique(g, weight="weight")
+            return sum(contribs[i] for i in clique)
+
+        return self.bias + best_offset(-1), self.bias + best_offset(+1)
+
+    def minmax(
+        self,
+        outcome_space=None,
+        issues=None,
+        outcomes=None,
+        max_cardinality=1000,
+        above_reserve=False,
+    ) -> tuple[float, float]:
+        """Exact ``(min, max)`` via the rectangle-overlap clique (no enumeration).
+
+        Falls back to the base implementation when an explicit set of ``outcomes``
+        is supplied or the per-rectangle utilities are non-constant.
+        """
+        if outcomes is None:
+            try:
+                w, b = self._range_extremes()
+            except ValueError:
+                return super().minmax(
+                    outcome_space, issues, outcomes, max_cardinality, above_reserve
+                )
+            if above_reserve and self.reserved_value is not None:
+                r = self.reserved_value
+                if b < r:
+                    b = w = r
+                elif w < r:
+                    w = r
+            return w, b
+        return super().minmax(
+            outcome_space, issues, outcomes, max_cardinality, above_reserve
+        )
+
+    def normalize_for(
+        self,
+        to: tuple[float, float] = (0.0, 1.0),
+        outcome_space=None,
+        guarantee_max: bool = True,
+        guarantee_min: bool = True,
+        max_cardinality: int = 10_000_000_000,
+        normalize_reserved_values: bool = False,
+        reserved_value_penalty=None,
+    ):
+        """Affinely range-normalize this hyper-rectangle ufun to ``to``.
+
+        Uses :meth:`_range_extremes` (exact, no enumeration) to build the affine
+        map ``u' = a*u + c``, applied by scaling the per-rectangle weights and the
+        bias; the reserved value undergoes the same map. This preserves the shape
+        of the ufun and maps it onto ``to`` (conditions 1-4). It is **not** the
+        linear-additive Method 3: a non-linear ufun has no per-issue weights/value
+        functions, so conditions 5-8 do not apply.
+        """
+        _ = (
+            max_cardinality,
+            guarantee_max,
+            guarantee_min,
+            normalize_reserved_values,
+            reserved_value_penalty,
+        )
+        from negmas.preferences.crisp.const import ConstUtilityFunction
+
+        os_ = outcome_space if outcome_space is not None else self.outcome_space
+        eps = 1e-9
+        mn, mx = self._range_extremes()
+        if abs(mx - mn) < eps:
+            return ConstUtilityFunction(
+                (to[0] + to[1]) / 2.0,
+                outcome_space=os_,
+                name=self.name,
+                reserved_value=self.reserved_value,
+            )
+        a = (to[1] - to[0]) / (mx - mn)
+        c = to[0] - a * mn
+        r = self.reserved_value
+        new_r = a * r + c if (r is not None and math.isfinite(r)) else r
+        return HyperRectangleUtilityFunction(
+            outcome_ranges=self.outcome_ranges,
+            utilities=self.mappings,
+            weights=[a * w for w in self.weights],
+            bias=a * self.bias + c,
+            ignore_issues_not_in_input=self.ignore_issues_not_in_input,
+            ignore_failing_range_utilities=self.ignore_failing_range_utilities,
+            outcome_space=os_,
+            name=self.name,
+            reserved_value=new_r,
+        )
+
+    def normalize(
+        self,
+        to: tuple[float, float] = (0.0, 1.0),
+        normalize_weights: bool = False,
+        normalize_reserved_values: bool = False,
+        reserved_value_penalty=None,
+        guarantee_max: bool = True,
+        guarantee_min: bool = True,
+        max_cardinality: int = 10_000_000_000,
+    ):
+        _ = (normalize_weights, normalize_reserved_values, reserved_value_penalty)
+        return self.normalize_for(
+            to,
+            outcome_space=self.outcome_space,
+            guarantee_max=guarantee_max,
+            guarantee_min=guarantee_min,
+            max_cardinality=max_cardinality,
+        )
 
 
 class NonlinearHyperRectangleUtilityFunction(UtilityFunction):
