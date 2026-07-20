@@ -25,6 +25,7 @@ etc.
     installation
     getting_started
     overview
+    tools
 
 .. toctree::
     :caption: Tutorials
@@ -50,6 +51,7 @@ etc.
     negotiators
     components
     advanced_negotiation
+    normalization
     helper_modules
 
 
