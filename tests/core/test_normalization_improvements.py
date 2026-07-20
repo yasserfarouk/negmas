@@ -372,15 +372,16 @@ class TestConstantFunctionEdgeCases:
         assert abs(normalized((0,)) - 2.0) < 1e-6
 
     def test_affine_becomes_constant(self):
-        """Test AffineUtilityFunction that becomes constant after detecting zero weights."""
+        """An affine ufun with zero weights is constant -> ConstUtilityFunction."""
         issues = (make_issue(10),)
 
-        # Weights sum to nearly zero
+        # Weights are zero, so the ufun is constant (== bias)
         u = AffineUtilityFunction(weights=[0.0], bias=7.0, issues=issues)
 
-        # This should raise an error because zero weights cannot be normalized
-        with pytest.raises(ValueError, match="zero weights"):
-            u.normalize_for(to=(0.0, 1.0))
+        # A constant ufun normalizes to an endpoint ConstUtilityFunction (not an error)
+        normalized = u.normalize_for(to=(0.0, 1.0))
+        assert isinstance(normalized, ConstUtilityFunction)
+        assert 0.0 - 1e-9 <= normalized((0,)) <= 1.0 + 1e-9
 
 
 class TestScenarioNormalization:

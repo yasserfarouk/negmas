@@ -316,25 +316,27 @@ class TestLinearAdditiveNormalization:
 class TestEdgeCases:
     """Test edge cases and boundary conditions."""
 
-    def test_normalize_zero_range_raises_error(self):
-        """Test that ufun with zero range cannot be normalized to non-zero range."""
+    def test_normalize_zero_range_becomes_constant(self):
+        """A zero-range (constant) ufun normalizes to an endpoint ConstUtilityFunction."""
         issues = (make_issue(10),)
         u = LinearUtilityFunction(weights=[0.0], issues=issues)  # Always returns 0
 
         mn, mx = u.minmax()
         assert abs(mx - mn) < 1e-6
 
-        # Cannot normalize a zero-range ufun to a non-zero range
-        with pytest.raises(ValueError, match="zero weights"):
-            u.normalize(to=(0.0, 1.0))
+        # A constant ufun normalizes to a constant (endpoint-by-reserved), not an error
+        normalized = u.normalize(to=(0.0, 1.0))
+        assert isinstance(normalized, ConstUtilityFunction)
+        assert 0.0 - 1e-9 <= normalized((0,)) <= 1.0 + 1e-9
 
-    def test_affine_zero_weights_raises_error(self):
-        """Test that affine with zero weights can't be normalized to non-zero range."""
+    def test_affine_zero_weights_becomes_constant(self):
+        """An affine ufun with zero weights (constant) normalizes to a ConstUtilityFunction."""
         issues = (make_issue(10),)
         u = AffineUtilityFunction(weights=[0.0], bias=5.0, issues=issues)
 
-        with pytest.raises(ValueError, match="zero weights"):
-            u.normalize_for(to=(0.0, 1.0))
+        normalized = u.normalize_for(to=(0.0, 1.0))
+        assert isinstance(normalized, ConstUtilityFunction)
+        assert 0.0 - 1e-9 <= normalized((0,)) <= 1.0 + 1e-9
 
     def test_normalize_already_normalized(self):
         """Test normalizing an already normalized function."""

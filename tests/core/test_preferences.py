@@ -734,16 +734,20 @@ def test_can_normalize_affine_and_linear_ufun(weights, bias, rng):
     outcomes = enumerate_issues(issues)
     u1 = [ufun(w) for w in outcomes]
 
-    if (sum(weights) > 1e-6 and rng == (0.0, float("inf"))) or (
-        # Only a ufun whose linear part is *entirely* zero (every weight ~ 0)
-        # is unnormalizable to a non-zero range; negative/negative-leaning
-        # weights still have a valid non-zero range and normalize fine.
-        # Mirrors AffineUtilityFunction.normalize_for's guard.
+    if (
+        # A ufun whose linear part is *entirely* zero (every weight ~ 0) is
+        # constant; normalizing it to a finite range yields an
+        # endpoint-by-reserved ConstUtilityFunction (it does NOT raise).
         sum(abs(w) for w in weights) < 1e-6
         and rng[1] > rng[0] + 1e-6
         and rng[0] != float("-inf")
         and rng[1] != float("inf")
     ):
+        nfun = ufun.normalize(rng)
+        assert isinstance(nfun, ConstUtilityFunction), type(nfun).__name__
+        assert rng[0] - 1e-6 <= nfun(outcomes[0]) <= rng[1] + 1e-6
+        return
+    if sum(weights) > 1e-6 and rng == (0.0, float("inf")):
         with pytest.raises(ValueError):
             nfun = ufun.normalize(rng)
         return
