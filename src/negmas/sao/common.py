@@ -14,6 +14,9 @@ from negmas.gb.common import GBState, ResponseType, ExtendedResponseType
 from negmas.outcomes.common import ExtendedOutcome
 
 if TYPE_CHECKING:
+    import pandas as pd
+
+    from negmas.common import TraceElement
     from negmas.outcomes import Outcome
     from negmas.sao.negotiators.base import SAONegotiator
 
@@ -242,6 +245,36 @@ class SAONMI(NegotiatorMechanismInterface):
             list[Outcome]: List of all outcomes proposed by this negotiator
         """
         return self._mechanism.negotiator_offers(negotiator_id)  # type: ignore
+
+    @property
+    def full_trace(self) -> list[TraceElement]:
+        """Returns the negotiation history as a list of relative_time/step/negotiator/offer tuples"""
+        return self._mechanism.full_trace  # type: ignore
+
+    @property
+    def full_trace_with_utils(self) -> list[tuple]:
+        """Returns the full trace and the utility of the negotiators at each step."""
+        return self._mechanism.full_trace_with_utils  # type: ignore
+
+    def full_trace_with_utils_df(
+        self, ufun_names: str | list[str] = "id"
+    ) -> pd.DataFrame:
+        """Returns the full trace and the utility of the negotiators at each step.
+
+        Args:
+            ufun_names: How to name utility columns. "id" (default) uses negotiator IDs
+                       for consistency with the 'negotiator' field in trace entries.
+                       "name" uses negotiator names. Can also be a list of custom names.
+        """
+        return self._mechanism.full_trace_with_utils_df(ufun_names)  # type: ignore
+
+    def negotiator_full_trace(
+        self, negotiator_id: str
+    ) -> list[
+        tuple[float, float, int, Outcome, str, str | None, dict[str, Any] | None]
+    ]:
+        """Returns the (time/relative-time/step/outcome/response/text/data) given by a negotiator (in order)"""
+        return self._mechanism.negotiator_full_trace(negotiator_id)  # type: ignore
 
 
 @lru_cache(1)
