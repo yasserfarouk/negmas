@@ -10,6 +10,7 @@ of the applied scheme (*Normalization Method 3*).
 .. contents::
     :local:
     :depth: 2
+    :class: this-will-duplicate-information-and-it-is-still-useful-here
 
 
 Why normalize?

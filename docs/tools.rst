@@ -18,6 +18,7 @@ This page is a practical, example-driven tour of four toolboxes:
 .. contents::
     :local:
     :depth: 2
+    :class: this-will-duplicate-information-and-it-is-still-useful-here
 
 Every code block on this page is self-contained and tested against the current
 API.
