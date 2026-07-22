@@ -6,6 +6,20 @@ Release 0.16.0 (dev)
 
 **Changes:**
 
+* [situated] Fixed ``World`` breaking negotiations mid-flight when
+  ``negotiation_speed`` was finite. ``_step_negotiations`` budgeted the
+  per-simulation-step negotiation allowance by counting *passes* over the
+  mechanisms instead of negotiation *rounds*. A pass is not a round: sync
+  controllers answer with ``WAIT`` until they have collected offers from all
+  their parallel negotiations (a WAIT does not advance ``state.step``), and
+  mechanisms stepped one offer at a time (``atomic_steps``) take two passes per
+  round. So even ``negotiation_speed > neg_n_steps`` could exhaust the budget
+  before a negotiation finished; the unfinished negotiation was then killed and
+  broke spuriously with ``(REJECT, None)``. The budget is now counted in rounds
+  actually advanced during the step (halved for ``atomic_steps`` mechanisms), so
+  ``negotiation_speed >= neg_n_steps`` always runs every negotiation to
+  completion within the step, matching ``negotiation_speed=None``.
+
 * [gb] Fixed ``MAPNegotiator`` silently dropping its
   ``private_info["opponent_ufun"]`` registration.  The first ``UFunModel`` among
   the negotiator's ``models`` is registered under the ``opponent_ufun`` discovery

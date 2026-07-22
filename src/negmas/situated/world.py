@@ -1928,8 +1928,26 @@ class World(
         current_step = 0
         if n_steps is None:
             n_steps = float("inf")
-        if self.negotiation_speed is not None:
-            n_steps = min(n_steps, self.negotiation_speed)
+        # `negotiation_speed` budgets the number of negotiation *rounds* granted to
+        # each mechanism per simulation step. It must NOT be folded into the pass
+        # counter `current_step`: a pass steps every mechanism once, but a pass is
+        # not a round. Sync controllers answer with WAIT until they have collected
+        # offers from all their parallel negotiations; a WAIT pass does not advance
+        # the negotiation's round (`state.step`). Mechanisms stepped one offer at a
+        # time (`atomic_steps`) need two passes per round. Counting passes therefore
+        # exhausts the budget on WAIT/atomic passes and kills negotiations mid-round
+        # even when `negotiation_speed > neg_n_steps`. Instead we cap on rounds
+        # actually advanced during THIS call. `state.step` is cumulative across
+        # simulation steps, so we measure the delta from the start of the call.
+        speed = self.negotiation_speed
+        round_start = [(m.state.step if m is not None else 0) for m in mechanisms]
+
+        def _rounds_advanced(i: int) -> int:
+            m = mechanisms[i]
+            if m is None:
+                return 0
+            delta = m.state.step - round_start[i]
+            return delta // 2 if getattr(m, "atomic_steps", False) else delta
 
         while any(running):
             if self.shuffle_negotiations:
@@ -1968,6 +1986,17 @@ class World(
                         )
             current_step += 1
             if current_step >= n_steps:
+                break
+            # WAIT-aware `negotiation_speed` cap: stop once every still-running
+            # mechanism has advanced its full per-step round budget. WAIT passes do
+            # not count (they leave `state.step` unchanged) and atomic mechanisms
+            # need two passes per round (both handled by `_rounds_advanced`). This
+            # guarantees `negotiation_speed >= neg_n_steps` runs every negotiation to
+            # completion within the step, matching `negotiation_speed is None`.
+            if speed is not None and not any(
+                running[i] and _rounds_advanced(i) < speed
+                for i in range(len(mechanisms))
+            ):
                 break
             if self.time >= self.time_limit:
                 break
