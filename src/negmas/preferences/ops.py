@@ -19,11 +19,11 @@ Low-level extractors (input = array of utility tuples):
   the identical frontier to ``numpy``.
 * `pareto_frontier_numpy_faster` — **BROKEN**: raises ``IndexError`` on real
   inputs. Do not use until fixed.
-* `pareto_frontier_convex_hull` — **BROKEN / not general**: only finds the convex
+* `pareto_frontier_convex_hull` — finds the convex
   hull of the frontier (misses non-convex frontier points) and raises
   ``scipy.spatial.qhull.QhullError`` (a ``RuntimeError`` subclass, *not* a
   ``ValueError``) whenever the points are (near-)collinear or lower-dimensional,
-  which is common. Do not use.
+  which is common.
 * `pareto_frontier_of` — **effectively unusable**: hangs (no result in practical
   time) on more than ~100 points. Avoid.
 
