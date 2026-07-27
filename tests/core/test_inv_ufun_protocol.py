@@ -678,3 +678,99 @@ def test_closest_non_none_and_reasonable(cls):
             f"{got_u} (diff={got_diff}) but the true minimum diff is "
             f"{expected_min_diff}"
         )
+
+
+# ---------------------------------------------------------------------------
+# Continuous / hybrid outcome-space support
+#
+# BIDS, MCTS, and AttributePlanning all need an explicit per-issue value list
+# to operate on. Continuous issues cannot be enumerated (`Issue.all` raises
+# ValueError for them), so these inverters discretize any non-discrete issue
+# via `Issue.to_discrete()` before building their internal tables/trees (see
+# `negmas.preferences.inv_ufun._common._issue_values`).
+# ---------------------------------------------------------------------------
+
+# Inverters that must be able to init() and answer queries on continuous and
+# hybrid (mixed continuous/discrete) outcome spaces via internal discretization.
+CONTINUOUS_CAPABLE_INVERTER_TYPES = [
+    BIDSInverseUtilityFunction,
+    AttributePlanningInverseUtilityFunction,
+    MCTSInverseUtilityFunction,
+    AdaptiveInverseUtilityFunction,
+]
+
+
+def make_linear_ufun_continuous(nissues: int = 2, seed: int = 42):
+    """Create a random LinearAdditiveUtilityFunction over a fully-continuous
+    outcome space (every issue is a `ContinuousIssue`)."""
+    import random as _random
+
+    _random.seed(seed)
+    os = make_os([make_issue((0.0, 10.0), name=f"c{i}") for i in range(nissues)])
+    ufun = LinearAdditiveUtilityFunction.random(outcome_space=os)
+    return ufun
+
+
+def make_linear_ufun_hybrid(seed: int = 43):
+    """Create a random LinearAdditiveUtilityFunction over a hybrid outcome
+    space mixing continuous, contiguous, and categorical issues."""
+    import random as _random
+
+    _random.seed(seed)
+    os = make_os(
+        [
+            make_issue((0.0, 10.0), name="price"),
+            make_issue(5, name="quantity"),
+            make_issue(["red", "green", "blue"], name="color"),
+        ]
+    )
+    ufun = LinearAdditiveUtilityFunction.random(outcome_space=os)
+    return ufun
+
+
+@pytest.mark.parametrize("cls", CONTINUOUS_CAPABLE_INVERTER_TYPES)
+@pytest.mark.parametrize(
+    "make_ufun_fn", [make_linear_ufun_continuous, make_linear_ufun_hybrid]
+)
+def test_continuous_and_hybrid_init_does_not_raise(cls, make_ufun_fn):
+    """init() must succeed (no ValueError from enumerating a continuous issue)
+    on fully-continuous and hybrid outcome spaces."""
+    ufun = make_ufun_fn()
+    inv = cls(ufun)
+    inv.init()
+    assert inv.initialized
+
+
+@pytest.mark.parametrize("cls", CONTINUOUS_CAPABLE_INVERTER_TYPES)
+@pytest.mark.parametrize(
+    "make_ufun_fn", [make_linear_ufun_continuous, make_linear_ufun_hybrid]
+)
+def test_continuous_and_hybrid_one_in_in_range(cls, make_ufun_fn):
+    """one_in() must return an outcome with utility within (a loose tolerance
+    of) the requested normalized range on continuous/hybrid outcome spaces."""
+    ufun = make_ufun_fn()
+    inv = cls(ufun)
+    inv.init()
+    o = inv.one_in((0.3, 0.7), normalized=True)
+    assert o is not None
+    umn, umx = float(ufun.minmax()[0]), float(ufun.minmax()[1])
+    d = umx - umn
+    u_norm = (float(ufun(o)) - umn) / d if d > 0 else 0.0
+    assert -0.2 <= u_norm <= 1.2, f"{cls.__name__} returned out-of-range u={u_norm}"
+
+
+@pytest.mark.parametrize("cls", CONTINUOUS_CAPABLE_INVERTER_TYPES)
+@pytest.mark.parametrize(
+    "make_ufun_fn", [make_linear_ufun_continuous, make_linear_ufun_hybrid]
+)
+def test_continuous_and_hybrid_best_worst_minmax(cls, make_ufun_fn):
+    """best/worst/minmax must all resolve to non-None, consistent values on
+    continuous/hybrid outcome spaces."""
+    ufun = make_ufun_fn()
+    inv = cls(ufun)
+    inv.init()
+    umn, umx = inv.minmax()
+    assert umn <= umx + 1e-6
+    assert inv.best() is not None
+    assert inv.worst() is not None
+    assert inv.some((0.0, 1.0), normalized=True, n=5)

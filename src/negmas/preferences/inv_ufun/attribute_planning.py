@@ -24,10 +24,10 @@ from typing import TYPE_CHECKING, Any
 
 import numpy as np
 
-from negmas.outcomes import Outcome
+from negmas.outcomes import DEFAULT_LEVELS, Outcome
 
 from ..protocols import InverseUFun
-from ._common import EPS, _norm_to_raw, _raw_to_norm, _resolve_rng
+from ._common import EPS, _issue_values, _norm_to_raw, _raw_to_norm, _resolve_rng
 
 if TYPE_CHECKING:
     from ..base_ufun import BaseUtilityFunction
@@ -51,6 +51,14 @@ class AttributePlanningInverseUtilityFunction(InverseUFun):
     subclass ``LinearUtilityFunction``).  ``init()`` raises ``TypeError`` for any
     other ufun type.
 
+    **Continuous/hybrid issues**: the algorithm needs an explicit list of
+    per-issue values, which continuous issues cannot provide (they are
+    uncountable). Any issue that is not discrete is therefore discretized into
+    ``continuous_levels`` evenly-spaced grid points via ``Issue.to_discrete()``,
+    so Attribute Planning works on fully continuous and hybrid (mixed
+    continuous/discrete) outcome spaces too -- at the cost of only
+    approximating the true continuous value set.
+
     This is a **clamping** inverter (see module docs). ``worst_in``/``best_in``
     expand the range upward and fall back to the nearest boundary outcome
     (best if the range is in the upper half of the utility range, worst if in
@@ -60,11 +68,22 @@ class AttributePlanningInverseUtilityFunction(InverseUFun):
         ufun: The utility function to invert.
         n_samples: Number of random targets sampled for ``some()``,
             ``best_in()``, and ``worst_in()``.  Default: 50.
+        continuous_levels: Number of evenly-spaced grid points used to discretize
+            any issue that is not already discrete (e.g. `ContinuousIssue`).
+            Ignored for issues that are already discrete. Defaults to
+            `negmas.outcomes.DEFAULT_LEVELS` (the same discretization level
+            used throughout the outcomes module).
     """
 
-    def __init__(self, ufun: BaseUtilityFunction, n_samples: int = 50) -> None:
+    def __init__(
+        self,
+        ufun: BaseUtilityFunction,
+        n_samples: int = 50,
+        continuous_levels: int = DEFAULT_LEVELS,
+    ) -> None:
         self._ufun = ufun
         self._n_samples = n_samples
+        self._continuous_levels = continuous_levels
         self._initialized = False
 
         # filled by init()
@@ -126,7 +145,7 @@ class AttributePlanningInverseUtilityFunction(InverseUFun):
         # Collect raw weighted contributions per issue
         raw_contrib_list: list[np.ndarray] = []
         for issue, vfun, w in zip(self._issues, base.values, base.weights):
-            vals = list(issue.all)
+            vals = _issue_values(issue, self._continuous_levels)
             val_list.append(vals)
             raw = np.array([w * float(vfun(v)) for v in vals], dtype=np.float64)
             raw_contrib_list.append(raw)

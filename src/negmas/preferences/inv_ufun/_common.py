@@ -286,6 +286,33 @@ def _un_normalize_range(
 
 
 # ---------------------------------------------------------------------------
+# Issue-value enumeration (discretizes continuous issues)
+# ---------------------------------------------------------------------------
+
+
+def _issue_values(issue: Any, n_levels: int) -> list[Any]:
+    """Return an ordered list of representative values for *issue*.
+
+    Discrete issues (categorical, contiguous, ...) are enumerated exactly via
+    ``issue.all``. Continuous issues cannot be enumerated (they are
+    uncountable), so they are discretized on an evenly-spaced grid of
+    ``n_levels`` points via ``issue.to_discrete()`` instead. This lets
+    inverters that need an explicit per-issue value list (BIDS, MCTS,
+    Attribute Planning) work on continuous and hybrid (mixed
+    continuous/discrete) outcome spaces, at the cost of only approximating the
+    true (uncountable) value set.
+
+    Args:
+        issue: The issue to enumerate.
+        n_levels: Number of grid points used to discretize a continuous issue.
+            Ignored for already-discrete issues.
+    """
+    if issue.is_discrete():
+        return list(issue.all)
+    return list(issue.to_discrete(n=n_levels).all)
+
+
+# ---------------------------------------------------------------------------
 # Array-search primitives (unchanged)
 # ---------------------------------------------------------------------------
 

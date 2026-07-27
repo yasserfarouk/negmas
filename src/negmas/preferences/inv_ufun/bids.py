@@ -19,11 +19,11 @@ from typing import TYPE_CHECKING, Any
 
 import numpy as np
 
-from negmas.outcomes import Outcome
+from negmas.outcomes import DEFAULT_LEVELS, Outcome
 from negmas.warnings import warn_if_slow
 
 from ..protocols import InverseUFun
-from ._common import EPS, _norm_to_raw, _raw_to_norm, _resolve_rng
+from ._common import EPS, _issue_values, _norm_to_raw, _raw_to_norm, _resolve_rng
 
 if TYPE_CHECKING:
     from ..base_ufun import BaseUtilityFunction
@@ -55,6 +55,14 @@ class BIDSInverseUtilityFunction(InverseUFun):
     subclass `LinearUtilityFunction`, which is also additive). ``init()`` will
     raise ``TypeError`` for any other ufun type.
 
+    **Continuous/hybrid issues**: BIDS needs an explicit list of per-issue
+    values, which continuous issues cannot provide (they are uncountable). Any
+    issue that is not discrete is therefore discretized into ``continuous_levels``
+    evenly-spaced grid points via ``Issue.to_discrete()`` before the DP table is
+    built, so BIDS works on fully continuous and hybrid (mixed continuous/discrete)
+    outcome spaces too -- at the cost of only approximating the true continuous
+    value set.
+
     Args:
         ufun: The utility function to invert (must be a
             `LinearAdditiveUtilityFunction` or `LinearUtilityFunction`).
@@ -65,6 +73,11 @@ class BIDSInverseUtilityFunction(InverseUFun):
         n_samples: Number of targets sampled when ``some()`` is called without an
             explicit *n* argument, and when ``best_in``/``worst_in`` search for
             the best/worst outcome in a range.
+        continuous_levels: Number of evenly-spaced grid points used to discretize
+            any issue that is not already discrete (e.g. `ContinuousIssue`).
+            Ignored for issues that are already discrete. Defaults to
+            `negmas.outcomes.DEFAULT_LEVELS` (the same discretization level
+            used throughout the outcomes module).
 
     Remarks:
         - ``min``, ``max``, ``best``, ``worst`` and ``minmax`` are exact: they
@@ -83,11 +96,16 @@ class BIDSInverseUtilityFunction(InverseUFun):
     """
 
     def __init__(
-        self, ufun: BaseUtilityFunction, precision: int = 3, n_samples: int = 50
+        self,
+        ufun: BaseUtilityFunction,
+        precision: int = 3,
+        n_samples: int = 50,
+        continuous_levels: int = DEFAULT_LEVELS,
     ) -> None:
         self._ufun = ufun
         self._precision = precision
         self._n_samples = n_samples
+        self._continuous_levels = continuous_levels
         self._initialized = False
 
         # filled in by init()
@@ -166,7 +184,7 @@ class BIDSInverseUtilityFunction(InverseUFun):
         val_list: list[list[Any]] = []
 
         for issue, vfun, w in zip(self._issues, base.values, base.weights):
-            vals = list(issue.all)
+            vals = _issue_values(issue, self._continuous_levels)
             val_list.append(vals)
             contribs = np.array([w * float(vfun(v)) for v in vals], dtype=np.float64)
             raw_contrib_list.append(contribs)

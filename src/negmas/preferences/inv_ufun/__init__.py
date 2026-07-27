@@ -83,7 +83,9 @@ Available implementations
     ``init()`` and answer each ``one_in()`` query in *O(1)*.
     **Only works for additive utility functions** (raises ``TypeError`` otherwise).
     Approximate (error ≤ ``n_issues × 10^-precision``), but the only inverter that
-    scales to spaces with 10^200+ outcomes.
+    scales to spaces with 10^200+ outcomes. Continuous/uncountable issues are
+    discretized into ``continuous_levels`` grid points before the table is built,
+    so this also works on continuous and hybrid outcome spaces.
 
 - `adaptive` → `AdaptiveInverseUtilityFunction`:
     Automatically selects the best inverter based on ufun type and outcome-space
@@ -93,10 +95,14 @@ Available implementations
 - `attribute_planning` → `AttributePlanningInverseUtilityFunction`:
     Lightweight per-issue target matching (Jonker & Treur). Very fast and
     scalable for additive ufuns, but less accurate and less diverse than BIDS.
+    Continuous/uncountable issues are discretized into ``continuous_levels`` grid
+    points, so this also works on continuous and hybrid outcome spaces.
 
 - `mcts` → `MCTSInverseUtilityFunction`:
     Monte-Carlo Tree Search inverter. Works with non-additive ufuns and provides
     diverse outcomes, but is slower than presorting/BIDS at equal accuracy.
+    Continuous/uncountable issues are discretized into ``continuous_levels`` grid
+    points, so this also works on continuous and hybrid outcome spaces.
 
 - `DefaultInverseUtilityFunction`:
     Public default used by the library. Aliased to
@@ -171,7 +177,7 @@ in-range outcome is found (see "Two kinds of inverters" above).
      - no (≤ n×10^-p)
      - **yes**
      - yes (10^200+)
-     - DP table; best for large additive
+     - DP table; best for large additive; discretizes continuous issues
    * - AttributePlanningInverseUtilityFunction
      - approx
      - clamping
@@ -179,7 +185,7 @@ in-range outcome is found (see "Two kinds of inverters" above).
      - no
      - yes (additive best)
      - yes (10^200+)
-     - per-issue matching; fast
+     - per-issue matching; fast; discretizes continuous issues
    * - MCTSInverseUtilityFunction
      - approx
      - clamping
@@ -187,7 +193,7 @@ in-range outcome is found (see "Two kinds of inverters" above).
      - no
      - no
      - yes (any)
-     - MCTS search; diverse; slow
+     - MCTS search; diverse; slow; discretizes continuous issues
    * - AdaptiveInverseUtilityFunction
      - auto
      - clamping (delegates)

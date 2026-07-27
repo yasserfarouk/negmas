@@ -11,7 +11,9 @@ inverter:
 * Large or continuous ``LinearAdditiveUtilityFunction`` /``LinearUtilityFunction``
   outcome spaces (cardinality > ``max_presorting_outcomes``) →
   `BIDSInverseUtilityFunction` (approximate, but scalable to very large spaces
-  via dynamic programming).
+  via dynamic programming). Continuous/uncountable issues are discretized
+  internally (see `BIDSInverseUtilityFunction`), so this applies to hybrid and
+  fully-continuous outcome spaces too.
 * Any other ufun type → `PresortingInverseUtilityFunction` regardless of size
   (BIDS only works with additive ufuns).
 
@@ -23,7 +25,7 @@ from __future__ import annotations
 
 from typing import Any
 
-from negmas.outcomes import Outcome
+from negmas.outcomes import DEFAULT_LEVELS, Outcome
 
 from ..protocols import InverseUFun
 from .bids import BIDSInverseUtilityFunction
@@ -49,7 +51,8 @@ class AdaptiveInverseUtilityFunction(InverseUFun):
     * **Large additive spaces** (``LinearAdditiveUtilityFunction`` or
       ``LinearUtilityFunction`` with cardinality > ``max_presorting_outcomes``) →
       `BIDSInverseUtilityFunction`: approximate dynamic programming, scalable to
-      hundreds of issues / 10^250 outcomes.
+      hundreds of issues / 10^250 outcomes. Continuous issues are discretized
+      internally, so this includes continuous and hybrid outcome spaces.
     * **Large non-additive spaces** → `PresortingInverseUtilityFunction` with
       sampling (``max_cache_size`` limits the cached outcomes).
 
@@ -66,6 +69,10 @@ class AdaptiveInverseUtilityFunction(InverseUFun):
             `BIDSInverseUtilityFunction` when BIDS is selected (default: 3).
         bids_n_samples: ``n_samples`` argument forwarded to
             `BIDSInverseUtilityFunction` (default: 50).
+        bids_continuous_levels: ``continuous_levels`` argument forwarded to
+            `BIDSInverseUtilityFunction`, controlling how finely any
+            non-discrete issue is discretized. Defaults to
+            `negmas.outcomes.DEFAULT_LEVELS`.
         **presorting_kwargs: Keyword arguments forwarded to
             `PresortingInverseUtilityFunction` when presorting is selected
             (e.g. ``rational_only``, ``levels``, ``max_cache_size``).
@@ -77,12 +84,14 @@ class AdaptiveInverseUtilityFunction(InverseUFun):
         max_presorting_outcomes: int = _DEFAULT_MAX_PRESORTING,
         bids_precision: int = 3,
         bids_n_samples: int = 50,
+        bids_continuous_levels: int = DEFAULT_LEVELS,
         **presorting_kwargs: Any,
     ) -> None:
         self._ufun = ufun
         self._max_presorting = max_presorting_outcomes
         self._bids_precision = bids_precision
         self._bids_n_samples = bids_n_samples
+        self._bids_continuous_levels = bids_continuous_levels
         self._presorting_kwargs = presorting_kwargs
         self._delegate: InverseUFun | None = None
         self._initialized = False
@@ -135,6 +144,7 @@ class AdaptiveInverseUtilityFunction(InverseUFun):
                 self._ufun,
                 precision=self._bids_precision,
                 n_samples=self._bids_n_samples,
+                continuous_levels=self._bids_continuous_levels,
             )
         else:
             self._delegate = PresortingInverseUtilityFunction(

@@ -3,7 +3,9 @@
 MCTS builds a search tree over the issue assignment space and uses UCB1
 selection, random rollouts, and backpropagation to find outcomes with
 utilities in a requested range.  The algorithm works with any ufun whose
-outcome space has enumerable issues and values.
+outcome space has enumerable issues and values; continuous (uncountable)
+issues are discretized into a finite grid of values first (see
+``continuous_levels``).
 
 Reference
 ---------
@@ -25,10 +27,10 @@ import random
 from typing import TYPE_CHECKING, Any
 
 
-from negmas.outcomes import Outcome
+from negmas.outcomes import DEFAULT_LEVELS, Outcome
 
 from ..protocols import InverseUFun
-from ._common import EPS, _norm_to_raw, _raw_to_norm, _resolve_rng
+from ._common import EPS, _issue_values, _norm_to_raw, _raw_to_norm, _resolve_rng
 
 if TYPE_CHECKING:
     from ..base_ufun import BaseUtilityFunction
@@ -68,10 +70,23 @@ class MCTSInverseUtilityFunction(InverseUFun):
     (best if the range is in the upper half of the utility range, worst if in
     the lower half) rather than returning ``None``.
 
+    **Continuous/hybrid issues**: the search tree is built over explicit
+    per-issue value lists, which continuous issues cannot provide (they are
+    uncountable). Any issue that is not discrete is therefore discretized into
+    ``continuous_levels`` evenly-spaced grid points via ``Issue.to_discrete()``,
+    so MCTS works on fully continuous and hybrid (mixed continuous/discrete)
+    outcome spaces too -- at the cost of only approximating the true continuous
+    value set.
+
     Args:
         ufun: The utility function to invert.
         n_simulations: Number of MCTS iterations per query.  Default: 200.
         c_ucb: UCB1 exploration constant.  Default: √2 ≈ 1.41421356.
+        continuous_levels: Number of evenly-spaced grid points used to discretize
+            any issue that is not already discrete (e.g. `ContinuousIssue`).
+            Ignored for issues that are already discrete. Defaults to
+            `negmas.outcomes.DEFAULT_LEVELS` (the same discretization level
+            used throughout the outcomes module).
     """
 
     def __init__(
@@ -80,11 +95,13 @@ class MCTSInverseUtilityFunction(InverseUFun):
         n_simulations: int = 200,
         c_ucb: float = 1.41421356,
         max_ranking_outcomes: int = 20_000,
+        continuous_levels: int = DEFAULT_LEVELS,
     ) -> None:
         self._ufun = ufun
         self._n_simulations = n_simulations
         self._c_ucb = c_ucb
         self._max_ranking_outcomes = max_ranking_outcomes
+        self._continuous_levels = continuous_levels
         self._initialized = False
 
         # filled by init()
@@ -126,7 +143,9 @@ class MCTSInverseUtilityFunction(InverseUFun):
         assert os is not None
 
         self._issues = list(issues)
-        self._val_list = [list(issue.all) for issue in self._issues]
+        self._val_list = [
+            _issue_values(issue, self._continuous_levels) for issue in self._issues
+        ]
 
         u_min, u_max = self._ufun.minmax()
         self._u_min = float(u_min)
