@@ -26,6 +26,15 @@ class GAgentLGModel(GeniusOpponentModel):
     Transcompiled from: negotiator.boaframework.opponentmodel.AgentLGModel
     """
 
+    initial_value_util: float = 0.5
+    """Utility assigned to an issue value before anything is learned about it."""
+    unchanged_issue_weight_boost: float = 1.1
+    """Multiplier applied to an issue's weight when it does not change between
+    two consecutive opponent bids (weights are renormalized afterwards)."""
+    value_util_increment: float = 0.1
+    """Amount added to a value's utility each time the opponent offers it."""
+    max_value_util: float = 1.0
+    """Upper clamp on a learned value utility."""
     _issue_weights: dict[int, float] = field(factory=dict)
     _value_utils: dict[int, dict] = field(factory=dict)
     _n_issues: int = field(init=False, default=0)
@@ -51,7 +60,7 @@ class GAgentLGModel(GeniusOpponentModel):
                 self._issue_weights[i] = initial_weight
                 self._value_utils[i] = {}
                 for v in issues[i].all:
-                    self._value_utils[i][v] = 0.5
+                    self._value_utils[i][v] = self.initial_value_util
 
         self._initialized = True
 
@@ -74,7 +83,7 @@ class GAgentLGModel(GeniusOpponentModel):
             for i in range(self._n_issues):
                 if offer[i] == self._last_bid[i]:
                     # Issue didn't change - increase weight
-                    self._issue_weights[i] *= 1.1
+                    self._issue_weights[i] *= self.unchanged_issue_weight_boost
 
         # Normalize weights
         total_weight = sum(self._issue_weights.values())
@@ -87,7 +96,8 @@ class GAgentLGModel(GeniusOpponentModel):
             value = offer[i]
             if value in self._value_utils[i]:
                 self._value_utils[i][value] = min(
-                    1.0, self._value_utils[i][value] + 0.1
+                    self.max_value_util,
+                    self._value_utils[i][value] + self.value_util_increment,
                 )
 
         self._last_bid = offer
@@ -107,7 +117,9 @@ class GAgentLGModel(GeniusOpponentModel):
         for i in range(self._n_issues):
             value = offer[i]
             issue_weight = self._issue_weights.get(i, 1.0 / max(1, self._n_issues))
-            value_util = self._value_utils.get(i, {}).get(value, 0.5)
+            value_util = self._value_utils.get(i, {}).get(
+                value, self.initial_value_util
+            )
             total_utility += issue_weight * value_util
 
         return total_utility
@@ -132,6 +144,15 @@ class GTheFawkesModel(GeniusOpponentModel):
     Transcompiled from: negotiator.boaframework.opponentmodel.TheFawkes_OM
     """
 
+    initial_value_util: float = 0.5
+    """Utility assigned to an issue value before anything is learned about it."""
+    value_util_increment: float = 0.05
+    """Amount added to a value's utility each time the opponent offers it."""
+    unchanged_issue_weight_boost: float = 1.05
+    """Multiplier applied to an issue's weight when it does not change between
+    two consecutive opponent bids (weights are renormalized afterwards)."""
+    max_value_util: float = 1.0
+    """Upper clamp on a learned value utility."""
     _issue_weights: dict[int, float] = field(factory=dict)
     _value_utils: dict[int, dict] = field(factory=dict)
     _n_issues: int = field(init=False, default=0)
@@ -156,7 +177,7 @@ class GTheFawkesModel(GeniusOpponentModel):
                 self._issue_weights[i] = initial_weight
                 self._value_utils[i] = {}
                 for v in issues[i].all:
-                    self._value_utils[i][v] = 0.5
+                    self._value_utils[i][v] = self.initial_value_util
 
         self._initialized = True
 
@@ -179,7 +200,8 @@ class GTheFawkesModel(GeniusOpponentModel):
             value = offer[i]
             if value in self._value_utils[i]:
                 self._value_utils[i][value] = min(
-                    1.0, self._value_utils[i][value] + 0.05
+                    self.max_value_util,
+                    self._value_utils[i][value] + self.value_util_increment,
                 )
 
         # Analyze consistency - issues that don't change are more important
@@ -187,7 +209,7 @@ class GTheFawkesModel(GeniusOpponentModel):
             prev_bid = self._bid_history[-2]
             for i in range(self._n_issues):
                 if offer[i] == prev_bid[i]:
-                    self._issue_weights[i] *= 1.05
+                    self._issue_weights[i] *= self.unchanged_issue_weight_boost
 
             # Normalize
             total = sum(self._issue_weights.values())
@@ -210,7 +232,9 @@ class GTheFawkesModel(GeniusOpponentModel):
         for i in range(self._n_issues):
             value = offer[i]
             issue_weight = self._issue_weights.get(i, 1.0 / max(1, self._n_issues))
-            value_util = self._value_utils.get(i, {}).get(value, 0.5)
+            value_util = self._value_utils.get(i, {}).get(
+                value, self.initial_value_util
+            )
             total_utility += issue_weight * value_util
 
         return total_utility
@@ -235,6 +259,13 @@ class GInoxAgentModel(GeniusOpponentModel):
     Transcompiled from: negotiator.boaframework.opponentmodel.InoxAgent_OM
     """
 
+    initial_value_util: float = 0.5
+    """Utility assigned to an issue value before anything is learned about it."""
+    learning_rate: float = 0.15
+    """Numerator of the decaying learning rate
+    ``learning_rate / (1 + learning_rate_decay * n_bids)``."""
+    learning_rate_decay: float = 0.05
+    """How fast the learning rate decays with the number of observed bids."""
     _issue_weights: dict[int, float] = field(factory=dict)
     _value_utils: dict[int, dict] = field(factory=dict)
     _n_issues: int = field(init=False, default=0)
@@ -259,7 +290,7 @@ class GInoxAgentModel(GeniusOpponentModel):
                 self._issue_weights[i] = initial_weight
                 self._value_utils[i] = {}
                 for v in issues[i].all:
-                    self._value_utils[i][v] = 0.5
+                    self._value_utils[i][v] = self.initial_value_util
 
         self._initialized = True
 
@@ -276,7 +307,7 @@ class GInoxAgentModel(GeniusOpponentModel):
             return
 
         self._n_bids += 1
-        alpha = 0.15 / (1.0 + 0.05 * self._n_bids)
+        alpha = self.learning_rate / (1.0 + self.learning_rate_decay * self._n_bids)
 
         for i in range(self._n_issues):
             value = offer[i]
@@ -299,7 +330,9 @@ class GInoxAgentModel(GeniusOpponentModel):
         for i in range(self._n_issues):
             value = offer[i]
             issue_weight = self._issue_weights.get(i, 1.0 / max(1, self._n_issues))
-            value_util = self._value_utils.get(i, {}).get(value, 0.5)
+            value_util = self._value_utils.get(i, {}).get(
+                value, self.initial_value_util
+            )
             total_utility += issue_weight * value_util
 
         return total_utility

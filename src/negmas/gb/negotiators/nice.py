@@ -24,6 +24,6 @@ class NiceNegotiator(MAPNegotiator):
 
     def __init__(self, *args, **kwargs):
         """Initializes the instance."""
-        kwargs["acceptance"] = AcceptImmediately()
-        kwargs["offering"] = RandomOfferingPolicy()
+        kwargs.setdefault("acceptance", AcceptImmediately())
+        kwargs.setdefault("offering", RandomOfferingPolicy())
         super().__init__(*args, **kwargs)

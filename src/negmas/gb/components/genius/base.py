@@ -8,6 +8,8 @@ from __future__ import annotations
 
 from typing import TYPE_CHECKING
 
+from attrs import define
+
 from negmas.preferences.base_ufun import BaseUtilityFunction
 from negmas.preferences.stability import VOLATILE
 
@@ -19,10 +21,20 @@ if TYPE_CHECKING:
 __all__ = ["GeniusOfferingPolicy", "GeniusAcceptancePolicy", "GeniusOpponentModel"]
 
 
+@define
 class GeniusOfferingPolicy(OfferingPolicy):
-    """Base class for Genius offering policies."""
+    """Base class for Genius offering policies.
 
-    pass
+    Holds the search knobs shared by (almost) every transcompiled Genius
+    offering strategy, so they can be tuned uniformly.
+
+    Args:
+        utility_band_tolerance: Slack added on each side of the target utility
+            when asking the inverter for an outcome, i.e. the policy searches
+            ``[target - tol, pmax + tol]``. Defaults to ``0.01``.
+    """
+
+    utility_band_tolerance: float = 0.01
 
 
 class GeniusAcceptancePolicy(AcceptancePolicy):

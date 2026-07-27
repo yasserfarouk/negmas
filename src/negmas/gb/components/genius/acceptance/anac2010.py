@@ -86,9 +86,17 @@ class GACAgentK(GeniusAcceptancePolicy):
     The acceptance probability increases as time progresses and as the opponent's
     offers improve relative to expectations.
 
+    Args:
+        expected_utility_decay: How much the expected utility drops over the full
+            negotiation (``expected = 1 - decay * t``). Defaults to ``0.5``.
+        time_pressure_exponent: Exponent applied to relative time when computing
+            time pressure. Defaults to ``2.0``.
+
     Transcompiled from: negotiator.boaframework.acceptanceconditions.anac2010.AC_AgentK
     """
 
+    expected_utility_decay: float = 0.5
+    time_pressure_exponent: float = 2.0
     _max_utility: float = field(init=False, default=1.0)
     _min_utility: float = field(init=False, default=0.0)
     _opponent_max_util: float = field(init=False, default=0.0)
@@ -126,7 +134,7 @@ class GACAgentK(GeniusAcceptancePolicy):
         time = state.relative_time
 
         # Expected utility decreases over time
-        expected_util = 1.0 - time * 0.5
+        expected_util = 1.0 - time * self.expected_utility_decay
 
         if opponent_util >= expected_util:
             return 1.0
@@ -135,7 +143,7 @@ class GACAgentK(GeniusAcceptancePolicy):
         if expected_util > 0:
             ratio = opponent_util / expected_util
             # Increase probability as time runs out
-            time_pressure = time**2
+            time_pressure = time**self.time_pressure_exponent
             return min(1.0, ratio * (1 + time_pressure))
 
         return 0.0
@@ -154,12 +162,18 @@ class GACAgentFSEGA(GeniusAcceptancePolicy):
     Args:
         offering_policy: The offering strategy to determine next bid.
         multiplier: Multiplier for opponent's offer comparison (default 1.03).
+        max_utility: The assumed maximum utility in the domain (default 1.0,
+            i.e. a normalized ufun).
+        max_utility_tolerance: Fraction of ``max_utility`` above which an offer
+            counts as "close to max" and is accepted (default 0.999).
 
     Transcompiled from: negotiator.boaframework.acceptanceconditions.anac2010.AC_AgentFSEGA
     """
 
     offering_policy: OfferingPolicy
     multiplier: float = 1.03
+    max_utility: float = 1.0
+    max_utility_tolerance: float = 0.999
 
     def __call__(
         self, state: GBState, offer: Outcome | None, source: str | None
@@ -184,7 +198,7 @@ class GACAgentFSEGA(GeniusAcceptancePolicy):
         my_last_util = float(self.negotiator.ufun(my_offers[-1]))
 
         # Get max utility in domain
-        max_util = 1.0  # Assume normalized
+        max_util = self.max_utility  # Assume normalized
 
         # Get my next bid utility
         my_next_offer = self.offering_policy(state)
@@ -206,7 +220,7 @@ class GACAgentFSEGA(GeniusAcceptancePolicy):
         if (
             opponent_util * self.multiplier >= my_last_util
             or opponent_util > my_next_util
-            or opponent_util >= max_util * 0.999  # Close to max
+            or opponent_util >= max_util * self.max_utility_tolerance  # Close to max
         ):
             return ResponseType.ACCEPT_OFFER
 
@@ -339,11 +353,40 @@ class GACNozomi(GeniusAcceptancePolicy):
 
     Args:
         max_util_threshold: Threshold relative to max utility (default 0.95).
+        phase1_end: Relative time at which the early phase ends (default 0.50).
+        phase2_end: Relative time at which the middle phase ends (default 0.80).
+        phase1_coeff_slope: Slope of the early-phase acceptance coefficient
+            ``slope * t + intercept`` (default -0.1).
+        phase1_coeff_intercept: Intercept of the early-phase coefficient
+            (default 1.0).
+        phase2_coeff_slope: Slope of the middle-phase coefficient
+            ``slope * (t - phase1_end) + intercept`` (default -0.16).
+        phase2_coeff_intercept: Intercept of the middle-phase coefficient
+            (default 0.95).
+        phase2_compromise_factor: Fraction of the max compromise utility an
+            offer must beat in the middle phase (default 0.95).
+        phase3_compromise_factor: Same, for the late phase (default 0.90).
+        phase3_split_time: Relative time splitting the late phase into its
+            early and final parts (default 0.90).
+        phase3_early_discount: Discount applied to our last utility in the early
+            part of the late phase (default 0.40).
+        phase3_late_discount: Same, for the final part (default 0.50).
 
     Transcompiled from: negotiator.boaframework.acceptanceconditions.anac2010.AC_Nozomi
     """
 
     max_util_threshold: float = 0.95
+    phase1_end: float = 0.50
+    phase2_end: float = 0.80
+    phase1_coeff_slope: float = -0.1
+    phase1_coeff_intercept: float = 1.0
+    phase2_coeff_slope: float = -0.16
+    phase2_coeff_intercept: float = 0.95
+    phase2_compromise_factor: float = 0.95
+    phase3_compromise_factor: float = 0.90
+    phase3_split_time: float = 0.90
+    phase3_early_discount: float = 0.40
+    phase3_late_discount: float = 0.50
     _max_opponent_util: float = field(init=False, default=0.0)
     _max_compromise_util: float = field(init=False, default=0.0)
 
@@ -382,23 +425,38 @@ class GACNozomi(GeniusAcceptancePolicy):
             return ResponseType.ACCEPT_OFFER
 
         # Time-based acceptance phases
-        if time < 0.50:
+        if time < self.phase1_end:
             if (
                 opponent_util > self._max_compromise_util
                 and opponent_util >= self._max_opponent_util
             ):
-                accept_coeff = -0.1 * time + 1.0
+                accept_coeff = (
+                    self.phase1_coeff_slope * time + self.phase1_coeff_intercept
+                )
                 if opponent_util > my_last_util * accept_coeff:
                     return ResponseType.ACCEPT_OFFER
-        elif time < 0.80:
-            if opponent_util > self._max_compromise_util * 0.95:
-                accept_coeff = -0.16 * (time - 0.50) + 0.95
+        elif time < self.phase2_end:
+            if (
+                opponent_util
+                > self._max_compromise_util * self.phase2_compromise_factor
+            ):
+                accept_coeff = (
+                    self.phase2_coeff_slope * (time - self.phase1_end)
+                    + self.phase2_coeff_intercept
+                )
                 if opponent_util > my_last_util * accept_coeff:
                     return ResponseType.ACCEPT_OFFER
         else:
             # Late game - more willing to accept
-            if opponent_util > self._max_compromise_util * 0.90:
-                threshold = 0.40 if time <= 0.90 else 0.50
+            if (
+                opponent_util
+                > self._max_compromise_util * self.phase3_compromise_factor
+            ):
+                threshold = (
+                    self.phase3_early_discount
+                    if time <= self.phase3_split_time
+                    else self.phase3_late_discount
+                )
                 if opponent_util >= my_last_util * (1 - threshold):
                     return ResponseType.ACCEPT_OFFER
 

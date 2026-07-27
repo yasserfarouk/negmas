@@ -28,8 +28,8 @@ class WABNegotiator(MAPNegotiator):
 
     def __init__(self, *args, **kwargs):
         """Initializes the instance."""
-        kwargs["acceptance"] = AcceptBetterRational()
-        kwargs["offering"] = WAROfferingPolicy()
+        kwargs.setdefault("acceptance", AcceptBetterRational())
+        kwargs.setdefault("offering", WAROfferingPolicy())
         super().__init__(*args, **kwargs)
 
 
@@ -48,8 +48,8 @@ class WARNegotiator(MAPNegotiator):
 
     def __init__(self, *args, **kwargs):
         """Initializes the instance."""
-        kwargs["acceptance"] = AcceptAnyRational()
-        kwargs["offering"] = WAROfferingPolicy()
+        kwargs.setdefault("acceptance", AcceptAnyRational())
+        kwargs.setdefault("offering", WAROfferingPolicy())
         super().__init__(*args, **kwargs)
 
 
@@ -68,6 +68,6 @@ class WANNegotiator(MAPNegotiator):
 
     def __init__(self, *args, **kwargs):
         """Initializes the instance."""
-        kwargs["acceptance"] = AcceptNotWorseRational()
-        kwargs["offering"] = WAROfferingPolicy()
+        kwargs.setdefault("acceptance", AcceptNotWorseRational())
+        kwargs.setdefault("offering", WAROfferingPolicy())
         super().__init__(*args, **kwargs)

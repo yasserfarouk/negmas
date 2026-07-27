@@ -36,6 +36,9 @@ class GDefaultModel(GeniusOpponentModel):
     Transcompiled from: negotiator.boaframework.opponentmodel.DefaultModel
     """
 
+    utility: float = 0.5
+    """The constant utility this model reports for every outcome."""
+
     def on_preferences_changed(self, changes: list[PreferencesChange]) -> None:
         """No-op - this model doesn't adapt."""
         pass
@@ -48,17 +51,17 @@ class GDefaultModel(GeniusOpponentModel):
         self._update_private_info(partner_id)
 
     def eval(self, offer: Outcome | None) -> Value:
-        """Return constant utility (0.5) for any outcome.
+        """Return the constant ``utility`` for any outcome.
 
         Args:
             offer: The outcome to evaluate.
 
         Returns:
-            Always returns 0.5.
+            Always returns ``self.utility``.
         """
         if offer is None:
             return 0.0
-        return 0.5
+        return self.utility
 
     def eval_normalized(
         self,
@@ -139,6 +142,9 @@ class GOppositeModel(GeniusOpponentModel):
     Transcompiled from: negotiator.boaframework.opponentmodel.OppositeModel
     """
 
+    no_information_utility: float = 0.5
+    """Utility reported when our own ufun is unavailable."""
+
     def on_preferences_changed(self, changes: list[PreferencesChange]) -> None:
         """No special initialization needed."""
         pass
@@ -163,7 +169,7 @@ class GOppositeModel(GeniusOpponentModel):
             return 0.0
 
         if not self.negotiator or not self.negotiator.ufun:
-            return 0.5
+            return self.no_information_utility
 
         our_util = float(self.negotiator.ufun(offer))
         return 1.0 - our_util

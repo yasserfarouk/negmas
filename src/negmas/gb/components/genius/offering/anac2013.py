@@ -30,6 +30,16 @@ class GFawkesOffering(GeniusOfferingPolicy):
     Transcompiled from: negotiator.boaframework.offeringstrategy.anac2013.Fawkes_Offering
     """
 
+    phase_end: float = 0.6
+    """Relative time separating the early phase from the late one."""
+    early_drop: float = 0.05
+    """Fraction of the utility range conceded during the early phase."""
+    late_base_factor: float = 0.95
+    """Fraction of the maximum utility the late phase starts from."""
+    late_drop: float = 0.5
+    """Fraction of the remaining range conceded during the late phase."""
+    late_exponent: float = 1.5
+    """Exponent applied to the late-phase progress (larger concedes later)."""
     _sorter: InverseUFun | None = field(init=False, default=None)
     _pmin: float = field(init=False, default=0.0)
     _pmax: float = field(init=False, default=1.0)
@@ -58,17 +68,25 @@ class GFawkesOffering(GeniusOfferingPolicy):
 
         t = state.relative_time
         # Fawkes uses prediction-based concession
-        if t < 0.6:
-            target = self._pmax - (self._pmax - self._pmin) * 0.05 * (t / 0.6)
+        if t < self.phase_end:
+            target = self._pmax - (self._pmax - self._pmin) * self.early_drop * (
+                t / self.phase_end
+            )
         else:
-            base = self._pmax * 0.95
-            progress = (t - 0.6) / 0.4
-            target = base - (base - self._pmin) * 0.5 * pow(progress, 1.5)
+            base = self._pmax * self.late_base_factor
+            progress = (t - self.phase_end) / (1.0 - self.phase_end)
+            target = base - (base - self._pmin) * self.late_drop * pow(
+                progress, self.late_exponent
+            )
 
         target = max(target, self._pmin)
 
         outcome = self._sorter.worst_in(
-            (target - 0.01, self._pmax + 0.01), normalized=False
+            (
+                target - self.utility_band_tolerance,
+                self._pmax + self.utility_band_tolerance,
+            ),
+            normalized=False,
         )
         if outcome is not None:
             return outcome
@@ -86,6 +104,10 @@ class GInoxAgentOffering(GeniusOfferingPolicy):
     Transcompiled from: negotiator.boaframework.offeringstrategy.anac2013.InoxAgent_Offering
     """
 
+    concession_exponent: float = 2.5
+    """Exponent applied to relative time (larger concedes later)."""
+    max_concession: float = 0.45
+    """Fraction of the utility range given away by the deadline."""
     _sorter: InverseUFun | None = field(init=False, default=None)
     _pmin: float = field(init=False, default=0.0)
     _pmax: float = field(init=False, default=1.0)
@@ -114,10 +136,19 @@ class GInoxAgentOffering(GeniusOfferingPolicy):
 
         t = state.relative_time
         # Inox uses smooth polynomial concession
-        target = self._pmax - (self._pmax - self._pmin) * pow(t, 2.5) * 0.45
+        target = (
+            self._pmax
+            - (self._pmax - self._pmin)
+            * pow(t, self.concession_exponent)
+            * self.max_concession
+        )
 
         outcome = self._sorter.worst_in(
-            (target - 0.01, self._pmax + 0.01), normalized=False
+            (
+                target - self.utility_band_tolerance,
+                self._pmax + self.utility_band_tolerance,
+            ),
+            normalized=False,
         )
         if outcome is not None:
             return outcome

@@ -191,6 +191,7 @@ class NLevelsComparatorNegotiator(Negotiator):
         preferences: Preferences,
         issues: list[Issue],
         n_samples: int = 1000,
+        max_pairs_per_sample: int = 10,
     ) -> list[float]:
         """
         Generates thresholds for the n given levels where levels are equally likely approximately
@@ -200,6 +201,10 @@ class NLevelsComparatorNegotiator(Negotiator):
             preferences: The utility function to use
             issues: The issues to generate the thresholds for
             n_samples: The number of samples to use during the process
+            max_pairs_per_sample: Maximum number of later samples each sample is
+                compared against when estimating the distribution of utility
+                differences. Larger values give a better estimate at a quadratic
+                cost.
 
         """
         samples = list(
@@ -210,7 +215,7 @@ class NLevelsComparatorNegotiator(Negotiator):
         n_samples = len(samples)
         diffs = []
         for i, first in enumerate(samples):
-            n_diffs = min(10, n_samples - i - 1)
+            n_diffs = min(max_pairs_per_sample, n_samples - i - 1)
             for second in sample(samples[i + 1 :], k=n_diffs):
                 diffs.append(abs(preferences.compare_real(first, second)))  # type: ignore
         diffs = np.array(diffs)

@@ -54,6 +54,17 @@ class NaiveTitForTatNegotiator(MAPNegotiator):
             Defaults to ``"min"``.
         rank_only (bool): If ``True``, only the relative ranks of outcomes (not
             their actual utilities) are used for inversion. Defaults to ``False``.
+        must_concede (bool): If ``True`` (default) the negotiator is guaranteed
+            to make a (minimal) concession on its second call. Forwarded to
+            `KindConcessionRecommender`.
+        no_concession_step (int): Steps at or below this index get zero
+            concession. Forwarded to `KindConcessionRecommender`.
+        kindness_start_step (int): From this step onward the recommendation is
+            simply the partner's concession plus ``kindness``. Forwarded to
+            `KindConcessionRecommender`.
+        min_concession_eps (float): Numerical slack added to the smallest
+            representable utility gap when ``must_concede`` forces a minimal
+            concession. Forwarded to `KindConcessionRecommender`.
         **kwargs: Forwarded to `MAPNegotiator`.
 
     Remarks:
@@ -72,6 +83,10 @@ class NaiveTitForTatNegotiator(MAPNegotiator):
         initial_concession: float | Literal["min"] = "min",
         rank_only: bool = False,
         stochastic: bool = False,
+        must_concede: bool = True,
+        no_concession_step: int = 0,
+        kindness_start_step: int = 3,
+        min_concession_eps: float = 1e-12,
         **kwargs,
     ):
         """Initialize the instance.
@@ -84,7 +99,13 @@ class NaiveTitForTatNegotiator(MAPNegotiator):
         if isinstance(initial_concession, str):
             initial_concession = 0
         recommender = KindConcessionRecommender(
-            initial_concession=initial_concession, kindness=kindness, punish=punish
+            initial_concession=initial_concession,
+            kindness=kindness,
+            punish=punish,
+            must_concede=must_concede,
+            no_concession_step=no_concession_step,
+            kindness_start_step=kindness_start_step,
+            min_concession_eps=min_concession_eps,
         )
         acceptance = TFTAcceptancePolicy(
             recommender=recommender, partner_ufun=partner_model
@@ -140,8 +161,13 @@ class NiceTitForTatNegotiator(MAPNegotiator):
             ``"nash"`` (default), ``"kalai"``, ``"kalai_smorodinsky"``/``"ks"``,
             ``"max_welfare"``, ``"max_relative_welfare"``. Forwarded to
             `NiceTitForTatOfferingPolicy`.
-        sample_size, max_cardinality, nash_refresh, stochastic: Forwarded to
-            `NiceTitForTatOfferingPolicy`.
+        sample_size, max_cardinality, nash_refresh, stochastic, levels, nash_min:
+            Forwarded to `NiceTitForTatOfferingPolicy`.
+        nash_multiplier_base, nash_multiplier_gap_weight, default_nash_utility,
+        discount_bonus_base, discount_bonus_weight, big_domain_cardinality,
+        bonus_start_time, bonus_start_time_big_domain, bonus_ramp_rate:
+            The Baarslag reference constants of the bidding strategy, forwarded
+            to `NiceTitForTatOfferingPolicy`. Defaults reproduce the paper.
         pareto_sampler_type: The `ParetoSampler` implementation used by the
             offering policy for the opponent-attractive trade-off query.
             ``None`` (default) uses the offering policy's own default
@@ -168,6 +194,17 @@ class NiceTitForTatNegotiator(MAPNegotiator):
         max_cardinality: int = 10000,
         nash_refresh: int = 1,
         stochastic: bool = False,
+        levels: int = 20,
+        nash_min: float = 0.5,
+        nash_multiplier_base: float = 1.4,
+        nash_multiplier_gap_weight: float = 0.6,
+        default_nash_utility: float = 0.7,
+        discount_bonus_base: float = 0.5,
+        discount_bonus_weight: float = 0.4,
+        big_domain_cardinality: float = 3000,
+        bonus_start_time: float = 0.91,
+        bonus_start_time_big_domain: float = 0.85,
+        bonus_ramp_rate: float = 20.0,
         pareto_sampler_type: type | None = None,
         a: float = 1.0,
         b: float = 0.0,
@@ -192,6 +229,17 @@ class NiceTitForTatNegotiator(MAPNegotiator):
             nash_refresh=nash_refresh,
             stochastic=stochastic,
             target=target,
+            levels=levels,
+            nash_min=nash_min,
+            nash_multiplier_base=nash_multiplier_base,
+            nash_multiplier_gap_weight=nash_multiplier_gap_weight,
+            default_nash_utility=default_nash_utility,
+            discount_bonus_base=discount_bonus_base,
+            discount_bonus_weight=discount_bonus_weight,
+            big_domain_cardinality=big_domain_cardinality,
+            bonus_start_time=bonus_start_time,
+            bonus_start_time_big_domain=bonus_start_time_big_domain,
+            bonus_ramp_rate=bonus_ramp_rate,
         )
         if pareto_sampler_type is not None:
             offering_kwargs["pareto_sampler_type"] = pareto_sampler_type

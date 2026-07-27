@@ -42,6 +42,13 @@ class KindConcessionRecommender(ConcessionRecommender):
         initial_concession: The amount of concession to do in the first step
         must_concede: If `True` the agent is guaranteed to concede in the first step
         inverter: Used only if `must_concede` is `True` to determine the lowest level of concession possible
+        no_concession_step: Steps at or below this index get zero concession
+            (the agent does not concede on its very first call).
+        kindness_start_step: From this step onward the recommendation is simply
+            the partner's concession plus `kindness` (the `initial_concession` /
+            `must_concede` logic no longer applies).
+        min_concession_eps: Numerical slack added to the smallest representable
+            utility gap when `must_concede` forces a minimal concession.
     """
 
     kindness: float = 0.0
@@ -49,6 +56,9 @@ class KindConcessionRecommender(ConcessionRecommender):
     initial_concession: float = 0.0
     must_concede: bool = True
     inverter: UtilityInverter | None = None
+    no_concession_step: int = 0
+    kindness_start_step: int = 3
+    min_concession_eps: float = 1e-12
 
     def set_inverter(self, inverter: UtilityInverter | None) -> None:
         """Set inverter.
@@ -77,11 +87,11 @@ class KindConcessionRecommender(ConcessionRecommender):
         # concession goes negative if we are punishing
         concession = 0.0 if pc < 0 and not self.punish else pc
 
-        # I do not conced in the first call
-        if state.step == 0:
+        # I do not concede in the first call
+        if state.step <= self.no_concession_step:
             return 0.0
         # I add some kindness at every step
-        if state.step > 2:
+        if state.step >= self.kindness_start_step:
             return concession + self.kindness
 
         # in my second call, I will do my initial concession
@@ -95,7 +105,7 @@ class KindConcessionRecommender(ConcessionRecommender):
         best = inv.next_worse()
         nxt = inv.next_worse()
         d = inv.max() - inv.min()
-        return (float(ufun(best)) - float(ufun(nxt)) + 1e-12) / (d)
+        return (float(ufun(best)) - float(ufun(nxt)) + self.min_concession_eps) / (d)
         # increment = (
         #     0.5 * self.initial_concession if self.initial_concession > 1e-2 else 0.01
         # )

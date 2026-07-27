@@ -59,6 +59,73 @@ __all__ = [
 
 
 # =============================================================================
+# Component construction helper
+# =============================================================================
+
+_PARAM_DOC = """
+        offering: A ready offering policy to use instead of the default one
+            (``offering_params`` is then ignored).
+        acceptance: A ready acceptance policy to use instead of the default one
+            (``acceptance_params`` is then ignored).
+        model: A ready opponent model to use instead of the default one
+            (``model_params`` is then ignored).
+        offering_params: Extra keyword arguments forwarded to the default
+            offering policy's constructor. Every hyperparameter of the
+            transcompiled Genius strategy is reachable this way (see the policy
+            class for the full list).
+        acceptance_params: Extra keyword arguments forwarded to the default
+            acceptance policy's constructor.
+        model_params: Extra keyword arguments forwarded to the default opponent
+            model's constructor.
+"""
+
+
+def _make_components(
+    kwargs: dict,
+    offering_type,
+    acceptance_type,
+    model_type=None,
+    offering_kwargs: dict | None = None,
+    acceptance_kwargs: dict | None = None,
+):
+    """Builds the (offering, acceptance, model) triple for a ``G*`` negotiator.
+
+    Any of the three components may be supplied ready-made via ``kwargs``
+    (``offering=`` / ``acceptance=`` / ``model=``); otherwise it is constructed
+    from its default type merged with the corresponding ``*_params`` dict popped
+    from ``kwargs``. ``acceptance_type`` is called with ``offering_policy=`` when
+    it accepts that argument.
+
+    Returns:
+        A ``(offering, acceptance, model)`` tuple. ``model`` is ``None`` when
+        ``model_type`` is ``None`` and none was supplied.
+    """
+    offering_params = dict(kwargs.pop("offering_params", None) or {})
+    acceptance_params = dict(kwargs.pop("acceptance_params", None) or {})
+    model_params = dict(kwargs.pop("model_params", None) or {})
+
+    offering = kwargs.pop("offering", None)
+    if offering is None:
+        offering = offering_type(**{**(offering_kwargs or {}), **offering_params})
+
+    acceptance = kwargs.pop("acceptance", None)
+    if acceptance is None:
+        base = dict(acceptance_kwargs or {})
+        try:
+            acceptance = acceptance_type(
+                offering_policy=offering, **{**base, **acceptance_params}
+            )
+        except TypeError:
+            acceptance = acceptance_type(**{**base, **acceptance_params})
+
+    model = kwargs.pop("model", None)
+    if model is None and model_type is not None:
+        model = model_type(**model_params)
+
+    return offering, acceptance, model
+
+
+# =============================================================================
 # Classic Time-Dependent Agents
 # =============================================================================
 
@@ -81,8 +148,13 @@ class GBoulware(BOANegotiator):
     """
 
     def __init__(self, **kwargs):
-        offering = GBoulwareOffering()
-        acceptance = GACNext(offering_policy=offering)
+        """Initialize the Boulware negotiator.
+
+        Args:
+            **kwargs: Additional arguments passed to `BOANegotiator`, plus the
+                component overrides documented in ``_PARAM_DOC``.
+        """
+        offering, acceptance, _ = _make_components(kwargs, GBoulwareOffering, GACNext)
         super().__init__(offering=offering, acceptance=acceptance, **kwargs)
 
 
@@ -100,8 +172,13 @@ class GConceder(BOANegotiator):
     """
 
     def __init__(self, **kwargs):
-        offering = GConcederOffering()
-        acceptance = GACNext(offering_policy=offering)
+        """Initialize the Conceder negotiator.
+
+        Args:
+            **kwargs: Additional arguments passed to `BOANegotiator`, plus the
+                component overrides documented in ``_PARAM_DOC``.
+        """
+        offering, acceptance, _ = _make_components(kwargs, GConcederOffering, GACNext)
         super().__init__(offering=offering, acceptance=acceptance, **kwargs)
 
 
@@ -119,8 +196,13 @@ class GLinear(BOANegotiator):
     """
 
     def __init__(self, **kwargs):
-        offering = GLinearOffering()
-        acceptance = GACNext(offering_policy=offering)
+        """Initialize the Linear negotiator.
+
+        Args:
+            **kwargs: Additional arguments passed to `BOANegotiator`, plus the
+                component overrides documented in ``_PARAM_DOC``.
+        """
+        offering, acceptance, _ = _make_components(kwargs, GLinearOffering, GACNext)
         super().__init__(offering=offering, acceptance=acceptance, **kwargs)
 
 
@@ -138,8 +220,13 @@ class GHardliner(BOANegotiator):
     """
 
     def __init__(self, **kwargs):
-        offering = GHardlinerOffering()
-        acceptance = GACNext(offering_policy=offering)
+        """Initialize the Hardliner negotiator.
+
+        Args:
+            **kwargs: Additional arguments passed to `BOANegotiator`, plus the
+                component overrides documented in ``_PARAM_DOC``.
+        """
+        offering, acceptance, _ = _make_components(kwargs, GHardlinerOffering, GACNext)
         super().__init__(offering=offering, acceptance=acceptance, **kwargs)
 
 
@@ -175,11 +262,23 @@ class GHardHeaded(BOANegotiator):
 
         Args:
             e: The time-dependency exponent (default 0.2 for Boulware behavior)
-            **kwargs: Additional arguments passed to BOANegotiator
+            offering_params: Keyword arguments forwarded to the default offering
+                policy (every Genius hyperparameter is reachable this way).
+            acceptance_params: Keyword arguments forwarded to the default
+                acceptance policy.
+            model_params: Keyword arguments forwarded to the default opponent
+                model.
+            **kwargs: Additional arguments passed to BOANegotiator. A ready
+                ``offering`` / ``acceptance`` / ``model`` may also be passed.
         """
-        offering = GTimeDependentOffering(e=e)
-        acceptance = GACNext(offering_policy=offering)
-        model = GHardHeadedFrequencyModel()
+        offering, acceptance, model = _make_components(
+            kwargs,
+            GTimeDependentOffering,
+            GACNext,
+            GHardHeadedFrequencyModel,
+            offering_kwargs=dict(e=e),
+            acceptance_kwargs=None,
+        )
         super().__init__(
             offering=offering, acceptance=acceptance, model=model, **kwargs
         )
@@ -210,11 +309,23 @@ class GAgentK(BOANegotiator):
 
         Args:
             e: The time-dependency exponent (default 0.2)
-            **kwargs: Additional arguments passed to BOANegotiator
+            offering_params: Keyword arguments forwarded to the default offering
+                policy (every Genius hyperparameter is reachable this way).
+            acceptance_params: Keyword arguments forwarded to the default
+                acceptance policy.
+            model_params: Keyword arguments forwarded to the default opponent
+                model.
+            **kwargs: Additional arguments passed to BOANegotiator. A ready
+                ``offering`` / ``acceptance`` / ``model`` may also be passed.
         """
-        offering = GTimeDependentOffering(e=e)
-        acceptance = GACCombi(offering_policy=offering)
-        model = GDefaultModel()
+        offering, acceptance, model = _make_components(
+            kwargs,
+            GTimeDependentOffering,
+            GACCombi,
+            GDefaultModel,
+            offering_kwargs=dict(e=e),
+            acceptance_kwargs=None,
+        )
         super().__init__(
             offering=offering, acceptance=acceptance, model=model, **kwargs
         )
@@ -244,11 +355,23 @@ class GAgentSmith(BOANegotiator):
         Args:
             e: The time-dependency exponent (default 0.3)
             c: The constant acceptance threshold (default 0.8)
-            **kwargs: Additional arguments passed to BOANegotiator
+            offering_params: Keyword arguments forwarded to the default offering
+                policy (every Genius hyperparameter is reachable this way).
+            acceptance_params: Keyword arguments forwarded to the default
+                acceptance policy.
+            model_params: Keyword arguments forwarded to the default opponent
+                model.
+            **kwargs: Additional arguments passed to BOANegotiator. A ready
+                ``offering`` / ``acceptance`` / ``model`` may also be passed.
         """
-        offering = GTimeDependentOffering(e=e)
-        acceptance = GACConst(c=c)
-        model = GSmithFrequencyModel()
+        offering, acceptance, model = _make_components(
+            kwargs,
+            GTimeDependentOffering,
+            GACConst,
+            GSmithFrequencyModel,
+            offering_kwargs=dict(e=e),
+            acceptance_kwargs=dict(c=c),
+        )
         super().__init__(
             offering=offering, acceptance=acceptance, model=model, **kwargs
         )
@@ -277,11 +400,23 @@ class GNozomi(BOANegotiator):
 
         Args:
             e: The time-dependency exponent (default 0.2)
-            **kwargs: Additional arguments passed to BOANegotiator
+            offering_params: Keyword arguments forwarded to the default offering
+                policy (every Genius hyperparameter is reachable this way).
+            acceptance_params: Keyword arguments forwarded to the default
+                acceptance policy.
+            model_params: Keyword arguments forwarded to the default opponent
+                model.
+            **kwargs: Additional arguments passed to BOANegotiator. A ready
+                ``offering`` / ``acceptance`` / ``model`` may also be passed.
         """
-        offering = GTimeDependentOffering(e=e)
-        acceptance = GACPrevious()
-        model = GDefaultModel()
+        offering, acceptance, model = _make_components(
+            kwargs,
+            GTimeDependentOffering,
+            GACPrevious,
+            GDefaultModel,
+            offering_kwargs=dict(e=e),
+            acceptance_kwargs=None,
+        )
         super().__init__(
             offering=offering, acceptance=acceptance, model=model, **kwargs
         )
@@ -309,11 +444,23 @@ class GFSEGA(BOANegotiator):
 
         Args:
             c: The constant acceptance threshold (default 0.7)
-            **kwargs: Additional arguments passed to BOANegotiator
+            offering_params: Keyword arguments forwarded to the default offering
+                policy (every Genius hyperparameter is reachable this way).
+            acceptance_params: Keyword arguments forwarded to the default
+                acceptance policy.
+            model_params: Keyword arguments forwarded to the default opponent
+                model.
+            **kwargs: Additional arguments passed to BOANegotiator. A ready
+                ``offering`` / ``acceptance`` / ``model`` may also be passed.
         """
-        offering = GConcederOffering()
-        acceptance = GACConst(c=c)
-        model = GDefaultModel()
+        offering, acceptance, model = _make_components(
+            kwargs,
+            GConcederOffering,
+            GACConst,
+            GDefaultModel,
+            offering_kwargs=None,
+            acceptance_kwargs=dict(c=c),
+        )
         super().__init__(
             offering=offering, acceptance=acceptance, model=model, **kwargs
         )
@@ -343,11 +490,23 @@ class GCUHKAgent(BOANegotiator):
 
         Args:
             e: The time-dependency exponent (default 0.15 for conservative behavior)
-            **kwargs: Additional arguments passed to BOANegotiator
+            offering_params: Keyword arguments forwarded to the default offering
+                policy (every Genius hyperparameter is reachable this way).
+            acceptance_params: Keyword arguments forwarded to the default
+                acceptance policy.
+            model_params: Keyword arguments forwarded to the default opponent
+                model.
+            **kwargs: Additional arguments passed to BOANegotiator. A ready
+                ``offering`` / ``acceptance`` / ``model`` may also be passed.
         """
-        offering = GTimeDependentOffering(e=e)
-        acceptance = GACCombi(offering_policy=offering)
-        model = GHardHeadedFrequencyModel()
+        offering, acceptance, model = _make_components(
+            kwargs,
+            GTimeDependentOffering,
+            GACCombi,
+            GHardHeadedFrequencyModel,
+            offering_kwargs=dict(e=e),
+            acceptance_kwargs=None,
+        )
         super().__init__(
             offering=offering, acceptance=acceptance, model=model, **kwargs
         )
@@ -376,11 +535,23 @@ class GAgentLG(BOANegotiator):
 
         Args:
             e: The time-dependency exponent (default 0.25)
-            **kwargs: Additional arguments passed to BOANegotiator
+            offering_params: Keyword arguments forwarded to the default offering
+                policy (every Genius hyperparameter is reachable this way).
+            acceptance_params: Keyword arguments forwarded to the default
+                acceptance policy.
+            model_params: Keyword arguments forwarded to the default opponent
+                model.
+            **kwargs: Additional arguments passed to BOANegotiator. A ready
+                ``offering`` / ``acceptance`` / ``model`` may also be passed.
         """
-        offering = GTimeDependentOffering(e=e)
-        acceptance = GACCombiMax(offering_policy=offering)
-        model = GHardHeadedFrequencyModel()
+        offering, acceptance, model = _make_components(
+            kwargs,
+            GTimeDependentOffering,
+            GACCombiMax,
+            GHardHeadedFrequencyModel,
+            offering_kwargs=dict(e=e),
+            acceptance_kwargs=None,
+        )
         super().__init__(
             offering=offering, acceptance=acceptance, model=model, **kwargs
         )
@@ -410,11 +581,23 @@ class GAgentX(BOANegotiator):
         Args:
             e: The time-dependency exponent (default 0.3)
             t: Time threshold after which window-based acceptance kicks in (default 0.98)
-            **kwargs: Additional arguments passed to BOANegotiator
+            offering_params: Keyword arguments forwarded to the default offering
+                policy (every Genius hyperparameter is reachable this way).
+            acceptance_params: Keyword arguments forwarded to the default
+                acceptance policy.
+            model_params: Keyword arguments forwarded to the default opponent
+                model.
+            **kwargs: Additional arguments passed to BOANegotiator. A ready
+                ``offering`` / ``acceptance`` / ``model`` may also be passed.
         """
-        offering = GTimeDependentOffering(e=e)
-        acceptance = GACCombiMaxInWindow(offering_policy=offering, t=t)
-        model = GAgentXFrequencyModel()
+        offering, acceptance, model = _make_components(
+            kwargs,
+            GTimeDependentOffering,
+            GACCombiMaxInWindow,
+            GAgentXFrequencyModel,
+            offering_kwargs=dict(e=e),
+            acceptance_kwargs=dict(t=t),
+        )
         super().__init__(
             offering=offering, acceptance=acceptance, model=model, **kwargs
         )
@@ -439,6 +622,11 @@ class GRandom(BOANegotiator):
     """
 
     def __init__(self, **kwargs):
-        offering = GRandomOffering()
-        acceptance = GACTrue()
+        """Initialize the Random negotiator.
+
+        Args:
+            **kwargs: Additional arguments passed to `BOANegotiator`, plus the
+                component overrides documented in ``_PARAM_DOC``.
+        """
+        offering, acceptance, _ = _make_components(kwargs, GRandomOffering, GACTrue)
         super().__init__(offering=offering, acceptance=acceptance, **kwargs)

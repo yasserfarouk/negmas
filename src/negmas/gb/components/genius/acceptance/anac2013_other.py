@@ -35,13 +35,21 @@ class GACTheFawkes(GeniusAcceptancePolicy):
 
     Args:
         offering_policy: The offering strategy to determine next bid.
+        min_acceptable: Minimum utility below which an offer is rejected outright
+            (default 0.5).
+        max_time_diff: Width of the near-deadline window, i.e. the rule fires
+            once ``t >= 1 - max_time_diff`` (default 0.01).
+        window_scale: The window covers ``len(offers) * max_time_diff *
+            window_scale`` of the most recent partner offers (default 10).
 
     Transcompiled from: negotiator.boaframework.acceptanceconditions.anac2013.AC_TheFawkes
     """
 
     offering_policy: OfferingPolicy
+    min_acceptable: float = 0.5
+    max_time_diff: float = 0.01
+    window_scale: float = 10
     _min_acceptable: float = field(init=False, default=0.5)
-    _max_time_diff: float = field(init=False, default=0.01)
 
     def __call__(
         self, state: GBState, offer: Outcome | None, source: str | None
@@ -62,7 +70,7 @@ class GACTheFawkes(GeniusAcceptancePolicy):
 
         # Calculate minimum acceptable (average utility)
         if state.step == 0:
-            self._min_acceptable = 0.5  # Default
+            self._min_acceptable = self.min_acceptable  # Default
 
         # Reject if below minimum
         if opponent_util < self._min_acceptable:
@@ -89,7 +97,7 @@ class GACTheFawkes(GeniusAcceptancePolicy):
             return ResponseType.ACCEPT_OFFER
 
         # Near deadline: ACtime && ACconst
-        if time >= (1 - self._max_time_diff):
+        if time >= (1 - self.max_time_diff):
             # Get best opponent offer in window
             my_id = self.negotiator.id
             partner_offers: list[Outcome] = []
@@ -100,7 +108,7 @@ class GACTheFawkes(GeniusAcceptancePolicy):
             if partner_offers:
                 # Window is last portion
                 window_size = max(
-                    1, int(len(partner_offers) * self._max_time_diff * 10)
+                    1, int(len(partner_offers) * self.max_time_diff * self.window_scale)
                 )
                 recent = partner_offers[-window_size:]
                 best_recent = max(
@@ -123,12 +131,29 @@ class GACInoxAgent(GeniusAcceptancePolicy):
 
     Args:
         reservation_value: Minimum acceptable utility (default 0.0).
+        median_util: Median-utility estimate used as the concession floor
+            (default 0.5).
+        close_enough: Accept when our worst bid is within this much of the
+            opponent's offer (default 0.05).
+        time_diff_window: Number of recent inter-round time differences averaged
+            when estimating the rounds left (default 10).
+        endgame_rounds_left: Once fewer than this many rounds are estimated to
+            remain, accept at the concession floor (default 8).
+        start_val: Acceptance threshold at ``t=0`` (default 1.0).
+        concession_power: Exponent applied to relative time - very large values
+            keep the threshold near ``start_val`` until the very end
+            (default 27).
 
     Transcompiled from: negotiator.boaframework.acceptanceconditions.anac2013.AC_InoxAgent
     """
 
     reservation_value: float = 0.0
-    _median_util: float = field(init=False, default=0.5)
+    median_util: float = 0.5
+    close_enough: float = 0.05
+    time_diff_window: int = 10
+    endgame_rounds_left: int = 8
+    start_val: float = 1.0
+    concession_power: float = 27
     _rounds_left: int = field(init=False, default=100)
     _time_diffs: list = field(init=False, factory=list)
     _last_time: float = field(init=False, default=0.0)
@@ -166,7 +191,7 @@ class GACInoxAgent(GeniusAcceptancePolicy):
             return ResponseType.END_NEGOTIATION
 
         # Accept if opponent's offer is close to our worst
-        if my_worst_util <= opponent_util + 0.05:
+        if my_worst_util <= opponent_util + self.close_enough:
             return ResponseType.ACCEPT_OFFER
 
         # Accept if above acceptance utility threshold
@@ -181,8 +206,8 @@ class GACInoxAgent(GeniusAcceptancePolicy):
         self._time_diffs.append(time - self._last_time)
         self._last_time = time
 
-        if len(self._time_diffs) >= 10:
-            if len(self._time_diffs) > 10:
+        if len(self._time_diffs) >= self.time_diff_window:
+            if len(self._time_diffs) > self.time_diff_window:
                 self._time_diffs.pop(0)
             avg_diff = sum(self._time_diffs) / len(self._time_diffs)
             if avg_diff > 0:
@@ -190,14 +215,13 @@ class GACInoxAgent(GeniusAcceptancePolicy):
 
     def _accept_util(self, time: float) -> float:
         """Calculate acceptance utility threshold."""
-        if self._rounds_left < 8:
-            return max(self._median_util, self.reservation_value)
+        if self._rounds_left < self.endgame_rounds_left:
+            return max(self.median_util, self.reservation_value)
 
         # Start high, decrease over time
-        start_val = 1.0
-        final_val = max(self._median_util, self.reservation_value)
-        power = 27
-        return start_val - (start_val - final_val) * (time**power)
+        start_val = self.start_val
+        final_val = max(self.median_util, self.reservation_value)
+        return start_val - (start_val - final_val) * (time**self.concession_power)
 
 
 @define
@@ -210,12 +234,14 @@ class GACInoxAgentOneIssue(GeniusAcceptancePolicy):
 
     Args:
         reservation_value: Minimum acceptable utility (default 0.0).
+        median_util: Median-utility threshold at or above which an offer is
+            accepted (default 0.5).
 
     Transcompiled from: negotiator.boaframework.acceptanceconditions.anac2013.AC_InoxAgent_OneIssue
     """
 
     reservation_value: float = 0.0
-    _median_util: float = field(init=False, default=0.5)
+    median_util: float = 0.5
 
     def __call__(
         self, state: GBState, offer: Outcome | None, source: str | None
@@ -230,11 +256,11 @@ class GACInoxAgentOneIssue(GeniusAcceptancePolicy):
         opponent_util = float(self.negotiator.ufun(offer))
 
         # Accept if above median
-        if opponent_util >= self._median_util:
+        if opponent_util >= self.median_util:
             return ResponseType.ACCEPT_OFFER
 
         # Break if reservation looks better
-        if self.reservation_value >= self._median_util:
+        if self.reservation_value >= self.median_util:
             return ResponseType.END_NEGOTIATION
 
         return ResponseType.REJECT_OFFER

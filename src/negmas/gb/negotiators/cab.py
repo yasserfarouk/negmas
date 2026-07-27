@@ -28,8 +28,8 @@ class CANNegotiator(MAPNegotiator):
 
     def __init__(self, *args, **kwargs):
         """Initializes the instance."""
-        kwargs["acceptance"] = AcceptNotWorseRational()
-        kwargs["offering"] = CABOfferingPolicy()
+        kwargs.setdefault("acceptance", AcceptNotWorseRational())
+        kwargs.setdefault("offering", CABOfferingPolicy())
         super().__init__(*args, **kwargs)
 
 
@@ -48,8 +48,8 @@ class CABNegotiator(MAPNegotiator):
 
     def __init__(self, *args, **kwargs):
         """Initializes the instance."""
-        kwargs["acceptance"] = AcceptBetterRational()
-        kwargs["offering"] = CABOfferingPolicy()
+        kwargs.setdefault("acceptance", AcceptBetterRational())
+        kwargs.setdefault("offering", CABOfferingPolicy())
         super().__init__(*args, **kwargs)
 
 
@@ -68,6 +68,6 @@ class CARNegotiator(MAPNegotiator):
 
     def __init__(self, *args, **kwargs):
         """Initializes the instance."""
-        kwargs["acceptance"] = AcceptAnyRational()
-        kwargs["offering"] = CABOfferingPolicy()
+        kwargs.setdefault("acceptance", AcceptAnyRational())
+        kwargs.setdefault("offering", CABOfferingPolicy())
         super().__init__(*args, **kwargs)

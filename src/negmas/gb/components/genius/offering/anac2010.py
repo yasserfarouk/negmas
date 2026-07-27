@@ -39,11 +39,17 @@ class GIAMCrazyHagglerOffering(GeniusOfferingPolicy):
 
     Args:
         breakoff: Minimum utility threshold (default 0.9).
+        max_sampling_attempts: Number of random outcomes tried before falling
+            back to an inverter query (default 100).
+        max_utility_bound: Upper bound of the fallback inverter query, i.e. the
+            policy searches ``[breakoff, max_utility_bound]`` (default 1.1).
 
     Transcompiled from: negotiator.boaframework.offeringstrategy.anac2010.IAMCrazyHaggler_Offering
     """
 
     breakoff: float = 0.9
+    max_sampling_attempts: int = 100
+    max_utility_bound: float = 1.1
     _sorter: InverseUFun | None = field(init=False, default=None)
 
     def on_preferences_changed(self, changes: list[PreferencesChange]) -> None:
@@ -68,7 +74,7 @@ class GIAMCrazyHagglerOffering(GeniusOfferingPolicy):
                 return None
 
         # Try to find a random outcome above breakoff
-        for _ in range(100):
+        for _ in range(self.max_sampling_attempts):
             outcome = self.negotiator.nmi.random_outcome()
             if outcome is not None and self.negotiator.ufun:
                 util = float(self.negotiator.ufun(outcome))
@@ -76,7 +82,9 @@ class GIAMCrazyHagglerOffering(GeniusOfferingPolicy):
                     return outcome
 
         # Fallback: return best outcome in range
-        return self._sorter.worst_in((self.breakoff, 1.1), normalized=False)
+        return self._sorter.worst_in(
+            (self.breakoff, self.max_utility_bound), normalized=False
+        )
 
 
 @define
@@ -131,7 +139,11 @@ class GAgentKOffering(GeniusOfferingPolicy):
 
         # Find a bid above the target
         outcome = self._sorter.worst_in(
-            (self._target - 0.01, self._pmax + 0.01), normalized=False
+            (
+                self._target - self.utility_band_tolerance,
+                self._pmax + self.utility_band_tolerance,
+            ),
+            normalized=False,
         )
         if outcome is not None:
             return outcome
@@ -151,6 +163,10 @@ class GAgentFSEGAOffering(GeniusOfferingPolicy):
     Transcompiled from: negotiator.boaframework.offeringstrategy.anac2010.AgentFSEGA_Offering
     """
 
+    decay_scale: float = 0.98
+    """Scale of the exponentially decaying minimum allowed utility."""
+    decay_base: float = 0.52
+    """Value the minimum allowed utility decays towards at the deadline."""
     min_utility: float = 0.5
     sigma: float = 0.01
     _sorter: InverseUFun | None = field(init=False, default=None)
@@ -170,7 +186,9 @@ class GAgentFSEGAOffering(GeniusOfferingPolicy):
         """Calculate minimum allowed utility at time t."""
         import math
 
-        return max(0.98 * math.exp(math.log(0.52) * t), self.min_utility)
+        return max(
+            self.decay_scale * math.exp(math.log(self.decay_base) * t), self.min_utility
+        )
 
     def __call__(
         self, state: GBState, dest: str | None = None
@@ -189,7 +207,8 @@ class GAgentFSEGAOffering(GeniusOfferingPolicy):
 
         # Find a bid above minimum allowed utility
         outcome = self._sorter.worst_in(
-            (min_allowed - self.sigma, self._pmax + 0.01), normalized=False
+            (min_allowed - self.sigma, self._pmax + self.utility_band_tolerance),
+            normalized=False,
         )
         if outcome is not None:
             return outcome
@@ -208,6 +227,8 @@ class GAgentSmithOffering(GeniusOfferingPolicy):
     Transcompiled from: negotiator.boaframework.offeringstrategy.anac2010.AgentSmith_Offering
     """
 
+    concession_exponent: float = 0.2
+    """Exponent of the Boulware-like concession curve (smaller concedes later)."""
     _sorter: InverseUFun | None = field(init=False, default=None)
     _pmin: float = field(init=False, default=0.0)
     _pmax: float = field(init=False, default=1.0)
@@ -236,10 +257,16 @@ class GAgentSmithOffering(GeniusOfferingPolicy):
 
         t = state.relative_time
         # Boulware-like concession
-        target = self._pmin + (self._pmax - self._pmin) * (1.0 - pow(t, 0.2))
+        target = self._pmin + (self._pmax - self._pmin) * (
+            1.0 - pow(t, self.concession_exponent)
+        )
 
         outcome = self._sorter.worst_in(
-            (target - 0.01, self._pmax + 0.01), normalized=False
+            (
+                target - self.utility_band_tolerance,
+                self._pmax + self.utility_band_tolerance,
+            ),
+            normalized=False,
         )
         if outcome is not None:
             return outcome
@@ -258,6 +285,12 @@ class GNozomiOffering(GeniusOfferingPolicy):
     Transcompiled from: negotiator.boaframework.offeringstrategy.anac2010.Nozomi_Offering
     """
 
+    phase_end: float = 0.8
+    """Relative time separating the slow early phase from the fast late one."""
+    early_drop: float = 0.1
+    """Fraction of the utility range conceded during the early phase."""
+    late_base_factor: float = 0.9
+    """Fraction of the maximum utility the late phase starts from."""
     _sorter: InverseUFun | None = field(init=False, default=None)
     _pmin: float = field(init=False, default=0.0)
     _pmax: float = field(init=False, default=1.0)
@@ -289,17 +322,24 @@ class GNozomiOffering(GeniusOfferingPolicy):
         t = state.relative_time
 
         # Nozomi uses slower concession early, faster late
-        if t < 0.8:
-            target = self._pmax - (self._pmax - self._pmin) * 0.1 * (t / 0.8)
+        if t < self.phase_end:
+            target = self._pmax - (self._pmax - self._pmin) * self.early_drop * (
+                t / self.phase_end
+            )
         else:
-            remaining = (t - 0.8) / 0.2
-            target = self._pmax * 0.9 - (self._pmax * 0.9 - self._pmin) * remaining
+            remaining = (t - self.phase_end) / (1.0 - self.phase_end)
+            base = self._pmax * self.late_base_factor
+            target = base - (base - self._pmin) * remaining
 
         target = max(target, self._pmin)
         self._last_target = target
 
         outcome = self._sorter.worst_in(
-            (target - 0.01, self._pmax + 0.01), normalized=False
+            (
+                target - self.utility_band_tolerance,
+                self._pmax + self.utility_band_tolerance,
+            ),
+            normalized=False,
         )
         if outcome is not None:
             return outcome
@@ -317,6 +357,12 @@ class GYushuOffering(GeniusOfferingPolicy):
     Transcompiled from: negotiator.boaframework.offeringstrategy.anac2010.Yushu_Offering
     """
 
+    sigmoid_gain: float = 12.0
+    """Steepness of the sigmoid concession curve."""
+    sigmoid_midpoint: float = 0.7
+    """Relative time at the sigmoid's midpoint."""
+    max_concession: float = 0.5
+    """Fraction of the utility range conceded once the sigmoid saturates."""
     _sorter: InverseUFun | None = field(init=False, default=None)
     _pmin: float = field(init=False, default=0.0)
     _pmax: float = field(init=False, default=1.0)
@@ -347,11 +393,17 @@ class GYushuOffering(GeniusOfferingPolicy):
 
         t = state.relative_time
         # Sigmoid-like concession
-        sigmoid = 1.0 / (1.0 + math.exp(-12.0 * (t - 0.7)))
-        target = self._pmax - (self._pmax - self._pmin) * sigmoid * 0.5
+        sigmoid = 1.0 / (
+            1.0 + math.exp(-self.sigmoid_gain * (t - self.sigmoid_midpoint))
+        )
+        target = self._pmax - (self._pmax - self._pmin) * sigmoid * self.max_concession
 
         outcome = self._sorter.worst_in(
-            (target - 0.01, self._pmax + 0.01), normalized=False
+            (
+                target - self.utility_band_tolerance,
+                self._pmax + self.utility_band_tolerance,
+            ),
+            normalized=False,
         )
         if outcome is not None:
             return outcome
@@ -370,6 +422,14 @@ class GIAMhaggler2010Offering(GeniusOfferingPolicy):
     Transcompiled from: negotiator.boaframework.offeringstrategy.anac2010.IAMhaggler2010_Offering
     """
 
+    phase_end: float = 0.9
+    """Relative time separating the conservative phase from the accelerated one."""
+    early_drop: float = 0.15
+    """Fraction of the utility range conceded during the early phase."""
+    late_base_factor: float = 0.85
+    """Fraction of the maximum utility the late phase starts from."""
+    late_scale: float = 0.5
+    """How much of the remaining range the late phase gives away."""
     _sorter: InverseUFun | None = field(init=False, default=None)
     _pmin: float = field(init=False, default=0.0)
     _pmax: float = field(init=False, default=1.0)
@@ -398,17 +458,23 @@ class GIAMhaggler2010Offering(GeniusOfferingPolicy):
 
         t = state.relative_time
         # Conservative concession with acceleration near end
-        if t < 0.9:
-            target = self._pmax - (self._pmax - self._pmin) * 0.15 * (t / 0.9)
+        if t < self.phase_end:
+            target = self._pmax - (self._pmax - self._pmin) * self.early_drop * (
+                t / self.phase_end
+            )
         else:
-            base = self._pmax * 0.85
-            remaining = (t - 0.9) / 0.1
-            target = base - (base - self._pmin) * remaining * 0.5
+            base = self._pmax * self.late_base_factor
+            remaining = (t - self.phase_end) / (1.0 - self.phase_end)
+            target = base - (base - self._pmin) * remaining * self.late_scale
 
         target = max(target, self._pmin)
 
         outcome = self._sorter.worst_in(
-            (target - 0.01, self._pmax + 0.01), normalized=False
+            (
+                target - self.utility_band_tolerance,
+                self._pmax + self.utility_band_tolerance,
+            ),
+            normalized=False,
         )
         if outcome is not None:
             return outcome

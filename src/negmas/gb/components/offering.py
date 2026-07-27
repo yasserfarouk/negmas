@@ -95,12 +95,63 @@ def index_of_nearest_value(
 
 @define
 class HybridOfferingPolicy(OfferingPolicy):
-    """HybridOffering policy implementation."""
+    """HybridOffering policy implementation.
+
+    Combines a time-based (quadratic Bezier) concession curve with a
+    behaviour-based reaction to the opponent's concessions.
+
+    Args:
+        initial_utility: Bezier control point at ``t=0``. ``NaN`` (default)
+            means *auto*: use ``auto_initial_utility``.
+        concession_ratio: Middle Bezier control point. ``NaN`` (default) means
+            *auto*: use ``auto_concession_ratio``.
+        final_utility: Bezier control point at ``t=1``. ``NaN`` (default) means
+            *auto*: derive it from the domain size using
+            ``final_utility_ladder`` / ``final_utility_floor``. Whether given
+            or derived, it is always floored at the reserved value.
+        empathy_score: How strongly the opponent's concession moves our target
+            in `behaviour_based`. ``NaN`` (default) means *auto*: use
+            ``auto_empathy_score``.
+        auto_initial_utility: Value used for ``initial_utility`` in auto mode.
+        auto_concession_ratio: Value used for ``concession_ratio`` in auto mode.
+        auto_empathy_score: Value used for ``empathy_score`` in auto mode.
+        domain_size_cap: Domain cardinality is clipped to this before consulting
+            ``final_utility_ladder``.
+        final_utility_ladder: Ordered ``(max_domain_size, final_utility)`` pairs.
+            The first pair whose ``max_domain_size`` exceeds the (clipped) domain
+            size supplies ``final_utility`` in auto mode.
+        final_utility_floor: ``final_utility`` used in auto mode when the domain
+            is larger than every threshold in ``final_utility_ladder``.
+        behavior_min_offers: Minimum number of offers received before the
+            behaviour-based component is mixed in (pure time-based before that).
+        enumeration_levels: ``levels`` used to discretize a continuous outcome
+            space when enumerating candidate outcomes.
+        enumeration_max_cardinality: ``max_cardinality`` used when enumerating a
+            continuous outcome space.
+        frac_time_based: Window weights (keyed by window length) applied to the
+            opponent's recent utility differences in `behaviour_based`.
+        above_only: Only consider outcomes at or above the target utility.
+    """
 
     initial_utility: float = float("nan")
     concession_ratio: float = float("nan")
     final_utility: float = float("nan")
     empathy_score: float = float("nan")
+    auto_initial_utility: float = 1.0
+    auto_concession_ratio: float = 0.75
+    auto_empathy_score: float = 0.5
+    domain_size_cap: int = 100_000
+    final_utility_ladder: tuple[tuple[float, float], ...] = (
+        (450, 0.80),
+        (1500, 0.775),
+        (4500, 0.75),
+        (18000, 0.725),
+        (33000, 0.70),
+    )
+    final_utility_floor: float = 0.675
+    behavior_min_offers: int = 2
+    enumeration_levels: int = 10
+    enumeration_max_cardinality: int = 1_000_000
     frac_time_based: dict[int, tuple[float, ...]] = field(
         factory=lambda: {
             1: (1.0,),
@@ -116,31 +167,44 @@ class HybridOfferingPolicy(OfferingPolicy):
     _received_utils: list[float] = field(init=False, factory=list)
     _outcomes: list[Outcome] = field(init=False, factory=list)
     _values: list[float] = field(init=False, factory=list)
+    # Which of the four curve parameters the user pinned explicitly. Captured
+    # once at construction so that `_adjust_params` (which may run repeatedly)
+    # never overwrites a user-supplied value.
+    _auto: frozenset[str] = field(init=False, factory=frozenset)
+
+    def __attrs_post_init__(self):
+        """Records which curve parameters were left as ``NaN`` (i.e. automatic)."""
+        self._auto = frozenset(
+            name
+            for name in (
+                "initial_utility",
+                "concession_ratio",
+                "final_utility",
+                "empathy_score",
+            )
+            if math.isnan(getattr(self, name))
+        )
 
     def _adjust_params(self):
-        self.initial_utility = 1.0
-        self.concession_ratio = 0.75
-        self.final_utility = 0.55
-        self.empathy_score = 0.5
+        if "initial_utility" in self._auto:
+            self.initial_utility = self.auto_initial_utility
+        if "concession_ratio" in self._auto:
+            self.concession_ratio = self.auto_concession_ratio
+        if "empathy_score" in self._auto:
+            self.empathy_score = self.auto_empathy_score
 
         ufun = self.negotiator.ufun
         assert ufun, "Unknown ufun. Cannot continue"
-        domain_size = ufun.outcome_space.cardinality  # type: ignore
-        if domain_size > 100_000:
-            domain_size = 100_000
 
-        if domain_size < 450:
-            self.final_utility = 0.80
-        elif domain_size < 1500:
-            self.final_utility = 0.775
-        elif domain_size < 4500:
-            self.final_utility = 0.75
-        elif domain_size < 18000:
-            self.final_utility = 0.725
-        elif domain_size < 33000:
-            self.final_utility = 0.70
-        else:
-            self.final_utility = 0.675
+        if "final_utility" in self._auto:
+            domain_size = ufun.outcome_space.cardinality  # type: ignore
+            if domain_size > self.domain_size_cap:
+                domain_size = self.domain_size_cap
+            self.final_utility = self.final_utility_floor
+            for threshold, value in self.final_utility_ladder:
+                if domain_size < threshold:
+                    self.final_utility = value
+                    break
 
         self._sent_utils = [float(ufun(_)) for _ in self._sent_offers]
         self._received_utils = [float(ufun(_)) for _ in self._received_offers]
@@ -149,7 +213,10 @@ class HybridOfferingPolicy(OfferingPolicy):
         os = ufun.outcome_space
         assert os
         outcomes = (
-            os.enumerate_or_sample(levels=10, max_cardinality=1_000_000)
+            os.enumerate_or_sample(
+                levels=self.enumeration_levels,
+                max_cardinality=self.enumeration_max_cardinality,
+            )
             if not isinstance(os, DiscreteOutcomeSpace)
             else os.enumerate()
         )
@@ -221,8 +288,8 @@ class HybridOfferingPolicy(OfferingPolicy):
         # Target utility of Time-Based strategy
         target_utility = self.time_based(t)
 
-        # If first 2 round, apply only Time-Based strategy
-        if len(self._received_offers) > 2:
+        # For the first `behavior_min_offers` rounds, apply only Time-Based strategy
+        if len(self._received_offers) > self.behavior_min_offers:
             # Target utility of Behavior-Based strategy
             behavior_utility = self.behaviour_based(t)
 
@@ -241,7 +308,9 @@ class HybridOfferingPolicy(OfferingPolicy):
         #     return self.accept_action
 
         # Find the closest bid to target utility
-        indx = index_of_nearest_value(self._values, target_utility)
+        indx = index_of_nearest_value(
+            self._values, target_utility, above_only=self.above_only
+        )
         n_outcomes = len(self._outcomes)
         if n_outcomes < 1:
             return None
@@ -428,15 +497,33 @@ class MiCROOfferingPolicy(OfferingPolicy):
 
 @define
 class FastMiCROOfferingPolicy(MiCROOfferingPolicy):
-    """FastMiCROOffering policy implementation."""
+    """FastMiCROOffering policy implementation.
 
+    Like `MiCROOfferingPolicy` but able to *skip* outcomes so that the whole
+    outcome list can be traversed before the deadline.
+
+    Args:
+        forced_concession_time: Relative time after which concession is allowed
+            even if we have already sent more offers than we received.
+        min_time_before_skipping: Skipping is disabled before this relative time
+            (the concession-rate estimate is too noisy that early).
+        min_offers_before_skipping: Skipping is disabled until at least this many
+            offers have been sent.
+        expected_offers_rounding: Added before truncating the estimated number of
+            remaining offers (``0.5`` rounds to nearest).
+    """
+
+    forced_concession_time: float = 0.95
+    min_time_before_skipping: float = 0.1
+    min_offers_before_skipping: int = 5
+    expected_offers_rounding: float = 0.5
     _skipped: set[Outcome] = field(factory=set)
 
     def ready_to_concede(self) -> bool:
         """Checks concession readiness, allowing faster concession near deadline."""
         return (
             len(self._sent) <= len(self._received)
-            or self.negotiator.nmi.state.relative_time > 0.95
+            or self.negotiator.nmi.state.relative_time > self.forced_concession_time
         )
 
     def __call__(
@@ -470,16 +557,23 @@ class FastMiCROOfferingPolicy(MiCROOfferingPolicy):
             return self.sample_sent()
         t = state.relative_time
         n_sent = len(self._sent)
-        if t < 0.1 or n_sent < 5:
+        if (
+            t < self.min_time_before_skipping
+            or n_sent < self.min_offers_before_skipping
+        ):
             self.next_indx += 1
         else:
             n_remaining = len(self.sorter.outcomes) - 1 - self.next_indx
             t_per_offer = (t) / n_sent
-            n_expected = int((1 - t) / t_per_offer + 0.5)
+            n_expected = int((1 - t) / t_per_offer + self.expected_offers_rounding)
             if n_remaining <= n_expected:
                 self.next_indx += 1
             else:
-                n_skip = max(1, (n_expected - n_remaining))
+                # We have more outcomes left than offers left, so advance by
+                # more than one per offer to still traverse the whole list.
+                # (The operands used to be reversed, making this always 1 and
+                # the skip loop below a no-op.)
+                n_skip = max(1, math.ceil(n_remaining / max(1, n_expected)))
                 for i in range(n_skip - 1):
                     o = self.sorter.outcome_at(self.next_indx + 1)
                     if o is None:
@@ -830,6 +924,16 @@ class NiceTitForTatOfferingPolicy(OfferingPolicy):
     levels: int = 20
     nash_min: float = 0.5
     pareto_sampler_type: type[ParetoSampler] = DefaultParetoSampler
+    # --- reference (Baarslag et al. 2013) constants, exposed for tuning ---
+    nash_multiplier_base: float = 1.4
+    nash_multiplier_gap_weight: float = 0.6
+    default_nash_utility: float = 0.7
+    discount_bonus_base: float = 0.5
+    discount_bonus_weight: float = 0.4
+    big_domain_cardinality: float = 3000
+    bonus_start_time: float = 0.91
+    bonus_start_time_big_domain: float = 0.85
+    bonus_ramp_rate: float = 20.0
     _partner_offer: Outcome | None = field(init=False, default=None)
     _prev_partner_offer: Outcome | None = field(init=False, default=None)
     _target_util: float | None = field(init=False, default=None)
@@ -1080,26 +1184,31 @@ class NiceTitForTatOfferingPolicy(OfferingPolicy):
             self._sampler_failed = True
             return None
 
-    @staticmethod
-    def _nash_multiplier(gap: float) -> float:
+    def _nash_multiplier(self, gap: float) -> float:
         """Reference multiplier applied to the Nash utility estimate.
 
         A large ``gap`` (opponent started far from us) shrinks the multiplier
         (ask for a bit less); a small gap grows it (ask for a bit more). Matches
-        the Baarslag reference ``1.4 - 0.6 * gap`` (floored at 0).
+        the Baarslag reference ``1.4 - 0.6 * gap`` (floored at 0), with the two
+        constants exposed as ``nash_multiplier_base`` and
+        ``nash_multiplier_gap_weight``.
         """
-        return max(0.0, 1.4 - 0.6 * gap)
+        return max(
+            0.0, self.nash_multiplier_base - self.nash_multiplier_gap_weight * gap
+        )
 
     def _bonus(self, relative_time: float) -> float:
         """Concession *bonus* toward the Nash utility (Baarslag reference).
 
         Returns a value in ``[0, 1]`` multiplying the remaining gap to Nash:
 
-        * a constant **discount baseline** ``0.5 - 0.4 * discount_factor`` (``0.1``
-          with no discounting) — a small immediate concession that produces the
-          initial cooperative gesture, and
-        * a **time ramp** near the deadline (from ``t = 0.91``, or ``0.85`` on
-          big domains, rising ``0 -> 1`` by ``t ~ 0.96``).
+        * a constant **discount baseline**
+          ``discount_bonus_base - discount_bonus_weight * discount_factor``
+          (``0.1`` with no discounting) — a small immediate concession that
+          produces the initial cooperative gesture, and
+        * a **time ramp** near the deadline (from ``bonus_start_time``, or
+          ``bonus_start_time_big_domain`` on domains larger than
+          ``big_domain_cardinality``, rising ``0 -> 1`` at ``bonus_ramp_rate``).
 
         The bonus is what lets a mirror match concede toward Nash and agree
         rather than deadlocking at maximum utility.
@@ -1114,17 +1223,21 @@ class NiceTitForTatOfferingPolicy(OfferingPolicy):
             discount = 1.0
         if not (0.0 < discount <= 1.0):
             discount = 1.0
-        discount_bonus = 0.5 - 0.4 * discount
+        discount_bonus = (
+            self.discount_bonus_base - self.discount_bonus_weight * discount
+        )
         big = False
         try:
             os_ = ufun.outcome_space if ufun is not None else None
-            big = os_ is not None and float(os_.cardinality) > 3000
+            big = (
+                os_ is not None and float(os_.cardinality) > self.big_domain_cardinality
+            )
         except Exception:  # pragma: no cover - defensive
             big = False
-        min_time = 0.85 if big else 0.91
+        min_time = self.bonus_start_time_big_domain if big else self.bonus_start_time
         time_bonus = 0.0
         if relative_time > min_time:
-            time_bonus = min(1.0, 20.0 * (relative_time - min_time))
+            time_bonus = min(1.0, self.bonus_ramp_rate * (relative_time - min_time))
         return min(1.0, max(0.0, max(discount_bonus, time_bonus)))
 
     def __call__(self, state: GBState, dest: str | None = None):
@@ -1171,7 +1284,7 @@ class NiceTitForTatOfferingPolicy(OfferingPolicy):
         first = self._opp_first_util if self._opp_first_util is not None else 1.0
         max_off = self._opp_max_util if self._opp_max_util is not None else first
         initial_gap = 1.0 - first
-        base_nash = point[0] if point is not None else 0.7
+        base_nash = point[0] if point is not None else self.default_nash_utility
         my_nash = base_nash * self._nash_multiplier(initial_gap)
         low = self.nash_min if self.target == "nash" else reserved
         my_nash = min(1.0, max(low, reserved, my_nash))
@@ -1367,6 +1480,8 @@ class LimitedOutcomesOfferingPolicy(OfferingPolicy):
     outcomes: list[Outcome] | None
     prob: list[float] | None = None
     p_ending: float = 0.0
+    prob_sum_tolerance: float = 0.999
+    """Probability sums at or above this are treated as 1.0 (no renormalization)."""
 
     def _run(
         self, state: GBState, dest: str | None = None, second_trial: bool = False
@@ -1388,7 +1503,7 @@ class LimitedOutcomesOfferingPolicy(OfferingPolicy):
                 return w
         if second_trial:
             return None
-        if s > 0.999:
+        if s > self.prob_sum_tolerance:
             return self.outcomes[-1]
         self.prob = [_ / s for _ in self.prob]
         return self._run(state, dest, True)
@@ -1501,6 +1616,8 @@ class RandomConcensusOfferingPolicy(ConcensusOfferingPolicy):
     """
 
     prob: list[float] | None = None
+    prob_sum_tolerance: float = 0.999
+    """Probability sums at or above this are treated as 1.0 instead of raising."""
 
     def __attrs_post_init__(self):
         """Normalizes probability weights to sum to 1."""
@@ -1529,7 +1646,7 @@ class RandomConcensusOfferingPolicy(ConcensusOfferingPolicy):
             s += p
             if r <= s:
                 return responses[i]
-        if s > 0.999:
+        if s > self.prob_sum_tolerance:
             return responses[-1]
         raise ValueError(f"sum of probabilities is less than 1: {s}")
 

@@ -6,7 +6,14 @@ import math
 from abc import abstractmethod
 from typing import Literal, Protocol, runtime_checkable
 
-__all__ = ["TimeCurve", "Aspiration", "PolyAspiration", "ExpAspiration"]
+__all__ = [
+    "TimeCurve",
+    "Aspiration",
+    "PolyAspiration",
+    "ExpAspiration",
+    "POLY_ASPIRATION_EXPONENTS",
+    "EXP_ASPIRATION_EXPONENTS",
+]
 
 
 @runtime_checkable
@@ -60,6 +67,22 @@ class Aspiration(TimeCurve, Protocol):
         return self.utility_at(t), 1.0
 
 
+EXP_ASPIRATION_EXPONENTS: dict[str, float] = {
+    "boulware": 0.125,
+    "linear": 0.725,
+    "conceder": 4.0,
+}
+"""Default exponent for each named `ExpAspiration` curve type."""
+
+POLY_ASPIRATION_EXPONENTS: dict[str, float] = {
+    "boulware": 4.0,
+    "linear": 1.0,
+    "conceder": 0.25,
+    "hardheaded": float("inf"),
+}
+"""Default exponent for each named `PolyAspiration` curve type."""
+
+
 class ExpAspiration(Aspiration):
     """
     An exponential conceding curve
@@ -67,6 +90,9 @@ class ExpAspiration(Aspiration):
     Args:
         max_aspiration: The aspiration level to start from (usually 1.0)
         aspiration_type: The aspiration type. Can be a string ("boulware", "linear", "conceder") or a number giving the exponent of the aspiration curve.
+        exponents: Maps each named ``aspiration_type`` to its exponent. Defaults
+            to `EXP_ASPIRATION_EXPONENTS`. Pass a modified mapping (e.g.
+            ``{"boulware": 0.2, ...}``) to tune what the names mean.
     """
 
     def __init__(
@@ -76,26 +102,27 @@ class ExpAspiration(Aspiration):
         | Literal["conceder"]
         | Literal["linear"]
         | float,
+        exponents: dict[str, float] | None = None,
     ):
         """Initialize the instance.
 
         Args:
             max_aspiration: Max aspiration.
             aspiration_type: Aspiration type.
+            exponents: Named-curve to exponent mapping (see class docstring).
         """
         self.max_aspiration = max_aspiration
         self.aspiration_type = aspiration_type
+        self.exponents = (
+            dict(EXP_ASPIRATION_EXPONENTS) if exponents is None else dict(exponents)
+        )
         self.exponent = 1.0
         if isinstance(aspiration_type, int):
             self.exponent = float(aspiration_type)
         elif isinstance(aspiration_type, float):
             self.exponent = aspiration_type
-        elif aspiration_type == "boulware":
-            self.exponent = 0.125
-        elif aspiration_type == "linear":
-            self.exponent = 0.725
-        elif aspiration_type == "conceder":
-            self.exponent = 4.0
+        elif aspiration_type in self.exponents:
+            self.exponent = self.exponents[aspiration_type]
         else:
             raise ValueError(f"Unknown aspiration type {aspiration_type}")
         self._denominator = math.exp(1) - 1
@@ -127,7 +154,10 @@ class PolyAspiration(Aspiration):
 
     Args:
         max_aspiration: The aspiration level to start from (usually 1.0)
-        aspiration_type: The aspiration type. Can be a string ("boulware", "linear", "conceder") or a number giving the exponent of the aspiration curve.
+        aspiration_type: The aspiration type. Can be a string ("boulware", "linear", "conceder", "hardheaded") or a number giving the exponent of the aspiration curve.
+        exponents: Maps each named ``aspiration_type`` to its exponent. Defaults
+            to `POLY_ASPIRATION_EXPONENTS`. Pass a modified mapping (e.g.
+            ``{"boulware": 3.0, ...}``) to tune what the names mean.
     """
 
     def __init__(
@@ -138,28 +168,27 @@ class PolyAspiration(Aspiration):
         | Literal["linear"]
         | Literal["hardheaded"]
         | float,
+        exponents: dict[str, float] | None = None,
     ):
         """Initialize the instance.
 
         Args:
             max_aspiration: Max aspiration.
             aspiration_type: Aspiration type.
+            exponents: Named-curve to exponent mapping (see class docstring).
         """
         self.max_aspiration = max_aspiration
         self.aspiration_type = aspiration_type
+        self.exponents = (
+            dict(POLY_ASPIRATION_EXPONENTS) if exponents is None else dict(exponents)
+        )
         self.exponent = 1.0
         if isinstance(aspiration_type, int):
             self.exponent = float(aspiration_type)
         elif isinstance(aspiration_type, float):
             self.exponent = aspiration_type
-        elif aspiration_type == "boulware":
-            self.exponent = 4.0
-        elif aspiration_type == "linear":
-            self.exponent = 1.0
-        elif aspiration_type == "conceder":
-            self.exponent = 0.25
-        elif aspiration_type == "hardheaded":
-            self.exponent = float("inf")
+        elif aspiration_type in self.exponents:
+            self.exponent = self.exponents[aspiration_type]
         else:
             raise ValueError(f"Unknown aspiration type {aspiration_type}")
 

@@ -320,6 +320,9 @@ class GCUHKFrequencyModel(GeniusOpponentModel):
     Transcompiled from: negotiator.boaframework.opponentmodel.CUHKFrequencyModelV2
     """
 
+    no_information_utility: float = 0.5
+    """Utility returned before any bid has been observed (or when a value
+    frequency cannot be normalized)."""
     _issue_weights: dict[int, float] = field(factory=dict)
     _value_counts: dict[int, dict] = field(factory=dict)
     _n_issues: int = field(init=False, default=0)
@@ -376,7 +379,7 @@ class GCUHKFrequencyModel(GeniusOpponentModel):
             self._initialize()
 
         if self._n_issues == 0 or self._total_bids == 0:
-            return 0.5
+            return self.no_information_utility
 
         total_utility = 0.0
         for i in range(self._n_issues):
@@ -386,7 +389,9 @@ class GCUHKFrequencyModel(GeniusOpponentModel):
             max_count = (
                 max(self._value_counts[i].values()) if self._value_counts[i] else 1
             )
-            value_util = count / max_count if max_count > 0 else 0.5
+            value_util = (
+                count / max_count if max_count > 0 else self.no_information_utility
+            )
             total_utility += issue_weight * value_util
 
         return total_utility
@@ -419,6 +424,9 @@ class GNashFrequencyModel(GeniusOpponentModel):
     Transcompiled from: negotiator.boaframework.opponentmodel.NashFrequencyModel
     """
 
+    unchanged_issue_weight_addition: float = 0.1
+    """Total weight added, split across the issues that did not change
+    between two consecutive opponent bids (weights are renormalized after)."""
     default_value: int = 1
     _issue_weights: dict[int, float] = field(factory=dict)
     _value_counts: dict[int, dict] = field(factory=dict)
@@ -478,7 +486,7 @@ class GNashFrequencyModel(GeniusOpponentModel):
                     unchanged.append(i)
 
             if unchanged:
-                addition = 0.1 / len(unchanged)
+                addition = self.unchanged_issue_weight_addition / len(unchanged)
                 for i in unchanged:
                     self._issue_weights[i] += addition
 
@@ -556,6 +564,9 @@ class GAgentXFrequencyModel(GeniusOpponentModel):
     Transcompiled from: negotiator.boaframework.opponentmodel.AgentXFrequencyModel
     """
 
+    decay_ratio: float = 0.5
+    """Fraction of ``learning_rate`` used to shrink the weight of an issue
+    whose value changed between two consecutive opponent bids."""
     learning_rate: float = 0.25
     default_value: int = 1
     _issue_weights: dict[int, float] = field(factory=dict)
@@ -622,7 +633,7 @@ class GAgentXFrequencyModel(GeniusOpponentModel):
                     # Issue changed - reduce weight slightly
                     old_weight = self._issue_weights[i]
                     self._issue_weights[i] = old_weight * (
-                        1.0 - self.learning_rate * 0.5
+                        1.0 - self.learning_rate * self.decay_ratio
                     )
 
             # Normalize weights

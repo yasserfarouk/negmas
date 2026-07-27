@@ -43,6 +43,8 @@ class GBayesianModel(GeniusOpponentModel):
 
     n_hypotheses: int = 10
     rationality: float = 5.0
+    initial_value_util: float = 0.5
+    """Utility assigned to an issue value before anything is learned about it."""
     _issue_weight_hypotheses: list[dict[int, float]] = field(factory=list)
     _hypothesis_probs: list[float] = field(factory=list)
     _value_utils: dict[int, dict] = field(factory=dict)
@@ -117,7 +119,9 @@ class GBayesianModel(GeniusOpponentModel):
             for i in range(self._n_issues):
                 value = offer[i]
                 issue_weight = hypothesis.get(i, 0.0)
-                value_util = self._value_utils.get(i, {}).get(value, 0.5)
+                value_util = self._value_utils.get(i, {}).get(
+                    value, self.initial_value_util
+                )
                 util += issue_weight * value_util
 
             # Likelihood based on rationality (soft-max)
@@ -164,7 +168,9 @@ class GBayesianModel(GeniusOpponentModel):
             for i in range(self._n_issues):
                 value = offer[i]
                 issue_weight = hypothesis.get(i, 0.0)
-                value_util = self._value_utils.get(i, {}).get(value, 0.5)
+                value_util = self._value_utils.get(i, {}).get(
+                    value, self.initial_value_util
+                )
                 h_util += issue_weight * value_util
 
             total_utility += h_prob * h_util
@@ -199,6 +205,11 @@ class GScalableBayesianModel(GeniusOpponentModel):
     """
 
     learning_rate: float = 0.1
+    initial_value_util: float = 0.5
+    """Utility assigned to an issue value before anything is learned about it."""
+    decay_ratio: float = 0.1
+    """Fraction of ``learning_rate`` used to decay the values the opponent did
+    *not* offer."""
     _issue_weights: dict[int, float] = field(factory=dict)
     _value_utils: dict[int, dict] = field(factory=dict)
     _bid_count: int = field(init=False, default=0)
@@ -225,7 +236,7 @@ class GScalableBayesianModel(GeniusOpponentModel):
                 # Initialize uniform value utilities
                 issue = issues[i]
                 for value in issue.all:
-                    self._value_utils[i][value] = 0.5
+                    self._value_utils[i][value] = self.initial_value_util
 
         self._initialized = True
 
@@ -261,7 +272,9 @@ class GScalableBayesianModel(GeniusOpponentModel):
                 # Decay other values slightly
                 for v in self._value_utils[i]:
                     if v != value:
-                        self._value_utils[i][v] *= 1.0 - self.learning_rate * 0.1
+                        self._value_utils[i][v] *= (
+                            1.0 - self.learning_rate * self.decay_ratio
+                        )
 
         # Normalize value utilities per issue
         for i in range(self._n_issues):
@@ -297,7 +310,9 @@ class GScalableBayesianModel(GeniusOpponentModel):
         for i in range(self._n_issues):
             value = offer[i]
             issue_weight = self._issue_weights.get(i, 1.0 / max(1, self._n_issues))
-            value_util = self._value_utils.get(i, {}).get(value, 0.5)
+            value_util = self._value_utils.get(i, {}).get(
+                value, self.initial_value_util
+            )
             total_utility += issue_weight * value_util
 
         return total_utility
@@ -323,6 +338,11 @@ class GFSEGABayesianModel(GeniusOpponentModel):
     Transcompiled from: negotiator.boaframework.opponentmodel.FSEGABayesianModel
     """
 
+    initial_value_util: float = 0.5
+    """Utility assigned to an issue value before anything is learned about it."""
+    learning_rate_numerator: float = 1.0
+    """Numerator of the decaying learning rate
+    ``learning_rate_numerator / (1 + n_bids)``."""
     _issue_weights: dict[int, float] = field(factory=dict)
     _value_utils: dict[int, dict] = field(factory=dict)
     _n_issues: int = field(init=False, default=0)
@@ -347,7 +367,7 @@ class GFSEGABayesianModel(GeniusOpponentModel):
                 self._issue_weights[i] = initial_weight
                 self._value_utils[i] = {}
                 for v in issues[i].all:
-                    self._value_utils[i][v] = 0.5
+                    self._value_utils[i][v] = self.initial_value_util
 
         self._initialized = True
 
@@ -364,7 +384,7 @@ class GFSEGABayesianModel(GeniusOpponentModel):
             return
 
         self._n_bids += 1
-        learning_rate = 1.0 / (1.0 + self._n_bids)
+        learning_rate = self.learning_rate_numerator / (1.0 + self._n_bids)
 
         for i in range(self._n_issues):
             value = offer[i]
@@ -397,7 +417,9 @@ class GFSEGABayesianModel(GeniusOpponentModel):
         for i in range(self._n_issues):
             value = offer[i]
             issue_weight = self._issue_weights.get(i, 1.0 / max(1, self._n_issues))
-            value_util = self._value_utils.get(i, {}).get(value, 0.5)
+            value_util = self._value_utils.get(i, {}).get(
+                value, self.initial_value_util
+            )
             total_utility += issue_weight * value_util
 
         return total_utility
@@ -423,6 +445,13 @@ class GIAMhagglerBayesianModel(GeniusOpponentModel):
     Transcompiled from: negotiator.boaframework.opponentmodel.IAMhagglerBayesianModel
     """
 
+    initial_value_util: float = 0.5
+    """Utility assigned to an issue value before anything is learned about it."""
+    learning_rate: float = 0.2
+    """Numerator of the decaying learning rate
+    ``learning_rate / (1 + learning_rate_decay * n_bids)``."""
+    learning_rate_decay: float = 0.1
+    """How fast the learning rate decays with the number of observed bids."""
     _issue_weights: dict[int, float] = field(factory=dict)
     _value_utils: dict[int, dict] = field(factory=dict)
     _n_issues: int = field(init=False, default=0)
@@ -447,7 +476,7 @@ class GIAMhagglerBayesianModel(GeniusOpponentModel):
                 self._issue_weights[i] = initial_weight
                 self._value_utils[i] = {}
                 for v in issues[i].all:
-                    self._value_utils[i][v] = 0.5
+                    self._value_utils[i][v] = self.initial_value_util
 
         self._initialized = True
 
@@ -464,7 +493,9 @@ class GIAMhagglerBayesianModel(GeniusOpponentModel):
             return
 
         self._n_bids += 1
-        learning_rate = 0.2 / (1.0 + 0.1 * self._n_bids)
+        learning_rate = self.learning_rate / (
+            1.0 + self.learning_rate_decay * self._n_bids
+        )
 
         for i in range(self._n_issues):
             value = offer[i]
@@ -498,7 +529,9 @@ class GIAMhagglerBayesianModel(GeniusOpponentModel):
         for i in range(self._n_issues):
             value = offer[i]
             issue_weight = self._issue_weights.get(i, 1.0 / max(1, self._n_issues))
-            value_util = self._value_utils.get(i, {}).get(value, 0.5)
+            value_util = self._value_utils.get(i, {}).get(
+                value, self.initial_value_util
+            )
             total_utility += issue_weight * value_util
 
         return total_utility

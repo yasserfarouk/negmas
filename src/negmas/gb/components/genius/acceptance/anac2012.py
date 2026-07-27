@@ -37,14 +37,24 @@ class GACCUHKAgent(GeniusAcceptancePolicy):
     Args:
         offering_policy: The offering strategy to determine next bid.
         min_threshold: Minimum utility threshold (default 0.65).
+        base_threshold: Threshold at ``t=0`` (default 0.95).
+        concede_factor: Exponent applied to relative time when interpolating
+            between ``base_threshold`` and ``min_threshold`` (default 0.9).
+        endgame_time: Relative time after which the opponent-max rule applies
+            (default 0.9985).
+        endgame_slack: Slack subtracted from the observed opponent max in the
+            endgame (default 0.01).
 
     Transcompiled from: negotiator.boaframework.acceptanceconditions.anac2012.AC_CUHKAgent
     """
 
     offering_policy: OfferingPolicy
     min_threshold: float = 0.65
+    base_threshold: float = 0.95
+    concede_factor: float = 0.9
+    endgame_time: float = 0.9985
+    endgame_slack: float = 0.01
     _utility_threshold: float = field(init=False, default=0.9)
-    _concede_factor: float = field(init=False, default=0.9)
     _opponent_max_util: float = field(init=False, default=0.0)
 
     def __call__(
@@ -88,8 +98,8 @@ class GACCUHKAgent(GeniusAcceptancePolicy):
             return ResponseType.ACCEPT_OFFER
 
         # Near deadline, more flexible
-        if time > 0.9985:
-            if opponent_util >= self._opponent_max_util - 0.01:
+        if time > self.endgame_time:
+            if opponent_util >= self._opponent_max_util - self.endgame_slack:
                 return ResponseType.ACCEPT_OFFER
 
         return ResponseType.REJECT_OFFER
@@ -97,9 +107,9 @@ class GACCUHKAgent(GeniusAcceptancePolicy):
     def _calculate_threshold(self, time: float) -> float:
         """Calculate utility threshold based on time."""
         # Threshold decreases over time with concede factor
-        base = 0.95
+        base = self.base_threshold
         target = self.min_threshold
-        return base - (base - target) * (time**self._concede_factor)
+        return base - (base - target) * (time**self.concede_factor)
 
 
 @define
@@ -113,12 +123,15 @@ class GACOMACagent(GeniusAcceptancePolicy):
     Args:
         offering_policy: The offering strategy to determine next bid.
         discount_threshold: Discount threshold for special behavior (default 0.845).
+        endgame_time: Relative time after which a repeated bid is accepted
+            (default 0.97).
 
     Transcompiled from: negotiator.boaframework.acceptanceconditions.anac2012.AC_OMACagent
     """
 
     offering_policy: OfferingPolicy
     discount_threshold: float = 0.845
+    endgame_time: float = 0.97
 
     def __call__(
         self, state: GBState, offer: Outcome | None, source: str | None
@@ -142,7 +155,7 @@ class GACOMACagent(GeniusAcceptancePolicy):
             return ResponseType.ACCEPT_OFFER
 
         # Near deadline, accept if we've made this bid
-        if time > 0.97 and offer in my_offers:
+        if time > self.endgame_time and offer in my_offers:
             return ResponseType.ACCEPT_OFFER
 
         # Get our next bid utility
@@ -180,11 +193,26 @@ class GACAgentLG(GeniusAcceptancePolicy):
 
     Args:
         accept_ratio: Ratio for acceptance comparison (default 0.99).
+        min_acceptable_floor: Lower bound on the adaptive minimum acceptable
+            utility (default 0.5).
+        min_acceptable_base: Value of the adaptive minimum at ``t=0``
+            (default 0.9).
+        min_acceptable_decay: How much that minimum drops over the full
+            negotiation (default 0.3).
+        endgame_time: Relative time after which ``endgame_ratio`` applies
+            (default 0.999).
+        endgame_ratio: Fraction of our own last utility accepted in the endgame
+            (default 0.9).
 
     Transcompiled from: negotiator.boaframework.acceptanceconditions.anac2012.AC_AgentLG
     """
 
     accept_ratio: float = 0.99
+    min_acceptable_floor: float = 0.5
+    min_acceptable_base: float = 0.9
+    min_acceptable_decay: float = 0.3
+    endgame_time: float = 0.999
+    endgame_ratio: float = 0.9
     _min_acceptable: float = field(init=False, default=0.8)
 
     def __call__(
@@ -212,14 +240,20 @@ class GACAgentLG(GeniusAcceptancePolicy):
         opponent_util = float(self.negotiator.ufun(offer))
 
         # Update minimum acceptable based on time
-        self._min_acceptable = max(0.5, 0.9 - time * 0.3)
+        self._min_acceptable = max(
+            self.min_acceptable_floor,
+            self.min_acceptable_base - time * self.min_acceptable_decay,
+        )
 
         # Accept if opponent's offer is close enough to ours
         if opponent_util >= my_last_util * self.accept_ratio:
             return ResponseType.ACCEPT_OFFER
 
         # Near deadline, more flexible
-        if time > 0.999 and opponent_util >= my_last_util * 0.9:
+        if (
+            time > self.endgame_time
+            and opponent_util >= my_last_util * self.endgame_ratio
+        ):
             return ResponseType.ACCEPT_OFFER
 
         # Accept if above minimum threshold
@@ -239,11 +273,27 @@ class GACAgentMR(GeniusAcceptancePolicy):
 
     Args:
         minimum_accept_p: Minimum acceptance probability threshold (default 0.965).
+        sigmoid_gain: Gain of the sigmoid controlling how the minimum bid utility
+            decreases with time (default -5.0).
+        sigmoid_percent: Total drop of the minimum bid utility across the
+            negotiation (default 0.70).
+        sigmoid_midpoint: Relative time at the sigmoid's midpoint (default 0.5).
+        sigmoid_base: Base of the sigmoid's power term (default 10).
+        time_exponent: Exponent applied to relative time in the acceptance
+            probability, making it rise steeply near the deadline (default 3).
+        max_utility: Utilities above this are rejected outright as out of range
+            (default 1.05).
 
     Transcompiled from: negotiator.boaframework.acceptanceconditions.anac2012.AC_AgentMR
     """
 
     minimum_accept_p: float = 0.965
+    sigmoid_gain: float = -5.0
+    sigmoid_percent: float = 0.70
+    sigmoid_midpoint: float = 0.5
+    sigmoid_base: float = 10
+    time_exponent: float = 3
+    max_utility: float = 1.05
     _opponent_utils: list = field(init=False, factory=list)
     _min_bid_util: float = field(init=False, default=0.8)
 
@@ -278,16 +328,21 @@ class GACAgentMR(GeniusAcceptancePolicy):
     def _update_min_bid_utility(self, time: float) -> None:
         """Update minimum bid utility based on time."""
         # Sigmoid-based decrease
-        sigmoid_gain = -5.0
-        percent = 0.70
-        self._min_bid_util = 1.0 - percent * (
-            1 / (1 + pow(10, sigmoid_gain * (time - 0.5)))
+        self._min_bid_util = 1.0 - self.sigmoid_percent * (
+            1
+            / (
+                1
+                + pow(
+                    self.sigmoid_base,
+                    self.sigmoid_gain * (time - self.sigmoid_midpoint),
+                )
+            )
         )
 
     def _paccept(self, util: float, time: float) -> float:
         """Calculate acceptance probability."""
-        t = time**3  # Steeper increase near deadline
-        if util < 0 or util > 1.05:
+        t = time**self.time_exponent  # Steeper increase near deadline
+        if util < 0 or util > self.max_utility:
             return 0.0
         if t < 0 or t > 1:
             return 0.0
@@ -312,11 +367,18 @@ class GACBRAMAgent2(GeniusAcceptancePolicy):
 
     Args:
         offering_policy: The offering strategy to determine next bid.
+        base_threshold: Acceptance threshold at ``t=0`` (default 0.95).
+        threshold_range: How much the threshold falls by the deadline
+            (default 0.4).
+        threshold_exponent: Exponent applied to relative time (default 2).
 
     Transcompiled from: negotiator.boaframework.acceptanceconditions.anac2012.AC_BRAMAgent2
     """
 
     offering_policy: OfferingPolicy
+    base_threshold: float = 0.95
+    threshold_range: float = 0.4
+    threshold_exponent: float = 2
     _threshold: float = field(init=False, default=0.9)
 
     def __call__(
@@ -364,7 +426,9 @@ class GACBRAMAgent2(GeniusAcceptancePolicy):
         """Calculate acceptance threshold."""
         time = state.relative_time
         # Threshold decreases quadratically
-        return 0.95 - 0.4 * (time**2)
+        return self.base_threshold - self.threshold_range * (
+            time**self.threshold_exponent
+        )
 
 
 @define
@@ -450,6 +514,8 @@ class GACTheNegotiatorReloaded(GeniusAcceptancePolicy):
         b_next: Addition factor for AC_next no discount (default 0.0).
         constant: Utility threshold above which to always accept (default 0.98).
         panic_time: Time after which panic phase begins (default 0.99).
+        window_divisor: The panic-phase window covers the most recent
+            ``len(offers) // window_divisor`` partner offers (default 4).
 
     Transcompiled from: negotiator.boaframework.acceptanceconditions.anac2012.AC_TheNegotiatorReloaded
     """
@@ -459,6 +525,7 @@ class GACTheNegotiatorReloaded(GeniusAcceptancePolicy):
     b_next: float = 0.0
     constant: float = 0.98
     panic_time: float = 0.99
+    window_divisor: int = 4
 
     def __call__(
         self, state: GBState, offer: Outcome | None, source: str | None
@@ -512,7 +579,7 @@ class GACTheNegotiatorReloaded(GeniusAcceptancePolicy):
 
             if partner_offers:
                 # Simple window: last portion of offers
-                window_size = max(1, len(partner_offers) // 4)
+                window_size = max(1, len(partner_offers) // self.window_divisor)
                 recent_offers = partner_offers[-window_size:]
                 best_recent = max(
                     float(self.negotiator.ufun(o))

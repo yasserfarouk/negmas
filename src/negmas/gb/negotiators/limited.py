@@ -27,6 +27,8 @@ class LimitedOutcomesNegotiator(MAPNegotiator):
                              the same as acceptable outcomes with nonzero probability
         p_no_response: probability of refusing to respond to offers
         p_ending: probability of ending negotiation
+        default_acceptance_probability: acceptance probability used when neither
+            `acceptable_outcomes` nor `acceptance_probabilities` is given.
 
     Remarks:
         - The ufun inputs to the constructor and join are ignored. A ufun will be generated that gives a utility equal to
@@ -42,6 +44,7 @@ class LimitedOutcomesNegotiator(MAPNegotiator):
         proposable_outcomes: list[Outcome] | None = None,
         p_ending=0.0,
         p_no_response=0.0,
+        default_acceptance_probability: float = 0.5,
         preferences=None,
         ufun=None,
         **kwargs,
@@ -54,6 +57,8 @@ class LimitedOutcomesNegotiator(MAPNegotiator):
             proposable_outcomes: Proposable outcomes.
             p_ending: P ending.
             p_no_response: P no response.
+            default_acceptance_probability: Acceptance probability used when no
+                outcomes and no probabilities are given.
             preferences: Preferences.
             ufun: Ufun.
             **kwargs: Additional keyword arguments.
@@ -72,7 +77,9 @@ class LimitedOutcomesNegotiator(MAPNegotiator):
             p_ending=p_no_response,
         )
         if acceptance_probabilities is None and acceptable_outcomes is None:
-            acceptance = LimitedOutcomesAcceptancePolicy(prob=0.5, p_ending=p_ending)
+            acceptance = LimitedOutcomesAcceptancePolicy(
+                prob=default_acceptance_probability, p_ending=p_ending
+            )
         elif acceptance_probabilities is None and acceptable_outcomes is not None:
             acceptance = LimitedOutcomesAcceptancePolicy.from_outcome_list(
                 acceptable_outcomes, p_ending=p_ending

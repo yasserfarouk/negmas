@@ -99,9 +99,17 @@ class GACAgentK2(GeniusAcceptancePolicy):
     Enhanced probabilistic acceptance with statistics tracking.
     Similar to AgentK but with improved probability calculations.
 
+    Args:
+        base_accept_probability: Acceptance probability at ``t=0`` for an offer
+            that already meets expectations (default 0.5).
+        time_accept_weight: How much relative time adds to that probability
+            (default 0.5, so it reaches 1.0 at the deadline).
+
     Transcompiled from: negotiator.boaframework.acceptanceconditions.anac2011.AC_AgentK2
     """
 
+    base_accept_probability: float = 0.5
+    time_accept_weight: float = 0.5
     _opponent_utils: list = field(init=False, factory=list)
     _accept_probability: float = field(init=False, default=0.0)
 
@@ -146,7 +154,9 @@ class GACAgentK2(GeniusAcceptancePolicy):
         expected = max_util - (max_util - avg_util) * (1 - time)
 
         if opponent_util >= expected:
-            return min(1.0, 0.5 + time * 0.5)
+            return min(
+                1.0, self.base_accept_probability + time * self.time_accept_weight
+            )
 
         # Lower probability for offers below expected
         if expected > 0:
@@ -166,11 +176,18 @@ class GACBRAMAgent(GeniusAcceptancePolicy):
 
     Args:
         offering_policy: The offering strategy to determine next bid.
+        min_threshold: Acceptance threshold at the deadline (default 0.5).
+        max_threshold: Acceptance threshold at ``t=0`` (default 0.95).
+        threshold_exponent: Exponent applied to relative time when interpolating
+            between ``max_threshold`` and ``min_threshold`` (default 2).
 
     Transcompiled from: negotiator.boaframework.acceptanceconditions.anac2011.AC_BRAMAgent
     """
 
     offering_policy: OfferingPolicy
+    min_threshold: float = 0.5
+    max_threshold: float = 0.95
+    threshold_exponent: float = 2
     _threshold: float = field(init=False, default=0.9)
 
     def __call__(
@@ -214,9 +231,9 @@ class GACBRAMAgent(GeniusAcceptancePolicy):
         """Calculate acceptance threshold based on time and discount."""
         time = state.relative_time
         # Threshold decreases over time
-        min_threshold = 0.5
-        max_threshold = 0.95
-        return max_threshold - (max_threshold - min_threshold) * (time**2)
+        return self.max_threshold - (self.max_threshold - self.min_threshold) * (
+            time**self.threshold_exponent
+        )
 
 
 @define
@@ -230,12 +247,15 @@ class GACGahboninho(GeniusAcceptancePolicy):
     Args:
         high_threshold: Utility threshold for early acceptance (default 0.95).
         min_acceptable: Minimum acceptable utility (default 0.7).
+        early_phase_end: Relative time before which ``high_threshold`` alone
+            triggers acceptance (default 0.5).
 
     Transcompiled from: negotiator.boaframework.acceptanceconditions.anac2011.AC_Gahboninho
     """
 
     high_threshold: float = 0.95
     min_acceptable: float = 0.7
+    early_phase_end: float = 0.5
     _min_util_for_acceptance: float = field(init=False, default=0.8)
 
     def __call__(
@@ -258,7 +278,7 @@ class GACGahboninho(GeniusAcceptancePolicy):
         )
 
         # Accept very good offers early
-        if time < 0.5 and opponent_util > self.high_threshold:
+        if time < self.early_phase_end and opponent_util > self.high_threshold:
             return ResponseType.ACCEPT_OFFER
 
         # Accept if above minimum threshold
@@ -278,11 +298,18 @@ class GACNiceTitForTat(GeniusAcceptancePolicy):
 
     Args:
         offering_policy: The offering strategy to determine next bid.
+        endgame_start: Relative time from which the probabilistic (expected
+            utility of waiting) rule kicks in. Before it, only AC_Next applies
+            (default 0.98).
+        min_time_left: Minimum remaining relative time for which we still hold
+            out for a better offer we have already seen (default 0.001).
 
     Transcompiled from: negotiator.boaframework.acceptanceconditions.anac2011.AC_NiceTitForTat
     """
 
     offering_policy: OfferingPolicy
+    endgame_start: float = 0.98
+    min_time_left: float = 0.001
 
     def __call__(
         self, state: GBState, offer: Outcome | None, source: str | None
@@ -321,8 +348,8 @@ class GACNiceTitForTat(GeniusAcceptancePolicy):
         if opponent_util >= my_next_util:
             return ResponseType.ACCEPT_OFFER
 
-        # Before 98% of time, only AC_Next applies
-        if time < 0.98:
+        # Before `endgame_start`, only AC_Next applies
+        if time < self.endgame_start:
             return ResponseType.REJECT_OFFER
 
         # Near deadline: probabilistic acceptance
@@ -343,7 +370,7 @@ class GACNiceTitForTat(GeniusAcceptancePolicy):
         )
 
         # Don't accept if we expect better offers
-        if best_opponent_util > opponent_util and time_left > 0.001:
+        if best_opponent_util > opponent_util and time_left > self.min_time_left:
             return ResponseType.REJECT_OFFER
 
         # Calculate expected utility of waiting
@@ -375,9 +402,35 @@ class GACTheNegotiator(GeniusAcceptancePolicy):
     State machine with phases: hardball, conceding, and desperate.
     Acceptance threshold varies based on the current phase.
 
+    Args:
+        phase1_end: Relative time ending the hardball phase (default 0.3).
+        phase2_end: Relative time ending the conceding phase (default 0.7).
+        phase1_threshold: Acceptance threshold during hardball (default 0.95).
+        phase2_threshold: Threshold at the start of the conceding phase
+            (default 0.85), decaying at ``phase2_decay``.
+        phase2_decay: Per-unit-time decay of the conceding threshold
+            (default 0.25).
+        phase3_threshold: Threshold at the start of the desperate phase
+            (default 0.70), decaying at ``phase3_decay``.
+        phase3_decay: Per-unit-time decay of the desperate threshold
+            (default 0.3).
+        desperate_moves_left: In the desperate phase, once fewer than this many
+            moves are estimated to remain, anything is accepted (default 15).
+        default_moves_left: Moves-left estimate used when it cannot be computed
+            (default 100).
+
     Transcompiled from: negotiator.boaframework.acceptanceconditions.anac2011.AC_TheNegotiator
     """
 
+    phase1_end: float = 0.3
+    phase2_end: float = 0.7
+    phase1_threshold: float = 0.95
+    phase2_threshold: float = 0.85
+    phase2_decay: float = 0.25
+    phase3_threshold: float = 0.70
+    phase3_decay: float = 0.3
+    desperate_moves_left: int = 15
+    default_moves_left: int = 100
     _phase: int = field(init=False, default=1)
 
     def __call__(
@@ -407,33 +460,32 @@ class GACTheNegotiator(GeniusAcceptancePolicy):
                 return ResponseType.ACCEPT_OFFER
         else:
             # Phase 3 - desperate
-            if moves_left >= 15:
+            if moves_left >= self.desperate_moves_left:
                 if opponent_util >= threshold:
                     return ResponseType.ACCEPT_OFFER
             else:
                 # Very few moves left - accept almost anything reasonable
-                if moves_left < 15:
-                    return ResponseType.ACCEPT_OFFER
+                return ResponseType.ACCEPT_OFFER
 
         return ResponseType.REJECT_OFFER
 
     def _calculate_phase(self, time: float) -> int:
         """Determine negotiation phase based on time."""
-        if time < 0.3:
+        if time < self.phase1_end:
             return 1  # Hardball
-        elif time < 0.7:
+        elif time < self.phase2_end:
             return 2  # Conceding
         else:
             return 3  # Desperate
 
     def _calculate_threshold(self, time: float) -> float:
         """Calculate acceptance threshold based on time."""
-        if time < 0.3:
-            return 0.95
-        elif time < 0.7:
-            return 0.85 - (time - 0.3) * 0.25
+        if time < self.phase1_end:
+            return self.phase1_threshold
+        elif time < self.phase2_end:
+            return self.phase2_threshold - (time - self.phase1_end) * self.phase2_decay
         else:
-            return 0.70 - (time - 0.7) * 0.3
+            return self.phase3_threshold - (time - self.phase2_end) * self.phase3_decay
 
     def _estimate_moves_left(self, state: GBState) -> int:
         """Estimate number of moves left in negotiation."""
@@ -443,7 +495,7 @@ class GACTheNegotiator(GeniusAcceptancePolicy):
             time_per_step = state.relative_time / state.step
             if time_per_step > 0:
                 return int(time_left / time_per_step)
-        return 100  # Default if we can't estimate
+        return self.default_moves_left  # Default if we can't estimate
 
 
 @define
@@ -454,12 +506,42 @@ class GACValueModelAgent(GeniusAcceptancePolicy):
     Value model based acceptance that tracks opponent's maximum utility
     and accepts based on various thresholds that change with time.
 
+    Args:
+        lowest_approved: Lowest utility considered approved (default 0.9).
+        planned_threshold: Planned acceptance threshold (default 0.85).
+        window_start: Start of the near-deadline acceptance window
+            (default 0.98).
+        window_end: End of that window (default 0.99).
+        window_slack: Slack subtracted from ``lowest_approved`` inside the
+            window (default 0.01).
+        final_time: Relative time after which the opponent-max rule applies
+            (default 0.995).
+        final_opponent_max_min: Minimum observed opponent-max utility required
+            for that rule (default 0.55).
+        final_opponent_max_factor: Fraction of the observed opponent max that an
+            offer must reach (default 0.99).
+        settled_threshold: Absolute utility above which a settled offer is
+            accepted (default 0.975).
+        late_time: Relative time after which the planned threshold applies
+            (default 0.9).
+        late_slack: Slack subtracted from ``planned_threshold`` late on
+            (default 0.01).
+
     Transcompiled from: negotiator.boaframework.acceptanceconditions.anac2011.AC_ValueModelAgent
     """
 
+    lowest_approved: float = 0.9
+    planned_threshold: float = 0.85
+    window_start: float = 0.98
+    window_end: float = 0.99
+    window_slack: float = 0.01
+    final_time: float = 0.995
+    final_opponent_max_min: float = 0.55
+    final_opponent_max_factor: float = 0.99
+    settled_threshold: float = 0.975
+    late_time: float = 0.9
+    late_slack: float = 0.01
     _opponent_max_util: float = field(init=False, default=0.0)
-    _lowest_approved: float = field(init=False, default=0.9)
-    _planned_threshold: float = field(init=False, default=0.85)
 
     def __call__(
         self, state: GBState, offer: Outcome | None, source: str | None
@@ -479,20 +561,29 @@ class GACValueModelAgent(GeniusAcceptancePolicy):
             self._opponent_max_util = opponent_util
 
         # Various acceptance conditions based on time
-        if time > 0.98 and time <= 0.99:
-            if opponent_util >= self._lowest_approved - 0.01:
+        if time > self.window_start and time <= self.window_end:
+            if opponent_util >= self.lowest_approved - self.window_slack:
                 return ResponseType.ACCEPT_OFFER
 
-        if time > 0.995 and self._opponent_max_util > 0.55:
-            if opponent_util >= self._opponent_max_util * 0.99:
+        if (
+            time > self.final_time
+            and self._opponent_max_util > self.final_opponent_max_min
+        ):
+            if (
+                opponent_util
+                >= self._opponent_max_util * self.final_opponent_max_factor
+            ):
                 return ResponseType.ACCEPT_OFFER
 
         # Accept if opponent settled enough
-        if opponent_util > self._lowest_approved and opponent_util > 0.975:
+        if (
+            opponent_util > self.lowest_approved
+            and opponent_util > self.settled_threshold
+        ):
             return ResponseType.ACCEPT_OFFER
 
-        if time > 0.9:
-            if opponent_util >= self._planned_threshold - 0.01:
+        if time > self.late_time:
+            if opponent_util >= self.planned_threshold - self.late_slack:
                 return ResponseType.ACCEPT_OFFER
 
         return ResponseType.REJECT_OFFER
