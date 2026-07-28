@@ -1569,15 +1569,15 @@ class TrapezoidalFun(BaseFun):
     Example:
         >>> f = TrapezoidalFun(start=0.0, rise_end=2.0, fall_start=8.0, end=10.0)
         >>> f(0)    # At start: bias = 0
-        0
+        0.0
         >>> f(1)    # Halfway up the rise: 0.5
         0.5
         >>> f(5)    # On the plateau: bias + scale = 1
-        1.0
+        1
         >>> f(9)    # Halfway down the fall: 0.5
         0.5
         >>> f(10)   # At end: bias = 0
-        0
+        0.0
 
     Note:
         Setting ``start == rise_end`` and ``fall_start == end`` reduces this
