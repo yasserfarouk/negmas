@@ -12,16 +12,21 @@ from negmas.outcomes import make_issue
 from negmas.preferences.value_fun import (
     AffineFun,
     AffineMultiFun,
+    AggregatingFun,
+    BiasedFun,
     BilinearMultiFun,
     ConstFun,
     CosFun,
     ExponentialFun,
+    GaussianFun,
     IdentityFun,
     LambdaFun,
     LambdaMultiFun,
     LinearFun,
     LinearMultiFun,
     LogFun,
+    MultiModalGaussianFun,
+    MultiModalTrapezoidalFun,
     PolynomialFun,
     PolynomialMultiFun,
     ProductMultiFun,
@@ -30,8 +35,11 @@ from negmas.preferences.value_fun import (
     SinFun,
     TableFun,
     TableMultiFun,
+    TrapezoidalFun,
     TriangularFun,
 )
+from negmas.preferences import LinearAdditiveUtilityFunction
+from negmas.serialization import dump, load
 
 
 # =============================================================================
@@ -920,3 +928,656 @@ class TestNewMultiFunMinMax:
         # min at (1,1)=1, max at (10,5)=50
         assert mn == 1.0
         assert mx == 50.0
+
+
+# =============================================================================
+# Helpers
+# =============================================================================
+
+
+def _brute_force_minmax(f, issue, n=2000):
+    """Brute-force reference minmax by dense sampling, for cross-checking
+    the analytic/approximate `minmax` implementations under test."""
+    if issue.is_continuous():
+        vals = list(issue.value_generator(n=n, endpoints=True))
+    else:
+        vals = list(issue.all)
+    ys = [f(v) for v in vals]
+    return min(ys), max(ys)
+
+
+# =============================================================================
+# Tests for TrapezoidalFun
+# =============================================================================
+
+
+class TestTrapezoidalFun:
+    """Tests for TrapezoidalFun."""
+
+    def test_values_at_knots(self):
+        f = TrapezoidalFun(start=0.0, rise_end=2.0, fall_start=8.0, end=10.0)
+        assert f(-1.0) == 0.0
+        assert f(0.0) == 0.0
+        assert f(1.0) == approx(0.5)
+        assert f(2.0) == approx(1.0)
+        assert f(5.0) == approx(1.0)
+        assert f(8.0) == approx(1.0)
+        assert f(9.0) == approx(0.5)
+        assert f(10.0) == 0.0
+        assert f(11.0) == 0.0
+
+    def test_bias_and_scale(self):
+        f = TrapezoidalFun(
+            start=0.0, rise_end=2.0, fall_start=8.0, end=10.0, bias=1.0, scale=2.0
+        )
+        assert f(-1.0) == 1.0
+        assert f(5.0) == approx(3.0)
+
+    def test_degenerate_rectangular(self):
+        """start==rise_end and fall_start==end reduces to a step function."""
+        f = TrapezoidalFun(start=0.0, rise_end=0.0, fall_start=10.0, end=10.0)
+        assert f(0.0) == 1.0
+        assert f(5.0) == 1.0
+        assert f(10.0) == 1.0
+        assert f(-1.0) == 0.0
+        assert f(11.0) == 0.0
+
+    def test_degenerate_triangular(self):
+        """rise_end==fall_start reduces to a TriangularFun-like tent."""
+        f = TrapezoidalFun(start=0.0, rise_end=5.0, fall_start=5.0, end=10.0)
+        t = TriangularFun(start=0.0, middle=5.0, end=10.0)
+        for x in (0.0, 1.0, 2.5, 5.0, 7.5, 9.0, 10.0):
+            assert f(x) == approx(t(x))
+
+    def test_invalid_ordering_raises(self):
+        with pytest.raises(ValueError):
+            TrapezoidalFun(start=5.0, rise_end=0.0, fall_start=8.0, end=10.0)
+
+    def test_shift_by(self):
+        f = TrapezoidalFun(start=0.0, rise_end=2.0, fall_start=8.0, end=10.0)
+        f2 = f.shift_by(2.0)
+        assert f2.bias == 2.0
+        assert f2(5.0) == approx(3.0)
+
+    def test_scale_by(self):
+        f = TrapezoidalFun(start=0.0, rise_end=2.0, fall_start=8.0, end=10.0)
+        f2 = f.scale_by(3.0)
+        assert f2.scale == 3.0
+        assert f2(5.0) == approx(3.0)
+
+    def test_minmax_continuous_peak_inside(self):
+        f = TrapezoidalFun(start=0.0, rise_end=2.0, fall_start=8.0, end=10.0)
+        issue = make_issue((0.0, 10.0), "x")
+        mn, mx = f.minmax(issue)
+        assert mn == approx(0.0)
+        assert mx == approx(1.0)
+
+    def test_minmax_continuous_peak_outside(self):
+        """Plateau does not intersect the issue range: monotonic over it."""
+        f = TrapezoidalFun(start=0.0, rise_end=2.0, fall_start=8.0, end=10.0)
+        issue = make_issue((3.0, 6.0), "x")
+        mn, mx = f.minmax(issue)
+        bf_mn, bf_mx = _brute_force_minmax(f, issue)
+        assert mn == approx(bf_mn, abs=1e-6)
+        assert mx == approx(bf_mx, abs=1e-6)
+
+    def test_minmax_negative_scale(self):
+        f = TrapezoidalFun(
+            start=0.0, rise_end=2.0, fall_start=8.0, end=10.0, scale=-1.0
+        )
+        issue = make_issue((0.0, 10.0), "x")
+        mn, mx = f.minmax(issue)
+        assert mn == approx(-1.0)
+        assert mx == approx(0.0)
+
+    def test_minmax_discrete(self):
+        f = TrapezoidalFun(start=0.0, rise_end=2.0, fall_start=8.0, end=10.0)
+        issue = make_issue(11, "x")  # 0..10
+        mn, mx = f.minmax(issue)
+        bf_mn, bf_mx = _brute_force_minmax(f, issue)
+        assert mn == approx(bf_mn)
+        assert mx == approx(bf_mx)
+
+    def test_to_table(self):
+        f = TrapezoidalFun(start=0.0, rise_end=2.0, fall_start=8.0, end=10.0)
+        issue = make_issue(11, "x")
+        table = f.to_table(issue)
+        for v in issue.all:
+            assert table(v) == approx(f(v))
+
+    def test_xml_discrete(self):
+        f = TrapezoidalFun(start=0.0, rise_end=2.0, fall_start=8.0, end=10.0)
+        issue = make_issue(5, "x")
+        xml = f.xml(0, issue)
+        assert "issue" in xml
+
+    def test_xml_continuous_raises(self):
+        f = TrapezoidalFun(start=0.0, rise_end=2.0, fall_start=8.0, end=10.0)
+        issue = make_issue((0.0, 10.0), "x")
+        with pytest.raises(NotImplementedError):
+            f.xml(0, issue)
+
+
+# =============================================================================
+# Tests for GaussianFun
+# =============================================================================
+
+
+class TestGaussianFun:
+    """Tests for GaussianFun."""
+
+    def test_value_at_center(self):
+        f = GaussianFun(center=5.0, sigma=1.0)
+        assert f(5.0) == approx(1.0)
+
+    def test_symmetry(self):
+        f = GaussianFun(center=5.0, sigma=1.0)
+        assert f(6.0) == approx(f(4.0))
+        assert f(7.0) == approx(f(3.0))
+
+    def test_decays_away_from_center(self):
+        f = GaussianFun(center=5.0, sigma=1.0)
+        assert f(5.0) > f(6.0) > f(7.0) > 0.0
+
+    def test_bias_and_scale(self):
+        f = GaussianFun(center=0.0, sigma=1.0, bias=1.0, scale=2.0)
+        assert f(0.0) == approx(3.0)  # bias + scale
+        assert f(1000.0) == approx(1.0, abs=1e-6)  # decays to bias
+
+    def test_negative_scale_is_a_dip(self):
+        f = GaussianFun(center=0.0, sigma=1.0, scale=-1.0)
+        assert f(0.0) == approx(-1.0)
+        assert f(0.0) < f(1.0) < 0.0
+
+    def test_invalid_sigma_raises(self):
+        with pytest.raises(ValueError):
+            GaussianFun(center=0.0, sigma=0.0)
+        with pytest.raises(ValueError):
+            GaussianFun(center=0.0, sigma=-1.0)
+
+    def test_shift_by(self):
+        f = GaussianFun(center=0.0, sigma=1.0)
+        f2 = f.shift_by(2.0)
+        assert f2.bias == 2.0
+        assert f2(0.0) == approx(3.0)
+
+    def test_scale_by(self):
+        f = GaussianFun(center=0.0, sigma=1.0)
+        f2 = f.scale_by(3.0)
+        assert f2.scale == 3.0
+        assert f2(0.0) == approx(3.0)
+
+    def test_minmax_center_inside(self):
+        f = GaussianFun(center=5.0, sigma=1.0)
+        issue = make_issue((0.0, 10.0), "x")
+        mn, mx = f.minmax(issue)
+        assert mx == approx(1.0)
+        bf_mn, bf_mx = _brute_force_minmax(f, issue)
+        assert mn == approx(bf_mn, abs=1e-6)
+
+    def test_minmax_center_outside(self):
+        """Center outside the issue range: monotonic over it."""
+        f = GaussianFun(center=-5.0, sigma=1.0)
+        issue = make_issue((0.0, 10.0), "x")
+        mn, mx = f.minmax(issue)
+        bf_mn, bf_mx = _brute_force_minmax(f, issue)
+        assert mn == approx(bf_mn, abs=1e-6)
+        assert mx == approx(bf_mx, abs=1e-6)
+        # monotonically decreasing away from center=-5, so max at x=0
+        assert mx == approx(f(0.0))
+        assert mn == approx(f(10.0))
+
+    def test_minmax_discrete(self):
+        f = GaussianFun(center=5.0, sigma=1.0)
+        issue = make_issue(11, "x")  # 0..10
+        mn, mx = f.minmax(issue)
+        bf_mn, bf_mx = _brute_force_minmax(f, issue)
+        assert mn == approx(bf_mn)
+        assert mx == approx(bf_mx)
+
+    def test_xml_continuous_raises(self):
+        f = GaussianFun(center=5.0, sigma=1.0)
+        issue = make_issue((0.0, 10.0), "x")
+        with pytest.raises(NotImplementedError):
+            f.xml(0, issue)
+
+    def test_xml_discrete(self):
+        f = GaussianFun(center=5.0, sigma=1.0)
+        issue = make_issue(5, "x")
+        xml = f.xml(0, issue)
+        assert "issue" in xml
+
+
+# =============================================================================
+# Tests for AggregatingFun
+# =============================================================================
+
+
+class TestAggregatingFun:
+    """Tests for AggregatingFun."""
+
+    def test_weighted_sum(self):
+        f = AggregatingFun(
+            funs=(AffineFun(slope=1.0), ConstFun(bias=1.0)), weights=(0.5, 2.0)
+        )
+        assert f(10) == approx(0.5 * 10 + 2.0 * 1.0)
+
+    def test_default_weights_are_one(self):
+        f = AggregatingFun(funs=(AffineFun(slope=1.0), ConstFun(bias=1.0)))
+        assert f(10) == approx(10 + 1.0)
+
+    def test_bias(self):
+        f = AggregatingFun(funs=(ConstFun(bias=1.0),), bias=5.0)
+        assert f(0) == approx(6.0)
+
+    def test_mismatched_weights_raises(self):
+        with pytest.raises(ValueError):
+            AggregatingFun(
+                funs=(ConstFun(bias=1.0), ConstFun(bias=2.0)), weights=(1.0,)
+            )
+
+    def test_empty_funs_raises(self):
+        with pytest.raises(ValueError):
+            AggregatingFun(funs=())
+
+    def test_shift_by(self):
+        f = AggregatingFun(funs=(ConstFun(bias=1.0),))
+        f2 = f.shift_by(2.0)
+        assert f2(0) == approx(3.0)
+
+    def test_scale_by(self):
+        f = AggregatingFun(funs=(AffineFun(slope=1.0),), weights=(1.0,), bias=1.0)
+        f2 = f.scale_by(2.0)
+        assert f2(10) == approx(2.0 * (10 + 1.0))
+
+    def test_normalize_requires_issue(self):
+        with pytest.raises(ValueError):
+            AggregatingFun(funs=(AffineFun(slope=1.0),), normalize=True)
+
+    def test_normalize_to_unit_range(self):
+        issue = make_issue((0.0, 10.0), "x")
+        f = AggregatingFun(
+            funs=(
+                GaussianFun(center=2.0, sigma=1.0),
+                GaussianFun(center=8.0, sigma=1.0),
+            ),
+            normalize=True,
+            issue=issue,
+        )
+        assert not f.normalize  # baked in, reset after construction
+        assert f.issue is None
+        mn, mx = f.minmax(issue)
+        assert mn == approx(0.0, abs=1e-6)
+        assert mx == approx(1.0, abs=1e-6)
+
+    def test_normalize_constant_component_no_zero_division(self):
+        """A constant (zero-span) combination must not raise ZeroDivisionError."""
+        issue = make_issue((0.0, 10.0), "x")
+        f = AggregatingFun(
+            funs=(ConstFun(bias=3.0),), weights=(1.0,), normalize=True, issue=issue
+        )
+        assert f(0.0) == f(10.0)
+
+    def test_minmax_matches_brute_force(self):
+        issue = make_issue((0.0, 10.0), "x")
+        f = AggregatingFun(
+            funs=(
+                GaussianFun(center=2.0, sigma=1.0),
+                GaussianFun(center=8.0, sigma=0.5),
+            ),
+            weights=(1.0, 2.0),
+        )
+        mn, mx = f.minmax(issue)
+        bf_mn, bf_mx = _brute_force_minmax(f, issue)
+        assert mn == approx(bf_mn, abs=1e-3)
+        assert mx == approx(bf_mx, abs=1e-3)
+
+    def test_minmax_discrete(self):
+        issue = make_issue(11, "x")
+        f = AggregatingFun(funs=(AffineFun(slope=1.0), ConstFun(bias=1.0)))
+        mn, mx = f.minmax(issue)
+        bf_mn, bf_mx = _brute_force_minmax(f, issue)
+        assert mn == approx(bf_mn)
+        assert mx == approx(bf_mx)
+
+    def test_xml_discrete(self):
+        f = AggregatingFun(funs=(AffineFun(slope=1.0), ConstFun(bias=1.0)))
+        issue = make_issue(5, "x")
+        xml = f.xml(0, issue)
+        assert "issue" in xml
+
+    def test_xml_continuous_raises(self):
+        f = AggregatingFun(funs=(AffineFun(slope=1.0),))
+        issue = make_issue((0.0, 10.0), "x")
+        with pytest.raises(NotImplementedError):
+            f.xml(0, issue)
+
+    def test_serialization_round_trip(self):
+        f = AggregatingFun(
+            funs=(
+                AffineFun(slope=1.0),
+                ConstFun(bias=1.0),
+                TriangularFun(0.0, 5.0, 10.0),
+            ),
+            weights=(0.5, 2.0, 1.0),
+        )
+        d = f.to_dict()
+        f2 = AggregatingFun.from_dict(d)
+        for x in (0.0, 2.5, 5.0, 7.5, 10.0):
+            assert f(x) == approx(f2(x))
+        # Nested component types must survive the round trip, not collapse to dicts.
+        assert all(isinstance(c, type(o)) for c, o in zip(f2.funs, f.funs))
+
+    def test_yaml_round_trip(self, tmp_path):
+        issue = make_issue((0.0, 10.0), "x")
+        f = AggregatingFun(
+            funs=(
+                GaussianFun(center=2.0, sigma=1.0),
+                GaussianFun(center=8.0, sigma=1.0),
+            ),
+            normalize=True,
+            issue=issue,
+        )
+        path = tmp_path / "agg.yaml"
+        dump(f.to_dict(), path)
+        f2 = AggregatingFun.from_dict(load(path))
+        for x in (0.0, 2.0, 5.0, 8.0, 10.0):
+            assert f(x) == approx(f2(x))
+
+
+# =============================================================================
+# Tests for BiasedFun
+# =============================================================================
+
+
+class TestBiasedFun:
+    """Tests for BiasedFun."""
+
+    def test_adds_bias(self):
+        f = BiasedFun(fun=IdentityFun(), bias=3.0)
+        assert f(5.0) == approx(8.0)
+
+    def test_default_bias_is_zero(self):
+        f = BiasedFun(fun=IdentityFun())
+        assert f(5.0) == approx(5.0)
+
+    def test_shift_by(self):
+        f = BiasedFun(fun=IdentityFun(), bias=1.0)
+        f2 = f.shift_by(2.0)
+        assert f2(0.0) == approx(3.0)
+
+    def test_scale_by(self):
+        f = BiasedFun(fun=IdentityFun(), bias=1.0)
+        f2 = f.scale_by(2.0)
+        assert f2(1.0) == approx(2.0 * (1.0 + 1.0))
+
+    def test_normalize_requires_issue(self):
+        with pytest.raises(ValueError):
+            BiasedFun(fun=IdentityFun(), normalize=True)
+
+    def test_normalize_to_unit_range(self):
+        issue = make_issue((0.0, 10.0), "x")
+        f = BiasedFun(fun=IdentityFun(), normalize=True, issue=issue)
+        assert not f.normalize
+        assert f.issue is None
+        assert f.minmax(issue) == approx((0.0, 1.0))
+        assert f(0.0) == approx(0.0)
+        assert f(10.0) == approx(1.0)
+        assert f(5.0) == approx(0.5)
+
+    def test_normalize_with_linear_fun_without_native_bias(self):
+        """LinearFun has no bias field of its own; BiasedFun adds one."""
+        issue = make_issue((0.0, 10.0), "x")
+        f = BiasedFun(fun=LinearFun(slope=2.0), normalize=True, issue=issue)
+        assert f.minmax(issue) == approx((0.0, 1.0))
+
+    def test_normalize_constant_no_zero_division(self):
+        issue = make_issue((0.0, 10.0), "x")
+        f = BiasedFun(fun=ConstFun(bias=3.0), normalize=True, issue=issue)
+        assert f(0.0) == f(10.0)
+
+    def test_minmax(self):
+        f = BiasedFun(fun=AffineFun(slope=1.0), bias=1.0)
+        issue = make_issue((0.0, 10.0), "x")
+        mn, mx = f.minmax(issue)
+        assert mn == approx(1.0)
+        assert mx == approx(11.0)
+
+    def test_xml_delegates_to_wrapped_fun(self):
+        f = BiasedFun(fun=AffineFun(slope=1.0), bias=1.0)
+        issue = make_issue((0.0, 10.0), "x")
+        xml = f.xml(0, issue)
+        assert "issue" in xml
+        assert "linear" in xml
+
+    def test_serialization_round_trip(self):
+        f = BiasedFun(fun=TriangularFun(0.0, 5.0, 10.0), bias=2.0)
+        d = f.to_dict()
+        f2 = BiasedFun.from_dict(d)
+        for x in (0.0, 2.5, 5.0, 7.5, 10.0):
+            assert f(x) == approx(f2(x))
+        assert isinstance(f2.fun, TriangularFun)
+
+    def test_yaml_round_trip(self, tmp_path):
+        issue = make_issue((0.0, 10.0), "x")
+        f = BiasedFun(fun=IdentityFun(), normalize=True, issue=issue)
+        path = tmp_path / "biased.yaml"
+        dump(f.to_dict(), path)
+        f2 = BiasedFun.from_dict(load(path))
+        for x in (0.0, 5.0, 10.0):
+            assert f(x) == approx(f2(x))
+
+
+# =============================================================================
+# Tests for MultiModalTrapezoidalFun
+# =============================================================================
+
+
+class TestMultiModalTrapezoidalFun:
+    """Tests for MultiModalTrapezoidalFun."""
+
+    def test_two_peaks(self):
+        f = MultiModalTrapezoidalFun(
+            starts=(0.0, 5.0),
+            rise_ends=(1.0, 6.0),
+            fall_starts=(2.0, 7.0),
+            ends=(3.0, 8.0),
+        )
+        assert f(1.5) == approx(1.0)
+        assert f(6.5) == approx(1.0)
+        assert f(4.0) == approx(0.0)
+
+    def test_matches_manual_aggregating_fun(self):
+        starts, rise_ends, fall_starts, ends = (
+            (0.0, 5.0),
+            (1.0, 6.0),
+            (2.0, 7.0),
+            (3.0, 8.0),
+        )
+        weights = (1.0, 2.0)
+        f = MultiModalTrapezoidalFun(
+            starts=starts,
+            rise_ends=rise_ends,
+            fall_starts=fall_starts,
+            ends=ends,
+            weights=weights,
+        )
+        manual = AggregatingFun(
+            funs=tuple(
+                TrapezoidalFun(start=s, rise_end=r, fall_start=fs, end=e)
+                for s, r, fs, e in zip(starts, rise_ends, fall_starts, ends)
+            ),
+            weights=weights,
+        )
+        for x in (0.0, 1.5, 4.0, 6.5, 8.0):
+            assert f(x) == approx(manual(x))
+
+    def test_mismatched_lengths_raise(self):
+        with pytest.raises(ValueError):
+            MultiModalTrapezoidalFun(
+                starts=(0.0, 5.0),
+                rise_ends=(1.0,),
+                fall_starts=(2.0, 7.0),
+                ends=(3.0, 8.0),
+            )
+
+    def test_shift_by(self):
+        f = MultiModalTrapezoidalFun(
+            starts=(0.0,), rise_ends=(1.0,), fall_starts=(2.0,), ends=(3.0,)
+        )
+        f2 = f.shift_by(1.0)
+        assert f2(1.5) == approx(2.0)
+
+    def test_scale_by(self):
+        f = MultiModalTrapezoidalFun(
+            starts=(0.0,), rise_ends=(1.0,), fall_starts=(2.0,), ends=(3.0,)
+        )
+        f2 = f.scale_by(2.0)
+        assert f2(1.5) == approx(2.0)
+
+    def test_minmax_matches_brute_force(self):
+        f = MultiModalTrapezoidalFun(
+            starts=(0.0, 5.0),
+            rise_ends=(1.0, 6.0),
+            fall_starts=(2.0, 7.0),
+            ends=(3.0, 8.0),
+        )
+        issue = make_issue((0.0, 8.0), "x")
+        mn, mx = f.minmax(issue)
+        bf_mn, bf_mx = _brute_force_minmax(f, issue)
+        assert mn == approx(bf_mn, abs=1e-3)
+        assert mx == approx(bf_mx, abs=1e-3)
+
+    def test_serialization_round_trip(self):
+        f = MultiModalTrapezoidalFun(
+            starts=(0.0, 5.0),
+            rise_ends=(1.0, 6.0),
+            fall_starts=(2.0, 7.0),
+            ends=(3.0, 8.0),
+            weights=(1.0, 2.0),
+        )
+        d = f.to_dict()
+        f2 = MultiModalTrapezoidalFun.from_dict(d)
+        for x in (0.0, 1.5, 4.0, 6.5, 8.0):
+            assert f(x) == approx(f2(x))
+
+    def test_yaml_round_trip(self, tmp_path):
+        f = MultiModalTrapezoidalFun(
+            starts=(0.0, 5.0),
+            rise_ends=(1.0, 6.0),
+            fall_starts=(2.0, 7.0),
+            ends=(3.0, 8.0),
+        )
+        path = tmp_path / "mmtrap.yaml"
+        dump(f.to_dict(), path)
+        f2 = MultiModalTrapezoidalFun.from_dict(load(path))
+        for x in (0.0, 1.5, 4.0, 6.5, 8.0):
+            assert f(x) == approx(f2(x))
+
+
+# =============================================================================
+# Tests for MultiModalGaussianFun
+# =============================================================================
+
+
+class TestMultiModalGaussianFun:
+    """Tests for MultiModalGaussianFun."""
+
+    def test_two_peaks(self):
+        f = MultiModalGaussianFun(centers=(2.0, 8.0), sigmas=(0.5, 0.5))
+        assert f(2.0) == approx(1.0)
+        assert f(8.0) == approx(1.0)
+        assert f(5.0) < 0.01
+
+    def test_matches_manual_aggregating_fun(self):
+        centers, sigmas, weights = (2.0, 8.0), (0.5, 1.0), (1.0, 2.0)
+        f = MultiModalGaussianFun(centers=centers, sigmas=sigmas, weights=weights)
+        manual = AggregatingFun(
+            funs=tuple(GaussianFun(center=c, sigma=s) for c, s in zip(centers, sigmas)),
+            weights=weights,
+        )
+        for x in (0.0, 2.0, 5.0, 8.0, 10.0):
+            assert f(x) == approx(manual(x))
+
+    def test_mismatched_lengths_raise(self):
+        with pytest.raises(ValueError):
+            MultiModalGaussianFun(centers=(2.0, 8.0), sigmas=(0.5,))
+
+    def test_shift_by(self):
+        f = MultiModalGaussianFun(centers=(2.0,), sigmas=(0.5,))
+        f2 = f.shift_by(1.0)
+        assert f2(2.0) == approx(2.0)
+
+    def test_scale_by(self):
+        f = MultiModalGaussianFun(centers=(2.0,), sigmas=(0.5,))
+        f2 = f.scale_by(2.0)
+        assert f2(2.0) == approx(2.0)
+
+    def test_minmax_matches_brute_force(self):
+        f = MultiModalGaussianFun(centers=(2.0, 8.0), sigmas=(0.5, 1.0))
+        issue = make_issue((0.0, 10.0), "x")
+        mn, mx = f.minmax(issue)
+        bf_mn, bf_mx = _brute_force_minmax(f, issue)
+        assert mn == approx(bf_mn, abs=1e-3)
+        assert mx == approx(bf_mx, abs=1e-3)
+
+    def test_serialization_round_trip(self):
+        f = MultiModalGaussianFun(
+            centers=(2.0, 8.0), sigmas=(0.5, 1.0), weights=(1.0, 2.0)
+        )
+        d = f.to_dict()
+        f2 = MultiModalGaussianFun.from_dict(d)
+        for x in (0.0, 2.0, 5.0, 8.0, 10.0):
+            assert f(x) == approx(f2(x))
+
+    def test_yaml_round_trip(self, tmp_path):
+        f = MultiModalGaussianFun(centers=(2.0, 8.0), sigmas=(0.5, 1.0))
+        path = tmp_path / "mmgauss.yaml"
+        dump(f.to_dict(), path)
+        f2 = MultiModalGaussianFun.from_dict(load(path))
+        for x in (0.0, 2.0, 5.0, 8.0, 10.0):
+            assert f(x) == approx(f2(x))
+
+
+# =============================================================================
+# Integration: new value funs inside LinearAdditiveUtilityFunction
+# =============================================================================
+
+
+class TestNewValueFunsInLinearAdditiveUtilityFunction:
+    """New value fun types should work as drop-in issue value functions."""
+
+    def test_minmax_and_normalize(self):
+        issues = (make_issue((0.0, 10.0), "price"), make_issue((0.0, 20.0), "qty"))
+        values = (
+            TrapezoidalFun(start=0.0, rise_end=2.0, fall_start=8.0, end=10.0),
+            MultiModalGaussianFun(centers=(5.0, 15.0), sigmas=(1.0, 1.0)),
+        )
+        uf = LinearAdditiveUtilityFunction(
+            values=values, weights=(0.6, 0.4), issues=issues
+        )
+        mn, mx = uf.minmax()
+        assert mn == approx(0.0, abs=1e-3)
+        assert mx == approx(1.0, abs=1e-3)
+        nf = uf.normalize()
+        nmn, nmx = nf.minmax()
+        assert nmn == approx(0.0, abs=1e-2)
+        assert nmx == approx(1.0, abs=1e-2)
+
+    def test_yaml_round_trip(self, tmp_path):
+        issues = (make_issue((0.0, 10.0), "price"), make_issue((0.0, 20.0), "qty"))
+        values = (
+            TrapezoidalFun(start=0.0, rise_end=2.0, fall_start=8.0, end=10.0),
+            AggregatingFun(
+                funs=(GaussianFun(center=5.0, sigma=1.0), ConstFun(bias=0.1)),
+                weights=(1.0, 1.0),
+            ),
+        )
+        uf = LinearAdditiveUtilityFunction(
+            values=values, weights=(0.6, 0.4), issues=issues
+        )
+        path = tmp_path / "ufun.yaml"
+        dump(uf.to_dict(), path)
+        uf2 = LinearAdditiveUtilityFunction.from_dict(load(path))
+        for outcome in ((3.0, 5.0), (0.0, 0.0), (10.0, 20.0)):
+            assert uf(outcome) == approx(uf2(outcome))

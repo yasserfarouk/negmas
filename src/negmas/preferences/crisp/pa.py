@@ -14,7 +14,7 @@ from negmas.outcomes.base_issue import DiscreteIssue
 from negmas.outcomes.outcome_space import CartesianOutcomeSpace
 from negmas.outcomes.protocols import IndependentIssuesOS
 from negmas.preferences.protocols import SingleIssueFun
-from negmas.serialization import PYTHON_CLASS_IDENTIFIER, deserialize, serialize
+from negmas.serialization import PYTHON_CLASS_IDENTIFIER, deserialize
 
 from ..crisp_ufun import UtilityFunction
 from ..value_fun import IdentityFun, LambdaFun, TableFun, BaseFun
@@ -276,9 +276,15 @@ class PAUtilityFunction(UtilityFunction):
 
         return dict(
             **d,
-            values=serialize(
-                self._values, python_class_identifier=python_class_identifier
-            ),
+            # Each value fun serializes (and type-tags) itself, rather than
+            # going through the generic `serialize()`, so that value funs
+            # nesting other value funs (e.g. `AggregatingFun`, `BiasedFun`)
+            # round-trip correctly instead of being flattened by a plain
+            # `attrs.asdict`.
+            values=[
+                v.to_dict(python_class_identifier=python_class_identifier)
+                for v in self._values
+            ],
             terms=self._terms,
             bias=self._bias,
         )

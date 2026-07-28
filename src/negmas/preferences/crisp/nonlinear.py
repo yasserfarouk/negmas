@@ -145,9 +145,19 @@ class NonLinearAggregationUtilityFunction(UtilityFunction):
         d = {python_class_identifier: get_full_type_name(type(self))}
         return dict(
             **d,
-            values=serialize(
-                self.values, python_class_identifier=python_class_identifier
-            ),
+            # Each value fun serializes (and type-tags) itself via its own
+            # `to_dict` when available, rather than the generic
+            # `serialize()`, so that a value fun nesting other value funs
+            # (e.g. `AggregatingFun`, `BiasedFun`) round-trips correctly
+            # instead of being flattened by a plain `attrs.asdict`. `values`
+            # entries are a generic mapping though (dict/callable/BaseFun),
+            # so fall back to `serialize()` for non-`BaseFun` entries.
+            values=[
+                v.to_dict(python_class_identifier=python_class_identifier)
+                if hasattr(v, "to_dict")
+                else serialize(v, python_class_identifier=python_class_identifier)
+                for v in self.values
+            ],
             f=serialize(self.f),
         )
 

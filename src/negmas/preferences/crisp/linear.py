@@ -16,7 +16,7 @@ from negmas.outcomes.common import check_one_at_most, os_or_none
 from negmas.outcomes.outcome_space import CartesianOutcomeSpace
 from negmas.outcomes.protocols import IndependentIssuesOS, OutcomeSpace
 from negmas.preferences.protocols import SingleIssueFun
-from negmas.serialization import PYTHON_CLASS_IDENTIFIER, deserialize, serialize
+from negmas.serialization import PYTHON_CLASS_IDENTIFIER, deserialize
 
 from ..base_ufun import NORMALIZE_EPS
 from ..crisp_ufun import UtilityFunction
@@ -983,9 +983,15 @@ class LinearAdditiveUtilityFunction(UtilityFunction):  # type: ignore
         return dict(
             **d,
             weights=self.weights,
-            values=serialize(
-                self.values, python_class_identifier=python_class_identifier
-            ),
+            # Each value fun serializes (and type-tags) itself, rather than
+            # going through the generic `serialize()`, so that value funs
+            # nesting other value funs (e.g. `AggregatingFun`, `BiasedFun`)
+            # round-trip correctly instead of being flattened by a plain
+            # `attrs.asdict`.
+            values=[
+                v.to_dict(python_class_identifier=python_class_identifier)
+                for v in self.values
+            ],
         )
 
     @classmethod

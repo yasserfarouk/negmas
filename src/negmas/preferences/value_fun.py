@@ -17,6 +17,14 @@ Single-Issue Functions (inherit from `BaseFun`):
     - `QuadraticFun`: Quadratic function f(x) = a2*x^2 + a1*x + bias
     - `PolynomialFun`: General polynomial function
     - `TriangularFun`: Triangular/tent function (rises then falls)
+    - `TrapezoidalFun`: Trapezoidal function (triangular with a flat top)
+    - `GaussianFun`: Gaussian/bell-curve bump function
+    - `AggregatingFun`: Weighted sum of other `BaseFun` instances, with
+      optional normalization to [0, 1]
+    - `BiasedFun`: Wraps any `BaseFun`, adding a constant bias (with optional
+      normalization to [0, 1])
+    - `MultiModalTrapezoidalFun`: Weighted mixture of several `TrapezoidalFun`
+    - `MultiModalGaussianFun`: Weighted mixture of several `GaussianFun`
     - `ExponentialFun`: Exponential function f(x) = base^(tau*x) + bias
     - `LogFun`: Logarithmic function f(x) = scale * log_base(tau*x) + bias
     - `SinFun`: Sinusoidal function
@@ -74,12 +82,35 @@ from negmas.helpers.misc import (
     nonmonotonic_minmax,
     nonmonotonic_multi_minmax,
 )
-from negmas.helpers.types import is_lambda_function
+from negmas.helpers.types import get_full_type_name, is_lambda_function
 from negmas.outcomes.base_issue import Issue
 from negmas.outcomes.contiguous_issue import ContiguousIssue
 from negmas.serialization import PYTHON_CLASS_IDENTIFIER, deserialize, serialize
 
 MAX_CARINALITY = 10_000_000_000
+# Number of samples used to approximate minmax() for value functions that combine
+# several components (`AggregatingFun`, `MultiModalTrapezoidalFun`,
+# `MultiModalGaussianFun`) over a continuous issue, where no closed-form extremum
+# generally exists. The default per-issue iteration (`Issue.__iter__`) only yields
+# `DEFAULT_LEVELS` (10) points, too coarse to reliably find narrow peaks/troughs.
+_AGGREGATE_MINMAX_SAMPLES = 1000
+
+
+def _dense_nonmonotonic_minmax(
+    input: Issue, f: Callable[[Any], float]
+) -> tuple[float, float]:
+    """Like `nonmonotonic_minmax`, but samples continuous issues on a dense
+    grid (`_AGGREGATE_MINMAX_SAMPLES` points) instead of the coarse default
+    (`DEFAULT_LEVELS` points) used by plain iteration. Approximate: for
+    functions without a closed-form extremum (e.g. a mixture of bumps), the
+    true min/max may lie between samples.
+    """
+    if hasattr(input, "is_continuous") and input.is_continuous():
+        return nonmonotonic_minmax(
+            input.value_generator(n=_AGGREGATE_MINMAX_SAMPLES, endpoints=True), f
+        )
+    return nonmonotonic_minmax(input, f)
+
 
 __all__ = [
     "BaseFun",
@@ -89,6 +120,12 @@ __all__ = [
     "AffineFun",
     "LinearFun",
     "TriangularFun",
+    "TrapezoidalFun",
+    "GaussianFun",
+    "AggregatingFun",
+    "BiasedFun",
+    "MultiModalTrapezoidalFun",
+    "MultiModalGaussianFun",
     "LambdaFun",
     "PolynomialFun",
     "QuadraticFun",
@@ -198,9 +235,16 @@ class BaseFun(ABC):
             python_class_identifier: Key to use for class type identification.
 
         Returns:
-            dict[str, Any]: Dictionary representation of the function.
+            dict[str, Any]: Dictionary representation of the function, tagged
+            with its concrete type so that it can be reconstructed correctly
+            even when nested inside a heterogeneous collection of `BaseFun`
+            (e.g. `AggregatingFun.funs`) via the generic `deserialize`.
         """
-        return serialize(asdict(self), python_class_identifier=python_class_identifier)
+        d = {python_class_identifier: get_full_type_name(type(self))}
+        d.update(
+            serialize(asdict(self), python_class_identifier=python_class_identifier)
+        )
+        return d
 
     def min(self, input: Issue) -> float:
         """Find the minimum value over an issue's domain.
@@ -338,9 +382,16 @@ class BaseMultiFun(ABC):
             python_class_identifier: Key to use for class type identification.
 
         Returns:
-            dict[str, Any]: Dictionary representation of the function.
+            dict[str, Any]: Dictionary representation of the function, tagged
+            with its concrete type so that it can be reconstructed correctly
+            even when nested inside a heterogeneous collection via the
+            generic `deserialize`.
         """
-        return serialize(asdict(self), python_class_identifier=python_class_identifier)
+        d = {python_class_identifier: get_full_type_name(type(self))}
+        d.update(
+            serialize(asdict(self), python_class_identifier=python_class_identifier)
+        )
+        return d
 
     @abstractmethod
     def shift_by(self, offset: float) -> "BaseMultiFun":
@@ -1482,6 +1533,774 @@ class LogFun(BaseFun):
     def __call__(self, x: float):
         """Evaluate scale * log_base(tau*x) + bias at the given x."""
         return self.scale * log(self.tau * x, self.base) + self.bias
+
+
+@define(frozen=True)
+class TrapezoidalFun(BaseFun):
+    r"""Trapezoidal value function: a triangular function with a flat top.
+
+    A piecewise-linear function that rises from bias at ``start`` to
+    ``bias + scale`` at ``rise_end``, stays at ``bias + scale`` until
+    ``fall_start``, then falls back to bias at ``end``.
+
+    Mathematical definition:
+
+    .. math::
+
+        f(x) = \begin{cases}
+            b & \text{if } x \le s \\
+            b + k \cdot \frac{x - s}{r - s} & \text{if } s < x < r \\
+            b + k & \text{if } r \le x \le f \\
+            b + k \cdot \frac{e - x}{e - f} & \text{if } f < x < e \\
+            b & \text{if } x \ge e
+        \end{cases}
+
+    where :math:`s` is start, :math:`r` is rise_end, :math:`f` is fall_start,
+    :math:`e` is end, :math:`b` is bias, and :math:`k` is scale.
+
+    Args:
+        start: x value where function starts rising from bias.
+        rise_end: x value where function first reaches the plateau (bias + scale).
+        fall_start: x value where function starts falling from the plateau.
+        end: x value where function returns to bias.
+        bias: Offset added to all values (default: 0).
+        scale: Height of the plateau above bias (default: 1).
+
+    Example:
+        >>> f = TrapezoidalFun(start=0.0, rise_end=2.0, fall_start=8.0, end=10.0)
+        >>> f(0)    # At start: bias = 0
+        0
+        >>> f(1)    # Halfway up the rise: 0.5
+        0.5
+        >>> f(5)    # On the plateau: bias + scale = 1
+        1.0
+        >>> f(9)    # Halfway down the fall: 0.5
+        0.5
+        >>> f(10)   # At end: bias = 0
+        0
+
+    Note:
+        Setting ``start == rise_end`` and ``fall_start == end`` reduces this
+        to a rectangular (step) function. Setting ``rise_end == fall_start``
+        reduces this to `TriangularFun`.
+    """
+
+    start: float
+    rise_end: float
+    fall_start: float
+    end: float
+    bias: float = 0
+    scale: float = 1
+
+    def __attrs_post_init__(self):
+        if not (self.start <= self.rise_end <= self.fall_start <= self.end):
+            raise ValueError(
+                "TrapezoidalFun requires start <= rise_end <= fall_start <= end, "
+                f"got {self.start=}, {self.rise_end=}, {self.fall_start=}, {self.end=}"
+            )
+
+    def shift_by(self, offset: float) -> "TrapezoidalFun":
+        return TrapezoidalFun(
+            start=self.start,
+            rise_end=self.rise_end,
+            fall_start=self.fall_start,
+            end=self.end,
+            bias=self.bias + offset,
+            scale=self.scale,
+        )
+
+    def scale_by(self, scale: float) -> "TrapezoidalFun":
+        # Scale the output amplitude, not the x-coordinates
+        return TrapezoidalFun(
+            start=self.start,
+            rise_end=self.rise_end,
+            fall_start=self.fall_start,
+            end=self.end,
+            bias=self.bias * scale,
+            scale=self.scale * scale,
+        )
+
+    def minmax(self, input) -> tuple[float, float]:
+        return self._minmax(input)
+
+    @lru_cache
+    def _minmax(self, input) -> tuple[float, float]:
+        if hasattr(input, "min_value") and hasattr(input, "max_value"):
+            lo, hi = input.min_value, input.max_value
+            vals = [self(lo), self(hi)]
+            top_lo, top_hi = self.rise_end, self.fall_start
+            if max(lo, top_lo) <= min(hi, top_hi):
+                vals.append(self.bias + self.scale)
+            return min(vals), max(vals)
+        return nonmonotonic_minmax(input, self)
+
+    def xml(self, indx: int, issue: Issue, bias=0.0) -> str:
+        """Export this function to GENIUS XML format.
+
+        GENIUS has no native trapezoidal evaluator, so this is only
+        supported for discrete issues via a lookup table.
+        """
+        if issue.is_discrete():
+            vals = list(issue.all)
+            return TableFun(dict(zip(vals, [self(_) for _ in vals]))).xml(
+                indx, issue, bias
+            )
+        raise NotImplementedError(
+            "TrapezoidalFun has no native GENIUS evaluator type; only discrete "
+            "issues can be exported to XML."
+        )
+
+    def __call__(self, x: float):
+        x = float(x)
+        if x < self.start or x > self.end:
+            return self.bias
+        if x <= self.rise_end:
+            if self.rise_end == self.start:
+                return self.bias + self.scale
+            return self.bias + self.scale * (x - self.start) / (
+                self.rise_end - self.start
+            )
+        if x <= self.fall_start:
+            return self.bias + self.scale
+        # Unreachable when fall_start == end: `x <= self.fall_start` above
+        # would already have matched every in-domain x (since fall_start ==
+        # end and x <= end is guaranteed by the first check), so no 0/0
+        # division from `end - fall_start` can occur here.
+        return self.bias + self.scale * (self.end - x) / (self.end - self.fall_start)
+
+
+@define(frozen=True)
+class GaussianFun(BaseFun):
+    r"""Gaussian (bell-curve) value function.
+
+    Maps numeric issue values to utilities using a Gaussian bump centered at
+    ``center``. The center is a free parameter (it need not lie inside the
+    issue's range); the function is simply evaluated (and its min/max
+    computed) over whatever domain the issue restricts it to -- i.e. it is
+    "restricted to the edges of the issue" in the sense that `minmax` only
+    considers the bounded interval ``[issue.min_value, issue.max_value]``
+    rather than the whole real line.
+
+    Mathematical definition:
+
+    .. math::
+
+        f(x) = b + k \cdot \exp\left(-\frac{(x - c)^2}{2 \sigma^2}\right)
+
+    where :math:`c` is the center, :math:`\sigma` is the standard deviation,
+    :math:`b` is the bias, and :math:`k` is the scale (peak height above bias).
+
+    Args:
+        center: The x value :math:`c` where the peak (or trough, if
+            ``scale < 0``) occurs.
+        sigma: Standard deviation :math:`\sigma` controlling the width of the
+            bump. Must be strictly positive.
+        bias: Offset added to all values (default: 0).
+        scale: Height of the peak above bias (default: 1). Use a negative
+            value for a dip instead of a bump.
+
+    Example:
+        >>> f = GaussianFun(center=5.0, sigma=1.0)
+        >>> f(5)  # At the center: bias + scale = 1
+        1.0
+        >>> 0 < f(6) < 1  # One sigma away: less than the peak
+        True
+        >>> f(6) == f(4)  # Symmetric around the center
+        True
+    """
+
+    center: float
+    sigma: float
+    bias: float = 0
+    scale: float = 1
+
+    def __attrs_post_init__(self):
+        if self.sigma <= 0:
+            raise ValueError(f"sigma must be strictly positive, got {self.sigma}")
+
+    def shift_by(self, offset: float) -> "GaussianFun":
+        return GaussianFun(
+            center=self.center,
+            sigma=self.sigma,
+            bias=self.bias + offset,
+            scale=self.scale,
+        )
+
+    def scale_by(self, scale: float) -> "GaussianFun":
+        return GaussianFun(
+            center=self.center,
+            sigma=self.sigma,
+            bias=self.bias * scale,
+            scale=self.scale * scale,
+        )
+
+    def minmax(self, input) -> tuple[float, float]:
+        return self._minmax(input)
+
+    @lru_cache
+    def _minmax(self, input) -> tuple[float, float]:
+        if hasattr(input, "min_value") and hasattr(input, "max_value"):
+            lo, hi = input.min_value, input.max_value
+            vals = [self(lo), self(hi)]
+            if lo <= self.center <= hi:
+                vals.append(self.bias + self.scale)
+            return min(vals), max(vals)
+        return nonmonotonic_minmax(input, self)
+
+    def xml(self, indx: int, issue: Issue, bias=0.0) -> str:
+        """Export this function to GENIUS XML format.
+
+        GENIUS has no native Gaussian evaluator, so this is only supported
+        for discrete issues via a lookup table.
+        """
+        if issue.is_discrete():
+            vals = list(issue.all)
+            return TableFun(dict(zip(vals, [self(_) for _ in vals]))).xml(
+                indx, issue, bias
+            )
+        raise NotImplementedError(
+            "GaussianFun has no native GENIUS evaluator type; only discrete "
+            "issues can be exported to XML."
+        )
+
+    def __call__(self, x: float):
+        x = float(x)
+        return self.bias + self.scale * math.exp(
+            -((x - self.center) ** 2) / (2 * self.sigma * self.sigma)
+        )
+
+
+@define(frozen=True)
+class AggregatingFun(BaseFun):
+    r"""Linearly aggregating value function: a weighted sum of base value funs.
+
+    Combines multiple single-issue value functions (all defined over the
+    same issue) into one, computing a weighted sum plus a bias. Optionally
+    normalizes its output to the range ``[0, 1]`` over a given issue.
+
+    Mathematical definition:
+
+    .. math::
+
+        f(x) = b + \sum_{i=1}^{n} w_i \cdot g_i(x)
+
+    where :math:`g_i` are the component value functions, :math:`w_i` are
+    their weights, and :math:`b` is the bias.
+
+    Args:
+        funs: Tuple of component `BaseFun` instances to combine.
+        weights: Tuple of weights, one per component (default: 1.0 each).
+        bias: Constant offset added to the weighted sum (default: 0).
+        normalize: If True, rescale the combination so that its range over
+            ``issue`` is exactly ``[0, 1]``. Requires ``issue`` to be given.
+        issue: The issue used to compute the normalization range. Only
+            needed (and only used) when ``normalize=True``; once the
+            normalization is baked into ``weights``/``bias`` at construction
+            time, this is reset to ``None``.
+
+    Example:
+        >>> from negmas.outcomes import make_issue
+        >>> f = AggregatingFun(
+        ...     funs=(AffineFun(slope=1.0), ConstFun(bias=1.0)), weights=(0.5, 2.0)
+        ... )
+        >>> f(10)  # 0.5*10 + 2.0*1 = 7
+        7.0
+
+        >>> # Normalize a mixture of two Gaussians to [0, 1] over an issue
+        >>> issue = make_issue((0.0, 10.0), "x")
+        >>> g = AggregatingFun(
+        ...     funs=(
+        ...         GaussianFun(center=2.0, sigma=1.0),
+        ...         GaussianFun(center=8.0, sigma=1.0),
+        ...     ),
+        ...     normalize=True,
+        ...     issue=issue,
+        ... )
+        >>> mn, mx = g.minmax(issue)
+        >>> abs(mn - 0.0) < 1e-6 and abs(mx - 1.0) < 1e-6
+        True
+    """
+
+    funs: tuple[BaseFun, ...]
+    weights: tuple[float, ...] | None = None
+    bias: float = 0
+    normalize: bool = False
+    issue: Issue | None = None
+
+    def __attrs_post_init__(self):
+        if not self.funs:
+            raise ValueError("AggregatingFun requires at least one component fun")
+        if self.weights is None:
+            object.__setattr__(self, "weights", tuple(1.0 for _ in self.funs))
+        if len(self.weights) != len(self.funs):
+            raise ValueError(
+                f"Got {len(self.funs)} funs but {len(self.weights)} weights"
+            )
+        if self.normalize:
+            if self.issue is None:
+                raise ValueError(
+                    "normalize=True requires `issue` to determine the value range"
+                )
+            mn, mx = _dense_nonmonotonic_minmax(self.issue, self._raw_call)
+            span = mx - mn
+            s = 1.0 / span if abs(span) > 1e-12 else 1.0
+            offset = -mn * s
+            object.__setattr__(self, "weights", tuple(w * s for w in self.weights))
+            object.__setattr__(self, "bias", self.bias * s + offset)
+            object.__setattr__(self, "normalize", False)
+            object.__setattr__(self, "issue", None)
+
+    def _raw_call(self, x) -> float:
+        return self.bias + sum(w * f(x) for w, f in zip(self.weights, self.funs))
+
+    def shift_by(self, offset: float) -> "AggregatingFun":
+        return AggregatingFun(
+            funs=self.funs, weights=self.weights, bias=self.bias + offset
+        )
+
+    def scale_by(self, scale: float) -> "AggregatingFun":
+        return AggregatingFun(
+            funs=self.funs,
+            weights=tuple(scale * w for w in self.weights),
+            bias=self.bias * scale,
+        )
+
+    def minmax(self, input) -> tuple[float, float]:
+        # A weighted sum of arbitrary component funs need not be monotonic or
+        # unimodal, so we cannot in general compute this in closed form; fall
+        # back to sampling the issue's domain, using a denser grid than the
+        # default for continuous issues (see `_dense_nonmonotonic_minmax`) so
+        # that narrow peaks (e.g. a mixture of `GaussianFun`s) are not missed.
+        # This is still approximate: the true extremum may lie between
+        # samples. We deliberately avoid `@lru_cache` here: `funs` may hold
+        # non-hashable components (e.g. `TableFun`, whose `mapping` is a
+        # dict), which would make `self` unhashable (see `ConstFun.minmax`
+        # for prior art).
+        return _dense_nonmonotonic_minmax(input, self)
+
+    def xml(self, indx: int, issue: Issue, bias=0.0) -> str:
+        """Export this function to GENIUS XML format.
+
+        GENIUS has no native evaluator for an arbitrary weighted sum, so
+        this is only supported for discrete issues via a lookup table.
+        """
+        if issue.is_discrete():
+            vals = list(issue.all)
+            return TableFun(dict(zip(vals, [self(_) for _ in vals]))).xml(
+                indx, issue, bias
+            )
+        raise NotImplementedError(
+            "AggregatingFun has no native GENIUS evaluator type; only discrete "
+            "issues can be exported to XML."
+        )
+
+    def __call__(self, x) -> float:
+        return self._raw_call(x)
+
+    def to_dict(
+        self, python_class_identifier=PYTHON_CLASS_IDENTIFIER
+    ) -> dict[str, Any]:
+        """Serialize, preserving the concrete type of each component fun."""
+        d = {python_class_identifier: get_full_type_name(type(self))}
+        return dict(
+            **d,
+            funs=serialize(self.funs, python_class_identifier=python_class_identifier),
+            weights=list(self.weights) if self.weights is not None else None,
+            bias=self.bias,
+            normalize=self.normalize,
+            issue=serialize(self.issue, python_class_identifier=python_class_identifier)
+            if self.issue is not None
+            else None,
+        )
+
+    @classmethod
+    def from_dict(cls, d: dict, python_class_identifier=PYTHON_CLASS_IDENTIFIER):
+        if isinstance(d, cls):
+            return d
+        d = dict(d)
+        d.pop(python_class_identifier, None)
+        d = deserialize(
+            d,
+            deep=True,
+            remove_type_field=True,
+            python_class_identifier=python_class_identifier,
+        )  # type: ignore
+        return cls(**d)  # type: ignore
+
+
+@define(frozen=True)
+class BiasedFun(BaseFun):
+    r"""Wraps any value function, adding a constant bias (and optional 0-1 normalization).
+
+    Useful for value function types that don't already expose a ``bias``
+    parameter of their own (e.g. `IdentityFun`): ``f(x) = g(x) + b``.
+
+    Mathematical definition:
+
+    .. math::
+
+        f(x) = g(x) + b
+
+    where :math:`g` is the wrapped value function and :math:`b` is the bias.
+
+    Args:
+        fun: The `BaseFun` to wrap.
+        bias: Constant offset added to the wrapped function's output
+            (default: 0).
+        normalize: If True, rescale ``fun(x) + bias`` so that its range over
+            ``issue`` is exactly ``[0, 1]``. Requires ``issue`` to be given.
+        issue: The issue used to compute the normalization range. Only
+            needed (and only used) when ``normalize=True``; once the
+            normalization is baked in at construction time, this is reset to
+            ``None``.
+
+    Example:
+        >>> f = BiasedFun(fun=IdentityFun(), bias=3.0)
+        >>> f(5)  # 5 + 3
+        8.0
+
+        >>> from negmas.outcomes import make_issue
+        >>> issue = make_issue((0.0, 10.0), "x")
+        >>> g = BiasedFun(fun=IdentityFun(), normalize=True, issue=issue)
+        >>> g.minmax(issue)
+        (0.0, 1.0)
+    """
+
+    fun: BaseFun
+    bias: float = 0
+    normalize: bool = False
+    issue: Issue | None = None
+
+    def __attrs_post_init__(self):
+        if self.normalize:
+            if self.issue is None:
+                raise ValueError(
+                    "normalize=True requires `issue` to determine the value range"
+                )
+            mn, mx = self.fun.minmax(self.issue)
+            mn, mx = mn + self.bias, mx + self.bias
+            span = mx - mn
+            s = 1.0 / span if abs(span) > 1e-12 else 1.0
+            offset = -mn * s
+            object.__setattr__(self, "fun", self.fun.scale_by(s))
+            object.__setattr__(self, "bias", self.bias * s + offset)
+            object.__setattr__(self, "normalize", False)
+            object.__setattr__(self, "issue", None)
+
+    def shift_by(self, offset: float) -> "BiasedFun":
+        return BiasedFun(fun=self.fun, bias=self.bias + offset)
+
+    def scale_by(self, scale: float) -> "BiasedFun":
+        return BiasedFun(fun=self.fun.scale_by(scale), bias=self.bias * scale)
+
+    def minmax(self, input) -> tuple[float, float]:
+        mn, mx = self.fun.minmax(input)
+        return mn + self.bias, mx + self.bias
+
+    def xml(self, indx: int, issue: Issue, bias=0.0) -> str:
+        """Export this function to GENIUS XML format by delegating to the
+        wrapped function, shifted by this wrapper's bias."""
+        return self.fun.shift_by(self.bias).xml(indx, issue, bias)
+
+    def __call__(self, x) -> float:
+        return self.fun(x) + self.bias
+
+    def to_dict(
+        self, python_class_identifier=PYTHON_CLASS_IDENTIFIER
+    ) -> dict[str, Any]:
+        """Serialize, preserving the concrete type of the wrapped fun."""
+        d = {python_class_identifier: get_full_type_name(type(self))}
+        return dict(
+            **d,
+            fun=serialize(self.fun, python_class_identifier=python_class_identifier),
+            bias=self.bias,
+            normalize=self.normalize,
+            issue=serialize(self.issue, python_class_identifier=python_class_identifier)
+            if self.issue is not None
+            else None,
+        )
+
+    @classmethod
+    def from_dict(cls, d: dict, python_class_identifier=PYTHON_CLASS_IDENTIFIER):
+        if isinstance(d, cls):
+            return d
+        d = dict(d)
+        d.pop(python_class_identifier, None)
+        d = deserialize(
+            d,
+            deep=True,
+            remove_type_field=True,
+            python_class_identifier=python_class_identifier,
+        )  # type: ignore
+        return cls(**d)  # type: ignore
+
+
+@define(frozen=True)
+class MultiModalTrapezoidalFun(BaseFun):
+    r"""A mixture (weighted sum) of several `TrapezoidalFun`, for multi-modal values.
+
+    Equivalent to building an `AggregatingFun` out of several `TrapezoidalFun`
+    instances, but takes each `TrapezoidalFun` parameter as a tuple (one entry
+    per component) plus a ``weights`` tuple, which is more convenient when
+    all components are trapezoidal.
+
+    Note:
+        `minmax` is approximate for continuous issues (a mixture of several
+        trapezoids need not have a closed-form extremum): it delegates to
+        `AggregatingFun.minmax`, which samples the issue's domain on a dense
+        grid.
+
+    Mathematical definition:
+
+    .. math::
+
+        f(x) = b + \sum_{i=1}^{n} w_i \cdot T_i(x)
+
+    where each :math:`T_i` is a `TrapezoidalFun` built from the i-th entries
+    of ``starts``, ``rise_ends``, ``fall_starts``, ``ends``, ``biases`` and
+    ``scales``.
+
+    Args:
+        starts: Tuple of ``start`` values, one per component.
+        rise_ends: Tuple of ``rise_end`` values, one per component.
+        fall_starts: Tuple of ``fall_start`` values, one per component.
+        ends: Tuple of ``end`` values, one per component.
+        biases: Tuple of per-component biases (default: 0 each).
+        scales: Tuple of per-component scales (default: 1 each).
+        weights: Tuple of weights multiplying each component before summing
+            (default: 1 each).
+        bias: Overall constant offset added after summing (default: 0).
+
+    Example:
+        >>> f = MultiModalTrapezoidalFun(
+        ...     starts=(0.0, 5.0),
+        ...     rise_ends=(1.0, 6.0),
+        ...     fall_starts=(2.0, 7.0),
+        ...     ends=(3.0, 8.0),
+        ... )
+        >>> f(1.5)  # peak of the first trapezoid
+        1.0
+        >>> f(6.5)  # peak of the second trapezoid
+        1.0
+        >>> f(4.0)  # between the two, both are at bias (0)
+        0.0
+    """
+
+    starts: tuple[float, ...]
+    rise_ends: tuple[float, ...]
+    fall_starts: tuple[float, ...]
+    ends: tuple[float, ...]
+    biases: tuple[float, ...] | None = None
+    scales: tuple[float, ...] | None = None
+    weights: tuple[float, ...] | None = None
+    bias: float = 0
+
+    def __attrs_post_init__(self):
+        n = len(self.starts)
+        for name, seq in (
+            ("rise_ends", self.rise_ends),
+            ("fall_starts", self.fall_starts),
+            ("ends", self.ends),
+        ):
+            if len(seq) != n:
+                raise ValueError(f"{name} must have length {n} (same as starts)")
+        if self.biases is None:
+            object.__setattr__(self, "biases", tuple(0.0 for _ in range(n)))
+        if self.scales is None:
+            object.__setattr__(self, "scales", tuple(1.0 for _ in range(n)))
+        if self.weights is None:
+            object.__setattr__(self, "weights", tuple(1.0 for _ in range(n)))
+        for name, seq in (
+            ("biases", self.biases),
+            ("scales", self.scales),
+            ("weights", self.weights),
+        ):
+            if len(seq) != n:
+                raise ValueError(f"{name} must have length {n} (same as starts)")
+
+    def _components(self) -> tuple[TrapezoidalFun, ...]:
+        return tuple(
+            TrapezoidalFun(start=s, rise_end=r, fall_start=f, end=e, bias=b, scale=sc)
+            for s, r, f, e, b, sc in zip(
+                self.starts,
+                self.rise_ends,
+                self.fall_starts,
+                self.ends,
+                self.biases,
+                self.scales,
+            )
+        )
+
+    def _agg(self) -> AggregatingFun:
+        return AggregatingFun(
+            funs=self._components(), weights=self.weights, bias=self.bias
+        )
+
+    def shift_by(self, offset: float) -> "MultiModalTrapezoidalFun":
+        return MultiModalTrapezoidalFun(
+            starts=self.starts,
+            rise_ends=self.rise_ends,
+            fall_starts=self.fall_starts,
+            ends=self.ends,
+            biases=self.biases,
+            scales=self.scales,
+            weights=self.weights,
+            bias=self.bias + offset,
+        )
+
+    def scale_by(self, scale: float) -> "MultiModalTrapezoidalFun":
+        return MultiModalTrapezoidalFun(
+            starts=self.starts,
+            rise_ends=self.rise_ends,
+            fall_starts=self.fall_starts,
+            ends=self.ends,
+            biases=self.biases,
+            scales=self.scales,
+            weights=tuple(scale * w for w in self.weights),
+            bias=self.bias * scale,
+        )
+
+    def minmax(self, input) -> tuple[float, float]:
+        # Delegates to `AggregatingFun.minmax`, which is approximate for
+        # continuous issues (dense grid sampling; see `_dense_nonmonotonic_minmax`)
+        # since a mixture of bumps need not have a closed-form extremum.
+        return self._agg().minmax(input)
+
+    def xml(self, indx: int, issue: Issue, bias=0.0) -> str:
+        if issue.is_discrete():
+            vals = list(issue.all)
+            return TableFun(dict(zip(vals, [self(_) for _ in vals]))).xml(
+                indx, issue, bias
+            )
+        raise NotImplementedError(
+            "MultiModalTrapezoidalFun has no native GENIUS evaluator type; only "
+            "discrete issues can be exported to XML."
+        )
+
+    def __call__(self, x) -> float:
+        return self._agg()(x)
+
+
+@define(frozen=True)
+class MultiModalGaussianFun(BaseFun):
+    r"""A mixture (weighted sum) of several `GaussianFun`, for multi-modal values.
+
+    Equivalent to building an `AggregatingFun` out of several `GaussianFun`
+    instances, but takes each `GaussianFun` parameter as a tuple (one entry
+    per component) plus a ``weights`` tuple, which is more convenient when
+    all components are Gaussian. This is the standard way to build a
+    multi-modal (multi-peak) value function out of Gaussian bumps.
+
+    Note:
+        `minmax` is approximate for continuous issues (a mixture of several
+        bumps need not have a closed-form extremum): it delegates to
+        `AggregatingFun.minmax`, which samples the issue's domain on a dense
+        grid.
+
+    Mathematical definition:
+
+    .. math::
+
+        f(x) = b + \sum_{i=1}^{n} w_i \cdot \left(b_i + k_i \exp\left(
+            -\frac{(x - c_i)^2}{2 \sigma_i^2}\right)\right)
+
+    where each component is a `GaussianFun` built from the i-th entries of
+    ``centers``, ``sigmas``, ``biases`` and ``scales``.
+
+    Args:
+        centers: Tuple of ``center`` values, one per component (peak).
+        sigmas: Tuple of ``sigma`` values, one per component.
+        biases: Tuple of per-component biases (default: 0 each).
+        scales: Tuple of per-component scales (default: 1 each).
+        weights: Tuple of weights multiplying each component before summing
+            (default: 1 each).
+        bias: Overall constant offset added after summing (default: 0).
+
+    Example:
+        >>> f = MultiModalGaussianFun(centers=(2.0, 8.0), sigmas=(0.5, 0.5))
+        >>> abs(f(2.0) - 1.0) < 1e-9  # peak of the first bump
+        True
+        >>> abs(f(8.0) - 1.0) < 1e-9  # peak of the second bump
+        True
+        >>> f(5.0) < 0.1  # far from both peaks
+        True
+    """
+
+    centers: tuple[float, ...]
+    sigmas: tuple[float, ...]
+    biases: tuple[float, ...] | None = None
+    scales: tuple[float, ...] | None = None
+    weights: tuple[float, ...] | None = None
+    bias: float = 0
+
+    def __attrs_post_init__(self):
+        n = len(self.centers)
+        if len(self.sigmas) != n:
+            raise ValueError(f"sigmas must have length {n} (same as centers)")
+        if self.biases is None:
+            object.__setattr__(self, "biases", tuple(0.0 for _ in range(n)))
+        if self.scales is None:
+            object.__setattr__(self, "scales", tuple(1.0 for _ in range(n)))
+        if self.weights is None:
+            object.__setattr__(self, "weights", tuple(1.0 for _ in range(n)))
+        for name, seq in (
+            ("biases", self.biases),
+            ("scales", self.scales),
+            ("weights", self.weights),
+        ):
+            if len(seq) != n:
+                raise ValueError(f"{name} must have length {n} (same as centers)")
+
+    def _components(self) -> tuple[GaussianFun, ...]:
+        return tuple(
+            GaussianFun(center=c, sigma=s, bias=b, scale=sc)
+            for c, s, b, sc in zip(self.centers, self.sigmas, self.biases, self.scales)
+        )
+
+    def _agg(self) -> AggregatingFun:
+        return AggregatingFun(
+            funs=self._components(), weights=self.weights, bias=self.bias
+        )
+
+    def shift_by(self, offset: float) -> "MultiModalGaussianFun":
+        return MultiModalGaussianFun(
+            centers=self.centers,
+            sigmas=self.sigmas,
+            biases=self.biases,
+            scales=self.scales,
+            weights=self.weights,
+            bias=self.bias + offset,
+        )
+
+    def scale_by(self, scale: float) -> "MultiModalGaussianFun":
+        return MultiModalGaussianFun(
+            centers=self.centers,
+            sigmas=self.sigmas,
+            biases=self.biases,
+            scales=self.scales,
+            weights=tuple(scale * w for w in self.weights),
+            bias=self.bias * scale,
+        )
+
+    def minmax(self, input) -> tuple[float, float]:
+        # Delegates to `AggregatingFun.minmax`, which is approximate for
+        # continuous issues (dense grid sampling; see `_dense_nonmonotonic_minmax`)
+        # since a mixture of bumps need not have a closed-form extremum.
+        return self._agg().minmax(input)
+
+    def xml(self, indx: int, issue: Issue, bias=0.0) -> str:
+        if issue.is_discrete():
+            vals = list(issue.all)
+            return TableFun(dict(zip(vals, [self(_) for _ in vals]))).xml(
+                indx, issue, bias
+            )
+        raise NotImplementedError(
+            "MultiModalGaussianFun has no native GENIUS evaluator type; only "
+            "discrete issues can be exported to XML."
+        )
+
+    def __call__(self, x) -> float:
+        return self._agg()(x)
 
 
 @define(frozen=True)

@@ -52,6 +52,7 @@ etc.
     components
     advanced_negotiation
     normalization
+    value_functions
     helper_modules
 
 

@@ -324,13 +324,21 @@ class GLAUtilityFunction(UtilityFunction):
         d = {python_class_identifier: get_full_type_name(type(self))}
         d.update(super().to_dict(python_class_identifier=python_class_identifier))
 
-        # Serialize factors
+        # Serialize factors. Each factor serializes (and type-tags) itself
+        # via its own `to_dict`, rather than the generic `serialize()`, so
+        # that a factor which nests other value funs (e.g. `AggregatingFun`,
+        # `BiasedFun`) round-trips correctly instead of being flattened by a
+        # plain `attrs.asdict`.
         serialized_factors = []
         for (indices, func), weight in zip(self._factors, self._weights):
             serialized_factors.append(
                 (
                     indices,
-                    serialize(func, python_class_identifier=python_class_identifier),
+                    func.to_dict(python_class_identifier=python_class_identifier)
+                    if hasattr(func, "to_dict")
+                    else serialize(
+                        func, python_class_identifier=python_class_identifier
+                    ),
                     weight,
                 )
             )

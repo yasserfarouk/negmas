@@ -1,0 +1,151 @@
+****************
+Value Functions
+****************
+
+Value functions map a single issue's values to real numbers, and are the
+building blocks of utility functions like
+:class:`~negmas.preferences.LinearAdditiveUtilityFunction`. This page
+illustrates the "shaped" value functions -- the ones whose curve is easier to
+recognize from a picture than from an equation -- and the two composition
+helpers used to combine or adjust them.
+
+All classes described here live in ``negmas.preferences.value_fun`` and are
+also importable directly from ``negmas``.
+
+.. contents::
+    :local:
+    :depth: 1
+
+
+TrapezoidalFun
+==============
+
+A piecewise-linear function that rises from ``bias`` to ``bias + scale``
+over ``[start, rise_end]``, stays flat over ``[rise_end, fall_start]``, then
+falls back to ``bias`` over ``[fall_start, end]``. It generalizes
+:class:`~negmas.preferences.value_fun.TriangularFun` (a `TrapezoidalFun` with
+``rise_end == fall_start`` is a triangle) to have a plateau instead of a
+single peak.
+
+.. image:: figs/value_funcs/trapezoidal_fun.png
+    :alt: A trapezoidal value function rising, plateauing, then falling.
+    :width: 500px
+
+::
+
+    from negmas.preferences.value_fun import TrapezoidalFun
+
+    f = TrapezoidalFun(start=1.0, rise_end=3.0, fall_start=7.0, end=9.0)
+
+
+GaussianFun
+===========
+
+A Gaussian bump: ``f(x) = bias + scale * exp(-(x - center)^2 / (2 * sigma^2))``.
+The ``center`` is a free parameter -- it need not lie inside the issue's
+range. If it does, the function peaks there; if it doesn't, the function is
+simply monotonically decaying (or increasing, for a negative ``scale``) over
+whatever range the issue restricts it to.
+
+.. image:: figs/value_funcs/gaussian_fun.png
+    :alt: A Gaussian bump centered inside the issue range, and one centered outside it.
+    :width: 500px
+
+::
+
+    from negmas.preferences.value_fun import GaussianFun
+
+    peak_in_range = GaussianFun(center=5.0, sigma=1.2)
+    decaying_from_an_edge = GaussianFun(center=-3.0, sigma=2.0)
+
+
+AggregatingFun
+==============
+
+A weighted sum of other `BaseFun` instances over the *same* issue:
+``f(x) = bias + sum(weight_i * fun_i(x))``. This is the generic building
+block for combining several shapes (including several `GaussianFun` or
+`TrapezoidalFun` instances) into one value function, and is what
+`MultiModalGaussianFun` and `MultiModalTrapezoidalFun` build on internally.
+
+Passing ``normalize=True`` (and an ``issue``) rescales the combination so
+that its range over that issue is exactly ``[0, 1]``.
+
+.. image:: figs/value_funcs/aggregating_fun.png
+    :alt: Two component value functions and their weighted-sum aggregate.
+    :width: 500px
+
+::
+
+    from negmas.preferences.value_fun import AggregatingFun, GaussianFun, ConstFun
+
+    combo = AggregatingFun(
+        funs=(GaussianFun(center=3.0, sigma=1.0), ConstFun(bias=0.15)),
+        weights=(1.0, 1.0),
+    )
+
+
+BiasedFun
+=========
+
+Wraps any `BaseFun`, adding a constant bias: ``f(x) = fun(x) + bias``. Useful
+for value function types that don't already expose a ``bias`` parameter of
+their own (e.g. `~negmas.preferences.value_fun.IdentityFun`,
+`~negmas.preferences.value_fun.LinearFun`). Like `AggregatingFun`, it
+supports ``normalize=True`` (with an ``issue``) to rescale its output to
+``[0, 1]``.
+
+.. image:: figs/value_funcs/biased_fun.png
+    :alt: A wrapped function, its biased version, and its normalized version.
+    :width: 500px
+
+::
+
+    from negmas.preferences.value_fun import BiasedFun, IdentityFun
+    from negmas.outcomes import make_issue
+
+    issue = make_issue((0.0, 10.0), "x")
+    normalized_identity = BiasedFun(fun=IdentityFun(), normalize=True, issue=issue)
+
+
+Multi-modal mixtures
+=====================
+
+`MultiModalTrapezoidalFun` and `MultiModalGaussianFun` build a multi-peak
+value function out of several trapezoids or Gaussians in one call, taking
+each component's parameters as a tuple (one entry per component) plus a
+``weights`` tuple, rather than requiring you to build the equivalent
+`AggregatingFun` by hand.
+
+.. image:: figs/value_funcs/multimodal_trapezoidal_fun.png
+    :alt: A mixture of two trapezoids forming a two-peak value function.
+    :width: 500px
+
+.. image:: figs/value_funcs/multimodal_gaussian_fun.png
+    :alt: A mixture of two Gaussians forming a two-peak value function.
+    :width: 500px
+
+::
+
+    from negmas.preferences.value_fun import MultiModalGaussianFun
+
+    two_peaks = MultiModalGaussianFun(
+        centers=(2.0, 6.5), sigmas=(0.7, 1.3), weights=(1.0, 0.7)
+    )
+
+.. note::
+
+    `minmax` for these two classes (and for `AggregatingFun` when it holds
+    more than one component) is **approximate** over continuous issues: a
+    mixture of several bumps need not have a closed-form extremum, so it is
+    found by dense grid sampling rather than analytically.
+
+
+Regenerating the figures
+=========================
+
+The images on this page are generated by
+``coding_agents/generate_value_fun_figures.py``. Run it (from the repository
+root) and re-render the docs whenever the plotted examples change::
+
+    python coding_agents/generate_value_fun_figures.py
