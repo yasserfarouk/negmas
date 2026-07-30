@@ -200,11 +200,16 @@ Release 0.16.0 (dev)
   continuous issues (fully-finite outcome spaces are always enumerated exactly),
   and outcomes whose utility is non-finite for any ufun are skipped so
   opponent-model stand-ins can be passed safely.  Documented the relative speed
-  of the individual ``pareto_frontier_*`` extractors — and flagged the broken
-  ``pareto_frontier_numpy_faster`` (raises ``IndexError``),
-  ``pareto_frontier_convex_hull`` (raises ``QhullError``; convex-hull only) and
-  the effectively-hanging ``pareto_frontier_of`` — in the module and method
-  docstrings.
+  of the individual ``pareto_frontier_*`` extractors — and flagged the actually
+  broken ``pareto_frontier_numpy_faster`` (raises ``IndexError``) and the
+  effectively-hanging ``pareto_frontier_of`` — in the module and method
+  docstrings. (A later pass corrected ``pareto_frontier_convex_hull``'s
+  docstring, which had wrongly been flagged as broken too: it deliberately
+  computes the *multiple-negotiations* Pareto frontier ``P∞`` of Mohammad
+  (2023, "Evaluating Automated Negotiations",
+  https://ieeexplore.ieee.org/document/10405386) — the convex-hull
+  restriction is by design, not a bug, though it still raises ``QhullError`` on
+  (near-)collinear inputs.)
 
 * [inv_ufun] Added comprehensive performance benchmark
   (``coding_agents/benchmark_all_inverters.py``) comparing all inverters across

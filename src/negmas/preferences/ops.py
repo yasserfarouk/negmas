@@ -19,11 +19,17 @@ Low-level extractors (input = array of utility tuples):
   the identical frontier to ``numpy``.
 * `pareto_frontier_numpy_faster` — **BROKEN**: raises ``IndexError`` on real
   inputs. Do not use until fixed.
-* `pareto_frontier_convex_hull` — finds the convex
-  hull of the frontier (misses non-convex frontier points) and raises
-  ``scipy.spatial.qhull.QhullError`` (a ``RuntimeError`` subclass, *not* a
-  ``ValueError``) whenever the points are (near-)collinear or lower-dimensional,
-  which is common.
+* `pareto_frontier_convex_hull` — **not a substitute for
+  `pareto_frontier_numpy`/`pareto_frontier_bf`**: it deliberately restricts to
+  the convex-hull portion of the frontier, computing the Pareto frontier under
+  the *multiple-negotiations* evaluation model (``P∞`` of Mohammad 2023
+  https://ieeexplore.ieee.org/document/10405386, see the function docstring)
+  rather than the ordinary single-negotiation Pareto Outcome Set. It also
+  raises ``scipy.spatial.qhull.QhullError`` (a ``RuntimeError`` subclass, *not*
+  a ``ValueError``) whenever the points are (near-)collinear or
+  lower-dimensional, which is common (e.g. a two-issue zero-sum scenario) —
+  catch this or use `pareto_frontier_numpy` if you want the single-negotiation
+  frontier instead.
 * `pareto_frontier_of` — **effectively unusable**: hangs (no result in practical
   time) on more than ~100 points. Avoid.
 
@@ -898,7 +904,11 @@ def pareto_frontier_convex_hull(
     presort=True,
 ) -> np.ndarray:
     """
-    Finds the pareto-frontier of a set of points.
+    Finds the *convex-hull* Pareto frontier of a set of points — i.e. the
+    Pareto frontier under the **multiple-negotiations** evaluation model
+    (``P∞`` of Mohammad 2023) rather than the ordinary single-negotiation
+    Pareto Outcome Set (``P``, computed by `pareto_frontier_numpy` /
+    `pareto_frontier_bf`).
 
     Args:
         points: list of points each is a tuple of utility values for one outcome
@@ -907,16 +917,37 @@ def pareto_frontier_convex_hull(
         presort: Apply the heuristic of pre-sorting all points by sum of utility
 
     Returns:
-        indices of Pareto optimal outcomes
+        indices of the points on the convex-hull ("multiple-negotiations") Pareto frontier
 
-    Warning:
-        - **Broken / not general — do not use.** This uses a convex-hull
-          heuristic, so it only recovers the *convex* part of the Pareto
-          frontier and silently misses non-convex frontier points. Worse, it
-          raises ``scipy.spatial.QhullError`` (a ``RuntimeError`` subclass — not
-          a ``ValueError``) whenever the input points are (near-)collinear or
-          otherwise lower-dimensional, which happens routinely (e.g. a two-issue
-          zero-sum scenario). Use `pareto_frontier_numpy` instead.
+    Remarks:
+        - Restricting to the convex hull is **by design, not a limitation**:
+          under repeated negotiations (or any mixed/randomized Strategy
+          Assignment Rule), a *standard gamble* between any two reachable
+          outcomes is itself reachable in expectation, so every point in the
+          convex hull of the outcome set's utility representation — not just
+          the discrete outcomes themselves — is achievable in the long run.
+          `pareto_frontier`/`pareto_frontier_numpy`/`pareto_frontier_bf`
+          compute the single-negotiation Pareto Outcome Set ``P``; this
+          function computes ``P∞``, the part of ``P``'s convex hull not
+          dominated by any member of ``P``.
+        - ``P`` is not, in general, a subset of ``P∞`` (a Pareto-efficient
+          outcome for a single negotiation can be dominated in expectation by
+          a mixture of two convex-hull vertices) — the two frontiers answer
+          different evaluation questions, so pick whichever matches the
+          evaluation model (single- vs. multiple-negotiations) you need
+          rather than treating one as an approximation of the other.
+        - Raises ``scipy.spatial.QhullError`` (a ``RuntimeError`` subclass —
+          not a ``ValueError``) whenever the input points are (near-)collinear
+          or otherwise lower-dimensional, which happens routinely (e.g. a
+          two-issue zero-sum scenario, where every point lies on one line).
+          Callers should catch this (or use `pareto_frontier_numpy` for the
+          single-negotiation frontier instead) when degenerate inputs are
+          possible.
+
+    References:
+        Mohammad, Y. (2023). Evaluating Automated Negotiations. In: 2023 IEEE
+        International Conference on Agents (ICA), pp. 77-82.
+        https://ieeexplore.ieee.org/document/10405386
     """
     from scipy import spatial
 
