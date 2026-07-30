@@ -138,8 +138,9 @@ class NiceTitForTatNegotiator(MAPNegotiator):
     our next planned offer, or when time is running out).
 
     The opponent model is the one piece the bidding strategy depends on. It is
-    accessed through the ``opponent_model`` property (read by the offering
-    policy via ``self.negotiator.opponent_model``). You can either:
+    accessed through the standard ``opponent_ufun`` property (read by the
+    offering policy via ``self.negotiator.opponent_ufun``), populated
+    automatically from the model passed here. You can either:
 
     - pass a ready opponent model as ``opponent_model`` (any `UFunModel`,
       e.g. a learned `FrequencyLinearUFunModel`, an oracle

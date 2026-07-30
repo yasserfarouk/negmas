@@ -839,7 +839,7 @@ class NiceTitForTatOfferingPolicy(OfferingPolicy):
     1. **Cooperate first.** Initially the agent offers its best outcome
        (it never defects first).
     2. **Estimate ``my_nash``.** Using the opponent model
-       (``negotiator.opponent_model``) and the calculators in
+       (``negotiator.opponent_ufun``) and the calculators in
        `negmas.preferences.ops`, estimate the chosen bargaining solution and take
        the agent's own utility ``p_me`` at it. Scale it by a multiplier that
        depends on how far the opponent started from the agent
@@ -871,7 +871,7 @@ class NiceTitForTatOfferingPolicy(OfferingPolicy):
        instead (the reference's ``makeAppropriate``), so consensus forms as soon
        as the opponent's standing offer beats our plan.
 
-    The opponent model is accessed through ``self.negotiator.opponent_model``
+    The opponent model is accessed through ``self.negotiator.opponent_ufun``
     (a `UFunModel`), which may be provided to the negotiator or left to a
     default (see `NiceTitForTatNegotiator`).
 
@@ -911,7 +911,7 @@ class NiceTitForTatOfferingPolicy(OfferingPolicy):
             path.
 
     Remarks:
-        - Requires the negotiator to expose ``opponent_model`` (a `UFunModel`
+        - Requires the negotiator to expose ``opponent_ufun`` (a `UFunModel`
           or ``None``). When it is ``None`` the policy degrades to naive
           tit-for-tat.
     """
@@ -1254,7 +1254,7 @@ class NiceTitForTatOfferingPolicy(OfferingPolicy):
         if not self.negotiator or not self.negotiator.ufun:
             return None
         ufun = self.negotiator.ufun
-        opponent_model = getattr(self.negotiator, "opponent_model", None)
+        opponent_model = self.negotiator.opponent_ufun
         na = self._normalized_ufun(ufun)
         if na is None:
             return None
