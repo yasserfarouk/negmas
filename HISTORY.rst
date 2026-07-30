@@ -6,6 +6,34 @@ Release 0.16.0 (dev)
 
 **Changes:**
 
+* [negotiators] Exposed the hardcoded constants used by every negotiator as
+  constructor hyperparameters, so hyperparameter search can tune them without
+  hand-building components. Covers first-party components
+  (``HybridOfferingPolicy``, ``FastMiCROOfferingPolicy``,
+  ``NiceTitForTatOfferingPolicy``, ``KindConcessionRecommender``, the
+  ``PolyAspiration``/``ExpAspiration`` curve exponents, ...), first-party
+  negotiators (``Hybrid``, ``MiCRO``, ``FastMiCRO``, both tit-for-tats,
+  ``CAB``/``CAN``/``CAR``, ``WAB``/``WAR``/``WAN``,
+  ``LimitedOutcomesNegotiator``, ``SimpleNegotiator``), and 211 of the 217
+  constants in the transcompiled Genius/ANAC ports
+  (``gb.components.genius``), which now also accept
+  ``offering_params``/``acceptance_params``/``model_params``. Also fixed two
+  latent bugs found while wiring this up: ``HybridOfferingPolicy``'s four
+  Bezier parameters were silently overwritten on every
+  ``on_preferences_changed`` (``NaN`` is now the documented "auto" sentinel,
+  so user-supplied values survive), and several CAB/WAR/Nice negotiators
+  discarded a caller-supplied ``offering`` component via
+  ``kwargs["offering"] = X()`` instead of ``setdefault``.
+
+* [preferences] **New** value functions: ``TrapezoidalFun``, ``GaussianFun``,
+  ``AggregatingFun`` (weighted sum of value funs, with optional 0-1
+  normalization), ``BiasedFun`` (adds a bias to value funs like
+  ``IdentityFun``/``LinearFun`` that don't have one), and
+  ``MultiModalTrapezoidalFun``/``MultiModalGaussianFun`` (tuple-parameterized
+  mixtures built on ``AggregatingFun``). ``docs/value_functions.rst`` is now a
+  full gallery with a generated figure for every single- and multi-issue value
+  fun type.
+
 * [situated] Fixed ``World`` breaking negotiations mid-flight when
   ``negotiation_speed`` was finite. ``_step_negotiations`` budgeted the
   per-simulation-step negotiation allowance by counting *passes* over the
@@ -192,6 +220,54 @@ Release 0.16.0 (dev)
   out-of-range queries; all others clamp to the nearest in-range outcome.
 
 **Bug Fixes:**
+
+* [sao] ``sao.components.models.ufun`` duplicated the ``UFunModel``,
+  ``ZeroSumModel``, ``FrequencyUFunModel`` and ``FrequencyLinearUFunModel``
+  implementations from ``negmas.gb.components.models.ufun`` instead of
+  re-exporting them like its sibling modules (``weights.py``,
+  ``classifier.py``, ``heuristic.py``) already did, leaving the
+  ``Frequency*`` duplicates as ``NotImplementedError`` stubs. It now
+  re-exports the ``gb`` implementations, so ``negmas.FrequencyUFunModel`` /
+  ``negmas.FrequencyLinearUFunModel`` (both resolved through ``sao``) are
+  fully functional.
+
+* [gb] ``NiceTitForTatOfferingPolicy`` read the opponent model via
+  ``getattr(self.negotiator, "opponent_model", None)`` — a property only
+  ``NiceTitForTatNegotiator`` itself defines — instead of the standard
+  ``Negotiator.opponent_ufun`` property that every ``UFunModel`` component
+  populates automatically. Simplified to direct attribute access (no
+  ``getattr`` needed; ``opponent_ufun`` is always defined and was already
+  guaranteed non-``None`` at that point).
+
+* [preferences] ``BIDSInverseUtilityFunction``, ``MCTSInverseUtilityFunction``
+  and ``AttributePlanningInverseUtilityFunction`` all built their per-issue
+  value lists via ``list(issue.all)``, which raises ``ValueError`` for any
+  continuous issue (it is uncountable) — crashing ``init()`` for any additive
+  ufun with a real-valued issue, including through
+  ``AdaptiveInverseUtilityFunction`` whenever a continuous outcome space's
+  infinite cardinality routed it to BIDS. Added a shared ``_issue_values()``
+  helper that discretizes any non-discrete issue into ``continuous_levels``
+  grid points via ``Issue.to_discrete()``.
+
+* [preferences] A ``BaseFun`` nested inside another ``BaseFun``'s field (e.g.
+  in ``AggregatingFun``/``BiasedFun``) was silently corrupted on save whenever
+  the outer value fun was itself held by ``LinearAdditiveUtilityFunction`` /
+  ``GLAUtilityFunction`` / ``GPAUtilityFunction`` /
+  ``NonLinearAggregationUtilityFunction`` / ``PAUtilityFunction``, since the
+  generic serializer bypassed the nested fun's own ``to_dict()``. Those five
+  ufun classes now serialize each value fun via its own ``to_dict()``. (A
+  follow-up commit also corrected a couple of ``TrapezoidalFun`` docstring
+  doctest values left stale by its boundary-condition handling.)
+
+* [helpers] ``Distribution.Real.prob`` used the (always-false) chained
+  comparison ``self == val < EPSILON`` instead of comparing ``val`` to the
+  point mass's location, so it never reported a nonzero probability except by
+  accident. Fixed to ``abs(val - self._loc) < EPSILON``. Also added missing
+  ``__radd__``/``__rsub__``/``__rmul__``/``__and__``/``__rand__`` operators
+  and canonicalized distribution-family-name handling (``UNIFORM``/``NORMAL``
+  constants and a ``canonical_distribution_type()`` helper accepting aliases
+  like ``"norm"``/``"gaussian"``/``"unif"``) so naming is consistent across
+  ``negmas.helpers.prob``.
 
 * [preferences] ``BaseUtilityFunction.__call__`` no longer raises
   ``AttributeError`` for ufun-like objects (e.g. ``@define`` opponent models)
