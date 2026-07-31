@@ -6,6 +6,16 @@ Release 0.16.0 (dev)
 
 **Changes:**
 
+* [preferences] Fixed ``LinearAdditiveUtilityFunction.normalize``/
+  ``normalize_for`` ignoring constraints: the analytic per-issue
+  canonicalization assumed each issue's value-function range is independent,
+  so it normalized against the unconstrained outcome range even when
+  constraints removed the extreme outcomes (e.g. a constraint ``0 < x < 2``
+  left the constrained min mapping to ``0.4`` instead of ``0``). When the
+  ufun has constraints, ``normalize_for`` now falls back to the generic
+  minmax-based scaling inherited from ``BaseUtilityFunction``, which
+  respects constraints via ``extreme_outcomes``/``minmax``.
+
 * [inout] ``Scenario.calc_extra_stats`` now reports Kalai, Kalai-Smorodinsky,
   and max-welfare solution concepts alongside Nash — both the global
   (``kalai_utils``/``kalai_outcome``, ``ks_utils``/``ks_outcome``,

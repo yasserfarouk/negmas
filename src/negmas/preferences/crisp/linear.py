@@ -1262,6 +1262,21 @@ class LinearAdditiveUtilityFunction(UtilityFunction):  # type: ignore
               the target range, which may require adjusting weights non-uniformly.
             - When False, a simpler uniform scaling is used that may not hit exact bounds.
         """
+        # The analytic per-issue canonicalization below assumes each issue's
+        # value-function range is independent. Constraints can violate that
+        # (e.g. excluding an issue's extreme value, or coupling issues), so the
+        # per-issue ranges no longer reflect the achievable utility range and
+        # the constrained extremes would not map to ``to``. Fall back to the
+        # generic minmax-based scaling inherited from the base class, which
+        # respects constraints via ``extreme_outcomes`` (and thus ``minmax``).
+        if self._constraints:
+            return super().normalize_for(
+                to,
+                outcome_space=outcome_space,
+                guarantee_max=guarantee_max,
+                guarantee_min=guarantee_min,
+                max_cardinality=max_cardinality,
+            )
         from negmas.outcomes import DiscreteOrdinalIssue
 
         epsilon = 1e-6
