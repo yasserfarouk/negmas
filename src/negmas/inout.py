@@ -23,6 +23,8 @@ from negmas.preferences.ops import (
     ScenarioStats,
     calc_scenario_stats,
     calc_standard_info,
+    nash_point_convex_hull,
+    pareto_frontier_convex_hull,
 )
 from negmas.sao.mechanism import SAOMechanism
 from negmas.serialization import PYTHON_CLASS_IDENTIFIER, deserialize, serialize
@@ -240,6 +242,7 @@ class Scenario:
         self,
         ufun_indices: tuple[int, int] | None = None,
         backend: str = "matplotlib",
+        convex_hull: bool = False,
         **kwargs,
     ):
         """Visualizes the scenario's utility space using a 2D plot.
@@ -249,6 +252,10 @@ class Scenario:
                 If None, plots the first two ufuns (indices 0 and 1).
                 For scenarios with exactly 2 ufuns, this parameter is ignored.
             backend: Plotting backend to use. Either "matplotlib" or "plotly". Default is "matplotlib".
+            convex_hull: If True, plot the ``P∞`` (convex-hull) Pareto frontier
+                and mixture bargaining solutions; otherwise the ordinary
+                single-negotiation ``P`` frontier and discrete solutions
+                (default).
             **kwargs: Additional arguments passed to plot_2dutils.
 
         Returns:
@@ -294,6 +301,7 @@ class Scenario:
             offering_negotiators=plotting_names,
             issues=self.outcome_space.issues,
             backend=backend,
+            convex_hull=convex_hull,
             **kwargs,
         )
 
@@ -302,6 +310,7 @@ class Scenario:
         folder: Path | str,
         ext: str = DEFAULT_IMAGE_FORMAT,
         backend: str = "matplotlib",
+        convex_hull: bool = False,
         **plot_kwargs,
     ) -> list[Path]:
         """Saves utility space plots for all pairs of utility functions.
@@ -311,6 +320,9 @@ class Scenario:
             ext: Image file extension (e.g., 'png', 'jpg', 'svg', 'pdf', 'webp').
                 Defaults to DEFAULT_IMAGE_FORMAT from negmas.plots.util (currently 'webp').
             backend: Plotting backend to use. Either "matplotlib" or "plotly". Default is "matplotlib".
+            convex_hull: If True, plot under the ``P∞`` (convex-hull) evaluation
+                model; otherwise the ordinary ``P`` model (default). Forwarded
+                to `plot`.
             **plot_kwargs: Additional arguments passed to plot() method.
 
         Returns:
@@ -350,7 +362,12 @@ class Scenario:
         if len(self.ufuns) == 2:
             # Single plot: save as _plot.{ext}
             plot_path = folder / f"_plot{ext}"
-            fig = self.plot(ufun_indices=(0, 1), backend=backend, **plot_kwargs)
+            fig = self.plot(
+                ufun_indices=(0, 1),
+                backend=backend,
+                convex_hull=convex_hull,
+                **plot_kwargs,
+            )
             if backend == "matplotlib":
                 fig.savefig(str(plot_path), bbox_inches="tight")  # type: ignore
             else:  # plotly
@@ -375,7 +392,12 @@ class Scenario:
                 u_j_name = u_j_name.replace("/", "-").replace("\\", "-")
 
                 plot_path = plots_folder / f"{u_i_name}-{u_j_name}{ext}"
-                fig = self.plot(ufun_indices=(i, j), backend=backend, **plot_kwargs)
+                fig = self.plot(
+                    ufun_indices=(i, j),
+                    backend=backend,
+                    convex_hull=convex_hull,
+                    **plot_kwargs,
+                )
                 if backend == "matplotlib":
                     fig.savefig(str(plot_path), bbox_inches="tight")  # type: ignore
                 else:  # plotly
@@ -1039,9 +1061,16 @@ class Scenario:
                 self.stats = None
         return self
 
-    def calc_stats(self) -> ScenarioStats:
-        """Calculates scenario statistics and stores them in the stats attribute."""
-        self.stats = calc_scenario_stats(self.ufuns)
+    def calc_stats(self, convex_hull: bool = False) -> ScenarioStats:
+        """Calculates scenario statistics and stores them in the stats attribute.
+
+        Args:
+            convex_hull: If True, compute under the ``P∞`` (convex-hull /
+                multiple-negotiations) evaluation model; otherwise the ordinary
+                single-negotiation ``P`` model (default). See
+                `calc_scenario_stats`.
+        """
+        self.stats = calc_scenario_stats(self.ufuns, convex_hull=convex_hull)
         return self.stats
 
     def calc_standard_info(self, calc_rational: bool = True) -> dict[str, Any]:
@@ -1204,13 +1233,17 @@ class Scenario:
         )
 
     def calc_extra_stats(
-        self, max_cardinality: int = STATS_MAX_CARDINALITY
+        self, max_cardinality: int = STATS_MAX_CARDINALITY, convex_hull: bool = False
     ) -> dict[str, Any]:
         """
         Calculates and returns several stats corresponding to the domain
 
         Args:
             max_cardinality (int): The maximum number of outcomes considered when calculating the stats.
+            convex_hull: If True, compute the frontier and Nash points under the
+                ``P∞`` (convex-hull) evaluation model; otherwise the ordinary
+                single-negotiation ``P`` model (default). When True, the Nash
+                solution is a mixture point and ``nash_outcome`` is None.
 
         Returns:
             A dictionary with the compiled stats
@@ -1221,15 +1254,36 @@ class Scenario:
         )
         minmax = [u.minmax() for u in ufuns]
         if self.stats is None:
-            frontier_utils, frontier_indices = pareto_frontier(
-                ufuns, outcomes=outcomes, sort_by_welfare=True
-            )
-            frontier_outcomes = tuple(
-                outcomes[_] for _ in frontier_indices if _ is not None
-            )
-            pts = nash_points(ufuns, frontier_utils, outcome_space=outcome_space)
-            nash_utils, nash_indx = pts[0] if pts else (None, None)
-            nash_outcome = frontier_outcomes[nash_indx] if nash_indx else None
+            if convex_hull:
+                import numpy as _np
+
+                all_utils = _np.array(
+                    [[float(u(o)) for u in ufuns] for o in outcomes], dtype=float
+                )
+                if all_utils.size:
+                    pidx = pareto_frontier_convex_hull(all_utils, sort_by_welfare=True)
+                    frontier_utils = tuple(tuple(all_utils[i]) for i in pidx)
+                    frontier_indices = tuple(int(i) for i in pidx)
+                else:
+                    frontier_utils, frontier_indices = tuple(), tuple()
+                frontier_outcomes = tuple(
+                    outcomes[_] for _ in frontier_indices if _ is not None
+                )
+                nash_u, _, _ = nash_point_convex_hull(
+                    ufuns, points=all_utils, outcome_space=outcome_space
+                )
+                nash_utils = nash_u if nash_u else None
+                nash_outcome = None
+            else:
+                frontier_utils, frontier_indices = pareto_frontier(
+                    ufuns, outcomes=outcomes, sort_by_welfare=True
+                )
+                frontier_outcomes = tuple(
+                    outcomes[_] for _ in frontier_indices if _ is not None
+                )
+                pts = nash_points(ufuns, frontier_utils, outcome_space=outcome_space)
+                nash_utils, nash_indx = pts[0] if pts else (None, None)
+                nash_outcome = frontier_outcomes[nash_indx] if nash_indx else None
             opposition = opposition_level(
                 ufuns,
                 max_utils=tuple(_[1] for _ in minmax),  #
@@ -1258,19 +1312,46 @@ class Scenario:
                 if not u2:
                     continue
                 us = (u1, u2)
-                fu_, findx = pareto_frontier(
-                    us,  # type: ignore
-                    outcomes=outcomes,
-                    sort_by_welfare=True,
-                )
-                foutcomes_ = [outcomes[i] for i in findx]
-                fu[(u1.name, u2.name)], fo[(u1.name, u2.name)] = (
-                    fu_,
-                    [outcomes[_] for _ in findx],
-                )
-                pts = nash_points((u1, u2), fu_, outcomes=outcomes)  # type: ignore
-                nu[(u1.name, u2.name)], nindx = pts[0] if pts else (None, None)
-                no[(u1.name, u2.name)] = foutcomes_[nindx] if nindx else None
+                if convex_hull:
+                    import numpy as _np
+
+                    pair_utils = _np.array(
+                        [[float(u(o)) for u in us] for o in outcomes], dtype=float
+                    )
+                    if pair_utils.size:
+                        pidx = pareto_frontier_convex_hull(
+                            pair_utils, sort_by_welfare=True
+                        )
+                        fu_ = tuple(tuple(pair_utils[i]) for i in pidx)
+                        findx = tuple(int(i) for i in pidx)
+                    else:
+                        fu_, findx = tuple(), tuple()
+                    foutcomes_ = [outcomes[i] for i in findx]
+                    fu[(u1.name, u2.name)], fo[(u1.name, u2.name)] = (
+                        fu_,
+                        [outcomes[_] for _ in findx],
+                    )
+                    nash_u, _, _ = nash_point_convex_hull(
+                        us,
+                        points=pair_utils,
+                        outcomes=outcomes,  # type: ignore
+                    )
+                    nu[(u1.name, u2.name)] = nash_u if nash_u else None
+                    no[(u1.name, u2.name)] = None
+                else:
+                    fu_, findx = pareto_frontier(
+                        us,  # type: ignore
+                        outcomes=outcomes,
+                        sort_by_welfare=True,
+                    )
+                    foutcomes_ = [outcomes[i] for i in findx]
+                    fu[(u1.name, u2.name)], fo[(u1.name, u2.name)] = (
+                        fu_,
+                        [outcomes[_] for _ in findx],
+                    )
+                    pts = nash_points((u1, u2), fu_, outcomes=outcomes)  # type: ignore
+                    nu[(u1.name, u2.name)], nindx = pts[0] if pts else (None, None)
+                    no[(u1.name, u2.name)] = foutcomes_[nindx] if nindx else None
                 ol[(u1.name, u2.name)] = opposition_level(
                     (u1, u2),  # type: ignore
                     outcomes=outcomes,

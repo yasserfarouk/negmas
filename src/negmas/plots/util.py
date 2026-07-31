@@ -22,12 +22,19 @@ from negmas.outcomes.protocols import OutcomeSpace
 from negmas.preferences import BaseUtilityFunction
 from negmas.preferences.crisp_ufun import UtilityFunction
 from negmas.preferences.ops import (
+    dist_to_convex_hull_frontier,
+    kalai_point_convex_hull,
     kalai_points,
+    ks_point_convex_hull,
     ks_points,
     max_relative_welfare_points,
+    max_relative_welfare_points_convex_hull,
     max_welfare_points,
+    max_welfare_points_convex_hull,
+    nash_point_convex_hull,
     nash_points,
     pareto_frontier,
+    pareto_frontier_convex_hull,
 )
 
 DEFAULT_IMAGE_FORMAT = "webp"
@@ -789,6 +796,7 @@ def plot_2dutils(
     color_blind: bool = False,
     dark: bool = False,
     fontsize: int | None = None,
+    convex_hull: bool = False,
 ):
     """Plots negotiation trace in 2D utility space for two negotiators.
 
@@ -835,6 +843,10 @@ def plot_2dutils(
         square: Whether to make the 2D plot square (equal aspect ratio). Default is True.
         fontsize: Base font size for axis labels. Other font sizes are calculated relative to this.
                  If None, uses DEFAULT_FONTSIZE (14).
+        convex_hull: If True, plot the ``P∞`` (convex-hull / multiple-negotiations)
+                 Pareto frontier and the mixture Nash/Kalai/KS bargaining
+                 solutions; otherwise the ordinary single-negotiation ``P``
+                 frontier and discrete solutions (default).
 
     Returns:
         A matplotlib Figure object if backend="matplotlib", or a plotly Figure object if backend="plotly".
@@ -885,6 +897,7 @@ def plot_2dutils(
             color_blind=color_blind,
             dark=dark,
             fontsize=fontsize,
+            convex_hull=convex_hull,
         )
     elif backend == "plotly":
         return _plot_2dutils_plotly(
@@ -930,6 +943,7 @@ def plot_2dutils(
             color_blind=color_blind,
             dark=dark,
             fontsize=fontsize,
+            convex_hull=convex_hull,
         )
     else:
         raise ValueError(
@@ -978,6 +992,7 @@ def _plot_2dutils_matplotlib(
     color_blind: bool = False,
     dark: bool = False,
     fontsize: int | None = None,
+    convex_hull: bool = False,
 ):
     """Matplotlib implementation of 2D utility space plotting."""
     import matplotlib.pyplot as plt
@@ -1062,6 +1077,55 @@ def _plot_2dutils_matplotlib(
         ks_pts = []
         mwelfare_pts = []
         mrwelfare_pts = []
+    elif convex_hull:
+        import numpy as _np
+
+        finite_idx = []
+        for _i, _u in enumerate(utils):
+            try:
+                _a, _b = float(_u[0]), float(_u[1])
+            except (TypeError, ValueError):
+                continue
+            if math.isfinite(_a) and math.isfinite(_b):
+                finite_idx.append(_i)
+        f_outcomes = [outcomes[_i] for _i in finite_idx]
+        f_utils = (
+            _np.array([utils[_i] for _i in finite_idx], dtype=float)
+            if finite_idx
+            else _np.empty((0, 2))
+        )
+        if f_utils.size:
+            _pidx = pareto_frontier_convex_hull(f_utils, sort_by_welfare=True)
+            frontier = [tuple(f_utils[_i]) for _i in _pidx]
+            frontier_outcome = [f_outcomes[int(_i)] for _i in _pidx]
+        else:
+            frontier, frontier_outcome = [], []
+        nash_u, _, _ = nash_point_convex_hull(
+            plotting_ufuns, points=frontier, outcome_space=outcome_space
+        )
+        nash_pts = [(nash_u, None)] if nash_u else []
+        k_u, _, _ = kalai_point_convex_hull(
+            plotting_ufuns,
+            points=frontier,
+            outcome_space=outcome_space,
+            subtract_reserved_value=True,
+        )
+        kalai_pts = [(k_u, None)] if k_u else []
+        ks_u, _, _ = ks_point_convex_hull(
+            plotting_ufuns,
+            points=frontier,
+            outcome_space=outcome_space,
+            subtract_reserved_value=True,
+        )
+        ks_pts = [(ks_u, None)] if ks_u else []
+        _mw = max_welfare_points_convex_hull(
+            plotting_ufuns, points=frontier, outcome_space=outcome_space
+        )
+        mwelfare_pts = [(u, frontier_outcome[int(i)]) for u, i in _mw]
+        _mrw = max_relative_welfare_points_convex_hull(
+            plotting_ufuns, points=frontier, outcome_space=outcome_space
+        )
+        mrwelfare_pts = [(u, frontier_outcome[int(i)]) for u, i in _mrw]
     else:
         frontier, frontier_outcome = pareto_frontier(
             ufuns=plotting_ufuns,
@@ -1148,10 +1212,13 @@ def _plot_2dutils_matplotlib(
                 max_relative_welfare_distance,
                 ((pt[0] - cu[0]) ** 2 + (pt[1] - cu[1]) ** 2) ** 0.5,
             )
-        for pu in frontier:
-            dist = ((pu[0] - cu[0]) ** 2 + (pu[1] - cu[1]) ** 2) ** 0.5
-            if dist < pareto_distance:
-                pareto_distance = dist
+        if convex_hull and frontier:
+            pareto_distance = dist_to_convex_hull_frontier(cu, frontier)
+        else:
+            for pu in frontier:
+                dist = ((pu[0] - cu[0]) ** 2 + (pu[1] - cu[1]) ** 2) ** 0.5
+                if dist < pareto_distance:
+                    pareto_distance = dist
 
     if trace:
         n_steps = trace[-1].step + 1
@@ -1449,6 +1516,7 @@ def _plot_2dutils_plotly(
     color_blind: bool = False,
     dark: bool = False,
     fontsize: int | None = None,
+    convex_hull: bool = False,
 ):
     """Plotly implementation of 2D utility space plotting."""
     if not colorizer:
@@ -1506,6 +1574,56 @@ def _plot_2dutils_plotly(
         ks_pts = []
         mwelfare_pts = []
         mrwelfare_pts = []
+    elif convex_hull:
+        import numpy as _np
+
+        frontier_indices = []
+        finite_idx = []
+        for _i, _u in enumerate(utils):
+            try:
+                _a, _b = float(_u[0]), float(_u[1])
+            except (TypeError, ValueError):
+                continue
+            if math.isfinite(_a) and math.isfinite(_b):
+                finite_idx.append(_i)
+        f_outcomes = [outcomes[_i] for _i in finite_idx]
+        f_utils = (
+            _np.array([utils[_i] for _i in finite_idx], dtype=float)
+            if finite_idx
+            else _np.empty((0, 2))
+        )
+        if f_utils.size:
+            _pidx = pareto_frontier_convex_hull(f_utils, sort_by_welfare=True)
+            frontier = [tuple(f_utils[_i]) for _i in _pidx]
+            frontier_outcome = [f_outcomes[int(_i)] for _i in _pidx]
+        else:
+            frontier, frontier_outcome = [], []
+        nash_u, _, _ = nash_point_convex_hull(
+            plotting_ufuns, points=frontier, outcome_space=outcome_space
+        )
+        nash_pts = [(nash_u, None)] if nash_u else []
+        k_u, _, _ = kalai_point_convex_hull(
+            plotting_ufuns,
+            points=frontier,
+            outcome_space=outcome_space,
+            subtract_reserved_value=True,
+        )
+        kalai_pts = [(k_u, None)] if k_u else []
+        ks_u, _, _ = ks_point_convex_hull(
+            plotting_ufuns,
+            points=frontier,
+            outcome_space=outcome_space,
+            subtract_reserved_value=True,
+        )
+        ks_pts = [(ks_u, None)] if ks_u else []
+        _mw = max_welfare_points_convex_hull(
+            plotting_ufuns, points=frontier, outcome_space=outcome_space
+        )
+        mwelfare_pts = [(u, frontier_outcome[int(i)]) for u, i in _mw]
+        _mrw = max_relative_welfare_points_convex_hull(
+            plotting_ufuns, points=frontier, outcome_space=outcome_space
+        )
+        mrwelfare_pts = [(u, frontier_outcome[int(i)]) for u, i in _mrw]
     else:
         frontier, frontier_outcome = pareto_frontier(
             ufuns=plotting_ufuns,
@@ -1597,10 +1715,13 @@ def _plot_2dutils_plotly(
                 max_relative_welfare_distance,
                 math.sqrt((pt[0] - cu[0]) ** 2 + (pt[1] - cu[1]) ** 2),
             )
-        for pu in frontier:
-            dist = math.sqrt((pu[0] - cu[0]) ** 2 + (pu[1] - cu[1]) ** 2)
-            if dist < pareto_distance:
-                pareto_distance = dist
+        if convex_hull and frontier:
+            pareto_distance = dist_to_convex_hull_frontier(cu, frontier)
+        else:
+            for pu in frontier:
+                dist = math.sqrt((pu[0] - cu[0]) ** 2 + (pu[1] - cu[1]) ** 2)
+                if dist < pareto_distance:
+                    pareto_distance = dist
 
     if trace:
         n_steps = trace[-1].step + 1
@@ -1926,6 +2047,7 @@ def plot_offline_run(
     dark: bool = False,
     color_blind: bool = False,
     fontsize: int | None = None,
+    convex_hull: bool = False,
 ):
     """Plots a negotiation run from saved trace data (without a live mechanism).
 
@@ -2110,6 +2232,7 @@ def plot_offline_run(
             color_blind=color_blind,
             dark=dark,
             fontsize=fontsize,
+            convex_hull=convex_hull,
         )
 
     # Update layout - use autosize for responsive sizing in viewers
@@ -2196,6 +2319,7 @@ def plot_mechanism_run(
     dark: bool = False,
     color_blind: bool = False,
     fontsize: int | None = None,
+    convex_hull: bool = False,
 ):
     """Plots a complete visualization of a negotiation mechanism run.
 
@@ -2290,4 +2414,5 @@ def plot_mechanism_run(
         dark=dark,
         color_blind=color_blind,
         fontsize=fontsize,
+        convex_hull=convex_hull,
     )

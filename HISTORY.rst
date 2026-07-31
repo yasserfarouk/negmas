@@ -6,6 +6,50 @@ Release 0.16.0 (dev)
 
 **Changes:**
 
+* [preferences] Added a ``convex_hull: bool`` evaluation-model switch to
+  every user-facing optimality/distance/plotting entry point so a
+  computation runs entirely under the ``P∞`` (multiple-negotiations /
+  convex-hull) model or entirely under the ordinary single-negotiation
+  ``P`` model — never a mix. The switch is on ``calc_scenario_stats``,
+  ``ScenarioStats`` (carried on the stats object so
+  ``calc_outcome_distances``/``calc_outcome_optimality`` honor it without a
+  separate parameter), ``Scenario.calc_stats``/``calc_extra_stats``/
+  ``plot``/``save_plots``, the ``Mechanism`` solution methods
+  (``pareto_frontier``, ``nash_points``, ``kalai_points``,
+  ``modified_kalai_points``, ``max_welfare_points``,
+  ``max_relative_welfare_points``) and ``to_completed_run``, and the
+  plotters (``plot_2dutils``/``plot_offline_run``/``plot_mechanism_run``).
+  Completed the convex-hull bargaining family: new
+  ``max_relative_welfare_points_convex_hull`` and a ``subtract_reserved_value``
+  parameter on ``kalai_point_convex_hull``/``ks_point_convex_hull`` for the
+  modified variants. Under ``P∞``, the Nash/Kalai/KS solutions are mixtures
+  (a utility point realized by a lottery over hull vertices, not any single
+  outcome), so ``ScenarioStats`` stores the utility point with empty
+  ``*_outcomes``; the Pareto distance uses the continuous convex-hull
+  frontier (``dist_to_convex_hull_frontier``, 2-negotiator; discrete
+  fallback otherwise). Covered by tests in ``tests/core/test_preferences.py``
+  and the smoke script ``coding_agents/test_convex_hull_switch.py``.
+
+* [preferences] Fixed ``pareto_frontier_convex_hull`` (the ``P∞``
+  multiple-negotiations Pareto frontier of Mohammad 2023,
+  https://ieeexplore.ieee.org/document/10405386) raising
+  ``scipy.spatial.QhullError`` on (near-)collinear or otherwise
+  lower-dimensional input (e.g. any two-issue zero-sum scenario, where every
+  point lies on one line) — previously documented as an accepted limitation,
+  now handled by projecting degenerate point sets onto their affine span
+  before computing the hull. This uncovered two deeper, pre-existing
+  correctness bugs in the same function that made it effectively unusable
+  even on non-degenerate input: an internal ``reduce()`` fold silently
+  changed the type of its accumulator partway through (points became
+  indices), raising ``ValueError`` on almost any input with 3 or more
+  points; and the returned indices were an identity permutation of the
+  input rather than the actual frontier, since the "filtered" result of the
+  onion-peeling loop was never connected back to the indices being
+  returned. The function is rewritten to correctly implement its documented
+  semantics — mixture (lottery) domination verified via linear programming,
+  not just point-wise comparison — and gains test coverage in
+  ``tests/core/test_preferences.py``.
+
 * [negotiators] Exposed the hardcoded constants used by every negotiator as
   constructor hyperparameters, so hyperparameter search can tune them without
   hand-building components. Covers first-party components

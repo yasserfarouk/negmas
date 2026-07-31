@@ -55,8 +55,13 @@ from negmas.preferences import (
 from negmas.preferences.crisp_ufun import UtilityFunction
 from negmas.preferences.ops import (
     OutcomeOptimality,
+    kalai_point_convex_hull,
     max_relative_welfare_points,
+    max_relative_welfare_points_convex_hull,
     max_welfare_points,
+    max_welfare_points_convex_hull,
+    nash_point_convex_hull,
+    pareto_frontier_convex_hull,
 )
 from negmas.types import NamedObject
 
@@ -3016,17 +3021,29 @@ class Mechanism(
         )
 
     def pareto_frontier(
-        self, max_cardinality: float = float("inf"), sort_by_welfare=True
+        self,
+        max_cardinality: float = float("inf"),
+        sort_by_welfare=True,
+        convex_hull: bool = False,
     ) -> tuple[tuple[tuple[float, ...], ...], list[Outcome]]:
         """Pareto frontier.
 
         Args:
             max_cardinality: Max cardinality.
             sort_by_welfare: Sort by welfare.
+            convex_hull: If True, return the ``P∞`` (convex-hull /
+                multiple-negotiations) frontier — the mixture-undominated
+                subset of the convex hull — instead of the ordinary
+                single-negotiation Pareto frontier.
 
         Returns:
             tuple[tuple[tuple[float, ...], ...], list[Outcome]]: The result.
         """
+        if convex_hull:
+            frontier, outcomes = self._pareto_frontier(
+                pareto_frontier_convex_hull, max_cardinality, sort_by_welfare
+            )
+            return tuple(tuple(u) for u in frontier), outcomes
         ufuns = tuple(self._get_preferences())
         if any(_ is None for _ in ufuns):
             raise ValueError(
@@ -3047,6 +3064,7 @@ class Mechanism(
         max_cardinality: float = float("inf"),
         frontier: tuple[tuple[float, ...], ...] | None = None,
         frontier_outcomes: list[Outcome] | None = None,
+        convex_hull: bool = False,
     ) -> tuple[tuple[tuple[float, ...], Outcome], ...]:
         """Max welfare points.
 
@@ -3054,15 +3072,24 @@ class Mechanism(
             max_cardinality: Max cardinality.
             frontier: Frontier.
             frontier_outcomes: Frontier outcomes.
+            convex_hull: If True, return the ``P∞`` max-welfare point(s) —
+                convex-hull vertices maximizing total welfare — instead of the
+                discrete max-welfare point(s).
 
         Returns:
             tuple[tuple[tuple[float, ...], Outcome], ...]: The result.
         """
         ufuns = self._get_preferences()
         if not frontier:
-            frontier, frontier_outcomes = self.pareto_frontier(max_cardinality)
+            frontier, frontier_outcomes = self.pareto_frontier(
+                max_cardinality, convex_hull=convex_hull
+            )
         assert frontier_outcomes is not None
-        # outcomes = tuple(self.discrete_outcomes(max_cardinality=max_cardinality))
+        if convex_hull:
+            pts = max_welfare_points_convex_hull(
+                ufuns, points=frontier, outcome_space=self.outcome_space
+            )
+            return tuple((u, frontier_outcomes[i]) for u, i in pts)
         kalai_pts = max_welfare_points(
             ufuns, frontier, outcome_space=self.outcome_space
         )
@@ -3075,6 +3102,7 @@ class Mechanism(
         max_cardinality: float = float("inf"),
         frontier: tuple[tuple[float, ...], ...] | None = None,
         frontier_outcomes: list[Outcome] | None = None,
+        convex_hull: bool = False,
     ) -> tuple[tuple[tuple[float, ...], Outcome], ...]:
         """Max relative welfare points.
 
@@ -3082,15 +3110,24 @@ class Mechanism(
             max_cardinality: Max cardinality.
             frontier: Frontier.
             frontier_outcomes: Frontier outcomes.
+            convex_hull: If True, return the ``P∞`` max-relative-welfare point(s)
+                — convex-hull vertices maximizing total relative welfare —
+                instead of the discrete point(s).
 
         Returns:
             tuple[tuple[tuple[float, ...], Outcome], ...]: The result.
         """
         ufuns = self._get_preferences()
         if not frontier:
-            frontier, frontier_outcomes = self.pareto_frontier(max_cardinality)
+            frontier, frontier_outcomes = self.pareto_frontier(
+                max_cardinality, convex_hull=convex_hull
+            )
         assert frontier_outcomes is not None
-        # outcomes = tuple(self.discrete_outcomes(max_cardinality=max_cardinality))
+        if convex_hull:
+            pts = max_relative_welfare_points_convex_hull(
+                ufuns, points=frontier, outcome_space=self.outcome_space
+            )
+            return tuple((u, frontier_outcomes[i]) for u, i in pts)
         kalai_pts = max_relative_welfare_points(
             ufuns, frontier, outcome_space=self.outcome_space
         )
@@ -3103,6 +3140,7 @@ class Mechanism(
         max_cardinality: float = float("inf"),
         frontier: tuple[tuple[float, ...], ...] | None = None,
         frontier_outcomes: list[Outcome] | None = None,
+        convex_hull: bool = False,
     ) -> tuple[tuple[tuple[float, ...], Outcome], ...]:
         """Modified kalai points.
 
@@ -3110,15 +3148,31 @@ class Mechanism(
             max_cardinality: Max cardinality.
             frontier: Frontier.
             frontier_outcomes: Frontier outcomes.
+            convex_hull: If True, return the ``P∞`` modified Kalai solution
+                (disagreement at the utility origin) — a single mixture point
+                over the convex hull (outcome ``None``) — instead of the
+                discrete modified Kalai point(s).
 
         Returns:
             tuple[tuple[tuple[float, ...], Outcome], ...]: The result.
         """
         ufuns = self._get_preferences()
         if not frontier:
-            frontier, frontier_outcomes = self.pareto_frontier(max_cardinality)
+            frontier, frontier_outcomes = self.pareto_frontier(
+                max_cardinality, convex_hull=convex_hull
+            )
         assert frontier_outcomes is not None
-        # outcomes = tuple(self.discrete_outcomes(max_cardinality=max_cardinality))
+        if convex_hull:
+            k_u, _, _ = kalai_point_convex_hull(
+                ufuns,
+                points=frontier,
+                outcome_space=self.outcome_space,
+                subtract_reserved_value=False,
+            )
+            return cast(
+                tuple[tuple[tuple[float, ...], Outcome], ...],
+                ((k_u, None),) if k_u else (),
+            )
         kalai_pts = kalai_points(
             ufuns,
             frontier,
@@ -3134,6 +3188,7 @@ class Mechanism(
         max_cardinality: float = float("inf"),
         frontier: tuple[tuple[float, ...], ...] | None = None,
         frontier_outcomes: list[Outcome] | None = None,
+        convex_hull: bool = False,
     ) -> tuple[tuple[tuple[float, ...], Outcome], ...]:
         """Kalai points.
 
@@ -3141,15 +3196,30 @@ class Mechanism(
             max_cardinality: Max cardinality.
             frontier: Frontier.
             frontier_outcomes: Frontier outcomes.
+            convex_hull: If True, return the ``P∞`` (egalitarian) Kalai solution
+                — a single mixture point over the convex hull (outcome
+                ``None``) — instead of the discrete Kalai point(s).
 
         Returns:
             tuple[tuple[tuple[float, ...], Outcome], ...]: The result.
         """
         ufuns = self._get_preferences()
         if not frontier:
-            frontier, frontier_outcomes = self.pareto_frontier(max_cardinality)
+            frontier, frontier_outcomes = self.pareto_frontier(
+                max_cardinality, convex_hull=convex_hull
+            )
         assert frontier_outcomes is not None
-        # outcomes = tuple(self.discrete_outcomes(max_cardinality=max_cardinality))
+        if convex_hull:
+            k_u, _, _ = kalai_point_convex_hull(
+                ufuns,
+                points=frontier,
+                outcome_space=self.outcome_space,
+                subtract_reserved_value=True,
+            )
+            return cast(
+                tuple[tuple[tuple[float, ...], Outcome], ...],
+                ((k_u, None),) if k_u else (),
+            )
         kalai_pts = kalai_points(
             ufuns,
             frontier,
@@ -3165,6 +3235,7 @@ class Mechanism(
         max_cardinality: float = float("inf"),
         frontier: tuple[tuple[float, ...], ...] | None = None,
         frontier_outcomes: list[Outcome] | None = None,
+        convex_hull: bool = False,
     ) -> tuple[tuple[tuple[float, ...], Outcome], ...]:
         """Nash points.
 
@@ -3172,15 +3243,28 @@ class Mechanism(
             max_cardinality: Max cardinality.
             frontier: Frontier.
             frontier_outcomes: Frontier outcomes.
+            convex_hull: If True, return the ``P∞`` Nash bargaining solution —
+                a single mixture point over the convex hull (its outcome is
+                ``None`` since no single outcome realizes it) — instead of the
+                discrete Nash point(s).
 
         Returns:
             tuple[tuple[tuple[float, ...], Outcome], ...]: The result.
         """
         ufuns = self._get_preferences()
         if not frontier:
-            frontier, frontier_outcomes = self.pareto_frontier(max_cardinality)
+            frontier, frontier_outcomes = self.pareto_frontier(
+                max_cardinality, convex_hull=convex_hull
+            )
         assert frontier_outcomes is not None
-        # outcomes = tuple(self.discrete_outcomes(max_cardinality=max_cardinality))
+        if convex_hull:
+            nash_u, _, _ = nash_point_convex_hull(
+                ufuns, points=frontier, outcome_space=self.outcome_space
+            )
+            return cast(
+                tuple[tuple[tuple[float, ...], Outcome], ...],
+                ((nash_u, None),) if nash_u else (),
+            )
         nash_pts = nash_points(ufuns, frontier, outcome_space=self.outcome_space)
         return tuple(
             (nash_utils, frontier_outcomes[indx]) for nash_utils, indx in nash_pts
@@ -3192,6 +3276,7 @@ class Mechanism(
         metadata: dict[str, Any] | None = None,
         agreement_stats: OutcomeOptimality | None = None,
         calc_agreement_stats: bool = False,
+        convex_hull: bool = False,
     ) -> CompletedRun:
         """
         Creates a CompletedRun object from the current mechanism state.
@@ -3305,7 +3390,7 @@ class Mechanism(
                 ufuns = [n.ufun for n in self.negotiators if n.ufun is not None]
                 if ufuns and len(ufuns) == len(self.negotiators):
                     # Calculate scenario stats (expensive)
-                    stats = calc_scenario_stats(ufuns)
+                    stats = calc_scenario_stats(ufuns, convex_hull=convex_hull)
                     # Calculate agreement utilities
                     agreement_utils = tuple(
                         float(u(self.agreement)) if u is not None else 0.0
@@ -3324,7 +3409,7 @@ class Mechanism(
                 )
                 if ufuns and len(ufuns) == len(self.negotiators):
                     # Calculate scenario stats (expensive)
-                    stats = calc_scenario_stats(ufuns)
+                    stats = calc_scenario_stats(ufuns, convex_hull=convex_hull)
                     # Calculate agreement utilities
                     agreement_utils = tuple(
                         float(u(self.agreement)) if u is not None else 0.0

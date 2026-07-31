@@ -24,12 +24,9 @@ Low-level extractors (input = array of utility tuples):
   the convex-hull portion of the frontier, computing the Pareto frontier under
   the *multiple-negotiations* evaluation model (``P∞`` of Mohammad 2023
   https://ieeexplore.ieee.org/document/10405386, see the function docstring)
-  rather than the ordinary single-negotiation Pareto Outcome Set. It also
-  raises ``scipy.spatial.qhull.QhullError`` (a ``RuntimeError`` subclass, *not*
-  a ``ValueError``) whenever the points are (near-)collinear or
-  lower-dimensional, which is common (e.g. a two-issue zero-sum scenario) —
-  catch this or use `pareto_frontier_numpy` if you want the single-negotiation
-  frontier instead.
+  rather than the ordinary single-negotiation Pareto Outcome Set. Handles
+  (near-)collinear or lower-dimensional input (common, e.g. a two-issue
+  zero-sum scenario) without raising — see the function docstring for how.
 * `pareto_frontier_of` — **effectively unusable**: hangs (no result in practical
   time) on more than ~100 points. Avoid.
 
@@ -48,7 +45,6 @@ from __future__ import annotations
 
 import itertools
 import math
-from functools import reduce
 from math import sqrt
 from typing import (
     TYPE_CHECKING,
@@ -370,6 +366,15 @@ class ScenarioStats:
         modified_ks_outcomes: List of outcomes at modified KS solutions.
         rational_fraction: Fraction of outcomes rational for all negotiators (optional).
             May be None if loaded from older versions or not calculated.
+        convex_hull: Whether these stats were computed under the ``P∞``
+            (multiple-negotiations / convex-hull) evaluation model of
+            `pareto_frontier_convex_hull` (True) or the ordinary
+            single-negotiation ``P`` model (False, default). Carried on the
+            stats object so `calc_outcome_distances`/`calc_outcome_optimality`
+            honor the same model without a separate parameter. When True, the
+            Nash/Kalai/KS ``*_utils`` hold a single mixture point (a lottery
+            over hull vertices, not any one outcome) and the corresponding
+            ``*_outcomes`` are empty.
 
     Notes:
         The pareto_utils and pareto_outcomes fields can be empty when:
@@ -403,6 +408,7 @@ class ScenarioStats:
     modified_ks_utils: list[tuple[float, ...]] = field(factory=list)
     modified_ks_outcomes: list[Outcome] = field(factory=list)
     rational_fraction: float | None = field(default=None)
+    convex_hull: bool = field(default=False)
 
     @property
     def has_pareto_frontier(self) -> bool:
@@ -422,6 +428,7 @@ class ScenarioStats:
         ufuns: list[UtilityFunction] | tuple[UtilityFunction, ...],
         outcomes: Sequence[Outcome] | None = None,
         eps=1e-12,
+        convex_hull: bool = False,
     ) -> ScenarioStats:
         """Computes scenario statistics from a collection of utility functions.
 
@@ -429,24 +436,35 @@ class ScenarioStats:
             ufuns: The utility functions for all negotiators.
             outcomes: The outcomes to consider. If None, derived from the outcome space.
             eps: Tolerance for floating-point comparisons.
+            convex_hull: If True, compute under the ``P∞`` (convex-hull /
+                multiple-negotiations) evaluation model; otherwise the ordinary
+                single-negotiation ``P`` model (default).
 
         Returns:
             ScenarioStats containing Pareto frontier and solution concept points.
         """
-        return calc_scenario_stats(ufuns, outcomes, eps)
+        return calc_scenario_stats(ufuns, outcomes, eps, convex_hull=convex_hull)
 
     def restrict(
-        self, ufuns: tuple[UtilityFunction], reserved_values: tuple[float, ...]
+        self,
+        ufuns: tuple[UtilityFunction],
+        reserved_values: tuple[float, ...],
+        convex_hull: bool | None = None,
     ) -> ScenarioStats:
         """Restricts scenario stats to outcomes above given reserved values.
 
         Args:
             ufuns: The utility functions for all negotiators.
             reserved_values: Minimum acceptable utility for each negotiator.
+            convex_hull: Whether to recompute the solution concepts under the
+                ``P∞`` (convex-hull) evaluation model. If None (default), the
+                mode is inherited from ``self.convex_hull``.
 
         Returns:
             New ScenarioStats with only rational outcomes above the reserved values.
         """
+        if convex_hull is None:
+            convex_hull = self.convex_hull
         ranges = self.utility_ranges
         pareto_indices = [
             i
@@ -458,51 +476,108 @@ class ScenarioStats:
         )
         pareto_utils = tuple(self.pareto_utils[_] for _ in pareto_indices)
         pareto_outcomes = [self.pareto_outcomes[_] for _ in pareto_indices]
-        nash = nash_points(ufuns, ranges=ranges, frontier=pareto_utils)
-        nash_utils, nash_indices = [_[0] for _ in nash], [_[1] for _ in nash]
-        nash_outcomes = [pareto_outcomes[_] for _ in nash_indices]
-        kalai = kalai_points(
-            ufuns, ranges=ranges, frontier=pareto_utils, subtract_reserved_value=True
-        )
-        kalai_utils, kalai_indices = [_[0] for _ in kalai], [_[1] for _ in kalai]
-        kalai_outcomes = [pareto_outcomes[_] for _ in kalai_indices]
-        modified_kalai = kalai_points(
-            ufuns, ranges=ranges, frontier=pareto_utils, subtract_reserved_value=False
-        )
-        modified_kalai_utils, modified_kalai_indices = (
-            [_[0] for _ in modified_kalai],
-            [_[1] for _ in modified_kalai],
-        )
-        modified_kalai_outcomes = [pareto_outcomes[_] for _ in modified_kalai_indices]
-        ks = ks_points(
-            ufuns, ranges=ranges, frontier=pareto_utils, subtract_reserved_value=True
-        )
-        ks_utils, ks_indices = [_[0] for _ in ks], [_[1] for _ in ks]
-        ks_outcomes = [pareto_outcomes[_] for _ in ks_indices]
-        modified_ks = ks_points(
-            ufuns, ranges=ranges, frontier=pareto_utils, subtract_reserved_value=False
-        )
-        modified_ks_utils, modified_ks_indices = (
-            [_[0] for _ in modified_ks],
-            [_[1] for _ in modified_ks],
-        )
-        modified_ks_outcomes = [pareto_outcomes[_] for _ in modified_ks_indices]
-        welfare = max_welfare_points(ufuns, ranges=ranges, frontier=pareto_utils)
-        welfare_utils, welfare_indices = (
-            [_[0] for _ in welfare],
-            [_[1] for _ in welfare],
-        )
-        welfare_outcomes = [pareto_outcomes[_] for _ in welfare_indices]
-        relative_welfare = max_relative_welfare_points(
-            ufuns, ranges=ranges, frontier=pareto_utils
-        )
-        relative_welfare_utils, relative_welfare_indices = (
-            [_[0] for _ in relative_welfare],
-            [_[1] for _ in relative_welfare],
-        )
-        relative_welfare_outcomes = [
-            pareto_outcomes[_] for _ in relative_welfare_indices
-        ]
+        if convex_hull:
+            # P∞ model: solutions are mixtures over the hull of the rational
+            # P∞ vertices. Mixture solutions have no single outcome, so their
+            # ``*_outcomes`` are empty; welfare optima sit at vertices (discrete
+            # outcomes) and keep their outcomes.
+            nash_u, _, _ = nash_point_convex_hull(
+                ufuns, points=pareto_utils, ranges=ranges
+            )
+            nash_utils = [nash_u] if nash_u else []
+            nash_outcomes: list[Outcome] = []
+            kalai_u, _, _ = kalai_point_convex_hull(
+                ufuns, points=pareto_utils, ranges=ranges, subtract_reserved_value=True
+            )
+            kalai_utils = [kalai_u] if kalai_u else []
+            kalai_outcomes = []
+            mkalai_u, _, _ = kalai_point_convex_hull(
+                ufuns, points=pareto_utils, ranges=ranges, subtract_reserved_value=False
+            )
+            modified_kalai_utils = [mkalai_u] if mkalai_u else []
+            modified_kalai_outcomes = []
+            ks_u, _, _ = ks_point_convex_hull(
+                ufuns, points=pareto_utils, ranges=ranges, subtract_reserved_value=True
+            )
+            ks_utils = [ks_u] if ks_u else []
+            ks_outcomes = []
+            mks_u, _, _ = ks_point_convex_hull(
+                ufuns, points=pareto_utils, ranges=ranges, subtract_reserved_value=False
+            )
+            modified_ks_utils = [mks_u] if mks_u else []
+            modified_ks_outcomes = []
+            welfare = max_welfare_points_convex_hull(
+                ufuns, points=pareto_utils, ranges=ranges
+            )
+            welfare_utils = [_[0] for _ in welfare]
+            welfare_outcomes = [pareto_outcomes[_[1]] for _ in welfare]
+            relative_welfare = max_relative_welfare_points_convex_hull(
+                ufuns, points=pareto_utils, ranges=ranges
+            )
+            relative_welfare_utils = [_[0] for _ in relative_welfare]
+            relative_welfare_outcomes = [
+                pareto_outcomes[_[1]] for _ in relative_welfare
+            ]
+        else:
+            nash = nash_points(ufuns, ranges=ranges, frontier=pareto_utils)
+            nash_utils, nash_indices = [_[0] for _ in nash], [_[1] for _ in nash]
+            nash_outcomes = [pareto_outcomes[_] for _ in nash_indices]
+            kalai = kalai_points(
+                ufuns,
+                ranges=ranges,
+                frontier=pareto_utils,
+                subtract_reserved_value=True,
+            )
+            kalai_utils, kalai_indices = [_[0] for _ in kalai], [_[1] for _ in kalai]
+            kalai_outcomes = [pareto_outcomes[_] for _ in kalai_indices]
+            modified_kalai = kalai_points(
+                ufuns,
+                ranges=ranges,
+                frontier=pareto_utils,
+                subtract_reserved_value=False,
+            )
+            modified_kalai_utils, modified_kalai_indices = (
+                [_[0] for _ in modified_kalai],
+                [_[1] for _ in modified_kalai],
+            )
+            modified_kalai_outcomes = [
+                pareto_outcomes[_] for _ in modified_kalai_indices
+            ]
+            ks = ks_points(
+                ufuns,
+                ranges=ranges,
+                frontier=pareto_utils,
+                subtract_reserved_value=True,
+            )
+            ks_utils, ks_indices = [_[0] for _ in ks], [_[1] for _ in ks]
+            ks_outcomes = [pareto_outcomes[_] for _ in ks_indices]
+            modified_ks = ks_points(
+                ufuns,
+                ranges=ranges,
+                frontier=pareto_utils,
+                subtract_reserved_value=False,
+            )
+            modified_ks_utils, modified_ks_indices = (
+                [_[0] for _ in modified_ks],
+                [_[1] for _ in modified_ks],
+            )
+            modified_ks_outcomes = [pareto_outcomes[_] for _ in modified_ks_indices]
+            welfare = max_welfare_points(ufuns, ranges=ranges, frontier=pareto_utils)
+            welfare_utils, welfare_indices = (
+                [_[0] for _ in welfare],
+                [_[1] for _ in welfare],
+            )
+            welfare_outcomes = [pareto_outcomes[_] for _ in welfare_indices]
+            relative_welfare = max_relative_welfare_points(
+                ufuns, ranges=ranges, frontier=pareto_utils
+            )
+            relative_welfare_utils, relative_welfare_indices = (
+                [_[0] for _ in relative_welfare],
+                [_[1] for _ in relative_welfare],
+            )
+            relative_welfare_outcomes = [
+                pareto_outcomes[_] for _ in relative_welfare_indices
+            ]
         return ScenarioStats(
             opposition=self.opposition,
             utility_ranges=self.utility_ranges,
@@ -522,6 +597,7 @@ class ScenarioStats:
             max_welfare_outcomes=welfare_outcomes,
             max_relative_welfare_utils=relative_welfare_utils,
             max_relative_welfare_outcomes=relative_welfare_outcomes,
+            convex_hull=convex_hull,
         )
 
     def to_dict(
@@ -645,6 +721,10 @@ class ScenarioStats:
         # Handle optional rational_fraction field for backward compatibility
         if "rational_fraction" not in d:
             d["rational_fraction"] = None
+
+        # Handle optional convex_hull field for backward compatibility
+        if "convex_hull" not in d:
+            d["convex_hull"] = False
 
         return cls(**d)
 
@@ -897,6 +977,102 @@ def pareto_frontier_chatgpt(
     return indices
 
 
+def _convex_hull_vertex_indices(points: np.ndarray) -> np.ndarray:
+    """
+    Returns the indices of the vertices of the convex hull of ``points``.
+
+    Unlike a bare ``scipy.spatial.ConvexHull(points).vertices`` call, this
+    does not raise on (near-)collinear or otherwise lower-dimensional input:
+    it detects the affine rank of the point set (via SVD) and, when the
+    points do not fully span their ambient dimension, projects them onto
+    their affine span (an isometry that preserves the convex hull's vertex
+    structure exactly) before computing the hull in the reduced dimension.
+    """
+    from scipy import spatial
+
+    n_points, n_negotiators = points.shape[0], points.shape[1]
+    if n_points <= 2:
+        return np.arange(n_points, dtype=np.int64)
+
+    if n_negotiators >= 2:
+        # ConvexHull needs at least 2-D data; skip straight to the
+        # affine-rank fallback below for single-objective input.
+        try:
+            return np.asarray(spatial.ConvexHull(points).vertices, dtype=np.int64)
+        except spatial.QhullError:
+            pass
+
+    # Degenerate/lower-dimensional (or single-objective) input: project onto
+    # the affine span of the points (found via SVD of the centered points)
+    # and retry there.
+    # the points (found via SVD of the centered points) and retry there.
+    centered = points - points.mean(axis=0, keepdims=True)
+    _, s, vt = np.linalg.svd(centered, full_matrices=False)
+    tol = (s.max() if s.size else 0.0) * max(centered.shape) * np.finfo(float).eps
+    rank = int(np.sum(s > tol))
+
+    if rank <= 0:
+        # All points coincide (within tolerance): every point is a "vertex".
+        return np.arange(n_points, dtype=np.int64)
+
+    if rank == 1:
+        # All points are collinear: the hull is a segment, whose only
+        # vertices are the two extremes along that line (ties included).
+        t = centered @ vt[0]
+        tmin, tmax = t.min(), t.max()
+        ttol = max(abs(tmin), abs(tmax), 1.0) * 1e-9
+        return np.nonzero((t <= tmin + ttol) | (t >= tmax - ttol))[0].astype(np.int64)
+
+    reduced = centered @ vt[:rank].T
+    try:
+        return np.asarray(spatial.ConvexHull(reduced).vertices, dtype=np.int64)
+    except spatial.QhullError:
+        pass
+    try:
+        # Joggle the input to break remaining numerical ties.
+        return np.asarray(
+            spatial.ConvexHull(reduced, qhull_options="QJ").vertices, dtype=np.int64
+        )
+    except spatial.QhullError:
+        # Last resort: fall back to treating every point as a candidate
+        # vertex. The subsequent Pareto-domination filter still guarantees
+        # a correct (if not hull-restricted) result.
+        return np.arange(n_points, dtype=np.int64)
+
+
+def _dominated_by_mixture(p: np.ndarray, dominators: np.ndarray, tol: float) -> bool:
+    """
+    True if some convex combination (lottery) of the rows of ``dominators``
+    weakly covers ``p`` in every objective and yields strictly higher total
+    welfare — which, since it weakly covers every objective, means it must
+    strictly exceed ``p`` in at least one objective.
+
+    Implemented as an LP: maximize the mixture's total welfare subject to it
+    weakly covering ``p`` componentwise. Always feasible (the combination
+    reproducing ``p`` itself qualifies, since ``p`` lies in the convex hull
+    of ``dominators``) and bounded (the mixture weights form a simplex).
+    """
+    from scipy.optimize import linprog
+
+    n_dominators = dominators.shape[0]
+    if n_dominators == 1:
+        d = dominators[0]
+        return bool(np.all(d >= p - tol) and np.any(d > p + tol))
+
+    res = linprog(
+        c=-dominators.sum(axis=1),
+        A_ub=-dominators.T,
+        b_ub=-p,
+        A_eq=np.ones((1, n_dominators)),
+        b_eq=np.ones(1),
+        bounds=(0, None),
+        method="highs",
+    )
+    if not res.success:
+        return False
+    return bool(-res.fun > p.sum() + tol)
+
+
 def pareto_frontier_convex_hull(
     points: np.ndarray | list[tuple[float, ...]],
     eps=-1e-12,
@@ -922,103 +1098,76 @@ def pareto_frontier_convex_hull(
     Remarks:
         - Restricting to the convex hull is **by design, not a limitation**:
           under repeated negotiations (or any mixed/randomized Strategy
-          Assignment Rule), a *standard gamble* between any two reachable
-          outcomes is itself reachable in expectation, so every point in the
-          convex hull of the outcome set's utility representation — not just
-          the discrete outcomes themselves — is achievable in the long run.
+          Assignment Rule), a *standard gamble* (lottery/mixture) between any
+          two reachable outcomes is itself reachable in expectation, so every
+          point in the convex hull of the outcome set's utility
+          representation — not just the discrete outcomes themselves — is
+          achievable in the long run, and can dominate a discrete outcome
+          even when no single discrete outcome does.
           `pareto_frontier`/`pareto_frontier_numpy`/`pareto_frontier_bf`
           compute the single-negotiation Pareto Outcome Set ``P``; this
-          function computes ``P∞``, the part of ``P``'s convex hull not
-          dominated by any member of ``P``.
-        - ``P`` is not, in general, a subset of ``P∞`` (a Pareto-efficient
-          outcome for a single negotiation can be dominated in expectation by
-          a mixture of two convex-hull vertices) — the two frontiers answer
-          different evaluation questions, so pick whichever matches the
-          evaluation model (single- vs. multiple-negotiations) you need
-          rather than treating one as an approximation of the other.
-        - Raises ``scipy.spatial.QhullError`` (a ``RuntimeError`` subclass —
-          not a ``ValueError``) whenever the input points are (near-)collinear
-          or otherwise lower-dimensional, which happens routinely (e.g. a
-          two-issue zero-sum scenario, where every point lies on one line).
-          Callers should catch this (or use `pareto_frontier_numpy` for the
-          single-negotiation frontier instead) when degenerate inputs are
-          possible.
+          function computes ``P∞``, the subset of ``P`` not dominated by any
+          mixture of points achievable within ``P``'s convex hull (verified
+          via linear programming, not just point-wise comparison).
+        - ``P∞`` is always a subset of ``P`` (mixture-domination generalizes
+          point-wise domination — a single dominating point is a degenerate,
+          single-vertex mixture) but, unlike ``P``, a Pareto-efficient
+          single-negotiation outcome can still be excluded from ``P∞`` if a
+          mixture of two *other* outcomes dominates it in expectation even
+          though neither dominates it individually.
+        - Handles (near-)collinear or otherwise lower-dimensional input (e.g.
+          a two-issue zero-sum scenario, where every point lies on one line)
+          without raising: such degenerate point sets are detected and their
+          convex hull computed via a projection onto their affine span
+          instead of crashing.
 
     References:
         Mohammad, Y. (2023). Evaluating Automated Negotiations. In: 2023 IEEE
         International Conference on Agents (ICA), pp. 77-82.
         https://ieeexplore.ieee.org/document/10405386
     """
-    from scipy import spatial
-
-    points = np.asarray(points)
+    points = np.asarray(points, dtype=float)
     n_points = points.shape[0]
-    sorted_indices = []
-    if presort:
-        sort_mask = points.sum(1).argsort()[::-1]
-        sorted_indices = np.arange(n_points, dtype=np.int32)[sort_mask]
-        points = points[sort_mask]
-    warn_if_slow(n_points, "Pareto's Operation is too Slow", lambda x: x * 10)
-    n_negotiators = points.shape[1]
-    if n_points < 1 or n_negotiators < 1:
+    if n_points < 1 or points.ndim < 2 or points.shape[1] < 1:
         return np.empty(0, dtype=np.int64)
 
-    def get_pareto_undominated_by(pts1, indices, pts2=None) -> NDArray[np.integer[Any]]:
-        """
-        Return all points in pts1 that are not Pareto dominated by any points in pts2
-        """
-        if pts2 is None:
-            pts2 = pts1
+    sorted_indices = np.arange(n_points, dtype=np.int64)
+    if presort:
+        sort_mask = points.sum(1).argsort()[::-1]
+        sorted_indices = sorted_indices[sort_mask]
+        points = points[sort_mask]
+    warn_if_slow(n_points, "Pareto's Operation is too Slow", lambda x: x * 10)
 
-        def filter_(pts, point, indices=indices):
-            """
-            Get all points in pts that are not Pareto dominated by the point pt
-            """
-            weakly_worse = (pts >= point).all(axis=-1)
-            strictly_worse = (pts > point - eps).any(axis=-1)
-            return indices[~(weakly_worse & strictly_worse)]
+    tol = max(abs(eps), 1e-9)
 
-        return reduce(filter_, pts2, pts1)
+    # P-infinity is always a subset of the ordinary (single-negotiation)
+    # Pareto frontier P (mixture-domination generalizes point-wise
+    # domination — a single dominating point is a degenerate one-vertex
+    # mixture), so pruning to P first shrinks the — much more expensive —
+    # per-point LP mixture-domination check to P's typically small survivor
+    # set instead of running it on every input point. Uses a local,
+    # tolerance-consistent point-domination filter rather than
+    # `pareto_frontier_numpy` because that function's iterative algorithm
+    # treats exact-duplicate points as mutually dominating (collapsing them
+    # to one representative), which would silently drop points here that
+    # `_dominated_by_mixture` (correctly) does not consider dominated.
+    point_dominated = np.zeros(n_points, dtype=bool)
+    for i, c in enumerate(points):
+        if point_dominated[i]:
+            continue
+        dominated_by_c = np.all(c >= points - tol, axis=1) & np.any(
+            c > points + tol, axis=1
+        )
+        point_dominated |= dominated_by_c
+    candidate_indices = np.nonzero(~point_dominated)[0]
+    dominators = points[_convex_hull_vertex_indices(points)]
 
-    def get_pareto_frontier(points, indices):
-        """
-        Iteratively filter points based on the convex hull heuristic
-        """
-        pareto_groups = []
-
-        # loop while there are points remaining
-        while points.shape[0]:
-            # brute force if there are few points:
-            if points.shape[0] < 10:
-                pareto_groups.append(get_pareto_undominated_by(points, indices))
-                break
-
-            # compute vertices of the convex hull
-            hull_vertices = spatial.ConvexHull(points).vertices
-
-            # get corresponding points
-            hull_pts = points[hull_vertices]
-            hull_indices = indices[hull_vertices]
-
-            # get points in pts that are not convex hull vertices
-            nonhull_mask = np.ones(points.shape[0], dtype=bool)
-            nonhull_mask[hull_vertices] = False
-            points = points[nonhull_mask]
-            indices = indices[nonhull_mask]
-
-            # get points in the convex hull that are on the Pareto frontier
-            pareto_indices = get_pareto_undominated_by(hull_pts, hull_indices)
-            pareto_groups.append(points[pareto_indices])
-            pareto = points[pareto_indices]
-
-            # filter remaining points to keep those not dominated by
-            # Pareto points of the convex hull
-            points = get_pareto_undominated_by(points, indices, pareto)
-
-        return np.vstack(pareto_groups)
-
-    indices = np.arange(n_points, dtype=np.int32)
-    points = get_pareto_frontier(points, indices)
+    keep = np.ones(len(candidate_indices), dtype=bool)
+    if len(dominators) > 1:
+        for k, ci in enumerate(candidate_indices):
+            if _dominated_by_mixture(points[ci], dominators, tol):
+                keep[k] = False
+    indices = candidate_indices[keep]
 
     if sort_by_welfare:
         frontier = points[indices]
@@ -1631,6 +1780,485 @@ def max_welfare_points(
     return tuple(results)
 
 
+def _resolve_bargaining_ranges(
+    ufuns: Sequence[UtilityFunction] | None,
+    ranges: Sequence[tuple[float, float]] | None,
+    outcome_space: OutcomeSpace | None,
+    issues: Sequence[Issue] | None,
+    outcomes: Sequence[Outcome] | None,
+    n_negotiators: int,
+    subtract_reserved_value: bool = True,
+) -> list[tuple[float, float]]:
+    """
+    Resolves per-negotiator ``(disagreement, ideal)`` ranges the same way
+    `nash_points`/`kalai_points`/`ks_points` do: the disagreement point is the
+    reserved value (falling back to the ufun's natural minimum when the
+    reserved value is unset, NaN, or below that minimum); the ideal point is
+    the ufun's natural maximum.
+
+    When ``subtract_reserved_value`` is False (the "modified" variants of
+    Kalai/KS), the disagreement point is the utility origin ``0.0`` instead of
+    the reserved value — mirroring ``kalai_points``/``ks_points`` with
+    ``subtract_reserved_value=False``, which optimize ``min_i(u_i)`` / the
+    advantage ratios ``u_i / max_i`` without subtracting the reserved value.
+    The ideal point remains each ufun's natural maximum in both cases.
+    """
+    if not ranges:
+        assert ufuns is not None
+        ranges = [
+            _.minmax(outcome_space, above_reserve=False)
+            if outcome_space is not None
+            else _.minmax(issues=issues, above_reserve=False)
+            if issues
+            else _.minmax(outcomes=outcomes, above_reserve=False)
+            for _ in ufuns
+        ]
+    resolved = list(ranges)
+    for i, rng in enumerate(resolved):
+        if any(_ is None or not math.isfinite(_) for _ in rng):
+            raise ValueError(f"Cannot find the range for ufun {i}: {rng}")
+    if not subtract_reserved_value:
+        return [(0.0, rng[1]) for rng in resolved]
+    rs = (
+        tuple(_.reserved_value for _ in ufuns)
+        if ufuns
+        else tuple(0.0 for _ in range(n_negotiators))
+    )
+    rs = tuple(float(_) if _ is not None else float("-inf") for _ in rs)
+    for i, (r, rng) in enumerate(zip(rs, resolved)):
+        if r is None or r < rng[0] or not math.isfinite(r):
+            continue
+        resolved[i] = (r, rng[1])
+    return resolved
+
+
+def _hull_dominator_indices(points: np.ndarray) -> np.ndarray:
+    """Indices (into ``points``) of a set whose convex hull equals ``conv(points)``."""
+    return _convex_hull_vertex_indices(np.asarray(points, dtype=float))
+
+
+def kalai_point_convex_hull(
+    ufuns: Sequence[UtilityFunction] | None,
+    points: np.ndarray | Sequence[tuple[float, ...]],
+    ranges: Sequence[tuple[float, float]] | None = None,
+    outcome_space: OutcomeSpace | None = None,
+    issues: Sequence[Issue] | None = None,
+    outcomes: Sequence[Outcome] | None = None,
+    eps: float = 1e-12,
+    subtract_reserved_value: bool = True,
+) -> tuple[tuple[float, ...], tuple[int, ...], tuple[float, ...]]:
+    """
+    Finds the egalitarian (Kalai 1977) bargaining solution over the
+    **convex hull** of ``points`` — i.e. under the multiple-negotiations
+    (``P∞``) evaluation model of `pareto_frontier_convex_hull` — rather than
+    restricting the search to the discrete points themselves as
+    `kalai_points` does.
+
+    This maximizes ``min_i(u_i - d_i)`` (``d`` the per-negotiator
+    disagreement point) over every point achievable by mixing ``points``,
+    solved exactly as a linear program (maximize ``t`` such that a mixture
+    weakly exceeds ``d + t`` in every objective).
+
+    Args:
+        ufuns: The ufuns (used to resolve disagreement/ideal points if
+            ``ranges`` is not given).
+        points: The discrete utility points spanning the feasible set (does
+            not need to be pre-filtered to a Pareto frontier).
+        ranges: Optional pre-computed ``(disagreement, ideal)`` per negotiator.
+        eps: Numerical tolerance for identifying the support of the solution.
+        subtract_reserved_value: If True (default), the disagreement point is
+            the reserved value (standard Kalai). If False ("modified" Kalai),
+            the disagreement point is ``0.0`` — i.e. maximize ``min_i(u_i)``
+            over the hull — mirroring `kalai_points` with
+            ``subtract_reserved_value=False``.
+
+    Returns:
+        A triple ``(utils, dominator_indices, weights)``:
+        - ``utils``: the utility-space point achieving the egalitarian value
+          (may not correspond to any single input point).
+        - ``dominator_indices``: indices into ``points`` of the (typically 2,
+          for 2 negotiators) points whose mixture realizes ``utils``.
+        - ``weights``: the mixture weights (matching ``dominator_indices``,
+          summing to 1) — the lottery a real, repeated negotiation would need
+          to reproduce this point in expectation.
+        Returns ``(tuple(), tuple(), tuple())`` if ``points`` is empty or the
+        LP is infeasible.
+
+    Remarks:
+        - Unique for 2 negotiators. For 3 or more, ``min_i(u_i - d_i)`` can be
+          tied across an entire efficient face of the hull, so the *value* is
+          unique but the returned *point* is only one of possibly many
+          maximizers (no lexicographic tie-break is performed).
+    """
+    from scipy.optimize import linprog
+
+    points_arr = np.asarray(points, dtype=float)
+    if points_arr.size == 0 or points_arr.ndim < 2:
+        return tuple(), tuple(), tuple()
+    n_negotiators = points_arr.shape[1]
+    resolved = _resolve_bargaining_ranges(
+        ufuns,
+        ranges,
+        outcome_space,
+        issues,
+        outcomes,
+        n_negotiators,
+        subtract_reserved_value=subtract_reserved_value,
+    )
+    d = np.array([r for r, _ in resolved])
+
+    dom_idx = _hull_dominator_indices(points_arr)
+    D = points_arr[dom_idx]
+    n_dominators = D.shape[0]
+
+    c = np.zeros(n_dominators + 1)
+    c[-1] = -1.0
+    a_ub = np.hstack([-D.T, np.ones((n_negotiators, 1))])
+    b_ub = -d
+    a_eq = np.hstack([np.ones((1, n_dominators)), np.zeros((1, 1))])
+    b_eq = np.ones(1)
+    bounds = [(0.0, None)] * n_dominators + [(None, None)]
+
+    res = linprog(
+        c, A_ub=a_ub, b_ub=b_ub, A_eq=a_eq, b_eq=b_eq, bounds=bounds, method="highs"
+    )
+    if not res.success:
+        return tuple(), tuple(), tuple()
+
+    lam = np.clip(res.x[:n_dominators], 0.0, None)
+    lam = lam / lam.sum()
+    u = D.T @ lam
+    support = lam > eps
+    return (
+        tuple(float(_) for _ in u),
+        tuple(int(_) for _ in dom_idx[support]),
+        tuple(float(_) for _ in lam[support]),
+    )
+
+
+def ks_point_convex_hull(
+    ufuns: Sequence[UtilityFunction] | None,
+    points: np.ndarray | Sequence[tuple[float, ...]],
+    ranges: Sequence[tuple[float, float]] | None = None,
+    outcome_space: OutcomeSpace | None = None,
+    issues: Sequence[Issue] | None = None,
+    outcomes: Sequence[Outcome] | None = None,
+    eps: float = 1e-12,
+    subtract_reserved_value: bool = True,
+) -> tuple[tuple[float, ...], tuple[int, ...], tuple[float, ...]]:
+    """
+    Finds the Kalai-Smorodinsky (1975) bargaining solution over the
+    **convex hull** of ``points`` (the ``P∞`` evaluation model of
+    `pareto_frontier_convex_hull`) rather than restricting the search to the
+    discrete points themselves as `ks_points` does.
+
+    This is the point where the segment from the disagreement point ``d`` to
+    the ideal point ``i`` (per-negotiator maxima) meets the Pareto-efficient
+    boundary of the hull — found exactly as a linear program (maximize ``t``
+    in ``[0, 1]`` such that a mixture weakly exceeds ``d + t * (i - d)`` in
+    every objective).
+
+    Args:
+        ufuns: The ufuns (used to resolve disagreement/ideal points if
+            ``ranges`` is not given).
+        points: The discrete utility points spanning the feasible set.
+        ranges: Optional pre-computed ``(disagreement, ideal)`` per negotiator.
+        eps: Numerical tolerance for identifying the support of the solution.
+        subtract_reserved_value: If True (default), the disagreement point is
+            the reserved value (standard KS). If False ("modified" KS), the
+            disagreement point is ``0.0`` and the ray runs from the utility
+            origin to the ideal point — mirroring `ks_points` with
+            ``subtract_reserved_value=False``.
+
+    Returns:
+        A triple ``(utils, dominator_indices, weights)`` as in
+        `kalai_point_convex_hull`. Unlike the egalitarian solution, this point
+        is always unique. Returns ``(tuple(), tuple(), tuple())`` if ``points``
+        is empty or the LP is infeasible.
+    """
+    from scipy.optimize import linprog
+
+    points_arr = np.asarray(points, dtype=float)
+    if points_arr.size == 0 or points_arr.ndim < 2:
+        return tuple(), tuple(), tuple()
+    n_negotiators = points_arr.shape[1]
+    resolved = _resolve_bargaining_ranges(
+        ufuns,
+        ranges,
+        outcome_space,
+        issues,
+        outcomes,
+        n_negotiators,
+        subtract_reserved_value=subtract_reserved_value,
+    )
+    d = np.array([r for r, _ in resolved])
+    ideal = np.array([x for _, x in resolved])
+    direction = ideal - d
+
+    dom_idx = _hull_dominator_indices(points_arr)
+    D = points_arr[dom_idx]
+    n_dominators = D.shape[0]
+
+    c = np.zeros(n_dominators + 1)
+    c[-1] = -1.0
+    a_ub = np.hstack([-D.T, direction.reshape(-1, 1)])
+    b_ub = -d
+    a_eq = np.hstack([np.ones((1, n_dominators)), np.zeros((1, 1))])
+    b_eq = np.ones(1)
+    bounds = [(0.0, None)] * n_dominators + [(0.0, 1.0)]
+
+    res = linprog(
+        c, A_ub=a_ub, b_ub=b_ub, A_eq=a_eq, b_eq=b_eq, bounds=bounds, method="highs"
+    )
+    if not res.success:
+        return tuple(), tuple(), tuple()
+
+    lam = np.clip(res.x[:n_dominators], 0.0, None)
+    lam = lam / lam.sum()
+    u = D.T @ lam
+    support = lam > eps
+    return (
+        tuple(float(_) for _ in u),
+        tuple(int(_) for _ in dom_idx[support]),
+        tuple(float(_) for _ in lam[support]),
+    )
+
+
+def nash_point_convex_hull(
+    ufuns: Sequence[UtilityFunction] | None,
+    points: np.ndarray | Sequence[tuple[float, ...]],
+    ranges: Sequence[tuple[float, float]] | None = None,
+    outcome_space: OutcomeSpace | None = None,
+    issues: Sequence[Issue] | None = None,
+    outcomes: Sequence[Outcome] | None = None,
+    eps: float = 1e-12,
+) -> tuple[tuple[float, ...], tuple[int, ...], tuple[float, ...]]:
+    """
+    Finds the Nash (1950) bargaining solution over the **convex hull** of
+    ``points`` (the ``P∞`` evaluation model of `pareto_frontier_convex_hull`)
+    rather than restricting the search to the discrete points themselves as
+    `nash_points` does.
+
+    This maximizes ``prod_i(u_i - d_i)`` (``d`` the disagreement point) over
+    every point achievable by mixing ``points``. Since ``sum_i log(u_i - d_i)``
+    is strictly concave on the (convex) feasible set, this is solved as a
+    convex program and the maximizer is unique in utility space (warm-started
+    from `kalai_point_convex_hull`, which is guaranteed strictly better than
+    ``d`` for every negotiator whenever any such point exists).
+
+    Args:
+        ufuns: The ufuns (used to resolve disagreement/ideal points if
+            ``ranges`` is not given).
+        points: The discrete utility points spanning the feasible set.
+        ranges: Optional pre-computed ``(disagreement, ideal)`` per negotiator.
+        eps: Numerical tolerance for identifying the support of the solution.
+
+    Returns:
+        A triple ``(utils, dominator_indices, weights)`` as in
+        `kalai_point_convex_hull`. Returns ``(tuple(), tuple(), tuple())`` if
+        ``points`` is empty or no point strictly better than ``d`` for every
+        negotiator exists (the Nash product is undefined/zero everywhere).
+    """
+    from scipy.optimize import minimize
+
+    points_arr = np.asarray(points, dtype=float)
+    if points_arr.size == 0 or points_arr.ndim < 2:
+        return tuple(), tuple(), tuple()
+    n_negotiators = points_arr.shape[1]
+    resolved = _resolve_bargaining_ranges(
+        ufuns, ranges, outcome_space, issues, outcomes, n_negotiators
+    )
+    d = np.array([r for r, _ in resolved])
+
+    dom_idx = _hull_dominator_indices(points_arr)
+    D = points_arr[dom_idx]
+    n_dominators = D.shape[0]
+
+    kalai_utils, kalai_idx, kalai_weights = kalai_point_convex_hull(
+        ufuns, points_arr, ranges=resolved, eps=eps
+    )
+    if not kalai_utils or min(u - r for u, r in zip(kalai_utils, d)) <= eps:
+        return tuple(), tuple(), tuple()
+
+    lam0 = np.full(n_dominators, 1e-9)
+    for idx, w in zip(kalai_idx, kalai_weights):
+        lam0[np.nonzero(dom_idx == idx)[0][0]] = w
+    lam0 = lam0 / lam0.sum()
+
+    def neg_log_nash(lam: np.ndarray) -> float:
+        adv = np.clip(D.T @ lam - d, 1e-12, None)
+        return -float(np.sum(np.log(adv)))
+
+    constraints = [
+        {"type": "eq", "fun": lambda lam: np.sum(lam) - 1.0},
+        {"type": "ineq", "fun": lambda lam: D.T @ lam - d - 1e-9},
+    ]
+    res = minimize(
+        neg_log_nash,
+        lam0,
+        method="SLSQP",
+        bounds=[(0.0, 1.0)] * n_dominators,
+        constraints=constraints,
+        options={"maxiter": 1000, "ftol": 1e-15},
+    )
+    lam = np.clip(res.x, 0.0, None)
+    lam = lam / lam.sum()
+    u = D.T @ lam
+    support = lam > eps
+    return (
+        tuple(float(_) for _ in u),
+        tuple(int(_) for _ in dom_idx[support]),
+        tuple(float(_) for _ in lam[support]),
+    )
+
+
+def max_welfare_points_convex_hull(
+    ufuns: Sequence[UtilityFunction],
+    points: np.ndarray | Sequence[tuple[float, ...]],
+    ranges: Sequence[tuple[float, float]] | None = None,
+    outcome_space: OutcomeSpace | None = None,
+    issues: Sequence[Issue] | None = None,
+    outcomes: Sequence[Outcome] | None = None,
+    eps: float = 1e-12,
+) -> tuple[tuple[tuple[float, ...], int], ...]:
+    """
+    Finds the maximum-welfare point(s) over the **convex hull** of ``points``
+    (the ``P∞`` evaluation model of `pareto_frontier_convex_hull`).
+
+    Unlike the egalitarian/Nash/KS solutions, this needs no LP/NLP of its
+    own: ``sum_i(u_i)`` is linear, so its maximum over a polytope is always
+    attained at a vertex — i.e. at one of the (discrete) convex-hull vertices
+    of ``points`` — so this simply delegates to `max_welfare_points` restricted
+    to those vertices.
+
+    Returns:
+        A tuple of ``(utils, index)`` pairs as `max_welfare_points` returns,
+        except ``index`` is an index into the original ``points`` (not into
+        the internal hull-vertex list). Like `max_welfare_points`, more than
+        one point may be returned when the maximum welfare is tied across an
+        entire efficient face (e.g. any zero-sum frontier).
+    """
+    points_arr = np.asarray(points, dtype=float)
+    if points_arr.size == 0 or points_arr.ndim < 2:
+        return tuple()
+    dom_idx = _hull_dominator_indices(points_arr)
+    dominators = [tuple(float(_) for _ in row) for row in points_arr[dom_idx]]
+    raw = max_welfare_points(
+        ufuns,
+        frontier=dominators,
+        ranges=ranges,
+        outcome_space=outcome_space,
+        issues=issues,
+        outcomes=outcomes,
+        eps=eps,
+    )
+    return tuple((utils, int(dom_idx[local_idx])) for utils, local_idx in raw)
+
+
+def max_relative_welfare_points_convex_hull(
+    ufuns: Sequence[UtilityFunction],
+    points: np.ndarray | Sequence[tuple[float, ...]],
+    ranges: Sequence[tuple[float, float]] | None = None,
+    outcome_space: OutcomeSpace | None = None,
+    issues: Sequence[Issue] | None = None,
+    outcomes: Sequence[Outcome] | None = None,
+    eps: float = 1e-12,
+) -> tuple[tuple[tuple[float, ...], int], ...]:
+    """
+    Finds the maximum-relative-welfare point(s) over the **convex hull** of
+    ``points`` (the ``P∞`` evaluation model of `pareto_frontier_convex_hull`).
+
+    Relative welfare is ``sum_i (u_i - r_i) / (max_i - r_i)`` — a weighted sum
+    of the per-negotiator improvements above the reserved value, normalized by
+    each ufun's range. This is *linear* in ``u``, so (like
+    `max_welfare_points_convex_hull`) its maximum over the hull is always
+    attained at a vertex: this delegates to `max_relative_welfare_points`
+    restricted to the convex-hull vertices of ``points``.
+
+    Returns:
+        A tuple of ``(utils, index)`` pairs as `max_relative_welfare_points`
+        returns, except ``index`` is an index into the original ``points`` (not
+        into the internal hull-vertex list). More than one point may be returned
+        when the maximum is tied across an efficient face.
+    """
+    points_arr = np.asarray(points, dtype=float)
+    if points_arr.size == 0 or points_arr.ndim < 2:
+        return tuple()
+    dom_idx = _hull_dominator_indices(points_arr)
+    dominators = [tuple(float(_) for _ in row) for row in points_arr[dom_idx]]
+    raw = max_relative_welfare_points(
+        ufuns,
+        frontier=dominators,
+        ranges=ranges,
+        outcome_space=outcome_space,
+        issues=issues,
+        outcomes=outcomes,
+        eps=eps,
+    )
+    return tuple((utils, int(dom_idx[local_idx])) for utils, local_idx in raw)
+
+
+def _point_segment_distance(p: np.ndarray, a: np.ndarray, b: np.ndarray) -> float:
+    """Euclidean distance from point ``p`` to the segment ``[a, b]``."""
+    ab = b - a
+    denom = float(ab @ ab)
+    if denom <= 0:
+        return float(np.linalg.norm(p - a))
+    t = float(np.clip((p - a) @ ab / denom, 0.0, 1.0))
+    return float(np.linalg.norm(p - (a + t * ab)))
+
+
+def dist_to_convex_hull_frontier(
+    w: tuple[float, ...], points: np.ndarray | Sequence[tuple[float, ...]]
+) -> float:
+    """
+    Computes the minimum Euclidean distance from ``w`` to the ``P∞``
+    (multiple-negotiations) Pareto frontier of ``points`` — the
+    Pareto-efficient boundary of ``points``' convex hull.
+
+    Unlike `distance_to` (which measures distance to the nearest *discrete*
+    frontier point), this measures distance to the nearest point on the
+    continuous frontier, including points strictly between two adjacent
+    frontier vertices that are only achievable via a mixture/lottery between
+    them. Distance to the interior of the hull is *not* what is computed
+    here (that would be a meaningless always-achievable-so-mostly-zero
+    quantity for any non-frontier outcome) — only to its efficient boundary.
+
+    Args:
+        w: The utility-space point to measure distance from.
+        points: The discrete utility points spanning the feasible set.
+
+    Returns:
+        The minimum distance, or ``nan`` if ``points`` is empty.
+
+    Remarks:
+        - Implemented for exactly two objectives: the frontier is walked as
+          the polyline through its vertices (sorted by the first objective),
+          and the distance is the minimum point-to-segment distance over
+          consecutive pairs. Raises `NotImplementedError` for more than two
+          objectives, which would need efficient-facet enumeration instead of
+          a simple polyline walk.
+    """
+    points_arr = np.asarray(points, dtype=float)
+    if points_arr.size == 0 or points_arr.ndim < 2:
+        return float("nan")
+    if points_arr.shape[1] != 2:
+        raise NotImplementedError(
+            "dist_to_convex_hull_frontier only supports two-objective scenarios"
+        )
+    idx = pareto_frontier_convex_hull(points_arr, sort_by_welfare=False)
+    if len(idx) == 0:
+        return float("nan")
+    frontier = points_arr[idx]
+    frontier = frontier[frontier[:, 0].argsort()]
+    p = np.asarray(w, dtype=float)
+    if len(frontier) == 1:
+        return float(np.linalg.norm(p - frontier[0]))
+    return min(
+        _point_segment_distance(p, a, b) for a, b in zip(frontier[:-1], frontier[1:])
+    )
+
+
 def dist(x: tuple[float, ...], y: tuple[float, ...]) -> float:
     """Computes Euclidean distance between two points in utility space."""
     if x is None or y is None:
@@ -1680,11 +2308,23 @@ def calc_outcome_distances(
     Args:
         utils: Utility values for an outcome (one per negotiator).
         stats: Pre-computed scenario statistics containing solution concept points.
+            The ``stats.convex_hull`` flag selects the evaluation model: when
+            True the Pareto distance is measured to the continuous ``P∞``
+            (convex-hull) frontier via `dist_to_convex_hull_frontier` (which
+            includes mixture-only points between frontier vertices) for
+            two-negotiator scenarios; for more than two negotiators it falls
+            back to the discrete distance to the ``P∞`` vertices, since
+            `dist_to_convex_hull_frontier` is only implemented for two
+            objectives. Distances to Nash/Kalai/KS use the (single) mixture
+            point stored in ``stats`` and are mode-agnostic.
 
     Returns:
         Distances to Pareto frontier, Nash, Kalai, and other solution points.
     """
-    pdist = distance_to(utils, stats.pareto_utils)
+    if stats.convex_hull and len(utils) == 2 and stats.pareto_utils:
+        pdist = dist_to_convex_hull_frontier(utils, stats.pareto_utils)
+    else:
+        pdist = distance_to(utils, stats.pareto_utils)
     ndist = distance_to(utils, stats.nash_utils)
     kdist = distance_to(utils, stats.kalai_utils)
     mkdist = distance_to(utils, stats.modified_kalai_utils)
@@ -1777,6 +2417,7 @@ def calc_scenario_stats(
     ufuns: tuple[UtilityFunction, ...] | list[UtilityFunction],
     outcomes: Sequence[Outcome] | None = None,
     eps=1e-12,
+    convex_hull: bool = False,
 ) -> ScenarioStats:
     """Computes comprehensive statistics for a negotiation scenario.
 
@@ -1787,6 +2428,15 @@ def calc_scenario_stats(
         ufuns: Utility functions for all negotiators (must share the same outcome space).
         outcomes: Outcomes to consider. If None, enumerated from the outcome space.
         eps: Tolerance for floating-point comparisons in solution concept calculations.
+        convex_hull: If True, compute under the ``P∞`` (convex-hull /
+            multiple-negotiations) evaluation model of
+            `pareto_frontier_convex_hull`: the Pareto frontier is the
+            mixture-undominated subset of the convex hull, and the Nash/Kalai/KS
+            solutions are mixtures over hull vertices (returned as a single
+            utility point with empty ``*_outcomes``). If False (default), the
+            ordinary single-negotiation ``P`` model is used. The chosen mode is
+            recorded on the returned `ScenarioStats` so downstream
+            `calc_outcome_distances`/`calc_outcome_optimality` honor it.
 
     Returns:
         ScenarioStats containing all computed solution concepts and metrics.
@@ -1811,50 +2461,123 @@ def calc_scenario_stats(
         for o in outcomes:
             if not os.is_valid(o):
                 raise ValueError(f"Outcome {o} is invalid for outcome space {os}")
-    pareto_utils, pareto_indices = pareto_frontier(
-        ufuns, outcomes, sort_by_welfare=True, eps=eps
-    )
-    pareto_outcomes = [outcomes[_] for _ in pareto_indices]
-    nash = nash_points(ufuns, ranges=ranges, frontier=pareto_utils)
-    nash_utils, nash_indices = [_[0] for _ in nash], [_[1] for _ in nash]
-    nash_outcomes = [pareto_outcomes[_] for _ in nash_indices]
-    kalai = kalai_points(
-        ufuns, ranges=ranges, frontier=pareto_utils, subtract_reserved_value=True
-    )
-    kalai_utils, kalai_indices = [_[0] for _ in kalai], [_[1] for _ in kalai]
-    kalai_outcomes = [pareto_outcomes[_] for _ in kalai_indices]
-    modified_kalai = kalai_points(
-        ufuns, ranges=ranges, frontier=pareto_utils, subtract_reserved_value=False
-    )
-    modified_kalai_utils, modified_kalai_indices = (
-        [_[0] for _ in modified_kalai],
-        [_[1] for _ in modified_kalai],
-    )
-    modified_kalai_outcomes = [pareto_outcomes[_] for _ in modified_kalai_indices]
-    ks = ks_points(
-        ufuns, ranges=ranges, frontier=pareto_utils, subtract_reserved_value=True
-    )
-    ks_utils, ks_indices = [_[0] for _ in ks], [_[1] for _ in ks]
-    ks_outcomes = [pareto_outcomes[_] for _ in ks_indices]
-    modified_ks = ks_points(
-        ufuns, ranges=ranges, frontier=pareto_utils, subtract_reserved_value=False
-    )
-    modified_ks_utils, modified_ks_indices = (
-        [_[0] for _ in modified_ks],
-        [_[1] for _ in modified_ks],
-    )
-    modified_ks_outcomes = [pareto_outcomes[_] for _ in modified_ks_indices]
-    welfare = max_welfare_points(ufuns, ranges=ranges, frontier=pareto_utils)
-    welfare_utils, welfare_indices = [_[0] for _ in welfare], [_[1] for _ in welfare]
-    welfare_outcomes = [pareto_outcomes[_] for _ in welfare_indices]
-    relative_welfare = max_relative_welfare_points(
-        ufuns, ranges=ranges, frontier=pareto_utils
-    )
-    relative_welfare_utils, relative_welfare_indices = (
-        [_[0] for _ in relative_welfare],
-        [_[1] for _ in relative_welfare],
-    )
-    relative_welfare_outcomes = [pareto_outcomes[_] for _ in relative_welfare_indices]
+    if convex_hull:
+        # P∞ (convex-hull / multiple-negotiations) evaluation model.
+        all_utils = np.array(
+            [[float(u(o)) for u in ufuns] for o in outcomes], dtype=float
+        )
+        if all_utils.size == 0:
+            pareto_utils: tuple[tuple[float, ...], ...] = tuple()
+            pareto_outcomes: list[Outcome] = []
+        else:
+            pidx = pareto_frontier_convex_hull(all_utils, sort_by_welfare=True)
+            pareto_utils = tuple(tuple(all_utils[i]) for i in pidx)
+            pareto_outcomes = [outcomes[int(i)] for i in pidx]
+        # Bargaining solutions are mixtures over the hull of all feasible
+        # outcome utilities (may not coincide with any single outcome), so
+        # their ``*_outcomes`` are empty. Welfare optima sit at hull vertices
+        # (discrete outcomes) and keep their outcomes.
+        nash_u, _, _ = nash_point_convex_hull(
+            ufuns, points=all_utils, ranges=ranges, eps=eps
+        )
+        nash_utils = [nash_u] if nash_u else []
+        nash_outcomes: list[Outcome] = []
+        kalai_u, _, _ = kalai_point_convex_hull(
+            ufuns,
+            points=all_utils,
+            ranges=ranges,
+            eps=eps,
+            subtract_reserved_value=True,
+        )
+        kalai_utils = [kalai_u] if kalai_u else []
+        kalai_outcomes = []
+        mkalai_u, _, _ = kalai_point_convex_hull(
+            ufuns,
+            points=all_utils,
+            ranges=ranges,
+            eps=eps,
+            subtract_reserved_value=False,
+        )
+        modified_kalai_utils = [mkalai_u] if mkalai_u else []
+        modified_kalai_outcomes = []
+        ks_u, _, _ = ks_point_convex_hull(
+            ufuns,
+            points=all_utils,
+            ranges=ranges,
+            eps=eps,
+            subtract_reserved_value=True,
+        )
+        ks_utils = [ks_u] if ks_u else []
+        ks_outcomes = []
+        mks_u, _, _ = ks_point_convex_hull(
+            ufuns,
+            points=all_utils,
+            ranges=ranges,
+            eps=eps,
+            subtract_reserved_value=False,
+        )
+        modified_ks_utils = [mks_u] if mks_u else []
+        modified_ks_outcomes = []
+        welfare = max_welfare_points_convex_hull(
+            ufuns, points=all_utils, ranges=ranges, eps=eps
+        )
+        welfare_utils = [_[0] for _ in welfare]
+        welfare_outcomes = [outcomes[int(_[1])] for _ in welfare]
+        relative_welfare = max_relative_welfare_points_convex_hull(
+            ufuns, points=all_utils, ranges=ranges, eps=eps
+        )
+        relative_welfare_utils = [_[0] for _ in relative_welfare]
+        relative_welfare_outcomes = [outcomes[int(_[1])] for _ in relative_welfare]
+    else:
+        pareto_utils, pareto_indices = pareto_frontier(
+            ufuns, outcomes, sort_by_welfare=True, eps=eps
+        )
+        pareto_outcomes = [outcomes[_] for _ in pareto_indices]
+        nash = nash_points(ufuns, ranges=ranges, frontier=pareto_utils)
+        nash_utils, nash_indices = [_[0] for _ in nash], [_[1] for _ in nash]
+        nash_outcomes = [pareto_outcomes[_] for _ in nash_indices]
+        kalai = kalai_points(
+            ufuns, ranges=ranges, frontier=pareto_utils, subtract_reserved_value=True
+        )
+        kalai_utils, kalai_indices = [_[0] for _ in kalai], [_[1] for _ in kalai]
+        kalai_outcomes = [pareto_outcomes[_] for _ in kalai_indices]
+        modified_kalai = kalai_points(
+            ufuns, ranges=ranges, frontier=pareto_utils, subtract_reserved_value=False
+        )
+        modified_kalai_utils, modified_kalai_indices = (
+            [_[0] for _ in modified_kalai],
+            [_[1] for _ in modified_kalai],
+        )
+        modified_kalai_outcomes = [pareto_outcomes[_] for _ in modified_kalai_indices]
+        ks = ks_points(
+            ufuns, ranges=ranges, frontier=pareto_utils, subtract_reserved_value=True
+        )
+        ks_utils, ks_indices = [_[0] for _ in ks], [_[1] for _ in ks]
+        ks_outcomes = [pareto_outcomes[_] for _ in ks_indices]
+        modified_ks = ks_points(
+            ufuns, ranges=ranges, frontier=pareto_utils, subtract_reserved_value=False
+        )
+        modified_ks_utils, modified_ks_indices = (
+            [_[0] for _ in modified_ks],
+            [_[1] for _ in modified_ks],
+        )
+        modified_ks_outcomes = [pareto_outcomes[_] for _ in modified_ks_indices]
+        welfare = max_welfare_points(ufuns, ranges=ranges, frontier=pareto_utils)
+        welfare_utils, welfare_indices = (
+            [_[0] for _ in welfare],
+            [_[1] for _ in welfare],
+        )
+        welfare_outcomes = [pareto_outcomes[_] for _ in welfare_indices]
+        relative_welfare = max_relative_welfare_points(
+            ufuns, ranges=ranges, frontier=pareto_utils
+        )
+        relative_welfare_utils, relative_welfare_indices = (
+            [_[0] for _ in relative_welfare],
+            [_[1] for _ in relative_welfare],
+        )
+        relative_welfare_outcomes = [
+            pareto_outcomes[_] for _ in relative_welfare_indices
+        ]
     minmax = [u.minmax() for u in ufuns]
     opposition = opposition_level(
         ufuns,
@@ -1883,6 +2606,7 @@ def calc_scenario_stats(
         max_relative_welfare_utils=relative_welfare_utils,
         max_relative_welfare_outcomes=relative_welfare_outcomes,
         rational_fraction=rat_frac,
+        convex_hull=convex_hull,
     )
 
 

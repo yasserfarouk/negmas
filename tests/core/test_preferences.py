@@ -29,16 +29,20 @@ from negmas.preferences import (
 from negmas.preferences.crisp.const import ConstUtilityFunction
 from negmas.preferences.inv_ufun import PresortingInverseUtilityFunction
 from negmas.preferences.ops import (
+    ScenarioStats,
     calc_outcome_distances,
     calc_outcome_optimality,
     calc_reserved_value,
     calc_scenario_stats,
+    dist_to_convex_hull_frontier,
+    distance_to,
     estimate_max_dist,
     estimate_max_dist_using_outcomes,
     is_rational,
     make_rank_ufun,
     normalize,
     pareto_frontier_bf,
+    pareto_frontier_convex_hull,
     pareto_frontier_numpy,
     scale_max,
 )
@@ -483,6 +487,247 @@ def test_pareto_frontier_does_not_depend_on_order():
     p2 = [(_[1], _[0]) for _ in p2]
     for a in p1:
         assert a in p2
+
+
+def test_pareto_frontier_convex_hull_collinear_does_not_raise():
+    # A two-issue zero-sum scenario: every point lies on one line, which
+    # used to crash scipy.spatial.ConvexHull with a QhullError.
+    points = [(x, 1.0 - x) for x in np.linspace(0.0, 1.0, 15)]
+    indices = pareto_frontier_convex_hull(points)
+    assert set(indices.tolist()) == set(range(15))
+
+
+def test_pareto_frontier_convex_hull_collinear_in_higher_dim_does_not_raise():
+    # Collinear points embedded in a higher-dimensional (3-objective) space.
+    # Since the two objectives that vary (t and 1-t) trade off against each
+    # other, no point on the segment is dominated by a mixture of any other
+    # two, so the whole line stays on the P-infinity frontier.
+    t = np.linspace(0.0, 1.0, 20)
+    points = np.stack([t, 1.0 - t, 0.5 * t + 0.25], axis=1)
+    indices = pareto_frontier_convex_hull(points)
+    assert set(indices.tolist()) == set(range(20))
+
+
+def test_pareto_frontier_convex_hull_single_objective_does_not_raise():
+    rng = np.random.default_rng(0)
+    points = rng.random((10, 1))
+    indices = pareto_frontier_convex_hull(points, sort_by_welfare=False)
+    assert set(indices.tolist()) == {int(np.argmax(points[:, 0]))}
+
+
+def test_pareto_frontier_convex_hull_all_identical_points():
+    points = np.ones((10, 3))
+    indices = pareto_frontier_convex_hull(points, sort_by_welfare=False)
+    assert set(indices.tolist()) == set(range(10))
+
+
+def test_pareto_frontier_convex_hull_empty():
+    indices = pareto_frontier_convex_hull(np.empty((0, 2)), sort_by_welfare=False)
+    assert indices.tolist() == []
+
+
+def test_pareto_frontier_convex_hull_single_point():
+    points = np.array([[0.3, 0.7]])
+    indices = pareto_frontier_convex_hull(points, sort_by_welfare=False)
+    assert indices.tolist() == [0]
+
+
+def test_pareto_frontier_convex_hull_two_nondominated_points():
+    # Neither point weakly dominates the other, so both must survive.
+    points = np.array([[0.3, 0.7], [0.7, 0.3]])
+    indices = pareto_frontier_convex_hull(points, sort_by_welfare=False)
+    assert set(indices.tolist()) == {0, 1}
+
+
+def test_pareto_frontier_convex_hull_excludes_mixture_dominated_point():
+    # (0.6, 0.3) is Pareto-efficient among these 3 discrete points (neither
+    # extreme individually dominates it) but a 50/50 lottery between the two
+    # extremes yields (0.6, 0.4), which weakly dominates it in every
+    # objective -- so it must be excluded from the multiple-negotiations
+    # (P-infinity) frontier even though it stays in the ordinary one.
+    points = np.array([[0.0, 1.0], [0.6, 0.3], [1.0, 0.0]])
+    ordinary = set(pareto_frontier_numpy(points, sort_by_welfare=False).tolist())
+    hull = set(pareto_frontier_convex_hull(points, sort_by_welfare=False).tolist())
+    assert ordinary == {0, 1, 2}
+    assert hull == {0, 2}
+
+
+def test_pareto_frontier_convex_hull_is_subset_of_ordinary_frontier():
+    for trial in range(50):
+        rng = np.random.default_rng(trial)
+        n_points = int(rng.integers(1, 60))
+        n_negotiators = int(rng.integers(1, 5))
+        points = rng.random((n_points, n_negotiators))
+        hull = set(pareto_frontier_convex_hull(points, sort_by_welfare=False).tolist())
+        ordinary = set(pareto_frontier_numpy(points, sort_by_welfare=False).tolist())
+        assert hull.issubset(ordinary), (trial, hull, ordinary)
+
+
+def test_pareto_frontier_convex_hull_on_convex_curve_keeps_everything():
+    # Every point on a strictly convex curve is a vertex of its own convex
+    # hull and none is mixture-dominated, so the P-infinity frontier should
+    # equal the full set here.
+    theta = np.linspace(0.0, np.pi / 2, 25)
+    points = np.stack([np.cos(theta), np.sin(theta)], axis=1)
+    indices = pareto_frontier_convex_hull(points, sort_by_welfare=False)
+    assert set(indices.tolist()) == set(range(25))
+
+
+def test_pareto_frontier_convex_hull_does_not_depend_on_order():
+    rng = np.random.default_rng(42)
+    points = rng.random((30, 2))
+    permutation = rng.permutation(30)
+    shuffled = points[permutation]
+
+    for presort in (True, False):
+        indices1 = pareto_frontier_convex_hull(
+            points, sort_by_welfare=False, presort=presort
+        )
+        indices2 = pareto_frontier_convex_hull(
+            shuffled, sort_by_welfare=False, presort=presort
+        )
+        values1 = set(map(tuple, points[indices1].tolist()))
+        values2 = set(map(tuple, shuffled[indices2].tolist()))
+        assert values1 == values2
+
+
+def test_pareto_frontier_convex_hull_sorts_by_welfare():
+    rng = np.random.default_rng(7)
+    points = rng.random((30, 2))
+    indices = pareto_frontier_convex_hull(points, sort_by_welfare=True)
+    welfare = points[indices].sum(axis=1)
+    assert all(welfare[i] >= welfare[i + 1] - 1e-9 for i in range(len(welfare) - 1))
+
+
+def _mixture_scenario():
+    """A 2-negotiator, single-issue scenario whose P∞ Nash is a strict mixture.
+
+    Outcomes a/b/c map to utilities (4,1), (1,4), (2,2). The convex hull's
+    efficient edge runs from (4,1) to (1,4); its midpoint (2.5, 2.5) strictly
+    dominates (2,2) and is the Nash/Kalai solution over the hull, while no
+    single discrete outcome achieves it.
+    """
+    issues = [make_issue(["a", "b", "c"], "z")]
+    os_ = make_os(issues)
+    outs = list(os_.enumerate())
+    u0 = MappingUtilityFunction(
+        {o: float({"a": 4, "b": 1, "c": 2}[o[0]]) for o in outs}, outcome_space=os_
+    )
+    u1 = MappingUtilityFunction(
+        {o: float({"a": 1, "b": 4, "c": 2}[o[0]]) for o in outs}, outcome_space=os_
+    )
+    return os_, [u0, u1], outs
+
+
+def test_calc_scenario_stats_convex_hull_mixture_solution():
+    os_, ufuns, outs = _mixture_scenario()
+    stats = calc_scenario_stats(ufuns, convex_hull=True)
+    assert stats.convex_hull is True
+    # Mixture solutions carry a single utility point and no outcome.
+    assert stats.nash_outcomes == []
+    assert len(stats.nash_utils) == 1
+    nash_u = stats.nash_utils[0]
+    assert nash_u[0] == pytest.approx(2.5, abs=1e-6)
+    assert nash_u[1] == pytest.approx(2.5, abs=1e-6)
+    # The mixture point strictly beats every discrete Nash product (d=min=1).
+    discrete = calc_scenario_stats(ufuns, convex_hull=False)
+    assert discrete.nash_utils == [tuple(float(x) for x in (2, 2))]
+    # Kalai over the hull is also the egalitarian midpoint (2.5, 2.5).
+    assert len(stats.kalai_utils) == 1
+    assert stats.kalai_utils[0][0] == pytest.approx(2.5, abs=1e-6)
+    assert stats.kalai_utils[0][1] == pytest.approx(2.5, abs=1e-6)
+    # Welfare optima sit at hull vertices (real outcomes), so outcomes persist.
+    assert all(o in outs for o in stats.max_welfare_outcomes)
+    assert all(o in outs for o in stats.max_relative_welfare_outcomes)
+
+
+def test_scenario_stats_convex_hull_round_trip():
+    os_, ufuns, _outs = _mixture_scenario()
+    stats = calc_scenario_stats(ufuns, convex_hull=True)
+    d = stats.to_dict()
+    assert d["convex_hull"] is True
+    rt = ScenarioStats.from_dict(d)
+    assert rt.convex_hull is True
+    # Old dicts that predate the field default to False (backward compat).
+    old = {k: v for k, v in d.items() if k != "convex_hull"}
+    assert ScenarioStats.from_dict(old).convex_hull is False
+
+
+def test_calc_outcome_distances_convex_hull_continuous_pareto():
+    os_, ufuns, _outs = _mixture_scenario()
+    stats = calc_scenario_stats(ufuns, convex_hull=True)
+    # A point just above the efficient edge's midpoint: the continuous
+    # frontier distance is tiny, while the discrete distance to either
+    # vertex is large — so convex-hull mode must use the continuous frontier.
+    w = (2.5, 2.6)
+    dists = calc_outcome_distances(w, stats)
+    expected = dist_to_convex_hull_frontier(w, stats.pareto_utils)
+    assert dists.pareto_dist == pytest.approx(expected, rel=1e-6)
+    assert dists.pareto_dist < distance_to(w, stats.pareto_utils)
+    # Perpendicular distance from (2.5, 2.6) to the diagonal edge (slope -1)
+    # through (4,1)-(1,4): 0.1 / sqrt(2).
+    assert dists.pareto_dist == pytest.approx(0.1 / math.sqrt(2), abs=1e-6)
+
+
+def test_calc_scenario_stats_convex_hull_collinear_no_crash():
+    # 2-issue zero-sum: every point lies on u0 + u1 = 10 (collinear), which
+    # used to crash ConvexHull before the SVD-projection fallback.
+    issues = [make_issue(11, "x")]
+    os_ = make_os(issues)
+    outs = list(os_.enumerate())
+    u0 = MappingUtilityFunction({o: float(o[0]) for o in outs}, outcome_space=os_)
+    u1 = MappingUtilityFunction(
+        {o: 10.0 - float(o[0]) for o in outs}, outcome_space=os_
+    )
+    stats = calc_scenario_stats([u0, u1], convex_hull=True)
+    assert stats.convex_hull is True
+    # No exception raised is the assertion; sanity-check the frontier is finite.
+    assert all(math.isfinite(x) and math.isfinite(y) for x, y in stats.pareto_utils)
+
+
+def test_calc_scenario_stats_default_is_discrete_mode():
+    os_, ufuns, _outs = _mixture_scenario()
+    default = calc_scenario_stats(ufuns)
+    explicit = calc_scenario_stats(ufuns, convex_hull=False)
+    assert default.convex_hull is False
+    assert explicit.convex_hull is False
+    assert default.nash_utils == explicit.nash_utils
+    assert default.pareto_utils == explicit.pareto_utils
+
+
+def test_mechanism_solution_methods_convex_hull():
+    from negmas.sao import AspirationNegotiator
+    from negmas.sao.mechanism import SAOMechanism
+
+    os_, ufuns, _outs = _mixture_scenario()
+    mech = SAOMechanism(outcome_space=os_, n_steps=1)
+    mech.add(AspirationNegotiator(name="a0"), ufun=ufuns[0])
+    mech.add(AspirationNegotiator(name="a1"), ufun=ufuns[1])
+    mech.run()
+    nash = mech.nash_points(convex_hull=True)
+    assert len(nash) == 1
+    utils, outcome = nash[0]
+    assert utils[0] == pytest.approx(2.5, abs=1e-6)
+    assert utils[1] == pytest.approx(2.5, abs=1e-6)
+    # Mixture solutions have no single realizing outcome.
+    assert outcome is None
+    pareto_utils, pareto_outcomes = mech.pareto_frontier(convex_hull=True)
+    assert len(pareto_utils) == 2  # (4,1) and (1,4); (2,2) is mixture-dominated
+    assert all(o is not None for o in pareto_outcomes)
+    mw = mech.max_welfare_points(convex_hull=True)
+    assert all(o is not None for _, o in mw)
+
+
+def test_scenario_plot_convex_hull_smoke():
+    import matplotlib
+
+    matplotlib.use("Agg")
+    os_, ufuns, _outs = _mixture_scenario()
+    sc = Scenario(outcome_space=os_, ufuns=ufuns)
+    fig = sc.plot(backend="matplotlib", convex_hull=True)
+    assert fig is not None
+    fig2 = sc.plot(backend="plotly", convex_hull=True)
+    assert fig2 is not None
 
 
 def test_linear_utility():
