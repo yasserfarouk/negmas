@@ -264,6 +264,7 @@ class World(
             Operations.StatsUpdate,
         ),
         info: dict[str, Any] | None = None,
+        annotation: dict[str, Any] | None = None,
         genius_port: int = DEFAULT_JAVA_PORT,
         disable_agent_printing: bool = False,
         debug: bool = False,
@@ -323,6 +324,9 @@ class World(
             exist_ok: Exist ok.
             operations: Operations.
             info: Info.
+            annotation: World metadata dictionary. Accessible to all agents through the AWI
+                         (``awi.annotation``) but not used by the world itself. Mirrors the
+                         ``annotation`` parameter of ``Mechanism`` exposed through the NMI.
             genius_port: Genius port.
             disable_agent_printing: Disable agent printing.
             debug: Debug.
@@ -452,6 +456,7 @@ class World(
         self.safe_stats_monitoring = safe_stats_monitoring
         self.shuffle_negotiations = shuffle_negotiations
         self.info = info if info is not None else dict()
+        self.annotation = annotation if annotation is not None else dict()
 
         if isinstance(mechanisms, Collection) and not isinstance(mechanisms, dict):
             mechanisms = dict(zip(mechanisms, [dict()] * len(mechanisms)))
@@ -544,6 +549,7 @@ class World(
         self.contracts_executed: dict[str, int] = defaultdict(int)
         self.contracts_breached: dict[str, int] = defaultdict(int)
         self.attribs: dict[str, dict[str, Any]] = {}
+        self._agent_annotations: dict[str, dict[str, Any]] = {}
         self._sim_start: float = 0
         self._step_start: float = 0
 
@@ -590,6 +596,7 @@ class World(
             ignore_simulation_exceptions=ignore_simulation_exceptions,
             operations=operations,
             genius_port=self.genius_port,
+            annotation=self.annotation,
         )
         self.loginfo(f"{self.name}: World Created")
 
@@ -2746,15 +2753,18 @@ class World(
             x: The agent to be registered
             simulation_priority: The simulation priority. Entities with lower pprioritieswill be stepped first during
             kwargs: Any key-value pairs specifying attributes of the agent. NegMAS internally uses the attribute 'color'
-                    when drawing the agent in `draw`
+                    when drawing the agent in `draw`. A special ``annotation`` key-value pair, if given, is *not*
+                    stored in `attribs` but is kept as per-agent metadata merged with the world annotation and
+                    exposed to the agent through ``awi.annotation`` (per-agent keys override world keys).
 
         Returns:
 
         """
-
+        annotation = kwargs.pop("annotation", None)
         self.register(x, simulation_priority=simulation_priority)
         self.agents[x.id] = x
         self.attribs[x.id] = kwargs
+        self._agent_annotations[x.id] = annotation if annotation is not None else dict()
         x.awi = self.awi_type(self, x)
         if self._started and not x.initialized:
             self.call(x, x.init_)
@@ -2770,6 +2780,24 @@ class World(
                 self._extra_folder / "agents.csv",
                 storage_format=self._storage_format,
             )
+
+    def agent_annotation(self, agent_id: str) -> dict[str, Any]:
+        """Returns the annotation visible to the given agent.
+
+        The world-level ``annotation`` is merged with the per-agent annotation
+        passed when the agent joined (via ``join(..., annotation=...)``).
+        Per-agent keys override world keys for that agent only. Accessible to
+        agents through ``awi.annotation``.
+
+        Args:
+            agent_id: The id of the agent.
+
+        Returns:
+            The merged annotation dict for that agent.
+        """
+        base = dict(self.annotation)
+        base.update(self._agent_annotations.get(agent_id, dict()))
+        return base
 
     def _combine_edges(
         self,

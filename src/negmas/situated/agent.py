@@ -43,6 +43,7 @@ class Agent(Entity, EventSink, ConfigReader, Notifier, Rational, Generic[TAWI], 
         type_postfix: str = "",
         preferences: Preferences | None = None,
         ufun: UtilityFunction | None = None,
+        private_info: dict[str, Any] | None = None,
     ):
         """Initialize the instance.
 
@@ -51,6 +52,10 @@ class Agent(Entity, EventSink, ConfigReader, Notifier, Rational, Generic[TAWI], 
             type_postfix: Type postfix.
             preferences: Preferences.
             ufun: Ufun.
+            private_info: Arbitrary information passed to the agent and kept private to it
+                (never shared with the world or other agents). Accessible through
+                ``self.annotation`` / ``self.private_info``. Mirrors the ``private_info``
+                parameter of ``Negotiator``.
         """
         super().__init__(type_postfix=type_postfix)
         Rational.__init__(self, name=name, preferences=preferences, ufun=ufun)
@@ -60,6 +65,7 @@ class Agent(Entity, EventSink, ConfigReader, Notifier, Rational, Generic[TAWI], 
         self.contracts: list[Contract] = []
         self._unsigned_contracts: set[Contract] = set()
         self._awi: TAWI | None = None
+        self._private_info: dict[str, Any] = private_info if private_info else dict()
 
     # def to_dict(self) -> Dict[str, Any]:
     #     """Converts the agent into  dict for storage purposes.
@@ -136,6 +142,21 @@ class Agent(Entity, EventSink, ConfigReader, Notifier, Rational, Generic[TAWI], 
     def awi(self, awi: TAWI):
         """Sets the Agent-world interface. Should only be called by the world."""
         self._awi = awi
+
+    @property
+    def annotation(self) -> dict[str, Any]:
+        """Returns the private information (annotation) not shared with other agents.
+
+        This is the agent-side analogue of ``Negotiator.annotation``: it is set at
+        construction time via ``private_info`` and never sent to the world or other
+        agents. For the shared/world-level annotation, use ``self.awi.annotation``.
+        """
+        return self._private_info
+
+    @property
+    def private_info(self) -> dict[str, Any]:
+        """Returns the private information (annotation) not shared with other agents."""
+        return self._private_info
 
     def create_negotiation_request(
         self,

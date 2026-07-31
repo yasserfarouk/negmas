@@ -259,6 +259,19 @@ class AgentWorldInterface:
         """Returns the basic parameters of the world"""
         return self._world.params
 
+    @property
+    def annotation(self) -> dict[str, Any]:
+        """Common world annotation merged with this agent's annotation.
+
+        Returns the world-level ``annotation`` dict (passed to ``World`` at
+        construction) merged with any per-agent ``annotation`` passed when this
+        agent joined the world (via ``join(..., annotation=...)``). Per-agent
+        keys override world keys for this agent only. This is the world-side
+        analogue of ``nmi.annotation`` on the mechanism side: it is available to
+        every agent through its own AWI but is not used by the world itself.
+        """
+        return self._world.agent_annotation(self.agent.id)
+
     def loginfo(self, msg: str) -> None:
         """
         Logs an INFO message

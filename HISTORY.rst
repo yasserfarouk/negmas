@@ -48,6 +48,20 @@ Release 0.16.0 (dev)
   ``negotiation_speed >= neg_n_steps`` always runs every negotiation to
   completion within the step, matching ``negotiation_speed=None``.
 
+* [situated] Added world-level and per-agent annotations on the ``World``/``Agent``
+  side, mirroring the mechanism-side annotations exposed through the NMI.
+  ``World(annotation=...)`` stores a common metadata dict accessible to every agent
+  through ``awi.annotation`` (and recorded in ``world.params["annotation"]``), the
+  direct analogue of ``Mechanism(annotation=...)`` -> ``nmi.annotation``.
+  ``World.join(agent, annotation=...)`` accepts a per-agent annotation that is merged
+  with the world annotation (per-agent keys override world keys for that agent only),
+  mirroring ``Mechanism.add(negotiator, annotation=...)``. ``Agent(private_info=...)``
+  adds a fully-private channel exposed via ``agent.annotation`` / ``agent.private_info``
+  that is never shared with the world or other agents, mirroring
+  ``Negotiator(private_info=...)``. Note the same naming split as on the negotiator
+  side: ``awi.annotation`` is the shared/per-agent-merged dict, while
+  ``agent.annotation`` is the fully-private one.
+
 * [gb] Fixed ``MAPNegotiator`` silently dropping its
   ``private_info["opponent_ufun"]`` registration.  The first ``UFunModel`` among
   the negotiator's ``models`` is registered under the ``opponent_ufun`` discovery
