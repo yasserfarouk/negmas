@@ -23,6 +23,9 @@ from negmas.preferences.ops import (
     ScenarioStats,
     calc_scenario_stats,
     calc_standard_info,
+    kalai_point_convex_hull,
+    ks_point_convex_hull,
+    max_welfare_points_convex_hull,
     nash_point_convex_hull,
     pareto_frontier_convex_hull,
 )
@@ -43,7 +46,10 @@ from .preferences import (
     DiscountedUtilityFunction,
     UtilityFunction,
     conflict_level,
+    kalai_points,
+    ks_points,
     make_discounted_ufun,
+    max_welfare_points,
     nash_points,
     opposition_level,
     pareto_frontier,
@@ -1274,6 +1280,30 @@ class Scenario:
                 )
                 nash_utils = nash_u if nash_u else None
                 nash_outcome = None
+                kalai_u, _, _ = kalai_point_convex_hull(
+                    ufuns,
+                    points=all_utils,
+                    outcome_space=outcome_space,
+                    subtract_reserved_value=True,
+                )
+                kalai_utils = kalai_u if kalai_u else None
+                kalai_outcome = None
+                ks_u, _, _ = ks_point_convex_hull(
+                    ufuns,
+                    points=all_utils,
+                    outcome_space=outcome_space,
+                    subtract_reserved_value=True,
+                )
+                ks_utils = ks_u if ks_u else None
+                ks_outcome = None
+                _welfare = max_welfare_points_convex_hull(
+                    ufuns, points=all_utils, outcome_space=outcome_space
+                )
+                if _welfare:
+                    welfare_utils, _widx = _welfare[0]
+                    welfare_outcome = outcomes[int(_widx)]
+                else:
+                    welfare_utils, welfare_outcome = None, None
             else:
                 frontier_utils, frontier_indices = pareto_frontier(
                     ufuns, outcomes=outcomes, sort_by_welfare=True
@@ -1284,6 +1314,33 @@ class Scenario:
                 pts = nash_points(ufuns, frontier_utils, outcome_space=outcome_space)
                 nash_utils, nash_indx = pts[0] if pts else (None, None)
                 nash_outcome = frontier_outcomes[nash_indx] if nash_indx else None
+                kpts = kalai_points(
+                    ufuns,
+                    frontier_utils,
+                    outcome_space=outcome_space,
+                    subtract_reserved_value=True,
+                )
+                kalai_utils, kalai_indx = kpts[0] if kpts else (None, None)
+                kalai_outcome = (
+                    frontier_outcomes[kalai_indx] if kalai_indx is not None else None
+                )
+                kpts = ks_points(
+                    ufuns,
+                    frontier_utils,
+                    outcome_space=outcome_space,
+                    subtract_reserved_value=True,
+                )
+                ks_utils, ks_indx = kpts[0] if kpts else (None, None)
+                ks_outcome = frontier_outcomes[ks_indx] if ks_indx is not None else None
+                wpts = max_welfare_points(
+                    ufuns, frontier_utils, outcome_space=outcome_space
+                )
+                welfare_utils, welfare_indx = wpts[0] if wpts else (None, None)
+                welfare_outcome = (
+                    frontier_outcomes[welfare_indx]
+                    if welfare_indx is not None
+                    else None
+                )
             opposition = opposition_level(
                 ufuns,
                 max_utils=tuple(_[1] for _ in minmax),  #
@@ -1293,8 +1350,14 @@ class Scenario:
         else:
             frontier_utils = self.stats.pareto_utils
             frontier_outcomes = self.stats.pareto_outcomes
-            nash_utils = self.stats.nash_outcomes
+            nash_utils = self.stats.nash_utils
             nash_outcome = self.stats.nash_outcomes
+            kalai_utils = self.stats.kalai_utils
+            kalai_outcome = self.stats.kalai_outcomes
+            ks_utils = self.stats.ks_utils
+            ks_outcome = self.stats.ks_outcomes
+            welfare_utils = self.stats.max_welfare_utils
+            welfare_outcome = self.stats.max_welfare_outcomes
             opposition = self.stats.opposition
         nu, no, ol, cl, wl, fu, fo = (
             dict(),
@@ -1305,6 +1368,7 @@ class Scenario:
             dict(),
             dict(),
         )
+        ku, ko, ksu, kso, mu, mo = (dict(), dict(), dict(), dict(), dict(), dict())
         for i, u1 in enumerate(ufuns):
             if not u1:
                 continue
@@ -1338,6 +1402,33 @@ class Scenario:
                     )
                     nu[(u1.name, u2.name)] = nash_u if nash_u else None
                     no[(u1.name, u2.name)] = None
+                    kalai_u, _, _ = kalai_point_convex_hull(
+                        us,
+                        points=pair_utils,
+                        outcomes=outcomes,  # type: ignore
+                        subtract_reserved_value=True,
+                    )
+                    ku[(u1.name, u2.name)] = kalai_u if kalai_u else None
+                    ko[(u1.name, u2.name)] = None
+                    ks_u, _, _ = ks_point_convex_hull(
+                        us,
+                        points=pair_utils,
+                        outcomes=outcomes,  # type: ignore
+                        subtract_reserved_value=True,
+                    )
+                    ksu[(u1.name, u2.name)] = ks_u if ks_u else None
+                    kso[(u1.name, u2.name)] = None
+                    _wpair = max_welfare_points_convex_hull(
+                        us,
+                        points=pair_utils,
+                        outcomes=outcomes,  # type: ignore
+                    )
+                    if _wpair:
+                        mu[(u1.name, u2.name)] = _wpair[0][0]
+                        mo[(u1.name, u2.name)] = outcomes[int(_wpair[0][1])]
+                    else:
+                        mu[(u1.name, u2.name)] = None
+                        mo[(u1.name, u2.name)] = None
                 else:
                     fu_, findx = pareto_frontier(
                         us,  # type: ignore
@@ -1352,6 +1443,35 @@ class Scenario:
                     pts = nash_points((u1, u2), fu_, outcomes=outcomes)  # type: ignore
                     nu[(u1.name, u2.name)], nindx = pts[0] if pts else (None, None)
                     no[(u1.name, u2.name)] = foutcomes_[nindx] if nindx else None
+                    kpts = kalai_points(
+                        (u1, u2),  # type: ignore
+                        fu_,
+                        outcomes=outcomes,
+                        subtract_reserved_value=True,
+                    )
+                    ku[(u1.name, u2.name)], kindx = kpts[0] if kpts else (None, None)
+                    ko[(u1.name, u2.name)] = (
+                        foutcomes_[kindx] if kindx is not None else None
+                    )
+                    kpts = ks_points(
+                        (u1, u2),  # type: ignore
+                        fu_,
+                        outcomes=outcomes,
+                        subtract_reserved_value=True,
+                    )
+                    ksu[(u1.name, u2.name)], ksindx = kpts[0] if kpts else (None, None)
+                    kso[(u1.name, u2.name)] = (
+                        foutcomes_[ksindx] if ksindx is not None else None
+                    )
+                    wpts = max_welfare_points(
+                        (u1, u2),  # type: ignore
+                        fu_,
+                        outcomes=outcomes,
+                    )
+                    mu[(u1.name, u2.name)], mindx = wpts[0] if wpts else (None, None)
+                    mo[(u1.name, u2.name)] = (
+                        foutcomes_[mindx] if mindx is not None else None
+                    )
                 ol[(u1.name, u2.name)] = opposition_level(
                     (u1, u2),  # type: ignore
                     outcomes=outcomes,
@@ -1370,9 +1490,21 @@ class Scenario:
             frontier_outcomes=frontier_outcomes,
             nash_utils=nash_utils,
             nash_outcome=nash_outcome,
+            kalai_utils=kalai_utils,
+            kalai_outcome=kalai_outcome,
+            ks_utils=ks_utils,
+            ks_outcome=ks_outcome,
+            max_welfare_utils=welfare_utils,
+            max_welfare_outcome=welfare_outcome,
             opposition_level=opposition,
             bilateral_nash_utils=nu,
             bilateral_nash_outcome=no,
+            bilateral_kalai_utils=ku,
+            bilateral_kalai_outcome=ko,
+            bilateral_ks_utils=ksu,
+            bilateral_ks_outcome=kso,
+            bilateral_max_welfare_utils=mu,
+            bilateral_max_welfare_outcome=mo,
             bilateral_conflict_level=cl,
             bilateral_opposition_level=ol,
             bilateral_winwin_levl=wl,

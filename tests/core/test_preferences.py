@@ -730,6 +730,52 @@ def test_scenario_plot_convex_hull_smoke():
     assert fig2 is not None
 
 
+def test_calc_extra_stats_includes_kalai_ks_max_welfare():
+    os_, ufuns, outs = _mixture_scenario()
+    sc = Scenario(outcome_space=os_, ufuns=ufuns)
+
+    # Discrete mode: every solution concept maps to a real outcome.
+    d = sc.calc_extra_stats(convex_hull=False)
+    for k in (
+        "kalai_utils",
+        "kalai_outcome",
+        "ks_utils",
+        "ks_outcome",
+        "max_welfare_utils",
+        "max_welfare_outcome",
+        "bilateral_kalai_utils",
+        "bilateral_kalai_outcome",
+        "bilateral_ks_utils",
+        "bilateral_ks_outcome",
+        "bilateral_max_welfare_utils",
+        "bilateral_max_welfare_outcome",
+    ):
+        assert k in d
+    assert d["kalai_outcome"] in outs
+    assert d["ks_outcome"] in outs
+    assert d["max_welfare_outcome"] in outs
+    # nash_utils must hold utilities, not outcomes (regression for a
+    # pre-existing copy-paste bug that assigned nash_outcomes to nash_utils).
+    assert d["nash_utils"] is not None and d["nash_utils"] != d["nash_outcome"]
+
+    # Convex-hull mode: Nash/Kalai/KS are mixtures (outcome None), welfare
+    # stays at a vertex (real outcome).
+    d2 = sc.calc_extra_stats(convex_hull=True)
+    assert d2["kalai_utils"] == pytest.approx((2.5, 2.5), abs=1e-6)
+    assert d2["kalai_outcome"] is None
+    assert d2["ks_outcome"] is None
+    assert d2["max_welfare_outcome"] in outs
+    bilateral_key = next(iter(d2["bilateral_kalai_outcome"]))
+    assert d2["bilateral_kalai_outcome"][bilateral_key] is None
+    assert d2["bilateral_max_welfare_outcome"][bilateral_key] in outs
+
+    # Stats-present branch reads the stored fields (and honors convex_hull).
+    sc.calc_stats(convex_hull=True)
+    d3 = sc.calc_extra_stats(convex_hull=True)
+    assert d3["nash_utils"]  # utils, not the (empty) nash_outcomes list
+    assert d3["kalai_utils"]
+
+
 def test_linear_utility():
     buyer_utility = LinearAdditiveUtilityFunction(
         {  # type: ignore

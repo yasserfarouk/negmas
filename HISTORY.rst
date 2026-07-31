@@ -6,6 +6,15 @@ Release 0.16.0 (dev)
 
 **Changes:**
 
+* [inout] ``Scenario.calc_extra_stats`` now reports Kalai, Kalai-Smorodinsky,
+  and max-welfare solution concepts alongside Nash — both the global
+  (``kalai_utils``/``kalai_outcome``, ``ks_utils``/``ks_outcome``,
+  ``max_welfare_utils``/``max_welfare_outcome``) and the bilateral
+  (``bilateral_kalai_*``/``bilateral_ks_*``/``bilateral_max_welfare_*``)
+  variants, mirroring the existing Nash reporting and honoring the
+  ``convex_hull`` switch. Also fixed a pre-existing copy-paste bug where the
+  stats-present branch assigned ``nash_outcomes`` to ``nash_utils``.
+
 * [preferences] Added a ``convex_hull: bool`` evaluation-model switch to
   every user-facing optimality/distance/plotting entry point so a
   computation runs entirely under the ``P∞`` (multiple-negotiations /
