@@ -406,6 +406,58 @@ Release 0.16.0 (dev)
   ``[0.99999997, 1.0]``) could make them return ``None`` and break the
   negotiation.
 
+* [sao] Exposed the full trace API on ``SAONMI``: ``full_trace``,
+  ``full_trace_with_utils``, ``full_trace_with_utils_df``, and
+  ``negotiator_full_trace`` now delegate to the underlying mechanism so the
+  NMI mirrors ``SAOMechanism``\ 's complete trace API.
+
+* [preferences] ``HyperRectangleUtilityFunction`` normalization
+  (``normalize``/``normalize_for``/``minmax``) now maps the affine range to
+  ``[0, 1]`` with **exact** extrema computed via a max-weight clique over the
+  rectangle-overlap graph (Helly's theorem for axis-aligned boxes) — no
+  enumeration of the (up to 10^50) outcome space. Also serializes ``bias`` and
+  fixes an ``oucome_ranges`` → ``outcome_ranges`` typo in ``from_dict``.
+
+* [inout] ``Scenario.remove_dummy_issues()`` drops single-value placeholder
+  issues (e.g. the lenient Genius reader's ``DUMMY_ISSUE``), folding their
+  constant contribution into the ufun bias so utilities are preserved.
+  Genius loading of all-numeric ufuns now keeps the per-issue value functions
+  instead of folding slope/bias into the weights (which produced negative
+  weights that broke the canonical form on reload). Also removed an
+  unhashable ``@lru_cache`` from ``ConstFun.minmax``.
+
+* [outcomes] New ``negmas.outcomes.discretizers`` framework: a ``Discretizer``
+  protocol plus grid-based and utility-aware balanced discretizers
+  (variance/quantile and outcome-count-in-bins, over one or many ufuns, with
+  optional ``full_grid`` coordinate-descent / ``differential_evolution``
+  optimization). New ``SubsetCartesianOutcomeSpace`` enumerates/validates an
+  explicit outcome subset while keeping ``.issues``.
+  ``OutcomeSpace.to_discrete`` gains a ``method=`` argument accepting a
+  Discretizer name/class/instance.
+
+* [preferences] Reconciled normalization around a single funnel:
+  ``normalize``/``normalize_for`` are thin wrappers over one
+  ``normalize_all_for`` shared by every ufun type;
+  ``AffineUtilityFunction`` maps the reserved value through the full affine
+  map; normalizing an affine ufun to ``[0, 1]`` returns the Method-3 canonical
+  ``LinearAdditive`` form (weights sum to 1) that round-trips to Genius XML;
+  and constant/zero-weight affine ufuns now normalize to a
+  ``ConstUtilityFunction`` instead of raising.
+
+* [outcomes] Made ``outcome_space`` truthiness safe:
+  ``DiscreteCartesianOutcomeSpace.__len__`` overflows ``Py_ssize_t`` on large
+  spaces (a product of issue cardinalities), so any ``if outcome_space`` test
+  raised ``OverflowError`` — replaced with explicit ``is None`` checks across
+  the codebase and added ``__bool__`` (``cardinality > 0``) as
+  defense-in-depth. Also restored generator/iterator support in
+  ``os_or_none``\ 's ``outcomes`` branch.
+
+* [registry] Registered the Python-native Genius BOA negotiators
+  (``GBoulware``, ``GConceder``, ``GLinear``, ``GHardliner``,
+  ``GHardHeaded``, ``GAgentK``, ``GAgentSmith``, ``GNozomi``, ``GFSEGA``,
+  ``GCUHKAgent``, ``GAgentLG``, ``GAgentX``, ``GRandom``) unconditionally,
+  since they run natively without the Java Genius bridge.
+
 Release 0.15.8
 --------------
 
