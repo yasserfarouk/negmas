@@ -130,6 +130,14 @@ class Issue(HasMinMax, Iterable, ABC):
         self._values = values
         self._n_values = float("inf")
         self.min_value, self.max_value = None, None
+        self._money_issue = False
+        if name:
+            _name = name.lower()
+            self._money_issue = "price" in _name or "money" in _name or "cost" in _name
+
+    @property
+    def is_money_issue(self):
+        return self._money_issue
 
     def intersect(self, other: "Issue"):
         """Returns an issue which is the intersection of the two issues and otherwise is the same as this one"""
