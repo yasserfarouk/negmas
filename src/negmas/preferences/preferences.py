@@ -316,7 +316,7 @@ class Preferences(NamedObject, ABC):
             >>> from negmas.outcomes import make_issue
             >>> print(
             ...     LinearAdditiveUtilityFunction(
-            ...         (lambda x: x, lambda x: x), issues=[make_issue((0, 1), (0, 1))]
+            ...         (lambda x: x, lambda x: x), issues=[make_issue((0, 1), "price")]
             ...     ).type
             ... )
             linear_additive
