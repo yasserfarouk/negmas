@@ -64,8 +64,10 @@ from negmas.preferences.ops import (
     COMPARE_UFUN_METHOD_TYPE,
     OutcomeOptimality,
     ScenarioStats,
+    calc_negotiator_metrics,
     calc_outcome_distances,
     calc_outcome_optimality,
+    calc_session_metrics,
     estimate_max_dist,
     compare_ufuns,
 )
@@ -486,6 +488,48 @@ OPTIMALITY_COLS = (
     "fairness",  # max(nash_optimality, kalai_optimality, ks_optimality)
     "modified_kalai_optimality",
     "modified_ks_optimality",
+)
+
+# Session-level (negotiator-independent) metric field names. Stored in each
+# record as scalar columns prefixed with ``session_`` and copied to every
+# negotiator's score (like OPTIMALITY_COLS).
+SESSION_METRIC_COLS = (
+    "welfare",
+    "welfare_agreed",
+    "utility_sum",
+    "agreement_reached",
+    "utility_gap",
+    "advantage_gap",
+    "gains_from_trade",
+    "surplus_efficiency",
+    "relative_rounds",
+    "agreement_speed",
+    "relative_efficiency",
+)
+
+# Per-negotiator metric field names. Stored in each record as list-valued
+# columns prefixed with ``neg_`` (one entry per negotiator) and indexed per
+# negotiator in ``make_scores`` (like the ``opp_`` opponent-model columns). The
+# ``opp_*`` fields of NegotiatorMetrics are intentionally excluded here because
+# opponent-model accuracy is produced separately as ``opp_*`` columns.
+NEGOTIATOR_METRIC_COLS = (
+    "utility",
+    "advantage",
+    "opponent_advantage",
+    "utility_agreed",
+    "advantage_agreed",
+    "opponent_advantage_agreed",
+    "surplus_share",
+    "rationality",
+    "dominance",
+    "concession_rate",
+    "total_concession",
+    "temporal_patience",
+    "own_gain",
+    "copling_raio",
+    "concession_toward_counterparty",
+    "valid_offer_fraction",
+    "produced_any_offers",
 )
 
 # Note: NEGOTIATOR_BEHAVIOR_DIR_NAME is deprecated and kept only for backward
@@ -2179,6 +2223,50 @@ def _make_record(
             max(fairness_values) if fairness_values else float("nan")
         )
 
+    # --- full negotiation metrics (session + per-negotiator) ---------------
+    # These are always recorded (they do not require the expensive scenario
+    # stats). Session metrics become scalar ``session_*`` columns; per-negotiator
+    # metrics become list-valued ``neg_*`` columns (one entry per negotiator).
+    try:
+        agr_utils_metric = agreement_utils if state.agreement is not None else None
+        trace_utils, trace_offers, trace_parties, first_offer_party = m._metrics_trace()
+        pareto_utils = stats.pareto_utils if stats is not None else None
+        session_metrics = calc_session_metrics(
+            agr_utils_metric,
+            reservations,
+            utility_ranges=min_max_utils,
+            relative_time=state.relative_time,
+            last_step=state.step,
+            pareto_utils=pareto_utils or None,
+        )
+        session_dict = asdict(session_metrics)
+        for f in SESSION_METRIC_COLS:
+            run_record[f"session_{f}"] = session_dict.get(f, float("nan"))
+
+        neg_metric_values: dict[str, list[float]] = {
+            f: [] for f in NEGOTIATOR_METRIC_COLS
+        }
+        for i in range(len(s.ufuns)):
+            nm = calc_negotiator_metrics(
+                trace_utils,
+                agr_utils_metric,
+                reservations,
+                index=i,
+                utility_ranges=min_max_utils,
+                trace_parties=trace_parties,
+                first_offer_party=first_offer_party,
+                trace_offers=trace_offers,
+                outcome_space=s.outcome_space,
+            )
+            nm_dict = asdict(nm)
+            for f in NEGOTIATOR_METRIC_COLS:
+                neg_metric_values[f].append(nm_dict.get(f, float("nan")))
+        for f, vals in neg_metric_values.items():
+            run_record[f"neg_{f}"] = vals
+    except Exception:
+        # Metrics are best-effort: never let them break record creation.
+        pass
+
     # Calculate opponent modeling scores if metrics are specified
     if opponent_modeling_metrics:
         # Handle anl2026 special metric: it adds kendall_optimality internally
@@ -3009,6 +3097,27 @@ def make_scores(
         for c in OPTIMALITY_COLS:
             if c in record:
                 basic[c] = record[c]
+        # Session (negotiator-independent) metrics: scalar columns copied to
+        # every negotiator's score, mirroring OPTIMALITY_COLS.
+        for f in SESSION_METRIC_COLS:
+            key = f"session_{f}"
+            if key in record:
+                basic[key] = record[key]
+        # Per-negotiator metrics: list-valued ``neg_*`` columns indexed per
+        # negotiator (mirroring the ``opp_*`` handling below).
+        for f in NEGOTIATOR_METRIC_COLS:
+            key = f"neg_{f}"
+            if key not in record:
+                continue
+            value = record[key]
+            if isinstance(value, str):
+                value = _parse_list_value(value)
+            if (
+                not isinstance(value, (str, bytes, dict))
+                and hasattr(value, "__len__")
+                and i < len(value)
+            ):
+                basic[key] = value[i]
 
         # Extract per-negotiator opponent model scores from record
         # These are stored as lists with one value per negotiator. On a

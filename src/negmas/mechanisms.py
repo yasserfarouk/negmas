@@ -70,6 +70,7 @@ if TYPE_CHECKING:
     from negmas.outcomes.protocols import DiscreteOutcomeSpace
     from negmas.preferences import Preferences
     from negmas.preferences.base_ufun import BaseUtilityFunction
+    from negmas.preferences.ops import FullMetrics, NegotiatorMetrics, SessionMetrics
     from negmas.inout import Scenario
 
 __all__ = ["Mechanism", "MechanismStepResult", "Traceable", "CompletedRun"]
@@ -129,6 +130,8 @@ class CompletedRun(Generic[TState]):
         outcome_stats: Basic outcome statistics (agreement, broken, timedout, utilities).
         config: Configuration parameters used for the negotiation.
         metadata: Arbitrary metadata associated with the run.
+        full_metrics: Optional :class:`~negmas.preferences.ops.FullMetrics`
+            (optimality + session + per-negotiator metrics) for the run.
     """
 
     history: list[TState] | list[TraceElement] | list[tuple]
@@ -139,6 +142,7 @@ class CompletedRun(Generic[TState]):
     outcome_stats: dict[str, Any]
     config: dict[str, Any]
     metadata: dict[str, Any]
+    full_metrics: FullMetrics | None = None
 
     def save(
         self,
@@ -153,6 +157,7 @@ class CompletedRun(Generic[TState]):
         overwrite: bool = True,
         warn_if_existing: bool = True,
         include_pareto_frontier: bool = False,
+        save_metrics: bool = True,
         storage_format: TableStorageFormat | None = DEFAULT_TABLE_STORAGE_FORMAT,
     ) -> Path:
         """Saves the completed run to disk.
@@ -170,6 +175,8 @@ class CompletedRun(Generic[TState]):
             overwrite: If True, overwrite existing files/directories.
             warn_if_existing: If True, warn when overwriting.
             include_pareto_frontier: If True the pareto frontier will be included in the scenario (if save_scenario)
+            save_metrics: If True, save the full metrics (session and per-negotiator
+                metrics from :attr:`full_metrics`) alongside the optimality stats.
             storage_format: Format for table storage ("csv", "gzip", "parquet").
 
         Returns:
@@ -312,21 +319,36 @@ class CompletedRun(Generic[TState]):
         # Save outcome stats (always saved in directory mode)
         # Include agreement stats in outcome_stats for a complete record
         outcome_stats_to_save = dict(self.outcome_stats) if self.outcome_stats else {}
-        if save_agreement_stats and self.agreement_stats is not None:
+        # Prefer the optimality carried by full_metrics when no explicit
+        # agreement_stats are available so both stay consistent.
+        agreement_stats = self.agreement_stats
+        if agreement_stats is None and self.full_metrics is not None:
+            agreement_stats = self.full_metrics.optimality
+        if save_agreement_stats and agreement_stats is not None:
             # Merge agreement stats into outcome_stats
             outcome_stats_to_save.update(
                 {
-                    "pareto_optimality": self.agreement_stats.pareto_optimality,
-                    "nash_optimality": self.agreement_stats.nash_optimality,
-                    "kalai_optimality": self.agreement_stats.kalai_optimality,
-                    "modified_kalai_optimality": self.agreement_stats.modified_kalai_optimality,
-                    "max_welfare_optimality": self.agreement_stats.max_welfare_optimality,
-                    "ks_optimality": self.agreement_stats.ks_optimality,
-                    "modified_ks_optimality": self.agreement_stats.modified_ks_optimality,
+                    "pareto_optimality": agreement_stats.pareto_optimality,
+                    "nash_optimality": agreement_stats.nash_optimality,
+                    "kalai_optimality": agreement_stats.kalai_optimality,
+                    "modified_kalai_optimality": agreement_stats.modified_kalai_optimality,
+                    "max_welfare_optimality": agreement_stats.max_welfare_optimality,
+                    "ks_optimality": agreement_stats.ks_optimality,
+                    "modified_ks_optimality": agreement_stats.modified_ks_optimality,
                 }
             )
         if outcome_stats_to_save:
             dump(outcome_stats_to_save, save_dir / "outcome_stats.yaml")
+
+        # Save full metrics (session and per-negotiator) if available
+        if save_metrics and self.full_metrics is not None:
+            from attrs import asdict as _asdict
+
+            dump(_asdict(self.full_metrics.session), save_dir / "session_metrics.yaml")
+            dump(
+                [_asdict(m) for m in self.full_metrics.negotiators],
+                save_dir / "negotiator_metrics.yaml",
+            )
 
         # Save config
         if save_config and self.config:
@@ -346,6 +368,7 @@ class CompletedRun(Generic[TState]):
         load_scenario_stats: bool = False,
         load_agreement_stats: bool = True,
         load_config: bool = True,
+        load_metrics: bool = True,
     ) -> "CompletedRun[TState]":
         """Loads a completed run from the given path.
 
@@ -355,6 +378,8 @@ class CompletedRun(Generic[TState]):
             load_scenario_stats: If True, load scenario statistics when loading the scenario.
             load_agreement_stats: If True, load agreement optimality statistics.
             load_config: If True, load the configuration from config.yaml.
+            load_metrics: If True, load the full metrics (session and per-negotiator
+                metrics) from ``session_metrics.yaml`` / ``negotiator_metrics.yaml``.
 
         Remarks:
             When loading scenarios, we will look at a scenario folder in the given path and if not
@@ -563,6 +588,40 @@ class CompletedRun(Generic[TState]):
                     ),
                 )
 
+        # Reconstruct full metrics (session + per-negotiator) if present
+        full_metrics = None
+        if load_metrics:
+            from negmas.preferences.ops import (
+                FullMetrics,
+                NegotiatorMetrics,
+                SessionMetrics,
+            )
+
+            session_path = path / "session_metrics.yaml"
+            negotiators_path = path / "negotiator_metrics.yaml"
+            if session_path.exists() and negotiators_path.exists():
+                try:
+                    session_data = load(session_path)
+                    negotiators_data = load(negotiators_path)
+                    session = SessionMetrics(**session_data)
+                    negotiators = [
+                        NegotiatorMetrics(**m) for m in (negotiators_data or [])
+                    ]
+                    optimality = agreement_stats
+                    if optimality is None:
+                        optimality = OutcomeOptimality(
+                            pareto_optimality=float("nan"),
+                            nash_optimality=float("nan"),
+                            kalai_optimality=float("nan"),
+                            modified_kalai_optimality=float("nan"),
+                            max_welfare_optimality=float("nan"),
+                        )
+                    full_metrics = FullMetrics(
+                        optimality=optimality, session=session, negotiators=negotiators
+                    )
+                except Exception:
+                    full_metrics = None
+
         return cls(
             history=history,  # type: ignore
             history_type=history_type,
@@ -572,7 +631,234 @@ class CompletedRun(Generic[TState]):
             outcome_stats=outcome_stats if outcome_stats else {},
             config=config if config else {},
             metadata=metadata if metadata else {},
+            full_metrics=full_metrics,
         )
+
+    def _metrics_trace(
+        self,
+    ) -> tuple[
+        list[tuple[float, ...]], list[Outcome | None], list[int] | None, int, float, int
+    ]:
+        """Extract per-offer metric inputs from the stored history.
+
+        Returns ``(trace_utils, trace_offers, trace_parties, first_offer_party,
+        relative_time, last_step)``. Utilities are taken from the stored utility
+        columns when the history is a ``full_trace_with_utils`` and computed from
+        the scenario's utility functions otherwise. For a plain ``history``
+        (list of states) no per-offer trace is available so the trace lists are
+        empty (trace-based metrics then become ``nan``); the timing is still
+        recovered from the last state.
+        """
+        scenario = self.scenario
+        ufuns = list(scenario.ufuns) if scenario is not None else []
+        n = len(ufuns)
+        neg_ids = list(self.config.get("negotiator_ids", []))
+        id_to_index = {nid: i for i, nid in enumerate(neg_ids)}
+        ht = self.history_type
+
+        trace_utils: list[tuple[float, ...]] = []
+        trace_offers: list[Outcome | None] = []
+        trace_parties: list[int] = []
+        relative_time = 0.0
+        last_step = 0
+
+        def field(rec, name, idx):
+            if isinstance(rec, dict):
+                return rec.get(name)
+            if hasattr(rec, name):
+                return getattr(rec, name)
+            if isinstance(rec, (tuple, list)) and idx is not None and idx < len(rec):
+                return rec[idx]
+            return None
+
+        def util(u, offer):
+            if u is None or offer is None:
+                return float("nan")
+            try:
+                return float(u(offer))
+            except Exception:  # noqa: BLE001 - best effort
+                return float("nan")
+
+        for rec in self.history:
+            if ht in ("full_trace", "full_trace_with_utils"):
+                offer = field(rec, "offer", 4)
+                nid = field(rec, "negotiator", 3)
+                rt = field(rec, "relative_time", 1)
+                st = field(rec, "step", 2)
+            elif ht == "extended_trace":
+                st = field(rec, "step", 0)
+                nid = field(rec, "negotiator", 1)
+                offer = field(rec, "offer", 2)
+                rt = None
+            elif ht == "trace":
+                nid = field(rec, "negotiator", 0)
+                offer = field(rec, "offer", 1)
+                rt = st = None
+            else:  # "history": list of states, no single offer/negotiator
+                rt = field(rec, "relative_time", None)
+                st = field(rec, "step", None)
+                offer = nid = None
+
+            if rt is not None:
+                try:
+                    relative_time = max(relative_time, float(rt))
+                except (TypeError, ValueError):
+                    pass
+            if st is not None:
+                try:
+                    last_step = max(last_step, int(st))
+                except (TypeError, ValueError):
+                    pass
+
+            if ht == "history":
+                continue
+
+            if ht == "full_trace_with_utils" and n:
+                utils: list[float] = []
+                for i, nidj in enumerate(neg_ids[:n]):
+                    val = field(rec, nidj, 9 + i)
+                    try:
+                        utils.append(float(val))
+                    except (TypeError, ValueError):
+                        utils.append(util(ufuns[i], offer))
+                trace_utils.append(tuple(utils))
+            else:
+                trace_utils.append(tuple(util(u, offer) for u in ufuns))
+            trace_offers.append(offer)
+            trace_parties.append(id_to_index.get(nid, -1))
+
+        first_offer_party = 0
+        for p in trace_parties:
+            if p >= 0:
+                first_offer_party = p
+                break
+        parties: list[int] | None = trace_parties
+        if any(p < 0 for p in trace_parties):
+            parties = None
+        return (
+            trace_utils,
+            trace_offers,
+            parties,
+            first_offer_party,
+            relative_time,
+            last_step,
+        )
+
+    def calc_session_metrics(
+        self, *, pareto_utils: Any = None, stats: Any = None, convex_hull: bool = False
+    ) -> SessionMetrics:
+        """Compute the negotiator-independent session metrics for this run.
+
+        Uses the stored scenario and history and delegates to
+        :meth:`negmas.inout.Scenario.calc_session_metrics`.
+
+        Raises:
+            ValueError: If this run has no scenario.
+        """
+        if self.scenario is None:
+            raise ValueError("CompletedRun has no scenario; cannot compute metrics.")
+        _, _, _, _, relative_time, last_step = self._metrics_trace()
+        return self.scenario.calc_session_metrics(
+            agreement=self.agreement,
+            relative_time=relative_time,
+            last_step=last_step,
+            pareto_utils=pareto_utils,
+            stats=stats,
+            convex_hull=convex_hull,
+        )
+
+    def calc_negotiator_metrics(
+        self,
+        negotiator: int | str,
+        *,
+        opponent_ufun: BaseUtilityFunction | None = None,
+        eps: float = 1e-9,
+    ) -> NegotiatorMetrics:
+        """Compute the per-negotiator metrics for this run.
+
+        Args:
+            negotiator: The negotiator to score, either its integer index or id.
+            opponent_ufun: Optional opponent-utility estimate for the ``opp_*``
+                metrics.
+            eps: Numerical tolerance forwarded to the calculator.
+
+        Raises:
+            ValueError: If this run has no scenario.
+        """
+        if self.scenario is None:
+            raise ValueError("CompletedRun has no scenario; cannot compute metrics.")
+        neg_ids = list(self.config.get("negotiator_ids", []))
+        index = negotiator if isinstance(negotiator, int) else neg_ids.index(negotiator)
+        trace_utils, trace_offers, trace_parties, first_offer_party, _, _ = (
+            self._metrics_trace()
+        )
+        return self.scenario.calc_negotiator_metrics(
+            index=index,
+            trace_utils=trace_utils,
+            agreement=self.agreement,
+            trace_parties=trace_parties,
+            first_offer_party=first_offer_party,
+            trace_offers=trace_offers,
+            opponent_ufun=opponent_ufun,
+            eps=eps,
+        )
+
+    def calc_full_metrics(
+        self,
+        *,
+        opponent_ufuns: Sequence[BaseUtilityFunction | None] | None = None,
+        stats: Any = None,
+        max_dist: float | None = None,
+        convex_hull: bool = False,
+        eps: float = 1e-9,
+        store: bool = True,
+    ) -> FullMetrics:
+        """Compute the :class:`FullMetrics` (optimality + session + per-negotiator).
+
+        Uses the stored scenario and history and delegates to
+        :meth:`negmas.inout.Scenario.calc_full_metrics`.
+
+        Args:
+            opponent_ufuns: Optional per-negotiator opponent-utility estimates.
+            stats: Optional pre-computed scenario statistics.
+            max_dist: Optional max utility-space distance for the optimality
+                normalisation.
+            convex_hull: If ``True`` (and stats must be computed), use the
+                convex-hull evaluation model.
+            eps: Numerical tolerance forwarded to the calculator.
+            store: If ``True`` (default), also store the result in
+                :attr:`full_metrics`.
+
+        Raises:
+            ValueError: If this run has no scenario.
+        """
+        if self.scenario is None:
+            raise ValueError("CompletedRun has no scenario; cannot compute metrics.")
+        (
+            trace_utils,
+            trace_offers,
+            trace_parties,
+            first_offer_party,
+            relative_time,
+            last_step,
+        ) = self._metrics_trace()
+        fm = self.scenario.calc_full_metrics(
+            trace_utils=trace_utils,
+            agreement=self.agreement,
+            relative_time=relative_time,
+            last_step=last_step,
+            trace_parties=trace_parties,
+            first_offer_party=first_offer_party,
+            trace_offers=trace_offers,
+            opponent_ufuns=opponent_ufuns,
+            stats=stats,
+            max_dist=max_dist,
+            convex_hull=convex_hull,
+            eps=eps,
+        )
+        if store:
+            self.full_metrics = fm
+        return fm
 
     def convert(
         self, target: str, scenario: "Scenario | None" = None
@@ -3276,6 +3562,7 @@ class Mechanism(
         metadata: dict[str, Any] | None = None,
         agreement_stats: OutcomeOptimality | None = None,
         calc_agreement_stats: bool = False,
+        calc_metrics: bool = False,
         convex_hull: bool = False,
     ) -> CompletedRun:
         """
@@ -3296,6 +3583,10 @@ class Mechanism(
             calc_agreement_stats: If True and agreement_stats is None, calculate
                 agreement_stats from the scenario (requires ufuns to be available).
                 This involves calculating scenario stats which can be expensive.
+            calc_metrics: If True, calculate the full metrics (optimality, session
+                and per-negotiator metrics) and store them on the returned
+                :class:`CompletedRun` (requires ufuns to be available). This
+                involves calculating scenario stats which can be expensive.
 
         Returns:
             CompletedRun: A CompletedRun object containing the negotiation data.
@@ -3404,24 +3695,15 @@ class Mechanism(
             except Exception:
                 agreement_stats = None
 
-                ufuns = tuple(
-                    n.preferences for n in self.negotiators if n.preferences is not None
-                )
-                if ufuns and len(ufuns) == len(self.negotiators):
-                    # Calculate scenario stats (expensive)
-                    stats = calc_scenario_stats(ufuns, convex_hull=convex_hull)
-                    # Calculate agreement utilities
-                    agreement_utils = tuple(
-                        float(u(self.agreement)) if u is not None else 0.0
-                        for u in ufuns
-                    )
-                    # Calculate distances and optimality
-                    dists = calc_outcome_distances(agreement_utils, stats)
-                    agreement_stats = calc_outcome_optimality(
-                        dists, stats, estimate_max_dist(ufuns)
-                    )
+        # Calculate full metrics (optimality + session + per-negotiator) if requested
+        full_metrics = None
+        if calc_metrics:
+            try:
+                full_metrics = self.calc_full_metrics(convex_hull=convex_hull)
+                if agreement_stats is None:
+                    agreement_stats = full_metrics.optimality
             except Exception:
-                agreement_stats = None
+                full_metrics = None
 
         return CompletedRun(
             history=trace_data,
@@ -3432,6 +3714,233 @@ class Mechanism(
             outcome_stats=outcome_stats,
             config=config,
             metadata=metadata or {},
+            full_metrics=full_metrics,
+        )
+
+    def _metrics_scenario(self) -> Scenario:
+        """Build a :class:`~negmas.inout.Scenario` from this mechanism.
+
+        The scenario uses the negotiators' preferences (in ``self.negotiators``
+        order) and this mechanism's outcome space so that the metric helpers can
+        derive reservation values, utility ranges and scenario statistics.
+
+        Raises:
+            ValueError: If any negotiator has no preferences or the mechanism
+                has no outcome space (so metrics cannot be computed).
+        """
+        from negmas.inout import Scenario
+
+        ufuns = tuple(
+            n.preferences for n in self.negotiators if n.preferences is not None
+        )
+        if len(ufuns) != len(self.negotiators) or self.outcome_space is None:
+            raise ValueError(
+                "Cannot compute metrics: every negotiator must have preferences "
+                "and the mechanism must have an outcome space."
+            )
+        return Scenario(
+            outcome_space=self.outcome_space,  # type: ignore[arg-type]
+            ufuns=ufuns,  # type: ignore[arg-type]
+            mechanism_type=self.__class__,
+            mechanism_params=self.params,
+        )
+
+    def _metrics_trace(
+        self,
+    ) -> tuple[list[tuple[float, ...]], list[Outcome | None], list[int] | None, int]:
+        """Extract the per-offer inputs needed by the metric calculators.
+
+        Returns a 4-tuple ``(trace_utils, trace_offers, trace_parties,
+        first_offer_party)`` where ``trace_utils[t][j]`` is negotiator ``j``'s
+        utility for the offer at trace position ``t`` (negotiators in
+        ``self.negotiators`` order), ``trace_offers[t]`` is that offer,
+        ``trace_parties[t]`` is the index of the party that made it (or ``None``
+        to request round-robin attribution), and ``first_offer_party`` is the
+        index of the party that made the first offer.
+
+        The richest available trace representation is used, in priority order:
+        ``full_trace_with_utils`` → ``full_trace`` → ``extended_trace`` →
+        ``trace``. When only offers are available, utilities are computed from
+        the negotiators' preferences.
+        """
+        ufuns = [n.preferences for n in self.negotiators]
+        n = len(ufuns)
+        id_to_index = {nid: i for i, nid in enumerate(self.negotiator_ids)}
+        trace_utils: list[tuple[float, ...]] = []
+        trace_offers: list[Outcome | None] = []
+        trace_parties: list[int] = []
+
+        def util(u, offer):
+            if u is None or offer is None:
+                return float("nan")
+            try:
+                return float(u(offer))
+            except Exception:  # noqa: BLE001 - best effort
+                return float("nan")
+
+        ftwu = getattr(self, "full_trace_with_utils", None)
+        ft = getattr(self, "full_trace", None)
+        et = getattr(self, "extended_trace", None)
+        tr = getattr(self, "trace", None)
+
+        if ftwu:
+            for entry in ftwu:
+                nid = entry[3]
+                offer = entry[4]
+                utils = tuple(float(x) for x in entry[9 : 9 + n])
+                trace_offers.append(offer)
+                trace_utils.append(utils)
+                trace_parties.append(id_to_index.get(nid, -1))
+        elif ft:
+            for e in ft:
+                offer = e.offer
+                nid = e.negotiator
+                trace_offers.append(offer)
+                trace_utils.append(tuple(util(u, offer) for u in ufuns))
+                trace_parties.append(id_to_index.get(nid, -1))
+        elif et:
+            for step, nid, offer in et:
+                trace_offers.append(offer)
+                trace_utils.append(tuple(util(u, offer) for u in ufuns))
+                trace_parties.append(id_to_index.get(nid, -1))
+        elif tr:
+            for nid, offer in tr:
+                trace_offers.append(offer)
+                trace_utils.append(tuple(util(u, offer) for u in ufuns))
+                trace_parties.append(id_to_index.get(nid, -1))
+
+        first_offer_party = 0
+        for p in trace_parties:
+            if p >= 0:
+                first_offer_party = p
+                break
+        # Fall back to round-robin attribution if any offerer could not be mapped.
+        parties: list[int] | None = trace_parties
+        if any(p < 0 for p in trace_parties):
+            parties = None
+        return trace_utils, trace_offers, parties, first_offer_party
+
+    def calc_session_metrics(
+        self,
+        *,
+        pareto_utils: Sequence[tuple[float, ...]] | None = None,
+        stats: Any = None,
+        convex_hull: bool = False,
+    ) -> SessionMetrics:
+        """Compute the negotiator-independent :class:`SessionMetrics`.
+
+        Builds a scenario from this mechanism and delegates to
+        :meth:`negmas.inout.Scenario.calc_session_metrics`, passing this
+        mechanism's agreement, relative time and final step. Session metrics
+        describe the outcome and timing and need no offer trace.
+
+        Args:
+            pareto_utils: Optional Pareto-frontier utility tuples for
+                ``surplus_efficiency`` (taken from the scenario stats otherwise).
+            stats: Optional pre-computed scenario statistics.
+            convex_hull: If ``True`` (and stats must be computed), use the
+                convex-hull evaluation model.
+
+        Returns:
+            A :class:`SessionMetrics` for this negotiation.
+        """
+        scenario = self._metrics_scenario()
+        return scenario.calc_session_metrics(
+            agreement=self.agreement,
+            relative_time=self.relative_time,
+            last_step=self.current_step,
+            pareto_utils=pareto_utils,
+            stats=stats,
+            convex_hull=convex_hull,
+        )
+
+    def calc_negotiator_metrics(
+        self,
+        negotiator: int | str,
+        *,
+        opponent_ufun: BaseUtilityFunction | None = None,
+        eps: float = 1e-9,
+    ) -> NegotiatorMetrics:
+        """Compute the per-negotiator :class:`NegotiatorMetrics`.
+
+        Builds a scenario from this mechanism, extracts the offer trace and
+        delegates to :meth:`negmas.inout.Scenario.calc_negotiator_metrics`.
+
+        Args:
+            negotiator: The negotiator to score, either its integer index in
+                ``self.negotiators`` order or its id.
+            opponent_ufun: Optional opponent-utility estimate exposed by the
+                scored negotiator (for the ``opp_*`` metrics).
+            eps: Numerical tolerance forwarded to the calculator.
+
+        Returns:
+            A :class:`NegotiatorMetrics` for the requested negotiator.
+        """
+        scenario = self._metrics_scenario()
+        index = (
+            negotiator
+            if isinstance(negotiator, int)
+            else self.negotiator_ids.index(negotiator)
+        )
+        trace_utils, trace_offers, trace_parties, first_offer_party = (
+            self._metrics_trace()
+        )
+        return scenario.calc_negotiator_metrics(
+            index=index,
+            trace_utils=trace_utils,
+            agreement=self.agreement,
+            trace_parties=trace_parties,
+            first_offer_party=first_offer_party,
+            trace_offers=trace_offers,
+            opponent_ufun=opponent_ufun,
+            eps=eps,
+        )
+
+    def calc_full_metrics(
+        self,
+        *,
+        opponent_ufuns: Sequence[BaseUtilityFunction | None] | None = None,
+        stats: Any = None,
+        max_dist: float | None = None,
+        convex_hull: bool = False,
+        eps: float = 1e-9,
+    ) -> FullMetrics:
+        """Compute the :class:`FullMetrics` (optimality + session + per-negotiator).
+
+        Builds a scenario from this mechanism, extracts the offer trace and
+        delegates to :meth:`negmas.inout.Scenario.calc_full_metrics`, passing
+        this mechanism's agreement, relative time and final step.
+
+        Args:
+            opponent_ufuns: Optional per-negotiator opponent-utility estimates
+                (``opponent_ufuns[i]`` is the model exposed by negotiator ``i``).
+            stats: Optional pre-computed scenario statistics.
+            max_dist: Optional max utility-space distance for the optimality
+                normalisation.
+            convex_hull: If ``True`` (and stats must be computed), use the
+                convex-hull evaluation model.
+            eps: Numerical tolerance forwarded to the calculator.
+
+        Returns:
+            A :class:`FullMetrics` for this negotiation.
+        """
+        scenario = self._metrics_scenario()
+        trace_utils, trace_offers, trace_parties, first_offer_party = (
+            self._metrics_trace()
+        )
+        return scenario.calc_full_metrics(
+            trace_utils=trace_utils,
+            agreement=self.agreement,
+            relative_time=self.relative_time,
+            last_step=self.current_step,
+            trace_parties=trace_parties,
+            first_offer_party=first_offer_party,
+            trace_offers=trace_offers,
+            opponent_ufuns=opponent_ufuns,
+            stats=stats,
+            max_dist=max_dist,
+            convex_hull=convex_hull,
+            eps=eps,
         )
 
     def make_config(self) -> dict[str, Any]:
@@ -3503,6 +4012,8 @@ class Mechanism(
         metadata: dict[str, Any] | None = None,
         agreement_stats: OutcomeOptimality | None = None,
         calc_agreement_stats: bool = False,
+        calc_metrics: bool = False,
+        save_metrics: bool = True,
         overwrite: bool = True,
         warn_if_existing: bool = True,
         storage_format: TableStorageFormat | None = DEFAULT_TABLE_STORAGE_FORMAT,
@@ -3528,6 +4039,11 @@ class Mechanism(
                             instead of calculating them (which requires scenario stats).
             calc_agreement_stats: If True and agreement_stats is None, calculate agreement_stats
                                  from the scenario. This is expensive as it requires calculating scenario stats.
+            calc_metrics: If True, calculate the full metrics (optimality, session and
+                          per-negotiator metrics) and save them alongside the run. This is
+                          expensive as it requires calculating scenario stats.
+            save_metrics: If True (and single_file is False), save the full metrics
+                          (session and per-negotiator) when they are available.
             overwrite: Overwrite existing files/folders
             warn_if_existing: Warn if existing files/folders are found
             storage_format: The format for storing tables.
@@ -3540,6 +4056,7 @@ class Mechanism(
             metadata=metadata,
             agreement_stats=agreement_stats,
             calc_agreement_stats=calc_agreement_stats,
+            calc_metrics=calc_metrics,
         )
         return completed_run.save(
             parent=parent,
@@ -3550,6 +4067,7 @@ class Mechanism(
             save_scenario_stats=save_scenario_stats,
             save_agreement_stats=save_agreement_stats,
             save_config=save_config,
+            save_metrics=save_metrics,
             overwrite=overwrite,
             warn_if_existing=warn_if_existing,
             storage_format=storage_format,

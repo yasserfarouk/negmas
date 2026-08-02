@@ -108,6 +108,12 @@ __all__ = [
     "calc_standard_info",
     "rational_fraction",
     "ScenarioStats",
+    "SessionMetrics",
+    "NegotiatorMetrics",
+    "FullMetrics",
+    "calc_session_metrics",
+    "calc_negotiator_metrics",
+    "calc_full_metrics",
     "OutcomeDistances",
     "OutcomeOptimality",
     "sort_by_utility",
@@ -740,7 +746,693 @@ class OutcomeOptimality:
     max_welfare_optimality: float
     ks_optimality: float = float("nan")
     modified_ks_optimality: float = float("nan")
+
     # max_relative_welfare_optimality: float
+    @property
+    def fairness(self) -> float:
+        _fairness = float("nan")
+        try:
+            nash_optimality = float(self.nash_optimality)
+            kalai_optimality = float(self.kalai_optimality)
+            ks_optimality = float(self.ks_optimality)
+            _fair = [
+                v
+                for v in (nash_optimality, kalai_optimality, ks_optimality)
+                if not math.isnan(v)
+            ]
+            _fairness = max(_fair) if _fair else float("nan")
+        except Exception as _:
+            pass
+        return _fairness
+
+
+@define
+class NegotiatorMetrics:
+    """Per-negotiator metrics evaluating one party's behaviour and outcome in a
+    single negotiation.
+
+    Every field is a ``float``; ``nan`` means the metric is undefined for this
+    negotiation (e.g. trace-based metrics when no offer trace was supplied, or
+    opponent-model metrics when no ``opponent_ufun`` estimate was exposed).
+    Booleans are encoded as ``1.0`` / ``0.0``. All metrics are for the
+    negotiator at ``index`` passed to :func:`calc_negotiator_metrics`.
+
+    These are exactly the metrics that depend on *which* negotiator is being
+    scored; negotiator-independent (session-level) quantities live in
+    :class:`SessionMetrics` instead, and the two field sets are disjoint.
+
+    Outcome-level (need only the realised utilities + reserved values):
+
+    - ``utility``: realised utility of ``index`` -- ``ufun(agreement)`` if an
+      agreement was reached, else its reservation value (the "Score(all)"
+      convention of lewis2017, where a failed negotiation is worth the
+      walk-away value).
+    - ``advantage``: scale-free gain ``(u - r) / (max - r)`` of ``index``
+      (negmas' ``advantage``; ``0.0`` when ``max == r``). Falls back to the raw
+      surplus ``u - r`` when ``utility_ranges`` is not supplied.
+    - ``opponent_advantage``: mean ``advantage`` of the other parties (the
+      advantage-scale analogue of negmas' ``partner_welfare``).
+    - ``utility_agreed`` / ``advantage_agreed`` / ``opponent_advantage_agreed``:
+      the same readings but ``nan`` when no agreement was reached, so an
+      nan-ignoring mean over negotiations gives the "agreement-only" reading
+      (lewis2017's "Score(agreed)" vs "Score(all)").
+    - ``surplus_share``: ``index``'s share ``(u_i - r_i) / sum_j (u_j - r_j)``
+      (xia2024 ``Share``). Not clipped -- may exceed 1 or be negative; ``nan``
+      when the total surplus is ``<= 0``.
+
+    Individual rationality:
+
+    - ``rationality``: ``0.0`` if ``index`` accepted an agreement below its own
+      reservation value (an individually-irrational acceptance, the
+      ``ir_violation`` of bilateraltrade2026), else ``1.0``. Walking away is
+      always rational.
+
+    Win/loss:
+
+    - ``dominance``: ``1.0`` if ``index``'s realised advantage strictly exceeds
+      the best realised advantage among the other parties (a win), ``0.0`` for
+      a tie, ``-1.0`` for a loss (bianchi2024). The aggregate win rate is
+      conventionally ``sum(won) / (sum(won) + sum(lost))`` -- ties excluded from
+      the denominator. ``nan`` when there are no other parties.
+
+    Concession behaviour (trace-based; ``nan`` without an offer trace or if the
+    party made no own offers):
+
+    - ``total_concession``: ``s[0] - s[-1]`` where ``s`` is ``index``'s own
+      utility over its own successive offers; positive means it conceded
+      (bilateraltrade2026).
+    - ``concession_rate``: average per-offer drop in own utility,
+      ``(s[0] - s[-1]) / max(k - 1, 1)``.
+    - ``temporal_patience``: how long ``index`` held its opening anchor before
+      conceding, as the fraction of its own offers before the first whose
+      utility dropped below ``s[0]``; ``1.0`` if it never dropped
+      (bilateraltrade2026).
+
+    Strategic coupling (trace-based; ``nan`` without a trace or fewer than two
+    own offers):
+
+    - ``concession_toward_counterparty``: sum, over consecutive own offers, of
+      the positive part of the change in the primary partner's utility of
+      those offers (counterparty2026).
+    - ``own_gain``: signed net change ``s[-1] - s[0]`` in ``index``'s own
+      utility over its own offers (``<= 0`` for a purely conceding agent).
+    - ``copling_raio``: coupling ratio -- ``concession_toward_counterparty /
+      (abs(own_gain) + eps)`` (counterparty2026). (Field name retains the
+      original spelling; reads "coupling ratio".)
+
+    Instruction / format following (trace-based):
+
+    - ``valid_offer_fraction``: fraction of ``index``'s own offers that are
+      structured and lie in the outcome space; ``nan`` when no
+      ``trace_offers`` / ``outcome_space`` were supplied or the party made no
+      own offers.
+    - ``produced_any_offers``: ``1.0`` if ``index`` made at least one own
+      offer, ``0.0`` if it has a trace but made none, ``nan`` only when there is
+      no trace at all.
+
+    Opponent-model accuracy (only when ``index`` exposes an ``opponent_ufun``
+    estimate and the true opponent ufun + outcome space are supplied):
+
+    - ``opp_kendall_optimality`` / ``opp_ndcg`` / ``opp_euclidean``: agreement
+      between ``index``'s estimated opponent ufun and the true opponent ufun,
+      via :func:`compare_ufuns`, in ``[0, 1]`` (higher = better model). ``nan``
+      when no opponent model is available.
+
+    References:
+        - lewis2017: Lewis et al., "Deal or No Deal? End-to-End Learning for
+          Negotiation Dialogues", EMNLP 2017.
+        - bianchi2024: Bianchi et al., "How Well Can LLMs Negotiate?
+          NegotiationArena Platform and Analysis", ICML 2024.
+        - xia2024: Xia et al., "Measuring Bargaining Abilities of LLMs",
+          Findings of ACL 2024.
+        - bilateraltrade2026: "Training Language Models for Bilateral Trade
+          with Private Information", arXiv 2026.
+        - counterparty2026: "Counterparty Modeling is Not Strategy: The Limits
+          of LLM Negotiators", arXiv 2026.
+    """
+
+    utility: float = float("nan")
+    advantage: float = float("nan")
+    opponent_advantage: float = float("nan")
+    utility_agreed: float = float("nan")
+    advantage_agreed: float = float("nan")
+    opponent_advantage_agreed: float = float("nan")
+    surplus_share: float = float("nan")
+    rationality: float = float("nan")  # 0 if accepting an irrational offer otherwise 1
+    dominance: float = float("nan")  # 1 if won, 0 for tie and -1 for loss
+    concession_rate: float = float("nan")
+    total_concession: float = float("nan")
+    temporal_patience: float = float("nan")
+    own_gain: float = float("nan")
+    copling_raio: float = float("nan")  # coupling ratio (spelling kept for compat)
+    concession_toward_counterparty: float = float("nan")
+    valid_offer_fraction: float = float("nan")  # fraction of own offers valid in domain
+    produced_any_offers: float = float("nan")  # 1 if produced any offers
+    opp_kendall_optimality: float = float("nan")
+    opp_ndcg: float = float("nan")
+    opp_euclidean: float = float("nan")
+
+
+@define
+class SessionMetrics:
+    """Session-level metrics evaluating a single negotiation as a whole.
+
+    Every field is a ``float``; ``nan`` means the metric is undefined for this
+    negotiation. Booleans are encoded as ``1.0`` / ``0.0``. All metrics here are
+    *negotiator-independent*: they take the same value no matter which party you
+    ask about (welfare, agreement, timing, inequality/spread and total surplus).
+    Metrics that depend on a specific negotiator live in
+    :class:`NegotiatorMetrics` instead, and the two field sets are disjoint.
+
+    All metrics are computed from the realised (agreement or reserved) utilities
+    of every party plus the per-party reservation values; none of them needs the
+    offer trace.
+
+    Welfare:
+
+    - ``welfare``: mean realised utility across all parties (negmas'
+      ``welfare``; the "collective score" of abdelnabi2024).
+    - ``welfare_agreed``: ``welfare`` but ``nan`` when no agreement was reached
+      (so an nan-ignoring mean over negotiations gives the agreement-only
+      reading).
+    - ``utility_sum``: sum of realised utilities across all parties (the papers'
+      "social welfare" sum form; ``welfare`` is the mean).
+
+    Agreement / feasibility:
+
+    - ``agreement_reached``: ``1.0`` if an agreement was reached, ``0.0``
+      otherwise.
+
+    Inequality (fairness as inequality between parties -- distinct from negmas'
+    solution-concept fairness):
+
+    - ``utility_gap``: raw-utility inequality across all parties,
+      ``max(u) - min(u)`` (bilateral: ``abs(u_i - u_j)``). Larger = less fair
+      (he2018, shea2024, chatterjee2024).
+    - ``advantage_gap``: scale-free inequality across all parties,
+      ``max(adv) - min(adv)``. Preferred headline since it is unaffected by
+      per-party utility scaling. Falls back to raw-surplus advantages when
+      ``utility_ranges`` is not supplied.
+
+    Surplus / efficiency:
+
+    - ``gains_from_trade``: total surplus over disagreement
+      ``sum_j (u_j - r_j)`` (signed; bilateraltrade2026 / xia2024).
+    - ``surplus_efficiency``: captured surplus over the maximum achievable,
+      ``T / T_max`` where ``T_max`` is the largest total gains-from-trade on the
+      Pareto frontier (or, failing that, over the utility ranges). ``nan`` when
+      ``T_max <= 0`` (termsbench SE+).
+
+    Length / efficiency:
+
+    - ``relative_rounds``: the mechanism's relative time at the end, in
+      ``[0, 1]``.
+    - ``agreement_speed``: ``1.0 - relative_time`` when an agreement was
+      reached, ``0.0`` otherwise (faster agreements score higher).
+    - ``relative_efficiency``: fairness-per-turn, ``-utility_gap /
+      max(rounds, 1)`` (chatterjee2024).
+
+    References:
+        - he2018: He et al., "Decoupling Strategy and Generation in Negotiation
+          Dialogues", EMNLP 2018.
+        - shea2024: Shea & Yu, "A Fairness-Driven Method for Learning
+          Human-Compatible Negotiation Strategies", Findings of EMNLP 2024.
+        - chatterjee2024: Chatterjee et al., "AgreeMate: Teaching LLMs to
+          Haggle", arXiv 2024.
+        - abdelnabi2024: Abdelnabi et al., "Cooperation, Competition, and
+          Maliciousness: LLM-Stakeholders Interactive Negotiation", NeurIPS
+          D&B 2024.
+        - xia2024: Xia et al., "Measuring Bargaining Abilities of LLMs",
+          Findings of ACL 2024.
+        - bilateraltrade2026: "Training Language Models for Bilateral Trade
+          with Private Information", arXiv 2026.
+        - termsbench2026: "TERMS-Bench: Diagnosing LLM Negotiation Agents
+          Beyond Deal Rate", arXiv 2026.
+    """
+
+    welfare: float = float("nan")
+    welfare_agreed: float = float("nan")
+    utility_sum: float = float("nan")
+    agreement_reached: float = float("nan")
+    utility_gap: float = float("nan")
+    advantage_gap: float = float("nan")
+    gains_from_trade: float = float("nan")
+    surplus_efficiency: float = float("nan")
+    relative_rounds: float = float("nan")
+    agreement_speed: float = float("nan")
+    relative_efficiency: float = float("nan")
+
+
+@define
+class FullMetrics:
+    """All metrics of a single negotiation.
+
+    Bundles the agreement's solution-concept :class:`OutcomeOptimality`, the
+    negotiator-independent :class:`SessionMetrics`, and one
+    :class:`NegotiatorMetrics` per negotiator (in negotiator/ufun order). Built
+    by :func:`calc_full_metrics`.
+    """
+
+    optimality: OutcomeOptimality
+    session: SessionMetrics
+    negotiators: list[NegotiatorMetrics]
+
+    def to_dict(
+        self, negotiator_names: Sequence[str] | None = None
+    ) -> dict[str, float]:
+        """Flatten every metric into a single ``{name: value}`` dictionary.
+
+        The optimality and session fields are emitted under their own names
+        (e.g. ``pareto_optimality``, ``welfare``) since those two views are
+        already disjoint. Per-negotiator fields are prefixed so the different
+        negotiators do not collide:
+
+        - by default the prefix is ``neg{i}_`` where ``i`` is the negotiator
+          index in negotiator/ufun order (e.g. ``neg0_advantage``),
+        - if ``negotiator_names`` is given, ``{name}_`` is used instead
+          (e.g. ``buyer_advantage``).
+
+        Args:
+            negotiator_names: Optional per-negotiator names (in negotiator/ufun
+                order) used to prefix the per-negotiator metric keys. When
+                omitted (or shorter than the number of negotiators), the
+                ``neg{i}_`` index-based prefix is used for the missing entries.
+
+        Returns:
+            A flat dictionary holding every metric of the negotiation.
+        """
+        from attrs import asdict
+
+        flat: dict[str, float] = {}
+        flat.update(asdict(self.optimality))
+        flat.update(asdict(self.session))
+        for i, negotiator in enumerate(self.negotiators):
+            if negotiator_names is not None and i < len(negotiator_names):
+                prefix = f"{negotiator_names[i]}_"
+            else:
+                prefix = f"neg{i}_"
+            for key, value in asdict(negotiator).items():
+                flat[f"{prefix}{key}"] = value
+        return flat
+
+
+def _safe_div_session(num: float, den: float) -> float:
+    """``num / den`` or ``nan`` when ``den`` is zero/``nan`` (no clipping)."""
+    if den == 0 or math.isnan(den):
+        return float("nan")
+    return num / den
+
+
+def calc_session_metrics(
+    agreement_utils: Sequence[float] | None,
+    reserved_values: Sequence[float],
+    *,
+    utility_ranges: Sequence[tuple[float, float]] | None = None,
+    relative_time: float = 0.0,
+    last_step: int = 0,
+    pareto_utils: Sequence[tuple[float, ...]] | None = None,
+) -> SessionMetrics:
+    """Calculate the negotiator-independent :class:`SessionMetrics`.
+
+    Computes every field of :class:`SessionMetrics` from the realised utilities
+    of all parties (the agreement utilities, or the reservation values when no
+    agreement was reached) plus the per-party reservation values and the
+    mechanism timing. No offer trace is required: every session metric is a
+    property of the outcome and the timing, not of any single negotiator (those
+    live in :class:`NegotiatorMetrics`).
+
+    Args:
+        agreement_utils: Per-negotiator utilities at the agreement, or ``None``
+            when no agreement was reached (the realised utility then falls back
+            to ``reserved_values`` for every party).
+        reserved_values: Per-negotiator reservation values (already corrected
+            to finite values).
+        utility_ranges: Optional per-negotiator ``(min, max)`` achievable
+            utility, used for the scale-free ``advantage_gap``. When omitted,
+            the raw-surplus ``u - r`` is used for each party instead.
+        relative_time: The mechanism's relative time at the end, in ``[0, 1]``
+            (drives ``relative_rounds`` / ``agreement_speed``).
+        last_step: The final round index actually reached (drives
+            ``relative_efficiency``).
+        pareto_utils: Optional Pareto-frontier utility tuples, used to normalise
+            ``surplus_efficiency``. When omitted, the utility ranges are used as
+            the denominator fallback; when neither is given
+            ``surplus_efficiency`` is ``nan``.
+
+    Returns:
+        A populated :class:`SessionMetrics`. Metrics whose required inputs were
+        not supplied are left as ``nan`` rather than fabricated.
+
+    Remarks:
+        - No metric clips a paper-defined ratio that may legitimately exceed 1
+          or go negative; only a genuinely undefined quotient (zero/``nan``
+          denominator) becomes ``nan``.
+    """
+    nan = float("nan")
+    n = len(reserved_values)
+    agreement = agreement_utils is not None
+    realised: tuple[float, ...] = (
+        tuple(float(u) for u in agreement_utils)
+        if agreement
+        else tuple(float(r) for r in reserved_values)
+    )
+    rvals = tuple(float(r) for r in reserved_values)
+
+    welfare = (sum(realised) / n) if n else nan
+    utility_sum = sum(realised) if n else nan
+
+    # --- inequality gaps ---------------------------------------------------
+    def advantage(j: int) -> float:
+        u = realised[j]
+        r = rvals[j]
+        if utility_ranges is None:
+            # No ranges supplied: fall back to the raw surplus over disagreement.
+            return u - r
+        _, hi = (float(utility_ranges[j][0]), float(utility_ranges[j][1]))
+        if math.isnan(r):
+            return u - float(utility_ranges[j][0])
+        if hi == r:
+            return 0.0
+        d = hi - r
+        return (u - r) / d if d != 0 else 0.0
+
+    if n:
+        utility_gap = max(realised) - min(realised)
+        advs = [advantage(j) for j in range(n)]
+        advantage_gap = max(advs) - min(advs)
+    else:
+        utility_gap = nan
+        advantage_gap = nan
+
+    # --- surplus / efficiency ----------------------------------------------
+    surpluses = [float(realised[j]) - rvals[j] for j in range(n)]
+    total_surplus = sum(surpluses)
+    gains_from_trade = total_surplus if n else nan
+    if pareto_utils:
+        t_max = max(sum(float(p[j]) - rvals[j] for j in range(n)) for p in pareto_utils)
+    elif utility_ranges is not None:
+        t_max = sum(float(utility_ranges[j][1]) - rvals[j] for j in range(n))
+    else:
+        t_max = nan
+    surplus_efficiency = (
+        total_surplus / t_max if (not math.isnan(t_max) and t_max > 0) else nan
+    )
+
+    # --- length / efficiency -----------------------------------------------
+    relative_rounds = float(relative_time)
+    agreement_speed = (1.0 - relative_time) if agreement else 0.0
+    relative_efficiency = (
+        -utility_gap / max(last_step, 1) if not math.isnan(utility_gap) else nan
+    )
+
+    return SessionMetrics(
+        welfare=welfare,
+        welfare_agreed=welfare if agreement else nan,
+        utility_sum=utility_sum,
+        agreement_reached=1.0 if agreement else 0.0,
+        utility_gap=utility_gap,
+        advantage_gap=advantage_gap,
+        gains_from_trade=gains_from_trade,
+        surplus_efficiency=surplus_efficiency,
+        relative_rounds=relative_rounds,
+        agreement_speed=agreement_speed,
+        relative_efficiency=relative_efficiency,
+    )
+
+
+def calc_negotiator_metrics(
+    trace_utils: Sequence[tuple[float, ...]],
+    agreement_utils: Sequence[float] | None,
+    reserved_values: Sequence[float],
+    *,
+    index: int = 0,
+    utility_ranges: Sequence[tuple[float, float]] | None = None,
+    trace_parties: Sequence[int] | None = None,
+    first_offer_party: int = 0,
+    trace_offers: Sequence[Outcome | None] | None = None,
+    outcome_space: OutcomeSpace | None = None,
+    opponent_ufun: BaseUtilityFunction | None = None,
+    ufuns: Sequence[BaseUtilityFunction] | None = None,
+    eps: float = 1e-9,
+) -> NegotiatorMetrics:
+    """Calculate the per-negotiator :class:`NegotiatorMetrics` for ``index``.
+
+    Computes every field of :class:`NegotiatorMetrics` from the utilities of all
+    parties to all offers in the trace and the agreement utilities, plus the
+    per-party reservation values. Only quantities that depend on *which*
+    negotiator is being scored are computed here; negotiator-independent
+    quantities live in :class:`SessionMetrics` / :func:`calc_session_metrics`.
+
+    Args:
+        trace_utils: One tuple per offer in the trace, in trace order, each
+            holding every negotiator's utility for that offer
+            (``trace_utils[t][j]`` = utility of negotiator ``j`` for offer
+            ``t``). Empty when no trace is available (all trace-based metrics
+            then become ``nan``).
+        agreement_utils: Per-negotiator utilities at the agreement, or ``None``
+            when no agreement was reached (realised utility then falls back to
+            ``reserved_values`` for every party).
+        reserved_values: Per-negotiator reservation values (already corrected
+            to finite values).
+        index: The negotiator (in the order used by ``trace_utils`` /
+            ``agreement_utils`` / ``reserved_values``) to score.
+        utility_ranges: Optional per-negotiator ``(min, max)`` achievable
+            utility, used for the scale-free ``advantage`` /
+            ``opponent_advantage`` / ``dominance``. When omitted, ``advantage``
+            falls back to the raw surplus ``u - r``.
+        trace_parties: Optional party index per trace entry (length must match
+            ``trace_utils``). When omitted, offers are attributed
+            round-robin: offer ``t`` is made by party
+            ``(first_offer_party + t) % n_negotiators`` (the standard
+            alternating-offer / SAO convention).
+        first_offer_party: The party that made the first offer, for the
+            round-robin attribution fallback (default ``0``).
+        trace_offers: Optional outcomes aligned with ``trace_utils``, used with
+            ``outcome_space`` to compute ``valid_offer_fraction``. Without
+            these, ``valid_offer_fraction`` is ``nan``.
+        outcome_space: Optional outcome space for ``valid_offer_fraction`` and
+            the opponent-model comparison.
+        opponent_ufun: Optional opponent-utility estimate exposed by negotiator
+            ``index``; when given with ``ufuns`` and ``outcome_space``, the
+            ``opp_*`` opponent-model accuracy metrics are computed.
+        ufuns: The true per-negotiator utility functions, used for the
+            opponent-model comparison.
+        eps: Numerical tolerance for ``temporal_patience`` and the
+            ``coupling_ratio`` zero-guard.
+
+    Returns:
+        A populated :class:`NegotiatorMetrics` for party ``index``. Metrics
+        whose required inputs were not supplied are left as ``nan`` rather than
+        fabricated.
+
+    Remarks:
+        - Metrics that require the *outcomes themselves* (``valid_offer_fraction``)
+          or the negotiator's *opponent model* (``opp_*``) cannot be derived from
+          utilities alone; pass ``trace_offers``/``outcome_space`` and
+          ``opponent_ufun``/``ufuns`` respectively to populate them, otherwise
+          they are ``nan``.
+        - No metric clips a paper-defined ratio that may legitimately exceed 1
+          or go negative; only a genuinely undefined quotient (zero/``nan``
+          denominator) becomes ``nan``.
+    """
+    nan = float("nan")
+    n = len(reserved_values)
+    agreement = agreement_utils is not None
+    realised: tuple[float, ...] = (
+        tuple(float(u) for u in agreement_utils)
+        if agreement
+        else tuple(float(r) for r in reserved_values)
+    )
+    rvals = tuple(float(r) for r in reserved_values)
+    others = [j for j in range(n) if j != index]
+
+    def advantage(j: int) -> float:
+        u = realised[j]
+        r = rvals[j]
+        if utility_ranges is None:
+            # No ranges supplied: fall back to the raw surplus over disagreement.
+            return u - r
+        lo, hi = (float(utility_ranges[j][0]), float(utility_ranges[j][1]))
+        if math.isnan(r):
+            return u - lo if not math.isnan(lo) else 0.0
+        if hi == r:
+            return 0.0
+        d = hi - r
+        return (u - r) / d if d != 0 else 0.0
+
+    adv_self = advantage(index)
+    adv_others = [advantage(j) for j in others]
+    opp_adv = (sum(adv_others) / len(adv_others)) if adv_others else nan
+
+    utility = realised[index]
+
+    # --- trace attribution -------------------------------------------------
+    has_trace = len(trace_utils) > 0
+    use_round_robin = trace_parties is None or len(trace_parties) != len(trace_utils)
+    own_indices: list[int] = []
+    if has_trace:
+        for t in range(len(trace_utils)):
+            p = (
+                (first_offer_party + t) % n
+                if use_round_robin
+                else int(trace_parties[t])  # type: ignore[index]
+            )
+            if p == index:
+                own_indices.append(t)
+    own_self = [float(trace_utils[t][index]) for t in own_indices]
+
+    # --- concession (own offers) -------------------------------------------
+    if has_trace and len(own_self) > 0:
+        s = own_self
+        k = len(s)
+        total_concession = s[0] - s[-1]
+        concession_rate = (s[0] - s[-1]) / max(k - 1, 1)
+        argfirst = k
+        for t in range(k):
+            if s[t] < s[0] - eps:
+                argfirst = t
+                break
+        temporal_patience = (argfirst / k) if argfirst != k else 1.0
+    else:
+        total_concession = nan
+        concession_rate = nan
+        temporal_patience = nan
+
+    # --- strategic coupling (own offers vs primary partner) ----------------
+    if has_trace and len(own_self) >= 2 and others:
+        partner = others[0]
+        own_gain = own_self[-1] - own_self[0]
+        concession_toward_counterparty = 0.0
+        for t in range(len(own_indices) - 1):
+            d_partner = float(trace_utils[own_indices[t + 1]][partner]) - float(
+                trace_utils[own_indices[t]][partner]
+            )
+            concession_toward_counterparty += max(0.0, d_partner)
+        coupling_ratio = _safe_div_session(
+            concession_toward_counterparty, abs(own_gain) + eps
+        )
+    else:
+        own_gain = nan
+        concession_toward_counterparty = nan
+        coupling_ratio = nan
+
+    # --- instruction / format following ------------------------------------
+    if not has_trace:
+        produced_any_offers = nan
+        valid_offer_fraction = nan
+    else:
+        produced_any_offers = 1.0 if len(own_indices) > 0 else 0.0
+        if (
+            trace_offers is not None
+            and outcome_space is not None
+            and len(own_indices) > 0
+        ):
+            n_valid = 0
+            for t in own_indices:
+                off = trace_offers[t] if t < len(trace_offers) else None
+                if off is None:
+                    continue
+                try:
+                    if outcome_space.is_valid(off):
+                        n_valid += 1
+                except Exception:  # noqa: BLE001 - count best-effort
+                    n_valid += 1
+            valid_offer_fraction = n_valid / len(own_indices)
+        else:
+            valid_offer_fraction = nan
+
+    # --- opponent-model accuracy -------------------------------------------
+    if (
+        opponent_ufun is not None
+        and ufuns is not None
+        and outcome_space is not None
+        and others
+    ):
+        opp_kendall_optimality = nan
+        opp_ndcg = nan
+        opp_euclidean = nan
+        for method, attr in (
+            ("kendall_optimality", "opp_kendall_optimality"),
+            ("ndcg", "opp_ndcg"),
+            ("euclidean", "opp_euclidean"),
+        ):
+            scores: list[float] = []
+            for j in others:
+                try:
+                    scores.append(
+                        float(
+                            compare_ufuns(
+                                opponent_ufun,
+                                ufuns[j],
+                                method=method,  # type: ignore[arg-type]
+                                outcome_space=outcome_space,
+                            )
+                        )
+                    )
+                except Exception:  # noqa: BLE001 - partial model unscored
+                    continue
+            # re-bind via locals dict to assign each metric cleanly
+            val = (sum(scores) / len(scores)) if scores else nan
+            if attr == "opp_kendall_optimality":
+                opp_kendall_optimality = val
+            elif attr == "opp_ndcg":
+                opp_ndcg = val
+            else:
+                opp_euclidean = val
+    else:
+        opp_kendall_optimality = nan
+        opp_ndcg = nan
+        opp_euclidean = nan
+
+    # --- dominance (win / tie / loss on advantage) -------------------------
+    if others:
+        best_other = max(adv_others)
+        if math.isclose(adv_self, best_other, abs_tol=1e-9):
+            dominance = 0.0
+        elif adv_self > best_other:
+            dominance = 1.0
+        else:
+            dominance = -1.0
+    else:
+        dominance = nan
+
+    # --- individual rationality --------------------------------------------
+    if agreement and float(realised[index]) < rvals[index] - 1e-12:
+        rationality = 0.0
+    else:
+        rationality = 1.0
+
+    # --- inequality gaps ---------------------------------------------------
+    # (utility_gap / advantage_gap are negotiator-independent session metrics
+    # and live in SessionMetrics, not here.)
+
+    # --- surplus share (per-negotiator) ------------------------------------
+    surpluses = [float(realised[j]) - rvals[j] for j in range(n)]
+    total_surplus = sum(surpluses)
+    surplus_share = surpluses[index] / total_surplus if total_surplus > 0 else nan
+
+    return NegotiatorMetrics(
+        utility=utility,
+        advantage=adv_self,
+        opponent_advantage=opp_adv,
+        utility_agreed=utility if agreement else nan,
+        advantage_agreed=adv_self if agreement else nan,
+        opponent_advantage_agreed=opp_adv if agreement else nan,
+        concession_rate=concession_rate,
+        total_concession=total_concession,
+        temporal_patience=temporal_patience,
+        own_gain=own_gain,
+        copling_raio=coupling_ratio,
+        concession_toward_counterparty=concession_toward_counterparty,
+        dominance=dominance,
+        rationality=rationality,
+        valid_offer_fraction=valid_offer_fraction,
+        produced_any_offers=produced_any_offers,
+        opp_kendall_optimality=opp_kendall_optimality,
+        opp_ndcg=opp_ndcg,
+        opp_euclidean=opp_euclidean,
+        surplus_share=surplus_share,
+    )
 
 
 @define
@@ -2259,7 +2951,7 @@ def dist_to_convex_hull_frontier(
     )
 
 
-def dist(x: tuple[float, ...], y: tuple[float, ...]) -> float:
+def dist(x: tuple[float, ...] | None, y: tuple[float, ...] | None) -> float:
     """Computes Euclidean distance between two points in utility space."""
     if x is None or y is None:
         return float("nan")
@@ -2664,6 +3356,7 @@ def rational_fraction(
 
     # Calculate rational fraction (fraction of outcomes with positive utility for all)
     rational_count = 0
+    assert outcomes is not None
     for outcome in outcomes:
         if all(u(outcome) > u.reserved_value for u in ufuns):
             rational_count += 1
@@ -2917,6 +3610,7 @@ def pareto_frontier(
         # and, when the caller does not pass ``n_discretization``, let that
         # helper use its own default rather than hard-coding one here (passing
         # ``None`` would otherwise crash on continuous issues).
+        assert issues is not None
         if all(getattr(_, "is_finite", lambda: True)() for _ in issues):
             outcomes = discretize_and_enumerate_issues(
                 issues,  # type: ignore
@@ -3178,7 +3872,9 @@ def opposition_level(
                 issues = outcome_space.issues  # type: ignore
             else:
                 raise ValueError("outcome_space must have issues attribute")
+        assert issues is not None
         outcomes = list(enumerate_issues(tuple(issues), max_cardinality=max_tests))
+
     if isinstance(outcomes, int):
         outcomes = [(_,) for _ in range(outcomes)]
     if not isinstance(max_utils, Iterable):
@@ -3699,3 +4395,129 @@ def compare_ufuns(
 # pareto_frontier_active = pareto_frontier_bf if NUMBA_OK else pareto_frontier_of
 pareto_frontier_active = pareto_frontier_numpy
 # pareto_frontier_of = pareto_frontier_numpy
+
+
+def calc_full_metrics(
+    trace_utils: Sequence[tuple[float, ...]],
+    agreement_utils: Sequence[float] | None,
+    reserved_values: Sequence[float],
+    *,
+    utility_ranges: Sequence[tuple[float, float]] | None = None,
+    relative_time: float = 0.0,
+    last_step: int = 0,
+    trace_parties: Sequence[int] | None = None,
+    first_offer_party: int = 0,
+    trace_offers: Sequence[Outcome | None] | None = None,
+    outcome_space: OutcomeSpace | None = None,
+    ufuns: Sequence[BaseUtilityFunction] | None = None,
+    opponent_ufuns: Sequence[BaseUtilityFunction | None] | None = None,
+    pareto_utils: Sequence[tuple[float, ...]] | None = None,
+    stats: ScenarioStats | None = None,
+    max_dist: float | None = None,
+    eps: float = 1e-9,
+) -> FullMetrics:
+    """Calculate the :class:`FullMetrics` of a single negotiation.
+
+    Bundles three views of one negotiation:
+
+    - ``optimality``: the agreement's solution-concept :class:`OutcomeOptimality`
+      (Pareto/Nash/Kalai/KS/welfare), computed via :func:`calc_outcome_optimality`
+      when both ``stats`` and an agreement are available (otherwise all ``nan``).
+    - ``session``: the negotiator-independent :class:`SessionMetrics` from
+      :func:`calc_session_metrics`.
+    - ``negotiators``: one :class:`NegotiatorMetrics` per party (in
+      ``reserved_values`` / ``ufuns`` order) from :func:`calc_negotiator_metrics`.
+
+    Args:
+        trace_utils: One tuple per offer in the trace, in trace order, each
+            holding every negotiator's utility for that offer. Empty when no
+            trace is available (all trace-based per-negotiator metrics become
+            ``nan``).
+        agreement_utils: Per-negotiator utilities at the agreement, or ``None``
+            when no agreement was reached.
+        reserved_values: Per-negotiator reservation values (already corrected to
+            finite values). Its length defines the number of negotiators.
+        utility_ranges: Optional per-negotiator ``(min, max)`` achievable
+            utility (for scale-free advantage/inequality metrics).
+        relative_time: The mechanism's relative time at the end, in ``[0, 1]``.
+        last_step: The final round index actually reached.
+        trace_parties: Optional party index per trace entry (offer attribution).
+            When omitted, round-robin attribution from ``first_offer_party`` is
+            used.
+        first_offer_party: The party that made the first offer (attribution
+            fallback).
+        trace_offers: Optional outcomes aligned with ``trace_utils`` (for
+            ``valid_offer_fraction``).
+        outcome_space: Optional outcome space (for ``valid_offer_fraction`` and
+            opponent-model comparison).
+        ufuns: The true per-negotiator utility functions (for the optimality
+            ``max_dist`` estimate and the opponent-model comparison).
+        opponent_ufuns: Optional per-negotiator opponent-utility estimates
+            (``opponent_ufuns[i]`` is the model exposed by negotiator ``i``);
+            drives the ``opp_*`` metrics.
+        pareto_utils: Optional Pareto-frontier utility tuples (for
+            ``surplus_efficiency``). When omitted, ``stats.pareto_utils`` is used
+            if ``stats`` is supplied.
+        stats: Optional pre-computed :class:`ScenarioStats`. When supplied with
+            an agreement, the ``optimality`` block is populated.
+        max_dist: Optional maximum utility-space distance for the optimality
+            normalisation. When omitted, :func:`estimate_max_dist` is used on
+            ``ufuns`` (so ``ufuns`` is required to populate ``optimality``
+            without an explicit ``max_dist``).
+        eps: Numerical tolerance forwarded to :func:`calc_negotiator_metrics`.
+
+    Returns:
+        A :class:`FullMetrics` with ``optimality``, ``session`` and one
+        ``negotiators`` entry per party.
+    """
+    nan = float("nan")
+    n = len(reserved_values)
+    pareto_for_session = pareto_utils
+    if pareto_for_session is None and stats is not None:
+        pareto_for_session = stats.pareto_utils or None
+
+    session = calc_session_metrics(
+        agreement_utils,
+        reserved_values,
+        utility_ranges=utility_ranges,
+        relative_time=relative_time,
+        last_step=last_step,
+        pareto_utils=pareto_for_session,
+    )
+
+    negotiators = [
+        calc_negotiator_metrics(
+            trace_utils,
+            agreement_utils,
+            reserved_values,
+            index=i,
+            utility_ranges=utility_ranges,
+            trace_parties=trace_parties,
+            first_offer_party=first_offer_party,
+            trace_offers=trace_offers,
+            outcome_space=outcome_space,
+            opponent_ufun=(opponent_ufuns[i] if opponent_ufuns is not None else None),
+            ufuns=ufuns,
+            eps=eps,
+        )
+        for i in range(n)
+    ]
+
+    optimality = OutcomeOptimality(
+        pareto_optimality=nan,
+        nash_optimality=nan,
+        kalai_optimality=nan,
+        modified_kalai_optimality=nan,
+        max_welfare_optimality=nan,
+    )
+    if stats is not None and agreement_utils is not None:
+        md = max_dist
+        if md is None and ufuns is not None:
+            md = estimate_max_dist(ufuns)
+        if md is not None:
+            dists = calc_outcome_distances(
+                tuple(float(u) for u in agreement_utils), stats
+            )
+            optimality = calc_outcome_optimality(dists, stats, md)
+
+    return FullMetrics(optimality=optimality, session=session, negotiators=negotiators)

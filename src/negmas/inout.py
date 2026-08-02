@@ -21,8 +21,16 @@ from negmas.outcomes.outcome_space import make_os
 from negmas.preferences.crisp.linear import LinearAdditiveUtilityFunction
 from negmas.preferences.ops import (
     ScenarioStats,
+    SessionMetrics,
+    NegotiatorMetrics,
+    FullMetrics,
+    calc_negotiator_metrics,
+    calc_full_metrics,
     calc_scenario_stats,
+    calc_session_metrics,
     calc_standard_info,
+    correct_reserved_value,
+    estimate_max_dist,
     kalai_point_convex_hull,
     ks_point_convex_hull,
     max_welfare_points_convex_hull,
@@ -37,6 +45,7 @@ from .negotiators import Negotiator
 from .outcomes import (
     CartesianOutcomeSpace,
     Issue,
+    Outcome,
     OutcomeSpace,
     issues_from_genius,
     issues_from_geniusweb,
@@ -1078,6 +1087,236 @@ class Scenario:
         """
         self.stats = calc_scenario_stats(self.ufuns, convex_hull=convex_hull)
         return self.stats
+
+    def calc_negotiator_metrics(
+        self,
+        *,
+        index: int,
+        trace_utils: Sequence[tuple[float, ...]] = (),
+        agreement: Outcome | None = None,
+        agreement_utils: Sequence[float] | None = None,
+        reserved_values: Sequence[float] | None = None,
+        trace_parties: Sequence[int] | None = None,
+        first_offer_party: int = 0,
+        trace_offers: Sequence[Outcome | None] | None = None,
+        opponent_ufun: BaseUtilityFunction | None = None,
+        eps: float = 1e-9,
+    ) -> NegotiatorMetrics:
+        """Compute per-negotiator :class:`NegotiatorMetrics` for ``index``.
+
+        A thin wrapper around
+        :func:`negmas.preferences.ops.calc_negotiator_metrics` that supplies,
+        from the scenario itself, the utility functions, outcome space and
+        per-party ``(min, max)`` utility ranges. Anything not derivable from the
+        scenario (the offer trace, the agreement, an opponent model) is taken
+        from the keyword arguments and defaults to "unavailable" (the
+        corresponding metrics become ``nan``).
+
+        Args:
+            index: The negotiator (in ``self.ufuns`` order) to score.
+            trace_utils: Per-offer utility tuples (one tuple per offer, holding
+                every negotiator's utility for that offer). Empty by default.
+            agreement: The final agreement outcome, or ``None`` if none. When
+                given, ``agreement_utils`` is computed from ``self.ufuns`` if
+                not supplied explicitly.
+            agreement_utils: Per-negotiator utilities at the agreement. When
+                ``None`` and ``agreement`` is given, derived from ``self.ufuns``.
+            reserved_values: Per-negotiator reservation values. When ``None``,
+                read from ``self.ufuns`` (falling back to each ufun's minimum).
+            trace_parties / first_offer_party / trace_offers: Offer attribution
+                and outcomes (see :func:`calc_negotiator_metrics`).
+            opponent_ufun: Optional opponent-utility estimate exposed by
+                negotiator ``index`` (for the ``opp_*`` metrics).
+            eps: Numerical tolerance forwarded to
+                :func:`calc_negotiator_metrics`.
+
+        Returns:
+            A :class:`NegotiatorMetrics` for party ``index``.
+        """
+        ufuns = self.ufuns
+        if reserved_values is None:
+            reserved_values = tuple(
+                correct_reserved_value(
+                    getattr(u, "reserved_value", None), u, eps=0.0, warn=False
+                )[0]
+                for u in ufuns
+            )
+        if agreement_utils is None and agreement is not None:
+            agreement_utils = tuple(float(u(agreement)) for u in ufuns)
+        utility_ranges = [u.minmax() for u in ufuns]
+        return calc_negotiator_metrics(
+            trace_utils,
+            agreement_utils,
+            reserved_values,
+            index=index,
+            utility_ranges=utility_ranges,
+            trace_parties=trace_parties,
+            first_offer_party=first_offer_party,
+            trace_offers=trace_offers,
+            outcome_space=self.outcome_space,
+            opponent_ufun=opponent_ufun,
+            ufuns=ufuns,
+            eps=eps,
+        )
+
+    def calc_session_metrics(
+        self,
+        *,
+        agreement: Outcome | None = None,
+        agreement_utils: Sequence[float] | None = None,
+        reserved_values: Sequence[float] | None = None,
+        relative_time: float = 0.0,
+        last_step: int = 0,
+        pareto_utils: Sequence[tuple[float, ...]] | None = None,
+        stats: ScenarioStats | None = None,
+        convex_hull: bool = False,
+    ) -> SessionMetrics:
+        """Compute the negotiator-independent :class:`SessionMetrics`.
+
+        A thin wrapper around
+        :func:`negmas.preferences.ops.calc_session_metrics` that supplies, from
+        the scenario itself, the per-party ``(min, max)`` utility ranges,
+        reservation values and (for ``surplus_efficiency``) the Pareto-frontier
+        utilities. Session metrics describe the negotiation outcome and timing
+        and need no offer trace.
+
+        Args:
+            agreement: The final agreement outcome, or ``None`` if none. When
+                given, ``agreement_utils`` is computed from ``self.ufuns`` if
+                not supplied explicitly.
+            agreement_utils: Per-negotiator utilities at the agreement. When
+                ``None`` and ``agreement`` is given, derived from ``self.ufuns``.
+            reserved_values: Per-negotiator reservation values. When ``None``,
+                read from ``self.ufuns`` (falling back to each ufun's minimum).
+            relative_time: Mechanism relative time at the end (in ``[0, 1]``).
+            last_step: Final round index reached (drives ``relative_efficiency``).
+            pareto_utils: Optional Pareto-frontier utility tuples for
+                ``surplus_efficiency``. When ``None``, taken from ``stats``
+                (computing them if needed).
+            stats: Optional pre-computed :class:`ScenarioStats`. When ``None``,
+                ``self.stats`` is used if available, otherwise computed via
+                :func:`calc_scenario_stats` (and cached on ``self.stats``).
+            convex_hull: If True (and stats must be computed here), compute them
+                under the ``P∞`` (convex-hull) evaluation model.
+
+        Returns:
+            A :class:`SessionMetrics` for this negotiation.
+        """
+        ufuns = self.ufuns
+        if reserved_values is None:
+            reserved_values = tuple(
+                correct_reserved_value(
+                    getattr(u, "reserved_value", None), u, eps=0.0, warn=False
+                )[0]
+                for u in ufuns
+            )
+        if agreement_utils is None and agreement is not None:
+            agreement_utils = tuple(float(u(agreement)) for u in ufuns)
+        utility_ranges = [u.minmax() for u in ufuns]
+        if pareto_utils is None:
+            if stats is None:
+                stats = self.stats
+            if stats is None:
+                stats = calc_scenario_stats(ufuns, convex_hull=convex_hull)
+                self.stats = stats
+            pareto_utils = stats.pareto_utils or None
+        return calc_session_metrics(
+            agreement_utils,
+            reserved_values,
+            utility_ranges=utility_ranges,
+            relative_time=relative_time,
+            last_step=last_step,
+            pareto_utils=pareto_utils,
+        )
+
+    def calc_full_metrics(
+        self,
+        *,
+        trace_utils: Sequence[tuple[float, ...]] = (),
+        agreement: Outcome | None = None,
+        agreement_utils: Sequence[float] | None = None,
+        reserved_values: Sequence[float] | None = None,
+        relative_time: float = 0.0,
+        last_step: int = 0,
+        trace_parties: Sequence[int] | None = None,
+        first_offer_party: int = 0,
+        trace_offers: Sequence[Outcome | None] | None = None,
+        opponent_ufuns: Sequence[BaseUtilityFunction | None] | None = None,
+        stats: ScenarioStats | None = None,
+        max_dist: float | None = None,
+        convex_hull: bool = False,
+        eps: float = 1e-9,
+    ) -> FullMetrics:
+        """Compute the :class:`FullMetrics` (optimality + session + per-negotiator).
+
+        A thin wrapper around :func:`negmas.preferences.ops.calc_full_metrics`
+        that supplies, from the scenario itself, the utility functions, outcome
+        space, per-party ``(min, max)`` utility ranges, reservation values and
+        scenario statistics (so the solution-concept ``optimality`` block is
+        populated). Anything not derivable from the scenario (the offer trace,
+        the agreement, relative time/rounds, opponent models) is taken from the
+        keyword arguments and defaults to "unavailable" (``nan``).
+
+        Args:
+            trace_utils: Per-offer utility tuples (one tuple per offer, holding
+                every negotiator's utility for that offer). Empty by default.
+            agreement: The final agreement outcome, or ``None`` if none.
+            agreement_utils: Per-negotiator utilities at the agreement. When
+                ``None`` and ``agreement`` is given, derived from ``self.ufuns``.
+            reserved_values: Per-negotiator reservation values. When ``None``,
+                read from ``self.ufuns``.
+            relative_time / last_step: Mechanism timing.
+            trace_parties / first_offer_party / trace_offers: Offer attribution
+                and outcomes.
+            opponent_ufuns: Optional per-negotiator opponent-utility estimates
+                (``opponent_ufuns[i]`` for negotiator ``i``).
+            stats: Optional pre-computed :class:`ScenarioStats`. When ``None``,
+                ``self.stats`` is used if available, otherwise computed via
+                :func:`calc_scenario_stats` (and cached on ``self.stats``).
+            max_dist: Optional max utility-space distance for the optimality
+                normalisation; when ``None``, :func:`estimate_max_dist` is used.
+            convex_hull: If True (and stats must be computed here), compute them
+                under the ``P∞`` (convex-hull) evaluation model.
+            eps: Numerical tolerance forwarded to :func:`calc_negotiator_metrics`.
+
+        Returns:
+            A :class:`FullMetrics` for this negotiation.
+        """
+        ufuns = self.ufuns
+        if reserved_values is None:
+            reserved_values = tuple(
+                correct_reserved_value(
+                    getattr(u, "reserved_value", None), u, eps=0.0, warn=False
+                )[0]
+                for u in ufuns
+            )
+        if agreement_utils is None and agreement is not None:
+            agreement_utils = tuple(float(u(agreement)) for u in ufuns)
+        utility_ranges = [u.minmax() for u in ufuns]
+        if stats is None:
+            stats = self.stats
+        if stats is None:
+            stats = calc_scenario_stats(ufuns, convex_hull=convex_hull)
+            self.stats = stats
+        if max_dist is None:
+            max_dist = estimate_max_dist(ufuns)
+        return calc_full_metrics(
+            trace_utils,
+            agreement_utils,
+            reserved_values,
+            utility_ranges=utility_ranges,
+            relative_time=relative_time,
+            last_step=last_step,
+            trace_parties=trace_parties,
+            first_offer_party=first_offer_party,
+            trace_offers=trace_offers,
+            outcome_space=self.outcome_space,
+            ufuns=ufuns,
+            opponent_ufuns=opponent_ufuns,
+            stats=stats,
+            max_dist=max_dist,
+            eps=eps,
+        )
 
     def calc_standard_info(self, calc_rational: bool = True) -> dict[str, Any]:
         """Calculate and store standard scenario information metrics.
