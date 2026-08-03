@@ -6,6 +6,28 @@ Release 0.16.0 (dev)
 
 **Changes:**
 
+* [tournaments] Added two opt-in features to ``cartesian_tournament``
+  (and pass-through support in ``continue_cartesian_tournament``):
+
+  - A thread-pool executor (``executor="thread"``, default remains
+    ``executor="process"``) alongside the existing process-pool path, for
+    I/O-bound negotiators (e.g. those making LLM API calls), avoiding
+    per-task (de)serialization and process-spawn overhead. **Thread mode
+    provides no per-negotiation timeout enforcement**: Python threads
+    cannot be force-killed, so ``external_timeout`` is not enforced and a
+    hung negotiation will not be terminated -- negotiators run this way
+    must implement their own client-side I/O timeout. ``process_isolation=
+    True`` combined with ``executor="thread"`` raises ``ValueError``.
+    Backed by a new ``run_threaded_tasks``/``resolve_workers`` in
+    ``negmas.helpers.parallel``.
+  - Error-aware resume: ``retry_failed_on_resume``/``retry_timedout_on_resume``
+    (both default ``False``) let ``path_exists="continue"`` re-run
+    previously-failed or previously-timed-out negotiations instead of
+    permanently treating any existing result file as done. Neither flag
+    (nor ``executor``) is persisted into the saved tournament config, to
+    avoid perturbing the stable per-negotiation ``run_id`` used for resume
+    file-naming across all existing tournament directories.
+
 * [preferences] Fixed ``LinearAdditiveUtilityFunction.normalize``/
   ``normalize_for`` ignoring constraints: the analytic per-issue
   canonicalization assumed each issue's value-function range is independent,

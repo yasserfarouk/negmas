@@ -11,6 +11,7 @@ import datetime
 import inspect
 import os
 import shutil
+import threading
 import traceback
 from negmas.helpers.parallel import (
     MAX_TASKS_PER_CHILD as _PARALLEL_DEFAULT_MAX_TASKS_PER_CHILD,
@@ -21,7 +22,9 @@ from negmas.helpers.parallel import (
 from negmas.helpers.parallel import (
     DEFAULT_MAX_TASKS_PER_WORKER,
     resolve_cpus,
+    resolve_workers,
     run_isolated_tasks,
+    run_threaded_tasks,
 )
 from itertools import product
 from math import exp, isinf, isnan, log
@@ -1870,6 +1873,15 @@ def _make_mechanism(
 
     if mechanism_params is None:
         mechanism_params = dict()
+    # Copy defensively: the caller (~cartesian_tournament, where ``mparams =
+    # copy.deepcopy(mechanism_params)`` is built once per scenario+rotation
+    # and reused across all partners x n_repetitions runs) shares this dict
+    # across every call to ``_make_mechanism`` for that rotation. We mutate
+    # it below (``["name"]``, ``["verbosity"]``, ``["annotation"]``); under a
+    # thread pool executor that mutation would race across concurrently
+    # running tasks and could record the wrong ``rep``/``mechanism_name`` for
+    # some runs. Do not remove this without re-checking that sharing site.
+    mechanism_params = dict(mechanism_params)
     if annotation is None:
         annotation = dict(rep=rep)
     else:
@@ -2515,6 +2527,12 @@ def _save_record(
     dump(run_record, full_name)
 
 
+# Matplotlib/plotly global state is not thread-safe: serialize all plotting
+# calls so the thread-pool executor (``executor="thread"``) doesn't corrupt
+# shared figure/backend state across concurrently finishing negotiations.
+_PLOT_LOCK = threading.Lock()
+
+
 def _plot_run(
     m,
     partner_names,
@@ -2549,7 +2567,8 @@ def _plot_run(
         # Auto-generate filename with image_format
         full_name = path / PLOTS_DIR_NAME / f"{file_name}.{image_format}"
 
-    m.plot(path=path, fig_name=full_name, show=False, **plot_params)
+    with _PLOT_LOCK:
+        m.plot(path=path, fig_name=full_name, show=False, **plot_params)
 
 
 def run_negotiation(
@@ -3275,6 +3294,111 @@ def _is_run_completed(
     return file_name in completed_runs
 
 
+def _record_should_be_retried(
+    record: dict[str, Any], *, retry_error: bool, retry_timedout: bool
+) -> bool:
+    """Whether a previously-saved run record should be re-run on resume.
+
+    Only ``has_error``/``timedout`` records are ever candidates for retry.
+    A deliberate negotiation ending (``broken``) or a plain no-agreement
+    outcome (``agreement is None`` with neither flag set) is never retried --
+    those are legitimate final states, not failures to recover from. Note in
+    particular that ``timedout=True`` is, by itself, *not* a fault: as
+    documented on :func:`failed_run_record`'s ``timed_out`` parameter, a
+    wall-clock timeout is treated throughout this codebase as a normal
+    bounded-negotiation outcome (the negotiators keep their reserved values),
+    which is exactly why retrying it is a separate opt-in
+    (``retry_timedout``) from retrying genuine errors (``retry_error``).
+    """
+    return (retry_error and bool(record.get("has_error", False))) or (
+        retry_timedout and bool(record.get("timedout", False))
+    )
+
+
+def _scan_existing_runs(
+    path: Path,
+    *,
+    retry_error: bool,
+    retry_timedout: bool,
+    python_class_identifier=PYTHON_CLASS_IDENTIFIER,
+) -> tuple[list[dict[str, Any]], list[dict[str, Any]], set[str], list[Path], int]:
+    """Single-pass scan of ``results/*.json`` for resuming a tournament.
+
+    Consolidates what ``_check_completed_runs``/``_load_existing_results``
+    would otherwise each glob separately into one pass, while additionally
+    identifying previously-failed/timed-out records that should be retried
+    (per ``retry_error``/``retry_timedout``, see
+    :func:`_record_should_be_retried`) instead of treated as permanently
+    done.
+
+    Returns:
+        ``(keep_records, keep_scores, completed_stems, retry_paths,
+        n_skipped_failures)`` where:
+
+        - ``keep_records``/``keep_scores``: existing results (and their
+          derived scores) to merge into the final tournament output, exactly
+          as ``_load_existing_results`` would produce for records that are
+          kept (not retried).
+        - ``completed_stems``: file stems (matching ``_check_completed_runs``)
+          for every record that counts as "done" and should not be re-run.
+        - ``retry_paths``: paths of result files selected for retry. These
+          are *not* included in ``keep_records``/``completed_stems`` -- the
+          caller is expected to delete them and let the corresponding runs
+          execute again.
+        - ``n_skipped_failures``: number of failed/timed-out records that
+          were kept (not retried) -- i.e. today's default behavior of
+          treating any existing result file as done, including failures.
+    """
+    results_dir = path / RESULTS_DIR_NAME
+    keep_records: list[dict[str, Any]] = []
+    keep_scores: list[dict[str, Any]] = []
+    completed_stems: set[str] = set()
+    retry_paths: list[Path] = []
+    n_skipped_failures = 0
+
+    if not results_dir.exists():
+        return (
+            keep_records,
+            keep_scores,
+            completed_stems,
+            retry_paths,
+            n_skipped_failures,
+        )
+
+    for result_file in results_dir.glob("*.json"):
+        try:
+            record = load(result_file)
+        except Exception:
+            # Skip corrupted or incomplete files (matches
+            # _check_completed_runs/_load_existing_results behavior).
+            continue
+        if not record or not isinstance(record, dict):
+            continue
+
+        if _record_should_be_retried(
+            record, retry_error=retry_error, retry_timedout=retry_timedout
+        ):
+            retry_paths.append(result_file)
+            continue
+
+        is_failure = bool(record.get("has_error", False)) or bool(
+            record.get("timedout", False)
+        )
+        if is_failure:
+            n_skipped_failures += 1
+
+        keep_records.append(record)
+        # Mirrors _load_existing_results, which does not pass
+        # raw_aggregated_metrics here (only the live-run path at the bottom
+        # of cartesian_tournament does); kept identical to avoid changing
+        # resume output for existing callers.
+        scored_indices = record.get("scored_indices")
+        keep_scores += make_scores(record, scored_indices=scored_indices)
+        completed_stems.add(result_file.stem)
+
+    return keep_records, keep_scores, completed_stems, retry_paths, n_skipped_failures
+
+
 def cartesian_tournament(
     competitors: list[type[Negotiator] | str] | tuple[type[Negotiator] | str, ...],
     scenarios: list[Scenario] | tuple[Scenario, ...],
@@ -3291,6 +3415,8 @@ def cartesian_tournament(
     n_repetitions: int = 1,
     path: Path | None = None,
     path_exists: Literal["continue", "overwrite", "fail"] = "continue",
+    retry_failed_on_resume: bool = False,
+    retry_timedout_on_resume: bool = False,
     njobs: int = 0,
     mechanism_type: type[Mechanism] = SAOMechanism,
     mechanism_params: dict[str, Any] | None = None,
@@ -3305,6 +3431,7 @@ def cartesian_tournament(
     process_isolation: bool | None = None,
     allow_inline_fallback: bool = True,
     max_tasks_per_worker: int | None = None,
+    executor: Literal["process", "thread"] = "process",
     # full_names: bool = True,
     plot_fraction: float = 0.0,
     plot_params: dict[str, Any] | None = None,
@@ -3382,9 +3509,30 @@ def cartesian_tournament(
         n_repetitions: Number of times to repeat each scenario/partner combination.
         path: Directory path to save tournament results. If None, results are not saved to disk.
         path_exists: Controls behavior when path already exists (default: "continue"):
-                 - "continue": Resume incomplete tournament by skipping completed negotiations
+                 - "continue": Resume incomplete tournament by skipping completed negotiations.
+                   A previously-failed negotiation (``has_error=True``) counts as completed
+                   (is NOT re-run) unless ``retry_failed_on_resume=True``; likewise a
+                   previously-timed-out negotiation (``timedout=True``) counts as completed
+                   unless ``retry_timedout_on_resume=True``.
                  - "overwrite": Delete existing tournament and start fresh
                  - "fail": Raise FileExistsError if tournament directory exists
+        retry_failed_on_resume: When resuming (``path_exists="continue"``), re-run
+              negotiations whose saved result has ``has_error=True`` instead of treating
+              them as permanently done. Defaults to ``False`` (opt-in): retrying requires
+              deleting the stale result file on disk, and a ``True`` default would silently
+              rewrite result files and change aggregate scores for existing callers the
+              first time they resume a tournament. Not persisted into the saved tournament
+              config (to avoid perturbing every run's stable ``run_id``/hash used for
+              resume file-naming -- see ``executor`` below for the same reasoning), so it
+              must be re-passed on every resume call where it is wanted.
+        retry_timedout_on_resume: Same as ``retry_failed_on_resume`` but for negotiations
+              whose saved result has ``timedout=True``. Kept as a separate flag because a
+              timeout is treated elsewhere in this codebase as a legitimate no-agreement
+              outcome, not a fault (see ``failed_run_record``'s ``timed_out`` parameter):
+              folding it into ``retry_failed_on_resume`` would mean a tournament containing
+              a genuinely slow/CPU-bound negotiator never converges on resume, since every
+              one of its timeouts would be retried (and likely time out again) forever.
+              Also not persisted into the saved config; must be re-passed on every resume.
         njobs: Parallelization level. -1 for serial execution (good for debugging),
               0 for all available cores, positive integer for specific number of processes.
         mechanism_type: The negotiation protocol/mechanism class to use (default: SAOMechanism).
@@ -3426,6 +3574,39 @@ def cartesian_tournament(
               spawn cost is amortized as roughly ``spawn_cost / max_tasks_per_worker``. Pass
               0 to reuse workers forever (fastest, but memory can grow without bound). Only
               affects process-isolated runs (parallel, or serial with external_timeout set).
+        executor: Which executor backs parallel/negotiation dispatch. ``"process"`` (default)
+              uses the process-pool path (``run_isolated_tasks``/serial in-process loop)
+              described above and is appropriate for CPU-bound negotiators. ``"thread"``
+              runs negotiations in a plain ``ThreadPoolExecutor`` instead, which is far
+              cheaper for I/O-bound negotiators (e.g. those making LLM API calls) since it
+              avoids per-task (de)serialization and process-spawn overhead. Trade-offs of
+              ``"thread"`` mode:
+
+              - **No hard timeout enforcement.** ``external_timeout`` is not enforced:
+                Python threads cannot be force-killed the way a worker process can, so a
+                hung negotiation cannot be terminated externally. Negotiators run this way
+                must implement their own client-side I/O timeout (e.g. on the LLM HTTP
+                client) -- this is the caller's responsibility, not this function's.
+              - **Non-daemon threads.** A truly hung negotiation blocks interpreter exit,
+                not just this tournament call.
+              - **``process_isolation`` is incompatible.** Thread mode never isolates
+                negotiations into separate processes, so ``process_isolation=True`` combined
+                with ``executor="thread"`` raises ``ValueError``.
+              - ``allow_inline_fallback``/``max_tasks_per_worker`` are ignored in thread mode
+                (there is no serialization step to fall back from, and no worker process to
+                recycle).
+              - **Callbacks run in-process and concurrently.** ``before_start_callback``,
+                ``neg_start_callback``, ``neg_progress_callback``, ``neg_end_callback``,
+                ``after_construction_callback``, ``after_end_callback`` and
+                ``progress_callback`` execute in this same process (unlike process mode,
+                where they run inside worker processes) and may be invoked concurrently by
+                different negotiation threads. They must be thread-safe if they touch shared
+                state.
+              - ``njobs`` semantics differ slightly from process mode: ``njobs > 0`` means
+                exactly that many threads (unclamped by core count -- I/O-bound work is not
+                limited by CPU cores), ``njobs == 0`` means
+                ``min(32, cpu_count() + 4)`` (the stdlib I/O-bound sizing heuristic), and
+                ``njobs < 0`` means serial in-process execution, same as today.
         plot_fraction: Fraction of negotiations to plot (0.0 to 1.0). Only used if path is provided.
         plot_params: Parameters passed to plotting functions.
         verbosity: Logging level (0 for silent, higher for more verbose).
@@ -3841,6 +4022,16 @@ def cartesian_tournament(
         else ([], dict())
     )
 
+    # NOTE: this ``config`` dict is embedded verbatim into every per-negotiation
+    # ``run_dict`` (see ``run_dict["run_id"] = hash_to_base64(stable_hash(str(
+    # serialize(run_dict, ...))))`` below) and thereby hashed into that run's
+    # stable ``run_id`` used for resume file-naming. Deliberately do NOT add
+    # ``executor`` (Phase C) or ``retry_failed_on_resume``/
+    # ``retry_timedout_on_resume`` (Phase D) here: doing so would change the
+    # run_id of every negotiation on every existing tournament directory the
+    # next time it's run, silently breaking resume for all current callers.
+    # These parameters are deliberately never persisted -- callers must
+    # re-pass them on every ``continue_cartesian_tournament``/resume call.
     config = dict(
         n_scenarios=len(scenarios),
         n_competitors=len(competitors),
@@ -3946,17 +4137,54 @@ def cartesian_tournament(
                 path_obj.mkdir(parents=True, exist_ok=True)
             elif path_exists == "continue":
                 # Load existing results from results/ folder for partial completion
-                # We'll check if it's complete after we know what runs we need
-                existing_results, existing_scores = _load_existing_results(
-                    path_obj, python_class_identifier
-                )
-                completed_runs = _check_completed_runs(
-                    path_obj, python_class_identifier
+                # We'll check if it's complete after we know what runs we need.
+                # A single pass also identifies previously-failed/timed-out
+                # records selected for retry (retry_failed_on_resume /
+                # retry_timedout_on_resume), replacing the two separate globs
+                # _load_existing_results/_check_completed_runs used to do.
+                (
+                    existing_results,
+                    existing_scores,
+                    completed_runs,
+                    retry_paths,
+                    n_skipped_failures,
+                ) = _scan_existing_runs(
+                    path_obj,
+                    retry_error=retry_failed_on_resume,
+                    retry_timedout=retry_timedout_on_resume,
+                    python_class_identifier=python_class_identifier,
                 )
 
                 if completed_runs and verbosity > 0:
                     print(
                         f"[yellow]Found {len(completed_runs)} completed negotiations.[/yellow]"
+                    )
+
+                if retry_paths:
+                    for retry_path in retry_paths:
+                        try:
+                            retry_path.unlink()
+                        except OSError as e:
+                            warn(
+                                f"Could not remove stale result file {retry_path} "
+                                f"to retry it: {e}. It may be re-run and left as a "
+                                "duplicate result."
+                            )
+                    if verbosity > 0:
+                        print(
+                            f"[yellow]Retrying {len(retry_paths)} previously-failed "
+                            "negotiations.[/yellow]"
+                        )
+                elif (
+                    n_skipped_failures > 0
+                    and not retry_failed_on_resume
+                    and not retry_timedout_on_resume
+                    and verbosity > 0
+                ):
+                    print(
+                        f"[yellow]{n_skipped_failures} previously-failed negotiations "
+                        "were skipped. Pass retry_failed_on_resume=True to re-run "
+                        "them.[/yellow]"
                     )
 
         # Create directory if it doesn't exist
@@ -4221,7 +4449,12 @@ def cartesian_tournament(
                         show=False,
                     )
 
-            # Prepare mechanism parameters
+            # Prepare mechanism parameters. NOTE: this dict is shared (by
+            # reference to its deep-copied contents) across every
+            # partners x n_repetitions call to ``_make_mechanism`` below for
+            # this scenario+rotation. ``_make_mechanism`` defensively copies
+            # it before mutating (see the comment there) specifically to
+            # keep this sharing safe under the thread-pool executor.
             mparams = copy.deepcopy(mechanism_params)
             mparams.update(
                 dict(
@@ -4429,12 +4662,41 @@ def cartesian_tournament(
     if isinf(timeout):
         timeout = None
 
+    # ``executor="thread"`` never isolates negotiations into separate processes,
+    # so an explicit request for process isolation is a contradiction. Validate
+    # this (and warn about the lack of timeout enforcement) before the
+    # process-isolation auto-detection below, which is only meaningful for
+    # ``executor="process"``.
+    if executor == "thread":
+        if process_isolation is True:
+            raise ValueError(
+                'process_isolation=True is incompatible with executor="thread": '
+                "thread mode never isolates negotiations into separate "
+                'processes. Use executor="process" (the default) for process '
+                "isolation, or leave process_isolation unset/False with "
+                'executor="thread".'
+            )
+        if timeout is not None:
+            from negmas import warnings as _warnings
+
+            _warnings.warn(
+                f'executor="thread" was selected but a per-negotiation timeout '
+                f"({timeout}s) was derived from external_timeout/the configured "
+                "time limits; external_timeout is not enforced in thread mode "
+                "(Python threads cannot be force-killed), so a hung negotiation "
+                "will not be terminated. Negotiators must enforce their own "
+                "client-side I/O timeout.",
+                _warnings.NegmasInfiniteNegotiationWarning,
+            )
+
     # Decide whether to run negotiations in isolated, killable worker processes.
     #
     # In-process execution preserves breakpoints, full tracebacks and unpicklable
     # local closures for debugging, but cannot stop a CPU-bound negotiator.
     # Process isolation (run_isolated_tasks) is what lets a finite timeout kill an
-    # infinite-looping agent so the tournament continues.
+    # infinite-looping agent so the tournament continues. This auto-detection is
+    # only used by the ``executor="process"`` path below; ``executor="thread"``
+    # branches on ``njobs`` directly (see the dispatch section).
     #
     # ``process_isolation`` overrides the choice explicitly:
     #   - None (default): auto -- isolate whenever a finite timeout must be
@@ -4458,7 +4720,16 @@ def cartesian_tournament(
             "with process_isolation=None) for a hard guarantee.",
             _warnings.NegmasInfiniteNegotiationWarning,
         )
-    if not use_isolation:
+    # ``executor="process"`` (default) keeps the existing process_isolation
+    # auto-detection (``use_isolation``); ``executor="thread"`` branches on
+    # ``njobs`` directly since thread mode has no isolation concept -- only
+    # ``njobs < 0`` means "serial in-process", same wording as the process
+    # path's njobs<0-and-no-timeout auto-detection above.
+    run_serially = (executor == "thread" and njobs < 0) or (
+        executor == "process" and not use_isolation
+    )
+
+    if run_serially:
         for i, info in enumerate(
             track(runs, total=len(runs), description=NEGOTIATIONS_DIR_NAME)
         ):
@@ -4478,10 +4749,9 @@ def cartesian_tournament(
             )
 
     else:
-        if timeout is not None and verbosity > 0:
+        if executor == "process" and timeout is not None and verbosity > 0:
             print(f"[magenta]Will use {timeout} as a per-negotiation timeout[/magenta]")
 
-        cpus = resolve_cpus(njobs)
         recycle_after = (
             max_tasks_per_worker
             if max_tasks_per_worker is not None
@@ -4559,18 +4829,33 @@ def cartesian_tournament(
                 print(exc)
             _record_failure(info, "errored", error=str(exc))
 
-        run_isolated_tasks(
-            _build_tasks(),
-            max_workers=cpus,
-            timeout=timeout,
-            max_tasks=recycle_after,
-            on_result=_on_result,
-            on_timeout=_on_timeout,
-            on_error=_on_error,
-            track=track,
-            description=NEGOTIATIONS_DIR_NAME,
-            allow_inline_fallback=allow_inline_fallback,
-        )
+        if executor == "process":
+            cpus = resolve_cpus(njobs)
+            run_isolated_tasks(
+                _build_tasks(),
+                max_workers=cpus,
+                timeout=timeout,
+                max_tasks=recycle_after,
+                on_result=_on_result,
+                on_timeout=_on_timeout,
+                on_error=_on_error,
+                track=track,
+                description=NEGOTIATIONS_DIR_NAME,
+                allow_inline_fallback=allow_inline_fallback,
+            )
+        else:
+            # executor == "thread" and njobs >= 0: no per-task timeout, no
+            # process isolation, no inline-fallback/recycling concept -- see
+            # run_threaded_tasks' docstring for the exact guarantees given up.
+            thread_workers = resolve_workers(njobs, clamp_to_cores=False)
+            run_threaded_tasks(
+                _build_tasks(),
+                max_workers=thread_workers,
+                on_result=_on_result,
+                on_error=_on_error,
+                track=track,
+                description=NEGOTIATIONS_DIR_NAME,
+            )
 
     # Merge with existing results if continuing a tournament
     if existing_results:
@@ -4662,6 +4947,9 @@ def continue_cartesian_tournament(
     path: Path | str,
     verbosity: int | None = None,
     njobs: int | None = None,
+    executor: Literal["process", "thread"] | None = None,
+    retry_failed_on_resume: bool = False,
+    retry_timedout_on_resume: bool = False,
     before_start_callback: BeforeStartCallback | None = None,
     progress_callback: ProgressCallback | None = None,
     neg_start_callback: NegStartCallback | None = None,
@@ -4683,6 +4971,19 @@ def continue_cartesian_tournament(
         path: Directory path containing the tournament (must have config.yaml and scenarios/)
         verbosity: Optional verbosity level to override the one in config.yaml
         njobs: Optional parallelization level to override the one in config.yaml
+        executor: Optional executor backend ("process" or "thread"). Unlike other
+              overrides here, there is no stored config value to fall back to --
+              ``executor`` is deliberately never persisted into config.yaml (see
+              ``cartesian_tournament``'s docstring), so it defaults to ``"process"``
+              when not given, and must be re-passed explicitly to resume in thread
+              mode.
+        retry_failed_on_resume: Re-run previously-failed (``has_error=True``)
+              negotiations instead of treating them as done. Like ``executor``,
+              never persisted into config.yaml, so it must be re-passed on every
+              call where retrying is wanted; defaults to ``False``.
+        retry_timedout_on_resume: Re-run previously-timed-out (``timedout=True``)
+              negotiations instead of treating them as done. Same non-persistence
+              caveat as ``retry_failed_on_resume``.
         before_start_callback: Called before each negotiation run starts with RunInfo.
         progress_callback: Called periodically during tournament execution with progress info.
         neg_start_callback: Called when a negotiation starts with (run_id, initial_state).
@@ -4826,6 +5127,10 @@ def continue_cartesian_tournament(
             verbosity if verbosity is not None else config.get("verbosity", 1)
         )
         final_njobs = njobs if njobs is not None else config.get("njobs", 0)
+        # No config fallback for executor: it is deliberately never persisted
+        # (see cartesian_tournament's config-dict comment), so it always
+        # defaults to "process" unless explicitly re-passed here.
+        final_executor = executor or "process"
 
         # Call cartesian_tournament with path_exists="continue"
         # Use config values directly; only provide defaults for truly optional parameters
@@ -4843,7 +5148,10 @@ def continue_cartesian_tournament(
             n_repetitions=config["n_repetitions"],
             path=path,
             path_exists="continue",
+            retry_failed_on_resume=retry_failed_on_resume,
+            retry_timedout_on_resume=retry_timedout_on_resume,
             njobs=final_njobs,
+            executor=final_executor,
             mechanism_type=get_class(config["mechanism_type"]),
             mechanism_params=config.get("mechanism_params"),
             n_steps=config["n_steps"],

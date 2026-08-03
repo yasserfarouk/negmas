@@ -15,7 +15,7 @@ import signal
 import sys
 import time
 from concurrent import futures
-from concurrent.futures import FIRST_COMPLETED, ProcessPoolExecutor
+from concurrent.futures import FIRST_COMPLETED, ProcessPoolExecutor, ThreadPoolExecutor
 from concurrent.futures import TimeoutError as FuturesTimeoutError
 from concurrent.futures import wait as futures_wait
 from concurrent.futures.process import BrokenProcessPool
@@ -28,12 +28,14 @@ __all__ = [
     "TERMINATION_WAIT_TIME",
     "DEFAULT_MAX_TASKS_PER_WORKER",
     "resolve_cpus",
+    "resolve_workers",
     "parse_parallelism",
     "make_process_executor",
     "kill_future_process",
     "run_parallel_tasks",
     "run_serial_tasks",
     "run_isolated_tasks",
+    "run_threaded_tasks",
 ]
 
 MAX_TASKS_PER_CHILD: int | None = None
@@ -50,22 +52,48 @@ def _n_cores(default: int = 4) -> int:
     return n if n else default
 
 
-def resolve_cpus(njobs: int | None) -> int:
+def resolve_workers(njobs: int | None, *, clamp_to_cores: bool = True) -> int:
     """Convert an ``njobs`` value to a concrete worker count.
 
-    Semantics match the existing call sites in ``cartesian.py``:
+    When ``clamp_to_cores`` is ``True`` (the process-pool case, matching the
+    existing call sites in ``cartesian.py``):
 
     - ``njobs is None`` or ``njobs == 0`` -> use all available cores
     - ``njobs > 0`` -> ``min(cpu_count(), njobs)``
     - ``njobs < 0`` -> caller is expected to branch to serial; we still
       return ``1`` so the value is safe to feed to an executor.
+
+    When ``clamp_to_cores`` is ``False`` (the thread-pool case: I/O-bound
+    negotiators, e.g. LLM API calls, are not limited by core count):
+
+    - ``njobs > 0`` -> exactly ``njobs`` threads, unclamped
+    - ``njobs is None`` or ``njobs == 0`` -> ``min(32, cpu_count() + 4)``,
+      the stdlib ``ThreadPoolExecutor`` default sizing heuristic for I/O-bound
+      work
+    - ``njobs < 0`` -> caller is expected to branch to serial; we still
+      return ``1``
     """
     n_cores = _n_cores()
+    if clamp_to_cores:
+        if njobs is None or njobs == 0:
+            return n_cores
+        if njobs < 0:
+            return 1
+        return min(n_cores, njobs)
     if njobs is None or njobs == 0:
-        return n_cores
+        return min(32, n_cores + 4)
     if njobs < 0:
         return 1
-    return min(n_cores, njobs)
+    return njobs
+
+
+def resolve_cpus(njobs: int | None) -> int:
+    """Convert an ``njobs`` value to a concrete worker count (process pool).
+
+    Thin wrapper over :func:`resolve_workers` with ``clamp_to_cores=True``,
+    kept for backwards compatibility with existing call sites.
+    """
+    return resolve_workers(njobs, clamp_to_cores=True)
 
 
 def parse_parallelism(method: str) -> tuple[str, int | None]:
@@ -524,6 +552,125 @@ def run_isolated_tasks(
                     if on_result is not None:
                         on_result(info, result, i, n)
                 yield
+
+    if track is not None:
+        for _ in track(_drive(), total=n, description=description):
+            pass
+    else:
+        for _ in _drive():
+            pass
+    return n
+
+
+def run_threaded_tasks(
+    tasks: Iterable[tuple[Any, Callable[..., Any], tuple, dict]],
+    *,
+    max_workers: int,
+    total_timeout: float | None = None,
+    window: int | None = None,
+    on_result: Callable[[Any, Any, int, int], None] | None = None,
+    on_error: Callable[[BaseException, Any, int, int], None] | None = None,
+    track: Callable[..., Iterable] | None = None,
+    description: str = "Running",
+) -> int:
+    """Run ``tasks`` in a thread pool, for I/O-bound work (e.g. LLM API calls).
+
+    Each task is ``(info, fn, args, kwargs)`` where ``info`` is opaque metadata
+    round-tripped to the callbacks, exactly as in :func:`run_isolated_tasks` --
+    ``on_result``/``on_error`` have the *same signatures* so callers (e.g.
+    ``cartesian_tournament``) can reuse their existing ``_on_result``/
+    ``_on_error`` closures verbatim.
+
+    Unlike :func:`run_isolated_tasks`, this driver uses a plain
+    ``concurrent.futures.ThreadPoolExecutor`` and offers no process isolation.
+    Important caveats:
+
+    - **No per-task timeout is enforced.** There is intentionally no
+      ``on_timeout``/``timeout`` parameter. Python threads cannot be
+      force-killed, so a hung task cannot be terminated the way
+      :func:`run_isolated_tasks` terminates a hung worker process. Negotiators
+      run this way must enforce their own client-side I/O timeouts (e.g. on
+      the LLM HTTP client).
+    - **Threads are non-daemon.** A truly hung task blocks interpreter exit,
+      not just this tournament run.
+    - **``total_timeout`` does not cancel running work.** Once exceeded, no
+      *new* tasks are submitted, but futures already running are left to
+      finish (or hang) on their own; they are not cancelled.
+    - **Callbacks run serially in the driver thread** (the thread iterating
+      ``as_completed``), never from a worker thread, so they need not be
+      thread-safe with respect to each other -- but they may run concurrently
+      with the negotiations backing *other, still-running* futures, so any
+      state they touch that is also touched by the tasks themselves must be
+      thread-safe.
+
+    A bounded sliding window (default ``max(2, 2 * max_workers)``) is used so
+    that a tournament with many thousands of tasks does not submit them all to
+    the executor instantly.
+
+    Returns the number of tasks submitted (matching :func:`run_isolated_tasks`'s
+    return convention).
+    """
+    materialized = list(tasks)
+    n = len(materialized)
+    if n == 0:
+        return 0
+    if max_workers is None or max_workers < 1:
+        max_workers = 1
+    if window is None:
+        window = max(2, max_workers * 2)
+    if total_timeout is not None and (isinf(total_timeout) or total_timeout <= 0):
+        total_timeout = None
+
+    def _drive():
+        task_iter = iter(enumerate(materialized))
+        inflight: dict[futures.Future, tuple[int, Any]] = {}
+
+        with ThreadPoolExecutor(
+            max_workers=max_workers, thread_name_prefix="negmas-neg"
+        ) as pool:
+
+            def submit_next() -> bool:
+                try:
+                    i, (info, fn, args, kwargs) = next(task_iter)
+                except StopIteration:
+                    return False
+                future = pool.submit(fn, *args, **kwargs)
+                inflight[future] = (i, info)
+                return True
+
+            for _ in range(window):
+                if not submit_next():
+                    break
+
+            start = time.perf_counter()
+
+            def _budget_exceeded() -> bool:
+                return (
+                    total_timeout is not None
+                    and time.perf_counter() - start > total_timeout
+                )
+
+            while inflight:
+                done, _ = futures_wait(
+                    list(inflight.keys()), return_when=FIRST_COMPLETED
+                )
+                for future in done:
+                    i, info = inflight.pop(future)
+                    try:
+                        result = future.result()
+                    except Exception as e:  # noqa: BLE001 - surface to callback
+                        if on_error is not None:
+                            on_error(e, info, i, n)
+                    else:
+                        if on_result is not None:
+                            on_result(info, result, i, n)
+                    yield
+                    # Re-check the budget right before deciding to submit more
+                    # work, not once per outer loop iteration: a long
+                    # ``futures_wait`` can itself exceed ``total_timeout``, and
+                    # we must not submit new tasks once that happens.
+                    if not _budget_exceeded():
+                        submit_next()
 
     if track is not None:
         for _ in track(_drive(), total=n, description=description):

@@ -2,8 +2,8 @@
 
 from __future__ import annotations
 
-import os
 import sys
+import threading
 import time
 from concurrent.futures import ProcessPoolExecutor
 from multiprocessing import cpu_count
@@ -16,8 +16,10 @@ from negmas.helpers.parallel import (
     make_process_executor,
     parse_parallelism,
     resolve_cpus,
+    resolve_workers,
     run_parallel_tasks,
     run_serial_tasks,
+    run_threaded_tasks,
 )
 
 
@@ -68,6 +70,32 @@ def test_resolve_cpus_positive_capped_at_cpu_count():
 def test_resolve_cpus_negative_returns_one():
     # callers branch to serial before calling, but the value must still be safe
     assert resolve_cpus(-1) == 1
+
+
+# -- resolve_workers --
+
+
+def test_resolve_workers_clamped_matches_resolve_cpus():
+    # resolve_cpus is now a thin wrapper; behavior must be identical.
+    n = cpu_count() or 4
+    for njobs in (None, 0, 1, n * 10, -1):
+        assert resolve_workers(njobs, clamp_to_cores=True) == resolve_cpus(njobs)
+
+
+def test_resolve_workers_unclamped_positive_ignores_cpu_count():
+    # 64 threads for I/O-bound work is fine even with far fewer cores.
+    assert resolve_workers(64, clamp_to_cores=False) == 64
+
+
+def test_resolve_workers_unclamped_zero_or_none_uses_io_heuristic():
+    n = cpu_count() or 4
+    expected = min(32, n + 4)
+    assert resolve_workers(None, clamp_to_cores=False) == expected
+    assert resolve_workers(0, clamp_to_cores=False) == expected
+
+
+def test_resolve_workers_unclamped_negative_returns_one():
+    assert resolve_workers(-1, clamp_to_cores=False) == 1
 
 
 # -- parse_parallelism --
@@ -177,9 +205,7 @@ def test_run_serial_tasks_respects_total_timeout():
     results = []
     t0 = time.perf_counter()
     run_serial_tasks(
-        tasks,
-        on_result=lambda info, res, i, n: results.append(info),
-        total_timeout=0.5,
+        tasks, on_result=lambda info, res, i, n: results.append(info), total_timeout=0.5
     )
     elapsed = time.perf_counter() - t0
     # we should have stopped well before all 10 finished (~2s)
@@ -227,10 +253,7 @@ def test_run_parallel_tasks_routes_timeout_to_on_timeout():
     # ``f.result(timeout=X)`` never triggers ``TimeoutError`` in the normal
     # path. To exercise the on_timeout branch we feed the helper an
     # ``as_completed`` shim that yields the futures *before* they finish.
-    tasks = [
-        ("fast", _add, (1, 1), {}),
-        ("slow", _slow_for_timeout, (), {}),
-    ]
+    tasks = [("fast", _add, (1, 1), {}), ("slow", _slow_for_timeout, (), {})]
 
     def yield_immediately(fs):
         # yield in submit order, not completion order
@@ -281,12 +304,7 @@ def test_run_parallel_tasks_track_wrapper_is_called():
         return iterator
 
     with make_process_executor(max_workers=1) as pool:
-        run_parallel_tasks(
-            tasks,
-            executor=pool,
-            track=fake_track,
-            description="hello",
-        )
+        run_parallel_tasks(tasks, executor=pool, track=fake_track, description="hello")
     assert seen_total == [(3, "hello")]
 
 
@@ -303,3 +321,107 @@ def test_run_parallel_tasks_respects_total_timeout():
             on_result=lambda info, res, i, n: results.append(info),
         )
     assert len(results) < 16
+
+
+# -- run_threaded_tasks --
+
+
+def test_run_threaded_tasks_collects_results_in_order():
+    tasks = [(i, _add, (i, 10), {}) for i in range(8)]
+    results = {}
+    n = run_threaded_tasks(
+        tasks,
+        max_workers=3,
+        on_result=lambda info, res, i, total: results.update({info: res}),
+    )
+    assert n == 8
+    assert results == {i: i + 10 for i in range(8)}
+
+
+def test_run_threaded_tasks_routes_errors_to_on_error():
+    tasks = [
+        ("ok1", _add, (1, 1), {}),
+        ("bad", _raise, ("kaboom",), {}),
+        ("ok2", _add, (2, 2), {}),
+    ]
+    oks = {}
+    errs = {}
+    run_threaded_tasks(
+        tasks,
+        max_workers=2,
+        on_result=lambda info, res, i, n: oks.update({info: res}),
+        on_error=lambda exc, info, i, n: errs.update({info: type(exc).__name__}),
+    )
+    assert oks == {"ok1": 2, "ok2": 4}
+    assert errs == {"bad": "RuntimeError"}
+
+
+def test_run_threaded_tasks_respects_max_workers_concurrency():
+    max_workers = 3
+    lock = threading.Lock()
+    state = {"current": 0, "peak": 0}
+
+    def _track_concurrency(seconds):
+        with lock:
+            state["current"] += 1
+            state["peak"] = max(state["peak"], state["current"])
+        time.sleep(seconds)
+        with lock:
+            state["current"] -= 1
+        return True
+
+    tasks = [(i, _track_concurrency, (0.05,), {}) for i in range(12)]
+    results = []
+    run_threaded_tasks(
+        tasks,
+        max_workers=max_workers,
+        on_result=lambda info, res, i, n: results.append(info),
+    )
+    assert len(results) == 12
+    assert state["peak"] <= max_workers
+
+
+def test_run_threaded_tasks_total_timeout_stops_new_submissions():
+    # More tasks than the default sliding window (max(2, 2*max_workers)) so
+    # that total_timeout has a chance to stop submission of later tasks;
+    # already-running futures still complete.
+    max_workers = 2
+    tasks = [(i, _sleep_then_return, (0.2, i), {}) for i in range(20)]
+    results = []
+    t0 = time.perf_counter()
+    run_threaded_tasks(
+        tasks,
+        max_workers=max_workers,
+        total_timeout=0.25,
+        on_result=lambda info, res, i, n: results.append(info),
+    )
+    elapsed = time.perf_counter() - t0
+    # We should stop well before all 20 tasks (~2s serialized across 2
+    # workers) run; already-running futures at the timeout boundary are
+    # still allowed to finish (not cancelled).
+    assert elapsed < 2.0
+    assert len(results) < 20
+
+
+def test_run_threaded_tasks_supports_unpicklable_payload():
+    # A closure/lock-bearing object cannot be pickled for a process pool, but
+    # a thread pool needs no serialization at all.
+    lock = threading.Lock()
+
+    class _HoldsLock:
+        def __init__(self, lock):
+            self.lock = lock
+
+        def __call__(self, value):
+            with self.lock:
+                return value * 2
+
+    holder = _HoldsLock(lock)
+    tasks = [(i, holder, (i,), {}) for i in range(4)]
+    results = {}
+    run_threaded_tasks(
+        tasks,
+        max_workers=2,
+        on_result=lambda info, res, i, n: results.update({info: res}),
+    )
+    assert results == {i: i * 2 for i in range(4)}
