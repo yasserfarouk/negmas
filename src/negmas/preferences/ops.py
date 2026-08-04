@@ -827,6 +827,28 @@ class NegotiatorMetrics:
       conceding, as the fraction of its own offers before the first whose
       utility dropped below ``s[0]``; ``1.0`` if it never dropped
       (bilateraltrade2026).
+    - ``first_offer_utility``: ``index``'s own utility of its first own offer,
+      ``s[0]``; on a normalized ``[0, 1]`` scale, values near ``1.0`` mean it
+      opened by demanding nearly everything for itself.
+    - ``monotonic_concession``: fraction of consecutive own-offer steps that
+      are non-increasing in own utility (``s[t + 1] <= s[t] + eps``), i.e. how
+      consistently ``index`` conceded rather than oscillated; ``nan`` when it
+      made fewer than two own offers (no step to evaluate).
+
+    Offer coverage (trace-based; needs ``trace_offers``/``outcome_space``, in
+    addition to an offer trace):
+
+    - ``relative_n_offers``: number of ``index``'s own offers, relative to the
+      size of the outcome space -- ``len(own_offers) / |outcome_space|``.
+      ``nan`` when the outcome space's cardinality is unavailable or infinite.
+    - ``outcome_space_exploration``: fraction of the outcome space ``index``
+      touched via *unique* own offers -- ``|unique(own_offers)| /
+      |outcome_space|``. ``nan`` under the same conditions as
+      ``relative_n_offers``, or without ``trace_offers``.
+    - ``offer_variability``: fraction of ``index``'s own offers that were
+      distinct outcomes -- ``|unique(own_offers)| / len(own_offers)``; ``1.0``
+      means it never repeated an offer, values near ``0`` mean it kept
+      re-submitting the same few outcomes. ``nan`` without ``trace_offers``.
 
     Strategic coupling (trace-based; ``nan`` without a trace or fewer than two
     own offers):
@@ -883,6 +905,11 @@ class NegotiatorMetrics:
     concession_rate: float = float("nan")
     total_concession: float = float("nan")
     temporal_patience: float = float("nan")
+    first_offer_utility: float = float("nan")
+    monotonic_concession: float = float("nan")
+    relative_n_offers: float = float("nan")
+    outcome_space_exploration: float = float("nan")
+    offer_variability: float = float("nan")
     own_gain: float = float("nan")
     copling_raio: float = float("nan")  # coupling ratio (spelling kept for compat)
     concession_toward_counterparty: float = float("nan")
@@ -1287,6 +1314,7 @@ def calc_negotiator_metrics(
         k = len(s)
         total_concession = s[0] - s[-1]
         concession_rate = (s[0] - s[-1]) / max(k - 1, 1)
+        first_offer_utility = s[0]
         argfirst = k
         for t in range(k):
             if s[t] < s[0] - eps:
@@ -1297,6 +1325,48 @@ def calc_negotiator_metrics(
         total_concession = nan
         concession_rate = nan
         temporal_patience = nan
+        first_offer_utility = nan
+
+    if has_trace and len(own_self) >= 2:
+        n_nonincreasing = sum(
+            1 for t in range(len(own_self) - 1) if own_self[t + 1] <= own_self[t] + eps
+        )
+        monotonic_concession = n_nonincreasing / (len(own_self) - 1)
+    else:
+        monotonic_concession = nan
+
+    # --- offer coverage (own offers vs. the outcome space) ------------------
+    cardinality: float | None = None
+    if outcome_space is not None:
+        try:
+            card = outcome_space.cardinality
+            if card is not None and card > 0 and not math.isinf(card):
+                cardinality = float(card)
+        except Exception:  # noqa: BLE001 - unavailable cardinality stays nan below
+            cardinality = None
+
+    if has_trace and len(own_indices) > 0 and cardinality is not None:
+        relative_n_offers = len(own_indices) / cardinality
+    else:
+        relative_n_offers = nan
+
+    own_offer_outcomes: list[Outcome] = []
+    if has_trace and trace_offers is not None and len(own_indices) > 0:
+        own_offer_outcomes = [
+            trace_offers[t]
+            for t in own_indices
+            if t < len(trace_offers) and trace_offers[t] is not None
+        ]
+
+    if own_offer_outcomes:
+        n_unique = len({o for o in own_offer_outcomes})
+        offer_variability = n_unique / len(own_offer_outcomes)
+        outcome_space_exploration = (
+            n_unique / cardinality if cardinality is not None else nan
+        )
+    else:
+        offer_variability = nan
+        outcome_space_exploration = nan
 
     # --- strategic coupling (own offers vs primary partner) ----------------
     if has_trace and len(own_self) >= 2 and others:
@@ -1421,6 +1491,11 @@ def calc_negotiator_metrics(
         concession_rate=concession_rate,
         total_concession=total_concession,
         temporal_patience=temporal_patience,
+        first_offer_utility=first_offer_utility,
+        monotonic_concession=monotonic_concession,
+        relative_n_offers=relative_n_offers,
+        outcome_space_exploration=outcome_space_exploration,
+        offer_variability=offer_variability,
         own_gain=own_gain,
         copling_raio=coupling_ratio,
         concession_toward_counterparty=concession_toward_counterparty,

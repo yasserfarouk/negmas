@@ -158,5 +158,87 @@ def test_negotiator_opp_model_and_valid_offer_fraction_with_outcomes():
     assert _isclose(m.valid_offer_fraction, 1.0)
 
 
+def test_negotiator_first_offer_utility_and_monotonic_concession():
+    # Own offers of party 0 (round-robin indices 0, 2, 4): self-utility
+    # [1.0, 0.8, 0.6] -- monotonically conceding.
+    trace = [(1.0, 0.0), (0.9, 0.1), (0.8, 0.2), (0.7, 0.3), (0.6, 0.4)]
+    m = calc_negotiator_metrics(trace, (0.6, 0.4), (0.0, 0.0), index=0)
+    assert _isclose(m.first_offer_utility, 1.0)
+    assert _isclose(m.monotonic_concession, 1.0)
+
+    # A non-monotonic own trace (own utility goes up then down).
+    trace_up_down = [(0.5, 0.5), (0.6, 0.4), (0.4, 0.6), (0.7, 0.3)]
+    m2 = calc_negotiator_metrics(trace_up_down, (0.7, 0.3), (0.0, 0.0), index=0)
+    # own offers at indices 0, 2: self-utility [0.5, 0.4] -- 1 non-increasing
+    # step out of 1.
+    assert _isclose(m2.first_offer_utility, 0.5)
+    assert _isclose(m2.monotonic_concession, 1.0)
+
+    # A single own offer has no step to evaluate.
+    m3 = calc_negotiator_metrics(
+        [(1.0, 0.0)], (1.0, 0.0), (0.0, 0.0), index=0, trace_parties=[0]
+    )
+    assert _isclose(m3.first_offer_utility, 1.0)
+    assert math.isnan(m3.monotonic_concession)
+
+
+def test_negotiator_first_offer_utility_and_monotonic_concession_without_trace():
+    m = calc_negotiator_metrics((), (0.6, 0.4), (0.0, 0.0), index=0)
+    assert math.isnan(m.first_offer_utility)
+    assert math.isnan(m.monotonic_concession)
+
+
+def test_negotiator_offer_coverage_needs_outcome_space():
+    issues = [make_issue([0, 1, 2, 3, 4], "price"), make_issue([0, 1, 2], "quality")]
+    os_ = make_os(issues, name="os")  # cardinality 15
+    u0 = LinearAdditiveUtilityFunction(
+        {"price": lambda x: x / 4.0, "quality": lambda x: x / 2.0},
+        issues=issues,
+        reserved_value=0.0,
+        name="u0",
+    )
+    u1 = LinearAdditiveUtilityFunction(
+        {"price": lambda x: 1 - x / 4.0, "quality": lambda x: x / 2.0},
+        issues=issues,
+        reserved_value=0.0,
+        name="u1",
+    )
+    # Party 0's own offers (round-robin indices 0, 2) repeat the same outcome.
+    offers = [(0, 2), (0, 2), (0, 2), (2, 2)]
+    trace_utils = tuple((float(u0(o)), float(u1(o))) for o in offers)
+    agreement_utils = (float(u0(offers[-1])), float(u1(offers[-1])))
+
+    m = calc_negotiator_metrics(
+        trace_utils,
+        agreement_utils,
+        (0.0, 0.0),
+        index=0,
+        trace_offers=offers,
+        outcome_space=os_,
+    )
+    assert _isclose(m.relative_n_offers, 2 / 15)
+    assert _isclose(m.offer_variability, 0.5)  # 1 unique out of 2 own offers
+    assert _isclose(m.outcome_space_exploration, 1 / 15)  # 1 unique / 15 outcomes
+
+    # Without an outcome space, the space-relative metrics are undefined.
+    m_no_os = calc_negotiator_metrics(
+        trace_utils, agreement_utils, (0.0, 0.0), index=0, trace_offers=offers
+    )
+    assert math.isnan(m_no_os.relative_n_offers)
+    assert math.isnan(m_no_os.outcome_space_exploration)
+    # offer_variability only needs the offers themselves, not the outcome space.
+    assert _isclose(m_no_os.offer_variability, 0.5)
+
+    # Without trace_offers, the offer *identity* metrics are undefined, but
+    # relative_n_offers only needs the own-offer count and the outcome
+    # space's cardinality -- neither requires knowing the offers themselves.
+    m_no_offers = calc_negotiator_metrics(
+        trace_utils, agreement_utils, (0.0, 0.0), index=0, outcome_space=os_
+    )
+    assert _isclose(m_no_offers.relative_n_offers, 2 / 15)
+    assert math.isnan(m_no_offers.offer_variability)
+    assert math.isnan(m_no_offers.outcome_space_exploration)
+
+
 if __name__ == "__main__":
     pytest.main([__file__, "-x", "-q"])
