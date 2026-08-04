@@ -806,6 +806,14 @@ class NegotiatorMetrics:
       reservation value (an individually-irrational acceptance, the
       ``ir_violation`` of bilateraltrade2026), else ``1.0``. Walking away is
       always rational.
+    - ``exploited``: ``1.0`` if ``index``'s ``rationality`` is ``0.0`` (it
+      accepted an individually-irrational deal) *and* at least one other
+      party realised strictly more than its own reservation value (someone
+      else profited from that irrational acceptance), else ``0.0``.
+    - ``rational_agreement``: ``1.0`` if an agreement was reached and *every*
+      party (not just ``index``) realised at least its reservation value,
+      else ``0.0`` (bilateraltrade2026 Def. 4). Identical for every party of
+      the same negotiation.
 
     Win/loss:
 
@@ -901,6 +909,8 @@ class NegotiatorMetrics:
     opponent_advantage_agreed: float = float("nan")
     surplus_share: float = float("nan")
     rationality: float = float("nan")  # 0 if accepting an irrational offer otherwise 1
+    exploited: float = float("nan")  # 1 if a partner profited from index's IR violation
+    rational_agreement: float = float("nan")  # 1 if agreement rational for everyone
     dominance: float = float("nan")  # 1 if won, 0 for tie and -1 for loss
     concession_rate: float = float("nan")
     total_concession: float = float("nan")
@@ -1472,6 +1482,22 @@ def calc_negotiator_metrics(
     else:
         rationality = 1.0
 
+    # ``exploited``: index accepted an irrational deal (rationality == 0) while
+    # some other party did strictly better than its own reservation value.
+    exploited = (
+        1.0
+        if rationality == 0.0
+        and any(float(realised[j]) > rvals[j] + 1e-12 for j in others)
+        else 0.0
+    )
+    # ``rational_agreement``: an agreement was reached and every party (not
+    # just ``index``) realised at least its reservation value.
+    rational_agreement = (
+        1.0
+        if agreement and all(float(realised[j]) >= rvals[j] - 1e-12 for j in range(n))
+        else 0.0
+    )
+
     # --- inequality gaps ---------------------------------------------------
     # (utility_gap / advantage_gap are negotiator-independent session metrics
     # and live in SessionMetrics, not here.)
@@ -1501,6 +1527,8 @@ def calc_negotiator_metrics(
         concession_toward_counterparty=concession_toward_counterparty,
         dominance=dominance,
         rationality=rationality,
+        exploited=exploited,
+        rational_agreement=rational_agreement,
         valid_offer_fraction=valid_offer_fraction,
         produced_any_offers=produced_any_offers,
         opp_kendall_optimality=opp_kendall_optimality,

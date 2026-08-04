@@ -81,6 +81,36 @@ def test_negotiator_irrational_acceptance_and_no_ranges():
     assert m.rationality == 0.0  # 0.05 < 0.3 reservation
     # advantage without ranges -> raw surplus 0.05 - 0.3 = -0.25
     assert _isclose(m.advantage, -0.25)
+    # party 1 realised 0.95 > its own 0.0 reservation -> profited from it.
+    assert m.exploited == 1.0
+    assert m.rational_agreement == 0.0  # party 0's deal was irrational
+
+
+def test_negotiator_exploited_needs_a_profiting_partner():
+    # Party 0 accepts irrationally, but party 1 also ends up below its own
+    # reservation value (no one profited) -> not "exploited".
+    m = calc_negotiator_metrics((), (0.05, -0.2), (0.3, -0.1), index=0)
+    assert m.rationality == 0.0
+    assert m.exploited == 0.0
+    assert m.rational_agreement == 0.0
+
+
+def test_negotiator_rational_agreement_true_for_every_party():
+    m0 = calc_negotiator_metrics((), (0.6, 0.4), (0.0, 0.0), index=0)
+    m1 = calc_negotiator_metrics((), (0.6, 0.4), (0.0, 0.0), index=1)
+    assert m0.rational_agreement == 1.0
+    assert m1.rational_agreement == 1.0  # identical for every party
+    assert m0.exploited == 0.0
+    assert m1.exploited == 0.0
+
+
+def test_negotiator_rational_agreement_false_without_agreement():
+    # Walking away is always individually rational, but there is no
+    # "agreement rational for everyone" without an agreement.
+    m = calc_negotiator_metrics((), None, (0.2, 0.1), index=0)
+    assert m.rationality == 1.0
+    assert m.rational_agreement == 0.0
+    assert m.exploited == 0.0
 
 
 def test_negotiator_trace_parties_override_attribution():

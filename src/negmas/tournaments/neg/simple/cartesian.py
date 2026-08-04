@@ -524,6 +524,8 @@ NEGOTIATOR_METRIC_COLS = (
     "opponent_advantage_agreed",
     "surplus_share",
     "rationality",
+    "exploited",
+    "rational_agreement",
     "dominance",
     "concession_rate",
     "total_concession",
