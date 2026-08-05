@@ -6,6 +6,43 @@ Release 0.16.0 (dev)
 
 **Changes:**
 
+* [tournaments] Added ``negmas.tournaments.analysis``, a new post-tournament
+  game-theoretic and statistical analysis package (AI-assisted; see the
+  README's "AI Assistance Disclosure"):
+
+  - Loaders (``load_records``/``records_from_simple_results``/``records_from_path``/
+    ``records_from_situated``) convert a tournament result -- in memory
+    (``SimpleTournamentResults`` from ``cartesian_tournament``, or a situated
+    ``TournamentResults``), on disk, or an already-normalized DataFrame --
+    into one common long-format record table. The situated adapter only
+    decomposes worlds whose number of *competitor* agent types (excluding
+    ``non_competitors``, per the tournament's ``n_competitors_per_world``) is
+    exactly 2; other worlds are skipped with a warning since a pairwise
+    payoff matrix is not well defined for them.
+  - ``payoff.build_payoff_table``/``iterated_elimination`` build the empirical
+    pairwise payoff matrix (with a same-strategy self-play diagonal
+    precondition) that every method below consumes.
+  - ``equilibria``: pure symmetric Nash equilibria and the "EGTA based
+    evaluation" method, deviation regret, Nash-averaging/NE-regret ranking,
+    and optional mixed-strategy Nash equilibria via ``nashpy`` (new
+    ``negmas[egta]`` extra).
+  - ``ranking``: Sequential Elimination Ranking and Tournament Evaluation --
+    both from de Jonge's "Introduction to Automated Negotiation", chapter 6.
+  - ``dynamics``: symmetric and asymmetric (two-population) replicator
+    dynamics.
+  - ``significance``: pairwise statistical-significance testing (paired and
+    unpaired t-test, rank-sum, Kolmogorov-Smirnov) with Bonferroni/Holm/
+    Benjamini-Hochberg corrections, and per-strategy normality diagnostics
+    (skewness/kurtosis, Shapiro-Wilk, D'Agostino K²).
+  - ``plotting``/``significance``: optional matplotlib/networkx plots for
+    every method above (payoff heatmap, deviation graph, replicator-dynamics
+    trajectories, ranking bar charts, significance heatmap/marks).
+  - ``report.analyze_tournament``: one-call orchestration running every
+    method above and optionally saving results (and plots) to disk; usable
+    fully post-hoc on any in-memory or on-disk tournament result, or
+    automatically via ``cartesian_tournament(..., run_analysis=True,
+    analysis_plots=True)``, which saves everything under ``<path>/analysis``.
+
 * [tournaments] Added two opt-in features to ``cartesian_tournament``
   (and pass-through support in ``continue_cartesian_tournament``):
 

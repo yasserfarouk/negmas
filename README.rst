@@ -518,6 +518,9 @@ This project uses AI assistance for specific, limited tasks while remaining pred
 - **gb.components.genius module**: AI assisted in reimplementing Genius BOA components in NegMAS
 - **Registry feature**: AI assisted in developing the negotiator/mechanism registry system
 - **Some tests**: AI assisted in writing tests, particularly for new features like the registry
+- **tournaments.analysis module**: AI assisted in implementing the post-tournament game-theoretic and
+  statistical analysis package (EGTA-based evaluation, Sequential Elimination Ranking, replicator
+  dynamics, and pairwise significance/normality testing)
 
 All AI-assisted contributions are reviewed and approved by human maintainers. The core architecture,
 algorithms, and research direction of NegMAS are human-driven and will remain so.

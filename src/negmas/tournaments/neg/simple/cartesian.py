@@ -3483,6 +3483,9 @@ def cartesian_tournament(
     neg_end_callback: NegEndCallback | None = None,
     after_end_callback: AfterEndCallback | None = None,
     metadata: dict[str, Any] | None = None,
+    run_analysis: bool = False,
+    analysis_plots: bool = False,
+    analysis_kwargs: dict[str, Any] | None = None,
 ) -> SimpleTournamentResults:
     """Run a Cartesian tournament where negotiators compete across multiple scenarios.
 
@@ -3821,6 +3824,17 @@ def cartesian_tournament(
 
                          See neg_start_callback documentation for parallel execution requirements.
         metadata: Optional dictionary of metadata to include in tournament results.
+        run_analysis: If True, runs the full post-tournament game-theoretic and
+                     statistical analysis suite (see `negmas.tournaments.analysis.analyze_tournament`:
+                     EGTA pure-Nash evaluation, Sequential Elimination Ranking, Tournament
+                     Evaluation, iterated dominance elimination, replicator dynamics, pairwise
+                     significance testing and normality diagnostics) after the tournament
+                     completes, saving the results as CSVs under `path / "analysis"` (only
+                     effective if `path` is given).
+        analysis_plots: If True (and `run_analysis` is True), also saves a PNG plot for every
+                     applicable analysis result under `path / "analysis" / "plots"`.
+        analysis_kwargs: Extra keyword arguments forwarded to `negmas.tournaments.analysis.analyze_tournament`
+                     (e.g. `metric`, `stat`, `alpha`, `significance_test`).
 
     Returns:
         SimpleTournamentResults containing scores, detailed results, score summaries, and final rankings.
@@ -4947,6 +4961,17 @@ def cartesian_tournament(
             )
         except Exception:
             pass
+
+    if run_analysis and path is not None:
+        from negmas.tournaments.analysis import analyze_tournament
+
+        analyze_tournament(
+            tresults,
+            output_dir=path / "analysis",
+            make_plots=analysis_plots,
+            **(analysis_kwargs or {}),
+        )
+
     return tresults
 
 

@@ -57,6 +57,14 @@ build-backend = "setuptools.build_meta"
 gui = [
     "pyqt5>=5.15.11",
 ]
+egta = [
+    # Only needed for mixed-strategy Nash equilibrium computation in
+    # negmas.tournaments.analysis.equilibria.mixed_nash_equilibria(); every
+    # other post-tournament analysis method (EGTA pure-NE evaluation,
+    # Sequential Elimination Ranking, replicator dynamics, plotting) only
+    # needs negmas's core dependencies.
+    "nashpy>=0.0.41",
+]
 # distributed = [
 #     "dask[complete]>=2024.11.2",
 # ]
