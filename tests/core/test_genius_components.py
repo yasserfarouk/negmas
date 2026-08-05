@@ -663,21 +663,27 @@ class TestGBOANegotiatorBehavior:
 
         random_neg = make_boa(offering=offering, acceptance=acceptance)
 
-        # Opponent also never accepts
-        from negmas.sao import AspirationNegotiator
+        # Opponent also never accepts, so the negotiation cannot end early
+        # (e.g. an AspirationNegotiator accepting the very first offer by
+        # chance) and truncate the random negotiator's offer history.
+        opponent = make_boa(offering=GRandomOffering(), acceptance=GACFalse())
 
         mechanism.add(random_neg, ufun=buyer_ufun)
-        mechanism.add(AspirationNegotiator(), ufun=seller_ufun)
+        mechanism.add(opponent, ufun=seller_ufun)
 
         # Run and collect offers
-        unique_offers = set()
-        for step in range(50):
+        for _ in range(50):
             mechanism.step()
             if mechanism.state.ended:
                 break
-            my_offers = mechanism.negotiator_offers(random_neg.id)
-            if my_offers and my_offers[-1] is not None:
-                unique_offers.add(tuple(my_offers[-1]))
+
+        # Collect offers from the full history so a negotiation that ends
+        # quickly doesn't cause the final round's offer to be missed.
+        unique_offers = {
+            tuple(offer)
+            for offer in mechanism.negotiator_offers(random_neg.id)
+            if offer is not None
+        }
 
         # Random should make multiple different offers (with large outcome space)
         assert len(unique_offers) >= 2, (
