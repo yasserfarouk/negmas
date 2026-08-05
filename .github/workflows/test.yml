@@ -25,8 +25,8 @@ jobs:
           enable-cache: true
       - name: Set up Python ${{ matrix.python-version }}
         run: uv python install ${{ matrix.python-version }}
-      - name: Install the project
-        run: uv sync --all-extras
+      - name: "Install the project (all extras except gui: pyqt5 has no wheel for some CI platforms/pythons)"
+        run: uv sync --extra testing --extra dev --extra docs --extra egta
       - name: "Provision Chrome for plotly static export (kaleido>=1.0)"
         run: uv run plotly_get_chrome -y
       - name: "Install Jupyter Kernel"
