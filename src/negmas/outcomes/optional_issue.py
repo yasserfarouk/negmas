@@ -39,7 +39,12 @@ class OptionalIssue(Issue):
         """
         Returns the raw values representation of the issue. Only use if you know what you are doing. To get all the values that can be assigned to this issue use `all` or `generate_values`
         """
-        return self.base._values
+        return self.base.values
+
+    @property
+    def step(self) -> int:
+        """The stride between consecutive values of the wrapped issue."""
+        return getattr(self.base, "step", 1)
 
     def has_limits(self) -> bool:
         """

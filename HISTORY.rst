@@ -6,6 +6,29 @@ Release 0.16.0 (dev)
 
 **Changes:**
 
+* [outcomes] Integer range issues now support an optional ``step`` (defaulting
+  to ``1``) giving the stride between consecutive values, so an issue taking
+  the even values between 0 and 10 (inclusive) can be created with either
+  ``make_issue((0, 10), step=2)`` or ``make_issue((0, 10, 2))``. A three-valued
+  tuple is read as ``(min, max, step)`` -- but only when the third value is not
+  larger than ``max - min`` (otherwise a ``ValueError`` is raised, as before).
+  When the range is not a whole multiple of the step, the maximum is clamped
+  down to the last attainable value (``(0, 10, 3)`` yields ``0, 3, 6, 9`` with
+  ``max_value == 9``), which keeps ``all``, ``cardinality``, ``value_at``,
+  ``contains`` and all sampling/generation methods consistent and makes the
+  representation idempotent. ``Issue.step`` is available on every issue type
+  (``1`` unless a stride was requested), ``Issue.__eq__`` now takes it into
+  account, and ``Issue.intersect`` preserves it when the two grids align.
+  Remarks:
+
+  - A step is only supported for integer ranges; passing one for a continuous
+    or infinite range (or a list of values) raises ``ValueError``.
+  - Genius XML cannot express a stride, so a stepped issue is written as an
+    enumerated discrete issue (values are preserved; as for any discrete
+    issue they are read back as strings). YAML/``Scenario`` round-trips
+    preserve the issue exactly.
+  - Behavior is unchanged in every respect when no step is given.
+
 * [tournaments] Added ``negmas.tournaments.analysis``, a new post-tournament
   game-theoretic and statistical analysis package (AI-assisted; see the
   README's "AI Assistance Disclosure"):

@@ -22,6 +22,11 @@ class RangeIssue(CardinalIssue):
         self._value_type = type(values[0])
         self.min_value, self.max_value = values[0], values[1]
 
+    @property
+    def step(self) -> int:
+        """The stride between consecutive values of the issue (always 1 for a general range)."""
+        return 1
+
     def is_valid(self, v):
         """Check if valid.
 

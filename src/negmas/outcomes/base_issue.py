@@ -25,7 +25,7 @@ __all__ = ["make_issue", "Issue", "DiscreteIssue"]
 MAX_CHECKS_OF_COMPARABILITY = 10
 
 
-def make_issue(values, *args, optional: bool = False, **kwargs):
+def make_issue(values, *args, optional: bool = False, step: int = 1, **kwargs):
     """
     A factory for creating issues based on `values` type as well as the base class of all issues
 
@@ -33,6 +33,8 @@ def make_issue(values, *args, optional: bool = False, **kwargs):
             values: Possible values for the issue
             name: Name of the issue. If not given, a random name will be generated
             optional: If given an `OptionalIssue` will be created
+            step: The stride between consecutive values of an integer range (defaults to 1).
+                  Only supported for integer ranges.
 
     Remarks:
 
@@ -48,6 +50,11 @@ def make_issue(values, *args, optional: bool = False, **kwargs):
 
           - ``int`` : This is a ContiguousIssue that takes any value from 0 to the given value -1 (int)
           - Tuple[ ``int`` , ``int`` ] : This is a ContiguousIssue that can take any integer value in the given limits (min, max)
+          - Tuple[ ``int`` , ``int``, ``int`` ] : This is a ContiguousIssue interpreted as (min, max, step) taking
+            every ``step``-th integer starting at ``min`` and not exceeding ``max``. The third value is only
+            interpreted as a step if it is not larger than ``max - min``. For example ``(0, 10, 2)`` is the issue
+            that takes the even values between 0 and 10 inclusive. The same can be achieved by passing
+            ``values=(0, 10), step=2``.
           - Tuple[ ``float`` , ``float`` ] : This is a ContinuousIssue that can take any real value in the given limits (min, max)
           - Tuple[ ``int`` , ``inf`` ] : This is a CountableInfiniteIssue that can take any integer value in the given limits
           - Tuple[ ``-inf`` , ``int`` ] : This is a CountableInfiniteIssue that can take any integer value in the given limits
@@ -58,6 +65,25 @@ def make_issue(values, *args, optional: bool = False, **kwargs):
              example, you can use this type to make an issue that generates all integers from 0 to infinity. Most operations are not
              supported on this issue type.
         - If a list is given, min, max must be callable on it.
+
+    Examples:
+
+        >>> from negmas.outcomes import make_issue
+        >>> list(make_issue((0, 10), name="q").all)
+        [0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10]
+
+        The even values between 0 and 10 (inclusive) can be defined by passing a step:
+
+        >>> list(make_issue((0, 10), step=2, name="q").all)
+        [0, 2, 4, 6, 8, 10]
+        >>> list(make_issue((0, 10, 2), name="q").all)
+        [0, 2, 4, 6, 8, 10]
+
+        The maximum is clamped down to the largest attainable value:
+
+        >>> issue = make_issue((0, 10, 3), name="q")
+        >>> list(issue.all), issue.max_value, issue.cardinality
+        ([0, 3, 6, 9], 9, 4)
     """
     from negmas.outcomes.callable_issue import CallableIssue
     from negmas.outcomes.cardinal_issue import DiscreteCardinalIssue
@@ -69,19 +95,48 @@ def make_issue(values, *args, optional: bool = False, **kwargs):
     from negmas.outcomes.ordinal_issue import DiscreteOrdinalIssue
 
     if optional:
-        return OptionalIssue(make_issue(values, *args, **kwargs))
+        return OptionalIssue(make_issue(values, *args, step=step, **kwargs))
+
+    def _no_step(what: str):
+        """Raises if a non-default step was requested for an unsupported issue type."""
+        if step != 1:
+            raise ValueError(
+                f"A step ({step}) can only be given for integer ranges but {values} defines {what}"
+            )
 
     if isinstance(values, numbers.Integral):
-        return ContiguousIssue(int(values), *args, **kwargs)
+        return ContiguousIssue(int(values), *args, step=step, **kwargs)
     if isinstance(values, tuple):
+        if len(values) == 3:
+            # (min, max, step) is only a valid range spec if the step fits in the range
+            if not (
+                isinstance(values[0], numbers.Integral)
+                and isinstance(values[1], numbers.Integral)
+                and isinstance(values[2], numbers.Integral)
+            ):
+                raise ValueError(
+                    f"Passing {values} is illegal. Three-valued ranges (min, max, step) must be all integers"
+                )
+            if int(values[2]) > int(values[1]) - int(values[0]):
+                raise ValueError(
+                    f"Passing {values} is illegal. It is read as (min, max, step) but the step "
+                    f"({values[2]}) is larger than the range ({values[1] - values[0]})"
+                )
+            if step != 1:
+                raise ValueError(
+                    f"Passing {values} is illegal. A step is given both in `values` and as {step=}"
+                )
+            return ContiguousIssue(values, *args, **kwargs)  # type: ignore (we know that the types are OK here)
         if len(values) != 2:
             raise ValueError(
-                f"Passing {values} is illegal. Issues with ranges need 2-values tuples"
+                f"Passing {values} is illegal. Issues with ranges need 2-values tuples "
+                f"(min, max) or 3-values tuples (min, max, step)"
             )
         if isinstance(values[0], numbers.Integral) and isinstance(
             values[1], numbers.Integral
         ):
-            return ContiguousIssue(values, *args, **kwargs)  # type: ignore (we know that the types are OK here)
+            return ContiguousIssue(values, *args, step=step, **kwargs)  # type: ignore (we know that the types are OK here)
+        _no_step("a non-integer range")
         if (
             isinstance(values[0], numbers.Integral)
             and values[1] == float("inf")
@@ -102,7 +157,9 @@ def make_issue(values, *args, optional: bool = False, **kwargs):
             f"Passing {values} with mixed types. Both values must be either integers or reals"
         )
     if isinstance(values, Callable):
+        _no_step("a callable")
         return CallableIssue(values, *args, **kwargs)  # type: ignore
+    _no_step("an explicit list of values")
     if isinstance(values, Iterable) and all(
         isinstance(_, numbers.Integral) for _ in values
     ):
@@ -145,6 +202,28 @@ class Issue(HasMinMax, Iterable, ABC):
         from negmas.outcomes.ordinal_issue import DiscreteOrdinalIssue
         from negmas.outcomes.continuous_issue import ContinuousIssue
 
+        if (
+            isinstance(self, ContiguousIssue)
+            and isinstance(other, ContiguousIssue)
+            and (self.step != 1 or other.step != 1)
+        ):
+            if (
+                self.step == other.step
+                and (other.min_value - self.min_value) % self.step == 0
+            ):
+                # aligned grids: the intersection is itself a stepped range
+                lo = max(self._values[0], other._values[0])
+                hi = min(self._values[1], other._values[1])
+                if hi >= lo:
+                    return make_issue((lo, hi), name=self.name, step=self.step)
+            # incompatible grids: fall back to enumerating the common values
+            common = set(other.all)
+            vals = [_ for _ in self.all if _ in common]
+            if not vals:
+                raise ValueError(
+                    f"The intersection of {self} and {other} is empty (incompatible steps)"
+                )
+            return make_issue(vals, name=self.name)
         if (
             isinstance(self, ContiguousIssue) and isinstance(other, ContiguousIssue)
         ) or (isinstance(self, ContinuousIssue) and isinstance(other, ContinuousIssue)):
@@ -464,8 +543,12 @@ class Issue(HasMinMax, Iterable, ABC):
         return self.cardinality
 
     def __eq__(self, other):
-        """Checks equality based on values and name."""
-        return self._values == other.values and self.name == other.name
+        """Checks equality based on values, step and name."""
+        return (
+            self.values == other.values
+            and self.name == other.name
+            and getattr(self, "step", 1) == getattr(other, "step", 1)
+        )
 
     def __hash__(self):
         """Returns a hash based on the string representation."""
