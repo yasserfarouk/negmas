@@ -3218,7 +3218,7 @@ def test_continue_tournament_loads_new_params(tmp_path: Path):
     config_path = path / CONFIG_FILE_NAME
     assert config_path.exists(), "Config file should exist"
 
-    with open(config_path) as f:
+    with open(config_path, encoding="utf-8-sig") as f:
         config = yaml.safe_load(f)
 
     # Verify new parameters are saved
@@ -3361,7 +3361,7 @@ def test_config_completeness_all_parameters(tmp_path: Path):
     config_path = path / CONFIG_FILE_NAME
     assert config_path.exists(), "Config file should exist"
 
-    with open(config_path) as f:
+    with open(config_path, encoding="utf-8-sig") as f:
         config = yaml.safe_load(f)
 
     # List of all expected config keys (non-callback parameters)
@@ -3519,7 +3519,7 @@ def test_config_new_parameters_saved_with_defaults(tmp_path: Path):
     )
 
     config_path = path / CONFIG_FILE_NAME
-    with open(config_path) as f:
+    with open(config_path, encoding="utf-8-sig") as f:
         config = yaml.safe_load(f)
 
     # Verify new parameters have their default values saved

@@ -42,7 +42,7 @@ __conf_path = Path(NEGMAS_DEFAULT_PATH).expanduser().absolute()
 
 if __conf_path.exists():
     try:
-        with open(__conf_path) as f:
+        with open(__conf_path, encoding="utf-8-sig") as f:
             NEGMAS_CONFIG.update(json.load(f))
     except Exception:
         pass
@@ -50,7 +50,7 @@ if __conf_path.exists():
 local_path = Path.cwd() / LOCAL_NEGMAS_CONFIG_FILENAME
 if local_path.exists():
     try:
-        with open(local_path) as f:
+        with open(local_path, encoding="utf-8-sig") as f:
             NEGMAS_CONFIG.update(json.load(f))
     except Exception:
         pass

@@ -599,7 +599,7 @@ def issues_to_genius(issues: Sequence[Issue], file_name: PathLike | str) -> None
         See ``from_xml_str`` for all the parameters
 
     """
-    with open(file_name, "w") as f:
+    with open(file_name, "w", encoding="utf-8") as f:
         f.write(issues_to_xml_str(issues=issues))
 
 
@@ -682,7 +682,7 @@ def issues_from_xml_str(
         ...     Path(negmas.__file__).parent.parent.parent
         ...     / "tests/data/Laptop/Laptop-C-domain.xml"
         ... )
-        >>> with open(domain_file_name, "r") as ff:
+        >>> with open(domain_file_name, "r", encoding="utf-8-sig") as ff:
         ...     issues, _ = issues_from_xml_str(ff.read())
         >>> print([_.cardinality for _ in issues])
         [3, 3, 3]
@@ -691,7 +691,7 @@ def issues_from_xml_str(
         ...     Path(negmas.__file__).parent.parent.parent
         ...     / "tests/data/fuzzyagent/single_issue_domain.xml"
         ... )
-        >>> with open(domain_file_name, "r") as ff:
+        >>> with open(domain_file_name, "r", encoding="utf-8-sig") as ff:
         ...     issues, _ = issues_from_xml_str(ff.read())
         >>> len(issues)
         1

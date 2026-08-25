@@ -84,11 +84,11 @@ def test_is_nonzero_file(tmpdir):
     f = tmpdir / f_name
     assert is_nonzero_file(f) is False
 
-    with open(f, "w") as tst_file:
+    with open(f, "w", encoding="utf-8") as tst_file:
         tst_file.write("")
     assert is_nonzero_file(f) is False
 
-    with open(f, "w") as tst_file:
+    with open(f, "w", encoding="utf-8") as tst_file:
         tst_file.write("test")
     assert is_nonzero_file(f) is True
 

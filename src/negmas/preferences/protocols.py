@@ -87,7 +87,7 @@ class XmlSerializableUFun(Protocol):
         file_name = Path(file_name).absolute()
         if file_name.suffix == "":
             file_name = file_name.parent / f"{file_name.stem}.xml"
-        with open(file_name, "w") as f:
+        with open(file_name, "w", encoding="utf-8") as f:
             f.write(self.to_xml_str(**kwargs))
 
     @classmethod

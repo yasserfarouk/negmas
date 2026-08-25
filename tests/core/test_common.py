@@ -222,7 +222,7 @@ class TestMechanismSave:
 
         result = m.save(tmp_path, "test_outcome", single_file=False)
 
-        with open(result / "outcome_stats.yaml") as f:
+        with open(result / "outcome_stats.yaml", encoding="utf-8-sig") as f:
             stats = yaml.safe_load(f)
 
         assert "agreement" in stats
@@ -241,7 +241,7 @@ class TestMechanismSave:
 
         result = m.save(tmp_path, "test_config", single_file=False)
 
-        with open(result / "config.yaml") as f:
+        with open(result / "config.yaml", encoding="utf-8-sig") as f:
             config = yaml.safe_load(f)
 
         assert "mechanism_type" in config

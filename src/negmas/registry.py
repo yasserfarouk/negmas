@@ -2120,7 +2120,7 @@ def save_registry(
             key: _serialize_mechanism_info(info)
             for key, info in mechanism_registry.items()
         }
-        with open(path / "mechanisms.json", "w") as f:
+        with open(path / "mechanisms.json", "w", encoding="utf-8") as f:
             json.dump(mechanisms_data, f, indent=2)
 
     if include_negotiators:
@@ -2128,7 +2128,7 @@ def save_registry(
             key: _serialize_negotiator_info(info)
             for key, info in negotiator_registry.items()
         }
-        with open(path / "negotiators.json", "w") as f:
+        with open(path / "negotiators.json", "w", encoding="utf-8") as f:
             json.dump(negotiators_data, f, indent=2)
 
     if include_components:
@@ -2136,7 +2136,7 @@ def save_registry(
             key: _serialize_component_info(info)
             for key, info in component_registry.items()
         }
-        with open(path / "components.json", "w") as f:
+        with open(path / "components.json", "w", encoding="utf-8") as f:
             json.dump(components_data, f, indent=2)
 
     if include_scenarios:
@@ -2144,7 +2144,7 @@ def save_registry(
             key: _serialize_scenario_info(info)
             for key, info in scenario_registry.items()
         }
-        with open(path / "scenarios.json", "w") as f:
+        with open(path / "scenarios.json", "w", encoding="utf-8") as f:
             json.dump(scenarios_data, f, indent=2)
 
     return path
@@ -2231,7 +2231,7 @@ def load_registry(
                 mechanism_registry.clear()
                 mechanism_registry._by_class.clear()
 
-            with open(mechanisms_file) as f:
+            with open(mechanisms_file, encoding="utf-8-sig") as f:
                 mechanisms_data = json.load(f)
 
             for key, data in mechanisms_data.items():
@@ -2260,7 +2260,7 @@ def load_registry(
                 negotiator_registry.clear()
                 negotiator_registry._by_class.clear()
 
-            with open(negotiators_file) as f:
+            with open(negotiators_file, encoding="utf-8-sig") as f:
                 negotiators_data = json.load(f)
 
             for key, data in negotiators_data.items():
@@ -2288,7 +2288,7 @@ def load_registry(
                 component_registry.clear()
                 component_registry._by_class.clear()
 
-            with open(components_file) as f:
+            with open(components_file, encoding="utf-8-sig") as f:
                 components_data = json.load(f)
 
             for key, data in components_data.items():
@@ -2317,7 +2317,7 @@ def load_registry(
                 scenario_registry.clear()
                 scenario_registry._by_name.clear()
 
-            with open(scenarios_file) as f:
+            with open(scenarios_file, encoding="utf-8-sig") as f:
                 scenarios_data = json.load(f)
 
             for key, data in scenarios_data.items():

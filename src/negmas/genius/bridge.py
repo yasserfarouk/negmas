@@ -1100,7 +1100,7 @@ def run_native_genius_negotiation(
         # Try to read the log file to find agreement information (fallback)
         if Path(output_file).exists() and agreement is None:
             try:
-                with open(output_file, "r") as f:
+                with open(output_file, "r", encoding="utf-8-sig") as f:
                     f.read()
                     # Parse log to find agreement
                     # This is a simplified parser - the actual format depends on Genius output

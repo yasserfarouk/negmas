@@ -106,7 +106,7 @@ def save_stats(
         agents[k]["contracts_breached"] = world.contracts_breached[k]
 
     dump(agents, logdir_ / "agents")
-    with open(logdir_ / "params.json", "w") as f_:
+    with open(logdir_ / "params.json", "w", encoding="utf-8") as f_:
         f_.write(
             str(serialize(params, python_class_identifier=python_class_identifier))
         )
@@ -141,7 +141,7 @@ def save_stats(
                 storage_format=storage_format,
             )
         else:
-            with open(logdir_ / "negotiations.csv", "w") as f:
+            with open(logdir_ / "negotiations.csv", "w", encoding="utf-8") as f:
                 f.write("")
 
     if world.save_resolved_breaches or world.save_unresolved_breaches:
@@ -155,7 +155,7 @@ def save_stats(
                 storage_format=storage_format,
             )
         else:
-            with open(logdir_ / "breaches.csv", "w") as f:
+            with open(logdir_ / "breaches.csv", "w", encoding="utf-8") as f:
                 f.write("")
 
     # if world.save_signed_contracts:
@@ -189,5 +189,5 @@ def save_stats(
                 storage_format=storage_format,
             )
         else:
-            with open(logdir_ / "contracts.csv", "w") as f:
+            with open(logdir_ / "contracts.csv", "w", encoding="utf-8") as f:
                 f.write("")

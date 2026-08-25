@@ -774,7 +774,7 @@ def _run_worlds(
         if len(list(running_folder.glob("run*"))) > 0:
             return run_id, dir_names, None, None, None, None
         running_file = running_folder / f"run{gethostname()}.{current_process().pid}"
-        with open(running_file, "w") as rf:
+        with open(running_file, "w", encoding="utf-8") as rf:
             rf.write(unique_name(f"{gethostname()}.{current_process().pid}", sep="."))
         attempts_file = attempts_path / unique_name(
             f"att_{gethostname()}.{current_process().pid}", sep="."
@@ -789,7 +789,7 @@ def _run_worlds(
                 pass
             return run_id, dir_names, None, None, None, None
         n_attempts += 1
-        with open(attempts_file, "w") as afile:
+        with open(attempts_file, "w", encoding="utf-8") as afile:
             afile.write(str(n_attempts))
     for world_params in worlds_params:
         world_params = world_params.copy()
@@ -1242,7 +1242,7 @@ def process_world_run(
     log_files, world_names_ = results.log_file_names, results.world_names
     for log_file in log_files:
         if log_file is not None and pathlib.Path(log_file).exists():
-            with open(log_file, "a") as f:
+            with open(log_file, "a", encoding="utf-8") as f:
                 f.write(
                     f"\nPART of TOURNAMENT {tournament_name}. This world run completed successfully\n"
                 )
@@ -1871,7 +1871,7 @@ def run_tournament(
             files_to_remove.append(afile)
             continue
         try:
-            with open(afile) as f:
+            with open(afile, encoding="utf-8-sig") as f:
                 try:
                     n_attempts = int(f.read())
                 except Exception:

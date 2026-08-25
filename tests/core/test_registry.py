@@ -2218,7 +2218,7 @@ class TestSaveLoadRegistry:
 
         # Create only negotiators.json
         tmp_path.mkdir(parents=True, exist_ok=True)
-        with open(tmp_path / "negotiators.json", "w") as f:
+        with open(tmp_path / "negotiators.json", "w", encoding="utf-8") as f:
             json.dump({}, f)
 
         # Should not raise, just skip missing files
@@ -2279,7 +2279,7 @@ class TestSaveLoadRegistry:
             # Verify JSON content
             import json
 
-            with open(tmp_path / "negotiators.json") as f:
+            with open(tmp_path / "negotiators.json", encoding="utf-8-sig") as f:
                 data = json.load(f)
 
             assert key in data

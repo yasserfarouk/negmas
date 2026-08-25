@@ -114,7 +114,7 @@ def create_loggers(
 
             os.makedirs(f"{LOGS_BASE_DIR}", exist_ok=True)
         os.makedirs(os.path.dirname(file_name), exist_ok=True)  # type: ignore
-        file_logger = logging.FileHandler(file_name)
+        file_logger = logging.FileHandler(file_name, encoding="utf-8")
         file_logger.setLevel(file_level)
         file_logger.setFormatter(file_formatter)
         logger.addHandler(file_logger)

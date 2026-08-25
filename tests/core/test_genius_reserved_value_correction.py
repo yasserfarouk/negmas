@@ -171,7 +171,9 @@ class TestGeniusReservedValueCorrection:
         u1.reserved_value = float("-inf")
 
         # Create a temporary file
-        with tempfile.NamedTemporaryFile(mode="w", suffix=".xml", delete=False) as f:
+        with tempfile.NamedTemporaryFile(
+            mode="w", suffix=".xml", delete=False, encoding="utf-8"
+        ) as f:
             temp_file = f.name
 
         try:
@@ -181,7 +183,7 @@ class TestGeniusReservedValueCorrection:
                 assert len(w) == 1
 
             # Read the file and check it has corrected value
-            with open(temp_file, "r") as f:
+            with open(temp_file, "r", encoding="utf-8-sig") as f:
                 content = f.read()
 
             expected_rv = float(u1.min()) - 0.0

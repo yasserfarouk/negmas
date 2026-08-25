@@ -41,7 +41,7 @@ class XmlSerializable(Protocol):
         Returns:
             A utility function object (depending on the input file)
         """
-        with open(file_name) as f:
+        with open(file_name, encoding="utf-8-sig") as f:
             s = f.read()
         return cls.from_xml_str(s, **kwargs)
 
@@ -64,7 +64,7 @@ class XmlSerializable(Protocol):
         file_name = Path(file_name).absolute()
         if file_name.suffix == "":
             file_name = file_name.parent / f"{file_name.stem}.xml"
-        with open(file_name, "w") as f:
+        with open(file_name, "w", encoding="utf-8") as f:
             f.write(self.to_xml_str(**kwargs))
 
 

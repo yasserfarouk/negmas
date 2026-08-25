@@ -497,13 +497,13 @@ def encode_params(params: dict | None) -> str:
 
 def write_lines(lines: list[str], path: Path) -> None:
     """Write a list of strings to a file, one per line."""
-    with open(path, "w") as f:
+    with open(path, "w", encoding="utf-8") as f:
         f.write("\n".join(lines))
 
 
 def read_lines(path: Path) -> list[str]:
     """Read a list of strings from a file, one per line."""
-    with open(path) as f:
+    with open(path, encoding="utf-8-sig") as f:
         return f.read().split("\n")
 
 

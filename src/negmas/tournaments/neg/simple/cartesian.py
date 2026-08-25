@@ -3911,7 +3911,7 @@ def cartesian_tournament(
         def track_start_parallel(run_id, state):
             # Write to file - works across processes
             msg = f"Started at step {state.step}"
-            (log_dir / f"start_{run_id}.log").write_text(msg)
+            (log_dir / f"start_{run_id}.log").write_text(msg, encoding="utf-8")
 
 
         results = cartesian_tournament(

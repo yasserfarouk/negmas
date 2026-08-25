@@ -605,7 +605,7 @@ def test_save_table_list_of_dicts_csv(tmp_path):
 
     assert path.exists()
     assert path.suffix == ".csv"
-    with open(path) as f:
+    with open(path, encoding="utf-8-sig") as f:
         content = f.read()
     assert "a,b" in content
     assert "1,2" in content
@@ -622,7 +622,7 @@ def test_save_table_dataframe_csv(tmp_path):
     path = save_table(df, tmp_path / "test.csv", storage_format="csv")
 
     assert path.exists()
-    with open(path) as f:
+    with open(path, encoding="utf-8-sig") as f:
         content = f.read()
     assert "x,y" in content
 
@@ -638,7 +638,7 @@ def test_save_table_with_index(tmp_path):
         df, tmp_path / "test.csv", index=True, index_label="idx", storage_format="csv"
     )
 
-    with open(path) as f:
+    with open(path, encoding="utf-8-sig") as f:
         content = f.read()
     assert "idx" in content
 
@@ -652,7 +652,7 @@ def test_save_table_list_of_tuples(tmp_path):
         data, tmp_path / "test.csv", columns=["col1", "col2"], storage_format="csv"
     )
 
-    with open(path) as f:
+    with open(path, encoding="utf-8-sig") as f:
         content = f.read()
     assert "col1,col2" in content
 

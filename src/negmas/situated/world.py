@@ -1150,7 +1150,7 @@ class World(
         """
         old_stdout = sys.stdout  # backup current stdout
         if self.disable_agent_printing:
-            sys.stdout = open(os.devnull, "w")
+            sys.stdout = open(os.devnull, "w", encoding="utf-8")
         _strt = time.perf_counter()
         try:
             result = method(*args, **kwargs)
@@ -3440,7 +3440,7 @@ class World(
         Returns:
 
         """
-        with open(file_name, "w") as file:
+        with open(file_name, "w", encoding="utf-8") as file:
             yaml.safe_dump(self.__dict__, file)
 
     def _process_breach(

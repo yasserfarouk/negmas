@@ -32,7 +32,9 @@ def _parallel_start_callback(run_id, state):
 def _parallel_progress_callback(run_id, state):
     """Module-level callback for parallel mode testing."""
     _PARALLEL_TEST_DIR.mkdir(parents=True, exist_ok=True)
-    with open(_PARALLEL_TEST_DIR / f"progress_{run_id}.txt", "a") as f:
+    with open(
+        _PARALLEL_TEST_DIR / f"progress_{run_id}.txt", "a", encoding="utf-8"
+    ) as f:
         f.write(f"{state.step}\n")
 
 
@@ -56,7 +58,7 @@ def test_cartesian_callbacks():
 
     def progress_callback(run_id, state):
         """Called after each step of each negotiation."""
-        with open(callback_dir / f"progress_{run_id}.txt", "a") as f:
+        with open(callback_dir / f"progress_{run_id}.txt", "a", encoding="utf-8") as f:
             f.write(f"{state.step}\n")
 
     def end_callback(run_id, state):

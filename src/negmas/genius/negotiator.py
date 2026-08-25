@@ -351,12 +351,12 @@ class GeniusNegotiator(SAONegotiator):
         if nmi.cartesian_outcome_space is not None:
             if self.domain_file_name is None:
                 domain_file = tempfile.NamedTemporaryFile(
-                    "w", suffix=".xml", delete=False
+                    "w", suffix=".xml", delete=False, encoding="utf-8"
                 )
                 self.domain_file_name = domain_file.name
                 self._temp_domain_file = True
             else:
-                domain_file = open(self.domain_file_name, "w")
+                domain_file = open(self.domain_file_name, "w", encoding="utf-8")
             self.domain_file_name = domain_file.name
             domain_file.write(issues_to_xml_str(nmi.cartesian_outcome_space.issues))
             domain_file.close()
@@ -364,12 +364,12 @@ class GeniusNegotiator(SAONegotiator):
         if preferences is not None:
             if self.utility_file_name is None:
                 utility_file = tempfile.NamedTemporaryFile(
-                    "w", suffix=".xml", delete=False
+                    "w", suffix=".xml", delete=False, encoding="utf-8"
                 )
                 self.utility_file_name = utility_file.name
                 self._temp_preferences_file = True
             else:
-                utility_file = open(self.utility_file_name, "w")
+                utility_file = open(self.utility_file_name, "w", encoding="utf-8")
             utility_file.write(
                 UtilityFunction.to_xml_str(
                     preferences,  # type: ignore
@@ -475,12 +475,16 @@ class GeniusNegotiator(SAONegotiator):
         if info is None:
             raise ValueError("Cannot start a negotiation without a NMI")
         if self._preferences is not None and self.utility_file_name is None:
-            domain_file = tempfile.NamedTemporaryFile("w", suffix=".xml", delete=False)
+            domain_file = tempfile.NamedTemporaryFile(
+                "w", suffix=".xml", delete=False, encoding="utf-8"
+            )
             self.domain_file_name = domain_file.name
             domain_file.write(issues_to_xml_str(self._preferences.outcome_space.issues))  # type: ignore
             domain_file.close()
             self._temp_domain_file = True
-            utility_file = tempfile.NamedTemporaryFile("w", suffix=".xml", delete=False)
+            utility_file = tempfile.NamedTemporaryFile(
+                "w", suffix=".xml", delete=False, encoding="utf-8"
+            )
             self.utility_file_name = utility_file.name
             if not isinstance(self.ufun, UtilityFunction):
                 raise ValueError(

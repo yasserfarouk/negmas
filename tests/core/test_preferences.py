@@ -927,11 +927,13 @@ def test_dict_conversion(utype):
 
 def test_inverse_genius_domain():
     with open(
-        str(files("negmas").joinpath("tests/data/Laptop/Laptop-C-domain.xml"))
+        str(files("negmas").joinpath("tests/data/Laptop/Laptop-C-domain.xml")),
+        encoding="utf-8-sig",
     ) as ff:
         issues, _ = issues_from_xml_str(ff.read())
     with open(
-        str(files("negmas").joinpath("tests/data/Laptop/Laptop-C-prof1.xml"))
+        str(files("negmas").joinpath("tests/data/Laptop/Laptop-C-prof1.xml")),
+        encoding="utf-8-sig",
     ) as ff:
         u, _ = UtilityFunction.from_xml_str(ff.read(), issues=issues)
     assert u is not None
@@ -1092,13 +1094,15 @@ def test_can_normalize_affine_and_linear_ufun(weights, bias, rng):
 
 def test_normalization():
     with open(
-        str(files("negmas").joinpath("tests/data/Laptop/Laptop-C-domain.xml"))
+        str(files("negmas").joinpath("tests/data/Laptop/Laptop-C-domain.xml")),
+        encoding="utf-8-sig",
     ) as ff:
         os = CartesianOutcomeSpace.from_xml_str(ff.read())
     issues = os.issues
     outcomes = list(os.enumerate())
     with open(
-        str(files("negmas").joinpath("tests/data/Laptop/Laptop-C-prof1.xml"))
+        str(files("negmas").joinpath("tests/data/Laptop/Laptop-C-prof1.xml")),
+        encoding="utf-8-sig",
     ) as ff:
         u, _ = UtilityFunction.from_xml_str(ff.read(), issues=issues)
     assert u is not None
@@ -1112,7 +1116,8 @@ def test_normalization():
     gt_max = dict(zip(outcomes, [_ / max_util for _ in utils]))
 
     with open(
-        str(files("negmas").joinpath("tests/data/Laptop/Laptop-C-prof1.xml"))
+        str(files("negmas").joinpath("tests/data/Laptop/Laptop-C-prof1.xml")),
+        encoding="utf-8-sig",
     ) as ff:
         u, _ = UtilityFunction.from_xml_str(ff.read(), issues=issues)
     assert u is not None
@@ -1126,7 +1131,8 @@ def test_normalization():
         assert abs(float(u(k)) - v) < 1e-3, f"Failed for {k} got {(u(k))} expected {v}"
 
     with open(
-        str(files("negmas").joinpath("tests/data/Laptop/Laptop-C-prof1.xml"))
+        str(files("negmas").joinpath("tests/data/Laptop/Laptop-C-prof1.xml")),
+        encoding="utf-8-sig",
     ) as ff:
         u, _ = UtilityFunction.from_xml_str(ff.read(), issues=issues)
     assert u is not None

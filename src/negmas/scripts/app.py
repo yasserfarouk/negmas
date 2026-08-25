@@ -1253,7 +1253,7 @@ def download_and_set(key, url, file_name, extract=False):
     config_file = config_path / "config.json"
 
     if config_file.exists():
-        with open(config_file) as f:
+        with open(config_file, encoding="utf-8-sig") as f:
             config = json.load(f)
     if extract:
         folder_name = file_name.replace(".zip", "").replace("negmas_", "")
@@ -1266,7 +1266,7 @@ def download_and_set(key, url, file_name, extract=False):
             pass
         file_path = extracted_path
     config[key] = str(file_path)
-    with open(config_file, "w") as f:
+    with open(config_file, "w", encoding="utf-8") as f:
         json.dump(config, fp=f, sort_keys=True, indent=4)
     return file_path
 

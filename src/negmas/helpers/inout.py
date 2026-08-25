@@ -206,7 +206,7 @@ class ConfigReader:
                             config = str(name)
                         else:
                             raise ValueError(f"Cannot find config in {config}.")
-            with open(config) as f:
+            with open(config, encoding="utf-8-sig") as f:
                 if config.endswith(".json"):
                     config = json.load(f)
                 elif config.endswith(".cfg"):
@@ -433,10 +433,10 @@ def dump(
     file_name.parent.mkdir(parents=True, exist_ok=True)
 
     if d is None:
-        with open(file_name, "w") as f:
+        with open(file_name, "w", encoding="utf-8") as f:
             pass
     if file_name.suffix == ".json":
-        with open(file_name, "w") as f:
+        with open(file_name, "w", encoding="utf-8") as f:
             json.dump(
                 d,
                 f,
@@ -445,7 +445,7 @@ def dump(
                 cls=NpEncoder,
             )
     elif file_name.suffix in (".yaml", ".yml"):
-        with open(file_name, "w") as f:
+        with open(file_name, "w", encoding="utf-8") as f:
             yaml.safe_dump(
                 convert_numpy(d), f, default_flow_style=compact, sort_keys=sort_keys
             )
@@ -487,10 +487,10 @@ def load(file_name: str | os.PathLike | pathlib.Path) -> Any:
         return d
 
     if file_name.suffix == ".json":
-        with open(file_name) as f:
+        with open(file_name, encoding="utf-8-sig") as f:
             d = json.load(f)
     elif file_name.suffix in (".yaml", ".yml"):
-        with open(file_name) as f:
+        with open(file_name, encoding="utf-8-sig") as f:
             d = yaml.safe_load(f)
     elif file_name.suffix == ".pickle":
         import dill as pickle
@@ -556,7 +556,7 @@ def add_records(
     # if file_name.exists():
     if is_nonzero_file(file_name):
         new_file = False
-        with open(file_name) as f:
+        with open(file_name, encoding="utf-8-sig") as f:
             header = f.readline().strip().strip("\n")
         cols = header.split(",")
         for col in cols:

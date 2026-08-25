@@ -160,7 +160,7 @@ class EventLogger(EventSink):
                 type=event.type,
                 data=_simplify(event.data),
             )
-            with open(self._file_name, "a") as f:
+            with open(self._file_name, "a", encoding="utf-8") as f:
                 f.write(f"{json.dumps(d)},\n")
         except Exception as e:
             warnings.warn(

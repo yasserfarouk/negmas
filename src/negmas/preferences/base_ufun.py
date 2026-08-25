@@ -1251,12 +1251,14 @@ class BaseUtilityFunction(Preferences, ABC):
             ...     Path(negmas.__file__).parent.parent.parent
             ...     / "tests/data/Laptop/Laptop-C-prof1.xml",
             ...     "r",
+            ...     encoding="utf-8-sig",
             ... ) as ff:
             ...     u, _ = UtilityFunction.from_xml_str(ff.read(), issues=domain.issues)
             >>> with open(
             ...     Path(negmas.__file__).parent.parent.parent
             ...     / "tests/data/Laptop/Laptop-C-prof1.xml",
             ...     "r",
+            ...     encoding="utf-8-sig",
             ... ) as ff:
             ...     u, _ = UtilityFunction.from_xml_str(ff.read(), issues=domain.issues)
             >>> assert (
@@ -1581,7 +1583,7 @@ class BaseUtilityFunction(Preferences, ABC):
         """
         if "name" not in kwargs:
             kwargs["name"] = str(Path(file_name).stem)
-        with open(file_name) as f:
+        with open(file_name, encoding="utf-8-sig") as f:
             xml_str = f.read()
         u, x = cls.from_xml_str(xml_str=xml_str, **kwargs)
         if u is not None:
@@ -1682,7 +1684,7 @@ class BaseUtilityFunction(Preferences, ABC):
 
         """
         kwargs["name"] = str(file_name)
-        with open(file_name) as f:
+        with open(file_name, encoding="utf-8-sig") as f:
             xml_str = f.read()
         u, x = cls.from_geniusweb_json_str(json_str=xml_str, **kwargs)
         if u is not None:
@@ -1798,7 +1800,7 @@ class BaseUtilityFunction(Preferences, ABC):
         file_name = Path(file_name).absolute()
         if file_name.suffix == "":
             file_name = file_name.parent / f"{file_name.stem}.xml"
-        with open(file_name, "w") as f:
+        with open(file_name, "w", encoding="utf-8") as f:
             f.write(self.to_xml_str(issues=issues, **kwargs))
 
     def difference_prob(
