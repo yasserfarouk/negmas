@@ -566,7 +566,7 @@ def add_records(
             data = data.loc[:, cols]
         else:
             try:
-                old_data = pd.read_csv(file_name, index_col=None)
+                old_data = pd.read_csv(file_name, index_col=None, encoding="utf-8-sig")
                 data = pd.concat((old_data, data), axis=0, ignore_index=True)  # type: ignore
             except Exception as e:
                 if raise_exceptions:
