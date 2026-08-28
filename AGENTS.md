@@ -163,3 +163,27 @@ You must do the following steps for doing a release:
 9. push with tags and monitor again.
 10. after pypi is updated from github actions confim the version.
 11. make a release on github which includes the changes for this release from HISTORY.rst.
+
+## Known issues to fix later
+
+Found while integrating the Genius frequency opponent models into an RL negotiator
+(negmas-rl's RLBOA, 2026-08-28). Neither was fixed at the time because both need a
+judgement call about the intended contract rather than a local repair.
+
+1. **The Genius opponent models never register themselves in `private_info`.**
+   `GeniusOpponentModel` defines `_update_private_info()`, and
+   `FrequencyLinearUFunModel` / `FrequencyUFunModel` / `PeekingOpponentModel` (in
+   `gb/components/models/ufun.py`) call it from `on_preferences_changed`. None of the
+   five models in `gb/components/genius/models/frequency.py` does, so a negotiator using
+   one of them still reports `opponent_ufun is None`, and anything reading the model
+   through `private_info["opponent_ufun"]` silently sees nothing. Either the Genius
+   models should call it too, or the method should move somewhere it is applied
+   uniformly.
+
+2. **The Genius frequency models learn only through `on_partner_proposal`.**
+   That callback reaches a negotiator only when the mechanism invokes it, and these
+   models offer no second route -- unlike `FrequencyLinearUFunModel`, which also
+   implements `before_responding` and so learns from the offer it is about to answer.
+   A negotiator that does not receive `on_partner_proposal` gets a model that never
+   updates and reports uniform weights forever, with no error. Adding
+   `before_responding` to the Genius models would close the gap.
