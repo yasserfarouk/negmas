@@ -167,23 +167,32 @@ You must do the following steps for doing a release:
 ## Known issues to fix later
 
 Found while integrating the Genius frequency opponent models into an RL negotiator
-(negmas-rl's RLBOA, 2026-08-28). Neither was fixed at the time because both need a
-judgement call about the intended contract rather than a local repair.
+(negmas-rl's RLBOA, 2026-08-28).
 
-1. **The Genius opponent models never register themselves in `private_info`.**
-   `GeniusOpponentModel` defines `_update_private_info()`, and
-   `FrequencyLinearUFunModel` / `FrequencyUFunModel` / `PeekingOpponentModel` (in
-   `gb/components/models/ufun.py`) call it from `on_preferences_changed`. None of the
-   five models in `gb/components/genius/models/frequency.py` does, so a negotiator using
-   one of them still reports `opponent_ufun is None`, and anything reading the model
-   through `private_info["opponent_ufun"]` silently sees nothing. Either the Genius
-   models should call it too, or the method should move somewhere it is applied
-   uniformly.
+1. **Only half of the opponent models publish themselves.** `_update_private_info()` is
+   defined on both `UFunModel` (`gb/components/models/ufun.py`) and
+   `GeniusOpponentModel` (`gb/components/genius/base.py`), but only the former family
+   calls it -- `FrequencyLinearUFunModel`, `FrequencyUFunModel` and
+   `PeekingOpponentModel` do, while none of the five models in
+   `gb/components/genius/models/frequency.py` does. A negotiator using a Genius model
+   therefore still reports `opponent_ufun is None`, and anything reading the model
+   through `private_info["opponent_ufun"]` sees nothing.
 
-2. **The Genius frequency models learn only through `on_partner_proposal`.**
-   That callback reaches a negotiator only when the mechanism invokes it, and these
-   models offer no second route -- unlike `FrequencyLinearUFunModel`, which also
-   implements `before_responding` and so learns from the offer it is about to answer.
-   A negotiator that does not receive `on_partner_proposal` gets a model that never
-   updates and reports uniform weights forever, with no error. Adding
-   `before_responding` to the Genius models would close the gap.
+   Deliberately not "fixed" by sprinkling the call into the Genius models: the family
+   that does call it does so from `on_preferences_changed`, which has nothing to do with
+   opponent modelling and works only because negmas happens to fire it before
+   `on_negotiation_start`. If this is worth unifying, do it once at a hook that means
+   what it says (`on_negotiation_start` or `after_join`) rather than copying the
+   accident into five more places.
+
+2. **The Genius frequency models learn only through `on_partner_proposal`.** Unlike
+   `FrequencyLinearUFunModel`, which also implements `before_responding`, they have no
+   second route, so a negotiator that never receives that callback gets a model that
+   silently never updates.
+
+   Left as one route on purpose. Adding `before_responding` would give any negotiator
+   receiving both callbacks two learning paths and double-count every offer, which for a
+   frequency model directly corrupts the weights it infers. The case that prompted this
+   -- negmas-rl's training environment -- turned out to be the environment's own gap: it
+   drove `after_learner_actions` on its codecs but never `after_partner_action`, and was
+   fixed there.
