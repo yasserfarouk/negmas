@@ -169,21 +169,13 @@ You must do the following steps for doing a release:
 Found while integrating the Genius frequency opponent models into an RL negotiator
 (negmas-rl's RLBOA, 2026-08-28).
 
-1. **Only half of the opponent models publish themselves.** `_update_private_info()` is
-   defined on both `UFunModel` (`gb/components/models/ufun.py`) and
-   `GeniusOpponentModel` (`gb/components/genius/base.py`), but only the former family
-   calls it -- `FrequencyLinearUFunModel`, `FrequencyUFunModel` and
-   `PeekingOpponentModel` do, while none of the five models in
-   `gb/components/genius/models/frequency.py` does. A negotiator using a Genius model
-   therefore still reports `opponent_ufun is None`, and anything reading the model
-   through `private_info["opponent_ufun"]` sees nothing.
-
-   Deliberately not "fixed" by sprinkling the call into the Genius models: the family
-   that does call it does so from `on_preferences_changed`, which has nothing to do with
-   opponent modelling and works only because negmas happens to fire it before
-   `on_negotiation_start`. If this is worth unifying, do it once at a hook that means
-   what it says (`on_negotiation_start` or `after_join`) rather than copying the
-   accident into five more places.
+1. **(fixed) The Genius opponent models never published themselves.** Handled in
+   `GeniusOpponentModel.on_negotiation_start`, which now calls `_update_private_info()`
+   for all five at once. Remaining wart, not worth churn on its own: the `UFunModel`
+   family (`gb/components/models/ufun.py`) still publishes from
+   `on_preferences_changed`, which has nothing to do with opponent modelling and works
+   only because negmas fires it before `on_negotiation_start`. Move those to the same
+   hook next time that file is touched.
 
 2. **The Genius frequency models learn only through `on_partner_proposal`.** Unlike
    `FrequencyLinearUFunModel`, which also implements `before_responding`, they have no
