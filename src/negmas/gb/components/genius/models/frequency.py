@@ -57,12 +57,8 @@ class GHardHeadedFrequencyModel(GeniusOpponentModel):
 
     def _initialize(self) -> None:
         """Initialize the model with uniform weights."""
-        # Clear the issue count *before* the guards below: this method can
-        # return early (no negotiator, no outcome space -- e.g. between
-        # episodes, when negmas has cleared `negotiator.nmi`) and
-        # `on_preferences_changed` resets `_initialized` without touching
-        # `_n_issues`. A stale count left the update loops iterating over
-        # weight dicts that had just been emptied, raising KeyError.
+        # Cleared before the guards below, so a failed re-init leaves range(0)
+        # rather than a stale count over emptied weight dicts (KeyError).
         self._n_issues = 0
         self._initialized = False
         if not self.negotiator or not self.negotiator.nmi:
@@ -230,12 +226,8 @@ class GSmithFrequencyModel(GeniusOpponentModel):
 
     def _initialize(self) -> None:
         """Initialize the model."""
-        # Clear the issue count *before* the guards below: this method can
-        # return early (no negotiator, no outcome space -- e.g. between
-        # episodes, when negmas has cleared `negotiator.nmi`) and
-        # `on_preferences_changed` resets `_initialized` without touching
-        # `_n_issues`. A stale count left the update loops iterating over
-        # weight dicts that had just been emptied, raising KeyError.
+        # Cleared before the guards below, so a failed re-init leaves range(0)
+        # rather than a stale count over emptied weight dicts (KeyError).
         self._n_issues = 0
         self._initialized = False
         if not self.negotiator or not self.negotiator.nmi:
@@ -347,12 +339,8 @@ class GCUHKFrequencyModel(GeniusOpponentModel):
 
     def _initialize(self) -> None:
         """Initialize the model with uniform weights."""
-        # Clear the issue count *before* the guards below: this method can
-        # return early (no negotiator, no outcome space -- e.g. between
-        # episodes, when negmas has cleared `negotiator.nmi`) and
-        # `on_preferences_changed` resets `_initialized` without touching
-        # `_n_issues`. A stale count left the update loops iterating over
-        # weight dicts that had just been emptied, raising KeyError.
+        # Cleared before the guards below, so a failed re-init leaves range(0)
+        # rather than a stale count over emptied weight dicts (KeyError).
         self._n_issues = 0
         self._initialized = False
         if not self.negotiator or not self.negotiator.nmi:
@@ -460,12 +448,8 @@ class GNashFrequencyModel(GeniusOpponentModel):
 
     def _initialize(self) -> None:
         """Initialize the model."""
-        # Clear the issue count *before* the guards below: this method can
-        # return early (no negotiator, no outcome space -- e.g. between
-        # episodes, when negmas has cleared `negotiator.nmi`) and
-        # `on_preferences_changed` resets `_initialized` without touching
-        # `_n_issues`. A stale count left the update loops iterating over
-        # weight dicts that had just been emptied, raising KeyError.
+        # Cleared before the guards below, so a failed re-init leaves range(0)
+        # rather than a stale count over emptied weight dicts (KeyError).
         self._n_issues = 0
         self._initialized = False
         if not self.negotiator or not self.negotiator.nmi:
@@ -609,12 +593,8 @@ class GAgentXFrequencyModel(GeniusOpponentModel):
 
     def _initialize(self) -> None:
         """Initialize the model."""
-        # Clear the issue count *before* the guards below: this method can
-        # return early (no negotiator, no outcome space -- e.g. between
-        # episodes, when negmas has cleared `negotiator.nmi`) and
-        # `on_preferences_changed` resets `_initialized` without touching
-        # `_n_issues`. A stale count left the update loops iterating over
-        # weight dicts that had just been emptied, raising KeyError.
+        # Cleared before the guards below, so a failed re-init leaves range(0)
+        # rather than a stale count over emptied weight dicts (KeyError).
         self._n_issues = 0
         self._initialized = False
         if not self.negotiator or not self.negotiator.nmi:
