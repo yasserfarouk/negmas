@@ -6,6 +6,20 @@ Release 0.16.0 (dev)
 
 **Changes:**
 
+* [helpers] Every random number generator NegMAS uses can now be seeded from a
+  single switch, so a whole run can be reproduced. Set ``NEGMAS_RAND_SEED`` (or
+  the ``rand_seed`` config key) to an integer before a run and both the global
+  ``random`` and ``numpy.random`` generators are seeded with it as
+  ``negmas`` is imported; leaving it unset keeps the previous behaviour of
+  drawing fresh entropy every run, and ``NEGMAS_RAND_SEED=random`` asks for that
+  explicitly. The same can be done in-process with
+  ``negmas.helpers.rand.seed_all(42)``, and libraries built on NegMAS can attach
+  their own generators to the switch with ``register_seeder()`` -- a seeder
+  registered after a seed is already in effect is called immediately with it, so
+  import order does not matter. Seeding is best-effort: a generator that cannot
+  be seeded warns rather than raising, and the unset default does not add
+  anything to ``import negmas``.
+
 * [preferences] Scenarios can optionally carry their ufuns' inverses on disk,
   so repeated negotiations over the same scenario skip re-inverting. Save with
   ``dumpas(..., save_inverse=True)`` and load with

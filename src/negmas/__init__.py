@@ -44,6 +44,10 @@ _EXPORT_TO_MODULE = {
     "CONFIG_KEY_JNEGMAS_JAR": "config",
     "NEGMAS_CONFIG": "config",
     "negmas_config": "config",
+    # helpers.rand (global seeding)
+    "get_seed": "helpers.rand",
+    "register_seeder": "helpers.rand",
+    "seed_all": "helpers.rand",
     # types (4 exports)
     "NamedObject": "types",
     "Rational": "types",
@@ -602,6 +606,10 @@ __all__ = [
     "CONFIG_KEY_JNEGMAS_JAR",
     "NEGMAS_CONFIG",
     "negmas_config",
+    # rand
+    "get_seed",
+    "register_seeder",
+    "seed_all",
     # types
     "NamedObject",
     "Rational",
@@ -1080,3 +1088,26 @@ __all__ = [
     "register_scenario",
     "scenario_registry",
 ]
+
+
+def _seed_from_env() -> None:
+    """Apply the seed configured through ``NEGMAS_RAND_SEED``, if any.
+
+    The check is done here rather than in `negmas.helpers.rand` so that the
+    default (no seed configured) costs nothing: `negmas.helpers` pulls in numpy
+    and friends, and importing `negmas` must stay cheap.
+    """
+    try:
+        from negmas.config import negmas_config
+
+        if negmas_config("rand_seed", None) is None:
+            return
+        from negmas.helpers.rand import seed_from_env
+
+        seed_from_env()
+    except Exception:
+        # Seeding is best-effort and must never keep negmas from importing.
+        pass
+
+
+_seed_from_env()

@@ -33,6 +33,10 @@ The following configuration keys are available:
      - Path to the JNegMAS JAR file
    * - ``warn_slow_ops``
      - Threshold for warning about slow operations (number of operations)
+   * - ``rand_seed``
+     - Seed for every random number generator NegMAS uses. Unset (the default)
+       means every run draws fresh entropy; an integer makes the run
+       reproducible. See :ref:`reproducibility`.
 
 Usage
 -----
@@ -61,6 +65,57 @@ Configuration files should be JSON format:
         "jnegmas_jar": "/path/to/jnegmas.jar",
         "warn_slow_ops": 100000000
     }
+
+
+.. _reproducibility:
+
+Reproducibility
+---------------
+
+Setting ``NEGMAS_RAND_SEED`` before a run seeds every random number generator
+NegMAS uses -- the global generators of :mod:`random` and :mod:`numpy.random`
+-- so the whole run becomes reproducible:
+
+.. code-block:: bash
+
+    NEGMAS_RAND_SEED=42 python my_experiment.py
+
+The same can be done from within Python, which is also how you re-seed between
+runs in the same process:
+
+.. code-block:: python
+
+    from negmas.helpers.rand import seed_all, get_seed
+
+    seed_all(42)
+    assert get_seed() == 42
+
+Leaving the variable unset (the default) keeps the historical behaviour: every
+run draws fresh entropy. ``NEGMAS_RAND_SEED=random`` asks for that explicitly.
+
+Libraries built on NegMAS can hook their own generators onto the same switch,
+so that one setting covers them too:
+
+.. code-block:: python
+
+    from negmas.helpers.rand import register_seeder
+
+
+    def _seed_my_library(seed: int) -> None:
+        my_library.set_seed(seed)
+
+
+    register_seeder(_seed_my_library)
+
+A seeder registered after a seed is already in effect is called immediately
+with it, so import order does not matter. Seeding is best-effort throughout: a
+generator that cannot be seeded produces a warning, never an exception.
+
+.. note::
+
+    Hash randomization is not covered, because ``PYTHONHASHSEED`` can only be
+    set before the interpreter starts. Export it yourself if iteration order
+    over sets of strings affects your results.
 
 API Reference
 -------------
