@@ -106,7 +106,7 @@ SEED_ENVIRONMENT_VARIABLES = (
     ("NEGMAS_RAND_SEED", "{seed}"),
     # python's hash randomization; only read at interpreter start-up
     ("PYTHONHASHSEED", "{seed}"),
-    # pytorch-lightning's seed_everything
+    # read by pytorch-lightning's seed_everything() when called without a seed
     ("PL_GLOBAL_SEED", "{seed}"),
     # cuBLAS needs a fixed workspace for torch's deterministic algorithms
     ("CUBLAS_WORKSPACE_CONFIG", ":4096:8"),
@@ -124,6 +124,10 @@ def seed_environment(seed: int) -> dict[str, str]:
     it that can only be set from the environment. Applying these is the job of
     the shell (``negmas seed``), because ``PYTHONHASHSEED`` is read before the
     interpreter starts and so cannot be set from inside a running process.
+
+    Only the NegMAS entries are guaranteed to do something: the rest are read
+    by torch, tensorflow and pytorch-lightning if those are used at all, and
+    are simply ignored otherwise.
     """
     return {
         name: value.format(seed=int(seed)) for name, value in SEED_ENVIRONMENT_VARIABLES

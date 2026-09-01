@@ -470,14 +470,14 @@ class TrackingAspirationNegotiator(AspirationNegotiator):
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
         self.relative_times = []
-        self.sample_times = []
+        self.elapsed_times = []
 
     def __call__(self, state: SAOState, dest: str | None = None) -> SAOResponse:
-        # Track relative_time from the state along with the wall-clock instant at
-        # which it was sampled (needed to check time-based limits without
-        # assuming the two negotiators are sampled simultaneously).
+        # Track relative_time along with the mechanism's own elapsed time at the
+        # same instant, so a time-based relative_time can be checked against the
+        # clock it was computed from.
         self.relative_times.append(state.relative_time)
-        self.sample_times.append(time.perf_counter())
+        self.elapsed_times.append(state.time)
         return super().__call__(state, dest)
 
 
@@ -807,29 +807,32 @@ def test_relative_time_time_based_limits():
     assert len(neg1.relative_times) > 0
     assert len(neg2.relative_times) > 0
 
-    # Each negotiator's relative_time must follow its OWN time limit: at the
-    # instant it is sampled, rt == (sample_time - start) / limit.
+    # Each negotiator's relative_time must follow its OWN time limit: when it is
+    # sampled, rt * limit is the elapsed time the mechanism reports.
     #
-    # This is checked per negotiator against its own sampling instant rather
-    # than by comparing the two negotiators index-by-index: the i-th sample of
+    # This is checked per negotiator against the mechanism's own clock rather
+    # than by comparing the two negotiators index-by-index. The i-th sample of
     # neg1 and the i-th of neg2 are not taken at the same instant, and on a
-    # loaded runner they can drift far enough apart to make an index-aligned
-    # ratio meaningless (it was observed as low as 1.21 instead of 3.0).
+    # loaded runner they drift far enough apart to make an index-aligned ratio
+    # meaningless (it was seen as low as 1.21 instead of the theoretical 3.0).
     #
-    # The bound is absolute seconds, not a ratio, so it stays meaningful near
-    # rt == 0; 0.1s is 5% of neg1's limit and still an order of magnitude
-    # smaller than the 3x error a swapped limit would produce.
+    # Both sides of the comparison come from the same clock, so the only slack
+    # needed is the time between the state being stamped and the negotiator
+    # being called -- under a millisecond here, and bounded by one step even on
+    # a slow runner. The bound is in absolute seconds rather than a ratio so it
+    # stays meaningful near rt == 0, and a swapped limit (2s read as 6s) is a
+    # 3x error that blows straight past it.
     for neg, limit, name in ((neg1, 2.0, "neg1"), (neg2, 6.0, "neg2")):
         checked = 0
-        for rt, sampled_at in zip(neg.relative_times, neg.sample_times):
+        for rt, mechanism_elapsed in zip(neg.relative_times, neg.elapsed_times):
             if rt >= 0.99:
                 # relative_time is clamped at 1.0, so it no longer tracks time
                 continue
             implied = rt * limit
-            actual = sampled_at - start
-            assert abs(implied - actual) < 0.1, (
+            assert abs(implied - mechanism_elapsed) < 0.5, (
                 f"{name}: relative_time {rt:.4f} implies {implied:.3f}s elapsed "
-                f"against its {limit}s limit, but {actual:.3f}s had actually elapsed"
+                f"against its {limit}s limit, but the mechanism reported "
+                f"{mechanism_elapsed:.3f}s"
             )
             checked += 1
         assert checked > 0, f"{name}: no unclamped relative_time samples to check"
