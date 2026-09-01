@@ -1317,6 +1317,28 @@ def version():
     print(negmas.__version__)
 
 
+@cli.command(
+    help="Prints the environment settings that make a run reproducible.\n\n"
+    "A process cannot change the environment of the shell that started it, and "
+    "PYTHONHASHSEED is read before the interpreter starts, so this command "
+    "prints the settings for the shell to apply:\n\n"
+    '    eval "$(negmas seed 44)"\n\n'
+    "Every run started from that shell then uses seed 44."
+)
+@click.argument("seed", type=int, default=0, required=False)
+@click.option(
+    "--export/--no-export",
+    default=True,
+    help="Print 'export NAME=VALUE' lines for eval, or bare 'NAME=VALUE' lines",
+)
+def seed(seed, export):
+    from negmas.helpers.rand import seed_environment
+
+    prefix = "export " if export else ""
+    for name, value in seed_environment(seed).items():
+        click.echo(f"{prefix}{name}={value}")
+
+
 def _complete_negotiator(ctx, param, incomplete):
     """Shell completion for negotiator specifications."""
     from negmas import negotiator_registry

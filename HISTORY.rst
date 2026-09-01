@@ -20,6 +20,13 @@ Release 0.16.0 (dev)
   be seeded warns rather than raising, and the unset default does not add
   anything to ``import negmas``.
 
+* [cli] New ``negmas seed`` command printing every environment setting that
+  makes a run reproducible -- ``NEGMAS_RAND_SEED`` plus the seeding knobs of
+  the common libraries used alongside NegMAS, including ``PYTHONHASHSEED``,
+  which cannot be set from inside a running process. Apply them to a shell
+  with ``eval "$(negmas seed 44)"``, or use ``--no-export`` to get bare
+  ``NAME=VALUE`` lines for a ``.env`` file.
+
 * [preferences] Scenarios can optionally carry their ufuns' inverses on disk,
   so repeated negotiations over the same scenario skip re-inverting. Save with
   ``dumpas(..., save_inverse=True)`` and load with

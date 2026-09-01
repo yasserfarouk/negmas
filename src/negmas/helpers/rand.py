@@ -23,7 +23,7 @@ import numpy as np
 
 from negmas.warnings import warn
 
-__all__ = ["seed_all", "get_seed", "register_seeder"]
+__all__ = ["seed_all", "get_seed", "register_seeder", "seed_environment"]
 
 _NOT_A_SEED = ("", "none", "random")
 """Values of the setting that explicitly ask for fresh entropy"""
@@ -99,3 +99,32 @@ def seed_from_env() -> int | None:
             "Ignoring it and leaving all generators unseeded."
         )
         return None
+
+
+SEED_ENVIRONMENT_VARIABLES = (
+    # negmas itself (see `seed_from_env`)
+    ("NEGMAS_RAND_SEED", "{seed}"),
+    # python's hash randomization; only read at interpreter start-up
+    ("PYTHONHASHSEED", "{seed}"),
+    # pytorch-lightning's seed_everything
+    ("PL_GLOBAL_SEED", "{seed}"),
+    # cuBLAS needs a fixed workspace for torch's deterministic algorithms
+    ("CUBLAS_WORKSPACE_CONFIG", ":4096:8"),
+    # tensorflow's deterministic kernels
+    ("TF_DETERMINISTIC_OPS", "1"),
+    ("TF_CUDNN_DETERMINISTIC", "1"),
+)
+"""Environment variables that make a run reproducible, and their values"""
+
+
+def seed_environment(seed: int) -> dict[str, str]:
+    """The environment variables that make a run with this seed reproducible.
+
+    Covers NegMAS and the seeding knobs of the common libraries used alongside
+    it that can only be set from the environment. Applying these is the job of
+    the shell (``negmas seed``), because ``PYTHONHASHSEED`` is read before the
+    interpreter starts and so cannot be set from inside a running process.
+    """
+    return {
+        name: value.format(seed=int(seed)) for name, value in SEED_ENVIRONMENT_VARIABLES
+    }

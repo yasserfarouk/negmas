@@ -111,11 +111,23 @@ A seeder registered after a seed is already in effect is called immediately
 with it, so import order does not matter. Seeding is best-effort throughout: a
 generator that cannot be seeded produces a warning, never an exception.
 
-.. note::
+Seeding the whole shell
+~~~~~~~~~~~~~~~~~~~~~~~
 
-    Hash randomization is not covered, because ``PYTHONHASHSEED`` can only be
-    set before the interpreter starts. Export it yourself if iteration order
-    over sets of strings affects your results.
+``NEGMAS_RAND_SEED`` does not cover hash randomization, because
+``PYTHONHASHSEED`` is read before the interpreter starts and so cannot be set
+from inside a running process. The ``negmas seed`` command prints every
+environment setting that makes a run reproducible -- NegMAS's own, plus the
+seeding knobs of the common libraries used alongside it -- for the shell to
+apply:
+
+.. code-block:: bash
+
+    eval "$(negmas seed 44)"
+
+Every run started from that shell then uses seed 44. Pass ``--no-export`` to
+get bare ``NAME=VALUE`` lines instead (useful for a ``.env`` file or a
+container's environment).
 
 API Reference
 -------------
