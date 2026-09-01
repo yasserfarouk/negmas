@@ -256,6 +256,11 @@ class MechanismState:
     """True if the negotiation has started and ended with an END_NEGOTIATION"""
     timedout: bool = False
     """True if the negotiation was timedout"""
+    ended_without_starting: bool = False
+    """True if the mechanism gave up on the negotiation before it ever started and no
+    later step can start it (it was left with too few negotiators and cannot accept
+    more). Terminal states that the negotiation actually reached are reported by
+    `broken`/`timedout`/`agreement` instead, and `started` stays False here."""
     agreement: Outcome | None = None
     """Agreement at the end of the negotiation (it is always None until an agreement is reached)."""
     results: Outcome | OutcomeSpace | tuple[Outcome] | None = None
@@ -297,6 +302,27 @@ class MechanismState:
         """Alias for `ended`. Whether the negotiation has concluded."""
         return self.started and (
             self.broken or self.timedout or (self.agreement is not None)
+        )
+
+    @property
+    def ended_or_never_started(self):
+        """Whether the mechanism will do no further work, however it got there.
+
+        Use this -- not `ended` -- to decide whether to keep stepping a mechanism.
+        `ended` deliberately implies `started`, so it stays False forever for a
+        negotiation that stopped before starting, and a caller polling `not ended`
+        would step such a mechanism indefinitely.
+
+        Two cases reach here without `started`: the mechanism gave up for lack of
+        negotiators (`ended_without_starting`), and a step/time limit was already
+        exceeded at the first step (`timedout`).
+        """
+        return (
+            self.ended
+            or self.ended_without_starting
+            or self.broken
+            or self.timedout
+            or (self.agreement is not None)
         )
 
     def keys(self):

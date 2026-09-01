@@ -2566,6 +2566,11 @@ class Mechanism(
         """Ended in any way"""
         return self._current_state.ended
 
+    @property
+    def ended_or_never_started(self):
+        """Will do no further work, including giving up before ever starting"""
+        return self._current_state.ended_or_never_started
+
     def n_steps_for(self, nid: str):
         """Returns the maximum number of negotiation steps allowed as seen by a given negotiator, or None if unlimited."""
         return self._nmis[nid].n_steps
@@ -2772,13 +2777,22 @@ class Mechanism(
         # end without starting
         if len(self._negotiators) < 2:
             if self._internal_nmi.dynamic_entry:
+                # more negotiators may still join, so the negotiation stays open and
+                # must NOT be marked `ended_without_starting`
                 return self.state
             else:
+                # no more negotiators can join, so this negotiation is over before
+                # it ever started. `ended_without_starting` says exactly that:
+                # `broken`/`timedout` would claim a terminal state it never reached,
+                # and with no marker at all `ended` stays False forever, so a caller
+                # polling `not ended` (e.g. `World._step_negotiations`) would step
+                # this mechanism indefinitely.
                 (
                     self._current_state.running,
                     self._current_state.broken,
                     self._current_state.timedout,
-                ) = (False, False, False)
+                    self._current_state.ended_without_starting,
+                ) = (False, False, False, True)
                 self.on_negotiation_end()
                 return self.state
 

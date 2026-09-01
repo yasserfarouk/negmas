@@ -1876,7 +1876,7 @@ class World(
                         list(zip(itertools.repeat(self._current_step), exceptions))
                     )
 
-        agreement, is_running = result.agreement, not result.ended
+        agreement, is_running = result.agreement, not result.ended_or_never_started
         negotiation = self._negotiations.get(mechanism.id, None)
         if negotiation is not None:
             self.on_negotiation_stepped(negotiation)
@@ -2120,7 +2120,9 @@ class World(
                     if _ is not None
                 )
                 running = [
-                    _[0] for _ in mechanisms if _ is not None and not _[0].state.ended
+                    _[0]
+                    for _ in mechanisms
+                    if _ is not None and not _[0].state.ended_or_never_started
                 ]
                 return not running
 
@@ -2162,7 +2164,7 @@ class World(
                 for _ in self._negotiations.values()
                 if _ is not None
                 and _.mechanism is not None
-                and not _.mechanism.state.ended
+                and not _.mechanism.state.ended_or_never_started
             ]
 
             return not running

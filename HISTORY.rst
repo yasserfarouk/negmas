@@ -6,6 +6,24 @@ Release 0.16.0
 
 **Changes:**
 
+* [situated] ``World._step_negotiations`` no longer loops forever on a negotiation
+  that ends before it starts. A mechanism left with fewer than two negotiators and
+  no ``dynamic_entry`` gives up without ever starting, and the world decided whether
+  to keep stepping it with ``not state.ended`` -- but ``ended`` implies ``started``
+  by design, so it read False forever and the mechanism was stepped indefinitely. A
+  finite ``negotiation_speed`` masked this by capping the passes per world step;
+  with ``negotiation_speed=None`` the loop never terminated and only the world's
+  wall-clock ``time_limit`` broke it out. The same predicate was wrong in two more
+  places (the running-negotiation filters in ``_step_negotiations``' bookkeeping).
+
+  ``ended`` keeps its meaning exactly -- it still implies ``started``, so downstream
+  code reading it as "ran, then concluded" is unaffected. The stepping decision now
+  uses a new property, ``MechanismState.ended_or_never_started``, which is ``ended``
+  widened to the two ways a negotiation stops without starting: it was abandoned for
+  lack of negotiators (the new ``ended_without_starting`` flag) or a step/time limit
+  was already exceeded at the first step (``timedout``). Use it, not ``ended``, to
+  decide whether a mechanism still needs stepping; ``Mechanism`` exposes it too.
+
 * [deps] Require ``setuptools>=83.0.0``. Versions below that are affected by
   CVE-2026-59890, in which a Unicode normalization collision (NFC/NFD) on macOS
   APFS/HFS+ lets a file bypass its ``MANIFEST.in`` exclusion and be included in
