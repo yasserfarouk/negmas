@@ -1875,6 +1875,137 @@ class Scenario:
             compact=compact,
         )
 
+    def _inverse_cache_keys(self) -> list[str] | None:
+        """One cache key per ufun, or ``None`` if the ufuns cannot be keyed safely.
+
+        Keys are the ufuns' *serialized names* — the same stems `dumpas` uses for
+        their files. Positional keys would be wrong: ufun files are read back in
+        sorted-filename order, so ``Scenario.ufuns`` is generally **not** in the
+        same order after a save/load round-trip.
+
+        Returns:
+            The list of keys, or ``None`` when the names are missing or not
+            unique (in which case inverse caching is skipped entirely rather than
+            risk attaching a cache to the wrong ufun).
+        """
+        try:
+            names = [str(u["name"]) for u in self.serialize()["ufuns"]]
+        except Exception:  # pragma: no cover - defensive
+            return None
+        if len(names) != len(self.ufuns) or len(set(names)) != len(names):
+            return None
+        if any(not n for n in names):
+            return None
+        return names
+
+    def save_inverses(
+        self,
+        folder: Path | str,
+        verbose: bool = False,
+        configs: Iterable[dict] | None = None,
+    ) -> int:
+        """Builds (if needed) and saves each ufun's inverse under ``folder``.
+
+        Args:
+            folder: The scenario folder. Caches are written to its ``_inverses``
+                subfolder.
+            verbose: If True, print why a ufun could not be cached.
+            configs: The inverter configurations to build and cache. Defaults to
+                `DEFAULT_INVERSE_CONFIGS`. Each is a kwargs dict forwarded to
+                `invert`; configurations producing identical arrays are stored once.
+
+        Returns:
+            The number of inverses actually written.
+
+        Remarks:
+            - Ufuns that cannot be safely cached (non-stationary, constrained, or
+              inverted by an implementation without persistence support) are
+              skipped silently; the rest are still saved.
+        """
+        from negmas.preferences.inv_ufun.persistence import (
+            DEFAULT_INVERSE_CONFIGS,
+            can_cache_inverse,
+            save_inverter,
+        )
+
+        keys = self._inverse_cache_keys()
+        if keys is None:
+            if verbose:
+                print("Not caching inverses: ufun names are missing or not unique")
+            return 0
+        if configs is None:
+            configs = DEFAULT_INVERSE_CONFIGS
+        n = 0
+        for i, (u, key) in enumerate(zip(self.ufuns, keys)):
+            ok, reason = can_cache_inverse(u)
+            if not ok:
+                if verbose:
+                    print(f"Not caching the inverse of ufun {i}: {reason}")
+                continue
+            for config in configs:
+                try:
+                    inverter = u.invert(**config)
+                except Exception as e:  # pragma: no cover - defensive
+                    if verbose:
+                        print(f"Failed to invert ufun {i} with {config}: {e}")
+                    continue
+                if save_inverter(folder, u, inverter, key):
+                    n += 1
+                elif verbose:
+                    print(f"Inverter for ufun {i} does not support persistence")
+        return n
+
+    def attach_inverses(self, folder: Path | str) -> bool:
+        """Points each ufun at the saved inverses in ``folder``, if any exist.
+
+        Nothing is read from disk here: each ufun merely records where its cache
+        lives, and loads it lazily on the first call to `invert`.
+
+        Returns:
+            True if a cache folder was found and attached.
+        """
+        from negmas.preferences.inv_ufun.persistence import INVERSE_FOLDER_NAME
+
+        folder = Path(folder)
+        if not (folder / INVERSE_FOLDER_NAME).is_dir():
+            return False
+        keys = self._inverse_cache_keys()
+        if keys is None:
+            return False
+        for u, key in zip(self.ufuns, keys):
+            u.attach_inverse_cache(folder, key)
+        return True
+
+    def _maybe_attach_inverses(
+        self, path: PathLike | str, load_cached_inverse: bool
+    ) -> Scenario:
+        """Attaches saved inverses when explicitly requested. Returns ``self``.
+
+        Shared by every loader so that ``load_cached_inverse`` means the same
+        thing everywhere: nothing is read from disk unless the caller asked.
+        """
+        if load_cached_inverse:
+            folder = Path(path)
+            self.attach_inverses(folder if folder.is_dir() else folder.parent)
+        return self
+
+    def has_saved_inverses(self, folder: Path | str | None = None) -> bool:
+        """Whether saved inverses exist in ``folder`` (defaults to this scenario's source)."""
+        from negmas.preferences.inv_ufun.persistence import INVERSE_FOLDER_NAME
+
+        if folder is None:
+            folder = self._source_folder()
+        if folder is None:
+            return False
+        return (Path(folder) / INVERSE_FOLDER_NAME).is_dir()
+
+    def _source_folder(self) -> Path | None:
+        """The folder this scenario was loaded from, or None."""
+        if self.source is None:
+            return None
+        source = self.source[0] if isinstance(self.source, tuple) else self.source
+        return source if source.is_dir() else source.parent
+
     def dumpas(
         self,
         folder: Path | str,
@@ -1888,6 +2019,7 @@ class Scenario:
         include_pareto_outcomes: bool | None = None,
         plot_extension: str | None = None,
         plot_kwargs: dict | None = None,
+        save_inverse: bool = False,
     ) -> None:
         """
         Dumps the scenario in the given file format.
@@ -1908,6 +2040,16 @@ class Scenario:
             plot_extension: File extension for plots (e.g., 'png', 'jpg', 'svg', 'pdf', 'webp').
                 If None, uses DEFAULT_IMAGE_FORMAT from negmas.plots.util (currently 'webp').
             plot_kwargs: Additional keyword arguments to pass to the plot() method. Default is None.
+            save_inverse: If True, each ufun's inverse is computed (if needed) and
+                cached under ``<folder>/_inverses`` so later loads of this scenario
+                can skip inversion entirely. Default is False — inverse caching is
+                always opt-in, because reusing a stale inverse silently corrupts
+                negotiations.
+
+        Remarks:
+            - When ``save_inverse`` is False, any inverse cache already present in
+              ``folder`` is **deleted**, so a cache can never outlive the scenario
+              it was built for.
         """
         if type.startswith("."):
             type = type[1:]
@@ -1919,6 +2061,7 @@ class Scenario:
                 if plot_extension is not None:
                     kwargs["ext"] = plot_extension
                 self.save_plots(folder, **kwargs)
+            self._write_inverses(folder, save_inverse)
             return
         folder.mkdir(parents=True, exist_ok=True)
         serialized = self.serialize()
@@ -1941,6 +2084,16 @@ class Scenario:
             if plot_extension is not None:
                 kwargs["ext"] = plot_extension
             self.save_plots(folder, **kwargs)
+        self._write_inverses(folder, save_inverse)
+
+    def _write_inverses(self, folder: Path, save_inverse: bool) -> None:
+        """Saves or deletes the inverse cache for a just-written scenario folder."""
+        from negmas.preferences.inv_ufun.persistence import remove_saved_inverses
+
+        if save_inverse:
+            self.save_inverses(folder)
+        else:
+            remove_saved_inverses(folder)
 
     def update(
         self,
@@ -1953,6 +2106,7 @@ class Scenario:
         include_pareto_outcomes: bool | None = None,
         plot_extension: str | None = None,
         plot_kwargs: dict | None = None,
+        save_inverse: bool | None = None,
     ) -> bool:
         """
         Updates the scenario at its source location.
@@ -1972,6 +2126,11 @@ class Scenario:
             plot_extension: File extension for plots (e.g., 'png', 'jpg', 'svg', 'pdf', 'webp').
                 If None, uses DEFAULT_IMAGE_FORMAT from negmas.plots.util (currently 'webp').
             plot_kwargs: Additional keyword arguments to pass to the plot() method. Default is None.
+
+            save_inverse: Whether to save cached inverses. ``None`` (the default)
+                *preserves* whatever is already there: the cache is rewritten if
+                the source folder already has one and left absent otherwise. Pass
+                True/False to force.
 
         Returns:
             True if successfully saved, False if no source is available.
@@ -2010,6 +2169,11 @@ class Scenario:
         if not file_ext or file_ext not in ("yml", "yaml", "json", "xml"):
             file_ext = "yml"
 
+        # Preserve an existing inverse cache unless explicitly told otherwise:
+        # update() must never silently delete an expensive cache the user asked for.
+        if save_inverse is None:
+            save_inverse = self.has_saved_inverses(folder)
+
         # Use dumpas to save
         self.dumpas(
             folder=folder,
@@ -2023,6 +2187,7 @@ class Scenario:
             include_pareto_outcomes=include_pareto_outcomes,
             plot_extension=plot_extension,
             plot_kwargs=plot_kwargs,
+            save_inverse=save_inverse,
         )
         return True
 
@@ -2111,6 +2276,7 @@ class Scenario:
         ignore_discount=False,
         ignore_reserved=False,
         safe_parsing=True,
+        load_cached_inverse: bool = False,
     ) -> Scenario | None:
         """Loads a scenario from a folder containing Genius-format XML files.
 
@@ -2119,6 +2285,12 @@ class Scenario:
             ignore_discount: If True, ignore time-based discounting in utility functions.
             ignore_reserved: If True, set reserved values to -inf.
             safe_parsing: If True, apply more stringent validation during parsing.
+            load_cached_inverse: If True, attach any saved ufun inverses found in
+                ``<folder>/_inverses`` so `invert` is served from disk instead of
+                recomputing. Default **False**: loading a cached inverse is always
+                explicit, because reusing a stale one silently corrupts every
+                negotiation that uses it. Even when True, the cache is fully
+                re-validated before use.
 
         Returns:
             The loaded Scenario, or None if loading fails.
@@ -2131,7 +2303,8 @@ class Scenario:
         )
         if s is None:
             return s
-        return s.load_info(path)
+        s.load_info(path)
+        return s._maybe_attach_inverses(path, load_cached_inverse)
 
     @classmethod
     def load(
@@ -2141,10 +2314,23 @@ class Scenario:
         ignore_discount=False,
         load_stats=True,
         load_info=True,
+        load_cached_inverse: bool = False,
         **kwargs,
     ) -> Scenario | None:
         """
         Loads the scenario from a folder with supported formats: XML, YML
+
+        Args:
+            folder: The folder to load from.
+            safe_parsing: Apply stricter validation while parsing.
+            ignore_discount: Ignore time-based discounting.
+            load_stats: Load ``_stats.yaml`` if present.
+            load_info: Load the info file if present.
+            load_inverse: Attach any saved inverses found in ``<folder>/_inverses``
+                so `invert` on the loaded ufuns is served from disk. Default True —
+                loading is automatic, but only ever finds something when the
+                scenario was explicitly saved with ``dumpas(..., save_inverse=True)``.
+                The cache is still fully re-validated before use.
         """
         for finder, loader in (
             (find_domain_and_utility_files_yaml, cls.from_yaml_folder),
@@ -2164,6 +2350,8 @@ class Scenario:
                 s.load_info(folder)
             if s is not None and load_stats:
                 s.load_stats(folder)
+            if s is not None and load_cached_inverse:
+                s.attach_inverses(folder)
             return s
 
     @classmethod
@@ -2190,6 +2378,7 @@ class Scenario:
         ignore_reserved=False,
         safe_parsing=True,
         name: str | None = None,
+        load_cached_inverse: bool = False,
     ) -> Scenario | None:
         """Loads a scenario from specific Genius-format XML file paths.
 
@@ -2201,6 +2390,12 @@ class Scenario:
             ignore_reserved: If True, set reserved values to -inf.
             safe_parsing: If True, apply more stringent validation during parsing.
             name: Optional name for the scenario. If None, uses domain file stem.
+            load_cached_inverse: If True, attach any saved ufun inverses found in
+                the folder's ``_inverses`` subfolder so `invert` is served from
+                disk. Default **False**: loading a cached inverse is always
+                explicit, because reusing a stale one silently corrupts every
+                negotiation that uses it. Even when True, the cache is fully
+                re-validated before use.
 
         Returns:
             The loaded Scenario, or None if loading fails.
@@ -2218,8 +2413,8 @@ class Scenario:
         if not s:
             return s
         if info is not None:
-            return s.load_info_file(Path(info))
-        return s
+            s.load_info_file(Path(info))
+        return s._maybe_attach_inverses(Path(domain).parent, load_cached_inverse)
 
     @staticmethod
     def from_geniusweb_folder(
@@ -2228,6 +2423,7 @@ class Scenario:
         ignore_reserved=False,
         use_reserved_outcome=False,
         safe_parsing=True,
+        load_cached_inverse: bool = False,
     ) -> Scenario | None:
         """Loads a scenario from a folder containing GeniusWeb-format JSON files.
 
@@ -2250,7 +2446,8 @@ class Scenario:
         )
         if not s:
             return s
-        return s.load_info(path)
+        s.load_info(path)
+        return s._maybe_attach_inverses(path, load_cached_inverse)
 
     @staticmethod
     def from_geniusweb_files(
@@ -2262,6 +2459,7 @@ class Scenario:
         use_reserved_outcome=False,
         safe_parsing=True,
         name: str | None = None,
+        load_cached_inverse: bool = False,
     ) -> Scenario | None:
         """Loads a scenario from specific GeniusWeb-format JSON file paths.
 
@@ -2292,8 +2490,8 @@ class Scenario:
         if not s:
             return s
         if info is not None:
-            return s.load_info_file(Path(info))
-        return s
+            s.load_info_file(Path(info))
+        return s._maybe_attach_inverses(Path(domain).parent, load_cached_inverse)
 
     @classmethod
     def from_yaml_folder(
@@ -2302,6 +2500,7 @@ class Scenario:
         ignore_discount=False,
         ignore_reserved=False,
         safe_parsing=True,
+        load_cached_inverse: bool = False,
     ) -> Scenario | None:
         """Loads a scenario from a folder containing YAML files.
 
@@ -2329,7 +2528,8 @@ class Scenario:
             return s
         # Override source to be the folder path instead of individual files
         s = evolve(s, source=Path(path))
-        return s.load_info(path)
+        s.load_info(path)
+        return s._maybe_attach_inverses(path, load_cached_inverse)
 
     @classmethod
     def from_yaml_files(
@@ -2342,6 +2542,7 @@ class Scenario:
         safe_parsing=True,
         python_class_identifier="type",
         name: str | None = None,
+        load_cached_inverse: bool = False,
     ) -> Scenario | None:
         """Loads a scenario from specific YAML file paths.
 
@@ -2424,8 +2625,8 @@ class Scenario:
         if s and ignore_reserved:
             s = s.remove_reserved_values()
         if info is not None:
-            return s.load_info_file(Path(info))
-        return s
+            s.load_info_file(Path(info))
+        return s._maybe_attach_inverses(Path(domain).parent, load_cached_inverse)
 
 
 def get_domain_issues(

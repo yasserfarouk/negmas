@@ -117,7 +117,17 @@ class PresortingInverseUtilityFunction(InverseUFun):
         self._near_range = dict()
 
     def init(self):
-        """Initializes the inverter by enumerating and sorting outcomes by utility."""
+        """Initializes the inverter by enumerating and sorting outcomes by utility.
+
+        Remarks:
+            - If the ufun carries a saved inverse matching this inverter's
+              configuration, it is restored instead of enumerating and evaluating
+              the outcome space. This keeps *lazy* construction paths (which build
+              an inverter and call ``init()`` later) on the fast path too.
+        """
+        restore = getattr(self._ufun, "restore_inverse_from_cache", None)
+        if restore is not None and restore(self):
+            return
         outcome_space = self._ufun.outcome_space
         if outcome_space is None:
             raise ValueError("Cannot find the outcome space.")
@@ -165,6 +175,22 @@ class PresortingInverseUtilityFunction(InverseUFun):
         )
         indices = np.argsort(ur)
         ur_sorted = ur[indices]
+        self._compute_near_range(ur_sorted)
+
+        self._initialized = True
+        self._last_rational = len(rational) - 1
+        self.outcomes = [rational[_] for _ in indices] + irrational
+        self.utils = np.hstack((ur_sorted, uir))
+
+    def _compute_near_range(self, ur_sorted: NDArray[floating[Any]]) -> None:
+        """Groups (nearly) equal utilities so queries can cycle among ties.
+
+        Fills `_near_range` mapping each index in a run of statistically-equal
+        utilities to that run's ``(first, last)`` bounds. Derived purely from the
+        sorted rational utilities and this instance's `eps`/`rel_eps`, so it is
+        recomputed rather than persisted.
+        """
+        self._near_range = dict()
         if len(ur_sorted) > 0:
             with np.errstate(under="ignore"):
                 relative_part = self._rel_eps * (ur_sorted[-1] - ur_sorted[0])
@@ -172,29 +198,120 @@ class PresortingInverseUtilityFunction(InverseUFun):
             eps = max(self._eps, relative_part)
         else:
             eps = -1
-        if eps > 0:
-            try:
-                n = len(ur_sorted)
-                if n >= 2:
-                    scaled = np.asarray(ur_sorted / eps, dtype=int)
-                    diffs = np.diff(scaled) != 0
-                    indexes = np.nonzero(diffs)[0] + 1
-                    groups = np.split(scaled, indexes)
-                    lengths = np.asarray([_.size for _ in groups], dtype=int)
-                    starts = np.hstack((np.asarray([0], dtype=int), indexes))
-                    ends = starts + lengths - 1
-                    extended = np.nonzero(lengths > 1)[0]
-                    starts, ends = starts[extended], ends[extended]
-                    for mn, mx in zip(starts, ends):
-                        for indx in range(mn, mx + 1):
-                            self._near_range[indx] = (mn, mx)
-            except Exception:
-                pass
+        if eps <= 0:
+            return
+        try:
+            n = len(ur_sorted)
+            if n >= 2:
+                scaled = np.asarray(ur_sorted / eps, dtype=int)
+                diffs = np.diff(scaled) != 0
+                indexes = np.nonzero(diffs)[0] + 1
+                groups = np.split(scaled, indexes)
+                lengths = np.asarray([_.size for _ in groups], dtype=int)
+                starts = np.hstack((np.asarray([0], dtype=int), indexes))
+                ends = starts + lengths - 1
+                extended = np.nonzero(lengths > 1)[0]
+                starts, ends = starts[extended], ends[extended]
+                for mn, mx in zip(starts, ends):
+                    for indx in range(mn, mx + 1):
+                        self._near_range[indx] = (mn, mx)
+        except Exception:
+            pass
 
+    def persistable_config(self) -> dict[str, Any]:
+        """The construction parameters that change the *stored arrays*.
+
+        Only these have to match for a cached inverse to be reusable. `eps`,
+        `rel_eps` and `clamp_tolerance` are deliberately excluded: they affect
+        only derived state (`_near_range`) and query-time clamping, both of which
+        are recomputed from the live instance on restore.
+        """
+        return {
+            "levels": self.levels,
+            "max_cache_size": self.max_cache_size,
+            "rational_only": self.rational_only,
+        }
+
+    def persist_state(self) -> dict[str, Any] | None:
+        """Returns this inverter's expensive state for saving to disk.
+
+        Only the costly part is returned — the enumerated outcomes and their
+        utilities, plus the extreme outcomes. Everything else (`_near_range`,
+        `_last_rational`, `_range`, `_offset`) is cheap to recompute and is
+        rebuilt by `restore_state`.
+        """
+        if not self._initialized:
+            return None
+        return {
+            "outcomes": list(self.outcomes),
+            "utils": np.asarray(self.utils, dtype=float),
+            "config": self.persistable_config(),
+            "extra": {
+                "worst": list(self._worst) if self._worst is not None else None,
+                "best": list(self._best) if self._best is not None else None,
+                "min": float(self._min),
+                "max": float(self._max),
+            },
+        }
+
+    def restore_state(self, state: dict[str, Any]) -> bool:
+        """Rebuilds this inverter from persisted state instead of running `init()`.
+
+        Returns:
+            True if the state was accepted and the inverter is now initialized;
+            False if anything was inconsistent (the caller then falls back to a
+            normal `init()`).
+
+        Remarks:
+            The persisted extreme outcomes are re-evaluated against the live ufun
+            rather than trusted, since they set the normalization range used by
+            every ``normalized=True`` query.
+        """
+        try:
+            outcomes = list(state["outcomes"])
+            utils = np.asarray(state["utils"], dtype=float).flatten()
+            extra = state.get("extra", {}) or {}
+            if len(outcomes) != len(utils):
+                return False
+            worst = extra.get("worst")
+            best = extra.get("best")
+            if worst is None or best is None:
+                return False
+            worst, best = tuple(worst), tuple(best)
+            # Re-evaluate rather than trust the file: these bound every
+            # normalized query, so a stale value here corrupts everything.
+            mn, mx = float(self._ufun(worst)), float(self._ufun(best))
+            if not (
+                math.isclose(mn, float(extra["min"]), rel_tol=1e-9, abs_tol=1e-9)
+                and math.isclose(mx, float(extra["max"]), rel_tol=1e-9, abs_tol=1e-9)
+            ):
+                return False
+        except Exception:
+            return False
+
+        self._worst, self._best = worst, best
+        self._min, self._max = mn, mx
+        self._range = self._max - self._min
+        self._offset = self._min / self._range if self._range > EPS else self._min
+        if self.rational_only:
+            r = self._ufun.reserved_value
+            r = float(r) if r is not None else float("-inf")
+            # `init()` puts the sorted rational outcomes first and appends the
+            # irrational ones, so the rational block is the leading run of
+            # utilities at or above the reserved value.
+            rational_mask = utils >= r
+            n_rational = (
+                int(np.argmin(rational_mask)) if not rational_mask.all() else len(utils)
+            )
+            self._last_rational = n_rational - 1
+        else:
+            self._last_rational = len(outcomes) - 1
+        self.outcomes = outcomes
+        self.utils = utils
+        self._last_returned_from_next = -1
+        self._compute_near_range(utils[: self._last_rational + 1])
         self._initialized = True
-        self._last_rational = len(rational) - 1
-        self.outcomes = [rational[_] for _ in indices] + irrational
-        self.utils = np.hstack((ur_sorted, uir))
+        return True
 
     def _un_normalize_range(
         self, rng: float | tuple[float, float], normalized: bool, for_best: bool

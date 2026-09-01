@@ -6,7 +6,6 @@ from typing import TYPE_CHECKING
 
 from attrs import define, field
 
-from negmas.preferences.inv_ufun import DefaultInverseUtilityFunction
 from negmas.preferences.protocols import InverseUFun
 
 from negmas.gb.components.genius.base import GeniusOfferingPolicy
@@ -64,10 +63,9 @@ class GHardHeadedOffering(GeniusOfferingPolicy):
         """Initialize utility function and parameters."""
         if not self.negotiator or not self.negotiator.ufun:
             return
-        self._sorter = DefaultInverseUtilityFunction(
-            self.negotiator.ufun, rational_only=True, eps=-1, rel_eps=-1
+        self._sorter = self.negotiator.ufun.invert(
+            rational_only=True, eps=-1, rel_eps=-1
         )
-        self._sorter.init()
         self._pmin, self._pmax = self._sorter.minmax()
         self._lowest_util = self._pmax
 
@@ -146,10 +144,9 @@ class GAgentK2Offering(GeniusOfferingPolicy):
         """Initialize utility function."""
         if not self.negotiator or not self.negotiator.ufun:
             return
-        self._sorter = DefaultInverseUtilityFunction(
-            self.negotiator.ufun, rational_only=True, eps=-1, rel_eps=-1
+        self._sorter = self.negotiator.ufun.invert(
+            rational_only=True, eps=-1, rel_eps=-1
         )
-        self._sorter.init()
         self._pmin, self._pmax = self._sorter.minmax()
         self._target = self._pmax
 
@@ -204,10 +201,9 @@ class GBRAMAgentOffering(GeniusOfferingPolicy):
         """Initialize utility function."""
         if not self.negotiator or not self.negotiator.ufun:
             return
-        self._sorter = DefaultInverseUtilityFunction(
-            self.negotiator.ufun, rational_only=True, eps=-1, rel_eps=-1
+        self._sorter = self.negotiator.ufun.invert(
+            rational_only=True, eps=-1, rel_eps=-1
         )
-        self._sorter.init()
         self._pmin, self._pmax = self._sorter.minmax()
         self._threshold = self._pmax
 
@@ -268,10 +264,9 @@ class GGahboninhoOffering(GeniusOfferingPolicy):
         """Initialize utility function."""
         if not self.negotiator or not self.negotiator.ufun:
             return
-        self._sorter = DefaultInverseUtilityFunction(
-            self.negotiator.ufun, rational_only=True, eps=-1, rel_eps=-1
+        self._sorter = self.negotiator.ufun.invert(
+            rational_only=True, eps=-1, rel_eps=-1
         )
-        self._sorter.init()
         self._pmin, self._pmax = self._sorter.minmax()
 
     def __call__(
@@ -332,10 +327,9 @@ class GNiceTitForTatOffering(GeniusOfferingPolicy):
         """Initialize utility function."""
         if not self.negotiator or not self.negotiator.ufun:
             return
-        self._sorter = DefaultInverseUtilityFunction(
-            self.negotiator.ufun, rational_only=True, eps=-1, rel_eps=-1
+        self._sorter = self.negotiator.ufun.invert(
+            rational_only=True, eps=-1, rel_eps=-1
         )
-        self._sorter.init()
         self._pmin, self._pmax = self._sorter.minmax()
 
     def __call__(
@@ -399,10 +393,9 @@ class GTheNegotiatorOffering(GeniusOfferingPolicy):
         """Initialize utility function."""
         if not self.negotiator or not self.negotiator.ufun:
             return
-        self._sorter = DefaultInverseUtilityFunction(
-            self.negotiator.ufun, rational_only=True, eps=-1, rel_eps=-1
+        self._sorter = self.negotiator.ufun.invert(
+            rational_only=True, eps=-1, rel_eps=-1
         )
-        self._sorter.init()
         self._pmin, self._pmax = self._sorter.minmax()
 
     def __call__(
@@ -468,10 +461,9 @@ class GValueModelAgentOffering(GeniusOfferingPolicy):
         """Initialize utility function."""
         if not self.negotiator or not self.negotiator.ufun:
             return
-        self._sorter = DefaultInverseUtilityFunction(
-            self.negotiator.ufun, rational_only=True, eps=-1, rel_eps=-1
+        self._sorter = self.negotiator.ufun.invert(
+            rational_only=True, eps=-1, rel_eps=-1
         )
-        self._sorter.init()
         self._pmin, self._pmax = self._sorter.minmax()
 
     def __call__(
@@ -534,10 +526,9 @@ class GIAMhaggler2011Offering(GeniusOfferingPolicy):
         """Initialize utility function."""
         if not self.negotiator or not self.negotiator.ufun:
             return
-        self._sorter = DefaultInverseUtilityFunction(
-            self.negotiator.ufun, rational_only=True, eps=-1, rel_eps=-1
+        self._sorter = self.negotiator.ufun.invert(
+            rational_only=True, eps=-1, rel_eps=-1
         )
-        self._sorter.init()
         self._pmin, self._pmax = self._sorter.minmax()
 
     def __call__(

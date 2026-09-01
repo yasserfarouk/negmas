@@ -117,8 +117,8 @@ class AdaptiveInverseUtilityFunction(InverseUFun):
     # init
     # ------------------------------------------------------------------
 
-    def init(self) -> None:
-        """Select and initialise the best concrete inverter for *ufun*."""
+    def _select_delegate(self) -> InverseUFun:
+        """Chooses (without initializing) the best concrete inverter for *ufun*."""
         from ..crisp.linear import LinearAdditiveUtilityFunction
 
         # Unwrap wrappers to inspect the base ufun type
@@ -140,19 +140,60 @@ class AdaptiveInverseUtilityFunction(InverseUFun):
             use_bids = cardinality > self._max_presorting
 
         if use_bids:
-            self._delegate = BIDSInverseUtilityFunction(
+            return BIDSInverseUtilityFunction(
                 self._ufun,
                 precision=self._bids_precision,
                 n_samples=self._bids_n_samples,
                 continuous_levels=self._bids_continuous_levels,
             )
-        else:
-            self._delegate = PresortingInverseUtilityFunction(
-                self._ufun, **self._presorting_kwargs
-            )
+        return PresortingInverseUtilityFunction(self._ufun, **self._presorting_kwargs)
 
+    def init(self) -> None:
+        """Select and initialise the best concrete inverter for *ufun*.
+
+        The delegate consults the ufun's saved inverse in its own ``init()``, so
+        a cached inverse is picked up here too.
+        """
+        self._delegate = self._select_delegate()
         self._delegate.init()
         self._initialized = True
+
+    # ------------------------------------------------------------------
+    # Persistence (forwarded to the selected delegate)
+    # ------------------------------------------------------------------
+
+    def persistable_config(self) -> dict[str, Any] | None:
+        """The delegate's array-affecting configuration, or ``None`` if not persistable.
+
+        Selects the delegate (without the expensive ``init()``) so the effective
+        configuration can be computed before any work is done.
+        """
+        delegate = self._delegate or self._select_delegate()
+        getter = getattr(delegate, "persistable_config", None)
+        return getter() if getter is not None else None
+
+    def persist_state(self) -> dict[str, Any] | None:
+        """Forwards to the delegate, or ``None`` if it cannot be persisted."""
+        delegate = self._delegate
+        if delegate is None or not hasattr(delegate, "persist_state"):
+            return None
+        return delegate.persist_state()  # type: ignore[attr-defined]
+
+    def restore_state(self, state: dict[str, Any]) -> bool:
+        """Restores a cached inverse into a freshly selected delegate.
+
+        Returns False when the delegate this ufun/outcome-space would select is
+        not one that supports persistence (e.g. BIDS for a very large additive
+        space), so the caller rebuilds normally.
+        """
+        delegate = self._select_delegate()
+        if not hasattr(delegate, "restore_state"):
+            return False
+        if not delegate.restore_state(state):  # type: ignore[attr-defined]
+            return False
+        self._delegate = delegate
+        self._initialized = True
+        return True
 
     # ------------------------------------------------------------------
     # Delegation helpers

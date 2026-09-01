@@ -274,6 +274,88 @@ Scenarios can also be read from the common on-disk formats::
 and written back with ``scenario.dumpas(folder, type="yml")`` /
 ``to_genius_folder(...)`` / ``to_yaml(...)``.
 
+Caching utility-function inverses
+---------------------------------
+
+Inverting a ufun (finding outcomes with a given utility) enumerates and sorts the
+whole outcome space. When you negotiate the *same* scenario repeatedly, that cost
+is paid on every run. A scenario can carry its ufuns' inverses on disk instead:
+
+.. code-block:: python
+
+    scenario.dumpas(folder, type="yml", save_inverse=True)  # opt in when saving
+    reloaded = Scenario.load(folder, load_cached_inverse=True)  # opt in when loading
+    inverter = reloaded.ufuns[0].invert()  # served from disk, no re-inversion
+
+Both halves are **opt-in**, because reusing a stale inverse silently corrupts
+every negotiation that uses it:
+
+- ``dumpas`` writes nothing unless ``save_inverse=True``, and saving *without* it
+  **deletes** any cache already in the folder, so a cache never outlives the
+  scenario it was built for. ``scenario.update()`` instead preserves whatever the
+  folder already has.
+- No loader reads a cache unless asked. ``load_cached_inverse=False`` is the
+  default on ``Scenario.load`` and on every ``from_*_folder`` / ``from_*_files``
+  loader.
+
+Even when you opt in, a cache is only reused if all of these hold; anything else
+- including a corrupt or truncated file - silently rebuilds:
+
+- The outcome space matches, issue order and value types included.
+- The reserved value matches.
+- The inverter configuration matches.
+- Re-evaluating the ufun on a sample of the stored outcomes reproduces the stored
+  utilities.
+
+Modifying a ufun in any way marks it and permanently disables its cache. If you
+mutate one through a route that does not assign an attribute (changing a list in
+place, say), call ``ufun.mark_modified()``.
+
+Non-stationary (e.g. discounted) and constrained ufuns are never cached, since
+their inverses are not reusable.
+
+Every route to an inverter benefits, not just :meth:`~negmas.preferences.BaseUtilityFunction.invert`:
+inverters consult the cache inside their own ``init()``, so components that build
+one lazily (as the time-based negotiators do) are served too. Across NegMAS' own
+negotiators every inversion that happens during a negotiation is served from the
+cache when one is loaded.
+
+Two paths inherently cannot be served, because they invert a *different* ufun
+than the scenario's:
+
+- ``make_inverter(..., rank_only=True)`` wraps the ufun in a fresh
+  ``RankOnlyUtilityFunction`` on each call.
+- Offering policies that invert a derived, normalized ufun rather than the
+  scenario's own.
+
+Both still work correctly; they just re-invert as before.
+
+.. note::
+
+    Components request a few different inverter configurations, and each produces
+    different sorted arrays, so ``save_inverse=True`` writes one file per ufun
+    **per configuration** (see ``DEFAULT_INVERSE_CONFIGS``). Pass
+    ``scenario.save_inverses(folder, configs=[...])`` to narrow that down.
+
+    The saving grows with outcome-space size - roughly 1.5x on ~20k outcomes and
+    2x on ~250k in ``coding_agents/benchmark_inverse_cache.py``. For very small
+    spaces validating the cache can cost as much as rebuilding it.
+
+    Only presorting-based inversion is cached. Linear-additive ufuns over spaces
+    larger than ~10^6 outcomes are inverted by `BIDSInverseUtilityFunction`
+    instead, which has no persistable state, so nothing is saved or loaded for
+    them. Non-additive ufuns over large spaces still use presorting and are
+    cached.
+
+.. warning::
+
+    Only enable this when you know the scenario files will not be edited behind
+    NegMAS' back. The checks are thorough, but the utility check is sampled by
+    default, so a change affecting only a handful of outcomes in a very large
+    space could go unnoticed. Note also that the Genius XML format does not
+    preserve issue types (integer values become strings), so a cache saved
+    alongside XML is usually rejected on reload and simply rebuilt.
+
 Transforming a scenario
 -----------------------
 

@@ -60,6 +60,26 @@ T = TypeVar("T", bound="BaseUtilityFunction")
 # OrdinalRanking,
 # CardinalRanking,
 # BasePref,
+_MISSING = object()
+
+
+def _same_value(old: Any, new: Any) -> bool:
+    """Whether an attribute assignment is a no-op.
+
+    Deliberately conservative: identity first, then ``==`` guarded so that values
+    with odd equality semantics (numpy arrays, objects that raise) are reported as
+    *changed* rather than silently unchanged.
+    """
+    if old is _MISSING:
+        return False
+    if old is new:
+        return True
+    try:
+        return bool(old == new)
+    except Exception:
+        return False
+
+
 class BaseUtilityFunction(Preferences, ABC):
     """
     Base class for all utility functions in negmas
@@ -91,10 +111,18 @@ class BaseUtilityFunction(Preferences, ABC):
         self._reserved_value: Value = reserved_value
         self._cached_inverse: InverseUFun | None = None
         self._cached_inverse_type: type[InverseUFun] | None = None
+        self._cached_inverse_kwargs: tuple | None = None
+        self._cached_inverse_raw_kwargs: dict[str, Any] | None = None
         self._cached_pareto_sampler: ParetoSampler | None = None
         self._cached_pareto_sampler_type: type[ParetoSampler] | None = None
         self._cached_pareto_sampler_opponent: BaseUtilityFunction | None = None
         self._invalid_value = invalid_value
+        # Disk-cached-inverse bookkeeping. `_inverse_cache_folder` is only set by
+        # `Scenario.load` when a saved inverse is available; while it is None the
+        # `__setattr__` modification backstop below stays completely inert.
+        self._inverse_cache_folder: Path | None = None
+        self._inverse_cache_name: str | None = None
+        self._modified: bool = False
         # Caches for min/max/extreme outcomes (only used when stability allows)
         self._cached_minmax: tuple[float, float] | None = None
         self._cached_extreme_outcomes: tuple[Outcome, Outcome] | None = None
@@ -118,8 +146,18 @@ class BaseUtilityFunction(Preferences, ABC):
 
         Args:
             value: Can be a float or a Distribution.
+
+        Remarks:
+            - Changing the reserved value invalidates a saved inverse (it decides
+              which outcomes are rational), so the ufun is marked modified and its
+              caches cleared -- but only when a saved inverse is actually attached.
+              Without one, behaviour is exactly as it was before inverse caching
+              existed.
         """
+        changed = not _same_value(getattr(self, "_reserved_value", _MISSING), value)
         self._reserved_value = value
+        if changed and getattr(self, "_inverse_cache_folder", None) is not None:
+            self.mark_modified()
 
     @property
     def reserved_distribution(self) -> Distribution:
@@ -226,6 +264,8 @@ class BaseUtilityFunction(Preferences, ABC):
         self._cached_extreme_outcomes = None
         self._cached_inverse = None
         self._cached_inverse_type = None
+        self._cached_inverse_kwargs = None
+        self._cached_inverse_raw_kwargs = None
 
     def extreme_outcomes(
         self,
@@ -453,24 +493,185 @@ class BaseUtilityFunction(Preferences, ABC):
         d = 1 / d
         return (u - mn) * d
 
+    # ------------------------------------------------------------------
+    # Modification tracking (guards the disk-cached inverse)
+    # ------------------------------------------------------------------
+
+    #: Attributes whose assignment is bookkeeping rather than a change of
+    #: preferences, so they must not invalidate a loaded inverse.
+    _INVERSE_CACHE_ATTRS = frozenset(
+        {
+            "_cached_inverse",
+            "_cached_inverse_type",
+            "_cached_inverse_kwargs",
+            "_cached_inverse_raw_kwargs",
+            "_cached_pareto_sampler",
+            "_cached_pareto_sampler_type",
+            "_cached_pareto_sampler_opponent",
+            "_cached_minmax",
+            "_cached_extreme_outcomes",
+            "_inverse_cache_folder",
+            "_inverse_cache_name",
+            "_modified",
+            # Set when a negotiator takes ownership of a ufun at negotiation
+            # start. Pure bookkeeping: it says nothing about the preferences.
+            "owner",
+            "_owner",
+        }
+    )
+
+    def __setattr__(self, name: str, value: Any) -> None:
+        """Marks the ufun modified when any non-bookkeeping attribute is assigned.
+
+        This is the backstop behind the disk-cached inverse: a cache is only ever
+        reused while the ufun is provably unchanged since it was loaded, and any
+        attribute assignment at all (a weight, a value function, the outcome
+        space, ...) counts as a change.
+
+        Remarks:
+            - Completely inert unless a disk cache was attached by
+              `Scenario.load`, so ordinary construction and use pay nothing.
+        """
+        track = (
+            name not in self._INVERSE_CACHE_ATTRS
+            and getattr(self, "_inverse_cache_folder", None) is not None
+        )
+        # Re-assigning the value a ufun already has changes nothing, and negmas
+        # does exactly that on every negotiation start (the negotiator re-points
+        # `outcome_space` at the mechanism's identical space). Treating that as a
+        # modification would discard the cache before it is ever used.
+        unchanged = track and _same_value(getattr(self, name, _MISSING), value)
+        object.__setattr__(self, name, value)
+        # Marked only after the assignment actually succeeds, so a rejected write
+        # (e.g. to a read-only property) does not needlessly discard the cache.
+        if track and not unchanged:
+            object.__setattr__(self, "_modified", True)
+
+    def mark_modified(self) -> None:
+        """Declares that this ufun changed, permanently disabling its disk cache.
+
+        Call this after mutating a ufun in place through any route that does not
+        go through attribute assignment (e.g. mutating a weights list). All
+        in-memory caches are cleared as well.
+        """
+        object.__setattr__(self, "_modified", True)
+        self.clear_caches()
+
+    @property
+    def modified(self) -> bool:
+        """Whether this ufun has changed since a saved inverse was attached to it."""
+        return getattr(self, "_modified", False)
+
+    def attach_inverse_cache(self, folder, name: str) -> None:
+        """Records where a saved inverse for this ufun lives.
+
+        Called by `Scenario.load`. Merely recording the location is cheap — the
+        cache is not read until `invert` is actually called.
+        """
+        object.__setattr__(self, "_inverse_cache_folder", Path(folder))
+        object.__setattr__(self, "_inverse_cache_name", name)
+        object.__setattr__(self, "_modified", False)
+
+    def restore_inverse_from_cache(self, inverter: InverseUFun) -> bool:
+        """Restores ``inverter`` from this ufun's saved inverse, if one matches.
+
+        Called by an inverter's own ``init()``, which is the single place a cached
+        inverse is ever read. Routing it there means *every* way of building an
+        inverter benefits - including the lazily constructed ones returned by
+        `negmas.gb.components.inverter.make_inverter` - and the validation is
+        never paid twice.
+
+        Returns:
+            True if the inverter was restored (and is now initialized), False if
+            it must initialize itself normally.
+        """
+        folder = getattr(self, "_inverse_cache_folder", None)
+        name = getattr(self, "_inverse_cache_name", None)
+        if folder is None or name is None or self.modified:
+            return False
+        restore = getattr(inverter, "restore_state", None)
+        config_of = getattr(inverter, "persistable_config", None)
+        if restore is None or config_of is None:
+            return False
+        from .inv_ufun.persistence import load_state
+
+        try:
+            config = config_of()
+            if config is None:
+                return False
+            state = load_state(folder, self, name, config)
+            return bool(state) and bool(restore(state))
+        except Exception:
+            return False
+
     def invert(
         self, inverter: type[InverseUFun] | None = None, **kwargs
     ) -> InverseUFun:
         """
         Inverts the ufun, initializes it and caches the result.
+
+        Args:
+            inverter: The inverter class to use. Defaults to
+                `DefaultInverseUtilityFunction`.
+            **kwargs: Forwarded to the inverter's constructor.
+
+        Remarks:
+            - The result is cached on the ufun and reused by later calls that ask
+              for the *same* inverter type and the same ``kwargs``. A call with
+              different ``kwargs`` builds (and caches) a new inverter rather than
+              silently returning one built with a different configuration.
+            - If a saved inverse was attached to this ufun by `Scenario.load` and
+              the ufun has not been modified since, it is restored from disk
+              instead of being recomputed. See
+              `negmas.preferences.inv_ufun.persistence`.
         """
         from .inv_ufun import DefaultInverseUtilityFunction
 
-        if self._cached_inverse and (
-            inverter is None or self._cached_inverse_type == inverter
-        ):
-            return self._cached_inverse
         if inverter is None:
             inverter = DefaultInverseUtilityFunction
+        cached = self._cached_inverse
+        same_type = cached is not None and self._cached_inverse_type == inverter
+        # Fast path: the exact same call as last time. Compared on the raw kwargs
+        # because deriving the effective configuration means constructing throwaway
+        # inverters, and `invert()` is called once per proposal/acceptance test.
+        if same_type and self._cached_inverse_raw_kwargs == kwargs:
+            return cached  # type: ignore[return-value]
+        # Slow path: fall back to the *effective* configuration so that callers
+        # spelling one configuration differently (`rational_only=True` vs
+        # `rational_only=True, eps=-1`) still share a single inverter.
+        key = self._inverter_cache_key(inverter, kwargs)
+        if same_type and self._cached_inverse_kwargs == key:
+            # Remember this spelling too, so it takes the fast path next time.
+            self._cached_inverse_raw_kwargs = dict(kwargs)
+            return cached  # type: ignore[return-value]
+        # Only one path to a cached inverse: the inverter's own `init()` restores
+        # it when one matches (see `restore_inverse_from_cache`). Keeping the
+        # lookup there rather than here means lazily built inverters benefit too,
+        # and the validation is never paid twice.
+        result = inverter(self, **kwargs)
+        result.init()
         self._cached_inverse_type = inverter
-        self._cached_inverse = inverter(self, **kwargs)
-        self._cached_inverse.init()
-        return self._cached_inverse
+        self._cached_inverse_kwargs = key
+        self._cached_inverse_raw_kwargs = dict(kwargs)
+        self._cached_inverse = result
+        return result
+
+    def _inverter_cache_key(
+        self, inverter: type[InverseUFun], kwargs: dict[str, Any]
+    ) -> tuple:
+        """A hashable key identifying the inverter configuration to reuse.
+
+        Prefers the inverter's own *persistable* configuration (the parameters
+        that actually change its contents) so equivalent spellings collapse onto
+        one cache entry. Falls back to the raw kwargs for inverters that do not
+        report one.
+        """
+        from .inv_ufun.persistence import effective_config
+
+        config = effective_config(self, inverter, kwargs)
+        if config is None:
+            return tuple(sorted((k, repr(v)) for k, v in kwargs.items()))
+        return tuple(sorted((k, repr(v)) for k, v in config.items()))
 
     def make_inverter(
         self, inverter: type[InverseUFun] | None = None, **kwargs
