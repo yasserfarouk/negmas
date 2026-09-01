@@ -6,6 +6,18 @@ Release 0.16.0 (dev)
 
 **Changes:**
 
+* [helpers] Parallel runs no longer share one random stream. Every worker
+  process re-imports negmas and re-applies ``NEGMAS_RAND_SEED`` for itself, so
+  a seeded tournament had all of its workers starting from the *same* stream:
+  two tasks drawing the same sequence returned the same result, and repetitions
+  of one configuration collapsed onto a single outcome instead of sampling the
+  variation they exist to measure. Each dispatched task is now seeded from its
+  own index (``negmas.helpers.rand.task_seed``, derived with numpy's
+  ``SeedSequence``), so tasks are independent, a run reproduces whatever the
+  scheduling order or worker count, and a serial run reproduces a parallel one.
+  Unseeded runs are dispatched exactly as before -- the task is not wrapped at
+  all when no seed is in effect.
+
 * [helpers] Every random number generator NegMAS uses can now be seeded from a
   single switch, so a whole run can be reproduced. Set ``NEGMAS_RAND_SEED`` (or
   the ``rand_seed`` config key) to an integer before a run and both the global

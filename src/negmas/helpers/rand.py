@@ -20,10 +20,11 @@ import random
 from typing import Callable
 
 import numpy as np
+from numpy.random import SeedSequence
 
 from negmas.warnings import warn
 
-__all__ = ["seed_all", "get_seed", "register_seeder", "seed_environment"]
+__all__ = ["seed_all", "get_seed", "register_seeder", "seed_environment", "task_seed"]
 
 _NOT_A_SEED = ("", "none", "random")
 """Values of the setting that explicitly ask for fresh entropy"""
@@ -57,12 +58,23 @@ def seed_all(seed: int | None) -> int | None:
     if seed is None:
         return None
     seed = int(seed)
+    _apply(seed)
+    _seed = seed
+    return seed
+
+
+def _apply(seed: int) -> None:
+    """Seed every generator without recording `seed` as the run's base seed.
+
+    `task_seed` derives each task's seed from the base, so a per-task seed must
+    not become the base itself -- otherwise task 2 would be derived from task
+    1's seed rather than from the run's, and repeating a run in the same
+    process would not repeat.
+    """
     random.seed(seed)
     np.random.seed(seed % (2**32))
-    _seed = seed
     for seeder in _seeders:
         seeder(seed)
-    return seed
 
 
 def register_seeder(seeder: Callable[[int], None]) -> None:
@@ -75,6 +87,31 @@ def register_seeder(seeder: Callable[[int], None]) -> None:
     _seeders.append(seeder)
     if _seed is not None:
         seeder(_seed)
+
+
+def task_seed(index: int) -> int | None:
+    """A distinct but reproducible seed for the ``index``-th task of a run.
+
+    Returns `None` when nothing is seeded, so the caller leaves the task alone
+    and it draws fresh entropy exactly as it does today.
+
+    Remarks:
+        - Parallel workers are separate processes that each re-apply
+          ``NEGMAS_RAND_SEED`` as they import negmas, so without this they all
+          start from the *same* stream: two tasks that draw the same sequence
+          produce the same result, and repetitions of one configuration
+          collapse onto a single outcome instead of sampling the variation
+          they exist to measure.
+        - The seed is derived from the task's index rather than from the worker
+          that happens to run it, so a run reproduces whatever the scheduling
+          order or the number of workers -- and a serial run reproduces a
+          parallel one.
+        - `SeedSequence` is used rather than ``seed + index`` because it is
+          built to turn one seed into many decorrelated ones.
+    """
+    if _seed is None:
+        return None
+    return int(SeedSequence(_seed, spawn_key=(index,)).generate_state(1)[0])
 
 
 def seed_from_env() -> int | None:

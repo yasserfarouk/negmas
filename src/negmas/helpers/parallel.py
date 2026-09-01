@@ -163,6 +163,41 @@ def kill_future_process(
         return False
 
 
+class _SeededTask:
+    """A task that seeds its own process before running.
+
+    Defined at module level with plain attributes so it pickles (and
+    cloudpickles) its way into a spawned worker along with the task it wraps.
+    """
+
+    __slots__ = ("fn", "seed")
+
+    def __init__(self, fn: Callable[..., Any], seed: int) -> None:
+        self.fn, self.seed = fn, seed
+
+    def __call__(self, *args, **kwargs):
+        from negmas.helpers.rand import _apply
+
+        # Applies the seed without recording it as the run's base, so the base
+        # every task is derived from stays put (see `rand.task_seed`).
+        _apply(self.seed)
+        return self.fn(*args, **kwargs)
+
+
+def _seeded(fn: Callable[..., Any], index: int) -> Callable[..., Any]:
+    """Give task ``index`` its own reproducible seed, when seeding is on.
+
+    Returns ``fn`` untouched when no seed is in effect, so an unseeded run is
+    dispatched exactly as it was before. See `negmas.helpers.rand.task_seed`
+    for why a per-task seed is needed rather than the per-process one every
+    worker would otherwise apply for itself.
+    """
+    from negmas.helpers.rand import task_seed
+
+    seed = task_seed(index)
+    return fn if seed is None else _SeededTask(fn, seed)
+
+
 def run_serial_tasks(
     tasks: Iterable[tuple[Any, Callable[..., Any], tuple, dict]],
     *,
@@ -188,7 +223,7 @@ def run_serial_tasks(
         if total_timeout is not None and time.perf_counter() - strt > total_timeout:
             break
         try:
-            result = fn(*args, **kwargs)
+            result = _seeded(fn, i)(*args, **kwargs)
         except Exception as e:  # noqa: BLE001 - surface to user callback
             if on_error is not None:
                 on_error(e, info, i, n)
@@ -231,8 +266,8 @@ def run_parallel_tasks(
     if as_completed_fn is None:
         as_completed_fn = futures.as_completed
     future_to_info: dict[futures.Future, Any] = {}
-    for info, fn, args, kwargs in tasks:
-        future_to_info[executor.submit(fn, *args, **kwargs)] = info
+    for index, (info, fn, args, kwargs) in enumerate(tasks):
+        future_to_info[executor.submit(_seeded(fn, index), *args, **kwargs)] = info
     n = len(future_to_info)
     iterator: Iterable = as_completed_fn(list(future_to_info.keys()))
     if track is not None:
@@ -444,6 +479,7 @@ def run_isolated_tasks(
                         i, (info, fn, args, kwargs) = next(task_iter)
                     except StopIteration:
                         return False
+                    fn = _seeded(fn, i)
                     try:
                         payload = cloudpickle.dumps((fn, args, kwargs))
                     except Exception as exc:

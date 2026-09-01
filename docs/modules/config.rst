@@ -111,6 +111,19 @@ A seeder registered after a seed is already in effect is called immediately
 with it, so import order does not matter. Seeding is best-effort throughout: a
 generator that cannot be seeded produces a warning, never an exception.
 
+Parallel runs
+~~~~~~~~~~~~~
+
+Each task dispatched to a worker is seeded from its own index, so tasks stay
+independent of one another, a run reproduces whatever the scheduling order or
+the number of workers, and running with ``njobs=0`` reproduces running with
+``njobs=4``.
+
+Threads are the exception: threaded tasks share one process and therefore one
+set of global generators, so their interleaving -- and their results -- are not
+reproducible. Use the serial or process-based runners when reproducibility
+matters.
+
 Seeding the whole shell
 ~~~~~~~~~~~~~~~~~~~~~~~
 
