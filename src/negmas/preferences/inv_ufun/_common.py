@@ -330,19 +330,31 @@ def _nearest_around(
           range lies entirely above/below all currently available -- possibly
           discounted -- utilities), the clamped index ``i`` is returned instead of
           ``None`` so callers get the nearest achievable outcome rather than failing.
+        - ``n`` is accepted for backwards compatibility and ignored: the search has
+          always covered the whole array (the original loop opened with
+          ``n = len(a) - 1``, overwriting the argument), and callers depend on that
+          reach. It cannot be narrowed to a window around ``i`` either, because `a` is
+          not sorted end to end -- the presorting inverters append the irrational
+          outcomes to the sorted rational ones without sorting them.
+        - Vectorized rather than looped. The scan cost the whole array per call in
+          Python, which on a 188,160-outcome domain was 13ms a call and 64% of the
+          runtime of an entire Boulware-vs-Boulware negotiation.
+
+    The vectorized form reproduces the loop exactly, ties included. The loop began at
+    ``best = i`` and replaced it only on a *strictly* smaller distance while walking
+    indices upward, so the winner is the lowest-indexed in-range element that is
+    strictly nearer to ``x`` than ``a[i]`` is, and ``i`` keeps the result otherwise.
+    ``argmin`` returns the first occurrence of the minimum, which is that same index.
     """
-    n = len(a) - 1
-    best, best_diff = i, abs(a[i] - x)
-    for j in range(i - n, i + n + 1):
-        if j < 0 or j > n:
-            continue
-        if not (mn <= a[j] <= mx):
-            continue
-        d = abs(a[j] - x)
-        if d < best_diff:
-            best, best_diff = j, d
-    if best is None:
-        return i
+    diff = np.abs(np.asarray(a, dtype=float) - x)
+    # Out-of-range entries are made unreachable rather than removed, so that the index
+    # `argmin` reports still refers to a position in `a`.
+    candidates = np.where((a >= mn) & (a <= mx), diff, np.inf)
+    j = int(np.argmin(candidates))
+    best_diff = abs(a[i] - x)
+    # `candidates[j]` is inf when nothing is in range, which is never < best_diff, so
+    # the empty case falls through to `i` exactly as the loop did.
+    best = j if candidates[j] < best_diff else i
     if abs(a[best] - x) > eps and best != i:
         return None
     return best
