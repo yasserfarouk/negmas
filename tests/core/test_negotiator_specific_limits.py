@@ -470,10 +470,14 @@ class TrackingAspirationNegotiator(AspirationNegotiator):
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
         self.relative_times = []
+        self.sample_times = []
 
     def __call__(self, state: SAOState, dest: str | None = None) -> SAOResponse:
-        # Track relative_time from the state
+        # Track relative_time from the state along with the wall-clock instant at
+        # which it was sampled (needed to check time-based limits without
+        # assuming the two negotiators are sampled simultaneously).
         self.relative_times.append(state.relative_time)
+        self.sample_times.append(time.perf_counter())
         return super().__call__(state, dest)
 
 
@@ -803,20 +807,29 @@ def test_relative_time_time_based_limits():
     assert len(neg1.relative_times) > 0
     assert len(neg2.relative_times) > 0
 
-    # Verify the ratio: neg1 progresses 3x faster than neg2 (2s vs 6s limits)
-    # At any point in time T: neg1_rt = T/2.0, neg2_rt = T/6.0, ratio = 3.0
-    # Check this holds for all tracked steps
-    for i in range(min(len(neg1.relative_times), len(neg2.relative_times))):
-        rt1 = neg1.relative_times[i]
-        rt2 = neg2.relative_times[i]
-        if rt2 > 0.01:  # Avoid division by near-zero
-            ratio = rt1 / rt2
-            # Theoretical ratio is exactly 3.0 (2s vs 6s limits), but it is
-            # measured from wall-clock relative_time samples, so scheduling
-            # jitter on a loaded CI runner can pull it noticeably off 3.0
-            # (observed ~2.35). Keep a wide tolerance to stay non-flaky while
-            # still asserting the ~3x relationship.
-            assert 2.0 <= ratio <= 4.0, (
-                f"At step {i}: ratio should be ~3.0, got {ratio:.2f} "
-                f"(rt1={rt1:.3f}, rt2={rt2:.3f})"
+    # Each negotiator's relative_time must follow its OWN time limit: at the
+    # instant it is sampled, rt == (sample_time - start) / limit.
+    #
+    # This is checked per negotiator against its own sampling instant rather
+    # than by comparing the two negotiators index-by-index: the i-th sample of
+    # neg1 and the i-th of neg2 are not taken at the same instant, and on a
+    # loaded runner they can drift far enough apart to make an index-aligned
+    # ratio meaningless (it was observed as low as 1.21 instead of 3.0).
+    #
+    # The bound is absolute seconds, not a ratio, so it stays meaningful near
+    # rt == 0; 0.1s is 5% of neg1's limit and still an order of magnitude
+    # smaller than the 3x error a swapped limit would produce.
+    for neg, limit, name in ((neg1, 2.0, "neg1"), (neg2, 6.0, "neg2")):
+        checked = 0
+        for rt, sampled_at in zip(neg.relative_times, neg.sample_times):
+            if rt >= 0.99:
+                # relative_time is clamped at 1.0, so it no longer tracks time
+                continue
+            implied = rt * limit
+            actual = sampled_at - start
+            assert abs(implied - actual) < 0.1, (
+                f"{name}: relative_time {rt:.4f} implies {implied:.3f}s elapsed "
+                f"against its {limit}s limit, but {actual:.3f}s had actually elapsed"
             )
+            checked += 1
+        assert checked > 0, f"{name}: no unclamped relative_time samples to check"
