@@ -163,3 +163,28 @@ You must do the following steps for doing a release:
 9. push with tags and monitor again.
 10. after pypi is updated from github actions confim the version.
 11. make a release on github which includes the changes for this release from HISTORY.rst.
+
+## Known issues to fix later
+
+Found while integrating the Genius frequency opponent models into an RL negotiator
+(negmas-rl's RLBOA, 2026-08-28).
+
+1. **(fixed) The Genius opponent models never published themselves.** Handled in
+   `GeniusOpponentModel.on_negotiation_start`, which now calls `_update_private_info()`
+   for all five at once. Remaining wart, not worth churn on its own: the `UFunModel`
+   family (`gb/components/models/ufun.py`) still publishes from
+   `on_preferences_changed`, which has nothing to do with opponent modelling and works
+   only because negmas fires it before `on_negotiation_start`. Move those to the same
+   hook next time that file is touched.
+
+2. **The Genius frequency models learn only through `on_partner_proposal`.** Unlike
+   `FrequencyLinearUFunModel`, which also implements `before_responding`, they have no
+   second route, so a negotiator that never receives that callback gets a model that
+   silently never updates.
+
+   Left as one route on purpose. Adding `before_responding` would give any negotiator
+   receiving both callbacks two learning paths and double-count every offer, which for a
+   frequency model directly corrupts the weights it infers. The case that prompted this
+   -- negmas-rl's training environment -- turned out to be the environment's own gap: it
+   drove `after_learner_actions` on its codecs but never `after_partner_action`, and was
+   fixed there.

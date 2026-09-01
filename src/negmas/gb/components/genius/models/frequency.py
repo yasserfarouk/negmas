@@ -57,6 +57,10 @@ class GHardHeadedFrequencyModel(GeniusOpponentModel):
 
     def _initialize(self) -> None:
         """Initialize the model with uniform weights."""
+        # Cleared before the guards below, so a failed re-init leaves range(0)
+        # rather than a stale count over emptied weight dicts (KeyError).
+        self._n_issues = 0
+        self._initialized = False
         if not self.negotiator or not self.negotiator.nmi:
             return
 
@@ -222,6 +226,10 @@ class GSmithFrequencyModel(GeniusOpponentModel):
 
     def _initialize(self) -> None:
         """Initialize the model."""
+        # Cleared before the guards below, so a failed re-init leaves range(0)
+        # rather than a stale count over emptied weight dicts (KeyError).
+        self._n_issues = 0
+        self._initialized = False
         if not self.negotiator or not self.negotiator.nmi:
             return
 
@@ -331,6 +339,10 @@ class GCUHKFrequencyModel(GeniusOpponentModel):
 
     def _initialize(self) -> None:
         """Initialize the model with uniform weights."""
+        # Cleared before the guards below, so a failed re-init leaves range(0)
+        # rather than a stale count over emptied weight dicts (KeyError).
+        self._n_issues = 0
+        self._initialized = False
         if not self.negotiator or not self.negotiator.nmi:
             return
 
@@ -436,6 +448,10 @@ class GNashFrequencyModel(GeniusOpponentModel):
 
     def _initialize(self) -> None:
         """Initialize the model."""
+        # Cleared before the guards below, so a failed re-init leaves range(0)
+        # rather than a stale count over emptied weight dicts (KeyError).
+        self._n_issues = 0
+        self._initialized = False
         if not self.negotiator or not self.negotiator.nmi:
             return
 
@@ -577,6 +593,10 @@ class GAgentXFrequencyModel(GeniusOpponentModel):
 
     def _initialize(self) -> None:
         """Initialize the model."""
+        # Cleared before the guards below, so a failed re-init leaves range(0)
+        # rather than a stale count over emptied weight dicts (KeyError).
+        self._n_issues = 0
+        self._initialized = False
         if not self.negotiator or not self.negotiator.nmi:
             return
 

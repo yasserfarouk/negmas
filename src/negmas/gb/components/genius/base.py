@@ -54,6 +54,18 @@ class GeniusOpponentModel(GBComponent, BaseUtilityFunction):
         """Initialize parent classes after attrs initialization."""
         BaseUtilityFunction.__init__(self, stability=VOLATILE)
 
+    def on_negotiation_start(self, state) -> None:
+        """Publish this model as the negotiator's opponent ufun.
+
+        `_update_private_info` existed on this base but nothing called it, so a
+        negotiator using a Genius model still reported `opponent_ufun is None`. Doing it
+        here covers all of them at once, and at a callback that means what it says --
+        the `UFunModel` family publishes from `on_preferences_changed`, which works only
+        because negmas happens to fire that first.
+        """
+        super().on_negotiation_start(state)
+        self._update_private_info()
+
     def _update_private_info(self, partner_id: str | None = None) -> None:
         """Update the negotiator's private_info with this model.
 
