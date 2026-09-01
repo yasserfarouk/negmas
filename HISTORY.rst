@@ -41,6 +41,19 @@ Release 0.16.0 (dev)
   with ``eval "$(negmas seed 44)"``, or use ``--no-export`` to get bare
   ``NAME=VALUE`` lines for a ``.env`` file.
 
+* [inv_ufun] The presorting inverters' nearest-utility search is vectorized.
+  ``_nearest_around`` opened by overwriting the search radius its caller passed,
+  so every call walked the entire utility array in a Python loop. ``worst_in``
+  and ``best_in`` call it on each concession step, which made it the single
+  largest cost of a negotiation on a large domain: 13ms a call, and 2.204s of
+  the 3.450s a 100-step Boulware-vs-Boulware negotiation took on the ANAC-2026
+  Travel domain (188,160 outcomes) -- 64% of the runtime, paid by every
+  negotiator that concedes toward a utility target. The scan still considers
+  every entry, because the array is not sorted end to end and so cannot be
+  bisected; what changes is that the per-entry work is numpy's rather than the
+  interpreter's. Results are unchanged, ties included, and ``n`` is now
+  documented as accepted and ignored rather than silently discarded.
+
 * [preferences] Scenarios can optionally carry their ufuns' inverses on disk,
   so repeated negotiations over the same scenario skip re-inverting. Save with
   ``dumpas(..., save_inverse=True)`` and load with
