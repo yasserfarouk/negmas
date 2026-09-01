@@ -6,6 +6,26 @@ Release 0.16.0 (dev)
 
 **Changes:**
 
+* [preferences] Scenarios can optionally carry their ufuns' inverses on disk,
+  so repeated negotiations over the same scenario skip re-inverting. Save with
+  ``dumpas(..., save_inverse=True)`` and load with
+  ``Scenario.load(..., load_cached_inverse=True)``; both halves are opt-in and
+  default to off. Saving without ``save_inverse`` deletes any cache in the
+  folder, while ``update()`` preserves it. A cache is only reused when the
+  outcome space, reserved value and inverter configuration all match and
+  re-evaluating the ufun reproduces the stored utilities; anything else rebuilds.
+  Modifying a ufun disables its cache (call ``mark_modified()`` for in-place
+  mutation). Non-stationary and constrained ufuns are never cached. Arrays are
+  stored as ``.npz`` read with ``allow_pickle=False``. Inverters consult the
+  cache in their own ``init()``, so every negotiator benefits.
+  Remarks:
+
+  - ``invert()`` now keys its cache on the inverter kwargs as well as the type,
+    so a call with a different configuration no longer silently returns an
+    inverter built with another one.
+  - Genius XML does not preserve issue types, so a cache saved alongside XML is
+    usually rejected on reload and rebuilt.
+
 * [outcomes] Integer range issues now support an optional ``step`` (defaulting
   to ``1``) giving the stride between consecutive values, so an issue taking
   the even values between 0 and 10 (inclusive) can be created with either

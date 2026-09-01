@@ -16,7 +16,6 @@ from negmas.common import PreferencesChangeType, Value
 from negmas.negotiators.helpers import PolyAspiration
 from negmas.outcomes.common import ExtendedOutcome
 from negmas.outcomes.protocols import DiscreteOutcomeSpace
-from negmas.preferences.inv_ufun import DefaultInverseUtilityFunction
 from negmas.preferences.pareto_sampler import DefaultParetoSampler
 from negmas.preferences.protocols import InverseUFun, ParetoSampler
 
@@ -375,10 +374,9 @@ class TimeBasedOfferingPolicy(OfferingPolicy):
             warnings.warn(
                 "Sorter is already initialized. May be on_preferences_changed is called twice!!"
             )
-        self.sorter = DefaultInverseUtilityFunction(
-            self.negotiator.ufun, rational_only=True, eps=-1, rel_eps=-1
+        self.sorter = self.negotiator.ufun.invert(
+            rational_only=True, eps=-1, rel_eps=-1
         )
-        self.sorter.init()
 
     def __call__(self, state: GBState, dest: str | None = None):
         """Generates an offer based on aspiration level at current time.
@@ -423,10 +421,9 @@ class MiCROOfferingPolicy(OfferingPolicy):
             )
             for _ in changes
         ):
-            self.sorter = DefaultInverseUtilityFunction(
-                self.negotiator.ufun, rational_only=True, eps=-1, rel_eps=-1
+            self.sorter = self.negotiator.ufun.invert(
+                rational_only=True, eps=-1, rel_eps=-1
             )
-            self.sorter.init()
             self.next_indx = 0
             self._received = set()
             self._sent = set()
@@ -441,10 +438,9 @@ class MiCROOfferingPolicy(OfferingPolicy):
         """Initializes the outcome sorter if not already initialized and returns it."""
         if not self.sorter:
             assert self.negotiator.ufun
-            self.sorter = DefaultInverseUtilityFunction(
-                self.negotiator.ufun, rational_only=True, eps=-1, rel_eps=-1
+            self.sorter = self.negotiator.ufun.invert(
+                rational_only=True, eps=-1, rel_eps=-1
             )
-            self.sorter.init()
         return self.sorter
 
     def next_offer(self) -> Outcome | ExtendedOutcome | None:
@@ -613,10 +609,9 @@ class CABOfferingPolicy(OfferingPolicy):
                 warnings.warn(
                     "Sorter is already initialized. May be on_preferences_changed is called twice!!"
                 )
-            self.sorter = DefaultInverseUtilityFunction(
-                self.negotiator.ufun, rational_only=True, eps=-1, rel_eps=-1
+            self.sorter = self.negotiator.ufun.invert(
+                rational_only=True, eps=-1, rel_eps=-1
             )
-            self.sorter.init()
             self.next_indx = 0
             self._repeating = False
 
@@ -645,10 +640,9 @@ class CABOfferingPolicy(OfferingPolicy):
             warnings.warn(
                 "Sorter is not initialized. May be on_preferences_changed is never called before propose!!"
             )
-            self.sorter = DefaultInverseUtilityFunction(
-                self.negotiator.ufun, rational_only=True, eps=-1, rel_eps=-1
+            self.sorter = self.negotiator.ufun.invert(
+                rational_only=True, eps=-1, rel_eps=-1
             )
-            self.sorter.init()
         outcome = self.sorter.outcome_at(self.next_indx)
         if (
             outcome is None
@@ -694,10 +688,9 @@ class WAROfferingPolicy(OfferingPolicy):
                 warnings.warn(
                     "Sorter is already initialized. May be on_preferences_changed is called twice!!"
                 )
-            self.sorter = DefaultInverseUtilityFunction(
-                self.negotiator.ufun, rational_only=True, eps=-1, rel_eps=-1
+            self.sorter = self.negotiator.ufun.invert(
+                rational_only=True, eps=-1, rel_eps=-1
             )
-            self.sorter.init()
             self.next_indx = 0
             self._repeating = False
 
@@ -730,10 +723,9 @@ class WAROfferingPolicy(OfferingPolicy):
             warnings.warn(
                 "Sorter is not initialized. May be on_preferences_changed is never called before propose!!"
             )
-            self.sorter = DefaultInverseUtilityFunction(
-                self.negotiator.ufun, rational_only=True, eps=-1, rel_eps=-1
+            self.sorter = self.negotiator.ufun.invert(
+                rational_only=True, eps=-1, rel_eps=-1
             )
-            self.sorter.init()
         nxt = self._irrational_index if self._irrational else self.next_indx
         outcome = self.sorter.outcome_at(nxt)
         if self._irrational:

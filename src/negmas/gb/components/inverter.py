@@ -42,6 +42,8 @@ def make_inverter(
         ufun = RankOnlyUtilityFunction(ufun, randomize_equal=False, name=ufun.name)
     if ufun_inverter:
         return ufun_inverter(ufun)
+    # Left uninitialized on purpose: the caller decides when to `init()`,
+    # and `init()` itself restores a saved inverse when one is available.
     return DefaultInverseUtilityFunction(ufun, rational_only=True)
     # return (
     #     SamplingInverseUtilityFunction(ufun)

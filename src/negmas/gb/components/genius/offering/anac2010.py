@@ -6,7 +6,6 @@ from typing import TYPE_CHECKING
 
 from attrs import define, field
 
-from negmas.preferences.inv_ufun import DefaultInverseUtilityFunction
 from negmas.preferences.protocols import InverseUFun
 
 from negmas.gb.components.genius.base import GeniusOfferingPolicy
@@ -56,10 +55,9 @@ class GIAMCrazyHagglerOffering(GeniusOfferingPolicy):
         """Initialize the inverse utility function."""
         if not self.negotiator or not self.negotiator.ufun:
             return
-        self._sorter = DefaultInverseUtilityFunction(
-            self.negotiator.ufun, rational_only=True, eps=-1, rel_eps=-1
+        self._sorter = self.negotiator.ufun.invert(
+            rational_only=True, eps=-1, rel_eps=-1
         )
-        self._sorter.init()
 
     def __call__(
         self, state: GBState, dest: str | None = None
@@ -109,10 +107,9 @@ class GAgentKOffering(GeniusOfferingPolicy):
         """Initialize utility function and parameters."""
         if not self.negotiator or not self.negotiator.ufun:
             return
-        self._sorter = DefaultInverseUtilityFunction(
-            self.negotiator.ufun, rational_only=True, eps=-1, rel_eps=-1
+        self._sorter = self.negotiator.ufun.invert(
+            rational_only=True, eps=-1, rel_eps=-1
         )
-        self._sorter.init()
         self._pmin, self._pmax = self._sorter.minmax()
         self._target = self._pmax
         self._bid_target = self._pmax
@@ -176,10 +173,9 @@ class GAgentFSEGAOffering(GeniusOfferingPolicy):
         """Initialize utility function."""
         if not self.negotiator or not self.negotiator.ufun:
             return
-        self._sorter = DefaultInverseUtilityFunction(
-            self.negotiator.ufun, rational_only=True, eps=-1, rel_eps=-1
+        self._sorter = self.negotiator.ufun.invert(
+            rational_only=True, eps=-1, rel_eps=-1
         )
-        self._sorter.init()
         _, self._pmax = self._sorter.minmax()
 
     def _get_min_allowed(self, t: float) -> float:
@@ -237,10 +233,9 @@ class GAgentSmithOffering(GeniusOfferingPolicy):
         """Initialize utility function."""
         if not self.negotiator or not self.negotiator.ufun:
             return
-        self._sorter = DefaultInverseUtilityFunction(
-            self.negotiator.ufun, rational_only=True, eps=-1, rel_eps=-1
+        self._sorter = self.negotiator.ufun.invert(
+            rational_only=True, eps=-1, rel_eps=-1
         )
-        self._sorter.init()
         self._pmin, self._pmax = self._sorter.minmax()
 
     def __call__(
@@ -300,10 +295,9 @@ class GNozomiOffering(GeniusOfferingPolicy):
         """Initialize utility function."""
         if not self.negotiator or not self.negotiator.ufun:
             return
-        self._sorter = DefaultInverseUtilityFunction(
-            self.negotiator.ufun, rational_only=True, eps=-1, rel_eps=-1
+        self._sorter = self.negotiator.ufun.invert(
+            rational_only=True, eps=-1, rel_eps=-1
         )
-        self._sorter.init()
         self._pmin, self._pmax = self._sorter.minmax()
         self._last_target = self._pmax
 
@@ -371,10 +365,9 @@ class GYushuOffering(GeniusOfferingPolicy):
         """Initialize utility function."""
         if not self.negotiator or not self.negotiator.ufun:
             return
-        self._sorter = DefaultInverseUtilityFunction(
-            self.negotiator.ufun, rational_only=True, eps=-1, rel_eps=-1
+        self._sorter = self.negotiator.ufun.invert(
+            rational_only=True, eps=-1, rel_eps=-1
         )
-        self._sorter.init()
         self._pmin, self._pmax = self._sorter.minmax()
 
     def __call__(
@@ -438,10 +431,9 @@ class GIAMhaggler2010Offering(GeniusOfferingPolicy):
         """Initialize utility function."""
         if not self.negotiator or not self.negotiator.ufun:
             return
-        self._sorter = DefaultInverseUtilityFunction(
-            self.negotiator.ufun, rational_only=True, eps=-1, rel_eps=-1
+        self._sorter = self.negotiator.ufun.invert(
+            rational_only=True, eps=-1, rel_eps=-1
         )
-        self._sorter.init()
         self._pmin, self._pmax = self._sorter.minmax()
 
     def __call__(
