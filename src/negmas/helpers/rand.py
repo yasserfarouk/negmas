@@ -24,7 +24,14 @@ from numpy.random import SeedSequence
 
 from negmas.warnings import warn
 
-__all__ = ["seed_all", "get_seed", "register_seeder", "seed_environment", "task_seed"]
+__all__ = [
+    "seed_all",
+    "apply_seed",
+    "get_seed",
+    "register_seeder",
+    "seed_environment",
+    "task_seed",
+]
 
 _NOT_A_SEED = ("", "none", "random")
 """Values of the setting that explicitly ask for fresh entropy"""
@@ -58,18 +65,27 @@ def seed_all(seed: int | None) -> int | None:
     if seed is None:
         return None
     seed = int(seed)
-    _apply(seed)
+    apply_seed(seed)
     _seed = seed
     return seed
 
 
-def _apply(seed: int) -> None:
+def apply_seed(seed: int) -> None:
     """Seed every generator without recording `seed` as the run's base seed.
 
-    `task_seed` derives each task's seed from the base, so a per-task seed must
-    not become the base itself -- otherwise task 2 would be derived from task
-    1's seed rather than from the run's, and repeating a run in the same
-    process would not repeat.
+    This is what a per-task seed needs. `task_seed` derives each task's seed
+    from the base, so applying one must not make it the base itself --
+    otherwise task 2 would be derived from task 1's seed rather than from the
+    run's, and repeating a run in the same process would not repeat.
+
+    Use `seed_all` to start a run; use this to seed one task within it. Code
+    outside negmas that dispatches its own parallel work needs both, together
+    with `task_seed`:
+
+    >>> from negmas.helpers.rand import apply_seed, task_seed
+    >>> seed = task_seed(index)  # doctest: +SKIP
+    >>> if seed is not None:  # doctest: +SKIP
+    ...     apply_seed(seed)
     """
     random.seed(seed)
     np.random.seed(seed % (2**32))

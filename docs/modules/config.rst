@@ -124,6 +124,12 @@ set of global generators, so their interleaving -- and their results -- are not
 reproducible. Use the serial or process-based runners when reproducibility
 matters.
 
+Code that runs its own process pool, rather than dispatching through
+:mod:`negmas.helpers.parallel`, can get the same behaviour with
+``task_seed(index)`` and ``apply_seed(seed)``: ``task_seed`` returns ``None``
+when nothing is seeded, and ``apply_seed`` seeds a task without making its
+seed the base that the remaining tasks derive from.
+
 Seeding the whole shell
 ~~~~~~~~~~~~~~~~~~~~~~~
 

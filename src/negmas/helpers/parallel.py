@@ -176,11 +176,11 @@ class _SeededTask:
         self.fn, self.seed = fn, seed
 
     def __call__(self, *args, **kwargs):
-        from negmas.helpers.rand import _apply
+        from negmas.helpers.rand import apply_seed
 
         # Applies the seed without recording it as the run's base, so the base
         # every task is derived from stays put (see `rand.task_seed`).
-        _apply(self.seed)
+        apply_seed(self.seed)
         return self.fn(*args, **kwargs)
 
 

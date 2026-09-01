@@ -16,7 +16,9 @@ Release 0.16.0 (dev)
   ``SeedSequence``), so tasks are independent, a run reproduces whatever the
   scheduling order or worker count, and a serial run reproduces a parallel one.
   Unseeded runs are dispatched exactly as before -- the task is not wrapped at
-  all when no seed is in effect.
+  all when no seed is in effect. Libraries that dispatch their own parallel
+  work rather than going through ``negmas.helpers.parallel`` can get the same
+  behaviour from the public ``task_seed(index)`` and ``apply_seed(seed)``.
 
 * [helpers] Every random number generator NegMAS uses can now be seeded from a
   single switch, so a whole run can be reproduced. Set ``NEGMAS_RAND_SEED`` (or

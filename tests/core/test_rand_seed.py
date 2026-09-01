@@ -11,6 +11,7 @@ import numpy as np
 import pytest
 
 from negmas.helpers.rand import (
+    apply_seed,
     get_seed,
     register_seeder,
     seed_all,
@@ -363,3 +364,17 @@ def test_isolated_dispatch_still_serializes_a_closure_when_seeded(monkeypatch):
     assert not errors, f"seeded isolated dispatch failed tasks: {errors}"
     assert len(results) == 4
     assert len(set(results.values())) == 4, "isolated repetitions collapsed"
+
+
+def test_apply_seed_seeds_generators_without_moving_the_base():
+    """The primitive downstream parallel dispatchers need.
+
+    Code outside negmas that runs its own process pool has to seed each task
+    without that seed becoming the base the remaining tasks derive from.
+    """
+    seed_all(42)
+    apply_seed(task_seed(3))
+    assert get_seed() == 42, "applying a task seed must not move the run's base"
+    first = random.random()
+    apply_seed(task_seed(3))
+    assert random.random() == first, "apply_seed must actually seed"
