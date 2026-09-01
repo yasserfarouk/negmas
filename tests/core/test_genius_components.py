@@ -2425,7 +2425,6 @@ class TestOfferingStrategyMathematicsExtended:
         from negmas.gb.components.genius import GRandomOffering, GACFalse
         from negmas import SAOMechanism, make_issue
         from negmas import LinearAdditiveUtilityFunction as U
-        from negmas.sao import AspirationNegotiator
 
         # Use large outcome space
         issues = [make_issue((0, 10), "a"), make_issue((0, 10), "b")]
@@ -2439,16 +2438,25 @@ class TestOfferingStrategyMathematicsExtended:
         negotiator = make_boa(offering=offering, acceptance=acceptance)
 
         mechanism.add(negotiator, ufun=buyer_ufun)
-        mechanism.add(AspirationNegotiator(), ufun=seller_ufun)
+        # The opponent never accepts either. With an AspirationNegotiator here
+        # it could accept the very first random offer, ending the negotiation
+        # at step 1 -- which says nothing about whether GRandomOffering varies
+        # its offers, but left this test with nothing to measure.
+        mechanism.add(
+            make_boa(offering=GRandomOffering(), acceptance=GACFalse()),
+            ufun=seller_ufun,
+        )
 
         unique_offers = set()
         for _ in range(50):
             mechanism.step()
-            if mechanism.state.ended:
-                break
+            # Read the offer before breaking: the round that ends the
+            # negotiation still produced one.
             offers = mechanism.negotiator_offers(negotiator.id)
             if offers and offers[-1] is not None:
                 unique_offers.add(tuple(offers[-1]))
+            if mechanism.state.ended:
+                break
 
         # Should produce multiple unique offers with large outcome space
         assert len(unique_offers) >= 2, (
