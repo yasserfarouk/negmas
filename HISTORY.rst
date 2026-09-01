@@ -6,6 +6,12 @@ Release 0.16.0
 
 **Changes:**
 
+* [deps] Require ``setuptools>=83.0.0``. Versions below that are affected by
+  CVE-2026-59890, in which a Unicode normalization collision (NFC/NFD) on macOS
+  APFS/HFS+ lets a file bypass its ``MANIFEST.in`` exclusion and be included in
+  an sdist. ``setuptools`` is a declared runtime dependency, so the bound is
+  raised here rather than left to the environment.
+
 * [helpers] Parallel runs no longer share one random stream. Every worker
   process re-imports negmas and re-applies ``NEGMAS_RAND_SEED`` for itself, so
   a seeded tournament had all of its workers starting from the *same* stream:
