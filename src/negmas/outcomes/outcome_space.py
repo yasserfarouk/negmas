@@ -677,7 +677,7 @@ class CartesianOutcomeSpace(XmlSerializable):
                 )
         issues = tuple(
             issue.to_discrete(
-                levels if issue.is_continuous() else None,
+                levels if not issue.is_discrete() else None,
                 compact=False,
                 grid=True,
                 endpoints=True,

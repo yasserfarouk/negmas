@@ -17,7 +17,6 @@ from negmas.warnings import warn_if_slow
 if TYPE_CHECKING:
     from .common import Outcome
 
-import numpy as np
 
 from negmas.helpers import PathLike
 
@@ -146,7 +145,7 @@ def sample_outcomes(
     n_disc = 0
 
     for i, issue in enumerate(issues):
-        if issue.is_continuous():
+        if not issue.is_discrete():
             continuous.append(issue)
             indx.append(i)
         else:
@@ -160,13 +159,10 @@ def sample_outcomes(
             n_per_issue = min_per_dim
 
         for i, issue in enumerate(continuous):
-            issues[indx[i]] = make_issue(
-                name=issue.name,
-                values=list(
-                    np.linspace(
-                        issue.min_value, issue.max_value, num=n_per_issue, endpoint=True
-                    ).tolist()
-                ),
+            # sampling through the issue (not a numeric linspace) also covers
+            # infinite and non-numeric issues (e.g. list or string issues)
+            issues[indx[i]] = issue.to_discrete(
+                n_per_issue, grid=True, compact=False, endpoints=True
             )
 
     cardinality = 1

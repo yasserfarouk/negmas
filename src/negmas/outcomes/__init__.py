@@ -42,6 +42,7 @@ from .range_issue import *
 from .cardinal_issue import *
 from .singleton_issue import *
 from .infinite import *
+from .list_issue import *
 from .issue_ops import *
 from .outcome_ops import *
 from .outcome_space import *
@@ -60,6 +61,7 @@ __all__ = (
     + contiguous_issue.__all__
     + continuous_issue.__all__
     + infinite.__all__
+    + list_issue.__all__
     + issue_ops.__all__
     + outcome_ops.__all__
     + outcome_space.__all__

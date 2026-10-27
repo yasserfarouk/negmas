@@ -99,7 +99,7 @@ class GridBasedDiscretizer(BaseDiscretizer):
         for level in range(self.levels, 0, -1):
             issues = tuple(
                 issue.to_discrete(level, compact=False, grid=True, endpoints=True)
-                if issue.is_continuous()
+                if not issue.is_discrete()
                 else issue
                 for issue in os.issues  # type: ignore[attr-defined]
             )
@@ -113,7 +113,7 @@ class GridBasedDiscretizer(BaseDiscretizer):
         one_level = reduce(
             mul,
             [
-                (1 if i.is_continuous() else i.cardinality)
+                (1 if not i.is_discrete() else i.cardinality)
                 for i in os.issues  # type: ignore[attr-defined]
             ],
             1,
