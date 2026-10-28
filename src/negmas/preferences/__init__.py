@@ -46,6 +46,7 @@ from .prob import *
 from .ops import *
 from .complex import *
 from .value_fun import *
+from .list_value_fun import *
 from .adapters import *
 
 __all__ = (
@@ -73,5 +74,6 @@ __all__ = (
     + ops.__all__
     + complex.__all__
     + value_fun.__all__
+    + list_value_fun.__all__
     + adapters.__all__
 )

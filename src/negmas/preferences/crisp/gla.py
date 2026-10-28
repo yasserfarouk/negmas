@@ -262,6 +262,57 @@ class GLAUtilityFunction(UtilityFunction):
         """Return the bias term."""
         return self._bias
 
+    def extreme_outcomes(
+        self, outcome_space=None, issues=None, outcomes=None, max_cardinality=1000
+    ):
+        """Worst and best outcomes.
+
+        With list issues and factors over disjoint issues, every factor is
+        optimized on its own (list factors greedily); otherwise the generic
+        search is used.
+        """
+        from negmas.outcomes.list_issue import ListIssue
+
+        os_ = outcome_space if outcome_space is not None else self.outcome_space
+        separable = (
+            issues is None
+            and outcomes is None
+            and not self._constraints
+            and isinstance(os_, CartesianOutcomeSpace)
+            and any(isinstance(_, ListIssue) for _ in os_.issues)
+        )
+        if separable:
+            used = [i for idx, _ in self._factors for i in idx]
+            separable = len(used) == len(set(used))
+        if not separable:
+            return super().extreme_outcomes(
+                outcome_space, issues, outcomes, max_cardinality
+            )
+        os_issues = os_.issues  # type: ignore[union-attr]
+        worst = [next(iter(_.value_generator(1))) for _ in os_issues]
+        best = list(worst)
+        for (idx, func), w in zip(self._factors, self._weights):
+            fissues = tuple(os_issues[i] for i in idx)
+            if hasattr(func, "arg_extremes"):
+                (_, lo), (_, hi) = func.arg_extremes(
+                    fissues[0] if len(idx) == 1 else fissues
+                )
+            else:
+                vals = [list(_.value_generator(max_cardinality)) for _ in fissues]
+                combos = (
+                    (_[0] if len(idx) == 1 else _)
+                    for _ in itertools.islice(itertools.product(*vals), 100_000)
+                )
+                scored = [(float(func(c)), c) for c in combos]
+                lo = min(scored, key=lambda _: _[0])[1]
+                hi = max(scored, key=lambda _: _[0])[1]
+            if w < 0:
+                lo, hi = hi, lo
+            for k, i in enumerate(idx):
+                worst[i] = lo if len(idx) == 1 else lo[k]
+                best[i] = hi if len(idx) == 1 else hi[k]
+        return tuple(worst), tuple(best)
+
     def eval(self, offer: Outcome | None) -> float:
         """Evaluate the utility of an outcome.
 

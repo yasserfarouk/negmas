@@ -2,6 +2,8 @@
 
 from __future__ import annotations
 
+import math
+
 import random
 from functools import partial
 from typing import Any, Callable, Iterable, Mapping, TYPE_CHECKING
@@ -47,7 +49,17 @@ def _rand_mapping_normalized(x, mx, mn, r):
 
 def _random_mapping(issue: Issue, normalized=False):
     r = random.random()
+    if not issue.is_numeric() and not issue.is_discrete():
+        raise ValueError(
+            f"Cannot generate a random value function for {issue.name}: it is "
+            f"neither numeric nor finite ({type(issue).__name__})"
+        )
     if issue.is_numeric():
+        if normalized and not issue.has_finite_limits():
+            raise ValueError(
+                f"Cannot generate a normalized random value function for "
+                f"{issue.name}: it is unbounded"
+            )
         return (
             partial(
                 _rand_mapping_normalized, mx=issue.max_value, mn=issue.min_value, r=r
@@ -55,7 +67,7 @@ def _random_mapping(issue: Issue, normalized=False):
             if normalized
             else partial(_rand_mapping, r=r)
         )
-    if isinstance(issue, DiscreteIssue):
+    if isinstance(issue, DiscreteIssue) and issue.is_discrete():
         return dict(
             zip(
                 issue.all,
@@ -1088,6 +1100,29 @@ class LinearAdditiveUtilityFunction(UtilityFunction):  # type: ignore
             myissues: list[Issue] = outcome_space.issues  # type: ignore
             for i, issue in enumerate(myissues):
                 fn = self.values[i]
+                if self.weights[i] == 0:
+                    # a zero-weight issue does not matter (it may be unbounded)
+                    v = next(iter(issue.value_generator(1)))
+                    vranges.append((v, v))
+                    uranges.append((0.0, 0.0))
+                    continue
+                if hasattr(fn, "arg_extremes"):
+                    # value funs that optimize themselves (e.g. list issues)
+                    (mn, mnv), (mx, mxv) = fn.arg_extremes(issue)
+                    vranges.append((mnv, mxv))
+                    uranges.append((mn, mx))
+                    continue
+                if not issue.is_finite() and self.weights[i] != 0:
+                    # sampling cannot find the extremes of an unbounded fun
+                    try:
+                        bounds = fn.minmax(issue)
+                    except Exception:
+                        bounds = (0.0, 0.0)
+                    if not all(math.isfinite(_) for _ in bounds):
+                        raise ValueError(
+                            f"The value function of {issue.name} is unbounded over "
+                            f"it {tuple(bounds)}: the ufun has no extreme outcomes"
+                        )
                 mx, mn = float("-inf"), float("inf")
                 mxv, mnv = None, None
                 for v in issue.value_generator(n=max_cardinality):
@@ -1096,6 +1131,12 @@ class LinearAdditiveUtilityFunction(UtilityFunction):  # type: ignore
                         mx, mxv = uval, v
                     if uval < mn:
                         mn, mnv = uval, v
+                if hasattr(issue, "mutate") and mnv is not None:
+                    # searchable issues (lists, strings): refine by hill-climbing
+                    (mn, mnv), (mx, mxv) = (
+                        _climb(fn, issue, mnv, -1),
+                        _climb(fn, issue, mxv, 1),
+                    )
                 vranges.append((mnv, mxv))
                 uranges.append((mn, mx))
 
@@ -1307,7 +1348,17 @@ class LinearAdditiveUtilityFunction(UtilityFunction):  # type: ignore
         r = self.reserved_value
 
         # Minimum and maximum of every value function
-        mnmxs = [v.minmax(issue) for issue, v in zip(issues, values)]
+        # zero-weight issues do not matter (and may be unbounded)
+        mnmxs = [
+            v.minmax(issue) if w != 0 else (0.0, 0.0)
+            for issue, v, w in zip(issues, values, weights)
+        ]
+        for issue, (n, x), w in zip(issues, mnmxs, weights):
+            if w != 0 and not (math.isfinite(n) and math.isfinite(x)):
+                raise ValueError(
+                    f"Cannot normalize: the value function of {issue.name} is "
+                    f"unbounded over it ({n}, {x}). Bound the issue or the function."
+                )
 
         # Step 1: Make all weights positive
         for i, (w, v) in enumerate(zip(weights, values)):
@@ -1476,3 +1527,14 @@ class LinearAdditiveUtilityFunction(UtilityFunction):  # type: ignore
 
 LinearUtilityAggregationFunction = LinearAdditiveUtilityFunction
 """An alias for `LinearAdditiveUtilityFunction`"""
+
+
+def _climb(fn, issue, v, sign: int, n_steps: int = 300) -> tuple[float, object]:
+    """Hill-climbs `sign * fn` from `v` with `issue.mutate`; returns (fn, value)."""
+    best = float(fn(v))
+    for _ in range(n_steps):
+        c = issue.mutate(v)
+        x = float(fn(c))
+        if sign * x > sign * best:
+            v, best = c, x
+    return best, v
