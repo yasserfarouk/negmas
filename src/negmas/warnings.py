@@ -30,6 +30,7 @@ __all__ = [
     "NegmasCaughtExceptionWarning",
     "NegmasVisualizationWarning",
     "NegmasNoResponseWarning",
+    "NegmasNegotiatorRefusedWarning",
     "NegmasLoggingWarning",
     "NegmasNumericWarning",
     "NegmasDoubleAssignmentWarning",
@@ -147,6 +148,12 @@ class NegmasVisualizationWarning(NegmasWarning):
 
 class NegmasNoResponseWarning(NegmasWarning):
     """NegmasNoResponseWarning implementation."""
+
+    ...
+
+
+class NegmasNegotiatorRefusedWarning(NegmasWarning):
+    """A mechanism refused to add a negotiator."""
 
     ...
 

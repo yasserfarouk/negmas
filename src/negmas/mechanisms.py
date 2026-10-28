@@ -2151,8 +2151,18 @@ class Mechanism(
             and preferences.outcome_space is not None
             and self.outcome_space not in preferences.outcome_space
         ):
+            self._warn_refused(
+                negotiator,
+                "its preferences' outcome space does not contain the mechanism's",
+            )
             return None
         if not self.can_enter(negotiator):
+            self._warn_refused(
+                negotiator,
+                "its capabilities do not meet the mechanism's requirements"
+                if self.can_accept_more_negotiators()
+                else "the mechanism accepts no more negotiators",
+            )
             return None
 
         if negotiator in self._negotiators:
@@ -2217,12 +2227,20 @@ class Mechanism(
 
         # Remove NMI if join failed
         del self._nmis[negotiator.id]
+        self._warn_refused(negotiator, "its join() returned False")
         # Notify other negotiators that this negotiator failed to enter
         if self._extra_callbacks:
             for other in self._negotiators:
                 if hasattr(other, "on_negotiator_didnot_enter"):
                     other.on_negotiator_didnot_enter(negotiator.id, self.state)
         return None
+
+    def _warn_refused(self, negotiator: TNegotiator, reason: str) -> None:
+        warnings.warn(
+            f"{negotiator.name} was not added to {self.name}: {reason}",
+            warnings.NegmasNegotiatorRefusedWarning,
+            stacklevel=3,
+        )
 
     def can_participate(self, negotiator: TNegotiator) -> bool:
         """Checks if the negotiator can participate in this type of negotiation in

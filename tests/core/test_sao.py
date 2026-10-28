@@ -2628,3 +2628,40 @@ def test_full_trace_records_offerer_acceptance_only_when_offering_not_accepting(
         "with offering_is_accepting=True the proposer's implicit acceptance "
         "must not be recorded"
     )
+
+
+def test_add_warns_with_the_reason_when_a_negotiator_is_refused():
+    import pytest
+
+    from negmas.sao.negotiators import BoulwareTBNegotiator
+    from negmas.warnings import NegmasNegotiatorRefusedWarning
+
+    small, big = make_os([make_issue(5, "x")]), make_os([make_issue(10, "x")])
+    m = SAOMechanism(outcome_space=big, n_steps=10, max_n_negotiators=1)
+    n = BoulwareTBNegotiator(name="small")
+    with pytest.warns(NegmasNegotiatorRefusedWarning, match="small.*outcome space"):
+        assert m.add(n, ufun=LUFun.random(outcome_space=small)) is None
+    assert m.add(BoulwareTBNegotiator(), ufun=LUFun.random(outcome_space=big))
+    with pytest.warns(NegmasNegotiatorRefusedWarning, match="no more negotiators"):
+        assert (
+            m.add(BoulwareTBNegotiator(), ufun=LUFun.random(outcome_space=big)) is None
+        )
+    assert len(m.negotiators) == 1
+
+
+def test_add_warns_when_join_refuses():
+    import pytest
+
+    from negmas.sao.negotiators import BoulwareTBNegotiator
+    from negmas.warnings import NegmasNegotiatorRefusedWarning
+
+    class Shy(BoulwareTBNegotiator):
+        def join(self, *args, **kwargs):
+            return False
+
+    os = make_os([make_issue(5, "x")])
+    m = SAOMechanism(outcome_space=os, n_steps=10)
+    n = Shy(name="shy")
+    with pytest.warns(NegmasNegotiatorRefusedWarning, match="join"):
+        assert m.add(n, ufun=LUFun.random(outcome_space=os)) is None
+    assert n.id not in m._nmis
