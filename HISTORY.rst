@@ -29,6 +29,26 @@ Unreleased
 * [preferences] Normalizing a value function that is unbounded over its issue
   raises a clear ``ValueError``.
 * [gb] ``WARNegotiator`` raises a clear error on infinite outcome spaces.
+* [mechanisms] ``Mechanism.add`` still returns ``None`` when it refuses a
+  negotiator, but now also emits ``NegmasNegotiatorRefusedWarning`` naming the
+  reason.
+
+**Fixes:**
+
+* [preferences] ``LinearAdditiveUtilityFunction.normalize_for(to=...)`` and
+  ``normalize(to=...)`` returned [0, 1] whatever ``to`` was. Normalizing over a
+  non-Cartesian outcome space crashed; it now uses the generic path.
+* [preferences] ``LambdaFun``/``LambdaMultiFun.minmax`` clipped the maximum to
+  ``max_value`` instead of widening it.
+* [preferences] Pareto samplers: ``pareto_outcomes()`` dropped every outcome
+  with negative utility (its default ``min_util`` was 0); it now keeps the
+  whole front. ``IPSParetoSampler`` clamped negative partial utilities to 0 and
+  returned dominated outcomes.
+* [outcomes] Scenarios whose domain holds a ``ListIssue`` or ``RecordIssue``
+  failed to load (``No module named 'negmas.negmas'``): short type names
+  resolve as ``negmas.<Name>``, and the new classes were not exported there.
+  ``SingletonIssue``, ``SingletonOutcomeSpace``, ``UFunConstraint`` and
+  ``UtilityFunctionAdapter`` had the same problem.
 
 Release 0.16.0
 --------------
