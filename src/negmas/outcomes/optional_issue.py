@@ -71,8 +71,8 @@ class OptionalIssue(Issue):
         return self.base.is_continuous()
 
     def is_discrete(self) -> bool:
-        """Check if the issue has a discrete (countable) domain."""
-        return not self.is_continuous()
+        """Discrete (enumerable) exactly when the wrapped issue is."""
+        return self.base.is_discrete()
 
     @property
     def cardinality(self) -> int | float:
@@ -121,6 +121,8 @@ class OptionalIssue(Issue):
         """
         Checks weather this issue contains the input issue (i.e. every value in the input issue is in this issue)
         """
+        if isinstance(issue, OptionalIssue):
+            return self.base.contains(issue.base)
         return self.base.contains(issue)
 
     @property

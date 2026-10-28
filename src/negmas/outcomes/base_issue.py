@@ -60,6 +60,7 @@ def make_issue(values, *args, optional: bool = False, step: int = 1, **kwargs):
           - Tuple[ ``-inf`` , ``int`` ] : This is a CountableInfiniteIssue that can take any integer value in the given limits
           - Tuple[ ``float`` , ``inf`` ] : This is a ContinuousInfiniteIssue that can take any real value in the given limits
           - Tuple[ ``-inf`` , ``float`` ] : This is a ContinuousInfiniteIssue that can take any real value in the given limits
+          - ``str`` (the type) : A `StrIssue` (any string; pass ``min_length``/``max_length``)
           - ``Callable`` : The callable should take no parameters and should act as a generator of issue values. This
              type of issue is always assumed to be neither countable nor continuous and are called uncountable. For
              example, you can use this type to make an issue that generates all integers from 0 to infinity. Most operations are not
@@ -104,6 +105,11 @@ def make_issue(values, *args, optional: bool = False, step: int = 1, **kwargs):
                 f"A step ({step}) can only be given for integer ranges but {values} defines {what}"
             )
 
+    if values is str:
+        from negmas.outcomes.string_issue import StrIssue
+
+        _no_step("a string issue")
+        return StrIssue(*args, **kwargs)
     if isinstance(values, numbers.Integral):
         return ContiguousIssue(int(values), *args, step=step, **kwargs)
     if isinstance(values, tuple):
@@ -227,13 +233,19 @@ class Issue(HasMinMax, Iterable, ABC):
         if (
             isinstance(self, ContiguousIssue) and isinstance(other, ContiguousIssue)
         ) or (isinstance(self, ContinuousIssue) and isinstance(other, ContinuousIssue)):
-            return make_issue(
-                (
-                    max(self._values[0], other._values[0]),
-                    min(self._values[-1], other._values[-1]),
-                ),
-                name=self.name,
-            )
+            lo = max(self.min_value, other.min_value)
+            hi = min(self.max_value, other.max_value)
+            if not (math.isfinite(lo) and math.isfinite(hi)):
+                # keep the issue kind for (half-)unbounded results
+                from negmas.outcomes.infinite import IntIssue, RealIssue
+
+                factory = IntIssue if isinstance(self, ContiguousIssue) else RealIssue
+                return factory(
+                    self.name,
+                    min=lo if math.isfinite(lo) else None,
+                    max=hi if math.isfinite(hi) else None,
+                )
+            return make_issue((lo, hi), name=self.name)
         if isinstance(self, DiscreteOrdinalIssue) and isinstance(
             other, (ContiguousIssue, ContinuousIssue)
         ):
@@ -389,7 +401,7 @@ class Issue(HasMinMax, Iterable, ABC):
         """
         Checks weather this issue contains the input issue (i.e. every value in the input issue is in this issue)
         """
-        if isinstance(issue, DiscreteIssue):
+        if isinstance(issue, DiscreteIssue) and issue.is_discrete():
             return all(self.is_valid(_) for _ in issue.all)
         return False
 

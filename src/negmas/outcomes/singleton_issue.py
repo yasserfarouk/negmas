@@ -111,7 +111,7 @@ class SingletonIssue(DiscreteIssue):
         """
         if isinstance(issue, SingletonIssue):
             return self._single_value == issue._single_value
-        if isinstance(issue, DiscreteIssue):
+        if isinstance(issue, DiscreteIssue) and issue.is_discrete():
             return issue.cardinality == 1 and self.is_valid(next(iter(issue.all)))
         return False
 
