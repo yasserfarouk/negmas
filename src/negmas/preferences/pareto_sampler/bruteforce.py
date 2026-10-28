@@ -65,7 +65,22 @@ class BruteForceParetoSampler:
         os = self._ufun.outcome_space
         if os is None:
             raise ValueError("BruteForceParetoSampler requires an outcome space.")
-        outcomes = list(os.enumerate_or_sample(max_cardinality=self._max_cardinality))
+        from negmas.preferences.inv_ufun.search import needs_search, search_pool
+
+        if needs_search(os):
+            # never enumerate list issues: search a pool for each side
+            outcomes = list(
+                dict.fromkeys(
+                    search_pool(self._ufun, os, self._ufun.extreme_outcomes())
+                    + search_pool(
+                        self._opponent_ufun, os, self._opponent_ufun.extreme_outcomes()
+                    )
+                )
+            )
+        else:
+            outcomes = list(
+                os.enumerate_or_sample(max_cardinality=self._max_cardinality)
+            )
         points = np.asarray(
             [
                 [float(self._ufun(outcome)), float(self._opponent_ufun(outcome))]

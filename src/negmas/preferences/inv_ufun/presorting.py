@@ -138,16 +138,7 @@ class PresortingInverseUtilityFunction(InverseUFun):
         )
         self._range = self._max - self._min
         self._offset = self._min / self._range if self._range > EPS else self._min
-        for L in range(self.levels, 0, -1):
-            n = outcome_space.cardinality_if_discretized(L)
-            if n <= self.max_cache_size:
-                break
-        else:
-            raise ValueError(
-                f"Cannot discretize keeping cache size at {self.max_cache_size}. Outcome space cardinality is {outcome_space.cardinality}\nOutcome space: {outcome_space}"
-            )
-        os = outcome_space.to_discrete(levels=L, max_cardinality=self.max_cache_size)
-        outcomes = list(os.enumerate_or_sample(max_cardinality=self.max_cache_size))
+        outcomes = self._candidate_outcomes(outcome_space)
         utils = [float(self._ufun.eval(_)) for _ in outcomes]
         warn_if_slow(
             len(utils),
@@ -181,6 +172,23 @@ class PresortingInverseUtilityFunction(InverseUFun):
         self._last_rational = len(rational) - 1
         self.outcomes = [rational[_] for _ in indices] + irrational
         self.utils = np.hstack((ur_sorted, uir))
+
+    def _candidate_outcomes(self, outcome_space) -> list[Outcome]:
+        """The outcomes to sort: enumerated, discretized, or searched (list issues)."""
+        from .search import needs_search, search_pool
+
+        if needs_search(outcome_space):
+            return search_pool(self._ufun, outcome_space, (self._worst, self._best))
+        for L in range(self.levels, 0, -1):
+            n = outcome_space.cardinality_if_discretized(L)
+            if n <= self.max_cache_size:
+                break
+        else:
+            raise ValueError(
+                f"Cannot discretize keeping cache size at {self.max_cache_size}. Outcome space cardinality is {outcome_space.cardinality}\nOutcome space: {outcome_space}"
+            )
+        os = outcome_space.to_discrete(levels=L, max_cardinality=self.max_cache_size)
+        return list(os.enumerate_or_sample(max_cardinality=self.max_cache_size))
 
     def _compute_near_range(self, ur_sorted: NDArray[floating[Any]]) -> None:
         """Groups (nearly) equal utilities so queries can cycle among ties.

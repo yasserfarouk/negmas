@@ -242,7 +242,7 @@ class MOBANOSParetoSampler:
         """Core MOBANOS algorithm — exact IPS without rounding."""
 
         def per_issue_pareto(i: int) -> list[tuple[tuple[Any, ...], float, float]]:
-            vals = list(issues[i].all)
+            vals = _values(issues[i], own.values[i], opp.values[i])
             own_vfun = own.values[i]
             opp_vfun = opp.values[i]
             own_w = own.weights[i]
@@ -272,3 +272,16 @@ class MOBANOSParetoSampler:
                 ps = ps[: self._max_pareto_size]
 
         return [partial for partial, _, _ in ps]
+
+
+def _values(issue, *funs) -> list:
+    """All values of a finite issue; others are sampled (never enumerated)."""
+    from negmas.outcomes.list_issue import ListIssue
+    from negmas.preferences.list_value_fun import list_issue_candidates
+
+    if isinstance(issue, ListIssue):
+        return list_issue_candidates(issue, funs)
+    if not issue.is_discrete() and not issue.is_continuous():
+        # infinite integers or strings (continuous issues stay unsupported)
+        return list(issue.value_generator(20))
+    return list(issue.all)

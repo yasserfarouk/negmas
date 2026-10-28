@@ -145,7 +145,7 @@ class AttributePlanningInverseUtilityFunction(InverseUFun):
         # Collect raw weighted contributions per issue
         raw_contrib_list: list[np.ndarray] = []
         for issue, vfun, w in zip(self._issues, base.values, base.weights):
-            vals = _issue_values(issue, self._continuous_levels)
+            vals = _issue_values(issue, self._continuous_levels, (vfun,))
             val_list.append(vals)
             raw = np.array([w * float(vfun(v)) for v in vals], dtype=np.float64)
             raw_contrib_list.append(raw)

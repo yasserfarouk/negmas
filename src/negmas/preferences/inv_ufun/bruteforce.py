@@ -121,8 +121,16 @@ class BruteForceInverseUtilityFunction(InverseUFun):
                 f"Cannot discretize keeping cache size at {self.max_cache_size}. "
                 f"Outcome space cardinality is {outcome_space.cardinality}\nOutcome space: {outcome_space}"
             )
-        os = outcome_space.to_discrete(levels=L, max_cardinality=self.max_cache_size)
-        outcomes = os.enumerate_or_sample(max_cardinality=self.max_cache_size)
+        from .search import needs_search, search_pool
+
+        if needs_search(outcome_space):
+            # list issues are never enumerated: exact only over the searched pool
+            outcomes = search_pool(self._ufun, outcome_space, (self._worst, self._best))
+        else:
+            os = outcome_space.to_discrete(
+                levels=L, max_cardinality=self.max_cache_size
+            )
+            outcomes = os.enumerate_or_sample(max_cardinality=self.max_cache_size)
         utils = [float(self._ufun.eval(_)) for _ in outcomes]
         warn_if_slow(
             len(utils),

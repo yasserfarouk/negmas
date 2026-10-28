@@ -674,7 +674,12 @@ class WAROfferingPolicy(OfferingPolicy):
         if not self.negotiator or not self.negotiator.ufun:
             return
         self._irrational = True
-        self._irrational_index = int(self.negotiator.nmi.n_outcomes) - 1
+        n = self.negotiator.nmi.n_outcomes
+        if not math.isfinite(n):
+            raise ValueError(
+                "WAR ranks every outcome and does not support infinite outcome spaces"
+            )
+        self._irrational_index = int(n) - 1
         if any(
             _.type
             not in (

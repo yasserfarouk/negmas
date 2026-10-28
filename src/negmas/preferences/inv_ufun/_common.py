@@ -290,7 +290,7 @@ def _un_normalize_range(
 # ---------------------------------------------------------------------------
 
 
-def _issue_values(issue: Any, n_levels: int) -> list[Any]:
+def _issue_values(issue: Any, n_levels: int, funs: Any = ()) -> list[Any]:
     """Return an ordered list of representative values for *issue*.
 
     Discrete issues (categorical, contiguous, ...) are enumerated exactly via
@@ -307,6 +307,15 @@ def _issue_values(issue: Any, n_levels: int) -> list[Any]:
         n_levels: Number of grid points used to discretize a continuous issue.
             Ignored for already-discrete issues.
     """
+    from negmas.outcomes.list_issue import ListIssue
+
+    if isinstance(issue, ListIssue):
+        if issue.is_discrete() and issue.cardinality <= 1000:
+            return list(issue.all)
+        # samples plus the greedy extremes of the value funs in `funs`
+        from negmas.preferences.list_value_fun import list_issue_candidates
+
+        return list_issue_candidates(issue, funs, n=max(10 * n_levels, 100))
     if issue.is_discrete():
         return list(issue.all)
     return list(issue.to_discrete(n=n_levels).all)

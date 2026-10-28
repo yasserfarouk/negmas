@@ -315,7 +315,14 @@ class BaseUtilityFunction(Preferences, ABC):
         search_space = provided_space if provided_space else self.outcome_space
 
         if search_space and not outcomes:
-            outcomes = search_space.enumerate_or_sample(max_cardinality=max_cardinality)
+            from negmas.preferences.inv_ufun.search import needs_search
+
+            if needs_search(search_space):
+                outcomes = _searched_extremes(self, search_space)
+            else:
+                outcomes = search_space.enumerate_or_sample(
+                    max_cardinality=max_cardinality
+                )
         if not outcomes:
             raise ValueError("Cannot find outcomes to use for finding extremes")
 
@@ -2111,3 +2118,28 @@ class _ExtremelyDynamic:
     # stability methods. Now it delegates to Preferences base class which uses
     # the _stability attribute. The default stability is STATIONARY.
     pass
+
+
+def _searched_extremes(ufun, os, n_samples: int = 2000, n_steps: int = 500) -> list:
+    """Candidates for the extremes of a space that must not be enumerated:
+    random outcomes, then mutation hill-climbs toward the best and the worst."""
+    from negmas.preferences.inv_ufun.search import mutate_outcome
+
+    def ok(o):
+        return os.is_valid(o) and ufun.satisfies_constraints(o)
+
+    pool = [o for o in (os.random_outcome() for _ in range(n_samples)) if ok(o)]
+    if not pool:
+        return pool
+    for sign in (1.0, -1.0):
+        v = max(pool, key=lambda o: sign * float(ufun(o)))
+        best = sign * float(ufun(v))
+        for _ in range(n_steps):
+            c = mutate_outcome(os, v)
+            if not ok(c):
+                continue
+            x = sign * float(ufun(c))
+            if x > best:
+                v, best = c, x
+        pool.append(v)
+    return pool

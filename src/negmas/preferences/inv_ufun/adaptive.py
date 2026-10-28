@@ -120,6 +120,16 @@ class AdaptiveInverseUtilityFunction(InverseUFun):
     def _select_delegate(self) -> InverseUFun:
         """Chooses (without initializing) the best concrete inverter for *ufun*."""
         from ..crisp.linear import LinearAdditiveUtilityFunction
+        from .search import SearchInverseUtilityFunction, needs_search
+
+        if needs_search(self._ufun.outcome_space):
+            # list (or other non-enumerable) issues: search, never enumerate
+            kw = {
+                k: v
+                for k, v in self._presorting_kwargs.items()
+                if k in ("rational_only", "eps", "rel_eps", "clamp_tolerance")
+            }
+            return SearchInverseUtilityFunction(self._ufun, **kw)
 
         # Unwrap wrappers to inspect the base ufun type
         base = self._ufun

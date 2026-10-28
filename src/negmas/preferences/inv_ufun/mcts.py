@@ -143,8 +143,10 @@ class MCTSInverseUtilityFunction(InverseUFun):
         assert os is not None
 
         self._issues = list(issues)
+        vfuns = list(getattr(self._ufun, "values", None) or [None] * len(self._issues))
         self._val_list = [
-            _issue_values(issue, self._continuous_levels) for issue in self._issues
+            _issue_values(issue, self._continuous_levels, (f,) if f is not None else ())
+            for issue, f in zip(self._issues, vfuns)
         ]
 
         u_min, u_max = self._ufun.minmax()

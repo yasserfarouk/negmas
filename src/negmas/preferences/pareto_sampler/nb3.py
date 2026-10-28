@@ -228,7 +228,7 @@ class NB3ParetoSampler:
         for i, (issue, own_vfun, own_w, opp_vfun, opp_w) in enumerate(
             zip(issues, own.values, own.weights, opp.values, opp.weights)
         ):
-            vals = list(issue.all)
+            vals = _values(issue, own_vfun, opp_vfun)
             val_lists.append(vals)
             oc = [own_w * float(own_vfun(v)) for v in vals]
             pc = [opp_w * float(opp_vfun(v)) for v in vals]
@@ -317,3 +317,16 @@ class NB3ParetoSampler:
                     heapq.heappush(heap, (-child_h, child_node))
 
         return pareto_front
+
+
+def _values(issue, *funs) -> list:
+    """All values of a finite issue; others are sampled (never enumerated)."""
+    from negmas.outcomes.list_issue import ListIssue
+    from negmas.preferences.list_value_fun import list_issue_candidates
+
+    if isinstance(issue, ListIssue):
+        return list_issue_candidates(issue, funs)
+    if not issue.is_discrete() and not issue.is_continuous():
+        # infinite integers or strings (continuous issues stay unsupported)
+        return list(issue.value_generator(20))
+    return list(issue.all)

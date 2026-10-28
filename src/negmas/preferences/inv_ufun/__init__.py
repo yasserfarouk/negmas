@@ -395,6 +395,7 @@ from .presorting import PresortingInverseUtilityFunction
 from .presorting_legacy import PresortingLegacyInverseUtilityFunction
 from .presorting_legacy import PresortingInverseUtilityFunctionBruteForce
 from .sampling import SamplingInverseUtilityFunction
+from .search import SearchInverseUtilityFunction
 
 # The default inverter used throughout the codebase.
 DefaultInverseUtilityFunction = AdaptiveInverseUtilityFunction
@@ -409,6 +410,7 @@ __all__ = [
     "FastInverseUtilityFunction",
     "MCTSInverseUtilityFunction",
     "SamplingInverseUtilityFunction",
+    "SearchInverseUtilityFunction",
     "PresortingInverseUtilityFunction",
     "PresortingLegacyInverseUtilityFunction",
     "PresortingInverseUtilityFunctionBruteForce",
