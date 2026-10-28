@@ -142,7 +142,7 @@ class NB3ParetoSampler:
         self,
         n: int | None = None,
         *,
-        min_util: float = 0.0,
+        min_util: float | None = None,
         normalized: bool = False,
         opponent_ufun: BaseUtilityFunction | None = None,
     ) -> list[Outcome]:
@@ -153,7 +153,10 @@ class NB3ParetoSampler:
         if not self._initialized:
             return []
 
-        raw_min = self._to_raw_util(min_util) if normalized else min_util
+        if min_util is None:
+            raw_min = float("-inf")
+        else:
+            raw_min = self._to_raw_util(min_util) if normalized else min_util
         result = [o for u_own, _, o in self._pareto_front if u_own >= raw_min - 1e-9]
         if n is not None:
             result = result[:n]

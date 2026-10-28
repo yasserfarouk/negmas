@@ -130,7 +130,7 @@ class AdaptiveParetoSampler:
         self,
         n: int | None = None,
         *,
-        min_util: float = 0.0,
+        min_util: float | None = None,
         normalized: bool = False,
         opponent_ufun: BaseUtilityFunction | None = None,
     ) -> list[Outcome]:

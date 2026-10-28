@@ -153,7 +153,7 @@ class IPSParetoSampler:
         self,
         n: int | None = None,
         *,
-        min_util: float = 0.0,
+        min_util: float | None = None,
         normalized: bool = False,
         opponent_ufun: BaseUtilityFunction | None = None,
     ) -> list[Outcome]:
@@ -162,6 +162,7 @@ class IPSParetoSampler:
         Args:
             n: Maximum number of outcomes (``None`` = all).
             min_util: Minimum required own utility (raw or normalised).
+                ``None`` (default) keeps the whole front.
             normalized: if ``True``, *min_util* is in normalised [0,1] space.
             opponent_ufun: If provided, reinitialises IPS with this opponent ufun
                 before answering the query.
@@ -175,7 +176,10 @@ class IPSParetoSampler:
 
         ufun = self._ufun
         assert ufun is not None  # guaranteed once initialized
-        raw_min = self._to_raw_util(min_util) if normalized else min_util
+        if min_util is None:
+            raw_min = float("-inf")
+        else:
+            raw_min = self._to_raw_util(min_util) if normalized else min_util
 
         result = [o for o in self._pareto_front if float(ufun(o)) >= raw_min - 1e-9]
         if n is not None:
@@ -282,7 +286,7 @@ class IPSParetoSampler:
         p = self._precision
 
         def d(x: float) -> float:
-            return round(max(0.0, x), p)
+            return round(x, p)
 
         # ------------------------------------------------------------------
         # Build per-issue Pareto sets R_i (for i >= 1)

@@ -366,3 +366,34 @@ def test_runtime_protocol_conformance(cls):
     sampler = cls()
     sampler.init(own, opp)
     assert isinstance(sampler, ParetoSampler)
+
+
+@pytest.mark.parametrize("sampler_type", ALL_TYPES)
+@pytest.mark.parametrize("shift", [0.0, -2.0, 5.0])
+def test_front_is_found_whatever_the_utility_sign(sampler_type, shift):
+    """Negative utilities (e.g. costs) are not dropped or flattened."""
+    from negmas.preferences.ops import pareto_frontier
+    from negmas.preferences.value_fun import TableFun
+
+    rng = random.Random(3)
+    os = make_os([make_issue(5, "a"), make_issue(5, "b"), make_issue(4, "c")])
+
+    def rand_ufun():
+        return LinearAdditiveUtilityFunction(
+            [
+                TableFun({k: rng.random() + shift for k in range(i.cardinality)})
+                for i in os.issues
+            ],
+            outcome_space=os,
+        )
+
+    me, opp = rand_ufun(), rand_ufun()
+    outcomes = list(os.enumerate())
+
+    def points(xs):
+        return {(round(me(o), 6), round(opp(o), 6)) for o in xs}
+
+    true = points(outcomes[i] for i in pareto_frontier([me, opp], outcomes=outcomes)[1])
+    sampler = sampler_type()
+    sampler.init(ufun=me, opponent_ufun=opp)
+    assert points(sampler.pareto_outcomes()) == true
