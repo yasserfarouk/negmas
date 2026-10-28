@@ -490,6 +490,27 @@ Wraps an arbitrary callable taking a value tuple: ``f(x) = g(x) + bias``.
     f = LambdaMultiFun(f=lambda x: x[0] * x[1] / 10.0)
 
 
+List-issue functions
+=====================
+
+These score a `ListIssue` value by scoring each element and aggregating (see
+:doc:`list_issues`).
+
+::
+
+    from negmas.preferences import ListAggregationFun, RecordAdditiveFun
+    from negmas.preferences.value_fun import AffineFun, LinearFun
+
+    lot = RecordAdditiveFun((AffineFun(-1.0, bias=20.0), AffineFun(1.0)))
+    f = ListAggregationFun(lot, aggregate="sum", count_fun=LinearFun(-0.5))
+
+- `RecordAdditiveFun`: a weighted sum of per-field functions over a record.
+- `ListAggregationFun`: lifts an element scorer to a list (sum, mean, min, max
+  or a callable, plus an optional ``count_fun``).
+- `ListAggregationMultiFun`: the multi-issue form, a `GLAUtilityFunction`
+  factor over a list issue and other issues.
+
+
 Regenerating the figures
 =========================
 

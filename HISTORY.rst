@@ -1,6 +1,35 @@
 History
 =======
 
+Unreleased
+----------
+
+**New:**
+
+* [outcomes] ``ListIssue`` and ``RecordIssue``. One issue holds a
+  variable-length list of elements, ordered or unordered, with ``min_count``,
+  ``max_count`` and ``unique_by``. The issue supports sampling, ``mutate``,
+  ``to_discrete`` and serialization.
+* [outcomes] ``IntIssue`` and ``RealIssue`` (factories over the infinite
+  issues), and the new ``StrIssue``.
+* [preferences] ``RecordAdditiveFun``, ``ListAggregationFun``,
+  ``ListAggregationMultiFun`` and ``lift_element_ufun`` score lists. Extremes
+  are found greedily and exactly; an unbounded sum raises
+  ``UnboundedListUtilityError``.
+* [preferences] ``SearchInverseUtilityFunction``. Inverters and Pareto
+  samplers search list, string and infinite-integer issues instead of
+  enumerating them, so the time-based negotiators work on them.
+
+**Changes:**
+
+* [outcomes] ``CountableInfiniteIssue`` is no longer discrete. It is sampled,
+  never enumerated. Infinite issues now sample from a configurable
+  ``typical`` range: before, sampling was uniform over ``±sys.maxsize``, or
+  returned ``inf``/``nan`` for reals. Copying an infinite issue keeps its type.
+* [preferences] Normalizing a value function that is unbounded over its issue
+  raises a clear ``ValueError``.
+* [gb] ``WARNegotiator`` raises a clear error on infinite outcome spaces.
+
 Release 0.16.0
 --------------
 

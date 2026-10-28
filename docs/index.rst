@@ -25,6 +25,7 @@ etc.
     installation
     getting_started
     overview
+    list_issues
     tools
 
 .. toctree::
