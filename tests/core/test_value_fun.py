@@ -1581,3 +1581,13 @@ class TestNewValueFunsInLinearAdditiveUtilityFunction:
         uf2 = LinearAdditiveUtilityFunction.from_dict(load(path))
         for outcome in ((3.0, 5.0), (0.0, 0.0), (10.0, 20.0)):
             assert uf(outcome) == approx(uf2(outcome))
+
+
+def test_lambda_fun_minmax_hint_widens_the_max():
+    issue = make_issue((0, 10), "x")
+    f = LambdaFun(lambda x: float(x), max_value=20.0)
+    assert f.minmax(issue) == (0.0, 20.0)
+    f = LambdaFun(lambda x: float(x), min_value=-5.0)
+    assert f.minmax(issue) == (-5.0, 10.0)
+    g = LambdaMultiFun(lambda xs: float(xs[0]), max_value=20.0)
+    assert g.minmax((issue,)) == (0.0, 20.0)

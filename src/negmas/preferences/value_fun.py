@@ -845,7 +845,7 @@ class LambdaFun(BaseFun):
         if self.min_value is not None:
             mn = min(mn, self.min_value)
         if self.max_value is not None:
-            mx = min(mx, self.max_value)
+            mx = max(mx, self.max_value)
         return mn, mx
 
     def shift_by(self, offset: float, change_bias: bool = False) -> LambdaFun:
@@ -2566,7 +2566,7 @@ class LambdaMultiFun(BaseMultiFun):
         if self.min_value is not None:
             mn = min(mn, self.min_value)
         if self.max_value is not None:
-            mx = min(mx, self.max_value)
+            mx = max(mx, self.max_value)
         return mn, mx
 
     def shift_by(self, offset: float) -> AffineMultiFun:
