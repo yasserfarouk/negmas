@@ -238,12 +238,6 @@ def test_empty_only_list_issue_with_infinite_element():
     assert issue.rand() == ()
 
 
-@pytest.mark.xfail(
-    strict=True,
-    reason="DEFECT: `all` enumerates the element before looking at the count, so "
-    "a finite (max_count=0) list of an infinite element cannot be enumerated "
-    "(list_issue.py:732)",
-)
 def test_empty_only_list_issue_with_infinite_element_enumerates():
     """A discrete list issue can always be enumerated, even with max_count=0."""
     issue = ListIssue("L", make_issue((0.0, 1.0), "c"), 0, 0)
@@ -382,11 +376,6 @@ def test_property_mutate_is_one_edit_away(issue):
         assert sum(diff.values()) <= 2
 
 
-@pytest.mark.xfail(
-    strict=True,
-    reason="DEFECT: a 'swap' of two equal elements returns the input unchanged "
-    "although other neighbours exist (list_issue.py:682)",
-)
 def test_mutate_returns_a_different_value_when_one_exists():
     """mutate gives a neighbour (not the value itself) when neighbours exist."""
     issue = ListIssue("L", make_issue(3, "v"), max_count=4, ordered=True)
@@ -432,7 +421,10 @@ def test_property_sampled_to_discrete_is_a_finite_valid_subset(issue, n):
 
 
 def test_infinite_issue_is_never_enumerated():
-    """`all`, `value_at` and to_discrete(None) refuse an infinite list issue."""
+    """`all`, `value_at` and to_discrete(None) refuse an infinite list issue.
+
+    `value_generator(None)` samples a finite default instead (design decision).
+    """
     issue = ListIssue("L", rec2())
     with pytest.raises(ValueError):
         next(iter(issue.all))
@@ -440,8 +432,7 @@ def test_infinite_issue_is_never_enumerated():
         issue.value_at(0)
     with pytest.raises(ValueError):
         issue.to_discrete(None)
-    with pytest.raises(ValueError):
-        list(issue.value_generator(None))
+    assert 0 < len(list(issue.value_generator(None))) <= 1000
 
 
 def test_structural_to_discrete_needs_a_finite_count():
@@ -462,12 +453,6 @@ def test_structural_to_discrete_cap_is_min_of_cap_and_max_count():
     assert issue.to_discrete(max_count_cap=1).max_count == 1
 
 
-@pytest.mark.xfail(
-    strict=True,
-    reason="DEFECT: structural to_discrete raises 'no max_count' although "
-    "unique_by already caps the count (list_issue.py:796-803 uses max_count, "
-    "not effective_max_count)",
-)
 def test_structural_to_discrete_uses_the_unique_by_cap():
     """A count already capped by unique_by needs no max_count_cap."""
     element = RecordIssue([make_issue((0.0, 1.0), "c"), make_issue(["a", "b"], "k")])
@@ -480,11 +465,6 @@ def test_structural_to_discrete_uses_the_unique_by_cap():
 # ------------------------------------------------------------ contains
 
 
-@pytest.mark.xfail(
-    strict=True,
-    reason="DEFECT: contains() checks self.unique_by <= other.unique_by; the "
-    "implication runs the other way (list_issue.py:836)",
-)
 def test_contains_is_sound_for_a_finer_unique_by():
     """A list unique by ("a",) does not contain one unique only by ("a", "b")."""
     coarse = ListIssue("L", rec2(), max_count=4, unique_by=("a",))
@@ -494,11 +474,6 @@ def test_contains_is_sound_for_a_finer_unique_by():
     assert not coarse.contains(fine)
 
 
-@pytest.mark.xfail(
-    strict=True,
-    reason="DEFECT: contains() rejects a stricter unique_by (fewer key fields) "
-    "that it does contain (list_issue.py:836)",
-)
 def test_contains_accepts_a_stricter_unique_by():
     """A list unique by ("a", "b") contains one unique by ("a",)."""
     fine = ListIssue("L", rec2(), max_count=4, unique_by=("a", "b"))
@@ -507,10 +482,6 @@ def test_contains_accepts_a_stricter_unique_by():
     assert fine.contains(coarse)
 
 
-@pytest.mark.xfail(
-    strict=True,
-    reason="DEFECT: contains() is unsound when unique_by differs (list_issue.py:836)",
-)
 @settings(max_examples=200, deadline=None)
 @given(
     st.lists(st.sampled_from(["a", "b"]), min_size=1, max_size=2, unique=True),
@@ -567,12 +538,6 @@ def test_property_json_roundtrip_of_the_issue(issue):
     assert back.is_valid(v) and back.canonicalize(jsonify(v)) == v
 
 
-@pytest.mark.xfail(
-    strict=True,
-    reason="DEFECT: DiscreteListValuesIssue does not survive JSON: its values "
-    "come back as nested lists (list_issue.py:930, inherits CategoricalIssue "
-    "serialization)",
-)
 def test_discrete_list_values_issue_json_roundtrip():
     """The sampled view survives JSON with tuple values equal to the originals."""
     d = ListIssue("L", rec2(), max_count=3).to_discrete(5)
@@ -581,11 +546,6 @@ def test_discrete_list_values_issue_json_roundtrip():
     assert back == d
 
 
-@pytest.mark.xfail(
-    strict=True,
-    reason="DEFECT: a discretized outcome space with a list issue rejects its "
-    "own outcomes after a JSON round-trip",
-)
 def test_discretized_os_json_roundtrip_keeps_outcomes_valid():
     """A discretized outcome space still accepts its own outcomes after JSON."""
     os_ = make_os([ListIssue("L", rec2()), make_issue(3, "p")])
@@ -595,11 +555,6 @@ def test_discretized_os_json_roundtrip_keeps_outcomes_valid():
     assert back.is_valid(o)
 
 
-@pytest.mark.xfail(
-    strict=True,
-    reason="DEFECT: DiscreteListValuesIssue.is_valid rejects the JSON-list and "
-    "non-canonical forms that ListIssue.is_valid accepts",
-)
 def test_discrete_list_values_issue_accepts_what_list_issue_accepts():
     """The sampled view accepts a sampled value as JSON lists and in any order."""
     issue = ListIssue("L", rec2(), min_count=2, max_count=2, unique_by=True)
@@ -633,12 +588,6 @@ def test_record_xml_export_raises():
 # ------------------------------------------------------------ scalability
 
 
-@pytest.mark.xfail(
-    strict=True,
-    raises=OverflowError,
-    reason="DEFECT: rand() calls random.sample(range(k)) on the key space, which "
-    "overflows when k >= 2**63 (list_issue.py:595)",
-)
 def test_rand_with_a_huge_discrete_key_space():
     """rand() works when the unique_by key space is astronomically large."""
     big = RecordIssue([make_issue((0, 10**7), n) for n in "pqs"])
@@ -647,12 +596,6 @@ def test_rand_with_a_huge_discrete_key_space():
 
 
 @pytest.mark.timeout(10)
-@pytest.mark.xfail(
-    strict=True,
-    reason="DEFECT: construction loops over every count up to the key capacity "
-    "with big-int combinatorics (list_issue.py:501-503); it hangs for large "
-    "key spaces when max_count is None",
-)
 def test_construction_with_a_large_unique_key_space_is_fast():
     """Building a list unique by a 0..10**5 integer field takes well under 10s."""
     issue = ListIssue("L", make_issue((0, 10**5), "order_id"), unique_by=True)

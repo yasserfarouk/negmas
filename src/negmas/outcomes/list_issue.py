@@ -1,39 +1,32 @@
 """List issues: one issue whose value is a variable-length list of records.
 
-A `ListIssue` models a *repeated group of issues* (e.g. the deliveries of a
-delivery plan, each an ``(order_id, quantity, date)`` record) without making
-the number of issues variable. The outcome keeps a fixed number of issues; only
-the value of the list issue varies in length.
+The outcome keeps a fixed number of issues; only the list issue's value varies
+in length.
 
 Examples:
 
-    A delivery plan: any number of ``(order_id, quantity, date)`` records, with
-    no two deliveries of the same order on the same date:
-
     >>> from negmas.outcomes import ListIssue, RecordIssue, make_issue
-    >>> delivery = RecordIssue(
+    >>> item = RecordIssue(
     ...     [
-    ...         make_issue(["PO-1", "PO-7"], "order_id"),
+    ...         make_issue(["a", "b"], "product"),
     ...         make_issue((1, 100), "quantity"),
-    ...         make_issue((0, 30), "date"),
+    ...         make_issue((0, 30), "day"),
     ...     ]
     ... )
-    >>> plan = ListIssue("deliveries", delivery, unique_by=("order_id", "date"))
-    >>> plan.effective_max_count  # 2 orders x 31 dates: at most 62 deliveries
+    >>> items = ListIssue("items", item, unique_by=("product", "day"))
+    >>> items.effective_max_count  # 2 products x 31 days
     62
-    >>> ListIssue("lots", delivery).cardinality  # no max_count and no key cap
+    >>> ListIssue("lots", item).cardinality
     inf
-    >>> plan.is_valid([("PO-1", 30, 12), ("PO-7", 50, 12)])
+    >>> items.is_valid([("a", 30, 12), ("b", 50, 12)])
     True
-    >>> plan.is_valid([("PO-1", 30, 12), ("PO-1", 20, 12)])  # same order and date
+    >>> items.is_valid([("a", 30, 12), ("a", 20, 12)])  # repeated key
     False
 
     Unordered lists are multisets, canonicalized by sorting:
 
-    >>> plan.canonicalize([["PO-7", 50, 12], ["PO-1", 30, 12]])
-    (('PO-1', 30, 12), ('PO-7', 50, 12))
-    >>> plan.is_valid(plan.rand())
-    True
+    >>> items.canonicalize([["b", 50, 12], ["a", 30, 12]])
+    (('a', 30, 12), ('b', 50, 12))
 """
 
 from __future__ import annotations
@@ -52,6 +45,13 @@ from negmas.serialization import PYTHON_CLASS_IDENTIFIER, deserialize, serialize
 
 __all__ = ["RecordIssue", "ListIssue", "DiscreteListValuesIssue"]
 
+# Finite list issues with more values than this report an infinite cardinality
+# (and are not discrete) so that nothing tries to enumerate them.
+MAX_ENUMERABLE_LIST_VALUES = 10_000_000_000
+# Key spaces larger than this are sampled by rejection, not `random.sample`.
+_MAX_SAMPLED_KEYS = 1_000_000
+# Samples drawn by `value_generator()` from an infinite issue when `n` is None.
+DEFAULT_LIST_SAMPLES = 1000
 # Maximum number of attempts made by rejection-sampling loops (per value).
 _MAX_TRIALS = 50
 # When the count range is wider than this, `rand()` draws the number of
@@ -118,6 +118,8 @@ class RecordIssue(Issue):
         names = [f.name for f in fields]
         if len(set(names)) != len(names):
             raise ValueError(f"Record field names must be unique but got {names}")
+        if not name:
+            name = "record(" + ",".join(names) + ")"
         super().__init__(fields, name=name)
         self._value_type = tuple
         self._n_values = reduce(mul, [f.cardinality for f in fields], 1)
@@ -325,35 +327,21 @@ class RecordIssue(Issue):
 
 
 class ListIssue(Issue):
-    """An issue whose value is a variable-length list of element values.
-
-    The value is a tuple of element values (records for a `RecordIssue`
-    element). The number of elements is between `min_count` and `max_count`
-    (unbounded when `max_count` is None, which makes the issue infinite).
+    """An issue whose value is a tuple of `min_count`..`max_count` element values.
 
     Args:
         name: The issue name.
-        element: The element issue: a `RecordIssue`, any `Issue`, or a sequence
-            of issues (made into a `RecordIssue`).
+        element: A `RecordIssue`, any `Issue`, or a sequence of issues (a record).
         min_count: The minimum number of elements.
-        max_count: The maximum number of elements, or None for no limit.
-        ordered: If True the value is a sequence (order matters). If False it
-            is a multiset: values are canonicalized by sorting, so equality and
-            hashing do not depend on the order of the elements.
-        unique_by: Field names whose combination must not repeat across the
-            elements, e.g. ``("order_id", "date")``. For a non-record element,
-            pass the element's name (or True) to make the element values
-            themselves unique. True on a record means whole records are unique.
-        typical_count: The mean number of elements drawn by `rand()` when the
-            count range is wide (defaults to ``min_count + 5``, capped at
-            `max_count`).
+        max_count: The maximum number of elements (None: unbounded, infinite).
+        ordered: A sequence if True; otherwise a multiset, canonicalized by sorting.
+        unique_by: Field names whose combination must not repeat. True (or the
+            element's name for a plain element) makes whole elements unique.
+        typical_count: Mean number of elements drawn by `rand()` for wide ranges.
 
     Remarks:
-        - `is_valid` accepts the elements in any order and as lists or tuples
-          (e.g. JSON); use `canonicalize` to get the canonical value.
-        - Never enumerate an infinite list issue: sample with `rand`,
-          `rand_outcomes` or `value_generator(n)`, search with `mutate`, or get
-          a finite view with `to_discrete`.
+        `is_valid` accepts any element order and lists (JSON); `canonicalize`
+        gives the canonical value. Infinite list issues are never enumerated.
     """
 
     def __init__(
@@ -489,18 +477,21 @@ class ListIssue(Issue):
         m = self._values.cardinality
         if not math.isfinite(hi) or not self._values.is_discrete():
             return float("inf")
-        hi = int(hi)
-        m = int(m)
+        hi, m, cap = int(hi), int(m), MAX_ENUMERABLE_LIST_VALUES
+        if hi - lo > cap:
+            return float("inf")
+        k = None if self._key_idx is None else int(self._n_keys())
+        if m <= 1 and k is None:
+            return (hi - lo + 1) if m == 1 else int(lo == 0)
         total = 0
-        if self._key_idx is None:
-            for n in range(lo, hi + 1):
-                total += m**n if self.ordered else math.comb(m + n - 1, n)
-            return total
-        k = int(self._n_keys())
-        g = m // k  # element values per key
         for n in range(lo, hi + 1):
-            keys = math.perm(k, n) if self.ordered else math.comb(k, n)
-            total += keys * g**n
+            if k is None:
+                total += m**n if self.ordered else math.comb(m + n - 1, n)
+            else:
+                keys = math.perm(k, n) if self.ordered else math.comb(k, n)
+                total += keys * (m // k) ** n
+            if total > cap:
+                return float("inf")
         return total
 
     # ------------------------------------------------------------------
@@ -577,7 +568,9 @@ class ListIssue(Issue):
             return lo
         # geometric number of extra elements with the requested mean
         p = 1.0 / (extra + 1.0)
-        n = lo + int(math.log(1.0 - random.random()) / math.log(1.0 - p))
+        n = lo + (
+            int(math.log(1.0 - random.random()) / math.log(1.0 - p)) if p < 1.0 else 0
+        )
         return int(min(n, hi))
 
     def _rand_elements(self, n: int) -> list:
@@ -592,7 +585,14 @@ class ListIssue(Issue):
             n = min(n, k)
             sizes = [int(f.cardinality) for f in key_fields]
             out = []
-            for idx in random.sample(range(k), n):
+            if k <= _MAX_SAMPLED_KEYS:
+                indices: Iterable[int] = random.sample(range(k), n)
+            else:
+                chosen: set[int] = set()
+                while len(chosen) < n:
+                    chosen.add(random.randrange(k))
+                indices = chosen
+            for idx in indices:
                 key = []
                 for s, f in zip(reversed(sizes), reversed(key_fields)):
                     idx, r = divmod(idx, s)
@@ -679,7 +679,7 @@ class ListIssue(Issue):
                     new[i] = _canonical(element, element.rand())
             if self.is_valid(new):
                 new_value = self.canonicalize(new)
-                if new_value != tuple(value) or op == "swap":
+                if new_value != tuple(value):
                     return new_value
         return self.canonicalize(value)
 
@@ -729,8 +729,11 @@ class ListIssue(Issue):
                 f"The list issue {self.name} is infinite and cannot be enumerated. "
                 f"Sample it (rand, value_generator(n)) or use to_discrete()."
             )
-        element_values = list(self._values.all)
         lo, hi = self.min_count, int(self._effective_max_count())
+        if hi == 0:
+            yield ()
+            return
+        element_values = list(self._values.all)
         for n in range(lo, hi + 1):
             if self.ordered:
                 candidates: Iterable = product(element_values, repeat=n)
@@ -793,7 +796,8 @@ class ListIssue(Issue):
             element = self._values
             if not element.is_discrete():
                 element = element.to_discrete(levels if levels is not None else 10)
-            mx = self.max_count
+            mx = self._effective_max_count()
+            mx = None if not math.isfinite(mx) else int(mx)
             if max_count_cap is not None:
                 mx = max_count_cap if mx is None else min(mx, max_count_cap)
             if mx is None:
@@ -821,7 +825,7 @@ class ListIssue(Issue):
         if self.is_discrete() and self.cardinality <= n:
             return self
         return DiscreteListValuesIssue(
-            list(_value_generator(self, int(n))), name=self.name
+            list(_value_generator(self, int(n))), name=self.name, source=self
         )
 
     def contains(self, issue: Issue) -> bool:
@@ -833,10 +837,17 @@ class ListIssue(Issue):
                 self.ordered == issue.ordered
                 and issue.min_count >= self.min_count
                 and theirs <= mine
-                and set(self.unique_by or ()) <= set(issue.unique_by or ())
+                # the other's keys must imply ours: a subset of our key fields
+                and (
+                    self.unique_by is None
+                    or (
+                        issue.unique_by is not None
+                        and set(issue.unique_by) <= set(self.unique_by)
+                    )
+                )
                 and self.element.contains(issue.element)
             )
-        if isinstance(issue, DiscreteIssue):
+        if isinstance(issue, DiscreteIssue) and issue.is_discrete():
             return all(self.is_valid(_) for _ in issue.all)
         return False
 
@@ -928,11 +939,30 @@ class ListIssue(Issue):
 
 
 class DiscreteListValuesIssue(CategoricalIssue):
-    """A finite set of explicit list (or record) values: the sampled view of a `ListIssue`.
+    """An explicit finite set of values of a `ListIssue` (its sampled view).
 
-    Behaves like a `CategoricalIssue` but samples values without converting the
-    tuples to numpy arrays (which would reshape equally-long tuples).
+    Args:
+        values: The values (canonicalized with `source`).
+        name: The issue name.
+        source: The `ListIssue` the values come from, used to canonicalize.
     """
+
+    def __init__(self, values, name=None, source: ListIssue | None = None) -> None:
+        self.source = source
+        if source is not None:
+            values = [source.canonicalize(_) for _ in values]
+        super().__init__(list(values), name=name)
+        self._value_type = tuple
+        self._set = set(self._values)
+
+    def is_valid(self, v) -> bool:
+        if not isinstance(v, (tuple, list)):
+            return False
+        try:
+            v = self.source.canonicalize(v) if self.source is not None else v
+            return v in self._set
+        except TypeError:
+            return False
 
     def rand_outcomes(  # type: ignore[override]
         self, n: int, with_replacement=False, fail_if_not_enough=False
@@ -942,15 +972,46 @@ class DiscreteListValuesIssue(CategoricalIssue):
             return random.choices(vals, k=n)
         if n > len(vals):
             if fail_if_not_enough:
-                raise ValueError(
-                    f"Cannot sample {n} values out of {len(vals)} without replacement"
-                )
+                raise ValueError(f"Cannot sample {n} of {len(vals)} values")
             return vals
         return random.sample(vals, n)
 
+    def to_dict(self, python_class_identifier=PYTHON_CLASS_IDENTIFIER):
+        return {
+            python_class_identifier: get_full_type_name(type(self)),
+            "values": serialize(
+                list(self._values), python_class_identifier=python_class_identifier
+            ),
+            "name": self.name,
+            "source": serialize(
+                self.source, python_class_identifier=python_class_identifier
+            ),
+        }
+
+    @classmethod
+    def from_dict(cls, d, python_class_identifier=PYTHON_CLASS_IDENTIFIER):
+        if isinstance(d, cls):
+            return d
+        d = dict(d)
+        d.pop(python_class_identifier, None)
+        kw = dict(python_class_identifier=python_class_identifier)
+        source = deserialize(d.get("source"), **kw)
+        values = deserialize(d["values"], **kw)
+        return cls(values, name=d.get("name"), source=source)
+
+    def __eq__(self, other):
+        return (
+            isinstance(other, DiscreteListValuesIssue)
+            and self.name == other.name
+            and self._set == other._set
+        )
+
+    def __hash__(self):
+        return hash((self.name, frozenset(self._set)))
+
     def _to_xml_str(self, indx: int) -> str:
         raise NotImplementedError(
-            f"Genius has no list (repeated) issues: cannot export {self.name} to XML"
+            f"Genius has no list issues: cannot export {self.name} to XML"
         )
 
 
@@ -962,9 +1023,7 @@ def _value_generator(issue: Issue, n: int | float | None) -> Generator:
         yield from issue.all
         return
     if n is None or not math.isfinite(n):
-        raise ValueError(
-            f"Cannot generate all values of the infinite issue {issue.name}: pass n"
-        )
+        n = DEFAULT_LIST_SAMPLES
     yield from _rand_values(issue, int(n), False, False)
 
 

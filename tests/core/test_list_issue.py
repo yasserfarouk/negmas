@@ -273,8 +273,9 @@ def test_value_generator_samples_infinite_issue():
     issue = ListIssue("d", delivery_record())
     vals = list(issue.value_generator(25))
     assert len(vals) == 25 == len(set(vals))
-    with pytest.raises(ValueError):
-        list(issue.value_generator(None))
+    # n=None samples a finite default (as continuous issues do)
+    vals = list(issue.value_generator(None))
+    assert 0 < len(vals) <= 1000 and all(issue.is_valid(_) for _ in vals)
 
 
 def test_to_discrete_sampled_and_structural():
