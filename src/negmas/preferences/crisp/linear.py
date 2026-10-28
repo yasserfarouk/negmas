@@ -1310,31 +1310,20 @@ class LinearAdditiveUtilityFunction(UtilityFunction):  # type: ignore
         # the constrained extremes would not map to ``to``. Fall back to the
         # generic minmax-based scaling inherited from the base class, which
         # respects constraints via ``extreme_outcomes`` (and thus ``minmax``).
-        if self._constraints:
+        os_ = outcome_space if outcome_space is not None else self.outcome_space
+        if os_ is None:
+            raise ValueError("Cannot normalize without knowing the outcome-space")
+        # The per-issue path also needs a Cartesian space; others use the
+        # generic path.
+        if self._constraints or not isinstance(os_, CartesianOutcomeSpace):
             return super().normalize_for(
                 to,
-                outcome_space=outcome_space,
+                outcome_space=os_,
                 guarantee_max=guarantee_max,
                 guarantee_min=guarantee_min,
                 max_cardinality=max_cardinality,
             )
-        from negmas.outcomes import DiscreteOrdinalIssue
-
         epsilon = 1e-6
-        os_ = outcome_space if outcome_space is not None else self.outcome_space
-
-        if os_ is None:
-            raise ValueError("Cannot normalize without knowing the outcome-space")
-
-        # Convert to CartesianOutcomeSpace if needed
-        if not isinstance(os_, CartesianOutcomeSpace):
-            os_ = DiscreteCartesianOutcomeSpace(
-                issues=(
-                    DiscreteOrdinalIssue(
-                        list(os_.enumerate_or_sample(max_cardinality=max_cardinality))
-                    ),
-                )
-            )
 
         issues = os_.issues
 
@@ -1405,6 +1394,15 @@ class LinearAdditiveUtilityFunction(UtilityFunction):  # type: ignore
         if abs(weights_sum) > epsilon * 1e-3 and abs(weights_sum - 1.0) > epsilon * 0.1:
             weights = [w / weights_sum for w in weights]
             r = r / weights_sum
+
+        # Step 6: map the canonical [0, 1] range onto ``to``
+        lo, hi = to
+        if abs(lo) > epsilon or abs(hi - 1.0) > epsilon:
+            if hi < lo:
+                raise ValueError(f"Cannot normalize to a reversed range {to}")
+            weights = [w * (hi - lo) for w in weights]
+            bias = lo
+            r = r * (hi - lo) + lo
 
         return LinearAdditiveUtilityFunction(
             values=values,  # type: ignore

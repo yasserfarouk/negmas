@@ -248,6 +248,42 @@ class TestLinearAdditiveNormalization:
                 elif utils_before[i] > utils_before[j]:
                     assert utils_after[i] > utils_after[j]
 
+    @pytest.mark.parametrize("to", [(2.0, 5.0), (-1.0, 1.0), (0.0, 10.0), (3.0, 3.0)])
+    def test_normalize_for_honours_target_range(self, to):
+        """normalize_for maps the utility range (and reserved value) onto ``to``."""
+        os = make_os([make_issue((0, 10), "x"), make_issue(5, "y")])
+        u = LinearAdditiveUtilityFunction(
+            values=[AffineFun(1.0, -5.0), LinearFun(-2.0)],
+            weights=[2.0, 0.5],
+            outcome_space=os,
+            reserved_value=0.0,
+        )
+        mn, mx = u.minmax()
+        for n in (u.normalize_for(to=to), u.normalize(to=to)):
+            assert n.minmax() == pytest.approx(to)
+            scale = (to[1] - to[0]) / (mx - mn)
+            expected = to[0] + scale * (u.reserved_value - mn)
+            assert n.reserved_value == pytest.approx(expected)
+            for o in [(0, 0), (3, 2), (10, 4)]:
+                assert n(o) == pytest.approx(to[0] + scale * (u(o) - mn))
+
+    def test_normalize_for_rejects_reversed_range(self):
+        u = LinearAdditiveUtilityFunction(
+            values=[LinearFun(1.0)], issues=[make_issue(5, "x")]
+        )
+        with pytest.raises(ValueError):
+            u.normalize_for(to=(1.0, 0.0))
+
+    def test_normalize_for_non_cartesian_outcome_space(self):
+        from negmas.outcomes.outcome_space import EnumeratingOutcomeSpace
+
+        u = LinearAdditiveUtilityFunction(
+            values=[LinearFun(1.0)], issues=[make_issue(5, "x")]
+        )
+        os = EnumeratingOutcomeSpace(baseset={(0,), (2,), (4,)})
+        n = u.normalize_for(to=(0.0, 1.0), outcome_space=os)
+        assert n.minmax() == pytest.approx((0.0, 1.0))
+
 
 class TestConstFunScaleFix:
     """Tests for ConstFun.scale_by() correctness fix."""
