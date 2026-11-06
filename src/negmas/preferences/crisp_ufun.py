@@ -9,6 +9,7 @@ from typing import Iterable, Sequence, TypeVar
 
 import numpy as np
 
+from negmas.helpers.rand import seedable
 from negmas import warnings
 from negmas.helpers.prob import Distribution, ScipyDistribution
 from negmas.outcomes import Issue, Outcome
@@ -46,11 +47,14 @@ class UtilityFunction(_ExtremelyDynamic, BaseUtilityFunction):
         return self
 
     @classmethod
+    @seedable
     def generate_bilateral(
         cls,
         outcomes: int | Sequence[Outcome],
         conflict_level: float = 0.5,
         conflict_delta=0.005,
+        *,
+        seed: int | None = None,
     ) -> tuple[UtilityFunction, UtilityFunction]:
         """Generates a couple of utility functions
 
@@ -60,6 +64,9 @@ class UtilityFunction(_ExtremelyDynamic, BaseUtilityFunction):
             conflict_level: How conflicting are the two ufuns to generate.
                             1.0 means maximum conflict.
             conflict_delta: How variable is the conflict at different outcomes.
+            seed: Seed for this call's random draws (see `negmas.seeded`): the same
+                seed gives the same result. ``None`` (default) draws from the global
+                generators.
 
         Examples:
 
@@ -116,8 +123,9 @@ class UtilityFunction(_ExtremelyDynamic, BaseUtilityFunction):
         )
 
     @classmethod
+    @seedable
     def generate_random_bilateral(
-        cls, outcomes: int | Sequence[Outcome]
+        cls, outcomes: int | Sequence[Outcome], *, seed: int | None = None
     ) -> tuple[UtilityFunction, UtilityFunction]:
         """Generates a couple of utility functions
 
@@ -127,6 +135,9 @@ class UtilityFunction(_ExtremelyDynamic, BaseUtilityFunction):
             conflict_level: How conflicting are the two ufuns to generate. 1.0 means maximum conflict.
             conflict_delta: How variable is the conflict at different outcomes.
             zero_summness: How zero-sum like are the two ufuns.
+            seed: Seed for this call's random draws (see `negmas.seeded`): the same
+                seed gives the same result. ``None`` (default) draws from the global
+                generators.
 
 
         """
@@ -147,11 +158,14 @@ class UtilityFunction(_ExtremelyDynamic, BaseUtilityFunction):
         )
 
     @classmethod
+    @seedable
     def generate_random(
         cls,
         n: int,
         outcomes: int | Sequence[Outcome] | Iterable[Outcome],
         normalized: bool = True,
+        *,
+        seed: int | None = None,
     ) -> list[UtilityFunction]:
         """Generates N mapping utility functions
 
@@ -159,6 +173,9 @@ class UtilityFunction(_ExtremelyDynamic, BaseUtilityFunction):
             n: number of utility functions to generate
             outcomes: number of outcomes to use
             normalized: if true, the resulting ufuns will be normlized between zero and one.
+            seed: Seed for this call's random draws (see `negmas.seeded`): the same
+                seed gives the same result. ``None`` (default) draws from the global
+                generators.
 
 
         """

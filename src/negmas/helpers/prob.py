@@ -12,6 +12,7 @@ from typing import TYPE_CHECKING
 
 import numpy as np
 
+from negmas.helpers.rand import seedable
 from negmas.common import Distribution
 
 if TYPE_CHECKING:
@@ -143,7 +144,8 @@ class Real(Distribution):
         """
         return int(mn <= self.loc <= mx)
 
-    def sample(self, size: int = 1) -> np.ndarray:
+    @seedable
+    def sample(self, size: int = 1, *, seed: int | None = None) -> np.ndarray:
         """Samples `size` elements from the distribution"""
         return self._loc * np.ones(size)
 
@@ -428,7 +430,8 @@ class ScipyDistribution(Distribution):
         distribution."""
         return self._dist.cdf(mx) - self._dist.cdf(mn)
 
-    def sample(self, size: int = 1) -> np.ndarray:
+    @seedable
+    def sample(self, size: int = 1, *, seed: int | None = None) -> np.ndarray:
         """Draw random samples from the distribution."""
         return self._dist.rvs(size=size)
 

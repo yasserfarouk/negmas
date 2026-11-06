@@ -7,6 +7,7 @@ from typing import Callable, Iterable
 
 import numpy as np
 
+from negmas.helpers.rand import seedable
 from negmas.generics import gmap
 from negmas.helpers import get_full_type_name
 from negmas.outcomes import Issue, Outcome
@@ -207,12 +208,15 @@ class MappingUtilityFunction(UtilityFunction):
         return output
 
     @classmethod
+    @seedable
     def random(
         cls,
         outcome_space: OutcomeSpace,
         reserved_value=(0.0, 1.0),
         normalized=True,
         max_cardinality: int = 10000,
+        *,
+        seed: int | None = None,
     ):
         # todo: corrrect this for continuous outcome-spaces
         """Generate a random mapping utility function.
@@ -222,6 +226,9 @@ class MappingUtilityFunction(UtilityFunction):
             reserved_value: The utility for no agreement or range (min, max) for random selection.
             normalized: If True, normalize utility values to [0, 1] range.
             max_cardinality: Maximum number of outcomes to sample for discrete approximation.
+            seed: Seed for this call's random draws (see `negmas.seeded`): the same
+                seed gives the same result. ``None`` (default) draws from the global
+                generators.
         """
         if not isinstance(reserved_value, Iterable):
             reserved_value = (reserved_value, reserved_value)

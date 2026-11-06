@@ -358,3 +358,220 @@ def test_random_stream_is_decorrelated_from_the_global_seed():
     global_draws = _draws()
     with RandomStream(42):
         assert _draws() != global_draws
+
+
+# --- ufun generators and outcome-space sampling ------------------------------
+
+
+def _small_os():
+    return make_os([make_issue(4, "a"), make_issue(3, "b"), make_issue(5, "c")])
+
+
+def _numeric_issues():
+    return [make_issue((0, 9), "x"), make_issue((0, 4), "y")]
+
+
+def _signature(ufun, os):
+    return ([float(ufun(o)) for o in os.enumerate()], float(ufun.reserved_value))
+
+
+def _ufun_makers():
+    """Each maker builds its inputs, then returns ``seed -> (ufun, space)``.
+
+    Inputs are built up front because creating issues and outcome spaces draws
+    their names from the global generators.
+    """
+    import negmas.preferences as P
+
+    def on_os(cls, **kw):
+        def build():
+            os = _small_os()
+            return lambda seed: (cls.random(outcome_space=os, seed=seed, **kw), os)
+
+        return build
+
+    def on_issues(cls, **kw):
+        def build():
+            issues = _numeric_issues()
+            os = make_os(issues)
+            return lambda seed: (cls.random(issues, seed=seed, **kw), os)
+
+        return build
+
+    def positional(cls):
+        def build():
+            os = _small_os()
+            return lambda seed: (cls.random(os, (0.0, 1.0), seed=seed), os)
+
+        return build
+
+    return {
+        "linear": on_os(P.LinearAdditiveUtilityFunction),
+        "gpa": on_os(P.GPAUtilityFunction),
+        "gla": on_os(P.GLAUtilityFunction),
+        "pa": on_os(P.PAUtilityFunction),
+        "mapping": on_os(P.MappingUtilityFunction),
+        "affine": on_issues(P.AffineUtilityFunction),
+        "const": on_issues(P.ConstUtilityFunction, normalized=False),
+        "exp_discounted": on_issues(P.ExpDiscountedUFun),
+        "lin_discounted": on_issues(P.LinDiscountedUFun),
+        "weighted": positional(P.WeightedUtilityFunction),
+        "complex": positional(P.ComplexNonlinearUtilityFunction),
+    }
+
+
+@pytest.mark.parametrize("kind", sorted(_ufun_makers()))
+def test_random_ufun_seed_is_reproducible(kind):
+    make = _ufun_makers()[kind]()
+    first = _signature(*make(5))
+    _draws(11)
+    assert _signature(*make(5)) == first
+
+
+@pytest.mark.parametrize("kind", sorted(_ufun_makers()))
+def test_random_ufun_seed_leaves_global_stream_alone(kind):
+    make = _ufun_makers()[kind]()
+    random.seed(0)
+    np.random.seed(0)
+    expected = _draws()
+    random.seed(0)
+    np.random.seed(0)
+    make(5)
+    assert _draws() == expected
+
+
+def test_random_ufun_different_seeds_differ():
+    make = _ufun_makers()["linear"]()
+    assert len({str(_signature(*make(s))) for s in range(5)}) > 1
+
+
+def test_random_ufun_without_seed_is_unchanged():
+    """No seed: the result follows the global generators, as before."""
+    from negmas.preferences import LinearAdditiveUtilityFunction as U
+
+    os = _small_os()
+    random.seed(3)
+    np.random.seed(3)
+    a = _signature(U.random(outcome_space=os), os)
+    random.seed(3)
+    np.random.seed(3)
+    b = _signature(U.random(outcome_space=os), os)
+    assert a == b
+
+
+def test_prob_mapping_ufun_seed_is_reproducible():
+    from negmas.preferences import ProbMappingUtilityFunction as U
+
+    os = _small_os()
+
+    def sig(seed):
+        u = U.random(os, seed=seed)
+        return [str(u(o)) for o in os.enumerate()]
+
+    first = sig(2)
+    _draws(5)
+    assert sig(2) == first
+
+
+def test_ufun_class_generators_seed_is_reproducible():
+    from negmas.preferences.crisp_ufun import UtilityFunction
+
+    os = _small_os()
+    outcomes = list(os.enumerate())
+
+    def sig(seed):
+        many = UtilityFunction.generate_random(3, outcomes, seed=seed)
+        a, b = UtilityFunction.generate_bilateral(outcomes, seed=seed)
+        c, d = UtilityFunction.generate_random_bilateral(outcomes, seed=seed)
+        return [[float(u(o)) for o in outcomes] for u in [*many, a, b, c, d]]
+
+    first = sig(4)
+    _draws(5)
+    assert sig(4) == first
+
+
+def test_generators_module_seed_is_reproducible():
+    from negmas.preferences.generators import (
+        generate_multi_issue_ufuns,
+        generate_single_issue_ufuns,
+        generate_ufuns_for,
+        make_pareto,
+        sample_between,
+    )
+
+    os = make_os([make_issue(5, "a"), make_issue(4, "b")])
+
+    def sig(seed):
+        single = generate_single_issue_ufuns(10, 20, seed=seed)
+        multi = generate_multi_issue_ufuns(2, sizes=(4, 5), seed=seed)
+        fors = generate_ufuns_for(os, seed=seed)
+        out = [
+            [float(u(o)) for o in u.outcome_space.enumerate()]  # type: ignore
+            for u in (*single, *multi, *fors)
+        ]
+        out.append(list(sample_between(0.0, 1.0, 6, seed=seed)))
+        out.append(make_pareto([(0.0, 1.0), (1.0, 0.0)], 8, seed=seed))
+        return out
+
+    first = sig(6)
+    _draws(5)
+    assert sig(6) == first
+
+
+@pytest.mark.parametrize(
+    "os",
+    [
+        _small_os(),
+        make_os([IntIssue("q", min=1, typical=(1, 50)), StrIssue("n", max_length=6)]),
+    ],
+    ids=["discrete", "infinite"],
+)
+def test_outcome_space_sampling_seed_is_reproducible(os):
+    def sig(seed):
+        return (
+            os.random_outcome(seed=seed),
+            list(os.sample(5, with_replacement=True, seed=seed)),
+            list(os.enumerate_or_sample(max_cardinality=10, seed=seed)),
+        )
+
+    first = sig(8)
+    _draws(5)
+    assert sig(8) == first
+    assert len({str(sig(s)) for s in range(5)}) > 1
+
+
+def test_outcome_space_sampling_without_seed_follows_global_generators():
+    os = _small_os()
+    random.seed(1)
+    np.random.seed(1)
+    a = list(os.sample(5, with_replacement=True))
+    random.seed(1)
+    np.random.seed(1)
+    assert list(os.sample(5, with_replacement=True)) == a
+
+
+def test_distribution_and_prob_ufun_sample_seed():
+    from negmas.helpers.prob import ScipyDistribution
+    from negmas.preferences import IPUtilityFunction
+
+    d = ScipyDistribution("uniform", loc=0.0, scale=1.0)
+    first = list(d.sample(4, seed=3))
+    _draws(5)
+    assert list(d.sample(4, seed=3)) == first
+
+    os = _small_os()
+    outcomes = list(os.enumerate())
+    u = IPUtilityFunction(
+        outcomes=outcomes,
+        distributions=[
+            ScipyDistribution("uniform", loc=0.0, scale=1.0) for _ in outcomes
+        ],
+    )
+
+    def sig(seed):
+        crisp = u.sample(seed=seed)
+        return [float(crisp(o)) for o in outcomes]
+
+    first2 = sig(1)
+    _draws(5)
+    assert sig(1) == first2

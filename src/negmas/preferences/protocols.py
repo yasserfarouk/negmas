@@ -1264,6 +1264,12 @@ class Randomizable(Protocol):
     @classmethod
     @abstractmethod
     def random(
-        cls, outcome_space, reserved_value, normalized=True, **kwargs
+        cls,
+        outcome_space,
+        reserved_value,
+        normalized=True,
+        *,
+        seed: int | None = None,
+        **kwargs,
     ) -> Randomizable:
         """Generates a random ufun of the given type"""

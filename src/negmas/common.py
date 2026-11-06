@@ -76,7 +76,7 @@ class Distribution(Protocol):
         """Returns the probability for the given range"""
         ...
 
-    def sample(self, size: int = 1) -> Iterable[float]:
+    def sample(self, size: int = 1, *, seed: int | None = None) -> Iterable[float]:
         """Samples `size` elements from the distribution"""
         ...
 

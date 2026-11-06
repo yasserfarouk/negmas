@@ -152,6 +152,18 @@ generators exactly as before:
     sampler.init(a, b)
     front = sampler.pareto_outcomes()
 
+Random ufun generators (every ``.random()`` classmethod and the functions in
+``negmas.preferences.generators``) and outcome-space sampling (``sample``,
+``random_outcome`` and ``enumerate_or_sample``) take a ``seed`` too. There,
+each call with the same seed gives the same result:
+
+.. code-block:: python
+
+    u1 = LinearAdditiveUtilityFunction.random(outcome_space=os, seed=3)
+    u2 = LinearAdditiveUtilityFunction.random(outcome_space=os, seed=3)
+    assert [u1(o) for o in os.enumerate()] == [u2(o) for o in os.enumerate()]
+    assert os.random_outcome(seed=5) == os.random_outcome(seed=5)
+
 Any other block of code gets the same with ``seeded``:
 
 .. code-block:: python

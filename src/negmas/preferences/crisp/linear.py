@@ -8,6 +8,7 @@ import random
 from functools import partial
 from typing import Any, Callable, Iterable, Mapping, TYPE_CHECKING
 
+from negmas.helpers.rand import seedable
 from negmas import warnings
 from negmas.helpers import get_full_type_name
 from negmas.helpers.numeric import make_range
@@ -277,11 +278,14 @@ class AffineUtilityFunction(UtilityFunction):
         return output
 
     @classmethod
+    @seedable
     def random(
         cls,
         issues: list[Issue] | tuple[Issue, ...],
         reserved_value=(0.0, 1.0),
         normalized=True,
+        *,
+        seed: int | None = None,
     ):
         """Generate a random affine utility function.
 
@@ -289,6 +293,9 @@ class AffineUtilityFunction(UtilityFunction):
             issues: The issues to generate the utility function for. Must be numeric.
             reserved_value: Range (min, max) for random reserved value selection.
             normalized: If True, normalize weights to sum to 1 and scale by issue ranges.
+            seed: Seed for this call's random draws (see `negmas.seeded`): the same
+                seed gives the same result. ``None`` (default) draws from the global
+                generators.
 
         Returns:
             A random AffineUtilityFunction instance.
@@ -1158,12 +1165,15 @@ class LinearAdditiveUtilityFunction(UtilityFunction):  # type: ignore
         return result
 
     @classmethod
+    @seedable
     def random(
         cls,
         outcome_space: CartesianOutcomeSpace | None = None,
         issues: list[Issue] | tuple[Issue, ...] | None = None,
         reserved_value=(0.0, 1.0),
         normalized=True,
+        *,
+        seed: int | None = None,
         **kwargs,
     ):
         """Generate a random linear additive utility function.
@@ -1174,6 +1184,9 @@ class LinearAdditiveUtilityFunction(UtilityFunction):  # type: ignore
             reserved_value: Range (min, max) for random reserved value selection.
             normalized: If True, normalize weights to sum to 1.
             **kwargs: Additional arguments passed to the constructor.
+            seed: Seed for this call's random draws (see `negmas.seeded`): the same
+                seed gives the same result. ``None`` (default) draws from the global
+                generators.
 
         Returns:
             A random LinearAdditiveUtilityFunction instance.

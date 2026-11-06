@@ -6,6 +6,7 @@ import random
 from abc import abstractmethod
 from typing import TYPE_CHECKING, Any, Callable
 
+from negmas.helpers.rand import seedable
 from negmas.common import MechanismState, NegotiatorMechanismInterface, Value
 from negmas.helpers import get_class
 from negmas.helpers.numeric import make_range
@@ -408,6 +409,7 @@ class ExpDiscountedUFun(DiscountedUtilityFunction):
         return cls(**d)
 
     @classmethod
+    @seedable
     def random(
         cls,
         issues,
@@ -417,6 +419,8 @@ class ExpDiscountedUFun(DiscountedUtilityFunction):
         base_preferences_type: (
             str | type[BaseUtilityFunction]
         ) = "negmas.LinearAdditiveUtilityFunction",
+        *,
+        seed: int | None = None,
         **kwargs,
     ) -> ExpDiscountedUFun:
         """Generates a random ufun of the given type"""
@@ -746,6 +750,7 @@ class LinDiscountedUFun(DiscountedUtilityFunction):
         return self._ufun.type + "_linearly_discounted"
 
     @classmethod
+    @seedable
     def random(
         cls,
         issues,
@@ -755,6 +760,8 @@ class LinDiscountedUFun(DiscountedUtilityFunction):
         power_range=(0.0, 1.0),
         base_preferences_type: type[BaseUtilityFunction]
         | str = "negmas.LinearAdditiveUtilityFunction",
+        *,
+        seed: int | None = None,
         **kwargs,
     ) -> LinDiscountedUFun:
         """Generates a random ufun of the given type"""

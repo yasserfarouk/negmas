@@ -4,6 +4,7 @@ from __future__ import annotations
 
 import random
 
+from negmas.helpers.rand import seedable
 from negmas.helpers import get_full_type_name
 from negmas.helpers.numeric import make_range
 from negmas.outcomes import Issue, Outcome
@@ -91,12 +92,15 @@ class ConstUtilityFunction(UtilityFunction):
         ).xml(issues)
 
     @classmethod
+    @seedable
     def random(
         cls,
         issues,
         reserved_value=(0.0, 1.0),
         normalized=True,
         value_range=(0.0, 1.0),
+        *,
+        seed: int | None = None,
         **kwargs,
     ) -> ConstUtilityFunction:
         """Generates a random ufun of the given type"""

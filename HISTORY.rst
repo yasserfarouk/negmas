@@ -24,6 +24,14 @@ Unreleased
   (``sampler_seed``) take a ``seed``; ``with seeded(s):`` does the same for any
   block of code. Both run on a private ``RandomStream`` and leave the global
   generators untouched. The default (``None``) changes nothing.
+* [preferences, outcomes] ``seed=`` on every random ufun generator (all
+  ``.random()`` classmethods, ``UtilityFunction.generate_random``,
+  ``generate_bilateral`` and ``generate_random_bilateral``, the functions in
+  ``preferences.generators``, ``IPUtilityFunction.sample``, distributions'
+  ``sample``) and on outcome-space sampling (``sample``, ``random_outcome``,
+  ``enumerate_or_sample``). The same seed gives the same result; the default
+  (``None``) draws from the global generators as before. Built on the new
+  ``seedable`` decorator.
 * [helpers] Ids of named objects, mechanisms, contracts, breaches and
   negotiation requests are reproducible once a global seed is set
   (``negmas.helpers.rand.uuid4``), from a stream that never shifts other draws.

@@ -8,6 +8,7 @@ from typing import Any, Callable, Iterable, Literal, overload
 
 import numpy as np
 
+from negmas.helpers.rand import seedable
 from negmas.helpers.misc import (
     distribute_integer_randomly,
     floatin,
@@ -43,10 +44,13 @@ __all__ = [
 ReservedRanges = tuple[tuple[float, ...], ...]
 
 
+@seedable
 def sample_reserved_values(
     ufuns: tuple[UtilityFunction, ...],
     reserved_ranges: ReservedRanges = ((0.0, 1.0), (0.0, 1.0)),
     eps: float = 1e-3,
+    *,
+    seed: int | None = None,
 ) -> tuple[float, ...]:
     """
     Samples reserved values that are guaranteed to allow some rational outcomes for the given ufuns and sets the reserved values.
@@ -57,6 +61,9 @@ def sample_reserved_values(
         reserved_ranges: the range to sample reserved values from. Notice that the upper limit of this range will be updated
                          to ensure some rational outcoms
         eps: A small number indicating the absolute guaranteed margin of the sampled reserved value from the Nash point.
+        seed: Seed for this call's random draws (see `negmas.seeded`): the same
+            seed gives the same result. ``None`` (default) draws from the global
+            generators.
 
     """
     n_funs = len(ufuns)
@@ -100,12 +107,15 @@ def make_curve(
     return PolyAspiration(starting_utility, curve)
 
 
+@seedable
 def sample_between(
     start: float,
     end: float,
     n: int,
     endpoint=True,
     main_range: tuple[float, float] = (0.3, 0.5),
+    *,
+    seed: int | None = None,
 ):
     """
     Samples n values between the start and end given, optionally with the endpoint included.
@@ -146,8 +156,9 @@ def make_endpoints(
     return list(zip(x, y))
 
 
+@seedable
 def make_pareto(
-    endpoints: list[tuple[float, ...]], n_outcomes: int
+    endpoints: list[tuple[float, ...]], n_outcomes: int, *, seed: int | None = None
 ) -> list[tuple[float, ...]]:
     """
     Generates a piecewise linear curve with a specified number of segments and all slopes negative.
@@ -155,6 +166,9 @@ def make_pareto(
     Args:
       endpoints: A list of (x, y) coordinates for the endpoints of each segment.
       n_outcomes: number of values to distribute in the piecewise linear lines connecting the endpoints
+        seed: Seed for this call's random draws (see `negmas.seeded`): the same
+            seed gives the same result. ``None`` (default) draws from the global
+            generators.
 
     Returns:
         list of tuples representing utilities at the pareto-frontier
@@ -217,11 +231,14 @@ def make_pareto(
     return points
 
 
+@seedable
 def make_non_pareto(
     pareto: list[tuple[float, ...]],
     n: int,
     limit: tuple[float, float] = (0, 0),
     eps: float = 1e-4,
+    *,
+    seed: int | None = None,
 ) -> list[tuple[float, ...]]:
     """Adds extra outcomes dominated by the given Pareto outcomes
 
@@ -230,6 +247,9 @@ def make_non_pareto(
         n: number of outcomes to add that are dominated by the pareto outcomes
         limit: The minimum x and y values allowed
         eps: A small margin
+        seed: Seed for this call's random draws (see `negmas.seeded`): the same
+            seed gives the same result. ``None`` (default) draws from the global
+            generators.
     """
     if n < 1:
         return []
@@ -277,13 +297,18 @@ def make_non_pareto(
     return extra
 
 
-def make_zero_sum_pareto(n_pareto: int):
+@seedable
+def make_zero_sum_pareto(n_pareto: int, *, seed: int | None = None):
     """Generate a zero-sum Pareto generator of the given number of segments"""
     return make_piecewise_linear_pareto(n_pareto, n_segments=1)
 
 
+@seedable
 def make_piecewise_linear_pareto(
-    n_pareto: int, *, n_segments: int | list[int] | tuple[int, int] = (2, 5)
+    n_pareto: int,
+    *,
+    n_segments: int | list[int] | tuple[int, int] = (2, 5),
+    seed: int | None = None,
 ):
     """Generate a piecewise-linear Pareto generator of the given number of segments"""
     endpoints = make_endpoints(n_segments)
@@ -292,6 +317,7 @@ def make_piecewise_linear_pareto(
     return make_pareto(endpoints, n_pareto)
 
 
+@seedable
 def make_curve_pareto(
     n_pareto: int,
     *,
@@ -302,6 +328,7 @@ def make_curve_pareto(
     | float
     | tuple[float, float]
     | list[float] = (0.1, 6),
+    seed: int | None = None,
 ):
     """Generate a Pareto curve of the given shape."""
     if isinstance(shape, Iterable) and not isinstance(shape, str):
@@ -323,6 +350,7 @@ GENERATOR_MAP: dict[str, ParetoGenerator] = dict(
 )
 
 
+@seedable
 def generate_utility_values(
     n_pareto: int,
     n_outcomes: int,
@@ -330,6 +358,8 @@ def generate_utility_values(
     pareto_first=False,
     pareto_generator: ParetoGenerator | str = "piecewise_linear",
     generator_params: dict[str, Any] | None = None,
+    *,
+    seed: int | None = None,
 ) -> list[tuple[float, ...]]:
     """
     Generates ufuns that have a controllable Pareto frontier
@@ -340,6 +370,9 @@ def generate_utility_values(
         pareto_first: If given, Pareto outcomes come first in the returned results.
         pareto_generator: The method used to generate the Pareto front utilities
         generator_params: The parameters passed to the Pareto generator
+        seed: Seed for this call's random draws (see `negmas.seeded`): the same
+            seed gives the same result. ``None`` (default) draws from the global
+            generators.
 
     Returns:
         A list of tuples each giving the utilities of one outcome
@@ -461,6 +494,7 @@ def _adjust_ufuns(
     return tuple(maps)
 
 
+@seedable
 def generate_single_issue_ufuns(
     n_pareto: int,
     n_outcomes: int,
@@ -476,6 +510,8 @@ def generate_single_issue_ufuns(
     ufun_names: tuple[str, ...] | list[str] | None = None,
     numeric: bool = False,
     linear: bool = True,
+    *,
+    seed: int | None = None,
 ) -> tuple[LinearAdditiveUtilityFunction | MappingUtilityFunction, ...]:
     """Generates a set of single-issue ufuns
 
@@ -500,6 +536,9 @@ def generate_single_issue_ufuns(
         ufun_names: Names of utility functions
         numeric: All issue values are numeric (integers)
         linear: Whether to use a linear-additive-ufun instead of the general mapping ufun
+        seed: Seed for this call's random draws (see `negmas.seeded`): the same
+            seed gives the same result. ``None`` (default) draws from the global
+            generators.
 
     Returns:
         A tuple of single-issue ufuns
@@ -559,6 +598,8 @@ def generate_multi_issue_ufuns(
     linear: bool = True,
     guarantee_rational: bool = False,
     numeric_prob: float = -1,
+    *,
+    seed: int | None = None,
 ) -> tuple[LinearAdditiveUtilityFunction | MappingUtilityFunction, ...]:
     """Generate multi issue ufuns (overload for explicit n_values).
 
@@ -579,6 +620,9 @@ def generate_multi_issue_ufuns(
         linear: If True, generate linear-additive ufuns instead of mapping ufuns.
         guarantee_rational: Ensure at least one rational outcome per ufun.
         numeric_prob: Probability each issue is numeric (overridden by numeric parameter).
+        seed: Seed for this call's random draws (see `negmas.seeded`): the same
+            seed gives the same result. ``None`` (default) draws from the global
+            generators.
 
     Returns:
         Tuple of generated utility functions (LinearAdditive or Mapping type).
@@ -604,6 +648,8 @@ def generate_multi_issue_ufuns(
     linear: bool = True,
     guarantee_rational: bool = False,
     numeric_prob: float = -1,
+    *,
+    seed: int | None = None,
 ) -> tuple[LinearAdditiveUtilityFunction | MappingUtilityFunction, ...]:
     """Generate multi issue ufuns (overload for explicit sizes).
 
@@ -624,6 +670,9 @@ def generate_multi_issue_ufuns(
         linear: If True, generate linear-additive ufuns instead of mapping ufuns.
         guarantee_rational: Ensure at least one rational outcome per ufun.
         numeric_prob: Probability each issue is numeric (overridden by numeric parameter).
+        seed: Seed for this call's random draws (see `negmas.seeded`): the same
+            seed gives the same result. ``None`` (default) draws from the global
+            generators.
 
     Returns:
         Tuple of generated utility functions (LinearAdditive or Mapping type).
@@ -631,6 +680,7 @@ def generate_multi_issue_ufuns(
     ...
 
 
+@seedable
 def generate_multi_issue_ufuns(
     n_issues: int,
     n_values: int | tuple[int, int] | None = None,
@@ -648,6 +698,8 @@ def generate_multi_issue_ufuns(
     linear: bool = True,
     guarantee_rational: bool = False,
     numeric_prob: float = -1,
+    *,
+    seed: int | None = None,
 ) -> tuple[LinearAdditiveUtilityFunction | MappingUtilityFunction, ...]:
     """Generates a set of ufuns with an outcome space of the given number of issues.
 
@@ -673,6 +725,9 @@ def generate_multi_issue_ufuns(
         linear: Whether to use a linear-additive-ufun instead of the general mapping ufun
         numeric_prob: Probability of having a numeric issue (setting to 1.0 is equivalent to setting `numeric` to `True`).
                       A negative value means no issues will be numeric (unless `numeric == True` in which case all will be).
+        seed: Seed for this call's random draws (see `negmas.seeded`): the same
+            seed gives the same result. ``None`` (default) draws from the global
+            generators.
 
     Returns:
         A tuple of `n_ufuns` utility functions.
@@ -712,6 +767,7 @@ def generate_multi_issue_ufuns(
     )
 
 
+@seedable
 def generate_ufuns_for(
     outcome_space: DiscreteCartesianOutcomeSpace,
     n_ufuns: int = 2,
@@ -723,6 +779,8 @@ def generate_ufuns_for(
     ufun_names: tuple[str, ...] | None = None,
     guarantee_rational: bool = False,
     linear: bool = True,
+    *,
+    seed: int | None = None,
 ) -> tuple[LinearAdditiveUtilityFunction | MappingUtilityFunction, ...]:
     """Generates a set of ufuns with an outcome space of the given number of issues.
 
@@ -744,6 +802,9 @@ def generate_ufuns_for(
                                mean, or any combination.
         ufun_names: Names of utility functions
         linear: Whether to use a linear-additive-ufun instead of the general mapping ufun
+        seed: Seed for this call's random draws (see `negmas.seeded`): the same
+            seed gives the same result. ``None`` (default) draws from the global
+            generators.
 
     Returns:
         A tuple of `n_ufuns` utility functions.

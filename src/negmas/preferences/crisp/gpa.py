@@ -6,6 +6,7 @@ import itertools
 from math import pow
 from typing import TYPE_CHECKING, Any, Callable, Mapping, Sequence
 
+from negmas.helpers.rand import seedable
 from negmas.helpers import get_full_type_name
 from negmas.outcomes import Issue, Outcome
 from negmas.outcomes.outcome_space import CartesianOutcomeSpace
@@ -345,6 +346,7 @@ class GPAUtilityFunction(UtilityFunction):
         return cls(**d)
 
     @classmethod
+    @seedable
     def random(
         cls,
         outcome_space: CartesianOutcomeSpace | None = None,
@@ -355,6 +357,8 @@ class GPAUtilityFunction(UtilityFunction):
         n_terms: int | tuple[int, int] = (2, 5),
         max_factor_issues: int = 2,
         max_power: int = 3,
+        *,
+        seed: int | None = None,
         **kwargs,
     ) -> GPAUtilityFunction:
         """Generate a random GPA utility function.
@@ -369,6 +373,9 @@ class GPAUtilityFunction(UtilityFunction):
             max_factor_issues: Maximum number of issues per factor.
             max_power: Maximum power for any factor in a term.
             **kwargs: Additional arguments passed to the constructor.
+            seed: Seed for this call's random draws (see `negmas.seeded`): the same
+                seed gives the same result. ``None`` (default) draws from the global
+                generators.
 
         Returns:
             A random GPAUtilityFunction.

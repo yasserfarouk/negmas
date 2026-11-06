@@ -7,6 +7,7 @@ from typing import Iterable
 
 import numpy as np
 
+from negmas.helpers.rand import seedable
 from negmas.generics import iget, ikeys, ivalues
 from negmas.helpers.prob import ScipyDistribution
 from negmas.outcomes import Issue, Outcome
@@ -266,7 +267,8 @@ class IPUtilityFunction(ProbUtilityFunction):
         """Check if state dependent."""
         return True
 
-    def sample(self) -> MappingUtilityFunction:
+    @seedable
+    def sample(self, *, seed: int | None = None) -> MappingUtilityFunction:
         """
         Samples the utility_function distribution to create a mapping utility function
 

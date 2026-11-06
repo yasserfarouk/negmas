@@ -13,6 +13,7 @@ from typing import TYPE_CHECKING, Callable, Iterable, Sequence, Union
 
 from attrs import define, field
 
+from negmas.helpers.rand import seedable
 from negmas.helpers import unique_name
 from negmas.helpers.types import get_full_type_name
 from negmas.outcomes.outcome_ops import (
@@ -341,7 +342,8 @@ class EnumeratingOutcomeSpace(DiscreteOutcomeSpace, OSWithValidity):
         """
         return self
 
-    def random_outcome(self) -> Outcome:
+    @seedable
+    def random_outcome(self, *, seed: int | None = None) -> Outcome:
         """Returns a single random outcome."""
         return list(self.sample(1))[0]
 
@@ -359,10 +361,13 @@ class EnumeratingOutcomeSpace(DiscreteOutcomeSpace, OSWithValidity):
         """
         return self.cardinality
 
+    @seedable
     def enumerate_or_sample(
         self,
         levels: int | float = float("inf"),
         max_cardinality: int | float = float("inf"),
+        *,
+        seed: int | None = None,
     ) -> Iterable[Outcome]:
         """Enumerates all outcomes if possible (i.e. discrete space) or returns `max_cardinality` different outcomes otherwise"""
         return self.enumerate()
@@ -395,8 +400,14 @@ class EnumeratingOutcomeSpace(DiscreteOutcomeSpace, OSWithValidity):
             return self._baseset
         return (o for o in self._baseset if self.satisfies_constraints(o))
 
+    @seedable
     def sample(
-        self, n_outcomes: int, with_replacement: bool = False, fail_if_not_enough=False
+        self,
+        n_outcomes: int,
+        with_replacement: bool = False,
+        fail_if_not_enough=False,
+        *,
+        seed: int | None = None,
     ) -> Iterable[Outcome]:
         """Samples up to n_outcomes with or without replacement"""
         # Filter baseset by constraints if any
@@ -725,8 +736,14 @@ class CartesianOutcomeSpace(XmlSerializable):
         """Returns an outcome that is guaratneed to have correct types or raises an exception"""
         return cast_value_types(outcome, self.issues)
 
+    @seedable
     def sample(
-        self, n_outcomes: int, with_replacement: bool = True, fail_if_not_enough=True
+        self,
+        n_outcomes: int,
+        with_replacement: bool = True,
+        fail_if_not_enough=True,
+        *,
+        seed: int | None = None,
     ) -> Iterable[Outcome]:
         """Samples outcomes from this space, with or without replacement."""
         samples = sample_issues(
@@ -737,7 +754,8 @@ class CartesianOutcomeSpace(XmlSerializable):
         # Filter by constraints
         return (o for o in samples if self.satisfies_constraints(o))
 
-    def random_outcome(self):
+    @seedable
+    def random_outcome(self, *, seed: int | None = None):
         """Generates a single random outcome by sampling one value from each issue."""
         if not self._constraints:
             return tuple(_.rand() for _ in self.issues)
@@ -852,10 +870,13 @@ class CartesianOutcomeSpace(XmlSerializable):
 
         return filterfalse(lambda x: is_irrational(x), results)
 
+    @seedable
     def enumerate_or_sample(
         self,
         levels: int | float = float("inf"),
         max_cardinality: int | float = float("inf"),
+        *,
+        seed: int | None = None,
     ) -> Iterable[Outcome]:
         """Enumerates all outcomes if possible (i.e. discrete space) or returns `max_cardinality` different outcomes otherwise"""
         if (
@@ -1181,8 +1202,14 @@ class SingletonOutcomeSpace(DiscreteCartesianOutcomeSpace):
         """Returns an iterable containing the single outcome."""
         return [self.outcome]
 
+    @seedable
     def sample(
-        self, n_outcomes: int, with_replacement: bool = True, fail_if_not_enough=True
+        self,
+        n_outcomes: int,
+        with_replacement: bool = True,
+        fail_if_not_enough=True,
+        *,
+        seed: int | None = None,
     ) -> Iterable[Outcome]:
         """Returns the single outcome up to n_outcomes times."""
         if n_outcomes > 1 and not with_replacement:
@@ -1321,8 +1348,14 @@ class SubsetCartesianOutcomeSpace(DiscreteCartesianOutcomeSpace):
             outcome
         )
 
+    @seedable
     def sample(
-        self, n_outcomes: int, with_replacement: bool = True, fail_if_not_enough=True
+        self,
+        n_outcomes: int,
+        with_replacement: bool = True,
+        fail_if_not_enough=True,
+        *,
+        seed: int | None = None,
     ) -> Iterable[Outcome]:
         """Samples ``n_outcomes`` from the selected outcomes."""
         outcomes = list(self.enumerate())
@@ -1341,7 +1374,8 @@ class SubsetCartesianOutcomeSpace(DiscreteCartesianOutcomeSpace):
             n_outcomes = len(outcomes)
         return random.sample(outcomes, k=n_outcomes)
 
-    def random_outcome(self) -> Outcome:
+    @seedable
+    def random_outcome(self, *, seed: int | None = None) -> Outcome:
         """Returns a uniformly-random selected outcome."""
         return random.choice(list(self.enumerate()))
 

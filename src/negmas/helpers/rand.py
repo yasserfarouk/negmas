@@ -26,6 +26,7 @@ from __future__ import annotations
 
 import functools
 import random
+import types
 import uuid
 from typing import Any, Callable, TypeVar
 
@@ -37,6 +38,7 @@ from negmas.warnings import warn
 __all__ = [
     "RandomStream",
     "seeded",
+    "seedable",
     "uses_random_stream",
     "uuid4",
     "seed_all",
@@ -388,5 +390,35 @@ def uses_random_stream(method: _F) -> _F:
             return method(self, *args, **kwargs)
         with stream:
             return method(self, *args, **kwargs)
+
+    return wrapper  # type: ignore[return-value]
+
+
+def seedable(fn: _F) -> _F:
+    """Let ``fn`` be made reproducible through its ``seed`` keyword argument.
+
+    The decorated function declares a keyword-only ``seed: int | None = None``
+    parameter (and otherwise ignores it). Called with an integer ``seed`` it
+    runs inside ``seeded(seed)``, so the same seed gives the same result
+    whatever the program drew before; a generator it returns is consumed
+    inside the block and returned as a list, so its draws are covered too.
+    Called without a seed it runs exactly as it would undecorated.
+
+    Remarks:
+        Ids (`uuid4`) are not affected by ``seed``: they follow the global
+        seed only, so two objects generated with the same ``seed`` are equal
+        in content but keep distinct ids.
+    """
+
+    @functools.wraps(fn)
+    def wrapper(*args, **kwargs):
+        seed = kwargs.get("seed")
+        if seed is None:
+            return fn(*args, **kwargs)
+        with RandomStream(seed):
+            result = fn(*args, **kwargs)
+            if isinstance(result, types.GeneratorType):
+                result = list(result)
+        return result
 
     return wrapper  # type: ignore[return-value]

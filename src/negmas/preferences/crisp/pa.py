@@ -7,6 +7,7 @@ from functools import partial
 from math import pow
 from typing import TYPE_CHECKING, Iterable, Sequence
 
+from negmas.helpers.rand import seedable
 from negmas.helpers import get_full_type_name
 from negmas.helpers.numeric import make_range
 from negmas.outcomes import Issue, Outcome
@@ -316,6 +317,7 @@ class PAUtilityFunction(UtilityFunction):
         return cls(**d)
 
     @classmethod
+    @seedable
     def random(
         cls,
         outcome_space: CartesianOutcomeSpace | None = None,
@@ -324,6 +326,8 @@ class PAUtilityFunction(UtilityFunction):
         normalized: bool = True,
         n_terms: int | tuple[int, int] = (2, 5),
         max_power: int = 3,
+        *,
+        seed: int | None = None,
         **kwargs,
     ) -> PAUtilityFunction:
         """Generate a random PA utility function.
@@ -336,6 +340,9 @@ class PAUtilityFunction(UtilityFunction):
             n_terms: Number of polynomial terms or range (min, max).
             max_power: Maximum power for any value in a term.
             **kwargs: Additional arguments passed to the constructor.
+            seed: Seed for this call's random draws (see `negmas.seeded`): the same
+                seed gives the same result. ``None`` (default) draws from the global
+                generators.
 
         Returns:
             A random PAUtilityFunction.

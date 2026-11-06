@@ -10,6 +10,7 @@ from typing import (
     Protocol,
     runtime_checkable,
 )
+from negmas.helpers.rand import seedable
 
 
 if TYPE_CHECKING:
@@ -77,12 +78,18 @@ class OutcomeSpace(Container, Protocol):
         ...
 
     def sample(
-        self, n_outcomes: int, with_replacement: bool = False, fail_if_not_enough=False
+        self,
+        n_outcomes: int,
+        with_replacement: bool = False,
+        fail_if_not_enough=False,
+        *,
+        seed: int | None = None,
     ) -> Iterable[Outcome]:
         """Samples up to n_outcomes with or without replacement"""
         ...
 
-    def random_outcome(self) -> Outcome:
+    @seedable
+    def random_outcome(self, *, seed: int | None = None) -> Outcome:
         """Returns a single random outcome."""
         return list(self.sample(1))[0]
 
@@ -113,6 +120,8 @@ class OutcomeSpace(Container, Protocol):
         self,
         levels: int | float = float("inf"),
         max_cardinality: int | float = float("inf"),
+        *,
+        seed: int | None = None,
     ) -> Iterable[Outcome]:
         """Enumerates all outcomes if possible (i.e. discrete space) or returns `max_cardinality` different outcomes otherwise"""
         ...
@@ -187,7 +196,12 @@ class DiscreteOutcomeSpace(OutcomeSpace, Collection, Protocol):
         ...
 
     def sample(
-        self, n_outcomes: int, with_replacement: bool = False, fail_if_not_enough=True
+        self,
+        n_outcomes: int,
+        with_replacement: bool = False,
+        fail_if_not_enough=True,
+        *,
+        seed: int | None = None,
     ) -> Iterable[Outcome]:
         """Sample.
 
@@ -195,6 +209,9 @@ class DiscreteOutcomeSpace(OutcomeSpace, Collection, Protocol):
             n_outcomes: N outcomes.
             with_replacement: With replacement.
             fail_if_not_enough: Fail if not enough.
+            seed: Seed for this call's random draws (see `negmas.seeded`): the same
+                seed gives the same result. ``None`` (default) draws from the global
+                generators.
 
         Returns:
             Iterable[Outcome]: The result.

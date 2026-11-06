@@ -5,6 +5,7 @@ from __future__ import annotations
 import itertools
 from typing import TYPE_CHECKING, Any, Callable, Mapping, Sequence
 
+from negmas.helpers.rand import seedable
 from negmas.helpers import get_full_type_name
 from negmas.outcomes import Issue, Outcome
 from negmas.outcomes.outcome_space import CartesianOutcomeSpace
@@ -445,6 +446,7 @@ class GLAUtilityFunction(UtilityFunction):
         return cls(**d)
 
     @classmethod
+    @seedable
     def random(
         cls,
         outcome_space: CartesianOutcomeSpace | None = None,
@@ -453,6 +455,8 @@ class GLAUtilityFunction(UtilityFunction):
         normalized: bool = True,
         n_factors: int | tuple[int, int] = (1, 5),
         max_factor_issues: int = 3,
+        *,
+        seed: int | None = None,
         **kwargs,
     ) -> GLAUtilityFunction:
         """Generate a random GLA utility function.
@@ -465,6 +469,9 @@ class GLAUtilityFunction(UtilityFunction):
             n_factors: Number of factors or range (min, max).
             max_factor_issues: Maximum number of issues per factor.
             **kwargs: Additional arguments passed to the constructor.
+            seed: Seed for this call's random draws (see `negmas.seeded`): the same
+                seed gives the same result. ``None`` (default) draws from the global
+                generators.
 
         Returns:
             A random GLAUtilityFunction.

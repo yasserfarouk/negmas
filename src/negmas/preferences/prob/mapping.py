@@ -7,6 +7,7 @@ from typing import Iterable
 
 import numpy as np
 
+from negmas.helpers.rand import seedable
 from negmas.common import Distribution
 from negmas.generics import gmap
 from negmas.helpers import get_full_type_name
@@ -117,6 +118,7 @@ class ProbMappingUtilityFunction(ProbUtilityFunction):
         raise NotImplementedError("Cannot save ProbMappingUtilityFunction to xml")
 
     @classmethod
+    @seedable
     def random(
         cls,
         outcome_space: OutcomeSpace,
@@ -124,6 +126,8 @@ class ProbMappingUtilityFunction(ProbUtilityFunction):
         normalized=True,
         max_cardinality: int = 10000,
         type: str = "uniform",
+        *,
+        seed: int | None = None,
     ):
         # todo: corrrect this for continuous outcome-spaces
         """Generate a random probabilistic mapping utility function.
@@ -134,6 +138,9 @@ class ProbMappingUtilityFunction(ProbUtilityFunction):
             normalized: If True, normalize utility distribution parameters to [0, 1] range.
             max_cardinality: Maximum number of outcomes to sample for discrete approximation.
             type: The type of scipy distribution to use (e.g. 'uniform', 'norm').
+            seed: Seed for this call's random draws (see `negmas.seeded`): the same
+                seed gives the same result. ``None`` (default) draws from the global
+                generators.
         """
         if not isinstance(reserved_value, Iterable):
             reserved_value = (reserved_value, reserved_value)

@@ -6,6 +6,7 @@ import functools
 import random
 from typing import Any, Callable, Iterable
 
+from negmas.helpers.rand import seedable
 from negmas.helpers import get_full_type_name
 from negmas.helpers.numeric import get_one_int, make_range
 from negmas.outcomes import Outcome
@@ -109,6 +110,7 @@ class WeightedUtilityFunction(BaseUtilityFunction):
         )
 
     @classmethod
+    @seedable
     def random(
         cls,
         outcome_space,
@@ -116,6 +118,8 @@ class WeightedUtilityFunction(BaseUtilityFunction):
         normalized=True,
         n_ufuns=(1, 4),
         ufun_types=(LinearAdditiveUtilityFunction,),
+        *,
+        seed: int | None = None,
         **kwargs,
     ) -> WeightedUtilityFunction:
         """Generates a random ufun of the given type"""
@@ -287,6 +291,7 @@ class ComplexNonlinearUtilityFunction(BaseUtilityFunction):
         )
 
     @classmethod
+    @seedable
     def random(
         cls,
         outcome_space,
@@ -294,6 +299,8 @@ class ComplexNonlinearUtilityFunction(BaseUtilityFunction):
         normalized=True,
         n_ufuns=(1, 4),
         ufun_types=(LinearAdditiveUtilityFunction,),
+        *,
+        seed: int | None = None,
         **kwargs,
     ) -> ComplexNonlinearUtilityFunction:
         """Generates a random ufun of the given type"""
