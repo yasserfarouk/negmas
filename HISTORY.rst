@@ -55,6 +55,10 @@ Unreleased
 * [preferences] ``ExpDiscountedUFun.random`` and ``LinDiscountedUFun.random``
   crashed when given a list of issues (the documented input). They take
   issues or an outcome space now, whatever the base ufun type expects.
+* [preferences] ``WeightedUtilityFunction.random`` and
+  ``ComplexNonlinearUtilityFunction.random`` stored the reserved-value range
+  itself as the reserved value instead of sampling from it, and passed
+  ``normalized`` to their components as the reserved value.
 * [preferences] ``LambdaFun``/``LambdaMultiFun.minmax`` clipped the maximum to
   ``max_value`` instead of widening it.
 * [preferences] Pareto samplers: ``pareto_outcomes()`` dropped every outcome

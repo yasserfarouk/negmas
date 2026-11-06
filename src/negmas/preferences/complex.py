@@ -7,7 +7,7 @@ import random
 from typing import Any, Callable, Iterable
 
 from negmas.helpers import get_full_type_name
-from negmas.helpers.numeric import get_one_int
+from negmas.helpers.numeric import get_one_int, make_range
 from negmas.outcomes import Outcome
 from negmas.serialization import PYTHON_CLASS_IDENTIFIER, deserialize, serialize
 
@@ -120,8 +120,12 @@ class WeightedUtilityFunction(BaseUtilityFunction):
     ) -> WeightedUtilityFunction:
         """Generates a random ufun of the given type"""
         n = get_one_int(n_ufuns)
+        lo, hi = make_range(reserved_value)
+        reserved_value = random.random() * (hi - lo) + lo
         ufuns = [
-            random.choice(ufun_types).random(outcome_space, 0, normalized)
+            random.choice(ufun_types).random(
+                outcome_space=outcome_space, reserved_value=0.0, normalized=normalized
+            )
             for _ in range(n)
         ]
         weights = [random.random() for _ in range(n)]
@@ -294,8 +298,12 @@ class ComplexNonlinearUtilityFunction(BaseUtilityFunction):
     ) -> ComplexNonlinearUtilityFunction:
         """Generates a random ufun of the given type"""
         n = get_one_int(n_ufuns)
+        lo, hi = make_range(reserved_value)
+        reserved_value = random.random() * (hi - lo) + lo
         ufuns = [
-            random.choice(ufun_types).random(outcome_space, 0, normalized)
+            random.choice(ufun_types).random(
+                outcome_space=outcome_space, reserved_value=0.0, normalized=normalized
+            )
             for _ in range(n)
         ]
         weights = [random.random() for _ in range(n)]
