@@ -32,6 +32,24 @@ if TYPE_CHECKING:
 __all__ = ["LinDiscountedUFun", "ExpDiscountedUFun", "DiscountedUtilityFunction"]
 
 
+def _random_base(base_type: str | type[BaseUtilityFunction], issues, **kwargs):
+    """Generate the random base ufun of a discounted ufun.
+
+    ``issues`` may be a list of issues or an outcome space; it is passed in
+    whichever form the base type's ``random`` takes (most take
+    ``outcome_space``, a few, like `AffineUtilityFunction`, take ``issues``).
+    """
+    import inspect
+
+    from negmas.outcomes import make_os
+
+    generate = get_class(base_type).random
+    if "outcome_space" in inspect.signature(generate).parameters:
+        os = issues if hasattr(issues, "issues") else make_os(issues)
+        return generate(outcome_space=os, **kwargs)
+    return generate(getattr(issues, "issues", issues), **kwargs)
+
+
 class DiscountedUtilityFunction(UtilityFunctionAdapter):
     """Base class for all discounted ufuns.
 
@@ -413,8 +431,11 @@ class ExpDiscountedUFun(DiscountedUtilityFunction):
             + reserved_value[0]
         )
         return cls(
-            get_class(base_preferences_type).random(  # type: ignore
-                issues, reserved_value=reserved_value, normalized=normalized
+            _random_base(
+                base_preferences_type,
+                issues,
+                reserved_value=reserved_value,
+                normalized=normalized,
             ),
             **kwargs,
         )
@@ -751,8 +772,11 @@ class LinDiscountedUFun(DiscountedUtilityFunction):
             + reserved_value[0]
         )
         return cls(
-            get_class(base_preferences_type).random(  # type: ignore
-                issues, reserved_value=kwargs["reserved_value"], normalized=normalized
+            _random_base(
+                base_preferences_type,
+                issues,
+                reserved_value=kwargs["reserved_value"],
+                normalized=normalized,
             ),
             **kwargs,
         )

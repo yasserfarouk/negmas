@@ -52,6 +52,9 @@ Unreleased
   ``pend_per_second`` is positive.
 * [situated] An accepted negotiation request stored the ``uuid`` module itself
   as its id instead of the request's id.
+* [preferences] ``ExpDiscountedUFun.random`` and ``LinDiscountedUFun.random``
+  crashed when given a list of issues (the documented input). They take
+  issues or an outcome space now, whatever the base ufun type expects.
 * [preferences] ``LambdaFun``/``LambdaMultiFun.minmax`` clipped the maximum to
   ``max_value`` instead of widening it.
 * [preferences] Pareto samplers: ``pareto_outcomes()`` dropped every outcome
