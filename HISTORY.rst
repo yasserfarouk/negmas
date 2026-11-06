@@ -38,6 +38,8 @@ Unreleased
 * [preferences] ``LinearAdditiveUtilityFunction.normalize_for(to=...)`` and
   ``normalize(to=...)`` returned [0, 1] whatever ``to`` was. Normalizing over a
   non-Cartesian outcome space crashed; it now uses the generic path.
+* [situated] An accepted negotiation request stored the ``uuid`` module itself
+  as its id instead of the request's id.
 * [preferences] ``LambdaFun``/``LambdaMultiFun.minmax`` clipped the maximum to
   ``max_value`` instead of widening it.
 * [preferences] Pareto samplers: ``pareto_outcomes()`` dropped every outcome
