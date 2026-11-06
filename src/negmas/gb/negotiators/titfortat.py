@@ -164,11 +164,18 @@ class NiceTitForTatNegotiator(MAPNegotiator):
             `NiceTitForTatOfferingPolicy`.
         sample_size, max_cardinality, nash_refresh, stochastic, levels, nash_min:
             Forwarded to `NiceTitForTatOfferingPolicy`.
-        nash_multiplier_base, nash_multiplier_gap_weight, default_nash_utility,
-        discount_bonus_base, discount_bonus_weight, big_domain_cardinality,
-        bonus_start_time, bonus_start_time_big_domain, bonus_ramp_rate:
-            The Baarslag reference constants of the bidding strategy, forwarded
+        nash_multiplier_base, nash_multiplier_gap_weight, default_nash_utility:
+            Baarslag reference constants of the Nash-point estimate, forwarded
             to `NiceTitForTatOfferingPolicy`. Defaults reproduce the paper.
+        discount_bonus_base, discount_bonus_weight:
+            Baarslag reference constants of the discount bonus, forwarded to
+            `NiceTitForTatOfferingPolicy`. Defaults reproduce the paper.
+        big_domain_cardinality, bonus_start_time, bonus_start_time_big_domain:
+            When the end-game time bonus starts (later for spaces larger than
+            ``big_domain_cardinality``), forwarded to
+            `NiceTitForTatOfferingPolicy`. Defaults reproduce the paper.
+        bonus_ramp_rate: How fast the end-game time bonus rises, forwarded to
+            `NiceTitForTatOfferingPolicy`. Default reproduces the paper.
         pareto_sampler_type: The `ParetoSampler` implementation used by the
             offering policy for the opponent-attractive trade-off query.
             ``None`` (default) uses the offering policy's own default
