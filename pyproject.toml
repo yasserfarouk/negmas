@@ -122,7 +122,7 @@ negui = "negmas.gui.app:cli"
 exclude = ["docs"]
 
 [tool.pytest.ini_options]
-norecursedirs = [".svn", "_build", "tmp*", "build", "docs", ".undodir", "scratch", "trash", ".hypothesis"]
+norecursedirs = [".svn", "_build", "tmp*", "build", "docs", ".undodir", "scratch", "trash", ".hypothesis", "coding_agents"]
 addopts = "--doctest-modules --hypothesis-show-statistics"
 markers = [
     "slow: marks tests as slow (deselect with '-m \"not slow\"')",
