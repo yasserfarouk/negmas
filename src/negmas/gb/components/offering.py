@@ -906,6 +906,9 @@ class NiceTitForTatOfferingPolicy(OfferingPolicy):
             ``best_for_opponent`` with the opponent model as the opponent ufun;
             if it cannot answer the query the policy falls back to the inverter
             path.
+        sampler_seed: Seed of the Pareto sampler's own random stream, forwarded
+            to samplers whose constructor accepts ``seed`` (all built-in ones
+            do). ``None`` (default) leaves the sampler on the global generators.
 
     Remarks:
         - Requires the negotiator to expose ``opponent_ufun`` (a `UFunModel`
@@ -921,6 +924,7 @@ class NiceTitForTatOfferingPolicy(OfferingPolicy):
     levels: int = 20
     nash_min: float = 0.5
     pareto_sampler_type: type[ParetoSampler] = DefaultParetoSampler
+    sampler_seed: int | None = None
     # --- reference (Baarslag et al. 2013) constants, exposed for tuning ---
     nash_multiplier_base: float = 1.4
     nash_multiplier_gap_weight: float = 0.6
@@ -1017,6 +1021,11 @@ class NiceTitForTatOfferingPolicy(OfferingPolicy):
                 in inspect.signature(self.pareto_sampler_type).parameters
             ):
                 extra["max_cardinality"] = self.max_cardinality
+            if (
+                self.sampler_seed is not None
+                and "seed" in inspect.signature(self.pareto_sampler_type).parameters
+            ):
+                extra["seed"] = self.sampler_seed
         except (TypeError, ValueError):  # pragma: no cover - defensive
             pass
         try:

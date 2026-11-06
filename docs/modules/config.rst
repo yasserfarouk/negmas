@@ -130,6 +130,57 @@ Code that runs its own process pool, rather than dispatching through
 when nothing is seeded, and ``apply_seed`` seeds a task without making its
 seed the base that the remaining tasks derive from.
 
+Seeding one component or one block
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+
+The global seed makes a whole run repeat. To make *one* component repeat,
+whatever the rest of the program does, give it its own seed. The Pareto
+samplers, ``SamplingInverseUtilityFunction`` and the Nice Tit for Tat negotiator
+(``sampler_seed``) accept one; the default, ``None``, keeps them on the global
+generators exactly as before:
+
+.. code-block:: python
+
+    from negmas.outcomes import make_issue, make_os
+    from negmas.preferences import LinearAdditiveUtilityFunction
+    from negmas.preferences.pareto_sampler import BruteForceParetoSampler
+
+    os = make_os([make_issue(10, "price"), make_issue(10, "quantity")])
+    a = LinearAdditiveUtilityFunction.random(outcome_space=os)
+    b = LinearAdditiveUtilityFunction.random(outcome_space=os)
+    sampler = BruteForceParetoSampler(seed=42)
+    sampler.init(a, b)
+    front = sampler.pareto_outcomes()
+
+Any other block of code gets the same with ``seeded``:
+
+.. code-block:: python
+
+    from negmas import seeded
+
+    with seeded(7):
+        first = [os.random_outcome() for _ in range(5)]
+    with seeded(7):
+        again = [os.random_outcome() for _ in range(5)]
+    assert first == again
+
+Inside the block, :mod:`random` and the global :mod:`numpy.random` generator
+draw from a private stream started from the seed; afterwards both are put back
+exactly as they were, so the rest of the program is unaffected. A component's
+stream continues from call to call rather than restarting. ``RandomStream`` is
+the class behind both, and ``uses_random_stream`` makes the methods of your own
+components seedable the same way. Swapping the global generators is not
+thread-safe.
+
+With a seed in effect, the ids NegMAS gives to negotiators, mechanisms,
+contracts and other named objects are reproducible as well. They come from a
+generator of their own, so creating objects never shifts the numbers anything
+else draws.
+
+What is not covered: randomness inside the Genius bridge (Java), numpy
+``Generator`` objects created by user code, and anything that depends on wall
+clock time (time limits, ``pend_per_second``).
+
 Seeding the whole shell
 ~~~~~~~~~~~~~~~~~~~~~~~
 

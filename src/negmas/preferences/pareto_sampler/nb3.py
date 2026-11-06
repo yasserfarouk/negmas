@@ -22,6 +22,7 @@ from __future__ import annotations
 import heapq
 from typing import TYPE_CHECKING, Any
 
+from negmas.helpers.rand import RandomStream, uses_random_stream
 from negmas.outcomes import Outcome
 
 
@@ -48,11 +49,18 @@ class NB3ParetoSampler:
 
     Args:
         max_nodes: Maximum number of nodes to expand.  Default: 10000.
+        seed: Seed of the sampler's own random stream (see
+            `negmas.helpers.rand.RandomStream`), which it uses wherever it
+            samples rather than enumerates (e.g. infinite issues or outcome
+            spaces above the enumeration cap). ``None`` (default) draws from
+            the global generators, so the result is only reproducible under a
+            global seed (`negmas.seed_all`).
 
     *AI supported (config-only constructor; operands supplied to ``init``).*
     """
 
-    def __init__(self, max_nodes: int = 10000) -> None:
+    def __init__(self, max_nodes: int = 10000, seed: int | None = None) -> None:
+        self._random_stream = RandomStream(seed)
         self._ufun: BaseUtilityFunction | None = None
         self._opponent_ufun: BaseUtilityFunction | None = None
         self._max_nodes = max_nodes
@@ -69,9 +77,15 @@ class NB3ParetoSampler:
         return self._ufun
 
     @property
+    def seed(self) -> int | None:
+        """The seed of the sampler's random stream (``None`` = global generators)."""
+        return self._random_stream.seed
+
+    @property
     def initialized(self) -> bool:
         return self._initialized
 
+    @uses_random_stream
     def set_opponent_ufun(self, opponent_ufun: BaseUtilityFunction | None) -> None:
         """Update the opponent utility function and mark as not initialized."""
         self._opponent_ufun = opponent_ufun
@@ -81,6 +95,7 @@ class NB3ParetoSampler:
     # init
     # ------------------------------------------------------------------
 
+    @uses_random_stream
     def init(
         self,
         ufun: BaseUtilityFunction | None = None,
@@ -138,6 +153,7 @@ class NB3ParetoSampler:
     # ParetoSampler queries
     # ------------------------------------------------------------------
 
+    @uses_random_stream
     def pareto_outcomes(
         self,
         n: int | None = None,
@@ -162,6 +178,7 @@ class NB3ParetoSampler:
             result = result[:n]
         return result
 
+    @uses_random_stream
     def best_for_opponent(
         self,
         *,

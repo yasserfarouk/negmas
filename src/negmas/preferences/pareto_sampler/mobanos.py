@@ -21,6 +21,7 @@ from __future__ import annotations
 
 from typing import TYPE_CHECKING, Any
 
+from negmas.helpers.rand import RandomStream, uses_random_stream
 from negmas.outcomes import Outcome
 
 
@@ -49,9 +50,16 @@ class MOBANOSParetoSampler:
     Args:
         max_pareto_size: Maximum number of candidates retained at any point
             during the iterative construction.  Default: 100000.
+        seed: Seed of the sampler's own random stream (see
+            `negmas.helpers.rand.RandomStream`), which it uses wherever it
+            samples rather than enumerates (e.g. infinite issues or outcome
+            spaces above the enumeration cap). ``None`` (default) draws from
+            the global generators, so the result is only reproducible under a
+            global seed (`negmas.seed_all`).
     """
 
-    def __init__(self, max_pareto_size: int = 100000) -> None:
+    def __init__(self, max_pareto_size: int = 100000, seed: int | None = None) -> None:
+        self._random_stream = RandomStream(seed)
         self._ufun: BaseUtilityFunction | None = None
         self._opponent_ufun: BaseUtilityFunction | None = None
         self._max_pareto_size = max_pareto_size
@@ -67,9 +75,15 @@ class MOBANOSParetoSampler:
         return self._ufun
 
     @property
+    def seed(self) -> int | None:
+        """The seed of the sampler's random stream (``None`` = global generators)."""
+        return self._random_stream.seed
+
+    @property
     def initialized(self) -> bool:
         return self._initialized
 
+    @uses_random_stream
     def set_opponent_ufun(self, opponent_ufun: BaseUtilityFunction | None) -> None:
         """Update the opponent utility function and mark as not initialized."""
         self._opponent_ufun = opponent_ufun
@@ -79,6 +93,7 @@ class MOBANOSParetoSampler:
     # init
     # ------------------------------------------------------------------
 
+    @uses_random_stream
     def init(
         self,
         ufun: BaseUtilityFunction | None = None,
@@ -140,6 +155,7 @@ class MOBANOSParetoSampler:
     # ParetoSampler queries
     # ------------------------------------------------------------------
 
+    @uses_random_stream
     def pareto_outcomes(
         self,
         n: int | None = None,
@@ -166,6 +182,7 @@ class MOBANOSParetoSampler:
             result = result[:n]
         return result
 
+    @uses_random_stream
     def best_for_opponent(
         self,
         *,

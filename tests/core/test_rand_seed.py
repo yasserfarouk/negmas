@@ -26,9 +26,16 @@ def _restore_global_seed_state():
     """Keep these tests from leaking seed state into the rest of the suite."""
     import negmas.helpers.rand as m
 
-    saved = (m._seed, list(m._seeders), random.getstate(), np.random.get_state())
+    saved = (
+        m._seed,
+        list(m._seeders),
+        random.getstate(),
+        np.random.get_state(),
+        m._id_rng,
+    )
     yield
     m._seed, m._seeders[:] = saved[0], saved[1]
+    m._id_rng = saved[4]
     random.setstate(saved[2])
     np.random.set_state(saved[3])
 

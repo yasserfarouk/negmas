@@ -2,7 +2,7 @@
 
 from __future__ import annotations
 
-import uuid
+from negmas.helpers.rand import uuid4 as _new_uuid
 from typing import TYPE_CHECKING, Any
 
 from attrs import define, field
@@ -43,7 +43,7 @@ class Contract:
     """The mechanism state at the contract conclusion"""
     mechanism_id: str | None = None
     """The Id of the mechanism that led to this contract"""
-    id: str = field(factory=lambda: str(uuid.uuid4()), init=True)
+    id: str = field(factory=lambda: str(_new_uuid()), init=True)
     """Object name"""
 
     def __hash__(self):

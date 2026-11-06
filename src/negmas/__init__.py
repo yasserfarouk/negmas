@@ -48,6 +48,8 @@ _EXPORT_TO_MODULE = {
     "get_seed": "helpers.rand",
     "register_seeder": "helpers.rand",
     "seed_all": "helpers.rand",
+    "seeded": "helpers.rand",
+    "RandomStream": "helpers.rand",
     # types (4 exports)
     "NamedObject": "types",
     "Rational": "types",
@@ -626,6 +628,8 @@ __all__ = [
     "get_seed",
     "register_seeder",
     "seed_all",
+    "seeded",
+    "RandomStream",
     # types
     "NamedObject",
     "Rational",

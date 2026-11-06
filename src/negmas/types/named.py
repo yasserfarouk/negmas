@@ -11,7 +11,7 @@ no entities in the entire system has te same `id`
 from __future__ import annotations
 
 import datetime
-import uuid
+from negmas.helpers.rand import uuid4 as _new_uuid
 from os import PathLike
 from pathlib import Path
 from typing import Any, Literal, overload
@@ -54,7 +54,7 @@ class NamedObject:
         if name is not None:
             name = str(name)
         self.__uuid = (
-            (f"{name}-" if name is not None else "") + str(uuid.uuid4())
+            (f"{name}-" if name is not None else "") + str(_new_uuid())
             if not id
             else id
         )

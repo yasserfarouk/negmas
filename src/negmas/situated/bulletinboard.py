@@ -4,7 +4,7 @@ from __future__ import annotations
 
 import copy
 import re
-import uuid
+from negmas.helpers.rand import uuid4 as _new_uuid
 from typing import Any, Callable, Iterable
 
 from negmas.events import Event, EventSource
@@ -157,7 +157,7 @@ class BulletinBoard(EventSource, ConfigReader):
             try:
                 skey = str(hash(value))
             except Exception:
-                skey = str(uuid.uuid4())
+                skey = str(_new_uuid())
         else:
             skey = key
         self._data[section][skey] = value

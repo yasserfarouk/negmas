@@ -4,6 +4,7 @@ from __future__ import annotations
 
 from typing import TYPE_CHECKING
 
+from negmas.helpers.rand import RandomStream, uses_random_stream
 from negmas.outcomes import Outcome
 import numpy as np
 
@@ -25,12 +26,21 @@ class BruteForceParetoSampler:
 
     Args:
         max_cardinality: Max outcomes to enumerate.
+        seed: Seed of the sampler's own random stream (see
+            `negmas.helpers.rand.RandomStream`), which it uses wherever it
+            samples rather than enumerates (e.g. infinite issues or outcome
+            spaces above the enumeration cap). ``None`` (default) draws from
+            the global generators, so the result is only reproducible under a
+            global seed (`negmas.seed_all`).
 
     *AI supported (config-only constructor; frontier built in ``init``; uses the
     vectorized ``pareto_frontier_numpy``).*
     """
 
-    def __init__(self, max_cardinality: int = 1_000_000) -> None:
+    def __init__(
+        self, max_cardinality: int = 1_000_000, seed: int | None = None
+    ) -> None:
+        self._random_stream = RandomStream(seed)
         self._ufun: BaseUtilityFunction | None = None
         self._opponent_ufun: BaseUtilityFunction | None = None
         self._max_cardinality = max_cardinality
@@ -42,9 +52,15 @@ class BruteForceParetoSampler:
         return self._ufun
 
     @property
+    def seed(self) -> int | None:
+        """The seed of the sampler's random stream (``None`` = global generators)."""
+        return self._random_stream.seed
+
+    @property
     def initialized(self) -> bool:
         return self._initialized
 
+    @uses_random_stream
     def init(
         self,
         ufun: BaseUtilityFunction | None = None,
@@ -103,6 +119,7 @@ class BruteForceParetoSampler:
         mn, mx = ufun.minmax()
         return float(mn) + norm * float(mx - mn)
 
+    @uses_random_stream
     def pareto_outcomes(
         self,
         n: int | None = None,
@@ -128,6 +145,7 @@ class BruteForceParetoSampler:
             result = result[:n]
         return result
 
+    @uses_random_stream
     def best_for_opponent(
         self,
         *,

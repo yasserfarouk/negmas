@@ -5,7 +5,7 @@ import math
 import pprint
 import random
 import time
-import uuid
+from negmas.helpers.rand import uuid4 as _new_uuid
 from abc import ABC, abstractmethod
 from collections import defaultdict
 from datetime import datetime
@@ -1615,7 +1615,7 @@ class Mechanism(
 
         # parameters fixed for all runs
 
-        self.set_id(str(uuid.uuid4()))
+        self.set_id(str(_new_uuid()))
         if n_steps == float("inf"):
             n_steps = None
         if isinstance(n_steps, float):
@@ -2770,7 +2770,12 @@ class Mechanism(
 
         # end with a timeout if condition is met
         current_time = self.time
-        if self.__last_second_tried < int(current_time):
+        # Only draw when time-wise ending is on: the draw happens once per
+        # wall-clock second, so drawing unconditionally would make every later
+        # random number depend on timing and break seeded runs.
+        if self._internal_nmi.pend_per_second > 0 and self.__last_second_tried < int(
+            current_time
+        ):
             rt, self.__last_second_tried = random.random(), int(current_time)
 
         if (

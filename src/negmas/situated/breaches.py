@@ -2,7 +2,7 @@
 
 from __future__ import annotations
 
-import uuid
+from negmas.helpers.rand import uuid4 as _new_uuid
 from enum import Enum
 
 from attrs import define, field
@@ -40,7 +40,7 @@ class Breach:
     """Breach level defaulting to full breach (a number between 0 and 1)"""
     step: int = -1
     """The simulation step at which the breach occurred"""
-    id: str = field(factory=lambda: str(uuid.uuid4()), init=True)
+    id: str = field(factory=lambda: str(_new_uuid()), init=True)
     """Object name"""
 
     def as_dict(self):

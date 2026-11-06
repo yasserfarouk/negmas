@@ -175,6 +175,9 @@ class NiceTitForTatNegotiator(MAPNegotiator):
             (`DefaultParetoSampler` / `AdaptiveParetoSampler` — exact
             brute-force on small spaces, a scalable backend on large ones). Pass
             a specific type (e.g. `IPSParetoSampler`) to override.
+        sampler_seed: Seed of the Pareto sampler's own random stream (forwarded
+            to `NiceTitForTatOfferingPolicy`). ``None`` (default) leaves it on
+            the global generators.
         a, b, t: ACcombi parameters (forwarded to `ACCombi`).
 
     Remarks:
@@ -207,6 +210,7 @@ class NiceTitForTatNegotiator(MAPNegotiator):
         bonus_start_time_big_domain: float = 0.85,
         bonus_ramp_rate: float = 20.0,
         pareto_sampler_type: type | None = None,
+        sampler_seed: int | None = None,
         a: float = 1.0,
         b: float = 0.0,
         t: float = 0.98,
@@ -241,6 +245,7 @@ class NiceTitForTatNegotiator(MAPNegotiator):
             bonus_start_time=bonus_start_time,
             bonus_start_time_big_domain=bonus_start_time_big_domain,
             bonus_ramp_rate=bonus_ramp_rate,
+            sampler_seed=sampler_seed,
         )
         if pareto_sampler_type is not None:
             offering_kwargs["pareto_sampler_type"] = pareto_sampler_type

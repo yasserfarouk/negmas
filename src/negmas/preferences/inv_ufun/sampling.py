@@ -5,6 +5,7 @@ from __future__ import annotations
 import math
 from typing import Iterable
 
+from negmas.helpers.rand import RandomStream, uses_random_stream
 from negmas.outcomes import Outcome
 
 from ..base_ufun import BaseUtilityFunction
@@ -39,6 +40,9 @@ class SamplingInverseUtilityFunction(InverseUFun):
         rel_eps: The relative tolerance for utility matching (default: 0.05)
         multiplier: The number of samples to draw per call relative to the requested number of outcomes (default: 3)
         strict_limit: The fraction of the sampling loop during which we search with zero tolerance  (default: 0.1)
+        seed: Seed of the inverter's own random stream (see
+            `negmas.helpers.rand.RandomStream`). ``None`` (default) samples from
+            the global generators.
 
 
     Remarks:
@@ -61,8 +65,10 @@ class SamplingInverseUtilityFunction(InverseUFun):
         rel_eps: float = 0.05,
         multiplier: int = 3,
         strict_limit: float = 0.1,
+        seed: int | None = None,
     ):
         """Initializes the instance."""
+        self._random_stream = RandomStream(seed)
         self._ufun = ufun
         self.max_samples_per_call = max_samples_per_call
         self.rel_max_samples_per_call = rel_max_samples_per_call
@@ -74,6 +80,11 @@ class SamplingInverseUtilityFunction(InverseUFun):
         self._max_samples: int = self.max_samples_per_call
 
     @property
+    def seed(self) -> int | None:
+        """The seed of the inverter's random stream (``None`` = global generators)."""
+        return self._random_stream.seed
+
+    @property
     def initialized(self):
         """Whether the inverter has been initialized."""
         return self._initialized
@@ -83,6 +94,7 @@ class SamplingInverseUtilityFunction(InverseUFun):
         """The utility function being inverted."""
         return self._ufun
 
+    @uses_random_stream
     def init(self):
         """Initialize the inverter (no-op for sampling-based inverter)."""
         if self.ufun and self.ufun.outcome_space is not None:
@@ -99,6 +111,7 @@ class SamplingInverseUtilityFunction(InverseUFun):
             x = min(x)
         return min(self.eps, self.rel_eps * x)
 
+    @uses_random_stream
     def all(self, rng: float | tuple[float, float]) -> list[Outcome]:
         """
         Finds all outcomes with in the given utility value range
@@ -115,6 +128,7 @@ class SamplingInverseUtilityFunction(InverseUFun):
             f"Cannot find all outcomes in a range ({rng}) using a SamplingInverseUtilityFunction. Try a PresortedInverseUtilityFunction"
         )
 
+    @uses_random_stream
     def some(
         self, rng: float | tuple[float, float], normalized: bool, n: int | None = None
     ) -> list[Outcome]:
@@ -162,6 +176,7 @@ class SamplingInverseUtilityFunction(InverseUFun):
             extra_samples = extra_samples[: n - n_samples]
         return samples + extra_samples
 
+    @uses_random_stream
     def closest(self, target: float, normalized: bool = False) -> Outcome | None:
         """
         Approximates the outcome whose utility is closest to ``target`` by
@@ -206,6 +221,7 @@ class SamplingInverseUtilityFunction(InverseUFun):
                 best_diff, best_o = d, o
         return best_o
 
+    @uses_random_stream
     def worst_in(
         self,
         rng: float | tuple[float, float],
@@ -273,6 +289,7 @@ class SamplingInverseUtilityFunction(InverseUFun):
             return self._ufun.extreme_outcomes()[0]
         return None
 
+    @uses_random_stream
     def best_in(
         self,
         rng: float | tuple[float, float],
@@ -328,6 +345,7 @@ class SamplingInverseUtilityFunction(InverseUFun):
             return self._ufun.extreme_outcomes()[1]
         return None
 
+    @uses_random_stream
     def one_in(
         self,
         rng: float | tuple[float, float],
@@ -411,6 +429,7 @@ class SamplingInverseUtilityFunction(InverseUFun):
         """Finds the best outcome."""
         return self.extreme_outcomes()[1]
 
+    @uses_random_stream
     def within_fractions(self, rng: tuple[float, float]) -> list[Outcome]:
         """
         Approximates the outcomes within the given fractions of utility values using sampling.
@@ -437,6 +456,7 @@ class SamplingInverseUtilityFunction(InverseUFun):
         end = min(n, math.ceil(hi * n))
         return [o for _, o in scored[start:end]]
 
+    @uses_random_stream
     def within_indices(self, rng: tuple[int, int]) -> list[Outcome]:
         """
         Approximates the outcomes within the given rank indices (0 = best) using sampling.
@@ -458,6 +478,7 @@ class SamplingInverseUtilityFunction(InverseUFun):
         )
         return [o for _, o in scored[lo : min(len(scored), hi + 1)]]
 
+    @uses_random_stream
     def __call__(
         self, rng: float | tuple[float, float], normalized: bool
     ) -> Outcome | None:

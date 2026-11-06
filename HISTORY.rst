@@ -19,6 +19,14 @@ Unreleased
 * [preferences] ``SearchInverseUtilityFunction``. Inverters and Pareto
   samplers search list, string and infinite-integer issues instead of
   enumerating them, so the time-based negotiators work on them.
+* [helpers] Per-component seeding. Every Pareto sampler,
+  ``SamplingInverseUtilityFunction`` and ``NiceTitForTatNegotiator``
+  (``sampler_seed``) take a ``seed``; ``with seeded(s):`` does the same for any
+  block of code. Both run on a private ``RandomStream`` and leave the global
+  generators untouched. The default (``None``) changes nothing.
+* [helpers] Ids of named objects, mechanisms, contracts, breaches and
+  negotiation requests are reproducible once a global seed is set
+  (``negmas.helpers.rand.uuid4``), from a stream that never shifts other draws.
 
 **Changes:**
 
@@ -38,6 +46,10 @@ Unreleased
 * [preferences] ``LinearAdditiveUtilityFunction.normalize_for(to=...)`` and
   ``normalize(to=...)`` returned [0, 1] whatever ``to`` was. Normalizing over a
   non-Cartesian outcome space crashed; it now uses the generic path.
+* [mechanisms] Seeded runs did not repeat: every mechanism step drew a random
+  number once per wall-clock second even with ``pend_per_second=0``, so what
+  every later draw saw depended on timing. The draw is now made only when
+  ``pend_per_second`` is positive.
 * [situated] An accepted negotiation request stored the ``uuid`` module itself
   as its id instead of the request's id.
 * [preferences] ``LambdaFun``/``LambdaMultiFun.minmax`` clipped the maximum to

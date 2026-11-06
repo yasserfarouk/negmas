@@ -16,6 +16,7 @@ from __future__ import annotations
 from typing import TYPE_CHECKING, Any
 
 
+from negmas.helpers.rand import RandomStream, uses_random_stream
 from negmas.outcomes import Outcome
 
 
@@ -48,6 +49,12 @@ class IPSParetoSampler:
     Args:
         precision: Grid precision *p*.  Utilities are rounded to *p* decimal
             places when computing dominance.  Default: 3.
+        seed: Seed of the sampler's own random stream (see
+            `negmas.helpers.rand.RandomStream`), which it uses wherever it
+            samples rather than enumerates (e.g. infinite issues or outcome
+            spaces above the enumeration cap). ``None`` (default) draws from
+            the global generators, so the result is only reproducible under a
+            global seed (`negmas.seed_all`).
 
     Remarks:
         - The algorithm has worst-case space complexity *O(|I|·|V|·10^p)* and
@@ -62,7 +69,8 @@ class IPSParetoSampler:
     *AI supported (config-only constructor; operands supplied to ``init``).*
     """
 
-    def __init__(self, precision: int = 3) -> None:
+    def __init__(self, precision: int = 3, seed: int | None = None) -> None:
+        self._random_stream = RandomStream(seed)
         self._ufun: BaseUtilityFunction | None = None
         self._opponent_ufun: BaseUtilityFunction | None = None
         self._precision = precision
@@ -78,9 +86,15 @@ class IPSParetoSampler:
         return self._ufun
 
     @property
+    def seed(self) -> int | None:
+        """The seed of the sampler's random stream (``None`` = global generators)."""
+        return self._random_stream.seed
+
+    @property
     def initialized(self) -> bool:
         return self._initialized
 
+    @uses_random_stream
     def set_opponent_ufun(self, opponent_ufun: BaseUtilityFunction | None) -> None:
         """Update the opponent utility function.  Call ``init()`` afterwards to
         rebuild the Pareto frontier with the new estimate."""
@@ -91,6 +105,7 @@ class IPSParetoSampler:
     # init
     # ------------------------------------------------------------------
 
+    @uses_random_stream
     def init(
         self,
         ufun: BaseUtilityFunction | None = None,
@@ -149,6 +164,7 @@ class IPSParetoSampler:
     # ParetoSampler queries
     # ------------------------------------------------------------------
 
+    @uses_random_stream
     def pareto_outcomes(
         self,
         n: int | None = None,
@@ -186,6 +202,7 @@ class IPSParetoSampler:
             result = result[:n]
         return result
 
+    @uses_random_stream
     def best_for_opponent(
         self,
         *,

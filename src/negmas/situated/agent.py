@@ -2,7 +2,7 @@
 
 from __future__ import annotations
 
-import uuid
+from negmas.helpers.rand import uuid4 as _new_uuid
 from abc import ABC, abstractmethod
 from typing import Any, Generic, TypeVar
 
@@ -180,7 +180,7 @@ class Agent(Entity, EventSink, ConfigReader, Notifier, Rational, Generic[TAWI], 
             A unique identifier for this negotiation info structure
 
         """
-        req_id = str(uuid.uuid4())
+        req_id = str(_new_uuid())
         self._requested_negotiations[req_id] = NegotiationRequestInfo(
             issues=issues,
             partners=partners,
