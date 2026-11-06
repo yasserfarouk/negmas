@@ -13,6 +13,7 @@ import random
 import tempfile
 from pathlib import Path
 from time import sleep
+from typing import TYPE_CHECKING
 
 from negmas import warnings
 from negmas.gb.common import get_offer
@@ -33,6 +34,10 @@ from .common import (
     DEFAULT_JAVA_PORT,
     get_free_tcp_port,
 )
+
+if TYPE_CHECKING:
+    from negmas.situated import Agent
+
 from .ginfo import AGENT_BASED_NEGOTIATORS, PARTY_BASED_NEGOTIATORS, TESTED_NEGOTIATORS
 
 __all__ = ["GeniusNegotiator"]

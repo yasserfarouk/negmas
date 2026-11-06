@@ -11,7 +11,7 @@ The goal is to eliminate code duplication while maintaining backward compatibili
 from __future__ import annotations
 
 from pathlib import Path
-from typing import TYPE_CHECKING
+from typing import TYPE_CHECKING, Any
 
 from rich import print
 from tabulate import tabulate

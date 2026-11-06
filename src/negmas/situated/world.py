@@ -70,6 +70,8 @@ from .awi import AgentWorldInterface
 if TYPE_CHECKING:
     import networkx as nx
 
+    from .action import Action
+
 
 # Check if networkx is available (for optional graph functionality)
 # Use find_spec to avoid importing the heavy module at import time
