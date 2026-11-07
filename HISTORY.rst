@@ -1,8 +1,8 @@
 History
 =======
 
-Unreleased
-----------
+Release 0.17.0
+--------------
 
 **New:**
 
@@ -64,6 +64,8 @@ Unreleased
 
 **Fixes:**
 
+* [deps] Lock patched versions of certifi, pillow, nbconvert, virtualenv,
+  setuptools, tornado and filelock (security advisories).
 * [preferences] ``LinearAdditiveUtilityFunction.normalize_for(to=...)`` and
   ``normalize(to=...)`` returned [0, 1] whatever ``to`` was. Normalizing over a
   non-Cartesian outcome space crashed; it now uses the generic path.

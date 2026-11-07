@@ -588,9 +588,11 @@ FORBIDDEN = re.compile(r"\b(ando|koshodojo|kosho|scm)\b", re.IGNORECASE)
 
 
 def _unreleased_history() -> str:
+    """The newest HISTORY section (``Unreleased`` or the latest release)."""
     text = (ROOT / "HISTORY.rst").read_text()
-    start = text.index("Unreleased")
-    return text[start : text.index("Release ", start)]
+    starts = [i for i in (text.find("Unreleased"), text.find("Release ")) if i >= 0]
+    start = min(starts)
+    return text[start : text.index("Release ", start + 1)]
 
 
 @pytest.mark.parametrize(
