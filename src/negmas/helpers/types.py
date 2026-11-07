@@ -114,6 +114,14 @@ def import_by_name(full_name: str) -> Any:
     return getattr(module, item_name)
 
 
+RENAMED_CLASSES: dict[str, str] = {
+    "DiscreteOutcomeSpace": "EnumerableOutcomeSpace",
+    "DiscreteCartesianOutcomeSpace": "EnumerableCartesianOutcomeSpace",
+}
+"""Old class name -> new one. Stored files using an old name still load (with a
+warning) until the old names are removed."""
+
+
 def get_class(
     class_name: str | type,
     module_name: str | None = None,
@@ -168,6 +176,17 @@ def get_class(
         class_name = stringcase.pascalcase(modules[-1])
     else:
         class_name = modules[-1]
+    if class_name in RENAMED_CLASSES:
+        from negmas.warnings import NegmasDeprecationWarning, warn
+
+        new_name = RENAMED_CLASSES[class_name]
+        warn(
+            f"Loading the deprecated class name {class_name}: it is now {new_name}. "
+            "Saving again writes the new name.",
+            NegmasDeprecationWarning,
+            stacklevel=2,
+        )
+        class_name = new_name
     if len(modules) < 2:
         return eval(class_name, scope)
     module_name = ".".join(modules[:-1])

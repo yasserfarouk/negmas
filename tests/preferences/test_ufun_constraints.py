@@ -414,7 +414,7 @@ class TestConstraintIntegration:
 
     def test_constraints_with_outcome_space_filtering(self):
         """Test that utility function and outcome space constraints work together."""
-        from negmas.outcomes import DiscreteCartesianOutcomeSpace
+        from negmas.outcomes import EnumerableCartesianOutcomeSpace
 
         def os_constraint(outcome):
             return outcome[0] != 1
@@ -422,7 +422,7 @@ class TestConstraintIntegration:
         def ufun_constraint(outcome):
             return outcome[1] != 1
 
-        os = DiscreteCartesianOutcomeSpace(
+        os = EnumerableCartesianOutcomeSpace(
             issues=[make_issue([0, 1, 2], "x"), make_issue([0, 1, 2], "y")],
             constraints=[os_constraint],
         )

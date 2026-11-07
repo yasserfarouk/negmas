@@ -26,7 +26,7 @@ from __future__ import annotations
 # from negmas.outcomes.base_issue import make_issue
 # from negmas.outcomes.categorical_issue import CategoricalIssue
 # from negmas.outcomes.common import Outcome
-# from negmas.outcomes.outcome_space import DiscreteCartesianOutcomeSpace, make_os
+# from negmas.outcomes.outcome_space import EnumerableCartesianOutcomeSpace, make_os
 # from negmas.preferences.crisp.linear import LinearAdditiveUtilityFunction as LU
 # from negmas.preferences.crisp.mapping import MappingUtilityFunction
 # from negmas.preferences.crisp_ufun import UtilityFunction
@@ -178,7 +178,7 @@ from __future__ import annotations
 #         r1, r2, n1, n2 = 0.2, 0.3, 5, 10
 #         eps = 1e-3
 #         time.perf_counter()
-#         os: DiscreteCartesianOutcomeSpace = make_os([make_issue(n1), make_issue(n2)])  # type: ignore
+#         os: EnumerableCartesianOutcomeSpace = make_os([make_issue(n1), make_issue(n2)])  # type: ignore
 #         p = TAUMechanism(outcome_space=os)
 #         ufuns = [LU.random(os, reserved_value=r1), LU.random(os, reserved_value=r2)]
 #         for i, u in enumerate(ufuns):
@@ -373,7 +373,7 @@ from __future__ import annotations
 #
 #
 # def remove_under_line(
-#     os: DiscreteCartesianOutcomeSpace,
+#     os: EnumerableCartesianOutcomeSpace,
 #     ufuns: Iterable[UtilityFunction],
 #     limits=((0.0, 0.8), (0.0, None)),
 # ):
@@ -858,7 +858,7 @@ from __future__ import annotations
 # def test_a_tau_session(neg, r1, r2, n1, n2, U1, U2):
 #     eps = 1e-3
 #     time.perf_counter()
-#     os: DiscreteCartesianOutcomeSpace = make_os([make_issue(n1), make_issue(n2)])  # type: ignore
+#     os: EnumerableCartesianOutcomeSpace = make_os([make_issue(n1), make_issue(n2)])  # type: ignore
 #     p = TAUMechanism(outcome_space=os)
 #     ufuns = [U1.random(os, reserved_value=r1), U2.random(os, reserved_value=r2)]
 #     for i, u in enumerate(ufuns):
@@ -900,7 +900,7 @@ from __future__ import annotations
 # def test_a_tau_session_with_adapter(neg, U1, U2):
 #     n1, n2 = 5, 10
 #     time.perf_counter()
-#     os: DiscreteCartesianOutcomeSpace = make_os([make_issue(n1), make_issue(n2)])  # type: ignore
+#     os: EnumerableCartesianOutcomeSpace = make_os([make_issue(n1), make_issue(n2)])  # type: ignore
 #     p = TAUMechanism(outcome_space=os)
 #     ufuns = [U1.random(os, reserved_value=0.0), U2.random(os, reserved_value=0.0)]
 #     negotiator = neg(name=f"{neg.__name__}{0}")
@@ -964,7 +964,7 @@ from __future__ import annotations
 # def test_tau_matches_generalized(neg, r1, r2, n1, n2, U1, U2):
 #     eps = 1e-3
 #     time.perf_counter()
-#     os: DiscreteCartesianOutcomeSpace = make_os([make_issue(n1), make_issue(n2)])  # type: ignore
+#     os: EnumerableCartesianOutcomeSpace = make_os([make_issue(n1), make_issue(n2)])  # type: ignore
 #     results = []
 #     ufuns = [U1.random(os, reserved_value=r1), U2.random(os, reserved_value=r2)]
 #     for cls in (TAUMechanism, GeneralizedTAUMechanism):
@@ -1080,7 +1080,7 @@ from __future__ import annotations
 #         r1, r2, n1, n2 = 0.2, 0.3, 2, 2
 #         eps = 1e-3
 #         time.perf_counter()
-#         os: DiscreteCartesianOutcomeSpace = make_os([make_issue(n1), make_issue(n2)])  # type: ignore
+#         os: EnumerableCartesianOutcomeSpace = make_os([make_issue(n1), make_issue(n2)])  # type: ignore
 #         p = TAUMechanism(outcome_space=os)
 #         ufuns = [LU.random(os, reserved_value=r1), LU.random(os, reserved_value=r2)]
 #         for i, u in enumerate(ufuns):

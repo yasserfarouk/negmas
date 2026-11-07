@@ -20,7 +20,7 @@ if TYPE_CHECKING:
 
 __all__ = [
     "OutcomeSpace",
-    "DiscreteOutcomeSpace",
+    "EnumerableOutcomeSpace",
     "IndependentIssuesOS",
     "IndependentDiscreteIssuesOS",
 ]
@@ -63,7 +63,7 @@ class OutcomeSpace(Container, Protocol):
 
     def to_discrete(
         self, levels: int | float = 5, max_cardinality: int | float = float("inf")
-    ) -> DiscreteOutcomeSpace:
+    ) -> EnumerableOutcomeSpace:
         """
         Returns a **stable** finite outcome space. If the outcome-space is already finite. It shoud return itself.
 
@@ -95,7 +95,7 @@ class OutcomeSpace(Container, Protocol):
 
     def to_largest_discrete(
         self, levels: int, max_cardinality: int | float = float("inf"), **kwargs
-    ) -> DiscreteOutcomeSpace:
+    ) -> EnumerableOutcomeSpace:
         """Convert to the largest discrete approximation within cardinality limits.
 
         Args:
@@ -151,9 +151,11 @@ class OutcomeSpace(Container, Protocol):
 
 
 @runtime_checkable
-class DiscreteOutcomeSpace(OutcomeSpace, Collection, Protocol):
+class EnumerableOutcomeSpace(OutcomeSpace, Collection, Protocol):
     """
-    The base protocol for all outcome spaces with a finite number of items.
+    The base protocol for outcome spaces whose outcomes can all be listed.
+
+    Formerly `DiscreteOutcomeSpace` (still accepted, with a warning).
 
     This type of outcome-space acts as a standard python `Collection` which
     means that its length can be found using `len()` and it can be iterated over
@@ -175,7 +177,7 @@ class DiscreteOutcomeSpace(OutcomeSpace, Collection, Protocol):
         self,
         max_cardinality: int | float = float("inf"),
         levels: int | float = float("inf"),
-    ) -> DiscreteOutcomeSpace:
+    ) -> EnumerableOutcomeSpace:
         """
         Limits the cardinality of the outcome space to the given maximum (or the number of levels for each issue to `levels`)
 
@@ -223,7 +225,7 @@ class DiscreteOutcomeSpace(OutcomeSpace, Collection, Protocol):
         ...
 
     def is_discrete(self) -> bool:
-        """Always True: a discrete outcome space is finite and enumerable."""
+        """Always True: an enumerable outcome space is also discrete."""
         return True
 
     def is_finite(self) -> bool:
@@ -234,7 +236,7 @@ class DiscreteOutcomeSpace(OutcomeSpace, Collection, Protocol):
         """Always True."""
         return True
 
-    def to_discrete(self, *args, **kwargs) -> DiscreteOutcomeSpace:
+    def to_discrete(self, *args, **kwargs) -> EnumerableOutcomeSpace:
         """To discrete.
 
         Args:
@@ -242,7 +244,7 @@ class DiscreteOutcomeSpace(OutcomeSpace, Collection, Protocol):
             **kwargs: Additional keyword arguments.
 
         Returns:
-            DiscreteOutcomeSpace: The result.
+            EnumerableOutcomeSpace: The result.
         """
         return self
 
@@ -269,3 +271,19 @@ class IndependentDiscreteIssuesOS(Protocol):
     """
 
     issues: tuple[DiscreteIssue, ...]
+
+
+_DEPRECATED_NAMES = {"DiscreteOutcomeSpace": "EnumerableOutcomeSpace"}
+
+
+def __getattr__(name: str):
+    """Resolves deprecated names (with a warning)."""
+    new_name = _DEPRECATED_NAMES.get(name)
+    if new_name is None:
+        raise AttributeError(f"module {__name__!r} has no attribute {name!r}")
+    from negmas.warnings import NegmasDeprecationWarning, warn
+
+    warn(
+        f"{name} is deprecated: use {new_name}", NegmasDeprecationWarning, stacklevel=2
+    )
+    return globals()[new_name]

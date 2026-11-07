@@ -6,7 +6,7 @@ import pytest
 
 from negmas.outcomes import (
     CartesianOutcomeSpace,
-    DiscreteCartesianOutcomeSpace,
+    EnumerableCartesianOutcomeSpace,
     EnumeratingOutcomeSpace,
     SingletonOutcomeSpace,
     make_issue,
@@ -193,7 +193,7 @@ class TestCartesianOutcomeSpaceConstraints:
 
 
 class TestDiscreteCartesianOutcomeSpaceConstraints:
-    """Tests for DiscreteCartesianOutcomeSpace constraints."""
+    """Tests for EnumerableCartesianOutcomeSpace constraints."""
 
     def test_enumerate_with_constraints(self):
         """Test that enumerate filters by constraints."""
@@ -201,7 +201,7 @@ class TestDiscreteCartesianOutcomeSpaceConstraints:
         def constraint(outcome):
             return outcome[0] + outcome[1] <= 2
 
-        os = DiscreteCartesianOutcomeSpace(
+        os = EnumerableCartesianOutcomeSpace(
             issues=[make_issue([0, 1, 2], "x"), make_issue([0, 1, 2], "y")],
             constraints=[constraint],
         )
@@ -214,7 +214,7 @@ class TestDiscreteCartesianOutcomeSpaceConstraints:
 
     def test_enumerate_without_constraints(self):
         """Test that enumerate works normally without constraints."""
-        os = DiscreteCartesianOutcomeSpace(
+        os = EnumerableCartesianOutcomeSpace(
             issues=[make_issue([0, 1, 2], "x"), make_issue([0, 1, 2], "y")]
         )
 
@@ -233,7 +233,7 @@ class TestDiscreteCartesianOutcomeSpaceConstraints:
         def constraint(outcome):
             return outcome[0] > 0
 
-        os = DiscreteCartesianOutcomeSpace(
+        os = EnumerableCartesianOutcomeSpace(
             issues=[make_issue([0, 1, 2], "x"), make_issue([0, 1], "y")],
             constraints=[constraint],
         )
@@ -330,7 +330,7 @@ class TestEnumeratingOutcomeSpaceConstraints:
 
 
 class TestSingletonOutcomeSpaceConstraints:
-    """Tests for SingletonOutcomeSpace constraints (inherits from DiscreteCartesianOutcomeSpace)."""
+    """Tests for SingletonOutcomeSpace constraints (inherits from EnumerableCartesianOutcomeSpace)."""
 
     def test_singleton_inherits_constraints(self):
         """Test that SingletonOutcomeSpace inherits constraint functionality."""
@@ -353,7 +353,7 @@ class TestConstraintEdgeCases:
         def constraint(outcome):
             return outcome[0] > 5
 
-        os = DiscreteCartesianOutcomeSpace(
+        os = EnumerableCartesianOutcomeSpace(
             issues=[make_issue([0, 1, 2], "x"), make_issue([0, 1], "y")],
             constraints=[constraint],
         )
@@ -367,7 +367,7 @@ class TestConstraintEdgeCases:
         def constraint(outcome):
             return outcome[0]  # Returns 0 (falsy) or positive (truthy)
 
-        os = DiscreteCartesianOutcomeSpace(
+        os = EnumerableCartesianOutcomeSpace(
             issues=[make_issue([0, 1, 2], "x"), make_issue([0, 1], "y")],
             constraints=[constraint],
         )
@@ -384,7 +384,7 @@ class TestConstraintEdgeCases:
         def bad_constraint(outcome):
             raise ValueError("Test error")
 
-        os = DiscreteCartesianOutcomeSpace(
+        os = EnumerableCartesianOutcomeSpace(
             issues=[make_issue([0, 1, 2], "x"), make_issue([0, 1], "y")],
             constraints=[bad_constraint],
         )
@@ -399,7 +399,7 @@ class TestConstraintEdgeCases:
         def constraint(outcome):
             return outcome[0] + outcome[1] > 2
 
-        os = DiscreteCartesianOutcomeSpace(
+        os = EnumerableCartesianOutcomeSpace(
             issues=[make_issue([0, 1, 2], "x"), make_issue([0, 1, 2], "y")],
             constraints=[constraint],
         )

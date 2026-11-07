@@ -11,7 +11,7 @@ from hypothesis import strategies as st
 
 from negmas.outcomes import (
     CartesianOutcomeSpace,
-    DiscreteCartesianOutcomeSpace,
+    EnumerableCartesianOutcomeSpace,
     DiscreteListValuesIssue,
     ListIssue,
     RecordIssue,
@@ -301,7 +301,7 @@ def test_finite_small_issue_to_discrete_is_itself():
 def test_make_os_with_infinite_list_issue_is_not_discrete():
     os = make_os([make_issue(3, "price"), ListIssue("d", delivery_record())])
     assert isinstance(os, CartesianOutcomeSpace)
-    assert not isinstance(os, DiscreteCartesianOutcomeSpace)
+    assert not isinstance(os, EnumerableCartesianOutcomeSpace)
     assert os.cardinality == float("inf")
     samples = list(os.sample(20, with_replacement=False, fail_if_not_enough=False))
     assert samples and all(os.is_valid(_) for _ in samples)
@@ -314,7 +314,7 @@ def test_make_os_with_finite_list_issue_is_discrete():
     os = make_os(
         [make_issue(2, "price"), ListIssue("v", make_issue(2, "v"), max_count=2)]
     )
-    assert isinstance(os, DiscreteCartesianOutcomeSpace)
+    assert isinstance(os, EnumerableCartesianOutcomeSpace)
     outcomes = list(os.enumerate())
     assert len(outcomes) == os.cardinality == 2 * (1 + 2 + 3)
 

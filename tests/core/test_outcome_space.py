@@ -5,7 +5,7 @@ from __future__ import annotations
 import pytest
 
 from negmas.outcomes import (
-    DiscreteCartesianOutcomeSpace,
+    EnumerableCartesianOutcomeSpace,
     EnumeratingOutcomeSpace,
     SingletonIssue,
     SingletonOutcomeSpace,
@@ -575,8 +575,12 @@ class TestCartesianProduct:
 
     def test_cartesian_product_name(self):
         """Test cartesian product naming."""
-        os1 = DiscreteCartesianOutcomeSpace(issues=(make_issue(2, "a"),), name="first")
-        os2 = DiscreteCartesianOutcomeSpace(issues=(make_issue(2, "b"),), name="second")
+        os1 = EnumerableCartesianOutcomeSpace(
+            issues=(make_issue(2, "a"),), name="first"
+        )
+        os2 = EnumerableCartesianOutcomeSpace(
+            issues=(make_issue(2, "b"),), name="second"
+        )
 
         result = os1 * os2
 

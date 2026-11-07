@@ -1,7 +1,7 @@
 """The :class:`Discretizer` protocol and a shared base implementation.
 
 A *discretizer* is a callable that turns any :class:`~negmas.outcomes.OutcomeSpace`
-into a finite :class:`~negmas.outcomes.DiscreteOutcomeSpace`.  It is *constructed*
+into a finite :class:`~negmas.outcomes.EnumerableOutcomeSpace`.  It is *constructed*
 with two knobs that bound the result and then *called* with the outcome space to
 discretize::
 
@@ -40,7 +40,7 @@ from abc import ABC, abstractmethod
 from typing import TYPE_CHECKING, Protocol, runtime_checkable
 
 if TYPE_CHECKING:
-    from negmas.outcomes.protocols import DiscreteOutcomeSpace, OutcomeSpace
+    from negmas.outcomes.protocols import EnumerableOutcomeSpace, OutcomeSpace
 
 __all__ = ["Discretizer", "BaseDiscretizer", "DEFAULT_LEVELS"]
 
@@ -57,13 +57,13 @@ class Discretizer(Protocol):
     Implementations are *constructed* with (at least) ``max_outcomes`` and
     ``min_levels`` (both ``int | None``) and are then *called* with the outcome
     space to discretize, returning a finite
-    :class:`~negmas.outcomes.DiscreteOutcomeSpace`.
+    :class:`~negmas.outcomes.EnumerableOutcomeSpace`.
 
     See :class:`BaseDiscretizer` for the construction contract and shared
     helpers.
     """
 
-    def __call__(self, outcome_space: OutcomeSpace) -> DiscreteOutcomeSpace:
+    def __call__(self, outcome_space: OutcomeSpace) -> EnumerableOutcomeSpace:
         """Discretizes ``outcome_space`` respecting ``max_outcomes``/``min_levels``."""
         ...
 
@@ -95,7 +95,7 @@ class BaseDiscretizer(ABC):
         return DEFAULT_LEVELS if self.min_levels is None else self.min_levels
 
     @abstractmethod
-    def __call__(self, outcome_space: OutcomeSpace) -> DiscreteOutcomeSpace:
+    def __call__(self, outcome_space: OutcomeSpace) -> EnumerableOutcomeSpace:
         """Discretizes ``outcome_space`` (see :class:`Discretizer`)."""
         ...
 

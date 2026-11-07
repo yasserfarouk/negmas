@@ -1,4 +1,4 @@
-"""Tests for ``DiscreteCartesianOutcomeSpace.__bool__``.
+"""Tests for ``EnumerableCartesianOutcomeSpace.__bool__``.
 
 Regression coverage for the ``OverflowError`` that plain truthiness tests
 (``if outcome_space`` / ``not outcome_space``) used to raise on outcome spaces
@@ -11,12 +11,12 @@ from __future__ import annotations
 import pytest
 
 from negmas.outcomes import ContiguousIssue
-from negmas.outcomes.outcome_space import DiscreteCartesianOutcomeSpace
+from negmas.outcomes.outcome_space import EnumerableCartesianOutcomeSpace
 
 
-def _huge_os() -> DiscreteCartesianOutcomeSpace:
+def _huge_os() -> EnumerableCartesianOutcomeSpace:
     # 3 issues each with ~10^9 values -> cardinality ~10^27 > Py_ssize_t max (~9.2e18)
-    return DiscreteCartesianOutcomeSpace(
+    return EnumerableCartesianOutcomeSpace(
         [ContiguousIssue((0, 10**9), name="x") for _ in range(3)]
     )
 
@@ -40,7 +40,7 @@ class TestOutcomeSpaceBool:
         assert (True if os else False) is True
 
     def test_bool_true_for_normal_space(self):
-        os = DiscreteCartesianOutcomeSpace(
+        os = EnumerableCartesianOutcomeSpace(
             [ContiguousIssue((0, 4), name="x"), ContiguousIssue((0, 4), name="y")]
         )
         assert bool(os) is True

@@ -22,7 +22,7 @@ from typing import (
 from attrs import asdict, define, field
 from .outcomes import (
     CartesianOutcomeSpace,
-    DiscreteOutcomeSpace,
+    EnumerableOutcomeSpace,
     Issue,
     Outcome,
     OutcomeSpace,
@@ -522,7 +522,7 @@ class NegotiatorMechanismInterface:
 
     def discrete_outcome_space(
         self, levels: int = 5, max_cardinality: int = 10_000_000_000
-    ) -> DiscreteOutcomeSpace:
+    ) -> EnumerableOutcomeSpace:
         """
         Returns a stable discrete version of the given outcome-space
         """
@@ -589,11 +589,11 @@ class NegotiatorMechanismInterface:
     @property
     def outcomes(self) -> Iterable[Outcome] | None:
         """All outcomes for discrete outcome spaces or None for continuous outcome spaces. See `discrete_outcomes`"""
-        from negmas.outcomes.protocols import DiscreteOutcomeSpace
+        from negmas.outcomes.protocols import EnumerableOutcomeSpace
 
         return (
             self._mechanism.outcome_space.enumerate()
-            if isinstance(self._mechanism.outcome_space, DiscreteOutcomeSpace)
+            if isinstance(self._mechanism.outcome_space, EnumerableOutcomeSpace)
             else None
         )
 

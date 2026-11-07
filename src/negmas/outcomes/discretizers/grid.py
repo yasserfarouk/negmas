@@ -29,12 +29,12 @@ from functools import reduce
 from operator import mul
 from typing import TYPE_CHECKING
 
-from negmas.outcomes.outcome_space import DiscreteCartesianOutcomeSpace
+from negmas.outcomes.outcome_space import EnumerableCartesianOutcomeSpace
 
 from ._protocol import BaseDiscretizer
 
 if TYPE_CHECKING:
-    from negmas.outcomes.protocols import DiscreteOutcomeSpace, OutcomeSpace
+    from negmas.outcomes.protocols import EnumerableOutcomeSpace, OutcomeSpace
 
 __all__ = ["GridBasedDiscretizer"]
 
@@ -49,7 +49,7 @@ class GridBasedDiscretizer(BaseDiscretizer):
       number of levels is stepped down (toward 1) until it fits.
     - **Discrete issues** are kept unchanged (their cardinality is never increased
       to reach ``min_levels`` and never decreased to meet ``max_outcomes``). Use
-      :meth:`DiscreteOutcomeSpace.limit_cardinality` to shrink an already-discrete
+      :meth:`EnumerableOutcomeSpace.limit_cardinality` to shrink an already-discrete
       space.
     - An already-discrete space is returned unchanged if it fits under
       ``max_outcomes``; otherwise a :class:`ValueError` is raised (grid
@@ -80,12 +80,12 @@ class GridBasedDiscretizer(BaseDiscretizer):
         16
     """
 
-    def __call__(self, outcome_space: OutcomeSpace) -> DiscreteOutcomeSpace:
+    def __call__(self, outcome_space: OutcomeSpace) -> EnumerableOutcomeSpace:
         os = outcome_space
         max_card = self.max_cardinality
 
         if os.is_enumerable():
-            dos: DiscreteOutcomeSpace = os  # type: ignore[assignment]
+            dos: EnumerableOutcomeSpace = os  # type: ignore[assignment]
             if dos.cardinality <= max_card:
                 return dos
             raise ValueError(
@@ -105,7 +105,7 @@ class GridBasedDiscretizer(BaseDiscretizer):
             )
             cardinality = reduce(mul, [i.cardinality for i in issues], 1)
             if cardinality <= max_card:
-                return DiscreteCartesianOutcomeSpace(
+                return EnumerableCartesianOutcomeSpace(
                     issues, name=getattr(os, "name", None)
                 )
 

@@ -37,7 +37,7 @@ from .issue_ops import (
     issues_to_xml_str,
     sample_issues,
 )
-from .protocols import DiscreteOutcomeSpace, OutcomeSpace
+from .protocols import EnumerableOutcomeSpace, OutcomeSpace
 from .range_issue import RangeIssue
 from .singleton_issue import SingletonIssue
 
@@ -48,7 +48,7 @@ if TYPE_CHECKING:
 __all__ = [
     "CartesianOutcomeSpace",
     "EnumeratingOutcomeSpace",
-    "DiscreteCartesianOutcomeSpace",
+    "EnumerableCartesianOutcomeSpace",
     "SubsetCartesianOutcomeSpace",
     "SingletonOutcomeSpace",
     "make_os",
@@ -97,7 +97,7 @@ def make_os(
 
     issues_ = tuple(issues_)
     if all(_.is_enumerable() for _ in issues_):
-        return DiscreteCartesianOutcomeSpace(
+        return EnumerableCartesianOutcomeSpace(
             issues_, name=name if name else "", path=path
         )
     return CartesianOutcomeSpace(issues_, name=name if name else "", path=path)
@@ -165,7 +165,7 @@ def _balanced_levels(caps: list[int], max_cardinality: int) -> list[int]:
 
 def _dispatch_discretizer(
     space, method, levels, max_cardinality, kwargs
-) -> DiscreteCartesianOutcomeSpace:
+) -> EnumerableCartesianOutcomeSpace:
     """Resolves a ``to_discrete`` ``method`` and applies it to ``space``.
 
     ``method`` may be:
@@ -210,7 +210,7 @@ class OSWithValidity:
 
 
 @define
-class EnumeratingOutcomeSpace(DiscreteOutcomeSpace, OSWithValidity):
+class EnumeratingOutcomeSpace(EnumerableOutcomeSpace, OSWithValidity):
     """An outcome space representing the enumeration of some outcomes. No issues defined"""
 
     name: str | None = field(eq=False, default=None)
@@ -328,7 +328,7 @@ class EnumeratingOutcomeSpace(DiscreteOutcomeSpace, OSWithValidity):
 
     def to_discrete(
         self, levels: int | float = 5, max_cardinality: int | float = float("inf")
-    ) -> DiscreteOutcomeSpace:
+    ) -> EnumerableOutcomeSpace:
         """
         Returns a **stable** finite outcome space. If the outcome-space is already finite. It should return itself.
 
@@ -349,7 +349,7 @@ class EnumeratingOutcomeSpace(DiscreteOutcomeSpace, OSWithValidity):
 
     def to_largest_discrete(
         self, levels: int, max_cardinality: int | float = float("inf"), **kwargs
-    ) -> DiscreteOutcomeSpace:
+    ) -> EnumerableOutcomeSpace:
         """Returns self since this space is already discrete."""
         return self
 
@@ -428,7 +428,7 @@ class EnumeratingOutcomeSpace(DiscreteOutcomeSpace, OSWithValidity):
         self,
         max_cardinality: int | float = float("inf"),
         levels: int | float = float("inf"),
-    ) -> DiscreteOutcomeSpace:
+    ) -> EnumerableOutcomeSpace:
         """
         Limits the cardinality of the outcome space to the given maximum (or the number of levels for each issue to `levels`)
 
@@ -645,7 +645,7 @@ class CartesianOutcomeSpace(XmlSerializable):
         max_cardinality: int | float = float("inf"),
         method: str | type | Discretizer = "grid",
         **kwargs,
-    ) -> DiscreteCartesianOutcomeSpace:
+    ) -> EnumerableCartesianOutcomeSpace:
         """
         Discretizes the outcome space by sampling `levels` values for each continuous issue.
 
@@ -703,7 +703,7 @@ class CartesianOutcomeSpace(XmlSerializable):
             )
             for issue in self.issues
         )
-        return DiscreteCartesianOutcomeSpace(issues=issues, name=self.name)
+        return EnumerableCartesianOutcomeSpace(issues=issues, name=self.name)
 
     @classmethod
     def from_xml_str(
@@ -717,7 +717,7 @@ class CartesianOutcomeSpace(XmlSerializable):
             raise ValueError("Failed to read an issue space from an xml string")
         issues = tuple(issues)
         if all(isinstance(_, DiscreteIssue) for _ in issues):
-            return DiscreteCartesianOutcomeSpace(issues, name=name)
+            return EnumerableCartesianOutcomeSpace(issues, name=name)
         return cls(issues, name=name)
 
     @staticmethod
@@ -726,9 +726,9 @@ class CartesianOutcomeSpace(XmlSerializable):
         numeric_as_ranges: bool = False,
         issue_names: list[str] | None = None,
         name: str | None = None,
-    ) -> DiscreteCartesianOutcomeSpace:
+    ) -> EnumerableCartesianOutcomeSpace:
         """Creates a discrete outcome space by inferring issues from a list of outcomes."""
-        return DiscreteCartesianOutcomeSpace(
+        return EnumerableCartesianOutcomeSpace(
             issues_from_outcomes(outcomes, numeric_as_ranges, issue_names), name=name
         )
 
@@ -789,7 +789,7 @@ class CartesianOutcomeSpace(XmlSerializable):
 
     def to_largest_discrete(
         self, levels: int, max_cardinality: int | float = float("inf"), **kwargs
-    ) -> DiscreteCartesianOutcomeSpace:
+    ) -> EnumerableCartesianOutcomeSpace:
         """Discretizes to the largest grid within both the level and cardinality limits.
 
         Continuous issues are sampled on an even grid of at most ``levels`` values;
@@ -848,9 +848,9 @@ class CartesianOutcomeSpace(XmlSerializable):
             raise ValueError(
                 "Cannot enumerate-or-sample an outcome space with infinite outcomes without specifying `levels` and/or `max_cardinality`"
             )
-        from negmas.outcomes.outcome_space import DiscreteCartesianOutcomeSpace
+        from negmas.outcomes.outcome_space import EnumerableCartesianOutcomeSpace
 
-        if isinstance(self, DiscreteCartesianOutcomeSpace):
+        if isinstance(self, EnumerableCartesianOutcomeSpace):
             results = self.enumerate()  # type: ignore We know the outcome space is correct
         else:
             if max_cardinality == float("inf"):
@@ -895,9 +895,9 @@ class CartesianOutcomeSpace(XmlSerializable):
             raise ValueError(
                 "Cannot enumerate-or-sample an outcome space with infinite outcomes without specifying `levels` and/or `max_cardinality`"
             )
-        from negmas.outcomes.outcome_space import DiscreteCartesianOutcomeSpace
+        from negmas.outcomes.outcome_space import EnumerableCartesianOutcomeSpace
 
-        if isinstance(self, DiscreteCartesianOutcomeSpace):
+        if isinstance(self, EnumerableCartesianOutcomeSpace):
             return self.enumerate()  # type: ignore We know the outcome space is correct
         if max_cardinality == float("inf"):
             return self.to_discrete(
@@ -913,7 +913,7 @@ class CartesianOutcomeSpace(XmlSerializable):
         stringify=True,
         levels: int = NLEVELS,
         max_cardinality: int | float = float("inf"),
-    ) -> DiscreteCartesianOutcomeSpace:
+    ) -> EnumerableCartesianOutcomeSpace:
         """
         Creates a new outcome space that is a single-issue version of this one discretizing it as needed
 
@@ -926,7 +926,7 @@ class CartesianOutcomeSpace(XmlSerializable):
         Remarks:
             - Will discretize inifinte outcome spaces
         """
-        if isinstance(self, DiscreteCartesianOutcomeSpace) and len(self.issues) == 1:
+        if isinstance(self, EnumerableCartesianOutcomeSpace) and len(self.issues) == 1:
             return self
         dos = self.to_discrete(levels, max_cardinality)
         return dos.to_single_issue(numeric, stringify)  # type: ignore
@@ -967,14 +967,16 @@ class CartesianOutcomeSpace(XmlSerializable):
 
 
 @define(frozen=True)
-class DiscreteCartesianOutcomeSpace(CartesianOutcomeSpace):
+class EnumerableCartesianOutcomeSpace(CartesianOutcomeSpace):
     """
-    A discrete outcome-space that is generated by the cartesian product of a tuple of `Issue` s (i.e. with finite number of outcomes).
+    An enumerable outcome space: the cartesian product of enumerable `Issue` s.
+
+    Formerly `DiscreteCartesianOutcomeSpace` (still accepted, with a warning).
     """
 
     def to_largest_discrete(
         self, levels: int, max_cardinality: int | float = float("inf"), **kwargs
-    ) -> DiscreteCartesianOutcomeSpace:
+    ) -> EnumerableCartesianOutcomeSpace:
         """Returns ``self`` unchanged: an already-discrete space is not re-gridded.
 
         ``levels`` and ``max_cardinality`` are ignored here (discretization only
@@ -988,7 +990,7 @@ class DiscreteCartesianOutcomeSpace(CartesianOutcomeSpace):
         for issue in self.issues:
             if not issue.is_enumerable():
                 raise ValueError(
-                    f"Issue is not enumerable. Cannot be added to a DiscreteOutcomeSpace. You must discretize it first: {issue} "
+                    f"Issue is not enumerable. Cannot be added to an EnumerableOutcomeSpace. You must discretize it first: {issue} "
                 )
 
     @property
@@ -1016,7 +1018,7 @@ class DiscreteCartesianOutcomeSpace(CartesianOutcomeSpace):
         self,
         max_cardinality: int | float = float("inf"),
         levels: int | float = float("inf"),
-    ) -> DiscreteCartesianOutcomeSpace:
+    ) -> EnumerableCartesianOutcomeSpace:
         """
         Limits the cardinality of the outcome space to the given maximum (and the number of levels for each issue to `levels`).
 
@@ -1062,7 +1064,7 @@ class DiscreteCartesianOutcomeSpace(CartesianOutcomeSpace):
             issue if lvl >= card else _subsample_issue(issue, lvl)
             for lvl, card, issue in zip(new_levels, cards, self.issues)
         ]
-        return DiscreteCartesianOutcomeSpace(
+        return EnumerableCartesianOutcomeSpace(
             tuple(issues), name=f"{self.name}-{max_cardinality}"
         )
 
@@ -1084,7 +1086,7 @@ class DiscreteCartesianOutcomeSpace(CartesianOutcomeSpace):
         max_cardinality: int | float = float("inf"),
         method: str | type | Discretizer = "grid",
         **kwargs,
-    ) -> DiscreteCartesianOutcomeSpace:
+    ) -> EnumerableCartesianOutcomeSpace:
         """Returns ``self`` (already discrete) unless a non-grid ``method`` is given.
 
         With the default ``method="grid"`` an already-discrete space is returned
@@ -1102,7 +1104,7 @@ class DiscreteCartesianOutcomeSpace(CartesianOutcomeSpace):
         stringify=True,
         levels: int = NLEVELS,
         max_cardinality: int | float = float("inf"),
-    ) -> DiscreteCartesianOutcomeSpace:
+    ) -> EnumerableCartesianOutcomeSpace:
         """
         Creates a new outcome space that is a single-issue version of this one
 
@@ -1127,7 +1129,7 @@ class DiscreteCartesianOutcomeSpace(CartesianOutcomeSpace):
             if numeric
             else CategoricalIssue(values, name="-".join(self.issue_names))
         )
-        return DiscreteCartesianOutcomeSpace(issues=(issue,), name=self.name)
+        return EnumerableCartesianOutcomeSpace(issues=(issue,), name=self.name)
 
     # def sample(
     #     self,
@@ -1173,7 +1175,7 @@ class DiscreteCartesianOutcomeSpace(CartesianOutcomeSpace):
 
 
 @define(frozen=True)
-class SingletonOutcomeSpace(DiscreteCartesianOutcomeSpace):
+class SingletonOutcomeSpace(EnumerableCartesianOutcomeSpace):
     """
     A discrete outcome-space representing a single outcome.
 
@@ -1264,10 +1266,10 @@ class SingletonOutcomeSpace(DiscreteCartesianOutcomeSpace):
 
 
 @define(frozen=True)
-class SubsetCartesianOutcomeSpace(DiscreteCartesianOutcomeSpace):
+class SubsetCartesianOutcomeSpace(EnumerableCartesianOutcomeSpace):
     """A discrete Cartesian outcome-space restricted to an explicit set of outcomes.
 
-    This behaves like a :class:`DiscreteCartesianOutcomeSpace` — it keeps the full
+    This behaves like a :class:`EnumerableCartesianOutcomeSpace` — it keeps the full
     ``issues`` structure, so ``.issues``, ``.issue_names`` and issue-based code keep
     working — but only the outcomes in ``outcomes`` are considered *valid* and are
     returned by :meth:`enumerate`, :meth:`sample`, iteration, ``len()`` and
@@ -1401,7 +1403,7 @@ class SubsetCartesianOutcomeSpace(DiscreteCartesianOutcomeSpace):
         max_cardinality: int | float = float("inf"),
         method: str | type | Discretizer = "grid",
         **kwargs,
-    ) -> DiscreteCartesianOutcomeSpace:
+    ) -> EnumerableCartesianOutcomeSpace:
         """Returns ``self`` (a fixed subset) unless a non-grid ``method`` is given."""
         if method != "grid":
             return _dispatch_discretizer(self, method, levels, max_cardinality, kwargs)
@@ -1409,7 +1411,7 @@ class SubsetCartesianOutcomeSpace(DiscreteCartesianOutcomeSpace):
 
     def to_largest_discrete(
         self, levels: int, max_cardinality: int | float = float("inf"), **kwargs
-    ) -> DiscreteCartesianOutcomeSpace:
+    ) -> EnumerableCartesianOutcomeSpace:
         """Returns self since this space is already a fixed discrete subset."""
         return self
 
@@ -1550,7 +1552,7 @@ def os_difference(
 #
 #
 # @define(frozen=True)
-# class DiscreteCartesianOutcomeSpaceProduct(DiscreteCartesianOutcomeSpace):
+# class DiscreteCartesianOutcomeSpaceProduct(EnumerableCartesianOutcomeSpace):
 #     """
 #     A discrete outcome-space that is by multiplying multiple discrete outcome spaces
 #     """
@@ -1566,7 +1568,7 @@ def os_difference(
 #         for issue in self.issues:
 #             if not issue.is_enumerable():
 #                 raise ValueError(
-#                     f"Issue is not enumerable. Cannot be added to a DiscreteOutcomeSpace. You must discretize it first: {issue} "
+#                     f"Issue is not enumerable. Cannot be added to an EnumerableOutcomeSpace. You must discretize it first: {issue} "
 #                 )
 #         object.__setattr__(
 #             self, "_sizes", tuple(int(_.cardinality) for _ in self.outcome_spaces)
@@ -1592,7 +1594,7 @@ def os_difference(
 #         self,
 #         max_cardinality: int | float = float("inf"),
 #         levels: int | float = float("inf"),
-#     ) -> DiscreteCartesianOutcomeSpace:
+#     ) -> EnumerableCartesianOutcomeSpace:
 #         """
 #         Limits the cardinality of the outcome space to the given maximum (or the number of levels for each issue to `levels`)
 #
@@ -1645,7 +1647,7 @@ def os_difference(
 #             new_levels, (_.cardinality for _ in self.issues), self.issues
 #         ):
 #             issues.append(issue if j >= i else issue.to_discrete(j, compact=True))
-#         return DiscreteCartesianOutcomeSpace(
+#         return EnumerableCartesianOutcomeSpace(
 #             tuple(issues), name=f"{self.name}-{max_cardinality}"
 #         )
 #
@@ -1655,7 +1657,7 @@ def os_difference(
 #
 #     def to_discrete(
 #         self, levels: int | float = 10, max_cardinality: int | float = float("inf")
-#     ) -> DiscreteCartesianOutcomeSpace:
+#     ) -> EnumerableCartesianOutcomeSpace:
 #         return self
 #
 #     def to_single_issue(
@@ -1664,7 +1666,7 @@ def os_difference(
 #         stringify=True,
 #         levels: int = NLEVELS,
 #         max_cardinality: int | float = float("inf"),
-#     ) -> DiscreteCartesianOutcomeSpace:
+#     ) -> EnumerableCartesianOutcomeSpace:
 #         """
 #         Creates a new outcome space that is a single-issue version of this one
 #
@@ -1689,7 +1691,7 @@ def os_difference(
 #             if numeric
 #             else CategoricalIssue(values, name="-".join(self.issue_names))
 #         )
-#         return DiscreteCartesianOutcomeSpace(issues=(issue,), name=self.name)
+#         return EnumerableCartesianOutcomeSpace(issues=(issue,), name=self.name)
 #
 #     # def sample(
 #     #     self,
@@ -1719,3 +1721,19 @@ def os_difference(
 #
 #     def __len__(self) -> int:
 #         return self.cardinality
+
+
+_DEPRECATED_NAMES = {"DiscreteCartesianOutcomeSpace": "EnumerableCartesianOutcomeSpace"}
+
+
+def __getattr__(name: str):
+    """Resolves deprecated names (with a warning)."""
+    new_name = _DEPRECATED_NAMES.get(name)
+    if new_name is None:
+        raise AttributeError(f"module {__name__!r} has no attribute {name!r}")
+    from negmas.warnings import NegmasDeprecationWarning, warn
+
+    warn(
+        f"{name} is deprecated: use {new_name}", NegmasDeprecationWarning, stacklevel=2
+    )
+    return globals()[new_name]

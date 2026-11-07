@@ -67,7 +67,7 @@ from negmas.types import NamedObject
 
 if TYPE_CHECKING:
     from negmas.outcomes.base_issue import Issue
-    from negmas.outcomes.protocols import DiscreteOutcomeSpace
+    from negmas.outcomes.protocols import EnumerableOutcomeSpace
     from negmas.preferences import Preferences
     from negmas.preferences.base_ufun import BaseUtilityFunction
     from negmas.preferences.ops import FullMetrics, NegotiatorMetrics, SessionMetrics
@@ -1806,7 +1806,7 @@ class Mechanism(
 
     def discrete_outcome_space(
         self, levels: int = 5, max_cardinality: int = 10_000_000_000
-    ) -> DiscreteOutcomeSpace:
+    ) -> EnumerableOutcomeSpace:
         """Returns a stable discrete version of the given outcome-space."""
         if self.__discrete_os:
             return self.__discrete_os

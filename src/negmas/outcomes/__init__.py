@@ -69,3 +69,22 @@ __all__ = (
     + outcome_space.__all__
     + discretizers.__all__
 )
+
+
+_DEPRECATED_NAMES = {
+    "DiscreteOutcomeSpace": "EnumerableOutcomeSpace",
+    "DiscreteCartesianOutcomeSpace": "EnumerableCartesianOutcomeSpace",
+}
+
+
+def __getattr__(name: str):
+    """Resolves deprecated names (with a warning)."""
+    new_name = _DEPRECATED_NAMES.get(name)
+    if new_name is None:
+        raise AttributeError(f"module {__name__!r} has no attribute {name!r}")
+    from negmas.warnings import NegmasDeprecationWarning, warn
+
+    warn(
+        f"{name} is deprecated: use {new_name}", NegmasDeprecationWarning, stacklevel=2
+    )
+    return globals()[new_name]

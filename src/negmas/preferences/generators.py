@@ -17,7 +17,7 @@ from negmas.helpers.misc import (
 )
 from negmas.negotiators.helpers import PolyAspiration, TimeCurve
 from negmas.outcomes import make_issue, make_os
-from negmas.outcomes.outcome_space import DiscreteCartesianOutcomeSpace
+from negmas.outcomes.outcome_space import EnumerableCartesianOutcomeSpace
 from negmas.preferences.crisp.linear import LinearAdditiveUtilityFunction
 from negmas.preferences.crisp.mapping import MappingUtilityFunction
 from negmas.preferences.ops import nash_points, pareto_frontier
@@ -752,7 +752,7 @@ def generate_multi_issue_ufuns(
         ],
         name=os_name,
     )
-    assert isinstance(os, DiscreteCartesianOutcomeSpace)
+    assert isinstance(os, EnumerableCartesianOutcomeSpace)
     return generate_ufuns_for(
         os,
         n_ufuns=n_ufuns,
@@ -769,7 +769,7 @@ def generate_multi_issue_ufuns(
 
 @seedable
 def generate_ufuns_for(
-    outcome_space: DiscreteCartesianOutcomeSpace,
+    outcome_space: EnumerableCartesianOutcomeSpace,
     n_ufuns: int = 2,
     pareto_generators: tuple[ParetoGenerator | str, ...] = tuple(GENERATOR_MAP.keys()),
     generator_params: tuple[dict[str, Any], ...] | list[dict[str, Any]] | None = None,

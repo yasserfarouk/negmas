@@ -11,6 +11,7 @@ __all__ = [
     "warn",
     "warn_if_slow",
     "deprecated",
+    "NegmasDeprecationWarning",
     "NegmasWarning",
     "NegmasCannotStartNegotiation",
     "NegmasIgnoredValueWarning",
@@ -54,6 +55,12 @@ def deprecated(message, stacklevel=3):
     return warnings.warn(
         message, category=DeprecationWarning, stacklevel=stacklevel, source=None
     )
+
+
+class NegmasDeprecationWarning(NegmasWarning, FutureWarning):
+    """A deprecated negmas name was used. Shown by default, unlike `DeprecationWarning`."""
+
+    ...
 
 
 class NegmasBridgePathWarning(NegmasWarning):

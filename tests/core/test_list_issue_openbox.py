@@ -18,7 +18,7 @@ from hypothesis import assume, given, settings
 from hypothesis import strategies as st
 
 from negmas.outcomes import (
-    DiscreteCartesianOutcomeSpace,
+    EnumerableCartesianOutcomeSpace,
     DiscreteListValuesIssue,
     ListIssue,
     RecordIssue,
@@ -618,7 +618,7 @@ def test_os_with_infinite_list_issue_samples_and_discretizes():
     samples = list(os_.sample(5))
     assert 1 <= len(samples) <= 5 and all(os_.is_valid(_) for _ in samples)
     d = os_.to_discrete(levels=4)
-    assert isinstance(d, DiscreteCartesianOutcomeSpace)
+    assert isinstance(d, EnumerableCartesianOutcomeSpace)
     assert isinstance(d.issues[0], DiscreteListValuesIssue)
     assert d.issues[1] == os_.issues[1]
     assert d.cardinality == os_.cardinality_if_discretized(4) == 12
@@ -662,5 +662,5 @@ def test_finite_list_issue_makes_a_discrete_os():
     """A finite list issue makes a discrete outcome space with exact cardinality."""
     issue = ListIssue("L", rec2(), max_count=2, unique_by="a")
     os_ = make_os([issue, make_issue(2, "p")])
-    assert isinstance(os_, DiscreteCartesianOutcomeSpace)
+    assert isinstance(os_, EnumerableCartesianOutcomeSpace)
     assert os_.cardinality == issue.cardinality * 2 == len(list(os_.enumerate()))

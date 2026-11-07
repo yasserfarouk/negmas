@@ -670,7 +670,7 @@ set of issues and can be created using ``make_os`` function:
 
 
 A special case of ``CartesianOutcomeSpace`` is a
-``DiscreteCartesianOutcomeSpace`` (see the example above) which
+``EnumerableCartesianOutcomeSpace`` (see the example above) which
 represent a Cartesian outcome-space with discrete issues (i.e. no issues
 are continuous).
 
@@ -691,7 +691,7 @@ examples are:
 - **enumerate_or_sample** sample from continuous outcome-spaces and
   enumerate all outcomes of discrete outcome-spaces.
 
-``DiscreteOutcomeSpace`` is a special case of ``OutcomeSpace``
+``EnumerableOutcomeSpace`` is a special case of ``OutcomeSpace``
 representing a finite outcome space and adds some operations including:
 
 - **to_single_issue** generates a single-issue outcome-space with the

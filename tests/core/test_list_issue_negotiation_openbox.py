@@ -16,7 +16,7 @@ from negmas.gb.negotiators import WARNegotiator
 from negmas.outcomes import ListIssue, RecordIssue, make_issue, make_os
 from negmas.outcomes.outcome_space import (
     CartesianOutcomeSpace,
-    DiscreteCartesianOutcomeSpace,
+    EnumerableCartesianOutcomeSpace,
 )
 from negmas.preferences import (
     LinearAdditiveUtilityFunction,
@@ -67,7 +67,7 @@ def no_enumeration(monkeypatch):
         raise AssertionError("enumerated")
 
     monkeypatch.setattr(list_issue_module.ListIssue, "all", property(boom))
-    monkeypatch.setattr(DiscreteCartesianOutcomeSpace, "enumerate", boom)
+    monkeypatch.setattr(EnumerableCartesianOutcomeSpace, "enumerate", boom)
     monkeypatch.setattr(CartesianOutcomeSpace, "enumerate", boom, raising=False)
 
 

@@ -38,6 +38,14 @@ Unreleased
 
 **Changes:**
 
+* [outcomes] ``DiscreteOutcomeSpace`` and ``DiscreteCartesianOutcomeSpace``
+  are renamed ``EnumerableOutcomeSpace`` and
+  ``EnumerableCartesianOutcomeSpace``: they hold finite, listable spaces,
+  while ``is_discrete()`` now allows infinite ones. The old names still work
+  but warn (``NegmasDeprecationWarning``). Saving writes the new name, so
+  files saved by this version need it to load; files with the old name
+  still load, with a warning. Projects should require ``negmas>=0.17``
+  before switching to the new names or saving files with them.
 * [outcomes] ``is_discrete()`` now means countable (possibly infinite),
   ``is_finite()`` means finitely many values, and the new ``is_enumerable()``
   means all values can be listed; issues and outcome spaces implement all

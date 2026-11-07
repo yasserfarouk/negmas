@@ -24,7 +24,7 @@ from negmas.outcomes import (
 )
 from negmas.outcomes.outcome_space import (
     CartesianOutcomeSpace,
-    DiscreteCartesianOutcomeSpace,
+    EnumerableCartesianOutcomeSpace,
 )
 from negmas.preferences import LinearAdditiveUtilityFunction
 from negmas.preferences.value_fun import AffineFun, LambdaFun, TableFun
@@ -38,7 +38,7 @@ def no_enumeration(monkeypatch):
     def boom(*args, **kwargs):
         raise AssertionError("enumerated")
 
-    monkeypatch.setattr(DiscreteCartesianOutcomeSpace, "enumerate", boom)
+    monkeypatch.setattr(EnumerableCartesianOutcomeSpace, "enumerate", boom)
     monkeypatch.setattr(CountableInfiniteIssue, "all", property(boom))
     monkeypatch.setattr(StrIssue, "all", property(boom))
 
@@ -125,7 +125,7 @@ def test_countable_infinite_is_discrete_and_never_enumerated():
         list(q.all)
     os = make_os([q, make_issue(3, "k")])
     assert isinstance(os, CartesianOutcomeSpace)
-    assert not isinstance(os, DiscreteCartesianOutcomeSpace)
+    assert not isinstance(os, EnumerableCartesianOutcomeSpace)
     assert os.to_discrete(levels=4).cardinality == 12
 
 

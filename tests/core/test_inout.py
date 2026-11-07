@@ -9,7 +9,7 @@ import pytest
 from negmas import load_genius_domain_from_folder
 from negmas.inout import Scenario, STATS_FILE_NAME
 from negmas.outcomes import enumerate_issues
-from negmas.outcomes.outcome_space import DiscreteCartesianOutcomeSpace
+from negmas.outcomes.outcome_space import EnumerableCartesianOutcomeSpace
 from negmas.preferences.crisp.linear import LinearAdditiveUtilityFunction
 from negmas.preferences.ops import ScenarioStats
 from negmas.sao import AspirationNegotiator
@@ -196,7 +196,7 @@ def test_load_geniusweb_example_reserved_outcome():
     domain = GENIUSWEB_FOLDERS / "Fitness"
     scenario = Scenario.from_geniusweb_folder(domain, use_reserved_outcome=True)
     assert scenario is not None
-    assert isinstance(scenario.outcome_space, DiscreteCartesianOutcomeSpace)
+    assert isinstance(scenario.outcome_space, EnumerableCartesianOutcomeSpace)
     assert len(scenario.outcome_space.issues) == 5
     for i, (name, vals) in enumerate(
         (("type", 5), ("duration", 4), ("distance", 4), ("intensity", 4), ("price", 4))
@@ -219,7 +219,7 @@ def test_load_geniusweb_example_reserved_value():
     domain = GENIUSWEB_FOLDERS / "Fitness"
     scenario = Scenario.from_geniusweb_folder(domain, use_reserved_outcome=False)
     assert scenario is not None
-    assert isinstance(scenario.outcome_space, DiscreteCartesianOutcomeSpace)
+    assert isinstance(scenario.outcome_space, EnumerableCartesianOutcomeSpace)
     assert len(scenario.outcome_space.issues) == 5
     for i, (name, vals) in enumerate(
         (("type", 5), ("duration", 4), ("distance", 4), ("intensity", 4), ("price", 4))
@@ -243,7 +243,7 @@ def test_load_geniusweb_example_reserved_value():
 #     # folder_name = "/Users/yasser/code/projects/negmas/tests/data/scenarios/anac/y2012/FitnessC"
 #     d2 = Domain.from_genius_folder(folder_name, safe_parsing=False)
 #     d2.discretize()
-#     assert isinstance(d2.outcome_space, DiscreteCartesianOutcomeSpace)
+#     assert isinstance(d2.outcome_space, EnumerableCartesianOutcomeSpace)
 #     n = d2.outcome_space.cardinality
 #     if n < 10_000:
 #         d2.to_single_issue()

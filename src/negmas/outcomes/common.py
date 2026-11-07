@@ -150,7 +150,7 @@ def os_or_none(outcome_space, issues, outcomes) -> OutcomeSpace | None:
         - If nothing is given, it will just return None
         - Will not copy the outcome-space if it is given
         - A `CartesianOutcomeSpace` will be created if an outcome-space is not given
-        - If outcomes is given or all issues are discrete, a `DiscreteCartesianOutcomeSpace` will be created
+        - If outcomes is given or all issues are enumerable, an `EnumerableCartesianOutcomeSpace` will be created
     """
     from negmas.outcomes.outcome_space import make_os
 
@@ -172,7 +172,7 @@ def ensure_os(outcome_space, issues, outcomes) -> OutcomeSpace:
         - If neither is given, a `ValueError` exception will be raised.
         - Will not copy the outcome-space if it is given
         - A `CartesianOutcomeSpace` will be created if an outcome-space is not given
-        - If outcomes is given or all issues are discrete, a `DiscreteCartesianOutcomeSpace` will be created
+        - If outcomes is given or all issues are enumerable, an `EnumerableCartesianOutcomeSpace` will be created
     """
     from negmas.outcomes.outcome_space import make_os
 

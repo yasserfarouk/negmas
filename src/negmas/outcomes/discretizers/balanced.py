@@ -62,7 +62,7 @@ By default these discretizers *select outcomes*, producing a
 :class:`~negmas.outcomes.SubsetCartesianOutcomeSpace` that can have "holes"
 (valid issue-value combinations that are not selected). Passing ``full_grid=True``
 instead returns an ordinary hole-free
-:class:`~negmas.outcomes.DiscreteCartesianOutcomeSpace`: the number of values kept
+:class:`~negmas.outcomes.EnumerableCartesianOutcomeSpace`: the number of values kept
 per issue is fixed by ``min_levels``/``max_outcomes`` (a balanced allocation), and
 an optimizer chooses *which* values per issue so the full Cartesian grid's utility
 histogram over **fixed** reference bins (computed once from the dense pool) is as
@@ -89,7 +89,7 @@ import numpy as np
 
 from negmas.outcomes.categorical_issue import CategoricalIssue
 from negmas.outcomes.outcome_space import (
-    DiscreteCartesianOutcomeSpace,
+    EnumerableCartesianOutcomeSpace,
     SubsetCartesianOutcomeSpace,
     _balanced_levels,
     _grid_indices,
@@ -99,7 +99,7 @@ from ._protocol import BaseDiscretizer
 from .grid import GridBasedDiscretizer
 
 if TYPE_CHECKING:
-    from negmas.outcomes.protocols import DiscreteOutcomeSpace, Outcome, OutcomeSpace
+    from negmas.outcomes.protocols import EnumerableOutcomeSpace, Outcome, OutcomeSpace
     from negmas.preferences.base_ufun import BaseUtilityFunction
 
 __all__ = [
@@ -132,7 +132,7 @@ class BaseBalancedDiscretizer(BaseDiscretizer):
             mode it caps the number of values kept per issue.
         max_candidates: Size cap for the dense candidate grid.
         full_grid: If True, return a hole-free
-            :class:`~negmas.outcomes.DiscreteCartesianOutcomeSpace` whose per-issue
+            :class:`~negmas.outcomes.EnumerableCartesianOutcomeSpace` whose per-issue
             values are optimized for balance, instead of a
             :class:`~negmas.outcomes.SubsetCartesianOutcomeSpace` of selected
             outcomes.
@@ -169,7 +169,7 @@ class BaseBalancedDiscretizer(BaseDiscretizer):
             )
         self.n_bins = int(n_bins)
         self.max_candidates = int(max_candidates)
-        #: When True, return a hole-free ``DiscreteCartesianOutcomeSpace`` (a full
+        #: When True, return a hole-free ``EnumerableCartesianOutcomeSpace`` (a full
         #: Cartesian grid) whose per-issue values are optimized for balance,
         #: instead of a ``SubsetCartesianOutcomeSpace`` of selected outcomes.
         self.full_grid = bool(full_grid)
@@ -181,7 +181,7 @@ class BaseBalancedDiscretizer(BaseDiscretizer):
         """Returns ``(discrete_issues, candidate_outcomes)`` for ``outcome_space``."""
         os = outcome_space
         if os.is_enumerable():
-            dos: DiscreteOutcomeSpace = os  # type: ignore[assignment]
+            dos: EnumerableOutcomeSpace = os  # type: ignore[assignment]
         else:
             dos = GridBasedDiscretizer(
                 max_outcomes=self.max_candidates, min_levels=DEFAULT_DENSE_LEVELS
@@ -268,7 +268,7 @@ class BaseBalancedDiscretizer(BaseDiscretizer):
 
     def __call__(  # type: ignore[override]
         self, outcome_space: OutcomeSpace
-    ) -> DiscreteCartesianOutcomeSpace:
+    ) -> EnumerableCartesianOutcomeSpace:
         issues, candidates = self._candidates(outcome_space)
         name = getattr(outcome_space, "name", None)
         if not candidates:
@@ -285,14 +285,14 @@ class BaseBalancedDiscretizer(BaseDiscretizer):
     # -- hole-free grid optimization ----------------------------------------- #
     def _optimize_grid(
         self, issues: tuple, ref_utilities: np.ndarray, name: str | None
-    ) -> DiscreteCartesianOutcomeSpace:
+    ) -> EnumerableCartesianOutcomeSpace:
         """Chooses per-issue values so the full Cartesian grid is balanced.
 
         The number of values kept per issue is fixed by ``min_levels`` /
         ``max_outcomes`` (via :func:`_balanced_levels`); the optimizer then chooses
         *which* values so the grid's utility histogram over the fixed reference
         bins is as uniform as possible. Returns a hole-free
-        :class:`DiscreteCartesianOutcomeSpace`.
+        :class:`EnumerableCartesianOutcomeSpace`.
         """
         values = [list(iss.all) for iss in issues]  # candidate values per issue
         caps = [len(v) for v in values]
@@ -354,7 +354,7 @@ class BaseBalancedDiscretizer(BaseDiscretizer):
             CategoricalIssue([values[i][j] for j in sorted(chosen[i])], name=iss.name)
             for i, iss in enumerate(issues)
         )
-        return DiscreteCartesianOutcomeSpace(out_issues, name=name)
+        return EnumerableCartesianOutcomeSpace(out_issues, name=name)
 
 
 def _pick_evenly(n: int, k: int) -> list[int]:

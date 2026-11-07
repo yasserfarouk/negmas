@@ -5,7 +5,7 @@ from __future__ import annotations
 import pytest
 
 from negmas.outcomes import (
-    DiscreteCartesianOutcomeSpace,
+    EnumerableCartesianOutcomeSpace,
     SubsetCartesianOutcomeSpace,
     make_issue,
     make_os,
@@ -28,9 +28,9 @@ def continuous_os(n_issues: int = 2):
     return make_os([make_issue((0.0, 1.0), f"i{i}") for i in range(n_issues)])
 
 
-def discrete_os(*cards: int) -> DiscreteCartesianOutcomeSpace:
+def discrete_os(*cards: int) -> EnumerableCartesianOutcomeSpace:
     os = make_os([make_issue(c, f"i{i}") for i, c in enumerate(cards)])
-    assert isinstance(os, DiscreteCartesianOutcomeSpace)
+    assert isinstance(os, EnumerableCartesianOutcomeSpace)
     return os
 
 
@@ -66,7 +66,7 @@ def test_base_discretizer_values():
 def test_grid_continuous_basic():
     d = GridBasedDiscretizer(max_outcomes=1000, min_levels=5)
     dos = d(continuous_os(2))
-    assert isinstance(dos, DiscreteCartesianOutcomeSpace)
+    assert isinstance(dos, EnumerableCartesianOutcomeSpace)
     assert dos.cardinality == 25
 
 
@@ -126,7 +126,7 @@ def subset_space():
 
 def test_subset_is_discrete_cartesian():
     os = subset_space()
-    assert isinstance(os, DiscreteCartesianOutcomeSpace)
+    assert isinstance(os, EnumerableCartesianOutcomeSpace)
     assert os.is_discrete() and os.is_finite()
 
 
@@ -382,7 +382,7 @@ def test_grid_matches_to_discrete_outcomes_when_fits():
 
 
 # --------------------------------------------------------------------------- #
-# DiscreteCartesianOutcomeSpace.limit_cardinality (bug-fix regression)
+# EnumerableCartesianOutcomeSpace.limit_cardinality (bug-fix regression)
 # --------------------------------------------------------------------------- #
 def test_limit_cardinality_max_only_reduces():
     os = discrete_os(5, 5)  # 25
@@ -494,7 +494,7 @@ def test_full_grid_is_holeless_and_bounded(backend):
     r = BalancedOutcomeCountsInUFunBinsDiscretizer(
         u, n_bins=5, max_outcomes=25, full_grid=True, grid_optimizer=backend
     )(os)
-    assert isinstance(r, DiscreteCartesianOutcomeSpace)
+    assert isinstance(r, EnumerableCartesianOutcomeSpace)
     assert not isinstance(r, SubsetCartesianOutcomeSpace)
     per = [i.cardinality for i in r.issues]
     # no holes: full Cartesian product, nothing dropped
@@ -527,7 +527,7 @@ def test_full_grid_continuous_input():
     r = BalancedUFunVarianceDiscretizer(u, n_bins=4, max_outcomes=16, full_grid=True)(
         os
     )
-    assert isinstance(r, DiscreteCartesianOutcomeSpace)
+    assert isinstance(r, EnumerableCartesianOutcomeSpace)
     assert not isinstance(r, SubsetCartesianOutcomeSpace)
     assert r.cardinality == len(list(r.enumerate())) <= 16
 
@@ -540,7 +540,7 @@ def test_full_grid_multi_ufun():
     r = BalancedOutcomeCountsInUFunsBinsDiscretizer(
         [u1, u2], n_bins=3, max_outcomes=16, full_grid=True
     )(os)
-    assert isinstance(r, DiscreteCartesianOutcomeSpace)
+    assert isinstance(r, EnumerableCartesianOutcomeSpace)
     assert r.cardinality == len(list(r.enumerate())) <= 16
 
 
@@ -581,7 +581,7 @@ def test_to_discrete_method_instance_and_class():
     u = _ufun(os)
     inst = BalancedUFunVarianceDiscretizer(u, n_bins=4, max_outcomes=16, full_grid=True)
     r = os.to_discrete(method=inst)
-    assert isinstance(r, DiscreteCartesianOutcomeSpace)
+    assert isinstance(r, EnumerableCartesianOutcomeSpace)
     assert r.cardinality <= 16
     r2 = os.to_discrete(
         max_cardinality=15, method=BalancedUFunVarianceDiscretizer, ufun=u, n_bins=3

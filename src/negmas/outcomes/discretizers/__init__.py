@@ -4,7 +4,7 @@ A :class:`Discretizer` is *constructed* with two bounds — ``max_outcomes`` (a
 cardinality cap, ``None`` == no cap) and ``min_levels`` (levels per continuous
 issue, ``None`` == :data:`DEFAULT_LEVELS`) — and then *called* with an
 :class:`~negmas.outcomes.OutcomeSpace` to produce a
-:class:`~negmas.outcomes.DiscreteOutcomeSpace`::
+:class:`~negmas.outcomes.EnumerableOutcomeSpace`::
 
     from negmas.outcomes.discretizers import GridBasedDiscretizer
 
@@ -27,8 +27,8 @@ generalize them behind a single, configurable, reusable callable:
   <negmas.outcomes.OutcomeSpace.to_largest_discrete>` — picks the largest level
   count that fits under the cap by stepping levels down; this is exactly what
   ``GridBasedDiscretizer`` does (``min_levels=levels``, ``max_outcomes=max_cardinality``).
-- :meth:`DiscreteOutcomeSpace.limit_cardinality(max_cardinality, levels)
-  <negmas.outcomes.DiscreteOutcomeSpace.limit_cardinality>` — the complementary
+- :meth:`EnumerableOutcomeSpace.limit_cardinality(max_cardinality, levels)
+  <negmas.outcomes.EnumerableOutcomeSpace.limit_cardinality>` — the complementary
   tool that *shrinks an already-discrete space* (dropping values, balanced across
   issues); ``GridBasedDiscretizer`` does not do this (it keeps discrete issues and
   raises if they exceed the cap).

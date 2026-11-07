@@ -78,7 +78,7 @@ of possible agreements. :func:`~negmas.outcomes.make_os` builds one:
 
 Key outcome-space types are
 :class:`~negmas.outcomes.CartesianOutcomeSpace` (the general product) and
-:class:`~negmas.outcomes.DiscreteCartesianOutcomeSpace` (all issues discrete, so
+:class:`~negmas.outcomes.EnumerableCartesianOutcomeSpace` (all issues discrete, so
 it can be fully enumerated). Useful methods available on any outcome space:
 
 ======================================  ====================================================

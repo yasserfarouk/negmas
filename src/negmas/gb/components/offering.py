@@ -15,7 +15,7 @@ from negmas import warnings
 from negmas.common import PreferencesChangeType, Value
 from negmas.negotiators.helpers import PolyAspiration
 from negmas.outcomes.common import ExtendedOutcome
-from negmas.outcomes.protocols import DiscreteOutcomeSpace
+from negmas.outcomes.protocols import EnumerableOutcomeSpace
 from negmas.preferences.pareto_sampler import DefaultParetoSampler
 from negmas.preferences.protocols import InverseUFun, ParetoSampler
 
@@ -216,7 +216,7 @@ class HybridOfferingPolicy(OfferingPolicy):
                 levels=self.enumeration_levels,
                 max_cardinality=self.enumeration_max_cardinality,
             )
-            if not isinstance(os, DiscreteOutcomeSpace)
+            if not isinstance(os, EnumerableOutcomeSpace)
             else os.enumerate()
         )
         r = float(ufun.reserved_value)
