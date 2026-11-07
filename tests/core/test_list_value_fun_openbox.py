@@ -717,9 +717,9 @@ def test_unnamed_record_gets_a_deterministic_name():
 
 
 def test_huge_finite_list_reports_infinite_cardinality():
-    """A finite list with more than 1e10 values reports inf and not discrete."""
+    """A finite list with more than 1e10 values reports inf and not enumerable."""
     issue = ListIssue("L", make_issue(1000, "x"), max_count=5)
-    assert issue.cardinality == float("inf") and not issue.is_discrete()
+    assert issue.cardinality == float("inf") and not issue.is_enumerable()
     assert issue.is_valid(issue.rand())
 
 

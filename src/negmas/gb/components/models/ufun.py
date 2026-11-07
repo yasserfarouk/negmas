@@ -49,7 +49,7 @@ def _bucket_value(original_issue, discrete_issue, value):
     For already-discrete issues the value is returned unchanged. For continuous
     issues it is snapped to the nearest grid value of the discretized issue.
     """
-    if getattr(original_issue, "is_discrete", lambda: False)():
+    if getattr(original_issue, "is_enumerable", lambda: False)():
         return value
     best = None
     best_d = None

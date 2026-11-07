@@ -50,7 +50,7 @@ def _rand_mapping_normalized(x, mx, mn, r):
 
 def _random_mapping(issue: Issue, normalized=False):
     r = random.random()
-    if not issue.is_numeric() and not issue.is_discrete():
+    if not issue.is_numeric() and not issue.is_enumerable():
         raise ValueError(
             f"Cannot generate a random value function for {issue.name}: it is "
             f"neither numeric nor finite ({type(issue).__name__})"
@@ -68,7 +68,7 @@ def _random_mapping(issue: Issue, normalized=False):
             if normalized
             else partial(_rand_mapping, r=r)
         )
-    if isinstance(issue, DiscreteIssue) and issue.is_discrete():
+    if isinstance(issue, DiscreteIssue) and issue.is_enumerable():
         return dict(
             zip(
                 issue.all,
@@ -867,11 +867,11 @@ class LinearAdditiveUtilityFunction(UtilityFunction):  # type: ignore
                 if (
                     not self.issues
                     or len(self.issues) < i + 1
-                    or not self.issues[i].is_discrete()
+                    or not self.issues[i].is_enumerable()
                 ):
                     raise TypeError(
                         "When passing an iterable as the value function for an issue, "
-                        "the issue MUST be discrete"
+                        "the issue MUST be enumerable"
                     )
                 d = dict(zip(self.issues[i].enumerate(), v))  # type: ignore We know the issue is discrete
                 self.values.append(TableFun(d))

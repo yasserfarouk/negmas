@@ -327,27 +327,23 @@ class Issue(HasMinMax, Iterable, ABC):
 
     @abstractmethod
     def is_continuous(self) -> bool:
-        """
-        The issue has a continuous set of values. Note that this is different from having values that are real (which is tested using `is_float` )
-        """
+        """Whether the values form a continuum (unlike `is_float`, about the type)."""
         ...
 
     def is_discrete(self) -> bool:
-        """
-        Checks whether the issue has a discrete set of values. This is different from `is_integer` which checks that the values themselves are integers and `is_discrete_valued` which checks that they are discrete.
-        """
+        """Whether the values are countable (not a continuum), possibly infinitely many."""
         return not self.is_continuous()
 
     def is_finite(self) -> bool:
-        """
-        Checks whether the issue has a discrete set of values
-        """
+        """Whether the issue has finitely many values."""
         return self.is_discrete()
 
+    def is_enumerable(self) -> bool:
+        """Whether all values can be listed (by `all`/`enumerate`), not only sampled."""
+        return self.is_finite()
+
     def is_discrete_valued(self) -> bool:
-        """
-        Checks that each value of this issue is not a real number
-        """
+        """Whether no value is a real number (about the value type)."""
         return not self.is_float()
 
     @property
@@ -401,7 +397,7 @@ class Issue(HasMinMax, Iterable, ABC):
         """
         Checks weather this issue contains the input issue (i.e. every value in the input issue is in this issue)
         """
-        if isinstance(issue, DiscreteIssue) and issue.is_discrete():
+        if isinstance(issue, DiscreteIssue) and issue.is_enumerable():
             return all(self.is_valid(_) for _ in issue.all)
         return False
 
@@ -523,10 +519,10 @@ class Issue(HasMinMax, Iterable, ABC):
         """
         A generator that generates all possible values.
         """
-        if self.is_discrete():
+        if self.is_enumerable():
             return self.value_generator()
         raise ValueError(
-            f"The issue ({self}) is not discrete and `all` cannot be called on it"
+            f"The issue ({self}) is not enumerable and `all` cannot be called on it"
         )
 
     def __getitem__(self, indx):

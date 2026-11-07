@@ -401,7 +401,7 @@ class PresortingInverseUtilityFunction(InverseUFun):
         if not os_:
             raise ValueError("Unknown outcome space. Cannot invert the ufun")
 
-        if os_.is_discrete():
+        if os_.is_enumerable():
             return self.some(rng, normalized)
         raise ValueError(
             "Cannot find all outcomes in a range for a continuous outcome space (there is in general an infinite number of them)"

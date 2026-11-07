@@ -85,7 +85,8 @@ it can be fully enumerated). Useful methods available on any outcome space:
 Method                                  Purpose
 ======================================  ====================================================
 ``cardinality``                         Number of outcomes (``inf`` if infinite/continuous).
-``is_finite()`` / ``is_discrete()``     Whether it can be enumerated.
+``is_enumerable()`` / ``is_finite()``   Whether it can be enumerated / is finite.
+``is_discrete()``                       Whether it is countable (maybe infinite).
 ``enumerate_or_sample(...)``            Enumerate if finite, else sample.
 ``random_outcome()`` / ``sample(n)``    Draw random outcome(s).
 ``is_valid(outcome)``                   Membership test.

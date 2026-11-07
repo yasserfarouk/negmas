@@ -398,10 +398,12 @@ def test_property_rand_invalid_is_invalid(issue):
 
 @settings(max_examples=100, deadline=None)
 @given(any_list_issues())
-def test_property_discrete_means_finite_and_never_continuous(issue):
-    """is_discrete() == is_finite() == finite cardinality; is_continuous() is False."""
+def test_property_enumerable_means_finite_and_never_continuous(issue):
+    """is_enumerable() == is_finite() == finite cardinality; is_continuous() is False."""
     assert issue.is_continuous() is False
-    assert issue.is_discrete() == issue.is_finite() == math.isfinite(issue.cardinality)
+    assert (
+        issue.is_enumerable() == issue.is_finite() == math.isfinite(issue.cardinality)
+    )
 
 
 @settings(max_examples=60, deadline=None)
@@ -608,7 +610,7 @@ def test_construction_with_a_large_unique_key_space_is_fast():
 def test_os_with_infinite_list_issue_samples_and_discretizes():
     """An outcome space with an infinite list issue samples and discretizes."""
     os_ = make_os([ListIssue("L", rec2()), make_issue(3, "p")])
-    assert not os_.is_discrete()
+    assert not os_.is_enumerable()
     o = os_.random_outcome()
     assert os_.is_valid(o) and os_.is_valid(jsonify(o))
     # os.sample may return fewer than asked: _sample_issues truncates when it

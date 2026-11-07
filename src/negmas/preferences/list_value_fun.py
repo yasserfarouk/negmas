@@ -125,7 +125,7 @@ def _as_fun(f: Any) -> BaseFun | None:
 
 def _candidates(issue: Issue, limit: int = _N_SAMPLES) -> list:
     """All values of a small finite issue, else samples plus finite endpoints."""
-    if issue.is_discrete() and issue.cardinality <= _MAX_ENUMERATION:
+    if issue.is_enumerable() and issue.cardinality <= _MAX_ENUMERATION:
         return list(issue.all)
     vals = list(issue.value_generator(limit))
     if issue.is_numeric():
@@ -414,7 +414,9 @@ class _ElementScorer:
         if not self.is_record:
             if fixed:
                 return fixed[0]
-            if not (element.is_discrete() and element.cardinality <= _MAX_ENUMERATION):
+            if not (
+                element.is_enumerable() and element.cardinality <= _MAX_ENUMERATION
+            ):
                 self.exact = isinstance(self.f, (AffineFun, LinearFun, IdentityFun))
             w, b = _arg_extremes(self.score, _candidates(element))
             return b if maximize else w
@@ -425,7 +427,7 @@ class _ElementScorer:
             v = [fixed.get(i) for i in range(len(fields))]
             for i in free:
                 fi = fields[i]
-                if not (fi.is_discrete() and fi.cardinality <= _MAX_ENUMERATION):
+                if not (fi.is_enumerable() and fi.cardinality <= _MAX_ENUMERATION):
                     self.exact = self.exact and isinstance(
                         funs[i], (AffineFun, LinearFun, IdentityFun, ConstFun)
                     )
@@ -586,7 +588,7 @@ class ListAggregationFun(BaseFun):
         best count. Optimal because elements are scored independently.
         """
         if not isinstance(issue, ListIssue):
-            if not issue.is_discrete():
+            if not issue.is_enumerable():
                 raise TypeError(f"ListAggregationFun needs a ListIssue, got {issue}")
             # an explicit finite set of lists (e.g. a discretized view)
             scored = [(self(v), v) for v in issue.all]
@@ -958,7 +960,9 @@ class ListAggregationMultiFun(BaseMultiFun):
 def _context_combinations(context: Sequence[Issue]) -> list[tuple]:
     """All combinations of the context issues' values, or a sample of them."""
     cands = [_candidates(_, _MAX_CONTEXTS) for _ in context]
-    exact = all(_.is_discrete() and _.cardinality <= _MAX_ENUMERATION for _ in context)
+    exact = all(
+        _.is_enumerable() and _.cardinality <= _MAX_ENUMERATION for _ in context
+    )
     n = math.prod(len(_) for _ in cands)
     if exact and n <= _MAX_ENUMERATION:
         return list(product(*cands))

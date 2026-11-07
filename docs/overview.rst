@@ -680,8 +680,8 @@ examples are:
 
 - **is_numeric, is_integer, is_float** Checks if all components of all
   outcomes are numeric, integer or float.
-- **is_discrete, is_finite, is_continuous** Check if the outcome space
-  itself is discrete, finite or continuous.
+- **is_discrete, is_finite, is_enumerable, is_continuous** Check if the
+  outcome space is countable, finite, listable or continuous.
 - **cardinality** returns the number of outcomes in the outcome-space.
 - **cardinality_if_discretized** returns the number of outcomes in the
   outcome-space if we discretize it.

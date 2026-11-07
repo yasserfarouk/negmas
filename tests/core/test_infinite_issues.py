@@ -117,9 +117,10 @@ def test_generators_and_to_discrete_are_finite(issue):
     assert len(issue.rand_outcomes(20, with_replacement=False)) == 20
 
 
-def test_countable_infinite_is_not_discrete_and_never_enumerated():
+def test_countable_infinite_is_discrete_and_never_enumerated():
     q = IntIssue("q", min=0)
-    assert not q.is_discrete() and not q.is_finite() and not q.is_continuous()
+    assert q.is_discrete() and not q.is_finite() and not q.is_continuous()
+    assert not q.is_enumerable()
     with pytest.raises(ValueError):
         list(q.all)
     os = make_os([q, make_issue(3, "k")])
@@ -167,7 +168,8 @@ def test_str_issue_validity_and_rand():
     for _ in range(200):
         v = s.rand()
         assert s.is_valid(v) and set(v) <= set("xyz")
-    assert s.cardinality == float("inf") and not s.is_discrete()
+    assert s.cardinality == float("inf") and not s.is_enumerable()
+    assert s.is_discrete() and not s.is_finite()
 
 
 @settings(max_examples=100, deadline=None)
@@ -284,3 +286,27 @@ def test_normalizing_a_bounded_value_function_on_infinite_issues_works():
     )
     n = u.normalize()
     assert n((0, "z")) == pytest.approx(1.0)
+
+
+def test_discrete_finite_enumerable_predicates():
+    """is_discrete: countable; is_finite: finitely many; is_enumerable: listable."""
+    from negmas.outcomes.list_issue import ListIssue
+
+    cases = [
+        (make_issue(["a", "b"], "c"), (True, True, True)),
+        (make_issue((0, 5), "i"), (True, True, True)),
+        (make_issue((0.0, 1.0), "r"), (False, False, False)),
+        (IntIssue("q", min=0), (True, False, False)),
+        (StrIssue("s", 0, 3), (True, False, False)),
+        (ListIssue("l", make_issue(["a", "b"], "e"), max_count=2), (True, True, True)),
+        (
+            ListIssue("l", make_issue((0.0, 1.0), "e"), max_count=2),
+            (False, False, False),
+        ),
+    ]
+    for issue, expected in cases:
+        got = (issue.is_discrete(), issue.is_finite(), issue.is_enumerable())
+        assert got == expected, issue
+    os = make_os([IntIssue("q", min=0), make_issue(3, "k")])
+    assert os.is_discrete() and not os.is_finite() and not os.is_enumerable()
+    assert make_os([make_issue(3, "k")]).is_enumerable()

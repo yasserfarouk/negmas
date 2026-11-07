@@ -249,7 +249,7 @@ class IPUtilityFunction(ProbUtilityFunction):
             )
         if u.outcome_space is None:
             raise ValueError("Unknown outcome space")
-        if not u.outcome_space.is_discrete():
+        if not u.outcome_space.is_enumerable():
             raise ValueError(
                 "Cannot be constructed from a ufun with an infinite outcome space"
             )

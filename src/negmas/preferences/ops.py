@@ -4158,7 +4158,7 @@ def get_ranks_bf(
 ) -> list[float]:
     """Computes ordinal ranks of outcomes using brute-force sorting."""
     assert ufun.outcome_space is not None
-    assert ufun.outcome_space.is_discrete()
+    assert ufun.outcome_space.is_enumerable()
     alloutcomes = list(ufun.outcome_space.enumerate_or_sample())
     n = len(alloutcomes)
     warn_if_slow(n, "Calculating Rank UFun is too Slow")
@@ -4219,7 +4219,7 @@ def get_ranks(
         Array of ranks (higher rank = higher utility). Includes rank for None (disagreement).
     """
     assert ufun.outcome_space is not None
-    assert ufun.outcome_space.is_discrete()
+    assert ufun.outcome_space.is_enumerable()
     alloutcomes = (
         list(ufun.outcome_space.enumerate_or_sample())
         if not outcomes
@@ -4284,7 +4284,7 @@ def make_rank_ufun(ufun: UtilityFunction, normalize: bool = False) -> UtilityFun
         normalize: if True, the resulting ranks will be normalized between 0 and 1.
     """
     assert ufun.outcome_space is not None
-    assert ufun.outcome_space.is_discrete()
+    assert ufun.outcome_space.is_enumerable()
     alloutcomes = list(ufun.outcome_space.enumerate_or_sample()) + [None]
     ranks = get_ranks(ufun, alloutcomes, normalize=normalize)
     reserved = ranks[-1]

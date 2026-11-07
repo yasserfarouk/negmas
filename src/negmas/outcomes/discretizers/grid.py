@@ -84,7 +84,7 @@ class GridBasedDiscretizer(BaseDiscretizer):
         os = outcome_space
         max_card = self.max_cardinality
 
-        if os.is_discrete():
+        if os.is_enumerable():
             dos: DiscreteOutcomeSpace = os  # type: ignore[assignment]
             if dos.cardinality <= max_card:
                 return dos
@@ -99,7 +99,7 @@ class GridBasedDiscretizer(BaseDiscretizer):
         for level in range(self.levels, 0, -1):
             issues = tuple(
                 issue.to_discrete(level, compact=False, grid=True, endpoints=True)
-                if not issue.is_discrete()
+                if not issue.is_enumerable()
                 else issue
                 for issue in os.issues  # type: ignore[attr-defined]
             )
@@ -113,7 +113,7 @@ class GridBasedDiscretizer(BaseDiscretizer):
         one_level = reduce(
             mul,
             [
-                (1 if not i.is_discrete() else i.cardinality)
+                (1 if not i.is_finite() else i.cardinality)
                 for i in os.issues  # type: ignore[attr-defined]
             ],
             1,

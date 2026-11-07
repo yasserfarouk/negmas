@@ -71,8 +71,16 @@ class OptionalIssue(Issue):
         return self.base.is_continuous()
 
     def is_discrete(self) -> bool:
-        """Discrete (enumerable) exactly when the wrapped issue is."""
+        """Discrete exactly when the wrapped issue is."""
         return self.base.is_discrete()
+
+    def is_finite(self) -> bool:
+        """Finite exactly when the wrapped issue is."""
+        return self.base.is_finite()
+
+    def is_enumerable(self) -> bool:
+        """Enumerable exactly when the wrapped issue is."""
+        return self.base.is_enumerable()
 
     @property
     def cardinality(self) -> int | float:

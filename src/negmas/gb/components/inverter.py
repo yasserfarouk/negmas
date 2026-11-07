@@ -48,7 +48,7 @@ def make_inverter(
     # return (
     #     SamplingInverseUtilityFunction(ufun)
     #     if ufun.outcome_space is None
-    #     or ufun.outcome_space.is_discrete() and ufun.outcome_space.cardinality >= max_cardinality
+    #     or ufun.outcome_space.is_enumerable() and ufun.outcome_space.cardinality >= max_cardinality
     #     else PresortingInverseUtilityFunction(ufun)
     # )
 

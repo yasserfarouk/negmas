@@ -310,13 +310,13 @@ def _issue_values(issue: Any, n_levels: int, funs: Any = ()) -> list[Any]:
     from negmas.outcomes.list_issue import ListIssue
 
     if isinstance(issue, ListIssue):
-        if issue.is_discrete() and issue.cardinality <= 1000:
+        if issue.is_enumerable() and issue.cardinality <= 1000:
             return list(issue.all)
         # samples plus the greedy extremes of the value funs in `funs`
         from negmas.preferences.list_value_fun import list_issue_candidates
 
         return list_issue_candidates(issue, funs, n=max(10 * n_levels, 100))
-    if issue.is_discrete():
+    if issue.is_enumerable():
         return list(issue.all)
     return list(issue.to_discrete(n=n_levels).all)
 

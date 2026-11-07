@@ -872,7 +872,7 @@ class LambdaFun(BaseFun):
 
     def xml(self, indx: int, issue: Issue, bias=0.0) -> str:
         """Export this function to GENIUS XML format (discrete issues only)."""
-        if issue.is_discrete():
+        if issue.is_enumerable():
             values = list(issue.all)
             return TableFun(dict(zip(values, [self(_) for _ in values]))).xml(
                 indx, issue, bias
@@ -1640,7 +1640,7 @@ class TrapezoidalFun(BaseFun):
         GENIUS has no native trapezoidal evaluator, so this is only
         supported for discrete issues via a lookup table.
         """
-        if issue.is_discrete():
+        if issue.is_enumerable():
             vals = list(issue.all)
             return TableFun(dict(zip(vals, [self(_) for _ in vals]))).xml(
                 indx, issue, bias
@@ -1753,7 +1753,7 @@ class GaussianFun(BaseFun):
         GENIUS has no native Gaussian evaluator, so this is only supported
         for discrete issues via a lookup table.
         """
-        if issue.is_discrete():
+        if issue.is_enumerable():
             vals = list(issue.all)
             return TableFun(dict(zip(vals, [self(_) for _ in vals]))).xml(
                 indx, issue, bias
@@ -1884,7 +1884,7 @@ class AggregatingFun(BaseFun):
         GENIUS has no native evaluator for an arbitrary weighted sum, so
         this is only supported for discrete issues via a lookup table.
         """
-        if issue.is_discrete():
+        if issue.is_enumerable():
             vals = list(issue.all)
             return TableFun(dict(zip(vals, [self(_) for _ in vals]))).xml(
                 indx, issue, bias
@@ -2167,7 +2167,7 @@ class MultiModalTrapezoidalFun(BaseFun):
         return self._agg().minmax(input)
 
     def xml(self, indx: int, issue: Issue, bias=0.0) -> str:
-        if issue.is_discrete():
+        if issue.is_enumerable():
             vals = list(issue.all)
             return TableFun(dict(zip(vals, [self(_) for _ in vals]))).xml(
                 indx, issue, bias
@@ -2289,7 +2289,7 @@ class MultiModalGaussianFun(BaseFun):
         return self._agg().minmax(input)
 
     def xml(self, indx: int, issue: Issue, bias=0.0) -> str:
-        if issue.is_discrete():
+        if issue.is_enumerable():
             vals = list(issue.all)
             return TableFun(dict(zip(vals, [self(_) for _ in vals]))).xml(
                 indx, issue, bias

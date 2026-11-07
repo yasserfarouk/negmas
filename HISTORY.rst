@@ -38,10 +38,15 @@ Unreleased
 
 **Changes:**
 
-* [outcomes] ``CountableInfiniteIssue`` is no longer discrete. It is sampled,
-  never enumerated. Infinite issues now sample from a configurable
-  ``typical`` range: before, sampling was uniform over ``±sys.maxsize``, or
-  returned ``inf``/``nan`` for reals. Copying an infinite issue keeps its type.
+* [outcomes] ``is_discrete()`` now means countable (possibly infinite),
+  ``is_finite()`` means finitely many values, and the new ``is_enumerable()``
+  means all values can be listed; issues and outcome spaces implement all
+  three. Code that enumerates checks ``is_enumerable()``. A
+  ``CountableInfiniteIssue`` (and a ``StrIssue``) is discrete but neither
+  finite nor enumerable: it is sampled, never enumerated.
+* [outcomes] Infinite issues sample from a configurable ``typical`` range:
+  before, sampling was uniform over ``±sys.maxsize``, or returned
+  ``inf``/``nan`` for reals. Copying an infinite issue keeps its type.
 * [preferences] Normalizing a value function that is unbounded over its issue
   raises a clear ``ValueError``.
 * [gb] ``WARNegotiator`` raises a clear error on infinite outcome spaces.

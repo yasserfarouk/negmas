@@ -88,10 +88,10 @@ def test_contains_on_infinite_and_optional_issues():
     assert not make_issue([3], "q").contains(IntIssue("q", min=3))
 
 
-def test_optional_infinite_issue_is_not_discrete():
+def test_optional_infinite_issue_is_not_enumerable():
     oi = OptionalIssue(IntIssue("x", min=0))
-    assert not oi.is_discrete()
-    assert not make_os([oi]).is_discrete()
+    assert oi.is_discrete() and not oi.is_enumerable()
+    assert not make_os([oi]).is_enumerable()
     assert oi.is_valid(None) and oi.is_valid(3) and not oi.is_valid(-1)
 
 

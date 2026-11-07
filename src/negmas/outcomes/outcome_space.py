@@ -96,7 +96,7 @@ def make_os(
         )
 
     issues_ = tuple(issues_)
-    if all(_.is_discrete() for _ in issues_):
+    if all(_.is_enumerable() for _ in issues_):
         return DiscreteCartesianOutcomeSpace(
             issues_, name=name if name else "", path=path
         )
@@ -369,16 +369,20 @@ class EnumeratingOutcomeSpace(DiscreteOutcomeSpace, OSWithValidity):
         *,
         seed: int | None = None,
     ) -> Iterable[Outcome]:
-        """Enumerates all outcomes if possible (i.e. discrete space) or returns `max_cardinality` different outcomes otherwise"""
+        """Enumerates all outcomes if the space is enumerable, else samples `max_cardinality` of them."""
         return self.enumerate()
 
     def is_discrete(self) -> bool:
-        """Checks whether there are no continua components of the space"""
+        """Always True: the outcomes are listed explicitly."""
         return True
 
     def is_finite(self) -> bool:
-        """Checks whether the space is finite"""
-        return self.is_discrete()
+        """Always True."""
+        return True
+
+    def is_enumerable(self) -> bool:
+        """Always True."""
+        return True
 
     def __contains__(self, item: Outcome | OutcomeSpace | Issue) -> bool:  # type: ignore
         """Checks if the given item is contained in this outcome space."""
@@ -547,12 +551,16 @@ class CartesianOutcomeSpace(XmlSerializable):
         return outcome_is_valid(outcome, self.issues)
 
     def is_discrete(self) -> bool:
-        """Checks whether all issues are discrete"""
+        """Whether all issues are discrete (countable, possibly infinite)."""
         return all(_.is_discrete() for _ in self.issues)
 
     def is_finite(self) -> bool:
-        """Checks whether the space is finite"""
-        return self.is_discrete()
+        """Whether all issues are finite."""
+        return all(_.is_finite() for _ in self.issues)
+
+    def is_enumerable(self) -> bool:
+        """Whether all issues are enumerable, so all outcomes can be listed."""
+        return all(_.is_enumerable() for _ in self.issues)
 
     def contains_os(self, x: OutcomeSpace) -> bool:
         """Checks whether an outcome-space is contained in this outcome-space"""
@@ -679,7 +687,7 @@ class CartesianOutcomeSpace(XmlSerializable):
         if max_cardinality != float("inf"):
             c = reduce(
                 mul,
-                [_.cardinality if _.is_discrete() else levels for _ in self.issues],
+                [_.cardinality if _.is_finite() else levels for _ in self.issues],
                 1,
             )
             if c > max_cardinality:
@@ -688,7 +696,7 @@ class CartesianOutcomeSpace(XmlSerializable):
                 )
         issues = tuple(
             issue.to_discrete(
-                levels if not issue.is_discrete() else None,
+                levels if not issue.is_enumerable() else None,
                 compact=False,
                 grid=True,
                 endpoints=True,
@@ -775,7 +783,7 @@ class CartesianOutcomeSpace(XmlSerializable):
     ) -> int:
         """Computes the cardinality that would result from discretizing continuous issues."""
         c = reduce(
-            mul, [_.cardinality if _.is_discrete() else levels for _ in self.issues], 1
+            mul, [_.cardinality if _.is_finite() else levels for _ in self.issues], 1
         )
         return min(c, max_cardinality)
 
@@ -820,7 +828,7 @@ class CartesianOutcomeSpace(XmlSerializable):
         aggregator: Callable[[Iterable[bool]], bool] = any,
     ) -> Iterable[Outcome]:
         """
-        Enumerates all outcomes if possible (i.e. discrete space) or returns `max_cardinality` different outcomes otherwise.
+        Enumerates all outcomes if the space is enumerable, else samples `max_cardinality` of them.
 
         Args:
             preferences: A list of `Preferences` that is used to judge outcomes
@@ -835,7 +843,7 @@ class CartesianOutcomeSpace(XmlSerializable):
         if (
             levels == float("inf")
             and max_cardinality == float("inf")
-            and not self.is_discrete()
+            and not self.is_finite()
         ):
             raise ValueError(
                 "Cannot enumerate-or-sample an outcome space with infinite outcomes without specifying `levels` and/or `max_cardinality`"
@@ -878,11 +886,11 @@ class CartesianOutcomeSpace(XmlSerializable):
         *,
         seed: int | None = None,
     ) -> Iterable[Outcome]:
-        """Enumerates all outcomes if possible (i.e. discrete space) or returns `max_cardinality` different outcomes otherwise"""
+        """Enumerates all outcomes if the space is enumerable, else samples `max_cardinality` of them."""
         if (
             levels == float("inf")
             and max_cardinality == float("inf")
-            and not self.is_discrete()
+            and not self.is_finite()
         ):
             raise ValueError(
                 "Cannot enumerate-or-sample an outcome space with infinite outcomes without specifying `levels` and/or `max_cardinality`"
@@ -976,11 +984,11 @@ class DiscreteCartesianOutcomeSpace(CartesianOutcomeSpace):
         return self
 
     def __attrs_post_init__(self):
-        """Validates that all issues in the space are discrete."""
+        """Validates that all issues in the space are enumerable."""
         for issue in self.issues:
-            if not issue.is_discrete():
+            if not issue.is_enumerable():
                 raise ValueError(
-                    f"Issue is not discrete. Cannot be added to a DiscreteOutcomeSpace. You must discretize it first: {issue} "
+                    f"Issue is not enumerable. Cannot be added to a DiscreteOutcomeSpace. You must discretize it first: {issue} "
                 )
 
     @property
@@ -1059,7 +1067,15 @@ class DiscreteCartesianOutcomeSpace(CartesianOutcomeSpace):
         )
 
     def is_discrete(self) -> bool:
-        """Checks whether there are no continua components of the space"""
+        """Always True: every issue is enumerable."""
+        return True
+
+    def is_finite(self) -> bool:
+        """Always True."""
+        return True
+
+    def is_enumerable(self) -> bool:
+        """Always True."""
         return True
 
     def to_discrete(
@@ -1548,9 +1564,9 @@ def os_difference(
 #     def __attrs_post_init__(self):
 #         object.__setattr__(self, "issues", flat_issues(self.outcome_spaces))
 #         for issue in self.issues:
-#             if not issue.is_discrete():
+#             if not issue.is_enumerable():
 #                 raise ValueError(
-#                     f"Issue is not discrete. Cannot be added to a DiscreteOutcomeSpace. You must discretize it first: {issue} "
+#                     f"Issue is not enumerable. Cannot be added to a DiscreteOutcomeSpace. You must discretize it first: {issue} "
 #                 )
 #         object.__setattr__(
 #             self, "_sizes", tuple(int(_.cardinality) for _ in self.outcome_spaces)

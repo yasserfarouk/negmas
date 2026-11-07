@@ -184,11 +184,11 @@ class PAUtilityFunction(UtilityFunction):
                 if (
                     not self.issues
                     or len(self.issues) < i + 1
-                    or not self.issues[i].is_discrete()
+                    or not self.issues[i].is_enumerable()
                 ):
                     raise TypeError(
                         "When passing an iterable as the value function for an issue, "
-                        "the issue MUST be discrete"
+                        "the issue MUST be enumerable"
                     )
                 d = dict(zip(self.issues[i].enumerate(), v))  # type: ignore
                 self._values.append(TableFun(d))

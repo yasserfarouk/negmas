@@ -180,7 +180,7 @@ class BaseBalancedDiscretizer(BaseDiscretizer):
     def _candidates(self, outcome_space: OutcomeSpace) -> tuple[tuple, list[Outcome]]:
         """Returns ``(discrete_issues, candidate_outcomes)`` for ``outcome_space``."""
         os = outcome_space
-        if os.is_discrete():
+        if os.is_enumerable():
             dos: DiscreteOutcomeSpace = os  # type: ignore[assignment]
         else:
             dos = GridBasedDiscretizer(

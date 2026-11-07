@@ -381,8 +381,8 @@ class HillClimbingSTMechanism(VetoSTMechanism):
         super().__init__(*args, **kwargs)
 
         for issue in self.issues:
-            if issue.is_discrete() is False:
-                raise ValueError("This mechanism assume discrete issues")
+            if issue.is_enumerable() is False:
+                raise ValueError("This mechanism assumes enumerable issues")
 
         if self.initial_outcome is None:
             self.initial_outcome = self.random_outcomes(1)[0]

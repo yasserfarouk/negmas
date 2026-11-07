@@ -344,14 +344,15 @@ def test_str_contains_and_genius():
         s._to_xml_str(0)
 
 
-# ---------------------------------------------------------------- is_discrete change
+# ------------------------------------------------- discrete but not enumerable
 
 
-def test_countable_infinite_is_never_enumerated_despite_its_class():
-    """Decision: CountableInfiniteIssue keeps its DiscreteIssue base class
-    (compatibility) but reports is_discrete() False and refuses enumeration."""
+def test_countable_infinite_is_discrete_but_never_enumerated():
+    """CountableInfiniteIssue is discrete (countable) but neither finite nor
+    enumerable, and refuses enumeration."""
     i = IntIssue("x")
-    assert isinstance(i, DiscreteIssue) and not i.is_discrete()
+    assert isinstance(i, DiscreteIssue) and i.is_discrete()
+    assert not i.is_finite() and not i.is_enumerable()
     with pytest.raises(ValueError):
         list(i.all)
 
@@ -378,9 +379,9 @@ def test_intersect_infinite_with_finite():
     [make_issue(str, "n", optional=True), make_issue((0, INF), "n", optional=True)],
     ids=["str", "int"],
 )
-def test_optional_infinite_issue_is_not_discrete(issue):
-    """Optional infinite issues are not discrete and give a CartesianOutcomeSpace."""
-    assert not issue.is_discrete() and not issue.is_finite()
+def test_optional_infinite_issue_is_not_enumerable(issue):
+    """Optional infinite issues are not enumerable and give a CartesianOutcomeSpace."""
+    assert issue.is_discrete() and not issue.is_finite() and not issue.is_enumerable()
     os = make_os([issue, make_issue(["a", "b"], "k")])
     assert type(os) is CartesianOutcomeSpace
 

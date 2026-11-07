@@ -86,11 +86,8 @@ class StrIssue(Issue):
     def is_continuous(self) -> bool:
         return False
 
-    def is_discrete(self) -> bool:
-        """False: too many values to enumerate (sampled instead)."""
-        return False
-
     def is_finite(self) -> bool:
+        """False: treated as infinite (see `cardinality`); sampled, never enumerated."""
         return False
 
     def is_numeric(self) -> bool:

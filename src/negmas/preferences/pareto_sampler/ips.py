@@ -358,7 +358,7 @@ def _values(issue, *funs) -> list:
 
     if isinstance(issue, ListIssue):
         return list_issue_candidates(issue, funs)
-    if not issue.is_discrete() and not issue.is_continuous():
+    if not issue.is_enumerable() and not issue.is_continuous():
         # infinite integers or strings (continuous issues stay unsupported)
         return list(issue.value_generator(20))
     return list(issue.all)

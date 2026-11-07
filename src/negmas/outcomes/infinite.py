@@ -119,7 +119,7 @@ class CountableInfiniteIssue(ContiguousIssue, InfiniteIssue):
 
     Remarks:
         - Infinities are stored as +- INFINITE_INT.
-        - The issue is not discrete (it cannot be enumerated): it is sampled.
+        - The issue is discrete but not finite: it is sampled, never enumerated.
     """
 
     def __init__(
@@ -161,11 +161,8 @@ class CountableInfiniteIssue(ContiguousIssue, InfiniteIssue):
     def is_continuous(self) -> bool:
         return False
 
-    def is_discrete(self) -> bool:
-        """False: infinitely many values (sampled, never enumerated)."""
-        return False
-
     def is_finite(self) -> bool:
+        """False: infinitely many integers (discrete, but sampled, never enumerated)."""
         return False
 
     def is_integer(self) -> bool:

@@ -123,16 +123,20 @@ class OutcomeSpace(Container, Protocol):
         *,
         seed: int | None = None,
     ) -> Iterable[Outcome]:
-        """Enumerates all outcomes if possible (i.e. discrete space) or returns `max_cardinality` different outcomes otherwise"""
+        """Enumerates all outcomes if the space is enumerable, else samples `max_cardinality` of them."""
         ...
 
     def is_discrete(self) -> bool:
-        """Checks whether there are no continua components of the space"""
+        """Whether the space is countable (no continuous issue), possibly infinite."""
         ...
 
     def is_finite(self) -> bool:
-        """Checks whether the space is finite"""
-        return self.is_discrete()
+        """Whether the space has finitely many outcomes."""
+        return self.cardinality < float("inf")
+
+    def is_enumerable(self) -> bool:
+        """Whether all outcomes can be listed (by `enumerate`), not only sampled."""
+        return self.is_finite()
 
     def __contains__(self, item: Outcome | OutcomeSpace | Issue) -> bool:  # type: ignore
         """Check if an outcome, outcome space, or issue is contained in this space.
@@ -219,7 +223,15 @@ class DiscreteOutcomeSpace(OutcomeSpace, Collection, Protocol):
         ...
 
     def is_discrete(self) -> bool:
-        """Checks whether there are no continua components of the space"""
+        """Always True: a discrete outcome space is finite and enumerable."""
+        return True
+
+    def is_finite(self) -> bool:
+        """Always True."""
+        return True
+
+    def is_enumerable(self) -> bool:
+        """Always True."""
         return True
 
     def to_discrete(self, *args, **kwargs) -> DiscreteOutcomeSpace:

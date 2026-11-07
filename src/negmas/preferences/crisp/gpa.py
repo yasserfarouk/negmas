@@ -432,7 +432,7 @@ class GPAUtilityFunction(UtilityFunction):
                 else:
                     selected_issues = [issues[i] for i in selected_indices]
                     all_discrete = all(
-                        issue.is_discrete() and issue.cardinality <= 10
+                        issue.is_enumerable() and issue.cardinality <= 10
                         for issue in selected_issues
                     )
                     if all_discrete:

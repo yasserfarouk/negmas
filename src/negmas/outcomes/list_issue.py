@@ -173,12 +173,16 @@ class RecordIssue(Issue):
         return any(f.is_continuous() for f in self._values)
 
     def is_discrete(self) -> bool:
-        """A record is discrete (finite and enumerable) if all its fields are."""
+        """A record is discrete if all its fields are."""
         return all(f.is_discrete() for f in self._values)
 
     def is_finite(self) -> bool:
         """A record is finite if all its fields are."""
-        return self.is_discrete()
+        return all(f.is_finite() for f in self._values)
+
+    def is_enumerable(self) -> bool:
+        """A record is enumerable if all its fields are."""
+        return all(f.is_enumerable() for f in self._values)
 
     def is_numeric(self) -> bool:
         """Records are tuples, not numbers."""
@@ -216,7 +220,7 @@ class RecordIssue(Issue):
     @property
     def all(self) -> Generator[tuple, None, None]:
         """All records (only for finite records)."""
-        if not self.is_discrete():
+        if not self.is_enumerable():
             raise ValueError(f"The record {self.name} is not finite")
         yield from product(*(list(f.all) for f in self._values))
 
@@ -234,7 +238,7 @@ class RecordIssue(Issue):
 
     def value_at(self, index: int):
         """The record at `index` in enumeration order (finite records only)."""
-        if not self.is_discrete():
+        if not self.is_enumerable():
             raise ValueError(f"Cannot index the infinite record {self.name}")
         if index < 0 or index >= self.cardinality:
             raise IndexError(index)
@@ -248,13 +252,13 @@ class RecordIssue(Issue):
         self, n: int | float | None = 10, grid=True, compact=True, endpoints=True
     ) -> RecordIssue:
         """A finite record with every non-finite field discretized to `n` levels."""
-        if self.is_discrete():
+        if self.is_enumerable():
             return self
         levels = 10 if n is None or not math.isfinite(n) else int(n)
         return RecordIssue(
             [
                 f
-                if f.is_discrete()
+                if f.is_enumerable()
                 else f.to_discrete(levels, grid=grid, compact=False, endpoints=True)
                 for f in self._values
             ],
@@ -453,7 +457,7 @@ class ListIssue(Issue):
         if self._key_idx is None:
             return float("inf")
         fields = self._key_fields()
-        if not all(f.is_discrete() for f in fields):
+        if not all(f.is_finite() for f in fields):
             return float("inf")
         return reduce(mul, [f.cardinality for f in fields], 1)
 
@@ -475,7 +479,7 @@ class ListIssue(Issue):
         if hi == 0:
             return 1
         m = self._values.cardinality
-        if not math.isfinite(hi) or not self._values.is_discrete():
+        if not math.isfinite(hi) or not self._values.is_finite():
             return float("inf")
         hi, m, cap = int(hi), int(m), MAX_ENUMERABLE_LIST_VALUES
         if hi - lo > cap:
@@ -528,16 +532,16 @@ class ListIssue(Issue):
         return True
 
     def is_continuous(self) -> bool:
-        """List issues are never continuous ranges (see `is_discrete`)."""
+        """List issues are never continuous ranges."""
         return False
 
     def is_discrete(self) -> bool:
-        """True only if the issue is finite (and hence can be enumerated)."""
-        return math.isfinite(self._n_values)
+        """Whether finite or the element issue is discrete (then lists are countable)."""
+        return self.is_finite() or self.element.is_discrete()
 
     def is_finite(self) -> bool:
         """True if the issue has finitely many values."""
-        return self.is_discrete()
+        return math.isfinite(self._n_values)
 
     def is_numeric(self) -> bool:
         """List values are tuples, not numbers."""
@@ -579,7 +583,7 @@ class ListIssue(Issue):
         if self._key_idx is None:
             return [_canonical(element, element.rand()) for _ in range(n)]
         key_fields = self._key_fields()
-        if all(f.is_discrete() for f in key_fields):
+        if all(f.is_enumerable() for f in key_fields):
             # sample distinct keys directly, then fill the other fields
             k = int(self._n_keys())
             n = min(n, k)
@@ -724,7 +728,7 @@ class ListIssue(Issue):
     @property
     def all(self) -> Generator[tuple, None, None]:
         """All values, in a stable order. Only for finite list issues."""
-        if not self.is_discrete():
+        if not self.is_enumerable():
             raise ValueError(
                 f"The list issue {self.name} is infinite and cannot be enumerated. "
                 f"Sample it (rand, value_generator(n)) or use to_discrete()."
@@ -763,7 +767,7 @@ class ListIssue(Issue):
 
     def value_at(self, index: int):
         """The value at `index` in enumeration order (finite issues only)."""
-        if not self.is_discrete():
+        if not self.is_enumerable():
             raise ValueError(f"Cannot index the infinite list issue {self.name}")
         if index < 0 or index >= self.cardinality:
             raise IndexError(index)
@@ -794,7 +798,7 @@ class ListIssue(Issue):
         """
         if levels is not None or max_count_cap is not None:
             element = self._values
-            if not element.is_discrete():
+            if not element.is_enumerable():
                 element = element.to_discrete(levels if levels is not None else 10)
             mx = self._effective_max_count()
             mx = None if not math.isfinite(mx) else int(mx)
@@ -816,13 +820,13 @@ class ListIssue(Issue):
                 typical_count=self.typical_count,
             )
         if n is None or not math.isfinite(n):
-            if self.is_discrete():
+            if self.is_enumerable():
                 return self
             raise ValueError(
                 f"Cannot discretize the infinite list issue {self.name} without a "
                 f"finite number of values"
             )
-        if self.is_discrete() and self.cardinality <= n:
+        if self.is_enumerable() and self.cardinality <= n:
             return self
         return DiscreteListValuesIssue(
             list(_value_generator(self, int(n))), name=self.name, source=self
@@ -847,7 +851,7 @@ class ListIssue(Issue):
                 )
                 and self.element.contains(issue.element)
             )
-        if isinstance(issue, DiscreteIssue) and issue.is_discrete():
+        if isinstance(issue, DiscreteIssue) and issue.is_enumerable():
             return all(self.is_valid(_) for _ in issue.all)
         return False
 
@@ -1017,7 +1021,7 @@ class DiscreteListValuesIssue(CategoricalIssue):
 
 def _value_generator(issue: Issue, n: int | float | None) -> Generator:
     """All values of a finite issue (at most `n`), or `n` distinct samples."""
-    if issue.is_discrete() and (
+    if issue.is_enumerable() and (
         n is None or not math.isfinite(n) or issue.cardinality <= n
     ):
         yield from issue.all
@@ -1033,7 +1037,7 @@ def _rand_values(
     """`n` random values of `issue` (distinct unless `with_replacement`)."""
     if with_replacement:
         return [issue.rand() for _ in range(n)]
-    if issue.is_discrete() and issue.cardinality <= n:
+    if issue.is_enumerable() and issue.cardinality <= n:
         if fail_if_not_enough and issue.cardinality < n:
             raise ValueError(
                 f"Cannot sample {n} values out of {issue.cardinality} without "

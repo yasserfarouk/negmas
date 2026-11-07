@@ -145,7 +145,7 @@ def sample_outcomes(
     n_disc = 0
 
     for i, issue in enumerate(issues):
-        if not issue.is_discrete():
+        if not issue.is_enumerable():
             continuous.append(issue)
             indx.append(i)
         else:

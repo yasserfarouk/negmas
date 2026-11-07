@@ -80,10 +80,10 @@ def test_record_issue_roundtrips():
 # ---------------------------------------------------------------- ListIssue basics
 
 
-def test_list_issue_unbounded_is_infinite_and_not_discrete():
+def test_list_issue_unbounded_is_infinite_and_not_enumerable():
     issue = ListIssue("lots", delivery_record())
     assert issue.cardinality == float("inf")
-    assert not issue.is_discrete() and not issue.is_finite()
+    assert not issue.is_enumerable() and not issue.is_finite()
     assert not issue.is_continuous()
     with pytest.raises(ValueError):
         list(issue.all)
