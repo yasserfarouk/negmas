@@ -78,6 +78,13 @@ Unreleased
   resolve as ``negmas.<Name>``, and the new classes were not exported there.
   ``SingletonIssue``, ``SingletonOutcomeSpace``, ``UFunConstraint`` and
   ``UtilityFunctionAdapter`` had the same problem.
+* [typing] Annotations in ``genius/negotiator.py``, ``situated/world.py`` and
+  ``scripts/negotiate_core.py`` named ``Agent``, ``Action`` and ``Any`` without
+  importing them, so type checkers and ``typing.get_type_hints`` could not
+  resolve them.
+* [docs] The ``NiceTitForTatNegotiator`` docstring no longer emits an
+  "Unexpected indentation" warning in the docs build, and its grouped
+  parameter descriptions now match the code.
 
 Release 0.16.0
 --------------
