@@ -1,0 +1,58 @@
+discount: 0.5
+dynamic_reservation: true
+factor: step
+name: Camera-B-prof1
+reserved_outcome: null
+reserved_value: -.inf
+stability: 500
+type: ExpDiscountedUFun
+ufun:
+  name: Camera-B-prof1
+  reserved_outcome: null
+  reserved_value: 0.0
+  stability: 2047
+  type: LinearAdditiveUtilityFunction
+  values:
+  - mapping:
+      Canon: 320.0
+      Nikon: 300.0
+      Panasonic: 30.0
+      Pentax: 10.0
+      Sony: 25.0
+    type: TableFun
+  - mapping:
+      APS-C: 50.0
+      Full size: 150.0
+      Micro Four Thirds: 20.0
+      compact: 10.0
+    type: TableFun
+  - mapping:
+      Entry model: 30.0
+      High end model: 350.0
+      Middle range model: 100.0
+    type: TableFun
+  - mapping:
+      GITZO: 525.0
+      Induro: 25.0
+      Manfrotto: 250.0
+    type: TableFun
+  - mapping:
+      Artizan and Artist: 15.0
+      Domke: 340.0
+      Lowepro: 55.0
+      National Geographic: 45.0
+      Tamrac: 35.0
+    type: TableFun
+  - mapping:
+      Battery Grip: 220.0
+      Electronic Flash: 40.0
+      Memory: 10.0
+      Strap: 5.0
+    type: TableFun
+  weights:
+  - 0.34
+  - 0.06
+  - 0.13
+  - 0.09
+  - 0.11
+  - 0.27

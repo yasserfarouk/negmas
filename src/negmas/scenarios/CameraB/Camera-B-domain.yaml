@@ -1,0 +1,46 @@
+issues:
+- name: Maker
+  type: CategoricalIssue
+  values:
+  - Canon
+  - Nikon
+  - Pentax
+  - Sony
+  - Panasonic
+- name: Body
+  type: CategoricalIssue
+  values:
+  - Full size
+  - APS-C
+  - Micro Four Thirds
+  - compact
+- name: Lens
+  type: CategoricalIssue
+  values:
+  - High end model
+  - Middle range model
+  - Entry model
+- name: Tripod
+  type: CategoricalIssue
+  values:
+  - GITZO
+  - Manfrotto
+  - Induro
+- name: Bag
+  type: CategoricalIssue
+  values:
+  - Domke
+  - Lowepro
+  - Tamrac
+  - National Geographic
+  - Artizan and Artist
+- name: Accessory
+  type: CategoricalIssue
+  values:
+  - Electronic Flash
+  - Battery Grip
+  - Memory
+  - Strap
+name: Camera-B-domain
+path: __PATH__:/Users/yasser/code/projects/negmas/src/negmas/scenarios/CameraB/Camera-B-domain.yaml
+type: EnumerableCartesianOutcomeSpace
