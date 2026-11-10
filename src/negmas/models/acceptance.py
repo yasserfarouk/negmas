@@ -4,6 +4,7 @@ Acceptance modeling.
 
 from __future__ import annotations
 
+import copy
 import random
 from abc import ABC, abstractmethod
 from enum import Enum
@@ -379,7 +380,9 @@ class PeekingDiscreteAcceptanceModel(DiscreteAcceptanceModel):
             if opponent._nmi is None:
                 response = ResponseType.REJECT_OFFER
             else:
-                response = opponent.respond_(state=opponent._nmi.state, offer=outcome)  # type: ignore
+                state = copy.copy(opponent._nmi.state)
+                state.current_offer = outcome
+                response = opponent.respond_(state=state)  # type: ignore
             if response != ResponseType.ACCEPT_OFFER:
                 return 0.0
         return 1.0

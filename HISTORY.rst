@@ -1,6 +1,23 @@
 History
 =======
 
+Unreleased
+----------
+
+**Bug Fixes:**
+
+* [models] ``PeekingDiscreteAcceptanceModel`` (also used by
+  ``UncertainOpponentModel(accesses_real_acceptance=True)``) called
+  ``respond_(state=..., offer=...)``, which raised ``TypeError`` because
+  ``respond_`` no longer takes an ``offer`` argument. It now probes each
+  opponent with a copy of the state whose ``current_offer`` is the outcome.
+
+**Changes:**
+
+* [scenarios] The bundled ``CameraB`` scenario now also ships its domain and
+  profiles as YAML, along with precomputed ``_stats.yaml``, next to the
+  original Genius XML files.
+
 Release 0.17.0
 --------------
 
