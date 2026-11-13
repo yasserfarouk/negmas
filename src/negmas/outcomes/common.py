@@ -37,6 +37,12 @@ Constraint = Callable[[Outcome], bool]
 """
 A binary callable that receives an outcome and returns True if the outcome
 satisfies the constraint, False otherwise.
+
+A constraint object may also provide an optional
+``repair(outcome) -> Outcome | None`` method returning an outcome that
+satisfies it (preferably close to the given one), or None if it cannot. Outcome
+spaces use it to sample and mutate outcomes under constraints that rejection
+sampling would almost never satisfy (e.g. equalities such as a fixed total).
 """
 
 

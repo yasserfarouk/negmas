@@ -2128,7 +2128,16 @@ def _searched_extremes(ufun, os, n_samples: int = 2000, n_steps: int = 500) -> l
     def ok(o):
         return os.is_valid(o) and ufun.satisfies_constraints(o)
 
-    pool = [o for o in (os.random_outcome() for _ in range(n_samples)) if ok(o)]
+    pool = []
+    for _ in range(n_samples):
+        try:
+            o = os.random_outcome()
+        except ValueError:
+            # A constrained space whose rejection sampling gave up: keep what
+            # was found instead of failing the whole search.
+            break
+        if ok(o):
+            pool.append(o)
     if not pool:
         return pool
     for sign in (1.0, -1.0):

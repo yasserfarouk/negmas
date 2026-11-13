@@ -191,6 +191,52 @@ class TestCartesianOutcomeSpaceConstraints:
         assert not os.satisfies_constraints((0, 1))  # fails constraint1
         assert not os.satisfies_constraints((1, 2))  # fails constraint2
 
+    def test_is_valid_checks_constraints(self):
+        """is_valid (and `in`) reject an outcome that breaks a constraint."""
+        os = CartesianOutcomeSpace(
+            issues=[make_issue([0, 1, 2], "x"), make_issue([0, 1], "y")],
+            constraints=[lambda o: o[0] != 1],
+        )
+        assert os.is_valid((0, 0))
+        assert not os.is_valid((1, 0))
+        assert (1, 0) not in os
+
+    def test_repair_uses_the_constraint_hook(self):
+        """A violated constraint with a `repair` hook is repaired; without one, None."""
+
+        class SumIsFive:
+            def __call__(self, o):
+                return o[0] + o[1] == 5
+
+            def repair(self, o):
+                return (o[0], 5 - o[0]) if 0 <= 5 - o[0] <= 10 else None
+
+        issues = [make_issue((0, 10), "x"), make_issue((0, 10), "y")]
+        os = CartesianOutcomeSpace(issues=issues, constraints=[SumIsFive()])
+        assert os.repair((2, 2)) == (2, 3)
+        assert os.repair((2, 3)) == (2, 3)
+        plain = CartesianOutcomeSpace(issues=issues, constraints=[SumIsFive().__call__])
+        assert plain.repair((2, 2)) is None
+
+    def test_random_outcome_repairs_an_equality_constraint(self):
+        """Rejection sampling cannot hit an equality on a wide space; repair can."""
+
+        class SumIsFive:
+            def __call__(self, o):
+                return o[0] + o[1] == 5
+
+            def repair(self, o):
+                x = min(o[0], 5)
+                return (x, 5 - x)
+
+        os = CartesianOutcomeSpace(
+            issues=[make_issue((0, 10_000), "x"), make_issue((0, 10_000), "y")],
+            constraints=[SumIsFive()],
+        )
+        for _ in range(20):
+            o = os.random_outcome()
+            assert o[0] + o[1] == 5 and os.is_valid(o)
+
 
 class TestDiscreteCartesianOutcomeSpaceConstraints:
     """Tests for EnumerableCartesianOutcomeSpace constraints."""

@@ -35,7 +35,19 @@ def mutate_outcome(outcome_space, outcome: Outcome) -> Outcome:
     issue = issues[i]
     mutate = getattr(issue, "mutate", None)
     v = mutate(outcome[i]) if mutate is not None else issue.rand()
-    return tuple(outcome[:i]) + (v,) + tuple(outcome[i + 1 :])
+    candidate = tuple(outcome[:i]) + (v,) + tuple(outcome[i + 1 :])
+    # On a constrained space a mutation usually breaks a constraint; repair it
+    # when the constraints can (see `CartesianOutcomeSpace.repair`).
+    repair = getattr(outcome_space, "repair", None)
+    if (
+        repair is not None
+        and getattr(outcome_space, "constraints", None)
+        and not outcome_space.satisfies_constraints(candidate)
+    ):
+        repaired = repair(candidate)
+        if repaired is not None:
+            return repaired
+    return candidate
 
 
 def needs_search(outcome_space) -> bool:

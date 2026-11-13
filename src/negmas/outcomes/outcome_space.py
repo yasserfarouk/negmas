@@ -532,6 +532,22 @@ class CartesianOutcomeSpace(XmlSerializable):
         """
         return all(constraint(outcome) for constraint in self._constraints)
 
+    def repair(self, outcome: Outcome) -> Outcome | None:
+        """An outcome valid in this space made from `outcome`, or None.
+
+        Each violated constraint that has a ``repair`` hook (see `Constraint`)
+        is asked to repair the outcome, in order. Returns None if a violated
+        constraint has no hook, a hook gives up, or the result is still invalid.
+        """
+        for c in self._constraints:
+            if c(outcome):
+                continue
+            fix = getattr(c, "repair", None)
+            outcome = fix(outcome) if fix is not None else None
+            if outcome is None:
+                return None
+        return outcome if self.is_valid(outcome) else None
+
     def __mul__(self, other: CartesianOutcomeSpace) -> CartesianOutcomeSpace:
         """Returns a new outcome space that is the Cartesian product of this space and another."""
         issues = list(self.issues) + list(other.issues)
@@ -547,8 +563,14 @@ class CartesianOutcomeSpace(XmlSerializable):
         return x in self.issues
 
     def is_valid(self, outcome: Outcome) -> bool:
-        """Checks if the given outcome is valid within this outcome space."""
-        return outcome_is_valid(outcome, self.issues)
+        """Checks if the given outcome is valid within this outcome space.
+
+        Valid means every value is valid for its issue AND the outcome satisfies
+        every constraint added to the space (see `add_constraint`).
+        """
+        return outcome_is_valid(outcome, self.issues) and self.satisfies_constraints(
+            outcome
+        )
 
     def is_discrete(self) -> bool:
         """Whether all issues are discrete (countable, possibly infinite)."""
@@ -774,6 +796,9 @@ class CartesianOutcomeSpace(XmlSerializable):
             outcome = tuple(_.rand() for _ in self.issues)
             if self.satisfies_constraints(outcome):
                 return outcome
+            repaired = self.repair(outcome)
+            if repaired is not None:
+                return repaired
         raise ValueError(
             f"Could not generate a random outcome satisfying all constraints after {max_attempts} attempts"
         )

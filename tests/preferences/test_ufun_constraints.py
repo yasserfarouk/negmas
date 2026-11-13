@@ -441,3 +441,54 @@ class TestConstraintIntegration:
                 assert ufun(outcome) == float("-inf")
             else:
                 assert ufun(outcome) != float("-inf")
+
+
+def test_stock_negotiators_offer_only_valid_outcomes_under_a_repairable_constraint():
+    """Boulware on a constrained list-issue space: no crash, every offer valid.
+
+    The constraint (order A's quantities sum to 40) is an equality that
+    rejection sampling almost never satisfies; its `repair` hook makes the
+    extremes search and the inverter work.
+    """
+    from negmas.outcomes import make_issue, make_os
+    from negmas.outcomes.list_issue import ListIssue, RecordIssue
+    from negmas.preferences import MappingUtilityFunction
+    from negmas.sao import BoulwareTBNegotiator, SAOMechanism
+
+    class TotalOfA:
+        def __call__(self, o):
+            return sum(q for k, q, _ in o[0] if k == "A") == 40
+
+        def repair(self, o):
+            lines = list(o[0])
+            idx = [i for i, (k, _, _) in enumerate(lines) if k == "A"]
+            if not idx or len(idx) > 40:
+                return None
+            for j, i in enumerate(idx):
+                k, _, d = lines[i]
+                lines[i] = (k, 1 if j < len(idx) - 1 else 41 - len(idx), d)
+            return (tuple(lines),)
+
+    record = RecordIssue(
+        [
+            make_issue(["A", "B"], "order_id"),
+            make_issue((1, 1000), "quantity"),
+            make_issue((0, 30), "day"),
+        ]
+    )
+    issue = ListIssue(
+        "plan", record, min_count=1, max_count=10, unique_by=["order_id", "day"]
+    )
+    os = make_os([issue])
+    constraint = TotalOfA()
+    os.add_constraint(constraint)
+    u1 = MappingUtilityFunction(lambda o: -len(o[0]) if o else 0, outcome_space=os)
+    u2 = MappingUtilityFunction(lambda o: len(o[0]) if o else 0, outcome_space=os)
+    m = SAOMechanism(outcome_space=os, n_steps=20)
+    m.add(BoulwareTBNegotiator(ufun=u1))
+    m.add(BoulwareTBNegotiator(ufun=u2))
+    state = m.run()
+    offers = [o for _, _, o in m.extended_trace if o is not None]
+    assert offers
+    assert all(constraint(o) for o in offers)
+    assert state.agreement is None or constraint(state.agreement)
