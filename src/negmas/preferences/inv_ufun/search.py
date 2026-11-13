@@ -53,9 +53,9 @@ def mutate_outcome(outcome_space, outcome: Outcome) -> Outcome:
 def needs_search(outcome_space) -> bool:
     """True if the space has an issue that must be searched, not enumerated.
 
-    These are list issues (unless the space is small and finite), and
+    These are list issues (unless the space is small and finite),
     non-enumerable issues that are not continuous ranges (e.g. strings or
-    unbounded integers).
+    unbounded integers), and any constrained space that is not small.
     """
     from negmas.outcomes.list_issue import ListIssue
 
@@ -64,6 +64,12 @@ def needs_search(outcome_space) -> bool:
         return False
     if outcome_space.is_enumerable() and outcome_space.cardinality <= SMALL_SPACE:
         return False  # small enough to enumerate exactly
+    if getattr(outcome_space, "constraints", None):
+        # A constrained space that is not small: the analytic shortcuts (BIDS,
+        # per-issue extremes) ignore its constraints, and filtering it means
+        # enumerating it, so it is searched (sampled and mutated through the
+        # constraints' repair hooks).
+        return True
     return any(
         isinstance(_, ListIssue) or (not _.is_enumerable() and not _.is_continuous())
         for _ in issues

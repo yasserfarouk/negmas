@@ -509,3 +509,42 @@ def test_linear_additive_extremes_respect_outcome_space_constraints():
     assert os.is_valid(worst) and os.is_valid(best)
     assert u(best) == 4
     assert u(worst) == 0
+
+
+class _SumAtMost:
+    """sum(outcome) <= limit, repaired by lowering values from the last one."""
+
+    def __init__(self, limit):
+        self.limit = limit
+
+    def __call__(self, o):
+        return sum(o) <= self.limit
+
+    def repair(self, o):
+        o, excess = list(o), sum(o) - self.limit
+        for i in reversed(range(len(o))):
+            cut = min(o[i], max(excess, 0))
+            o[i] -= cut
+            excess -= cut
+        return tuple(o)
+
+
+def test_boulware_on_a_large_constrained_space_uses_search_not_presorting():
+    """10^12 outcomes with a constraint: BIDS is unusable (it ignores
+    constraints) and presorting cannot discretize the space; the adaptive
+    inverter must search, and every offer must be valid."""
+    from negmas.outcomes import make_issue, make_os
+    from negmas.preferences import LinearAdditiveUtilityFunction as LU
+    from negmas.sao import BoulwareTBNegotiator, SAOMechanism
+
+    os = make_os(
+        [make_issue((0, 100), f"x{i}") for i in range(6)], constraints=[_SumAtMost(300)]
+    )
+    m = SAOMechanism(outcome_space=os, n_steps=30)
+    m.add(BoulwareTBNegotiator(ufun=LU.random(os, reserved_value=0.0, normalized=True)))
+    m.add(BoulwareTBNegotiator(ufun=LU.random(os, reserved_value=0.0, normalized=True)))
+    state = m.run()
+    assert not state.has_error, state.error_details
+    offers = [o for _, _, o in m.extended_trace if o is not None]
+    assert offers and all(sum(o) <= 300 for o in offers)
+    assert state.agreement is None or sum(state.agreement) <= 300

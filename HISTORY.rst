@@ -28,6 +28,9 @@ Unreleased
   inverter's BIDS choice ignored the outcome space's constraints; they now use
   the generic (search) path on a constrained space.
 * [outcomes] ``CartesianOutcomeSpace.from_dict`` failed with a ``TypeError``.
+* [preferences] On a large constrained space, extreme outcomes enumerated the
+  whole space and the adaptive inverter picked presorting (which cannot
+  discretize it); such spaces are now searched (``needs_search``).
 
 * [models] ``PeekingDiscreteAcceptanceModel`` (also used by
   ``UncertainOpponentModel(accesses_real_acceptance=True)``) called
