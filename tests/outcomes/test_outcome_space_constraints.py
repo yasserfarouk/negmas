@@ -10,6 +10,7 @@ from negmas.outcomes import (
     EnumeratingOutcomeSpace,
     SingletonOutcomeSpace,
     make_issue,
+    make_os,
 )
 
 
@@ -454,3 +455,70 @@ class TestConstraintEdgeCases:
 
         # All outcomes should satisfy the constraint
         assert all(o[0] + o[1] > 2 for o in outcomes)
+
+
+class SumIs:
+    """A constraint class (with a repair hook) that can be serialized."""
+
+    def __init__(self, total=5):
+        self.total = total
+
+    def __call__(self, outcome):
+        return outcome[0] + outcome[1] == self.total
+
+    def repair(self, outcome):
+        x = min(outcome[0], self.total)
+        return (x, self.total - x)
+
+
+class TestConstraintSerializationAndSampling:
+    """Serialization of constraints and constraint-respecting sampling."""
+
+    def _issues(self):
+        return [make_issue((0, 10000), "x"), make_issue((0, 10000), "y")]
+
+    def test_round_trip_class_constraint(self):
+        os = CartesianOutcomeSpace(issues=self._issues(), constraints=[SumIs(5)])
+        d = os.to_dict()
+        assert len(d["constraints"]) == 1
+        restored = CartesianOutcomeSpace.from_dict(d)
+        assert len(restored.constraints) == 1
+        for o in [(2, 3), (0, 5), (1, 1), (9999, 0)]:
+            assert restored.is_valid(o) == os.is_valid(o)
+        assert restored.repair((2, 9)) == (2, 3)
+        assert restored.repair((9, 9)) == (5, 0)
+
+    def test_lambda_constraint_skipped_with_warning(self):
+        os = CartesianOutcomeSpace(
+            issues=self._issues(), constraints=[lambda o: True, SumIs(5)]
+        )
+        with pytest.warns(UserWarning, match="1 constraint"):
+            d = os.to_dict()
+        assert len(d["constraints"]) == 1
+
+    def test_only_lambda_constraint_omits_key(self):
+        os = CartesianOutcomeSpace(issues=self._issues(), constraints=[lambda o: True])
+        with pytest.warns(UserWarning):
+            d = os.to_dict()
+        assert "constraints" not in d
+
+    def test_no_constraints_dict_unchanged(self):
+        d = CartesianOutcomeSpace(issues=self._issues(), name="a").to_dict()
+        assert "constraints" not in d
+        assert set(d) == {"__python_class__", "name", "issues"}
+
+    def test_make_os_passes_constraints(self):
+        os = make_os(self._issues(), constraints=[SumIs(5)])
+        assert len(os.constraints) == 1
+
+    def test_sample_respects_equality_constraint_with_repair(self):
+        os = CartesianOutcomeSpace(issues=self._issues(), constraints=[SumIs(5)])
+        samples = list(os.sample(20))
+        assert len(samples) == 20
+        assert all(os.is_valid(o) for o in samples)
+
+    def test_sample_without_repair_returns_what_it_finds(self):
+        os = CartesianOutcomeSpace(
+            issues=self._issues(), constraints=[lambda o: o[0] + o[1] == 5]
+        )
+        assert list(os.sample(5)) == []

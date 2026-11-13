@@ -492,3 +492,20 @@ def test_stock_negotiators_offer_only_valid_outcomes_under_a_repairable_constrai
     assert offers
     assert all(constraint(o) for o in offers)
     assert state.agreement is None or constraint(state.agreement)
+
+
+def test_linear_additive_extremes_respect_outcome_space_constraints():
+    """The analytic extremes are skipped when the outcome space is constrained."""
+    from negmas.outcomes import make_os
+
+    os = make_os(
+        [make_issue(list(range(5)), "x"), make_issue(list(range(5)), "y")],
+        constraints=[lambda o: o[0] + o[1] <= 4],
+    )
+    u = LinearAdditiveUtilityFunction(
+        values=[lambda v: v, lambda v: v], weights=(1.0, 1.0), outcome_space=os
+    )
+    worst, best = u.extreme_outcomes()
+    assert os.is_valid(worst) and os.is_valid(best)
+    assert u(best) == 4
+    assert u(worst) == 0

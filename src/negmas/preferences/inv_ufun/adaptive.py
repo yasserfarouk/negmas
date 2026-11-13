@@ -147,7 +147,9 @@ class AdaptiveInverseUtilityFunction(InverseUFun):
         if is_additive:
             os = self._ufun.outcome_space
             cardinality = os.cardinality if os is not None else float("inf")
-            use_bids = cardinality > self._max_presorting
+            use_bids = cardinality > self._max_presorting and not getattr(
+                os, "constraints", None
+            )  # BIDS ignores outcome-space constraints
 
         if use_bids:
             return BIDSInverseUtilityFunction(

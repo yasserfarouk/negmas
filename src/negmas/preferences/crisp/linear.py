@@ -622,8 +622,8 @@ class AffineUtilityFunction(UtilityFunction):
 
         result = None
         if outcome_space is not None:
-            # If there are constraints, fall back to parent implementation which enumerates and filters
-            if self._constraints:
+            # If the ufun or the outcome space has constraints, fall back to parent implementation which enumerates and filters
+            if self._constraints or getattr(outcome_space, "constraints", None):
                 result = super().extreme_outcomes(
                     original_os, issues, outcomes, max_cardinality
                 )
@@ -1082,8 +1082,8 @@ class LinearAdditiveUtilityFunction(UtilityFunction):  # type: ignore
             outcome_space = self.outcome_space
 
         result = None
-        # If there are constraints, fall back to parent implementation which enumerates and filters
-        if self._constraints:
+        # If the ufun or the outcome space has constraints, fall back to parent implementation which enumerates and filters
+        if self._constraints or getattr(outcome_space, "constraints", None):
             result = super().extreme_outcomes(
                 original_os, issues, outcomes, max_cardinality
             )

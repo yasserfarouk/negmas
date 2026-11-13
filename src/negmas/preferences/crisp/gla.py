@@ -279,6 +279,7 @@ class GLAUtilityFunction(UtilityFunction):
             issues is None
             and outcomes is None
             and not self._constraints
+            and not getattr(os_, "constraints", None)
             and isinstance(os_, CartesianOutcomeSpace)
             and any(isinstance(_, ListIssue) for _ in os_.issues)
         )

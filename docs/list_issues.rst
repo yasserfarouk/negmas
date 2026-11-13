@@ -156,3 +156,34 @@ next to the finite bound (or around 0). `StrIssue` holds any string within the
 length bounds; score it with a callable (e.g. ``LambdaFun``). None of these
 issues is enumerated, and normalizing a value function that is unbounded over
 one of them raises a clear error.
+
+Constraints across elements
+---------------------------
+
+A rule over the whole list, such as "the quantities of each order add up to
+the ordered amount", is an outcome-space constraint: a callable returning
+``True`` for a valid outcome. Rejection sampling almost never hits an
+equality, so a constraint object may also define ``repair(outcome)``, which
+`CartesianOutcomeSpace` uses when sampling, drawing random outcomes and
+mutating them:
+
+.. code-block:: python
+
+    class TotalIs:
+        def __init__(self, total):
+            self.total = total
+
+        def __call__(self, o):
+            return sum(q for _, q in o[0]) == self.total
+
+        def repair(self, o):
+            lots = list(o[0])
+            rest = self.total - sum(q for _, q in lots[:-1])
+            return ((*lots[:-1], (lots[-1][0], rest)),) if rest >= 1 else None
+
+
+    os = make_os([lots_issue], constraints=[TotalIs(40)])
+    assert all(os.is_valid(o) for o in os.sample(10))
+
+Constraints that are instances of module-level classes are kept by
+``to_dict``/``from_dict``.

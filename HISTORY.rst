@@ -4,7 +4,30 @@ History
 Unreleased
 ----------
 
+**New:**
+
+* [outcomes] A constraint may provide ``repair(outcome)`` returning an outcome
+  that satisfies it (or ``None``). ``CartesianOutcomeSpace.repair()`` applies
+  the hooks of the violated constraints, and ``random_outcome()``, ``sample()``
+  and the search inverter's mutations use it, so equality constraints (a fixed
+  total) can be sampled. ``sample()`` on a constrained space keeps drawing (up
+  to 10x the request) and returns what it found instead of failing.
+* [outcomes] ``CartesianOutcomeSpace.to_dict``/``from_dict`` keep the
+  constraints that can be serialized (instances of module-level classes);
+  lambdas and closures are skipped with a warning. ``make_os`` takes
+  ``constraints=``.
+
 **Bug Fixes:**
+
+* [outcomes] ``CartesianOutcomeSpace.is_valid`` (and ``in``, and so the SAO
+  offer check) ignored the space's constraints.
+* [preferences] Searching a constrained space for extreme outcomes crashed
+  when rejection sampling found no valid outcome, which crashed time-based
+  negotiators.
+* [preferences] Linear/affine/GLA ``extreme_outcomes`` and the adaptive
+  inverter's BIDS choice ignored the outcome space's constraints; they now use
+  the generic (search) path on a constrained space.
+* [outcomes] ``CartesianOutcomeSpace.from_dict`` failed with a ``TypeError``.
 
 * [models] ``PeekingDiscreteAcceptanceModel`` (also used by
   ``UncertainOpponentModel(accesses_real_acceptance=True)``) called
@@ -17,6 +40,8 @@ Unreleased
 * [scenarios] The bundled ``CameraB`` scenario now also ships its domain and
   profiles as YAML, along with precomputed ``_stats.yaml``, next to the
   original Genius XML files.
+* [docs] Updated ecosystem figure.
+* [deps] Lockfile refreshed (dependabot alerts).
 
 Release 0.17.0
 --------------

@@ -2,6 +2,8 @@
 
 from __future__ import annotations
 
+import functools
+import inspect
 from math import isinf
 import numbers
 from pathlib import Path
@@ -24,7 +26,7 @@ from negmas.outcomes.outcome_ops import (
 from negmas.outcomes.common import Constraint
 from negmas.protocols import XmlSerializable
 from negmas.serialization import PYTHON_CLASS_IDENTIFIER, deserialize, serialize
-from negmas.warnings import NegmasSpeedWarning, warn
+from negmas.warnings import NegmasSarializationWarning, NegmasSpeedWarning, warn
 
 from .base_issue import DiscreteIssue, Issue
 from .categorical_issue import CategoricalIssue
@@ -65,11 +67,21 @@ DistanceFun = Callable[[Outcome, Outcome, Union[OutcomeSpace, None]], float]
 """A callable that can calculate the distance between two outcomes in an outcome-space"""
 
 
+def _is_serializable_constraint(c) -> bool:
+    """True if `c` is an instance of a module-level class (not a function)."""
+    return (
+        not inspect.isroutine(c)
+        and not isinstance(c, functools.partial)
+        and "<locals>" not in type(c).__qualname__
+    )
+
+
 def make_os(
     issues: Sequence[Issue] | None = None,
     outcomes: Sequence[Outcome] | None = None,
     name: str | None = None,
     path: Path | None = None,
+    constraints: Sequence[Constraint] | None = None,
 ) -> CartesianOutcomeSpace:
     """
     A factory to create outcome-spaces from lists of `Issue` s or `Outcome` s.
@@ -98,9 +110,17 @@ def make_os(
     issues_ = tuple(issues_)
     if all(_.is_enumerable() for _ in issues_):
         return EnumerableCartesianOutcomeSpace(
-            issues_, name=name if name else "", path=path
+            issues_,
+            name=name if name else "",
+            path=path,
+            constraints=list(constraints) if constraints else [],
         )
-    return CartesianOutcomeSpace(issues_, name=name if name else "", path=path)
+    return CartesianOutcomeSpace(
+        issues_,
+        name=name if name else "",
+        path=path,
+        constraints=list(constraints) if constraints else [],
+    )
 
 
 def _grid_indices(n: int, k: int) -> list[int]:
@@ -614,18 +634,37 @@ class CartesianOutcomeSpace(XmlSerializable):
     def to_dict(self, python_class_identifier=PYTHON_CLASS_IDENTIFIER):
         """Serializes the outcome space to a dictionary representation."""
         d = {python_class_identifier: get_full_type_name(type(self))}
+        extra = {}
+        if self._constraints:
+            # Only constraint objects (instances of module-level classes) can
+            # round-trip. Plain functions (lambdas, closures, named functions)
+            # are skipped: they serialize to opaque pickled bytes, not JSON.
+            keep = [c for c in self._constraints if _is_serializable_constraint(c)]
+            if len(keep) < len(self._constraints):
+                warn(
+                    f"{len(self._constraints) - len(keep)} constraint(s) of outcome "
+                    f"space {self.name!r} are plain functions and were not serialized",
+                    NegmasSarializationWarning,
+                )
+            if keep:
+                extra["constraints"] = serialize(
+                    keep, python_class_identifier=python_class_identifier
+                )
         return dict(
             **d,
             name=self.name,
             issues=serialize(
                 self.issues, python_class_identifier=python_class_identifier
             ),
+            **extra,
         )
 
     @classmethod
     def from_dict(cls, d, python_class_identifier=PYTHON_CLASS_IDENTIFIER):
         """Deserializes an outcome space from a dictionary representation."""
-        return cls(**deserialize(d, python_class_identifier=python_class_identifier))  # type: ignore
+        r = deserialize(d, python_class_identifier=python_class_identifier)
+        # `deserialize` already builds the object when the type field is present
+        return r if isinstance(r, cls) else cls(**r)  # type: ignore
 
     @property
     def issue_names(self) -> list[str]:
@@ -776,13 +815,30 @@ class CartesianOutcomeSpace(XmlSerializable):
         seed: int | None = None,
     ) -> Iterable[Outcome]:
         """Samples outcomes from this space, with or without replacement."""
-        samples = sample_issues(
-            self.issues, n_outcomes, with_replacement, fail_if_not_enough
-        )
         if not self._constraints:
-            return samples
-        # Filter by constraints
-        return (o for o in samples if self.satisfies_constraints(o))
+            return sample_issues(
+                self.issues, n_outcomes, with_replacement, fail_if_not_enough
+            )
+        # With constraints: violating samples are repaired (see `repair`) or
+        # dropped, drawing at most 10 * n_outcomes times. Returns the valid
+        # outcomes found (possibly fewer than n_outcomes, never an error);
+        # `fail_if_not_enough` only applies to the unconstrained draw.
+        found: list[Outcome] = []
+        seen = set()
+        for _ in range(10 * n_outcomes):
+            if len(found) >= n_outcomes:
+                break
+            o = tuple(i.rand() for i in self.issues)
+            if not self.satisfies_constraints(o):
+                o = self.repair(o)
+                if o is None:
+                    continue
+            if not with_replacement:
+                if o in seen:
+                    continue
+                seen.add(o)
+            found.append(o)
+        return found
 
     @seedable
     def random_outcome(self, *, seed: int | None = None):
